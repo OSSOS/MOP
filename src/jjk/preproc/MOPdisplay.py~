@@ -1,0 +1,123 @@
+#!/usr/cadc/misc/bin/python
+
+### Display a paritcular image[RA/DEC] area
+
+
+from optparse import OptionParser
+import MOPdbaccess, MOPfits
+import logging
+import sys,os
+logging.basicConfig()
+logger=logging.getLogger(sys.argv[0])
+
+
+
+
+parser=OptionParser()
+
+parser.add_option("--file","-f",type="string",help="file to display in ds9 display")
+parser.add_option("--objectID","-o",type="int",help="Object ID to display images of")
+parser.add_option("--sourceID","-s",type="int",help="Source ID to display image of")
+parser.add_option("--verbose","-v",action="store_true",help="Tell you what I'm doing.")
+parser.add_option("--debug","-d",action="store_true",help="Tell you how I'm doing.")
+
+
+(opt,args)=parser.parse_args()
+
+if opt.verbose: logger.setLevel(logging.INFO)
+if opt.debug: logger.setLevel(logging.DEBUG)
+
+
+def xpacheck():
+	"""Check if xpa is running"""
+	import os
+	f=os.popen('xpaaccess ds9')
+	l=f.readline()
+	f.close()
+	if l.strip()!='yes':
+   		logger.debug("\t Can't get ds9 access, xpaccess said: %s" % ( l.strip()))
+		return (False)
+	return(True)
+
+def newFrame():
+	"""Create a ds9 Frame"""
+	os.system('xpaset -p ds9 frame new')
+	
+def scale():
+	"""set the scale of the current frame to inverted zscale"""
+    	os.system('xpaset -p ds9 scale zscale on')
+    	os.system('xpaset -p ds9 cmap invert yes')
+	os.system('xpaset -p ds9 wcs align yes')
+	os.system('xpaset -p ds9 scale datasec no')
+	return
+
+def deleteFrames(frame='all'):
+	"""delete all frames"""
+	os.system('xpaset -p ds9 frame delete %s' % ( str(frame)))
+	return
+
+def mark(x,y,label=None):
+	"""Mark a circle on the current image"""
+	if label is not None: 
+	    os.system("xpaset -p ds9 regions color red ")
+	    cmd="echo 'image; text %d %d # text={%s}' | xpaset ds9 regions " % ( x,y,label) 
+	else:
+	    os.system("xpaset -p ds9 regions color blue")
+	    cmd="echo 'image; circle %d %d 10 ' | xpaset ds9 regions " % (x,y)
+	os.system(cmd)
+	return
+		 
+
+def display(url):
+	"""Display a file in ds9"""
+	import os
+	oscmd="curl --silent -g --fail --max-time 1800 --user jkavelaars:newone '%s'" % (url)
+	logger.debug(oscmd)
+    	os.system(oscmd+' | xpaset ds9 fits')
+	return
+	
+if not xpacheck():
+	if os.system("ds9 &"):
+		sys.exit("\tCan't see or start ds9")
+	while not xpacheck():
+		logger.info("\tWaiting for ds9")
+
+if opt.file:
+	newFrame()
+	scale()
+	display("file:%s" % ( opt.file ) )
+	sys.exit()
+	
+sql="""SELECT expnum,ccd,xPix,yPix FROM source s """
+
+if opt.objectID:
+	sql+="""JOIN object_idx oi ON s.sourceID=oi.sourceID WHERE objectID=%d""" % ( int(opt.objectID))
+
+if opt.sourceID:
+	sql+=""" WHERE s.sourceID=%d""" % ( int(opt.sourceID))
+
+db=MOPdbaccess.connect('cfeps','cfhls',dbSystem='MYSQL')
+c=db.cursor()
+c.execute(sql)
+rows=c.fetchall()
+db.close()
+
+
+import MOPfits
+
+deleteFrames()
+for row in rows:
+	logger.debug(str(row))
+	width=150
+	xmin=max(1,int(row[2])-width)
+	xmax=min(2112,int(row[2])+width)
+	ymin=max(1,int(row[3])-width)
+	ymax=min(4644,int(row[3])+width)
+	cutout="[%d:%d,%d:%d]" % ( xmin,xmax,ymin,ymax)
+	newFrame()
+	display(MOPfits.getDataURL(str(row[0])+'p',ext_no=row[1]+1,cutout=cutout))
+	mark(row[2]-xmin+1,row[3]-ymin+1)
+	mark(40,-10,str(row[0]))
+	scale()
+
+sys.exit(0)
