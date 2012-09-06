@@ -1,0 +1,54 @@
+#!/usr/cadc/misc/bin/python
+
+import math
+import MOPfiles
+import sys
+tol=2.0
+output={}
+outname=sys.argv[1]
+filenames=sys.argv[2:]
+files=[]
+for filename in filenames:
+    this_file=MOPfiles.read(filename)
+    ## match files based on the 'X' and 'Y' column.
+    ## if those don't exist then skip this file
+    if not this_file['data'].has_key('X') or not this_file['data'].has_key('Y'):
+        continue
+    if not output.has_key('data'):
+        output=this_file
+        continue
+    delete_list=[]
+    for keyword in this_file['header']:
+        if not keyword in output['header']:
+            output['header'][keyword]=this_file['header'][keyword]
+    for col in this_file['data'].keys():
+        if not output['data'].has_key(col):
+            output['order'].append(col)
+            output['data'][col]=[]
+            for i in range(len(output['data']['X'])):
+                output['data'][col].append(None)
+    for i in xrange(len(output['data']['X'])):
+        x1=float(output['data']['X'][i])
+        y1=float(output['data']['Y'][i])
+        matched=False
+        for j in xrange(len(this_file['data']['X'])):
+            x2=float(this_file['data']['X'][j])
+            y2=float(this_file['data']['Y'][j])
+            if ( ((x1-x2)**2+(y1-y2)**2) < tol**2):
+                for col in this_file['data'].keys():
+                    if output['data'][col][i] is None:
+                        output['data'][col][i]=this_file['data'][col][j]
+                matched=True
+                break
+        if not matched:
+            delete_list.append(i)
+
+    delete_list.sort()
+    delete_list.reverse()
+    for i in delete_list:
+        for col in output['data'].keys():
+            del output['data'][col][i]
+
+
+MOPfiles.write(outname,output)
+

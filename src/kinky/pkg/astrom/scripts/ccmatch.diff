@@ -1,0 +1,59 @@
+90d89
+< 	if(stringtel == 'CTIO 4.0 meter telescope')   telesc = 'CTIO'
+125d123
+<         if (telesc == 'CTIO') command = "t"
+362,395d359
+< #------------------------------------------------
+< # CTIO Mosaic
+<         if (command == "t" && offlag == 0) {
+< 	    imgets(inimg,'IMAGEID')
+< 	    # IMAGEID returns numbers 1-16 (2 amps/ccd)
+< 	    nchip = int(imgets.value)
+<             print(" CTIO Mosaic chip/amp number: ",nchip)
+< 	    if(nchip > 17 || nchip < 1) print("********** PANIC on chip number")
+< # 9 arcmin = 0.15 degree E or W offset always, but correct for declination
+< 	    if(nchip > 0 && nchip < 9) racent = racent - 0.15/cos(deccent/57.3)
+< 	    if(nchip > 8 && nchip < 17) racent = racent + 0.15/cos(deccent/57.3)
+< # 13.5 arcmin = 0.225 degree north for chips 1 and 5, etc...
+< 	    if(nchip == 1 || nchip == 9) deccent = deccent - 0.225
+< 	    if(nchip == 3 || nchip == 11) deccent = deccent - 0.075
+< 	    if(nchip == 5 || nchip == 13) deccent = deccent + 0.075
+< 	    if(nchip == 7 || nchip == 15) deccent = deccent + 0.225
+< 	    offlag = 1
+< 	    print('*new  RA    : ',racent)
+< 	    print('*new  DEC   : ',deccent)
+< 	    print(' ')
+< 	    print('---->>>> USEFUL INFORMATION ***************************** ')
+< 	    print(' ')
+< 	    pwd
+< 	    print('usnoget ',racent,' ',deccent,' 19.0')
+< 	    print('---->>>> ************************************************ ')
+< 	    print(' ')
+< 	    print(' Do you wish to : ')
+< 	    print(' u - use this as image center and CONTINUE. ')
+< 	    print(' m - manually input RA/DEC of image center. ')
+< 	    print(' Q - Quit CCMATCH.cl ')
+< 	    print("   >>IMCURSOR<<  ")
+<             print(" *** WARNING: Will ASSUME YOU rotated N up and E left... ")
+<             now= fscan(imcur, x1, y1, wcs, command)
+<         }
+423,425c387
+< 	if ( !access("usno.ccmap") ) {
+< 	usno(racent,deccent,600,"usno.nosort");
+< #        !mv usno.ccmap usno.nosort
+---
+>         !mv usno.ccmap usno.nosort
+427d388
+< 	}
+432,436c393,397
+< 	   i = i+1 ;
+< 	   ra[i] = thisra ;
+< 	   dec[i] = thisdec ;
+< 	   mag[i] = thismag ;
+< 	   id[i] = i ; 
+---
+> 	   i = i+1
+> 	   ra[i] = thisra
+> 	   dec[i] = thisdec
+> 	   mag[i] = thismag
+> 	   id[i] = thisid

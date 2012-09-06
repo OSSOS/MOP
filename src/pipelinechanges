@@ -1,0 +1,109 @@
+JMP 07/2004
+-----------
+
+Bug fix:
+
+Old kbo_gen version was using minimum and maximum value of angle, but this
+is not consistant with other programs, and with normal meaning of $ang and
+$aw.
+So changed kbo_gen to take mean angle and half width.
+
+JMP 12/2003
+-----------
+
+Bug fixes:
+
+bug in step2ajmp/plant combination. step2ajmp was writing the
+transformation coefficient in free format, which resulted in output on 2
+lines in some cases. match.csh (in plant.csh) assumed all coefficients were
+on 1 line. Fixed by imposing output format in step2ajmp.
+
+
+JMP 11/2003
+-----------
+
+Bug fixes:
+
+bug in PSF making: bug actually in jmpmakepsf.cl: mkapfile was crashing
+with floating point execption, no output, and was terminating jmpmakepsf.cl
+and jmpprepimage.cl. Error handling code was by-passed. Added a crude
+exception trapping mechanism. Should ask JJ how to do this better. Anyway,
+solve the floating point exception problem by fitting more than only 3
+paramters in the growth curve. So first try with the usual 3 parameters. If
+this fails, then go for 4 parameters, and then 5 (the maximum in the
+model). Should solve most of the problems, without impeding previous
+success.
+
+Unit fixes:
+
+plant.csh was using pixel/hour while step3* was using ''/hour. Updated
+plant.csh to use ''/hour. Had to modify both plant.csh and kbo_gen.c. Now
+Object.planted generated with 1 extra column showing the rate as ''/hour.
+Also added the possibility to give the rates and angles as argument to
+plant.csh (and also work for control.pl).
+
+Cosmetic changes:
+
+Version control: I have added the version number into the *.mopheader
+file. Also changed to version 1.2. Need to rerun all step*jmp programs to
+reuse files. Can still skip rerunning makeallpsf.csh and plant.csh.
+
+changed step2bjmp.f and step3jmp.f to make them faster by avoiding
+unnecessary tests. Seems to work rather well.
+
+added the possibility to force running jmpmakepsf.csh even when lock of
+finished file exists. Do that by adding an optional fourth parameter:
+"force".
+Propogated that possibility into makeallpsf.sh that now accept the --force
+parameter.
+
+
+BG/LA 8/2002
+------------
+
+Changes to the pipeline:
+(to build pipeline) 
+
+1-change permissions on many files  : ) ("pre/postmarch" tars have wrong 
+permissions)
+
+2-make pipeline/lib, pipeline/lib/Linux, and pipeline/include
+directories, since install-pipeline codes don't test for directory
+presence before trying to write into directory.
+
+3- Change PREFIX to ~/pipeline (or whatever) in install files and
+change hardlinks from /h/f14a/hawaii to ~/pipeline and /usr/bin/perl
+
+4- Move readq to hans directory from jmp directory) - maybe have to
+make hans directory before jmp??
+
+5- unoget.f-c and square.inc must be copied from hans to jmp directory
+(to make pipeline work )
+
+6- make ~/iraf directory (with login.cl) or just link ~/iraf to ~ as we did.
+
+7- Change detrend.csh to use movesingle instead of cfh12k, because we
+split apart the chips beforehand instead of using MEF files.  This is 
+not the easiest way to do this (better to use mscred for preproc and 
+then keep MEF files, use cfh12k), but this is the way it was used last time.
+Watch parameter values into movesingle, b/c more than one version. Also change
+extn# to extn=0.
+
+Further hack (beyond basic workability) -
+8- Added a change in step2jmp.f to modify adaptive evaluation of pix
+saturation value (inten_max):
+" c     BG/LA change to account for high pix values with CFH12k
+         if (inten_max.gt.65536.0) then
+            inten_max = 65536.0
+         endif
+         inten_max = 0.8*inten_max   "
+Added intensity max cap b/c CFH12k has bad columns which can
+reach over this value when processed; this then screws up
+bright object selection, so columns are chosen instead of
+stars. Then registration doesn't work.
+
+9- Needed to make some changes to ccastrom - basically used Brett's version
+instead of JJ's. Should work, as is, in current tar. 
+I think these changes were all related to where to get the USNO data. 
+Also had to modify the catalog.toc to use CD's instead of hard drive.
+

@@ -1,0 +1,3 @@
+\rm AA-BINDIR/cf77 AA-BINDIR/f2c
+\rm AA-LIBDIR/libf2c.a AA-LIBDIR/libf2c.so*
+\rm AA-INCLUDEDIR/f2c.h

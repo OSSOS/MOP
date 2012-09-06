@@ -1,0 +1,22 @@
+#We need the table packages
+ 
+if ( deftask("tables")) {
+    if ( !defpac( "tables" )) {
+tables motd- 
+;
+    }
+}
+;
+ 
+# Better load these now 
+#mscred
+noao  
+digiphot
+daophot  
+ptools
+photcal
+
+utils
+
+keep
+

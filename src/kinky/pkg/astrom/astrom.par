@@ -1,0 +1,4 @@
+# Package parameters for the fkbo package
+version,s,h,"V1.0.0 - January 1998"
+mode,s,h,"al"
+
