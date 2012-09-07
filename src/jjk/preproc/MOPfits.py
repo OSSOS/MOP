@@ -575,7 +575,7 @@ def	adGet(file_id, archive="CFHT", extno=None, cutout=None ):
 
 
         url=proxy+"?"+argline
-        command="curl --location-trusted --silent -g  --fail --max-time 1800 --user jkavelaars:old2 '"+url+"' > "+filename
+        command="curl --location-trusted --silent -g  --fail --max-time 1800 '"+url+"' > "+filename
         try:
             print command
             status=os.system(command)
