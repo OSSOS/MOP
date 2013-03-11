@@ -53,19 +53,27 @@
 """Create a MEGAPRIME bias frame given a list of input bias exposure numbers"""
 
 __Version__ = "$Revision: 1.7 $"
-import re
+import re, os, string, sys
+import numpy as np
+import numpy.ma as MaskArray
+from scipy import stats
+import MOPfits
+import pyfits
+
 version=re.match(r'\$Rev.*: (\d*.\d*) \$',__Version__).group(1)
 
 def trim(hdu):
     """TRIM a CFHT MEGAPRIME frame  using the DATASEC keyword"""
-    import re
     datasec = re.findall(r'(\d+)',
                          hdu.header.get('DATASEC'))
     l=int(datasec[0])-1
     r=int(datasec[1])
     b=int(datasec[2])-1
     t=int(datasec[3])
+    if opt.verbose:
+        print "Trimming [%d:%d,%d:%d]" % ( l,r,b,t)
     hdu.data = hdu.data[b:t,l:r]    
+    hdu.header['DATASEC']="[%d:%d,%d:%d]" % (1,r-l+1,1,t-b+1)
     return
 
 def overscan(hdu):
@@ -75,8 +83,7 @@ def overscan(hdu):
     The BIAS section keywords are expected to be BSEC[A|B] (for amps
     A and B) and the AMP sectoin is ASEC[A|B].
     """
-    import numpy, jjkmode
-    
+
     for amp in (['A','B']):
         AMPKW= 'ASEC'+amp
         BIASKW= 'BSEC'+amp
@@ -97,22 +104,22 @@ def overscan(hdu):
         b=max(int(bias[2]),int(dsec[2]))-1
         t=min(int(bias[3]),int(dsec[3]))
 
-        bias = numpy.add.reduce(hdu.data[b:t,bl:bh],axis=1)/float(len(hdu.data[b:t,bl:bh][0]))
-        mean  = jjkmode.stats(bias)
-        hdu.data[b:t,al:ah] -= bias[:,numpy.newaxis]
-        hdu.header.update("BIAS",mean[0],comment="Mean bias level")
+        bias = np.add.reduce(hdu.data[b:t,bl:bh],axis=1)/float(len(hdu.data[b:t,bl:bh][0]))
+        mean = bias.mean()
+        hdu.data[b:t,al:ah] -= bias[:,np.newaxis]
+        hdu.header.update("BIAS",mean,comment="Mean bias level")
 
     ### send back the mean bias level subtracted
-    return mean[0]
-    
+    return mean
 
-import MOPfits
-import pyfits
-import jjkmode
+
+
+
+
 
 if __name__=='__main__':
     ### Must be running as a script
-    import optparse, sys
+    import optparse
     from optparse import OptionParser
     
     parser=OptionParser()
@@ -157,10 +164,6 @@ if __name__=='__main__':
     parser.add_option("--flip",
                       action="store_true",
                       help="Flip CCDs 0 to 18?")
-    parser.add_option("--wcsLookup",
-                      action="store",
-                      default=None,
-                      help="Lookup table with wcs values ")
     parser.add_option("--dist",
                       action="store",
 		      default=None,
@@ -174,27 +177,9 @@ if __name__=='__main__':
     ### get the bias frames from the archive.
     (opt, file_ids)=parser.parse_args()
 
-    import os,re, string, numpy
-    from pytools.numcombine import numCombine
-    import image as Img
-    #import numpy.image.combine as nic
 
 
-    if opt.wcsLookup:
-        wcsFile=file(opt.wcsLookup)
-        lines=wcsFile.readlines()
-        wcsFile.close()
-        wcs=[]
-        for line in lines:
-            values=line.split()
-            name=int(values[0])-1
-            wcs.append({})
-            wcs[name]['CRPIX1']=float(values[1])
-            wcs[name]['CRPIX2']=float(values[2])
-            wcs[name]['CD1_1']=float(values[3])/1000.0
-            wcs[name]['CD2_2']=float(values[4])/1000.0
-            wcs[name]['CD1_2']=float(values[5])/1000.0
-            wcs[name]['CD2_1']=float(values[6])/1000.0
+
 
 
     if opt.combine and opt.normal and 0==1:
@@ -312,23 +297,22 @@ if __name__=='__main__':
                 if opt.verbose:
                     print "Subtracting bias frame "+opt.bias
                 hdu.data -= bias[ccd+1].data
+            if opt.trim:
+                if opt.verbose:
+                    print "Triming image"
+                trim(hdu)
             if opt.flat:
                 if opt.verbose:
                     print "Dividing by flat field "+opt.flat
                 hdu.data /= flat[ccd+1].data
                 hdu.header.update("Flat",opt.flat,comment="Flat Image")
-            if opt.trim:
-                if opt.verbose:
-                    print "Triming image"
-                trim(hdu)
             if opt.normal:
                 if opt.verbose:
                     print "Normalizing the frame"
-                stat=jjkmode.stats(hdu.data)
-                hdu.data = hdu.data/stat[0]
-            if opt.wcsLookup:
-                for key in wcs[ccd]:
-                    hdu.header[key]=wcs[ccd][key]                    
+                (h, b) = np.histogram(hdu.data,bins=1000)
+                idx = h.argmax()
+                mode = (b[idx]+b[idx+1])/2.0
+                hdu.data = hdu.data/mode
             if opt.flip:
 	        if ccd < 18 :
                     if opt.verbose:
@@ -371,9 +355,9 @@ if __name__=='__main__':
                 nim=0
             else:
                 ### stack em up
-                stack.append(hdu.data)
-            hdu.data=None
-
+                if opt.verbose:
+                    print "Saving the data for later"
+                stack.append(hdu)
 
         ### free up the memory being used by the bias and flat
         if opt.bias:
@@ -383,26 +367,24 @@ if __name__=='__main__':
         
         ### last image has been processed so combine the stack
         ### if this is a combine and we have more than on hdu
+            
         if opt.combine and len(images)>1:
+            import bottleneck as bn
             if opt.verbose:
                 print "Median combining "+str(nim)+" images"
-	    hdu.data = Img.median(stack,badmasks=Img.threshhold(stack,low=0),nhigh=3)
-	    """
-            for x in range(stack[0].shape[0]):
-                slice=[]
-                for i in stack:
-                    slice.append(i[x])
-                nlow=1
-                if nim-6 > 2 :
-                    nhigh=nim-6
-                else:
-                    nhigh=nim-3
-                stack[0][x]=numCombine(slice,nlow=0,nhigh=1)
-                for i in slice:
-                    i=None
-                    
-            hdu.data=stack[0]
-	    """
+            mstack = []
+            for im in stack:
+            #    print "computing clipping for %s" % ( im.header['EXPNUM'])
+            #    gain = im.header.get("GAINA",1.5)
+            #    im_med = np.median(im.data)
+            #    std = np.sqrt(im_med)/gain
+            #    im.data[(np.fabs(im.data - im_med)/std) > 2.0] = np.nan
+                mstack = np.append(mstack, im.data)
+            print mstack.shape
+            mstack.shape = [len(stack),stack[0].data.shape[0],stack[0].data.shape[1]]
+            print "Computing 40th Percentile"
+            #hdu.data = bn.nanmean(mstack, axis=0)
+            hdu.data = np.percentile(mstack, 34, axis=0)            
             if opt.short:
                 if opt.verbose:
                     print "Scaling data to ushort"
@@ -416,11 +398,13 @@ if __name__=='__main__':
                 fitsobj=pyfits.open(outfile,'append')
                 fitsobj.append(hdu)
             fitsobj.close()
-            
-            hdu.data=None
+            mstack = None
+            stack = None
+            im = None
+            hdu.data = None
             for i in stack:
                 i=None
     
-    for file_name in file_names:
-        os.unlink(file_name)
+#    for file_name in file_names:
+#        os.unlink(file_name)
 
