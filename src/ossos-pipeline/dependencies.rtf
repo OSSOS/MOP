@@ -1,0 +1,32 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1038\cocoasubrtf360
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww9000\viewh8400\viewkind0
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\ql\qnatural\pardirnatural
+
+\f0\fs24 \cf0 The mops-historic pipeline is legacy Perl, Fortran 77, C and maybe other things.\
+\
+The OSSOS pipeline is primarily Python-based, with legacy code incorporated: Python v. 3.2.3 at this stage. 3.3.0 support is still a bit rarer, so 3.2 for now.\
+{\field{\*\fldinst{HYPERLINK "http://www.python.org/download/releases/3.2.3/"}}{\fldrslt http://www.python.org/download/releases/3.2.3/}}\
+Documentation follows which style guide?\
+\
+django 1.6 has Python 3 support, but 1.5 is still experimental.\
+{\field{\*\fldinst{HYPERLINK "https://www.djangoproject.com/download/"}}{\fldrslt https://www.djangoproject.com/download/}}\
+\pard\pardeftab720\sl320\ql\qnatural
+\cf0 PostgreSQL as the db backend to Django.\
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\ql\qnatural\pardirnatural
+\cf0 \
+Python packages with (at least) 3.2 support:\
+numpy\
+scipy\
+matplotlib \
+astropy is now mature at 0.2 in Python 3.2, 3.3, so we can use it as well. Includes pyfits, asciitable, vo.table, pywcs. {\field{\*\fldinst{HYPERLINK "http://docs.astropy.org/en/latest/stability.html"}}{\fldrslt http://docs.astropy.org/en/latest/stability.html}}\
+{\field{\*\fldinst{HYPERLINK "http://deimos.astro.columbia.edu/scratch/astropy.pdf"}}{\fldrslt http://deimos.astro.columbia.edu/scratch/astropy.pdf}}\
+jplephem\
+marstime\
+ephem\
+sgp4\
+pyraf\
+\
+astLib rather than ephem? ah: astropy.coordinates now handles most of what we were using ephem for (pretty/readable coordinates).\
+daophot?}
