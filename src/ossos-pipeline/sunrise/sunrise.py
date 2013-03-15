@@ -1,5 +1,11 @@
-#sunrise:
+# sunrise.py
+# Retrieve last night's observations, check they're fine, start processing if possible.
+#
+# MTB 2013-03-14
+
+
 	# retrieve image info from CADC via TAP: incorporate src/jjk/preproc/ObsStatus.py
+	ask_cadc_for_observations
 	# also getExposures.pl
 	# also need vos, VOspace tuned for CADC
 	# examine for contiguous image sets, images missing from ends of each field's observing

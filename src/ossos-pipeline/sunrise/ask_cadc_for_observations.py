@@ -1,11 +1,18 @@
 #!/usr/bin/env python
+#
+# Retrieve the previous night's observations from the CADC via its TAP service
+# a chronjob runs sunrise.py at sunrise each Hawaiian morning 
+# after CFHT observing has finished and data come to the CADC.
+#
+# original ObsStatus.py by JJ Kavelaars; 
+# modified to run under Python 3.2.3 & standard ossos package distrib
+# by Michele Bannister 13 March 2013
 
-import argparse
-import urllib, ephem, datetime, atpy, tempfile, math
-import sys
-import vos, os
-import time
+import argparse, urllib, atpy, tempfile, math, sys, os, time, datetime
+from astropy.time import Time
+import vos
 
+# Defaults here to 2013-01-01 runid 13AP05, 13AP06 without input
 parser = argparse.ArgumentParser(description="Query the CADC for OSSOS observations.")
 parser.add_argument('date', nargs='?', action='store',default='2013-01-01')
 parser.add_argument('--runid', nargs='*', action='store', default= list(('13AP05','13AP06')))
@@ -15,13 +22,15 @@ opt = parser.parse_args()
 runids = tuple(opt.runid)
 
 try:
-    mjd_yesterday = ephem.date(ephem.julian_date(ephem.date(opt.date))) - 2400000.5 
+    mjd_yesterday = Time(datetime.datetime.now() - datetime.timedelta(1))
+    #ephem.date(ephem.julian_date(ephem.date(opt.date))) - 2400000.5 
+    assert mjd_yesterday   # confirm it is within the span of the survey
 except Exception as e:
     sys.stderr.write("you said date = %s" %(opt.date))
     sys.stderr.write(str(e))
     sys.exit(-1)
 
-## instead of having specific collumns in the SELECT clause below you could just put a '*' to get all possible columns.
+## instead of having specific columns in the SELECT clause below you could just put a '*' to get all possible columns.
 ## 
 ## the 'position_bounds' column provides a polygon that describes the edge of the field of the mosaic, not individual ccds.
 
@@ -33,8 +42,8 @@ data={"QUERY": """SELECT Observation.target_name as TargetName, COORD1(CENTROID(
 url="http://www.cadc.hia.nrc.gc.ca/tap/sync?"+urllib.urlencode(data)
 
 # uncomment this to see the URL
-# print data["QUERY"]
-# print url
+# print(data["QUERY"])
+# print(url)
 
 tmpFile = tempfile.NamedTemporaryFile()
 
