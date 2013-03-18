@@ -22,7 +22,7 @@ opt = parser.parse_args()
 runids = tuple(opt.runid)
 
 try:
-    mjd_yesterday = Time(datetime.datetime.now() - datetime.timedelta(1))
+    mjd_yesterday = Time(datetime.datetime.now() - datetime.timedelta(1)).mjd
     #ephem.date(ephem.julian_date(ephem.date(opt.date))) - 2400000.5 
     assert mjd_yesterday   # confirm it is within the span of the survey
 except Exception as e:
