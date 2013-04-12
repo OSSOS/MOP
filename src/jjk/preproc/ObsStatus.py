@@ -58,10 +58,10 @@ sys.stdout.write(bar+stamp+bar+header)
 for i in range(len(t)):
     sDate = str(ephem.date(t.StartDate[i] + 2400000.5- ephem.julian_date(ephem.date(0))))[:20]
     t1 = time.strptime(sDate,"%Y/%m/%d %H:%M:%S")
-    if t2 is None or time.mktime(t2)-time.mktime(t1) > 3*3600.0:
-        t2 = t1
+    if t2 is None or math.fabs(time.mktime(t2)-time.mktime(t1)) > 3*3600.0:
         sys.stdout.write(bar)
         fout.write(bar)
+    t2 = t1
     ra = str(ephem.hours(math.radians(t.RA[i])))
     dec = str(ephem.degrees(math.radians(t.DEC[i])))
     fout.write("| %20s | %20s | %20s | %20.1f | %20s | %20s | %20s |\n" % ( str(t.dataset_name[i]), str(ephem.date(t.StartDate[i] + 2400000.5- ephem.julian_date(ephem.date(0))))[:20], t.TargetName[i][:20], t.ExposureTime[i], ra[:20], dec[:20], t.ProposalID[i][:20] ))
