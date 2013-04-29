@@ -29,30 +29,30 @@ def run_step1(expnum,
 
     """
 
-    filename = ossos.get_image(expnum, ccd, version='p')
-    fwhm = ossos.get_fwhm(expnum, ccd)
+    filename = ossos.storage.get_image(expnum, ccd, version='p')
+    fwhm = ossos.storage.get_fwhm(expnum, ccd)
 
-    outfile = ossos.exec_prog(['step1jmp', 
+    outfile = ossos.util.exec_prog(['step1jmp', 
                               '-f %s' % (filename),
                               '-t %f'  % (wave_thresh),
                               '-w %f ' % (fwhm),
                               '-m %f' % (maxcount)])
     
-    obj_uri = ossos.dbimages_uri(expnum,ccd,version='p',ext='obj.jmp')
+    obj_uri = ossos.storage.dbimages_uri(expnum,ccd,version='p',ext='obj.jmp')
     obj_filename = os.path.splitext(filename)[0]+".obj.jmp"
 
-    ossos.copy(obj_filename,obj_uri)
+    ossos.storage.copy(obj_filename,obj_uri)
 
-    outfile = ossos.exec_prog(['step1matt',
-                               '-f %s' % (filename),
-                               '-t %f' % (sex_thresh),
-                               '-w %f' % (fwhm) ,
-                               '-m %f' % (maxcount)])
+    outfile = ossos.util.exec_prog(['step1matt',
+                                    '-f %s' % (filename),
+                                    '-t %f' % (sex_thresh),
+                                    '-w %f' % (fwhm) ,
+                                    '-m %f' % (maxcount)])
 
     obj_uri = ossos.dbimages_uri(expnum,ccd,version='p',ext='obj.matt')
     obj_filename = os.path.splitext(filename)[0]+".obj.matt"
 
-    ossos.copy(obj_filename,obj_uri)
+    ossos.storage.copy(obj_filename,obj_uri)
 
     return True
 
@@ -95,7 +95,7 @@ if __name__=='__main__':
     if args.verbose:
         logging.basicConfig(level=logging.INFO, format="%(message)s")
 
-    ossos._dbimages = args.dbimages
+    ossos.storage._dbimages = args.dbimages
 
     if not args.ccd:
         ccdlist = range(0,36)
