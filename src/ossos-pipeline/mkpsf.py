@@ -4,30 +4,10 @@
 _version = '1.0'
 
 import argparse
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description='Run makepsf chunk of the OSSOS pipeline')
-    parser.add_argument('--ccd', '-c',
-                        action='store',
-                        type=int,
-                        dest='ccd',
-                        help='which ccd to process, default is all'
-                        )
-    parser.add_argument("--dbimages",
-                        action="store",
-                        default="vos:OSSOS/dbimages",
-                        help='vospace dbimages containerNode')
-    parser.add_argument("expnum",
-                        type=int,
-                        nargs='+',
-                        help="expnum(s) to process")
-    parser.add_argument("--version",
-                        action='version',
-                        version='%(prog)s %s' % (_version))
-    parser.add_argument("--verbose", "-v",
-                        action="store_true")
-
+import logging
+import ossos
+from ossos import storage
+from ossos import util 
 
 def run_mkpsf(expnum, ccd):
     """Run the OSSOS makepsf script.
@@ -52,3 +32,55 @@ def run_mkpsf(expnum, ccd):
         ossos.storage.copy(source, dest)
 
     return
+
+
+if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(
+        description='Run makepsf chunk of the OSSOS pipeline')
+
+    parser.add_argument('--ccd', '-c',
+                        action='store',
+                        type=int,
+                        dest='ccd',
+                        help='which ccd to process, default is all'
+                        )
+
+    parser.add_argument("--dbimages",
+                        action="store",
+                        default="vos:OSSOS/dbimages",
+                        help='vospace dbimages containerNode'
+                        )
+
+    parser.add_argument("expnum",
+                        type=int,
+                        nargs='+',
+                        help="expnum(s) to process"
+                        )
+
+    parser.add_argument("--version",
+                        action='version',
+                        version='%(prog)s '+_version 
+                        )
+
+    parser.add_argument("--verbose", "-v",
+                        action="store_true")
+
+    args = parser.parse_args()
+
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO,
+                            format='%(message)s')
+
+    ossos.storage._dbimages = args.dbimages
+
+    if not args.ccd:
+        ccdlist = range(0,36)
+    else:
+        ccdlist = [args.ccd]
+
+    for expnum in args.expnum:
+        for ccd in ccdlist:
+            logging.info("mkpsf on expnum %d ccd %d" % (expnum, ccd))
+            run_mkpsf(expnum, ccd)
+
