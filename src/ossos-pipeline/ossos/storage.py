@@ -12,7 +12,7 @@ _CERTFILE=os.path.join(os.getenv('HOME'),
 _dbimages='vos:OSSOS/dbimages'
 
 
-def dimages_uri(expnum, ccd, version, ext='fits'):
+def dbimages_uri(expnum, ccd, version, ext='fits'):
     '''build the uri for an OSSOS image stored in the dbimages containerNode.
 
     expnum: CFHT exposure number
@@ -52,12 +52,11 @@ def get_image(expnum, ccd, version):
 
     '''
 
-    uri = dimages_uri(expnum, ccd, version)
+    uri = dbimages_uri(expnum, ccd, version)
     filename = "%s%s%s.fits" % (str(expnum),
                                 version,
                                 str(ccd).zfill(2))
-    vospace=vos.Client(certFile=_CERTFILE)
-    vospace.copy(uri, filename)
+    copy(uri, filename)
 
     return filename
 
@@ -65,6 +64,15 @@ def get_image(expnum, ccd, version):
 def get_fwhm(expnum, ccd):
     '''Get the FWHM computed for the given expnum/ccd combo.'''
 
-    uri = dimages_uri(expnum, ccd, 'p', ext='fwhm')
+    uri = dbimages_uri(expnum, ccd, 'p', ext='fwhm')
     vospace=vos.Client(certFile=_CERTFILE)
     return float(vospace.open(uri,view='data').read().strip())
+
+
+def copy(source, dest):
+    '''use the vospace service to get a file.
+
+    '''
+
+    vospace = vos.Client(certFile=_CERTFILE)
+    return vospace.copy(source, dest)
