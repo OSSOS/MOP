@@ -5,6 +5,7 @@ _version = '1.0'
 
 import argparse
 import logging
+import os
 import ossos
 from ossos import storage
 from ossos import util 
