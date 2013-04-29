@@ -48,7 +48,7 @@ def run_mkpsf(expnum, ccd):
     for ext in ('mopheader', 'psf.fits',
                 'zeropoint.used', 'apcor', 'fwhm'):
         dest = ossos.storage.dbimages_uri(expnum, ccd, version='p', ext=ext)
-        source = basename"." + ext
+        source = basename + "." + ext
         ossos.storage.copy(source, dest)
 
     return
