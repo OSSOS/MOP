@@ -1,0 +1,84 @@
+"""OSSOS helper methods"""
+
+
+import subprocess
+import os
+import vos
+
+_CERTFILE=os.path.join(os.getenv('HOME'),
+                       '.ssl',
+                       'cadcproxy.pem')
+vospace=vos.Client(certFile=_CERTFILE)
+_dbimages='vos:OSSOS/dbimages'
+
+
+def exec_prog(args):
+    '''Run a subprocess, check for .OK and raise error if does not exist.
+
+    args:  list of arguments, for value is the command to execute.
+
+    '''
+
+    program_name = args[0]
+    output = subprocess.check_call(args)
+    if not os.access(program_name+".OK", os.F_OK):
+        raise subprocess.CalledProcessError(-1, ' '.join(args), output)
+
+    return output
+
+
+def dimages_uri(expnum, ccd, version, ext='fits'):
+    '''build the uri for an OSSOS image stored in the dbimages containerNode.
+
+    expnum: CFHT exposure number
+    ccd: CCD in the mosaic [0-35]
+    version: one of p,s,o etc.
+    dbimages: dbimages containerNode
+    '''
+
+    ## test that the exposure number mades some sense.
+
+    if int(str(expnum)) != expnum or expnum < 1500000 or expnum > 2000000:
+        raise ValueError("expnum out of range: %s" % (str(expnum)))
+
+    ## do same for ccd value
+    if ccd < 0 or ccd > 35:
+        raise ValueError("ccd outside range 0 - 35: %s" % (str(ccd)))
+
+    ccd = str(ccd).zfill(2)
+    sexpnum = str(expnum)
+
+    return os.path.join(_dbimages,
+                        sexpnum,
+                        'ccd%s' % (ccd),
+                        '%s%s%s.%s' % (expnum,
+                                       version,
+                                       ccd,
+                                       ext))
+
+
+def get_image(expnum, ccd, version):
+    '''Get a FITS file for this expnum/ccd  from VOSpace.
+    
+    expnum:  CFHT exposure number (int)
+    ccd: CCD in the mosaic (int)
+    version:  [p, s, o]  (char)
+    dbimages:  VOSpace containerNode
+
+    '''
+
+    uri = dimages_uri(expnum, ccd, version)
+    filename = "%s%s%s.fits" % (str(expnum),
+                                version,
+                                str(ccd).zfill(2))
+
+    vospace.copy(uri, filename)
+
+    return filename
+
+
+def get_fwhm(expnum, ccd):
+    '''Get the FWHM computed for the given expnum/ccd combo.'''
+
+    uri = dimages_uri(expnum, ccd, 'p', ext='fwhm')
+    return float(vospace.open(uri,view='data').read().strip())
