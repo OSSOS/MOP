@@ -19,6 +19,7 @@ def run_mkpsf(expnum, ccd):
 
     ## launch the makepsf script
     ossos.util.exec_prog(['jmpmakepsf.csh',
+                          './',
                           filename,
                           'no'])
 
