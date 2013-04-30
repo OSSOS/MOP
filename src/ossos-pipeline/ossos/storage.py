@@ -5,6 +5,8 @@ import subprocess
 import os
 import vos
 import logging
+import urllib
+import errno
 
 _CERTFILE=os.path.join(os.getenv('HOME'),
                        '.ssl',
@@ -52,8 +54,24 @@ def get_image(expnum, ccd=None, version='p', ext='fits'):
 
     uri = dbimages_uri(expnum, ccd, version, ext=ext)
     filename = os.path.basename(uri)
-    copy(uri, filename)
-
+    try:
+        copy(uri, filename)
+    except Exception as e:
+        if e.errno != errno.ENOENT or ccd is None:
+            raise e
+        ## try doing a cutout from MEF in VOSpace
+        uri = dbimages_uri(expnum, version=version, ext=ext)
+        cutout = urllib.urlencode({'cutout':'[%d]' % (int(ccd)+1)})
+        vospace=vos.Client(certFile=_CERTFILE)
+        url = vospace.getNodeURL(uri,view='cutout', limit=None)+'&'+cutout
+        fin = vospace.open(uri, URL=url)
+        fout = open(filename, 'w')
+        buff = fin.read(2**16)
+        while len(buff)>0:
+            fout.write(buff)
+            buff = fin.read(2**16)
+        fout.close()
+        fin.close()
     return filename
 
 
