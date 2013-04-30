@@ -4,6 +4,7 @@
 import subprocess
 import os
 import vos
+import logging
 
 _CERTFILE=os.path.join(os.getenv('HOME'),
                        '.ssl',
@@ -11,8 +12,7 @@ _CERTFILE=os.path.join(os.getenv('HOME'),
 
 _dbimages='vos:OSSOS/dbimages'
 
-
-def dbimages_uri(expnum, ccd, version, ext='fits'):
+def dbimages_uri(expnum, ccd=None, version='p', ext='fits'):
     '''build the uri for an OSSOS image stored in the dbimages containerNode.
 
     expnum: CFHT exposure number
@@ -21,28 +21,26 @@ def dbimages_uri(expnum, ccd, version, ext='fits'):
     dbimages: dbimages containerNode
     '''
 
-    ## test that the exposure number mades some sense.
-
-    if int(str(expnum)) != expnum or expnum < 1500000 or expnum > 2000000:
-        raise ValueError("expnum out of range: %s" % (str(expnum)))
-
-    ## do same for ccd value
-    if ccd < 0 or ccd > 35:
-        raise ValueError("ccd outside range 0 - 35: %s" % (str(ccd)))
-
-    ccd = str(ccd).zfill(2)
     sexpnum = str(expnum)
+    uri = os.path.join(_dbimages, sexpnum)
 
-    return os.path.join(_dbimages,
-                        sexpnum,
-                        'ccd%s' % (ccd),
-                        '%s%s%s.%s' % (expnum,
-                                       version,
-                                       ccd,
-                                       ext))
+    # if ccd is None then we send uri for the MEF
+    if ccd is not None:
+        ccd = str(ccd).zfill(2)
+        uri = os.path.join(uri,
+                           'ccd%s' % (ccd),
+                           '%s%s%s.%s' % (sexpnum,
+                                          version,
+                                          ccd,
+                                          ext))
+    else:
+        uri = os.path.join(uri,
+                           '%s%s.%s' % (sexpnum,
+                                        version,
+                                        ext))
+    return uri
 
-
-def get_image(expnum, ccd, version):
+def get_image(expnum, ccd=None, version='p', ext='fits'):
     '''Get a FITS file for this expnum/ccd  from VOSpace.
     
     expnum:  CFHT exposure number (int)
@@ -52,10 +50,8 @@ def get_image(expnum, ccd, version):
 
     '''
 
-    uri = dbimages_uri(expnum, ccd, version)
-    filename = "%s%s%s.fits" % (str(expnum),
-                                version,
-                                str(ccd).zfill(2))
+    uri = dbimages_uri(expnum, ccd, version, ext=ext)
+    filename = os.path.basename(uri)
     copy(uri, filename)
 
     return filename
@@ -75,4 +71,5 @@ def copy(source, dest):
     '''
 
     vospace = vos.Client(certFile=_CERTFILE)
+    logging.info("%s -> %s" % ( source, dest))
     return vospace.copy(source, dest)
