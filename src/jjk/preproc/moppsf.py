@@ -37,7 +37,7 @@
 #*
 #*
 #*   CVS data:
-#*	$Header: /home/observe/cvsroot/MOP/src/jjk/preproc/moppsf.py,v 1.2 2005/05/10 21:03:12 observe Exp $
+#*	$Header: /home/observe/cvsroot/MOP/src/jjk/preproc/MOPpsf.py,v 1.1 2005/05/10 21:03:12 observe Exp $
 #*
 #*   Initiated by       : JJ Kavelaars
 #*   Date		: <Dec 14 2004>
@@ -51,7 +51,7 @@
 """Create a fits file that contains a representation of a stellar PSF"""
 
 
-__Version__ = "$Revision: 1.2 $"
+__Version__ = "$Revision: 1.1 $"
 import re
 version=re.match(r'\$Rev.*: (\d*.\d*) \$',__Version__).group(1)
 
