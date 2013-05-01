@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/jkavelaars/epd_free-7.3-2-rh5-x86_64/bin/python
 """step1 is to run the two source finding algorithms in the image.
 
 step1jmp is a stand-alone fortran code from Jean-Marc Petit et al.
