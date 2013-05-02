@@ -15,7 +15,7 @@ _CERTFILE=os.path.join(os.getenv('HOME'),
 
 _dbimages='vos:OSSOS/dbimages'
 
-def dbimages_uri(expnum, ccd=None, version='p', ext='fits'):
+def get_uri(expnum, ccd=None, version='p', ext='fits', subdir=None):
     '''build the uri for an OSSOS image stored in the dbimages containerNode.
 
     expnum: CFHT exposure number
@@ -23,25 +23,30 @@ def dbimages_uri(expnum, ccd=None, version='p', ext='fits'):
     version: one of p,s,o etc.
     dbimages: dbimages containerNode
     '''
+    if subdir is None:
+        subdir = str(expnum)
+    uri = os.path.join(_dbimages, subdir)
 
-    sexpnum = str(expnum)
-    uri = os.path.join(_dbimages, sexpnum)
 
     # if ccd is None then we send uri for the MEF
     if ccd is not None:
         ccd = str(ccd).zfill(2)
         uri = os.path.join(uri,
                            'ccd%s' % (ccd),
-                           '%s%s%s.%s' % (sexpnum,
+                           '%s%s%s.%s' % (str(expnum),
                                           version,
                                           ccd,
                                           ext))
     else:
         uri = os.path.join(uri,
-                           '%s%s.%s' % (sexpnum,
+                           '%s%s.%s' % (str(expnum),
                                         version,
                                         ext))
     return uri
+
+dbimages_uri = get_uri
+
+
 
 def set_tag(expnum, key, value):
     '''Assign a key/value pair tag to the given expnum containerNode'''
@@ -73,7 +78,7 @@ def set_status(expnum, ccd, program, status):
     key = "%s_%s" % ( program, str(ccd).zfill(2))
     return set_tag(expnum, key, status)
 
-def get_image(expnum, ccd=None, version='p', ext='fits'):
+def get_image(expnum, ccd=None, version='p', ext='fits', subdir=None, rescale=True):
     '''Get a FITS file for this expnum/ccd  from VOSpace.
     
     expnum:  CFHT exposure number (int)
@@ -83,7 +88,10 @@ def get_image(expnum, ccd=None, version='p', ext='fits'):
 
     '''
 
-    uri = dbimages_uri(expnum, ccd, version, ext=ext)
+    if not subdir:
+        subdir = str(expnum)
+
+    uri = get_uri(expnum, ccd, version, ext=ext, subdir=subdir)
     filename = os.path.basename(uri)
     try:
         copy(uri, filename)
@@ -91,7 +99,11 @@ def get_image(expnum, ccd=None, version='p', ext='fits'):
         if e.errno != errno.ENOENT or ccd is None:
             raise e
         ## try doing a cutout from MEF in VOSpace
-        uri = dbimages_uri(expnum, version=version, ext=ext)
+        uri = get_uri(expnum,
+                      version=version,
+                      ext=ext,
+                      subdir=subdir)
+        logging.debug("Using uri: %s" % ( uri))
         cutout = urllib.urlencode({'cutout':'[%d]' % (int(ccd)+1)})
         vospace=vos.Client(certFile=_CERTFILE)
         url = vospace.getNodeURL(uri,view='cutout', limit=None)+'&'+cutout
@@ -103,6 +115,8 @@ def get_image(expnum, ccd=None, version='p', ext='fits'):
             buff = fin.read(2**16)
         fout.close()
         fin.close()
+        if not rescale:
+            return filename
         hdu_list = fits.open(filename,'update',do_not_scale_image_data=True)
         hdu_list[0].header['BZERO']=hdu_list[0].header.get('BZERO',32768)
         hdu_list[0].header['BSCALE']=hdu_list[0].header.get('BSCALE',1)
@@ -115,7 +129,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits'):
 def get_fwhm(expnum, ccd):
     '''Get the FWHM computed for the given expnum/ccd combo.'''
 
-    uri = dbimages_uri(expnum, ccd, 'p', ext='fwhm')
+    uri = get_uri(expnum, ccd, 'p', ext='fwhm')
     vospace=vos.Client(certFile=_CERTFILE)
     return float(vospace.open(uri,view='data').read().strip())
 
