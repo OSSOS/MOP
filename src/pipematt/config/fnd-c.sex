@@ -92,3 +92,6 @@ MEMORY_BUFSIZE	1024		# number of lines in buffer
 VERBOSE_TYPE	QUIET		# can be "QUIET", "NORMAL" or "FULL" (*)
 
 #------------------------------- New Stuff -----------------------------------
+
+WEIGHT_TYPE	WEIGHT_MAP
+WEIGHT_IMAGE	weight.fits
