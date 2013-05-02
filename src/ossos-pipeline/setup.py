@@ -14,6 +14,8 @@ setup(name='ossos',
       install_requires=['distribute'],
       scripts=['mkpsf.py',
                'step1.py',
+               'step2.py',
+               'step3.py',
                'update_header.py'],
       classifiers=[
         'Development Status :: 4 - Beta',
