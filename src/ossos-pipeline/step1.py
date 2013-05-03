@@ -106,6 +106,7 @@ if __name__=='__main__':
     
     args=parser.parse_args()
 
+    level = logging.CRITICAL
     if args.debug:
         level = logging.DEBUG
     elif args.verbose:

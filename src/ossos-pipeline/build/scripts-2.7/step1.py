@@ -12,6 +12,7 @@ import logging
 import os
 from ossos import storage
 from ossos import util
+from astropy.io import fits
 
 def run_step1(expnum,
               ccd, 
@@ -42,18 +43,25 @@ def run_step1(expnum,
                               '-w', str(fwhm),
                               '-m', str(maxcount)])
     
-    obj_uri = storage.dbimages_uri(expnum,ccd,version='p',ext='obj.jmp')
+    obj_uri = storage.get_uri(expnum,ccd,version='p',ext='obj.jmp')
     obj_filename = basename+".obj.jmp"
 
     storage.copy(obj_filename,obj_uri)
 
+    ## for step1matt we need the weight image
+    flat_name = fits.open(filename)[0].header['FLAT']
+    flat_name = flat_name[0:-5]
+    flat_filename = storage.get_image(flat_name, ccd, version='', ext='fits',
+                      subdir='calibrators', rescale=False)
+    if not os.access('weight.fits',os.R_OK):
+        os.symlink(flat_filename, 'weight.fits')
     outfile = util.exec_prog(['step1matt',
                               '-f', basename,
                               '-t', str(sex_thresh),
                               '-w', str(fwhm),
                               '-m', str(maxcount)])
 
-    obj_uri = storage.dbimages_uri(expnum,ccd,version='p',ext='obj.matt')
+    obj_uri = storage.get_uri(expnum,ccd,version='p',ext='obj.matt')
     obj_filename = basename+".obj.matt"
 
     storage.copy(obj_filename,obj_uri)
@@ -93,12 +101,19 @@ if __name__=='__main__':
                         version='%(prog)s 1.0')
     parser.add_argument("--verbose","-v",
                         action="store_true")
-
+    parser.add_argument("--debug",'-d',
+                        action='store_true')
+    
     args=parser.parse_args()
 
-    if args.verbose:
-        logging.basicConfig(level=logging.INFO, format="%(message)s")
-
+    level = logging.CRITICAL
+    if args.debug:
+        level = logging.DEBUG
+    elif args.verbose:
+        level = logging.INFO
+    
+    logging.basicConfig(level=level, format="%(message)s")
+        
     storage._dbimages = args.dbimages
 
     if args.ccd is None:

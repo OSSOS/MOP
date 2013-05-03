@@ -7,7 +7,8 @@ import logging
 from ossos import util
 from ossos import storage
 
-def run_step2(expnums, ccd, version, rate_min, rate_max, angle, width):
+def run_step3(expnums, ccd, version, rate_min,
+              rate_max, angle, width, field=None):
     '''run the actual step2  on the given exp/ccd combo'''
 
     jmp_args = ['step3jmp']
@@ -26,6 +27,7 @@ def run_step2(expnums, ccd, version, rate_min, rate_max, angle, width):
                               )
         cmd_args.append('-f%d' % ( idx))
         cmd_args.append('%s%s%s' % ( str(expnum), version, str(ccd).zfill(2)))
+
     cmd_args.extend(['-rn', str(rate_min),
                      '-rx', str(rate_max),
                      '-a', str(angle),
@@ -35,10 +37,27 @@ def run_step2(expnums, ccd, version, rate_min, rate_max, angle, width):
     util.exec_prog(jmp_args)
     util.exec_prog(matt_args)
 
-    
+
+    if field is None:
+        field = str(expnums[0])
+    storage.mkdir(os.path.dirname(
+        storage.get_uri(field,
+                        ccd=ccd,
+                        version=version,
+                        ext=ext,
+                        subdir='moving')
+        ))
+
     for ext in ['moving.jmp', 'moving.matt']:
-        uri = storage.dbimages_uri(expnums[0],ccd=ccd,version=version,ext=ext)
-        filename = os.path.basename(uri)
+        uri = storage.get_uri(field,
+                              ccd=ccd,
+                              version=version,
+                              ext=ext,
+                              subdir='moving')
+        filename = '%d%s%s.%s' % ( expnums[0],
+                                   version,
+                                   str(ccd).zfill(2),
+                                   ext)
         storage.copy(filename, uri)
 
 
@@ -71,6 +90,9 @@ if __name__ == '__main__':
                         choices=['s','p','o'],
                         default='p'
                         )
+    parser.add_argument('--field',
+                        help='a string that identifies which field is being searched',
+                        nargs='?')
     parser.add_argument('--no-sort',
                         help='preserve input exposure order',
                         action='store_true')
@@ -115,11 +137,12 @@ if __name__ == '__main__':
             #    continue
             logging.info("step2 on expnum :%s, ccd: %d" % (
                 str(args.expnums), ccd))
-            run_step2(args.expnums, ccd, version=args.imtype,
+            run_step3(args.expnums, ccd, version=args.imtype,
                       rate_min=args.rate_min,
                       rate_max=args.rate_max,
                       angle=args.angle,
-                      width=args.width)
+                      width=args.width,
+                      field=args.field)
             logging.info(message)
         except Exception as e:
             message = str(e)
