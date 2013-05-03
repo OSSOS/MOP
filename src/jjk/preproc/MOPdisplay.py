@@ -84,7 +84,7 @@ def mark(x,y,label=None):
 def display(url):
 	"""Display a file in ds9"""
 	import os
-	oscmd="curl --silent -g --fail --max-time 1800 -E ${HOME}/.ssl/cadcproxy.pem '%s'" % (url)
+	oscmd="curl --silent -g --fail --max-time 1800 --user jkavelaars '%s'" % (url)
 	logger.debug(oscmd)
     	os.system(oscmd+' | xpaset ds9 fits')
 	return

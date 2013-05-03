@@ -3,23 +3,37 @@
 	{
 		"selected_items":
 		[
+			[
+				"date",
+				"datetime"
+			],
+			[
+				"time",
+				"time"
+			]
 		]
 	},
 	"buffers":
 	[
 		{
-			"file": "sunrise/ObsStatus.py",
+			"contents": "#vm_setup as used to create 'ossos 172.22.128.10' vm installation on Scientific Linux 5.5 on CANFAR \n\nsudo yum install xterm xauth\nsudo yum install zlib\nsudo yum install zlib-devel\n\ncurl http://www.python.org/ftp/python/2.7.3/Python-2.7.3.tgz | tar xzf -\ncd Python-2.7.3/\n./configure\nmake\nsudo make install\n\ncurl http://www.astromatic.net/download/sextractor/sextractor-2.8.6.tar.gz | tar xzf -\ncd sextractor-2.8.6\n./configure\nconfigure: error: FFTW include files not found in default location! Exiting. (GRRRR)\n# (It was successfully installed by yum at v. 2.5.0)\n\nwget http://hea-www.harvard.edu/RD/ds9/download/linux64/ds9.linux64.7.1.tar.gz | tar -xvf ds9.linux64.7.1.tar.gz\nsudo cp ds9 /usr/local/bin/\nsudo yum install libXScrnSaver\n\nwget ftp://ftp.atnf.csiro.au/pub/software/wcslib/wcslib.tar.bz2\ntar xf wcslib.tar.bz2 \ncd wcslib-4.17/\n./configure\nmake -j2\nsudo make install\n\nwget http://dev.gentoo.org/~bicatali/distfiles/cfitsio-3.340.tar.gz\n ./configure\n\n# Now for some python package installs.\nsh setuptools-0.6c11-py2.7.egg   \n# but THAT wants zlib too!\n# then rebuilt python so it makes its zlib libraries and all was happy.\n# \\rm config.status then ./configure\n\nwget  https://pypi.python.org/packages/2.7/s/setuptools/setuptools-0.6c11-py2.7.egg\nsudo sh setuptools-0.6c11-py2.7.egg \nsudo easy_install virtualenv\nvirtualenv ossos-python\ncd ossos-python\n. ./bin/activate\n\n# What packages do I have already?  (though this doesn't give a version no. like pip freeze)\npydoc modules \n\n# Now I can install packages to this virtualenv! Remember: numpy before scipy.\nsudo yum install numpy\nsudo yum install scipy\nsudo easy_install SQLAlchemy\nsudo easy_install ipython\nsudo easy_install nose\n\n# does it all go?\niptest\n\n\n",
+			"file": "vm_setup.txt",
+			"file_size": 1655,
+			"file_write_time": 1365402566000000,
 			"settings":
 			{
-				"buffer_size": 3506,
+				"buffer_size": 1723,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "run_pipeline.py",
+			"contents": "The mops-historic pipeline is legacy Perl, Fortran 77, C and maybe other things.\n\nThe OSSOS pipeline is primarily Python-based, with legacy code incorporated: Python v. 3.2.3 at this stage. 3.3.0 support is still a bit rarer, so 3.2 for now.\nhttp://www.python.org/download/releases/3.2.3/\nDocumentation follows which style guide?\n\nPostgreSQL as the backend database.\nPython db interaction toolkit: SQLAlchemy rather than the more lightweight Django.\nuseful comparison advice: http://jmoiron.net/blog/about-sqlalchemy-and-djangos-orm/\nSQLAlchemy 0.8 installed as it doesn't yet play with Python 3.\nNow: where can I put the db that it can be accessed by the interface layer? VOSpace?\n\nPython packages with (at least) 3.2 support:\nnumpy\nscipy\nmatplotlib \nastropy is now mature at 0.2 in Python 3.2, 3.3, so we can use it as well. Includes pyfits, asciitable, vo.table, pywcs. http://docs.astropy.org/en/latest/stability.html\nhttp://deimos.astro.columbia.edu/scratch/astropy.pdf\njplephem\nmarstime\nephem\nsgp4\npyraf\n\nastLib rather than ephem? ah: astropy.coordinates now handles most of what we were using ephem for (pretty/readable coordinates).\ndaophot?file:///Applications/Mail.app/Contents/Resources/note-window-right-corner-mask.tiff",
+			"file": "dependencies.txt",
+			"file_size": 1064,
+			"file_write_time": 1365055016000000,
 			"settings":
 			{
-				"buffer_size": 12803,
+				"buffer_size": 1232,
 				"line_ending": "Unix"
 			}
 		}
@@ -60,6 +74,14 @@
 	},
 	"file_history":
 	[
+		"/Users/michele/ossos-pipeline/src/jjk/preproc/run_preproc.py",
+		"/Users/michele/Dropbox/ossos-pipeline/src/ossos-pipeline/sunrise/ask_cadc_for_observations.py",
+		"/Users/michele/Dropbox/ossos-pipeline/src/ossos-pipeline/sunrise/sunrise.py",
+		"/Users/michele/Dropbox/ossos-pipeline/src/ossos-pipeline/sunrise/getExposures.pl",
+		"/Users/michele/ossos-pipeline/src/ossos-pipeline/sunrise/populate_ossuary.py",
+		"/Users/michele/ossos-pipeline/src/ossos-pipeline/sunrise/run_sunrise.py",
+		"/Users/michele/ossos-pipeline/src/ossos-pipeline/dependencies.rtf",
+		"/Users/michele/ossos-pipeline/src/ossos-pipeline/run_pipeline.py",
 		"/Users/michele/Library/Application Support/Sublime Text 2/Packages/SideBarEnhancements/messages/11.13.2012.1305.0.txt",
 		"/Users/michele/ossos-pipeline/src/ossos-pipeline/scramble_triplet.py",
 		"/Users/michele/ossos-pipeline/src/ossos-pipeline/plant_synthetic_tnos.py",
@@ -81,6 +103,7 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"time"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -98,58 +121,54 @@
 	"groups":
 	[
 		{
-			"selected": 1,
+			"selected": 0,
 			"sheets":
 			[
 				{
 					"buffer": 0,
-					"file": "sunrise/ObsStatus.py",
+					"file": "vm_setup.txt",
 					"settings":
 					{
-						"buffer_size": 3506,
+						"buffer_size": 1723,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								0,
-								0
+								1713,
+								1713
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/Python/Python.tmLanguage",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
+							"syntax": "Packages/Text/Plain text.tmLanguage"
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 200.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
 				},
 				{
 					"buffer": 1,
-					"file": "run_pipeline.py",
+					"file": "dependencies.txt",
 					"settings":
 					{
-						"buffer_size": 12803,
+						"buffer_size": 1232,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								619,
-								619
+								1149,
+								1232
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/Python/Python.tmLanguage",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
+							"syntax": "Packages/Text/Plain text.tmLanguage"
 						},
 						"translation.x": 0.0,
 						"translation.y": 0.0,

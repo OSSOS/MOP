@@ -1,0 +1,26 @@
+The mops-historic pipeline is legacy Perl, Fortran 77, C and maybe other things.
+
+The OSSOS pipeline is primarily Python-based, with legacy code incorporated: Python v. 3.2.3 at this stage. 3.3.0 support is still a bit rarer, so 3.2 for now.
+http://www.python.org/download/releases/3.2.3/
+Documentation follows which style guide?
+
+PostgreSQL as the backend database.
+Python db interaction toolkit: SQLAlchemy rather than the more lightweight Django.
+useful comparison advice: http://jmoiron.net/blog/about-sqlalchemy-and-djangos-orm/
+SQLAlchemy 0.8 installed as it doesn't yet play with Python 3.
+Now: where can I put the db that it can be accessed by the interface layer? VOSpace?
+
+Python packages with (at least) 3.2 support:
+numpy
+scipy
+matplotlib 
+astropy is now mature at 0.2 in Python 3.2, 3.3, so we can use it as well. Includes pyfits, asciitable, vo.table, pywcs. http://docs.astropy.org/en/latest/stability.html
+http://deimos.astro.columbia.edu/scratch/astropy.pdf
+jplephem
+marstime
+ephem
+sgp4
+pyraf
+
+astLib rather than ephem? ah: astropy.coordinates now handles most of what we were using ephem for (pretty/readable coordinates).
+daophot?file:///Applications/Mail.app/Contents/Resources/note-window-right-corner-mask.tiff
