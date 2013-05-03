@@ -11,7 +11,7 @@ sunrise:
 	# populate OSSOS metadata db, ossuary, with info
 	# process info to see if any fields in that batch of observation had three images in the night
 	# report via email on result of night's observing
-	# \copy postgres_db to stdout with csv header  (this'll be a daily dump of the db to disk)
+	# \copy postgres_db to stdout with csv header  (this'll be a daily dump of the db to disk) # aha: pg_dump 
 	# if fields > 0, initiate next step of processing, preproc.
 
 preproc:

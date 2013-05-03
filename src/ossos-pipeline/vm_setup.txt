@@ -1,0 +1,59 @@
+#vm_setup as used to create 'ossos 172.22.128.10' vm installation on Scientific Linux 5.5 on CANFAR 
+
+sudo yum install xterm xauth
+sudo yum install zlib
+sudo yum install zlib-devel
+
+curl http://www.python.org/ftp/python/2.7.3/Python-2.7.3.tgz | tar xzf -
+cd Python-2.7.3/
+./configure
+make
+sudo make install
+
+curl http://www.astromatic.net/download/sextractor/sextractor-2.8.6.tar.gz | tar xzf -
+cd sextractor-2.8.6
+./configure
+configure: error: FFTW include files not found in default location! Exiting. (GRRRR)
+# (It was successfully installed by yum at v. 2.5.0)
+
+wget http://hea-www.harvard.edu/RD/ds9/download/linux64/ds9.linux64.7.1.tar.gz | tar -xvf ds9.linux64.7.1.tar.gz
+sudo cp ds9 /usr/local/bin/
+sudo yum install libXScrnSaver
+
+wget ftp://ftp.atnf.csiro.au/pub/software/wcslib/wcslib.tar.bz2
+tar xf wcslib.tar.bz2 
+cd wcslib-4.17/
+./configure
+make -j2
+sudo make install
+
+wget http://dev.gentoo.org/~bicatali/distfiles/cfitsio-3.340.tar.gz
+ ./configure
+
+# Now for some python package installs.
+sh setuptools-0.6c11-py2.7.egg   
+# but THAT wants zlib too!
+# then rebuilt python so it makes its zlib libraries and all was happy.
+# \rm config.status then ./configure
+
+wget  https://pypi.python.org/packages/2.7/s/setuptools/setuptools-0.6c11-py2.7.egg
+sudo sh setuptools-0.6c11-py2.7.egg 
+sudo easy_install virtualenv
+virtualenv ossos-python
+cd ossos-python
+. ./bin/activate
+
+# What packages do I have already?  (though this doesn't give a version no. like pip freeze)
+pydoc modules 
+
+# Now I can install packages to this virtualenv! Remember: numpy before scipy.
+sudo yum install numpy
+sudo yum install scipy
+sudo easy_install SQLAlchemy
+sudo easy_install ipython
+sudo easy_install nose
+
+# does it all go?
+iptest
+
+

@@ -2,7 +2,6 @@
 #*#
 *.swp
 *pyc
-*.DS_Store
 MANIFEST
 *.egg-info
 .coverage
