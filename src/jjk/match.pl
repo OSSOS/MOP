@@ -7,20 +7,21 @@ $file_name = "proc-these-files";
 
 # get the image names from the file $file_name
 if ( -e $file_name ){
-    open (M_APCOR, "> aper.corr");
+    #open (M_APCOR, "> aper.corr");
     open (IMAGE, "< $file_name" );    
     $i = 1;
     while ( <IMAGE>   ) {
 	($image, $fwhm) = split(' ');
+	print "Working on $image\n";
 	if ( $image ne "#" ) {
 	    if ( -e $image.".obj.jmp" ) {
 		print "$image.obj.jmp already exists. Fine.\n"
 	    } else {
 		if ( -e $image.".obj.psf" ) {
 		    print "$image.obj.psf exists. Copying to $image.obj.jmp\n";
-		    $result = `cp $image.obj.psf $image.obj.jmp`;
+		    system("cp $image.obj.psf $image.obj.jmp");
 		} else {
-		    $result = `step1jmp -f $image -w $fwhm -t 5 -m 20000`;
+		    system("step1jmp -f $image -w $fwhm -t 5 -m 20000");
 		}
 	    }
 	    $images[$i] = $image;
@@ -28,6 +29,7 @@ if ( -e $file_name ){
 	    $i=$i+1;
 	}
     }
+    print "match.csh ".$images[1]." ".$images[2]." ".$images[3]."\n" ;
     $result = `match.csh $images[1] $images[2] $images[3]` ;
 }
 
