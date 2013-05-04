@@ -154,3 +154,22 @@ def copy(source, dest):
     logging.info("%s -> %s" % ( source, dest))
 
     return vospace.copy(source, dest)
+
+def vlink(s_expnum, s_ccd, s_version, s_ext,
+          l_expnum, l_ccd, l_version, l_ext):
+    '''make a link between two version of a file'''
+    source_uri = get_uri(s_expnum, ccd=s_ccd, version=s_version, ext=s_ext)
+    link_uri = get_uri(l_expnum, ccd=l_ccd, version=l_version, ext=s_ext)
+    vospace = vos.Client(certFile=_CERTFILE)
+    return vospace.link(source_uri, link_uri)
+
+def delete(expnum, ccd, version, ext):
+    '''delete a file, no error on does not exist'''
+    uri = get_uri(expnum, ccd=ccd, version=version, ext=ext)
+    vospace = vos.Client(certFile=_CERTFILE)
+    try:
+        vospace.delete(uri)
+    except IOError as e:
+        if e.errno != errno.ENOENT:
+            raise e
+        

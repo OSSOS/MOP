@@ -64,10 +64,6 @@ while ( <TRANS> ) {
 }
 close(TRANS);
 
-open(ZP,"<zeropoint.used") or die "Cann't open zeropoint file";
-$zp=<ZP>;
-close(ZP);
-chomp $zp ;
 
 
 
@@ -82,7 +78,7 @@ for (my $j=0; $j<=$#files; $j++ ) {
     my $file=$files[$j];
     $image = $file;
     $image =~ s/\..*$// ;
-    die "$image.acoo already exists. \n" if ( -f "$image.acoo" ) ;
+    unlink("$image.acoo") if ( -f "$image.acoo" ) ;
     open(COO,"> $image.acoo") or die "Can't open temporary coo file $image.acoo \n";
     for (my $i=0; $i<=$#files; $i++) {
 	my $phot=$files[$i];
@@ -112,11 +108,18 @@ for (my $j=0; $j<=$#files; $j++ ) {
     $apcor[$j]=$apco;
     $aperr[$j]=$aper;
 
+    open(ZP,"<$image.zeropoint.used") or die "Cann't open zeropoint file";
+    $zp=<ZP>;
+    close(ZP);
+    chomp $zp ;
+    unlink($image.".amag") if ( -f $image.".amag");
     my $cmd="daophot.sh -i $image.fits -c $image.acoo -a $apin -z $zp -o $image.amag";
     print STDERR "$cmd\n";
+    system('which daophot.sh');
     system($cmd);
-    if (-e 'daophot.OK') {
-	`/bin/rm daophot.FAILED daophot.OK`
+    if ( -f 'daophot.OK') {
+        unlink('daophot.FAILED') if ( -f 'daophot.FAILED');
+        unlink('daophot.OK') if ( -f 'daophot.OK');
     } else {
 	die "daophot failed to run properly."
     }
@@ -129,7 +132,7 @@ for (my $j=0; $j<=$#files; $j++ ) {
 open(MASTER,"< $pfiles[0]") or 
 		die "Can't open star photometry file $pfiles[0]. $!\n";
 
-print STDERR "Aperture corrections: $apcor[0], $apcor[1], $apcor[2]\n";
+print STDERR "\n\nAperture corrections: $apcor[0], $apcor[1], $apcor[2]\n";
 
 my @dmag2;
 my @dmag3;

@@ -36,7 +36,7 @@ def run_mkpsf(expnum, ccd):
 
 
     for ext in ('mopheader', 'psf.fits',
-                'zeropoint.used', 'apcor', 'fwhm'):
+                'zeropoint.used', 'apcor', 'fwhm', 'phot'):
         dest = ossos.storage.dbimages_uri(expnum, ccd, version='p', ext=ext)
         source = basename + "." + ext
         ossos.storage.copy(source, dest)
@@ -95,8 +95,8 @@ if __name__ == '__main__':
             try:
                 #if ossos.storage.get_status(expnum, ccd, 'mkpsf'):
                 #    logging.info("Already did %s %s, skipping" %( str(expnum),
-                                                                  str(ccd)))
-                    ## already succeeded
+                #    str(ccd)))
+                ## already succeeded
                 #    continue
                 message = 'success'
                 run_mkpsf(expnum, ccd)
