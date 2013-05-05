@@ -57,6 +57,10 @@ if __name__=='__main__':
                         type=int,
                         nargs=3,
                         help="expnums to scramble")
+    parser.add_argument("--nosort",
+                        action='store_true',
+                        default=False,
+                        help="do not sort before processing")
     parser.add_argument("--type",
                         action='store',
                         default='p',
@@ -76,6 +80,9 @@ if __name__=='__main__':
         level = logging.INFO
 
     logging.basicConfig(level=level, format="%(message)s")
+
+    if not args.nosort:
+        args.expnums.sort()
 
     ccds = [args.ccd]
     if args.ccd is None:

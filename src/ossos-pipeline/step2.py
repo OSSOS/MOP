@@ -7,7 +7,7 @@ import logging
 from ossos import util
 from ossos import storage
 
-def run_step2(expnums, ccd, version):
+def run_step2(expnums, ccd, version, prefix=None):
     '''run the actual step2  on the given exp/ccd combo'''
 
     jmp_args = ['step2jmp']
@@ -19,7 +19,8 @@ def run_step2(expnums, ccd, version):
             storage.get_image(expnum,
                               ccd=ccd,
                               version=version,
-                              ext='obj.jmp'
+                              ext='obj.jmp',
+                              prefix=prefix
                               )[0:-8]
             )
         idx += 1
@@ -28,7 +29,8 @@ def run_step2(expnums, ccd, version):
             storage.get_image(expnum,
                               ccd=ccd,
                               version=version,
-                              ext='obj.matt'
+                              ext='obj.matt',
+                              prefix=prefix
                               )[0:-9]
             )
 
@@ -37,7 +39,7 @@ def run_step2(expnums, ccd, version):
 
     for expnum in expnums:
         for ext in ['unid.jmp', 'unid.matt', 'trans.jmp']:
-            uri = storage.dbimages_uri(expnum,ccd=ccd,version=version,ext=ext)
+            uri = storage.dbimages_uri(expnum,ccd=ccd,version=version,ext=ext, prefix=prefix)
             filename = os.path.basename(uri)
             storage.copy(filename, uri)
 
@@ -55,6 +57,7 @@ if __name__ == '__main__':
                         default=None,
                         type=int,
                         dest="ccd")
+    parser.add_argument("--fk", action="store_true", default=False, help="Do fakes?")
     parser.add_argument("--dbimages",
                         action="store",
                         default="vos:OSSOS/dbimages",
@@ -66,7 +69,7 @@ if __name__ == '__main__':
     parser.add_argument("--version",
                         action='version',
                         version='%(prog)s 1.0')
-    parser.add_argument('-t','--imtype',
+    parser.add_argument('-t','--type',
                         help='which type of image to process',
                         choices=['s','p','o'],
                         default='p'
@@ -89,6 +92,8 @@ if __name__ == '__main__':
     else:
         ccdlist = [args.ccd]
 
+    prefix = ( args.fk and "fk") or ""
+
     if not args.no_sort:
         args.expnums.sort()
 
@@ -103,7 +108,7 @@ if __name__ == '__main__':
             #    continue
             logging.info("step2 on expnum :%s, ccd: %d" % (
                 str(args.expnums), ccd))
-            run_step2(args.expnums, ccd, version=args.imtype)
+            run_step2(args.expnums, ccd, version=args.type, prefix=prefix)
             logging.info(message)
         except Exception as e:
             message = str(e)

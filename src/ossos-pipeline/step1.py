@@ -15,7 +15,9 @@ from ossos import util
 from astropy.io import fits
 
 def run_step1(expnum,
-              ccd, 
+              ccd,
+              prefix='',
+              version='p',
               fwhm=4, 
               sex_thresh=1.3, 
               wave_thresh=2.7, 
@@ -31,10 +33,10 @@ def run_step1(expnum,
 
     """
 
-    filename = storage.get_image(expnum, ccd, version='p')
-    mopheader = storage.get_image(expnum, ccd, version='p',
-                                  ext='mopheader')
-    fwhm = storage.get_fwhm(expnum, ccd)
+    filename = storage.get_image(expnum, ccd, version=version, prefix=prefix)
+    mopheader = storage.get_image(expnum, ccd, version=version,
+                                  ext='mopheader', prefix=prefix)
+    fwhm = storage.get_fwhm(expnum, ccd, prefix=prefix, version=version)
     basename = os.path.splitext(filename)[0]
     
     outfile = util.exec_prog(['step1jmp', 
@@ -43,7 +45,7 @@ def run_step1(expnum,
                               '-w', str(fwhm),
                               '-m', str(maxcount)])
     
-    obj_uri = storage.get_uri(expnum,ccd,version='p',ext='obj.jmp')
+    obj_uri = storage.get_uri(expnum,ccd,version=version,ext='obj.jmp', prefix=prefix)
     obj_filename = basename+".obj.jmp"
 
     storage.copy(obj_filename,obj_uri)
@@ -61,7 +63,7 @@ def run_step1(expnum,
                               '-w', str(fwhm),
                               '-m', str(maxcount)])
 
-    obj_uri = storage.get_uri(expnum,ccd,version='p',ext='obj.matt')
+    obj_uri = storage.get_uri(expnum,ccd,version=version,ext='obj.matt', prefix=prefix)
     obj_filename = basename+".obj.matt"
 
     storage.copy(obj_filename,obj_uri)
@@ -79,6 +81,9 @@ if __name__=='__main__':
                         default=None,
                         type=int,
                         dest="ccd")
+    parser.add_argument("--fk", help="add the fk prefix on processing?",
+                        default=False,
+                        action='store_true')
     parser.add_argument("--dbimages",
                         action="store",
                         default="vos:OSSOS/dbimages",
@@ -99,6 +104,7 @@ if __name__=='__main__':
     parser.add_argument("--version",
                         action='version',
                         version='%(prog)s 1.0')
+    parser.add_argument('--type', default='p', choices=['o','p','s'], help="which type of image")
     parser.add_argument("--verbose","-v",
                         action="store_true")
     parser.add_argument("--debug",'-d',
@@ -121,6 +127,9 @@ if __name__=='__main__':
     else:
         ccdlist = [args.ccd]
 
+    prefix = ( args.fk and 'fk') or ''
+
+
     for expnum in args.expnum:
         for ccd in ccdlist:
             try:
@@ -132,7 +141,7 @@ if __name__=='__main__':
                 #                                                 str(ccd)))
                 #    continue
                 logging.info("step1 on expnum :%d, ccd: %d" % ( expnum, ccd))
-                run_step1(expnum, ccd)
+                run_step1(expnum, ccd, prefix=prefix, version=args.type)
                 logging.info(message)
             except Exception as e:
                 message = str(e)
