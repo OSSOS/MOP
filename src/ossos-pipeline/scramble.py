@@ -14,22 +14,28 @@ def run_scramble(expnums, ccd, version='p'):
     '''run the plant script on this combination of exposures'''
 
     scramble = []
-    headers = []
+    mjds = []
     fobjs = []
     for expnum in expnums:
         filename = storage.get_image(expnum, ccd=ccd, version=version)
         fobjs.append(fits.open(filename))
-        headers.append(fobjs[-1][0].header)
+        # Pull out values to replace in headers.. must pull them
+        # as otherwise we get pointers...
+        mjds.append(fobjs[-1][0].header['MJD-OBS'])
 
     order = [1,0,2]
     for idx in range(len(fobjs)):
-        fobjs[idx][0].header['EXPNUM'] = headers[order[idx]]['EXPNUM']
-        fobjs[idx][0].header['MJD-OBS'] = headers[order[idx]]['MJD-OBS']
+        logging.info("Flipping %d to %d" % ( fobjs[idx][0].header['EXPNUM'],
+                                             expnums[order[idx]]))
+        fobjs[idx][0].header['EXPNUM'] = expnums[order[idx]]
+        fobjs[idx][0].header['MJD-OBS'] = mjds[order[idx]]
         uri = storage.get_uri(expnums[order[idx]],
                                 ccd=ccd,
                                 version='s',
                                 ext='fits')
         fname = os.path.basename(uri)
+        if os.access(fname, os.F_OK):
+            os.unlink(fname)
         fobjs[idx].writeto(fname)
         storage.copy(fname, uri)
 
@@ -87,6 +93,6 @@ if __name__=='__main__':
     ccds = [args.ccd]
     if args.ccd is None:
         ccds = range(0,36)
-    
     for ccd in ccds:
-        run_scramble(args.expnums,ccd=ccd, version=args.type)
+        expnums = args.expnums
+        run_scramble(expnums=expnums, ccd=ccd, version=args.type)
