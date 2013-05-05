@@ -17,6 +17,6 @@ def exec_prog(args):
     if not os.access(program_name+".OK", os.F_OK):
         logging.error("No %s file?" % ( program_name+".OK"))
         raise subprocess.CalledProcessError(-1, ' '.join(args), output)
-
+    os.unlink(program_name+".OK")
     return output
 

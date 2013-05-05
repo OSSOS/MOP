@@ -8,7 +8,7 @@ from ossos import util
 from ossos import storage
 
 def run_step3(expnums, ccd, version, rate_min,
-              rate_max, angle, width, field=None):
+              rate_max, angle, width, field=None, prefix=None):
     '''run the actual step2  on the given exp/ccd combo'''
 
     jmp_args = ['step3jmp']
@@ -20,13 +20,15 @@ def run_step3(expnums, ccd, version, rate_min,
         idx += 1
         for ext in ['unid.jmp', 'unid.matt',
                     'trans.jmp' ]:
-            storage.get_image(expnum,
-                              ccd=ccd,
-                              version=version,
-                              ext=ext
-                              )
+            filename = storage.get_image(expnum,
+                                         ccd=ccd,
+                                         version=version,
+                                         ext=ext,
+                                         prefix=prefix
+                                         )
+        image = os.path.splitext(os.path.splitext(os.path.basename(filename))[0])[0]
         cmd_args.append('-f%d' % ( idx))
-        cmd_args.append('%s%s%s' % ( str(expnum), version, str(ccd).zfill(2)))
+        cmd_args.append(image)
 
     cmd_args.extend(['-rn', str(rate_min),
                      '-rx', str(rate_max),
@@ -45,16 +47,15 @@ def run_step3(expnums, ccd, version, rate_min,
                         ccd=ccd,
                         version=version,
                         ext=ext,
-                        subdir='moving')
-        ))
+                        prefix=prefix)))
 
     for ext in ['moving.jmp', 'moving.matt']:
         uri = storage.get_uri(field,
                               ccd=ccd,
                               version=version,
                               ext=ext,
-                              subdir='moving')
-        filename = '%d%s%s.%s' % ( expnums[0],
+                              prefix=prefix)
+        filename = '%s%d%s%s.%s' % ( prefix, expnums[0],
                                    version,
                                    str(ccd).zfill(2),
                                    ext)
@@ -85,11 +86,12 @@ if __name__ == '__main__':
     parser.add_argument("--version",
                         action='version',
                         version='%(prog)s 1.0')
-    parser.add_argument('-t','--imtype',
+    parser.add_argument('-t','--type',
                         help='which type of image to process',
                         choices=['s','p','o'],
                         default='p'
                         )
+    parser.add_argument('--fk', help='Do fakes?', default=False, action='store_true')
     parser.add_argument('--field',
                         help='a string that identifies which field is being searched',
                         nargs='?')
@@ -98,16 +100,16 @@ if __name__ == '__main__':
                         action='store_true')
     parser.add_argument("--verbose","-v",
                         action="store_true")
-    parser.add_argument("--rate_min",
+    parser.add_argument("--rate_min", default=0.4,
                         help='minimum rate to accept',
                         type=float)
-    parser.add_argument('--rate_max',
+    parser.add_argument('--rate_max', default=15,
                         help='maximum rate to accept',
                         type=float)
-    parser.add_argument('--angle',
+    parser.add_argument('--angle', default=20,
                         help='angle of x/y motion, West is 0, North 90',
                         type=float)
-    parser.add_argument('--width',
+    parser.add_argument('--width', default=30,
                         help='openning angle of search cone',
                         type=float)
 
@@ -126,6 +128,8 @@ if __name__ == '__main__':
     if not args.no_sort:
         args.expnums.sort()
 
+    prefix = ( args.fk and 'fk') or ''
+
     for ccd in ccdlist:
         try:
             message = 'success'
@@ -137,12 +141,13 @@ if __name__ == '__main__':
             #    continue
             logging.info("step2 on expnum :%s, ccd: %d" % (
                 str(args.expnums), ccd))
-            run_step3(args.expnums, ccd, version=args.imtype,
+            run_step3(args.expnums, ccd, version=args.type,
                       rate_min=args.rate_min,
                       rate_max=args.rate_max,
                       angle=args.angle,
                       width=args.width,
-                      field=args.field)
+                      field=args.field,
+                      prefix=prefix)
             logging.info(message)
         except Exception as e:
             message = str(e)

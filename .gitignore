@@ -6,3 +6,4 @@
 MANIFEST
 *.egg-info
 .coverage
+build

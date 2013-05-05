@@ -35,20 +35,22 @@ def run_plant(expnums, ccd, rmin, rmax, ang, width, version='s'):
     cmd_args = ['plant.csh',os.curdir,
              str(rmin), str(rmax), str(ang), str(width)]
 
-    #util.exec_prog(cmd_args)
+    util.exec_prog(cmd_args)
 
     uri = storage.get_uri('Object',ext='planted',version='',
-                          subdir=str(expnums[0]))
+                          subdir=str(expnums[0])+"/ccd%s" % (str(ccd).zfill(2)))
     storage.copy('Object.planted',uri)
     uri = os.path.join(os.path.dirname(uri), 'shifts')
     storage.copy('shifts', uri)
     for expnum in expnums:
-        base = 'fk'+str(expnum)
-        uri = storage.get_uri(base, ccd=ccd, version=version, ext='fits',
-                     subdir=str(expnum))
+        uri = storage.get_uri(expnum, ccd=ccd, version=version, ext='fits', prefix='fk')
         filename =  os.path.basename(uri)
         storage.copy(filename, uri)
-        
+
+        for ext in ['mopheader', 'psf.fits', 'fwhm', 'apcor', 'zeropoint.used', 'trans.jmp']:
+            storage.delete(expnum, ccd, 's', ext, prefix='fk')
+            storage.vlink(expnum, ccd, 'p', ext,
+                          expnum, ccd, 's', ext, l_prefix='fk')
                           
 
     
@@ -74,6 +76,10 @@ if __name__=='__main__':
                         default='s',
                         choices=['s', 'p', 'o'],
                         help='which type of image')
+    parser.add_argument('--no-sort',
+                        action='store_true',
+                        default=False,
+                        help='do not sort exposure list by expnum before processing')
     parser.add_argument("--verbose","-v",
                         action="store_true")
     parser.add_argument("--debug",'-d',
@@ -95,6 +101,11 @@ if __name__=='__main__':
         level = logging.DEBUG
     elif args.verbose:
         level = logging.INFO
+
+    if not args.no_sort:
+        args.expnums.sort()
+
+
 
     logging.basicConfig(level=level, format="%(message)s")
 

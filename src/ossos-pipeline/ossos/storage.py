@@ -15,7 +15,7 @@ _CERTFILE=os.path.join(os.getenv('HOME'),
 
 _dbimages='vos:OSSOS/dbimages'
 
-def get_uri(expnum, ccd=None, version='p', ext='fits', subdir=None):
+def get_uri(expnum, ccd=None, version='p', ext='fits', subdir=None, prefix=None):
     '''build the uri for an OSSOS image stored in the dbimages containerNode.
 
     expnum: CFHT exposure number
@@ -25,6 +25,8 @@ def get_uri(expnum, ccd=None, version='p', ext='fits', subdir=None):
     '''
     if subdir is None:
         subdir = str(expnum)
+    if prefix is None:
+        prefix = ''
     uri = os.path.join(_dbimages, subdir)
 
 
@@ -33,13 +35,13 @@ def get_uri(expnum, ccd=None, version='p', ext='fits', subdir=None):
         ccd = str(ccd).zfill(2)
         uri = os.path.join(uri,
                            'ccd%s' % (ccd),
-                           '%s%s%s.%s' % (str(expnum),
+                           '%s%s%s%s.%s' % (prefix, str(expnum),
                                           version,
                                           ccd,
                                           ext))
     else:
         uri = os.path.join(uri,
-                           '%s%s.%s' % (str(expnum),
+                           '%s%s%s.%s' % (prefix, str(expnum),
                                         version,
                                         ext))
     return uri
@@ -78,7 +80,7 @@ def set_status(expnum, ccd, program, status):
     key = "%s_%s" % ( program, str(ccd).zfill(2))
     return set_tag(expnum, key, status)
 
-def get_image(expnum, ccd=None, version='p', ext='fits', subdir=None, rescale=True):
+def get_image(expnum, ccd=None, version='p', ext='fits', subdir=None, rescale=True, prefix=None):
     '''Get a FITS file for this expnum/ccd  from VOSpace.
     
     expnum:  CFHT exposure number (int)
@@ -91,8 +93,13 @@ def get_image(expnum, ccd=None, version='p', ext='fits', subdir=None, rescale=Tr
     if not subdir:
         subdir = str(expnum)
 
-    uri = get_uri(expnum, ccd, version, ext=ext, subdir=subdir)
+    uri = get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix)
     filename = os.path.basename(uri)
+    
+    if os.access(filename, os.F_OK):
+        logging.info("File already on disk: %s" % ( filename))
+        return filename
+
     try:
         copy(uri, filename)
     except Exception as e:
@@ -104,7 +111,10 @@ def get_image(expnum, ccd=None, version='p', ext='fits', subdir=None, rescale=Tr
                       ext=ext,
                       subdir=subdir)
         logging.debug("Using uri: %s" % ( uri))
-        cutout = urllib.urlencode({'cutout':'[%d]' % (int(ccd)+1)})
+        cutout="[%d]" % ( int(ccd)+1)
+        if ccd < 18 :
+            cutout += "[-*,-*]"
+        cutout = urllib.urlencode({'cutout': cutout})
         vospace=vos.Client(certFile=_CERTFILE)
         url = vospace.getNodeURL(uri,view='cutout', limit=None)+'&'+cutout
         fin = vospace.open(uri, URL=url)
@@ -126,10 +136,10 @@ def get_image(expnum, ccd=None, version='p', ext='fits', subdir=None, rescale=Tr
     return filename
 
 
-def get_fwhm(expnum, ccd):
+def get_fwhm(expnum, ccd, prefix=None, version='p'):
     '''Get the FWHM computed for the given expnum/ccd combo.'''
 
-    uri = get_uri(expnum, ccd, 'p', ext='fwhm')
+    uri = get_uri(expnum, ccd, version, ext='fwhm', prefix=prefix)
     vospace=vos.Client(certFile=_CERTFILE)
     return float(vospace.open(uri,view='data').read().strip())
 
@@ -156,16 +166,16 @@ def copy(source, dest):
     return vospace.copy(source, dest)
 
 def vlink(s_expnum, s_ccd, s_version, s_ext,
-          l_expnum, l_ccd, l_version, l_ext):
+          l_expnum, l_ccd, l_version, l_ext, s_prefix=None, l_prefix=None):
     '''make a link between two version of a file'''
-    source_uri = get_uri(s_expnum, ccd=s_ccd, version=s_version, ext=s_ext)
-    link_uri = get_uri(l_expnum, ccd=l_ccd, version=l_version, ext=s_ext)
+    source_uri = get_uri(s_expnum, ccd=s_ccd, version=s_version, ext=s_ext, prefix=s_prefix)
+    link_uri = get_uri(l_expnum, ccd=l_ccd, version=l_version, ext=s_ext, prefix=l_prefix)
     vospace = vos.Client(certFile=_CERTFILE)
     return vospace.link(source_uri, link_uri)
 
-def delete(expnum, ccd, version, ext):
+def delete(expnum, ccd, version, ext, prefix=None):
     '''delete a file, no error on does not exist'''
-    uri = get_uri(expnum, ccd=ccd, version=version, ext=ext)
+    uri = get_uri(expnum, ccd=ccd, version=version, ext=ext, prefix=prefix)
     vospace = vos.Client(certFile=_CERTFILE)
     try:
         vospace.delete(uri)
