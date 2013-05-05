@@ -20,6 +20,8 @@ def run_update_header(image, header_filename, extname=None):
             logging.info("Got extno %s from header." % (extname))
             hdu.header = get_header_object(header_filename,
                                            extname)
+            hdu.header.update('BZERO', 32768, 'manually added')
+            hdu.header.update('BSCALE', 1, 'manually added')
     else:
         logging.info("Replacing primary header with %s." % (extname))
         hdu_list[0].header = get_header_object(header_filename, extname)
@@ -102,7 +104,7 @@ if __name__ == '__main__':
             image, header) )
 
         run_update_header(image, header)
-
+    
         if args.replace:
             expnum = args.expnum or fits.open(image)[0].header['EXPNUM']
             dest = storage.dbimages_uri(expnum)
