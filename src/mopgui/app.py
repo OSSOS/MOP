@@ -12,7 +12,7 @@ def run(astrom_file, debug_mode):
     print "debug_mode: %s" % debug_mode
 
     # TODO: actually run the application
-    appview.ApplicationView().launch()
+    appview.ApplicationView().launch(debug_mode)
 
 
 if __name__ == "__main__":
