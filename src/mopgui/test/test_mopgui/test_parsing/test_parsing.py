@@ -70,6 +70,15 @@ class ParserTest(base_tests.FileReadingTestCase):
         assert_that(obs1.header, has_length(18))
         assert_that(obs2.header, has_length(18))
 
+    def test_parse_sys_header(self):
+        assert_that(self.astrom_data.sys_header, has_length(4))
+        assert_that(self.astrom_data.sys_header, has_entries(
+            {"RMIN": "0.5",
+             "RMAX": "10.3",
+             "ANGLE": "-19.9",
+             "AWIDTH": "22.3"}
+        ))
+
 
 if __name__ == '__main__':
     unittest.main()
