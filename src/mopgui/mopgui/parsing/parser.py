@@ -20,17 +20,11 @@ class AstromParser(object):
             """##\s+RMIN\s+RMAX\s+ANGLE\s+AWIDTH\s+#\s+(?P<RMIN>\d+\.\d+)\s+(?P<RMAX>\d+\.\d+)\s+(?P<ANGLE>-?\d+\.\d+)\s+(?P<AWIDTH>\d+\.\d+)""")
         self.source_list_reg = re.compile("""##\s+X\s+Y\s+X_0\s+Y_0\s+R.A.\s+DEC\s+(.*)""", re.DOTALL)
 
-    def parse(self, filename):
-        with open(filename, "rb") as filehandle:
-            filestr = filehandle.read()
-
-        assert filestr is not None
-
-        # Parse observation list
+    def _parse_observation_list(self, filestr):
         matches = self.obs_regex.findall(filestr) # returns list of tuples
-        observations = [Observation(*match) for match in matches]
+        return [Observation(*match) for match in matches]
 
-        # Parse observation headers
+    def _parse_observation_headers(self, filestr, observations):
         obsnum = 0
         for match in self.obs_header_regex.finditer(filestr):
             obs = observations[obsnum]
@@ -42,21 +36,24 @@ class AstromParser(object):
                                              "parsed doesn't match length of "
                                              "observation list")
 
-        # Parse system header
+    def _parse_system_header(self, filestr):
         sys_header_match = self.sys_header_regex.search(filestr)
+
         assert sys_header_match is not None, "Could not parse system header"
-        sys_header = sys_header_match.groupdict()
 
-        # Parse sources data
+        return sys_header_match.groupdict()
+
+    def _parse_source_data(self, filestr, observations):
         source_list_match = self.source_list_reg.search(filestr)
-        assert source_list_match is not None, "Could not find the source list"
-        source_list_str = source_list_match.group(1)
 
-        raw_source_list = source_list_str.split("\n\n")
+        assert source_list_match is not None, "Could not find the source list"
+
+        raw_source_list = (source_list_match.group(1)).split("\n\n")
 
         sources = []
         for raw_source in raw_source_list:
             source = []
+
             source_obs = raw_source.strip().split("\n")
             assert len(source_obs) == len(
                 observations), "Source doesn't have same number of observations (%d) as in observations list (%d)." % (
@@ -67,6 +64,22 @@ class AstromParser(object):
                 source.append(SourceReading(*fields))
 
             sources.append(source)
+
+        return sources
+
+    def parse(self, filename):
+        with open(filename, "rb") as filehandle:
+            filestr = filehandle.read()
+
+        assert filestr is not None, "File contents are None"
+
+        observations = self._parse_observation_list(filestr)
+
+        self._parse_observation_headers(filestr, observations)
+
+        sys_header = self._parse_system_header(filestr)
+
+        sources = self._parse_source_data(filestr, observations)
 
         return AstromData(observations, sys_header, sources)
 
