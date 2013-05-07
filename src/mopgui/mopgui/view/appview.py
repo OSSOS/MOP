@@ -3,16 +3,20 @@ The entry-point for the "view" of the Model-View-Controller.
 """
 
 import wx
+import wx.lib.inspection
 
 
 class ApplicationView(object):
     def __init__(self):
-        self.app = wx.App(False)
+        self.wx_app = wx.App(False)
         self.mainframe = MainFrame()
 
-    def launch(self):
+    def launch(self, debug_mode=False):
+        if debug_mode:
+            wx.lib.inspection.InspectionTool().Show()
+
         self.mainframe.Show()
-        self.app.MainLoop()
+        self.wx_app.MainLoop()
 
 
 class MainFrame(wx.Frame):
