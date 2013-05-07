@@ -4,14 +4,17 @@ Main module for running the MOP graphical user interface.
 
 import argparse
 
+from mopgui.parsing.parser import AstromParser
 from mopgui.view import appview
 
 
 def run(astrom_file, debug_mode):
-    print "astrom_file: %s" % astrom_file
-    print "debug_mode: %s" % debug_mode
+    astrom_data = AstromParser().parse(astrom_file)
 
-    # TODO: actually run the application
+    print "Number of sources: %d" % len(astrom_data.sources)
+    for source in astrom_data.sources:
+        print source
+
     appview.ApplicationView().launch(debug_mode)
 
 
