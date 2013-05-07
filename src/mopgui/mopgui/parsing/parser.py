@@ -174,6 +174,10 @@ class SourceReading(object):
         self.ra = ra
         self.dec = dec
 
+    def __repr__(self):
+        return "<SourceReading x=%s, y=%s, x0=%s, y0=%s, ra=%s, dec=%s>" % (
+            self.x, self.y, self.x0, self.y0, self.ra, self.dec)
+
 
 class Observation(object):
     """
