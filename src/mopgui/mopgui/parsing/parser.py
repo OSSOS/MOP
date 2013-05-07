@@ -12,16 +12,51 @@ class AstromParser(object):
     """
 
     def __init__(self):
-        self.obs_regex = re.compile("#\s+(?P<rawname>(?P<expnum>\d{7})"
-                                    "(?P<ftype>[ops])(?P<ccdnum>\d+))")
+        # Set up the regexes need to parse each section of the .astrom file
+        
+        self.obs_list_regex = re.compile(
+            "#\s+(?P<rawname>(?P<expnum>\d{7})(?P<ftype>[ops])(?P<ccdnum>\d+))"
+        )
+
         self.obs_header_regex = re.compile(
-            """##\s+MOPversion\s+#\s+(?P<MOPversion>\d+\.[\d\w]+)\s+##\s+MJD-OBS-CENTER\s+EXPTIME\s+THRES\s+FWHM\s+MAXCOUNT\s+CRVAL1\s+CRVAL2\s+EXPNUM\s+#\s+(?P<MJD_OBS_CENTER>\d{4} \d{2} \d+\.\d+)\s+(?P<EXPTIME>\d+\.\d+)\s+(?P<THRES>\d+\.\d+)\s+(?P<FWHM>\d+\.\d+)\s+(?P<MAXCOUNT>\d+\.\d+)\s+(?P<CRVAL1>\d+\.\d+)\s+(?P<CRVAL2>\d+\.\d+)\s+(?P<EXPNUM>\d+)\s+##\s+SCALE\s+CHIP\s+CRPIX1\s+CRPIX2\s+NAX1\s+NAX2\s+DETECTOR\s+PHADU\s+RDNOIS\s+#\s+(?P<SCALE>\d+\.\d+)\s+(?P<CHIP>\d+)\s+(?P<CRPIX1>-?\d+\.\d+)\s+(?P<CRPIX2>-?\d+\.\d+)\s+(?P<NAX1>\d+)\s+(?P<NAX2>\d+)\s+(?P<DETECTOR>\w+)\s+(?P<PHADU>\d+\.\d+)\s+(?P<RDNOIS>\d+\.\d+)""")
+            "##\s+MOPversion\s+#\s+"
+            "(?P<MOPversion>\d+\.[\d\w]+)\s+"
+            "##\s+MJD-OBS-CENTER\s+EXPTIME\s+THRES\s+FWHM\s+MAXCOUNT\s+CRVAL1\s+CRVAL2\s+EXPNUM\s+"
+            "#\s+(?P<MJD_OBS_CENTER>\d{4} \d{2} \d+\.\d+)\s+"
+            "(?P<EXPTIME>\d+\.\d+)\s+"
+            "(?P<THRES>\d+\.\d+)\s+"
+            "(?P<FWHM>\d+\.\d+)\s+"
+            "(?P<MAXCOUNT>\d+\.\d+)\s+"
+            "(?P<CRVAL1>\d+\.\d+)\s+"
+            "(?P<CRVAL2>\d+\.\d+)\s+"
+            "(?P<EXPNUM>\d+)\s+"
+            "##\s+SCALE\s+CHIP\s+CRPIX1\s+CRPIX2\s+NAX1\s+NAX2\s+DETECTOR\s+PHADU\s+RDNOIS\s+#\s+"
+            "(?P<SCALE>\d+\.\d+)\s+"
+            "(?P<CHIP>\d+)\s+"
+            "(?P<CRPIX1>-?\d+\.\d+)\s+"
+            "(?P<CRPIX2>-?\d+\.\d+)\s+"
+            "(?P<NAX1>\d+)\s+"
+            "(?P<NAX2>\d+)\s+"
+            "(?P<DETECTOR>\w+)\s+"
+            "(?P<PHADU>\d+\.\d+)\s+"
+            "(?P<RDNOIS>\d+\.\d+)"
+        )
+
         self.sys_header_regex = re.compile(
-            """##\s+RMIN\s+RMAX\s+ANGLE\s+AWIDTH\s+#\s+(?P<RMIN>\d+\.\d+)\s+(?P<RMAX>\d+\.\d+)\s+(?P<ANGLE>-?\d+\.\d+)\s+(?P<AWIDTH>\d+\.\d+)""")
-        self.source_list_reg = re.compile("""##\s+X\s+Y\s+X_0\s+Y_0\s+R.A.\s+DEC\s+(.*)""", re.DOTALL)
+            "##\s+RMIN\s+RMAX\s+ANGLE\s+AWIDTH\s+#\s+"
+            "(?P<RMIN>\d+\.\d+)\s+"
+            "(?P<RMAX>\d+\.\d+)\s+"
+            "(?P<ANGLE>-?\d+\.\d+)\s+"
+            "(?P<AWIDTH>\d+\.\d+)"
+        )
+
+        self.source_list_reg = re.compile(
+            "##\s+X\s+Y\s+X_0\s+Y_0\s+R.A.\s+DEC\s+(.*)",
+            re.DOTALL
+        )
 
     def _parse_observation_list(self, filestr):
-        matches = self.obs_regex.findall(filestr) # returns list of tuples
+        matches = self.obs_list_regex.findall(filestr) # returns list of tuples
         return [Observation(*match) for match in matches]
 
     def _parse_observation_headers(self, filestr, observations):
