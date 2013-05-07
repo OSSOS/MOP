@@ -8,10 +8,13 @@ import re
 class AstromParser(object):
     """
     Parses a .astrom file (our own format) which specifies exposure numbers,
-    identified point sources, their x, y location, and much more.
+    identified point sources, their x, y location, source readings for
+    potential moving objects, etc.
     """
 
     def __init__(self):
+        """Creates the parser"""
+
         # Set up the regexes need to parse each section of the .astrom file
 
         self.obs_list_regex = re.compile(
@@ -103,6 +106,18 @@ class AstromParser(object):
         return sources
 
     def parse(self, filename):
+        """
+        Parses a file into an AstromData structure.
+
+        Args:
+          filename: str
+            The name of the file whose contents will be parsed.
+
+        Returns:
+          data: AstromData
+            The file contents extracted into a data structure for programmatic
+            access.
+        """
         with open(filename, "rb") as filehandle:
             filestr = filehandle.read()
 
@@ -125,6 +140,22 @@ class AstromData(object):
     """
 
     def __init__(self, observations, sys_header, sources):
+        """
+        Constructs a new astronomy data set object.
+
+        Args:
+          observations: list(Observations)
+            The observations that are part of the data set.
+          sys_header: dict
+            Key-value pairs of system settings applicable to the data set.
+            Ex: RMIN, RMAX, ANGLE, AWIDTH
+          sources: list(list(SourceReading))
+            A list of point sources found in the data set.  These are
+            potential moving objects.  Each point source is itself a list
+            of source readings, one for each observation in
+            <code>observations</code>.  By convention the ordering of
+            source readings must match the ordering of the observations.
+        """
         self.observations = observations
         self.sys_header = sys_header
         self.sources = sources
@@ -132,7 +163,7 @@ class AstromData(object):
 
 class SourceReading(object):
     """
-    Data for a detected point source.
+    Data for a detected point source (which is a potential moving objects).
     """
 
     def __init__(self, x, y, x0, y0, ra, dec):
@@ -146,7 +177,8 @@ class SourceReading(object):
 
 class Observation(object):
     """
-    Stores data for a single observation.
+    Stores data for a single observation (which may be associated with many
+    point sources/readings).
     """
 
     @staticmethod
