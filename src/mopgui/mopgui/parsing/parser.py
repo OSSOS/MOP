@@ -13,7 +13,7 @@ class AstromParser(object):
 
     def __init__(self):
         # Set up the regexes need to parse each section of the .astrom file
-        
+
         self.obs_list_regex = re.compile(
             "#\s+(?P<rawname>(?P<expnum>\d{7})(?P<ftype>[ops])(?P<ccdnum>\d+))"
         )
@@ -57,7 +57,7 @@ class AstromParser(object):
 
     def _parse_observation_list(self, filestr):
         matches = self.obs_list_regex.findall(filestr) # returns list of tuples
-        return [Observation(*match) for match in matches]
+        return [Observation.from_parse_data(*match) for match in matches]
 
     def _parse_observation_headers(self, filestr, observations):
         obsnum = 0
@@ -149,12 +149,16 @@ class Observation(object):
     Stores data for a single observation.
     """
 
-    def __init__(self, rawname, expnum, ftype, ccdnum):
+    @staticmethod
+    def from_parse_data(rawname, expnum, ftype, ccdnum):
         assert rawname == expnum + ftype + ccdnum
+        return Observation(expnum, ftype, ccdnum)
 
-        self.rawname = rawname
+    def __init__(self, expnum, ftype, ccdnum):
         self.expnum = expnum
         self.ftype = ftype
         self.ccdnum = ccdnum
+
+        self.rawname = expnum + ftype + ccdnum
 
         self.header = {}
