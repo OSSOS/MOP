@@ -9,9 +9,13 @@ from mopgui.view import util
 
 
 class ApplicationView(object):
-    def __init__(self):
+    def __init__(self, astrom_data):
+        self.astrom_data = astrom_data
+
         self.wx_app = wx.App(False)
         self.mainframe = MainFrame()
+
+        self.mainframe.set_source_count(len(astrom_data.sources))
 
     def launch(self, debug_mode=False):
         if debug_mode:
@@ -29,9 +33,9 @@ class MainFrame(wx.Frame):
                              wx.BITMAP_TYPE_JPEG))
 
         self._create_menus()
+        self.CreateStatusBar()
 
     def _create_menus(self):
-
         def do_bind(handler, item):
             self.Bind(wx.EVT_MENU, handler, item)
 
@@ -44,6 +48,9 @@ class MainFrame(wx.Frame):
         menubar = wx.MenuBar()
         menubar.Append(file_menu, "File")
         self.SetMenuBar(menubar)
+
+    def set_source_count(self, source_count):
+        self.GetStatusBar().SetStatusText("Sources: %d" % source_count)
 
     def on_exit(self, event):
         self.Close()

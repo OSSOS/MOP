@@ -15,7 +15,9 @@ def run(astrom_file, debug_mode):
     for source in astrom_data.sources:
         print source
 
-    appview.ApplicationView().launch(debug_mode)
+    # TODO load all image slices up front for now
+
+    appview.ApplicationView(astrom_data).launch(debug_mode)
 
 
 if __name__ == "__main__":
