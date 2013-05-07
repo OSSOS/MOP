@@ -27,3 +27,23 @@ class MainFrame(wx.Frame):
 
         self.SetIcon(wx.Icon(util.get_asset_full_path("cadc_icon.jpg"),
                              wx.BITMAP_TYPE_JPEG))
+
+        self._create_menus()
+
+    def _create_menus(self):
+
+        def do_bind(handler, item):
+            self.Bind(wx.EVT_MENU, handler, item)
+
+        # Create menus and their contents
+        file_menu = wx.Menu()
+        exit_item = file_menu.Append(wx.ID_EXIT, "Exit", "Exit the program")
+        do_bind(self.on_exit, exit_item)
+
+        # Create menu bar
+        menubar = wx.MenuBar()
+        menubar.Append(file_menu, "File")
+        self.SetMenuBar(menubar)
+
+    def on_exit(self, event):
+        self.Close()
