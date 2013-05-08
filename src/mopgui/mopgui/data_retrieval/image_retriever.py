@@ -19,10 +19,13 @@ class ImageSliceRetriever(object):
         self.cutout_calculator = CutoutCalculator(slice_rows, slice_cols)
 
     def retrieve_image(self, uri, source_reading):
+        # NOTE: ccd number is the extension, BUT Fits file extensions start at 1
+        # Therefore ccd n = extension n + 1
+        extension = str(int(source_reading.obs.ccdnum) + 1)
+
         # XXX have to be careful about boundary locations
         cutout_str = self.cutout_calculator.build_cutout_str(
-            source_reading.obs.ccdnum, source_reading.source_point)
-
+            extension, source_reading.source_point)
         vofile = self.vosclient.open(uri, view="cutout", cutout=cutout_str)
 
         return fits.open(cStringIO.StringIO(vofile.read()))

@@ -37,7 +37,7 @@ class ImageRetrieverTest(FileReadingTestCase):
         # XXX is ccdnum actually the extension we want or is it something
         # standard like 2
         self.vosclient.open.assert_called_with(image_uri, view="cutout",
-                                               cutout="[15][400:600,550:650]")
+                                               cutout="[16][400:600,550:650]")
 
         # This is just a test file, make sure we can read an expected value
         # it.  It won't have the right shape necessarily though.
