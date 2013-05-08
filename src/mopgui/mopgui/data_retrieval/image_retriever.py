@@ -65,8 +65,8 @@ class CutoutCalculator(object):
             coords: (x0, x1, y0, y1)
               The cutout boundary coordinates.
         """
-        x = int(point[0])
-        y = int(point[1])
+        x = float(point[0])
+        y = float(point[1])
 
         return (x - self.slice_cols / 2,
                 x + self.slice_cols / 2,
