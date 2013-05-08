@@ -97,8 +97,12 @@ class AstromParser(object):
                 observations), "Source doesn't have same number of observations (%d) as in observations list (%d)." % (
                 len(source_obs), len(observations))
 
-            for source_ob in source_obs:
+            for i, source_ob in enumerate(source_obs):
                 fields = source_ob.split()
+
+                # Find the observation corresponding to this reading
+                fields.append(observations[i])
+
                 source.append(SourceReading(*fields))
 
             sources.append(source)
@@ -166,17 +170,18 @@ class SourceReading(object):
     Data for a detected point source (which is a potential moving objects).
     """
 
-    def __init__(self, x, y, x0, y0, ra, dec):
+    def __init__(self, x, y, x0, y0, ra, dec, obs):
         self.x = x
         self.y = y
         self.x0 = x0
         self.y0 = y0
         self.ra = ra
         self.dec = dec
+        self.obs = obs
 
     def __repr__(self):
-        return "<SourceReading x=%s, y=%s, x0=%s, y0=%s, ra=%s, dec=%s>" % (
-            self.x, self.y, self.x0, self.y0, self.ra, self.dec)
+        return "<SourceReading x=%s, y=%s, x0=%s, y0=%s, ra=%s, dec=%s, obs=%s" % (
+            self.x, self.y, self.x0, self.y0, self.ra, self.dec, self.obs)
 
 
 class Observation(object):
@@ -198,3 +203,6 @@ class Observation(object):
         self.rawname = expnum + ftype + ccdnum
 
         self.header = {}
+
+    def __repr__(self):
+        return "<Observation rawname=%s>" % self.rawname

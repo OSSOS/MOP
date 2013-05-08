@@ -1,6 +1,7 @@
 import unittest
 
-from hamcrest import assert_that, equal_to, has_length, has_entries
+from hamcrest import (assert_that, equal_to, has_length, has_entries,
+                      same_instance)
 
 from test import base_tests
 from mopgui.parsing.parser import AstromParser
@@ -128,6 +129,26 @@ class ParserTest(base_tests.FileReadingTestCase):
         assert_that(data22.y0, equal_to("1845.71"))
         assert_that(data22.ra, equal_to("26.6311063"))
         assert_that(data22.dec, equal_to("29.1102185"))
+
+    def test_parse_source_readings_have_observations(self):
+        obs0 = self.astrom_data.observations[0]
+        obs1 = self.astrom_data.observations[1]
+        obs2 = self.astrom_data.observations[2]
+
+        source0 = self.astrom_data.sources[0]
+        assert_that(source0[0].obs, same_instance(obs0))
+        assert_that(source0[1].obs, same_instance(obs1))
+        assert_that(source0[2].obs, same_instance(obs2))
+
+        source1 = self.astrom_data.sources[1]
+        assert_that(source1[0].obs, same_instance(obs0))
+        assert_that(source1[1].obs, same_instance(obs1))
+        assert_that(source1[2].obs, same_instance(obs2))
+
+        source2 = self.astrom_data.sources[2]
+        assert_that(source2[0].obs, same_instance(obs0))
+        assert_that(source2[1].obs, same_instance(obs1))
+        assert_that(source2[2].obs, same_instance(obs2))
 
 
 if __name__ == '__main__':
