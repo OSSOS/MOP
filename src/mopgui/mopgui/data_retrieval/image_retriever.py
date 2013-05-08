@@ -9,7 +9,7 @@ class ImageSliceRetriever(object):
         self.slice_rows = 256
         self.slice_cols = 256
 
-    def retrieve_image(self, uri, source):
+    def retrieve_image(self, uri, source_reading):
         # TODO:
         # use vos.Client open method with cutout parameter
         # XXX have to be careful about boundary locations
