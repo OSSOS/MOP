@@ -15,18 +15,34 @@ class ApplicationView(object):
 
         self.wx_app = wx.App(False)
         self.mainframe = MainFrame()
+        self.mainframe.subscribe(self)
 
+        self.current_source = 0
+        self.current_observation = 0
         self.mainframe.set_source_count(len(astrom_data.sources))
+
+    def _view_current_image(self):
+        current_image = self.astrom_data.sources[self.current_source][self.current_observation].image
+        self.image_viewer.view_image(current_image)
 
     def launch(self, debug_mode=False):
         if debug_mode:
             wx.lib.inspection.InspectionTool().Show()
 
-        # Show first image of first source
-        self.image_viewer.view_image(self.astrom_data.sources[0][0].image)
+        self._view_current_image()
 
         self.mainframe.Show()
         self.wx_app.MainLoop()
+
+    def on_next_source(self):
+        if self.current_source + 1 < len(self.astrom_data.sources):
+            self.current_source += 1
+        self._view_current_image()
+
+    def on_previous_source(self):
+        if self.current_source > 0:
+            self.current_source -= 1
+        self._view_current_image()
 
 
 class MainFrame(wx.Frame):
@@ -38,6 +54,13 @@ class MainFrame(wx.Frame):
 
         self._create_menus()
         self.CreateStatusBar()
+
+        self._create_navigation_controls()
+
+        self.event_subscribers = []
+
+    def subscribe(self, subscriber):
+        self.event_subscribers.append(subscriber)
 
     def _create_menus(self):
         def do_bind(handler, item):
@@ -53,8 +76,34 @@ class MainFrame(wx.Frame):
         menubar.Append(file_menu, "File")
         self.SetMenuBar(menubar)
 
+    def _create_navigation_controls(self):
+        next_source_button = wx.Button(self, wx.ID_FORWARD,
+                                       label="Next Source")
+        next_source_button.Bind(wx.EVT_BUTTON, self.on_next_source)
+
+        previous_source_button = wx.Button(self, wx.ID_BACKWARD,
+                                           label="Previous Source")
+        previous_source_button.Bind(wx.EVT_BUTTON, self.on_previous_source)
+
+        # Layout
+        source_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        source_button_sizer.Add(previous_source_button)
+        source_button_sizer.Add(next_source_button)
+
+        self.SetSizer(source_button_sizer)
+
     def set_source_count(self, source_count):
         self.GetStatusBar().SetStatusText("Sources: %d" % source_count)
 
     def on_exit(self, event):
         self.Close()
+
+    def on_next_source(self, event):
+        # TODO refactor
+        for subscriber in self.event_subscribers:
+            subscriber.on_next_source()
+
+    def on_previous_source(self, event):
+        # TODO refactor
+        for subscriber in self.event_subscribers:
+            subscriber.on_previous_source()
