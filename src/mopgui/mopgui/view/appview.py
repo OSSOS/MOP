@@ -19,11 +19,13 @@ class ApplicationView(object):
 
         self.current_source = 0
         self.current_observation = 0
-        self.mainframe.set_source_count(len(astrom_data.sources))
 
     def _view_current_image(self):
         current_image = self.astrom_data.sources[self.current_source][self.current_observation].image
         self.image_viewer.view_image(current_image)
+        # Add 1 so displayed source numbers don't start at 0
+        self.mainframe.set_source_status(
+            self.current_source + 1, len(self.astrom_data.sources))
 
     def launch(self, debug_mode=False):
         if debug_mode:
@@ -92,8 +94,9 @@ class MainFrame(wx.Frame):
 
         self.SetSizer(source_button_sizer)
 
-    def set_source_count(self, source_count):
-        self.GetStatusBar().SetStatusText("Sources: %d" % source_count)
+    def set_source_status(self, current_source, total_sources):
+        self.GetStatusBar().SetStatusText(
+            "Source %d of %d" % (current_source, total_sources))
 
     def on_exit(self, event):
         self.Close()
