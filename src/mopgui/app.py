@@ -1,23 +1,14 @@
 """
-Main module for running the MOP graphical user interface.
+Script for launching the MOP application.
 """
 
 import argparse
 
-from mopgui.parsing.parser import AstromParser
-from mopgui.view import appview
+from mopgui.controller.appcontrol import ApplicationController
 
 
 def run(astrom_file, debug_mode):
-    astrom_data = AstromParser().parse(astrom_file)
-
-    print "Number of sources: %d" % len(astrom_data.sources)
-    for source in astrom_data.sources:
-        print source
-
-    # TODO load all image slices up front for now
-
-    appview.ApplicationView(astrom_data).launch(debug_mode)
+    ApplicationController().run(astrom_file, debug_mode)
 
 
 if __name__ == "__main__":
