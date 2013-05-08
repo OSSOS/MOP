@@ -9,8 +9,9 @@ from mopgui.view import util
 
 
 class ApplicationView(object):
-    def __init__(self, astrom_data):
+    def __init__(self, astrom_data, image_viewer):
         self.astrom_data = astrom_data
+        self.image_viewer = image_viewer
 
         self.wx_app = wx.App(False)
         self.mainframe = MainFrame()
@@ -20,6 +21,9 @@ class ApplicationView(object):
     def launch(self, debug_mode=False):
         if debug_mode:
             wx.lib.inspection.InspectionTool().Show()
+
+        # Show first image of first source
+        self.image_viewer.view_image(self.astrom_data.sources[0][0].image)
 
         self.mainframe.Show()
         self.wx_app.MainLoop()
