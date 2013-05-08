@@ -4,29 +4,45 @@ import vos
 from hamcrest import assert_that, equal_to
 from mock import Mock
 
+from test.base_tests import FileReadingTestCase
 from mopgui.data_retrieval.image_retriever import ImageSliceRetriever
 from mopgui.data_retrieval.image_retriever import CutoutCalculator
+from mopgui.parsing.parser import SourceReading, Observation
 
 
-class ImageRetrieverTest(unittest.TestCase):
+class ImageRetrieverTest(FileReadingTestCase):
     def setUp(self):
-        self.retriever = ImageSliceRetriever()
+        self.vosclient = Mock(spec=vos.Client)
+        self.retriever = ImageSliceRetriever(slice_rows=100, slice_cols=200,
+                                             vosclient=self.vosclient)
 
-    @unittest.skip("TODO")
+        # Mock vosclient to open a local file instead of one from vospace
+        self.localfile = open(self.get_abs_path("data/testimg.fits"), "rb")
+        self.vosclient.open.return_value = self.localfile
+
+    def tearDown(self):
+        self.localfile.close()
+
     def test_retrieve_sliced_image(self):
         image_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/1584431p15.fits"
-        target_source = "TODO"
 
-        # Mock the vos Client
-        self.retriever.vosclient = Mock(spec=vos.Client)
+        obs = Observation("1584431", "p", "15")
+        reading_x = 500
+        reading_y = 600
+        # Putting in 0's for don't cares
+        source_reading = SourceReading(reading_x, reading_y, 0, 0, 0, 0, obs)
 
-        self.retriever.vosclient.open.assert_called_with(image_uri, view="cutout",
-                                                         cutout="TODO")
+        hdulist = self.retriever.retrieve_image(image_uri, source_reading)
 
-        image = self.retriever.retrieve_image(image_uri, target_source)
-        assert_that(image.shape,
-                    equal_to((self.retriever.slice_rows,
-                              self.retriever.slice_cols)))
+        # XXX is ccdnum actually the extension we want or is it something
+        # standard like 2
+        self.vosclient.open.assert_called_with(image_uri, view="cutout",
+                                               cutout="[15][400:600,550:650]")
+
+        # This is just a test file, make sure we can read an expected value
+        # it.  It won't have the right shape necessarily though.
+        assert_that(hdulist[0].header["FILENAME"],
+                    equal_to("u5780205r_cvt.c0h"))
 
 
 class CutoutCalculatorTest(unittest.TestCase):
