@@ -2,18 +2,30 @@
 Retrieves slices of images relevant for display of sources to the user.
 """
 
+import cStringIO
+
+from astropy.io import fits
+import vos
+
 
 class ImageSliceRetriever(object):
-    def __init__(self):
+    def __init__(self, slice_rows=256, slice_cols=256, vosclient=None):
         # TODO extract these to a application-wide config file
-        self.slice_rows = 256
-        self.slice_cols = 256
+        self.slice_rows = slice_rows
+        self.slice_cols = slice_cols
+
+        self.vosclient = vos.Client() if vosclient is None else vosclient
+
+        self.cutout_calculator = CutoutCalculator(slice_rows, slice_cols)
 
     def retrieve_image(self, uri, source_reading):
-        # TODO:
-        # use vos.Client open method with cutout parameter
         # XXX have to be careful about boundary locations
-        pass
+        cutout_str = self.cutout_calculator.build_cutout_str(
+            source_reading.obs.ccdnum, source_reading.source_point)
+
+        vofile = self.vosclient.open(uri, view="cutout", cutout=cutout_str)
+
+        return fits.open(cStringIO.StringIO(vofile.read()))
 
 
 class CutoutCalculator(object):

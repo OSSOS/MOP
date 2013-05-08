@@ -182,6 +182,10 @@ class SourceReading(object):
 
         self.image = None
 
+    @property
+    def source_point(self):
+        return self.x, self.y
+
     def __repr__(self):
         return "<SourceReading x=%s, y=%s, x0=%s, y0=%s, ra=%s, dec=%s, obs=%s" % (
             self.x, self.y, self.x0, self.y0, self.ra, self.dec, self.obs)
