@@ -14,3 +14,10 @@ class DS9ImageViewer(object):
             self.ds9_instance = ds9.ds9()
 
         self.ds9_instance.set_pyfits(hdulist)
+
+        # Default configuration
+        self._set_configs("zscale", "zoom to fit")
+
+    def _set_configs(self, *configs):
+        for config in configs:
+            self.ds9_instance.set(config)
