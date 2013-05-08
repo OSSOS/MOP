@@ -177,7 +177,10 @@ class SourceReading(object):
         self.y0 = y0
         self.ra = ra
         self.dec = dec
+
         self.obs = obs
+
+        self.image = None
 
     def __repr__(self):
         return "<SourceReading x=%s, y=%s, x0=%s, y0=%s, ra=%s, dec=%s, obs=%s" % (
