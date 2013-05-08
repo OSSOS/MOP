@@ -11,5 +11,5 @@ class VOSpaceResolver(object):
     def resolve_uri(self, observation):
         # XXX can there be other file extensions?  For example, fits.fz?
         # Do we need to search the vospace directory and choose based on that?
-        return "%s/%s/%s.fits" % (self.dataset_root, observation.expnum,
-                                  observation.rawname)
+        return "%s/%s/%s%s.fits" % (self.dataset_root, observation.expnum,
+                                    observation.expnum, observation.ftype)
