@@ -12,7 +12,7 @@ class ResolverTest(unittest.TestCase):
 
     def test_resolve_uri(self):
         observation = Observation("1584431", "p", "15")
-        expected_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/1584431p15.fits"
+        expected_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/1584431p.fits"
         assert_that(self.resolver.resolve_uri(observation),
                     equal_to(expected_uri))
 
