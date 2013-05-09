@@ -181,10 +181,20 @@ class SourceReading(object):
         self.obs = obs
 
         self.image = None
+        self.converter = None
 
     @property
     def source_point(self):
         return self.x, self.y
+
+    @property
+    def image_source_point(self):
+        """
+        The location of the source point in the image, taking into account
+        that the image may be a cutout.
+        """
+        assert self.converter is not None, "No converter found"
+        return self.converter.convert(self.source_point)
 
     def __repr__(self):
         return "<SourceReading x=%s, y=%s, x0=%s, y0=%s, ra=%s, dec=%s, obs=%s" % (
