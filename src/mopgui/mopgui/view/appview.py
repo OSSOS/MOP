@@ -6,6 +6,7 @@ import wx
 import wx.lib.inspection
 
 from mopgui.view import util
+from mopgui.view.list_ctrl import ListCtrlPanel
 
 
 class ApplicationView(object):
@@ -20,8 +21,18 @@ class ApplicationView(object):
         self.current_source = 0
         self.current_observation = 0
 
+        self._init_ui()
+
+    def _init_ui(self):
+        # TODO refactor
+        self.mainframe.notebook.obs_header_panel.header_view.populate_kv(
+            self._get_current_reading().obs.header)
+
+    def _get_current_reading(self):
+        return self.astrom_data.sources[self.current_source][self.current_observation]
+
     def _view_current_image(self):
-        current_reading = self.astrom_data.sources[self.current_source][self.current_observation]
+        current_reading = self._get_current_reading()
         self.image_viewer.view_image(current_reading.image)
 
         image_x, image_y = current_reading.image_source_point
@@ -62,12 +73,24 @@ class MainFrame(wx.Frame):
         self.SetIcon(wx.Icon(util.get_asset_full_path("cadc_icon.jpg"),
                              wx.BITMAP_TYPE_JPEG))
 
-        self._create_menus()
-        self.CreateStatusBar()
-
-        self._create_navigation_controls()
+        self._init_ui_components()
 
         self.event_subscribers = []
+
+    def _init_ui_components(self):
+        self.menubar = self._create_menus()
+        self.CreateStatusBar()
+        self.nav_ctrls = self._create_navigation_controls()
+
+        self.notebook = MainNotebook(self)
+
+        # Layout
+        main_component_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_component_sizer.Add(self.nav_ctrls, 0, flag=wx.ALIGN_TOP |
+                                                         wx.ALIGN_CENTER)
+        main_component_sizer.Add(self.notebook, 1, flag=wx.EXPAND)
+
+        self.SetSizer(main_component_sizer)
 
     def subscribe(self, subscriber):
         self.event_subscribers.append(subscriber)
@@ -86,6 +109,8 @@ class MainFrame(wx.Frame):
         menubar.Append(file_menu, "File")
         self.SetMenuBar(menubar)
 
+        return menubar
+
     def _create_navigation_controls(self):
         next_source_button = wx.Button(self, wx.ID_FORWARD,
                                        label="Next Source")
@@ -100,7 +125,7 @@ class MainFrame(wx.Frame):
         source_button_sizer.Add(previous_source_button)
         source_button_sizer.Add(next_source_button)
 
-        self.SetSizer(source_button_sizer)
+        return source_button_sizer
 
     def set_source_status(self, current_source, total_sources):
         self.GetStatusBar().SetStatusText(
@@ -121,3 +146,28 @@ class MainFrame(wx.Frame):
         # TODO refactor
         for subscriber in self.event_subscribers:
             subscriber.on_previous_source()
+
+
+class MainNotebook(wx.Notebook):
+    def __init__(self, parent):
+        super(MainNotebook, self).__init__(parent)
+
+        self._init_ui_components()
+
+    def _init_ui_components(self):
+        self.obs_header_panel = ObservationHeaderPanel(self)
+        self.AddPage(self.obs_header_panel, "Observation Header")
+
+
+class ObservationHeaderPanel(wx.Panel):
+    def __init__(self, parent):
+        super(ObservationHeaderPanel, self).__init__(parent)
+
+        self._init_ui_components()
+
+    def _init_ui_components(self):
+        self.header_view = ListCtrlPanel(self)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.header_view, 1, flag=wx.EXPAND)
+        self.SetSizer(sizer)
+
