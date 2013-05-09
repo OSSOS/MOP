@@ -21,8 +21,13 @@ class ApplicationView(object):
         self.current_observation = 0
 
     def _view_current_image(self):
-        current_image = self.astrom_data.sources[self.current_source][self.current_observation].image
-        self.image_viewer.view_image(current_image)
+        current_reading = self.astrom_data.sources[self.current_source][self.current_observation]
+        self.image_viewer.view_image(current_reading.image)
+
+        image_x, image_y = current_reading.image_source_point
+        radius = 2 * round(float(current_reading.obs.header["FWHM"]))
+        self.image_viewer.draw_circle(image_x, image_y, radius)
+
         # Add 1 so displayed source numbers don't start at 0
         self.mainframe.set_source_status(
             self.current_source + 1, len(self.astrom_data.sources))
