@@ -32,7 +32,7 @@ class ImageRetrieverTest(FileReadingTestCase):
         # Putting in 0's for don't cares
         source_reading = SourceReading(reading_x, reading_y, 0, 0, 0, 0, obs)
 
-        hdulist = self.retriever.retrieve_image(image_uri, source_reading)
+        hdulist, _ = self.retriever.retrieve_image(image_uri, source_reading)
 
         # XXX is ccdnum actually the extension we want or is it something
         # standard like 2
@@ -49,7 +49,7 @@ class CutoutCalculatorTest(unittest.TestCase):
     def test_calc_cutout_internal(self):
         self.calculator = CutoutCalculator(100, 200)
 
-        (x0, x1, y0, y1) = self.calculator.calc_cutout((500, 600))
+        (x0, x1, y0, y1), _ = self.calculator.calc_cutout((500, 600))
         assert_that(x0, equal_to(400))
         assert_that(x1, equal_to(600))
         assert_that(y0, equal_to(550))
@@ -58,7 +58,7 @@ class CutoutCalculatorTest(unittest.TestCase):
     def test_calc_cutout_internal_str(self):
         self.calculator = CutoutCalculator(100, 200)
 
-        (x0, x1, y0, y1) = self.calculator.calc_cutout(("500", "600"))
+        (x0, x1, y0, y1), _ = self.calculator.calc_cutout(("500", "600"))
         assert_that(x0, equal_to(400))
         assert_that(x1, equal_to(600))
         assert_that(y0, equal_to(550))
@@ -67,7 +67,7 @@ class CutoutCalculatorTest(unittest.TestCase):
     def test_calc_cutout_internal_str_float(self):
         self.calculator = CutoutCalculator(100, 200)
 
-        (x0, x1, y0, y1) = self.calculator.calc_cutout(("500.00", "600.00"))
+        (x0, x1, y0, y1), _ = self.calculator.calc_cutout(("500.00", "600.00"))
         assert_that(x0, equal_to(400))
         assert_that(x1, equal_to(600))
         assert_that(y0, equal_to(550))
@@ -76,8 +76,28 @@ class CutoutCalculatorTest(unittest.TestCase):
     def test_build_cutout_str(self):
         self.calculator = CutoutCalculator(100, 200)
 
-        assert_that(self.calculator.build_cutout_str(15, (500, 600)),
-                    equal_to("[15][400:600,550:650]"))
+        cutout_str, _ = self.calculator.build_cutout_str(15, (500, 600))
+        assert_that(cutout_str, equal_to("[15][400:600,550:650]"))
+
+    def test_calc_cutout_internal_converter(self):
+        self.calculator = CutoutCalculator(100, 200)
+
+        _, converter = self.calculator.calc_cutout((500, 600))
+        assert_that(converter.convert((400, 550)), equal_to((0, 0)))
+        assert_that(converter.convert((600, 550)), equal_to((200, 0)))
+        assert_that(converter.convert((400, 650)), equal_to((0, 100)))
+        assert_that(converter.convert((600, 650)), equal_to((200, 100)))
+        assert_that(converter.convert((500, 600)), equal_to((100, 50)))
+
+    def test_build_cutout_str_converter(self):
+        self.calculator = CutoutCalculator(100, 200)
+
+        _, converter = self.calculator.build_cutout_str(15, (500, 600))
+        assert_that(converter.convert((400, 550)), equal_to((0, 0)))
+        assert_that(converter.convert((600, 550)), equal_to((200, 0)))
+        assert_that(converter.convert((400, 650)), equal_to((0, 100)))
+        assert_that(converter.convert((600, 650)), equal_to((200, 100)))
+        assert_that(converter.convert((500, 600)), equal_to((100, 50)))
 
 
 if __name__ == '__main__':
