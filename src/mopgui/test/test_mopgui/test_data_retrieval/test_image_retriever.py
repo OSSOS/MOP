@@ -58,7 +58,7 @@ class CutoutCalculatorTest(unittest.TestCase):
     def test_calc_cutout_internal_str(self):
         self.calculator = CutoutCalculator(100, 200)
 
-        (x0, x1, y0, y1), _ = self.calculator.calc_cutout(("500", "600"))
+        (x0, x1, y0, y1), _ = self.calculator.calc_cutout((500, 600))
         assert_that(x0, equal_to(400))
         assert_that(x1, equal_to(600))
         assert_that(y0, equal_to(550))
@@ -67,7 +67,7 @@ class CutoutCalculatorTest(unittest.TestCase):
     def test_calc_cutout_internal_str_float(self):
         self.calculator = CutoutCalculator(100, 200)
 
-        (x0, x1, y0, y1), _ = self.calculator.calc_cutout(("500.00", "600.00"))
+        (x0, x1, y0, y1), _ = self.calculator.calc_cutout((500.00, 600.00))
         assert_that(x0, equal_to(400))
         assert_that(x1, equal_to(600))
         assert_that(y0, equal_to(550))

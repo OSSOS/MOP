@@ -77,8 +77,7 @@ class CutoutCalculator(object):
               Can be used to find a point in the sliced image based on its
               coordinate in the original image.
         """
-        x = float(point[0])
-        y = float(point[1])
+        x, y = point
 
         x_mid_offset = self.slice_cols / 2
         y_mid_offset = self.slice_rows / 2

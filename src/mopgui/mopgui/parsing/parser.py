@@ -171,12 +171,12 @@ class SourceReading(object):
     """
 
     def __init__(self, x, y, x0, y0, ra, dec, obs):
-        self.x = x
-        self.y = y
-        self.x0 = x0
-        self.y0 = y0
-        self.ra = ra
-        self.dec = dec
+        self.x = float(x)
+        self.y = float(y)
+        self.x0 = float(x0)
+        self.y0 = float(y0)
+        self.ra = float(ra)
+        self.dec = float(dec)
 
         self.obs = obs
 
