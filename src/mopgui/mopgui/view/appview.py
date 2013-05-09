@@ -46,6 +46,9 @@ class ApplicationView(object):
             self.current_source -= 1
         self._view_current_image()
 
+    def on_exit(self):
+        self.image_viewer.close()
+
 
 class MainFrame(wx.Frame):
     def __init__(self):
@@ -100,6 +103,9 @@ class MainFrame(wx.Frame):
 
     def on_exit(self, event):
         self.Close()
+        # TODO refactor
+        for subscriber in self.event_subscribers:
+            subscriber.on_exit()
 
     def on_next_source(self, event):
         # TODO refactor
