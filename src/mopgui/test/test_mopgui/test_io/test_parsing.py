@@ -4,7 +4,7 @@ from hamcrest import (assert_that, equal_to, has_length, has_entries,
                       same_instance)
 
 from test import base_tests
-from mopgui.parsing.parser import AstromParser
+from mopgui.io.parser import AstromParser
 
 
 class ParserTest(base_tests.FileReadingTestCase):
