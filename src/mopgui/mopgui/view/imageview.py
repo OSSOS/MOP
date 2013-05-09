@@ -21,3 +21,6 @@ class DS9ImageViewer(object):
     def _set_configs(self, *configs):
         for config in configs:
             self.ds9_instance.set(config)
+
+    def close(self):
+        self.ds9_instance.set("exit")
