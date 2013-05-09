@@ -7,7 +7,7 @@ from mock import Mock
 from test.base_tests import FileReadingTestCase
 from mopgui.data_retrieval.image_retriever import ImageSliceRetriever
 from mopgui.data_retrieval.image_retriever import CutoutCalculator
-from mopgui.parsing.parser import SourceReading, Observation
+from mopgui.io.parser import SourceReading, Observation
 
 
 class ImageRetrieverTest(FileReadingTestCase):

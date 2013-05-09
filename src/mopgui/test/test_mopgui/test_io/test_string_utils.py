@@ -2,7 +2,7 @@ import unittest
 
 from hamcrest import assert_that, contains
 
-from mopgui.parsing import string_utils
+from mopgui.io import string_utils
 
 
 class StringUtilsTest(unittest.TestCase):

@@ -3,7 +3,7 @@ import unittest
 from hamcrest import assert_that, equal_to
 
 from mopgui.data_retrieval.resolver import VOSpaceResolver
-from mopgui.parsing.parser import Observation
+from mopgui.io.parser import Observation
 
 
 class ResolverTest(unittest.TestCase):

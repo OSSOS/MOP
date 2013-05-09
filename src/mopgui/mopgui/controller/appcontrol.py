@@ -2,7 +2,7 @@
 Main controller of the application.
 """
 
-from mopgui.parsing.parser import AstromParser
+from mopgui.io.parser import AstromParser
 from mopgui.data_retrieval.resolver import VOSpaceResolver
 from mopgui.data_retrieval.image_retriever import ImageSliceRetriever
 from mopgui.view.appview import ApplicationView
