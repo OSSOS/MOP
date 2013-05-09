@@ -24,11 +24,11 @@ class ImageSliceRetriever(object):
         extension = str(int(source_reading.obs.ccdnum) + 1)
 
         # XXX have to be careful about boundary locations
-        cutout_str = self.cutout_calculator.build_cutout_str(
+        cutout_str, converter = self.cutout_calculator.build_cutout_str(
             extension, source_reading.source_point)
         vofile = self.vosclient.open(uri, view="cutout", cutout=cutout_str)
 
-        return fits.open(cStringIO.StringIO(vofile.read()))
+        return fits.open(cStringIO.StringIO(vofile.read())), converter
 
 
 class CutoutCalculator(object):
@@ -52,9 +52,15 @@ class CutoutCalculator(object):
         Returns:
           cutout_str: str
             A string in the form [extnum][x0:x1,y0:y1]
+          converter: CoordinateConverter
+            Can be used to find a point in the sliced image based on its
+            coordinate in the original image.
         """
-        x0, x1, y0, y1 = self.calc_cutout(point)
-        return "[%s][%d:%d,%d:%d]" % (extnum, x0, x1, y0, y1)
+        (x0, x1, y0, y1), converter = self.calc_cutout(point)
+
+        cutout_str = "[%s][%d:%d,%d:%d]" % (extnum, x0, x1, y0, y1)
+
+        return cutout_str, converter
 
     def calc_cutout(self, point):
         """
@@ -66,12 +72,28 @@ class CutoutCalculator(object):
             cutout.
         Returns:
             coords: (x0, x1, y0, y1)
-              The cutout boundary coordinates.
+              The cutout boundary coordinates
+            converter: CoordinateConverter
+              Can be used to find a point in the sliced image based on its
+              coordinate in the original image.
         """
         x = float(point[0])
         y = float(point[1])
 
-        return (x - self.slice_cols / 2,
-                x + self.slice_cols / 2,
-                y - self.slice_rows / 2,
-                y + self.slice_rows / 2)
+        x_mid_offset = self.slice_cols / 2
+        y_mid_offset = self.slice_rows / 2
+
+        coords = (x - x_mid_offset, x + x_mid_offset,
+                  y - y_mid_offset, y + y_mid_offset)
+
+        return coords, CoordinateConverter(x - x_mid_offset, y - y_mid_offset)
+
+
+class CoordinateConverter(object):
+    def __init__(self, x_offset, y_offset):
+        self.x_offset = x_offset
+        self.y_offset = y_offset
+
+    def convert(self, point):
+        x, y = point
+        return x - self.x_offset, y - self.y_offset

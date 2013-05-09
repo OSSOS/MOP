@@ -27,7 +27,7 @@ class ApplicationController(object):
         for source in self.astrom_data.sources:
             for reading in source:
                 image_uri = self.resolver.resolve_uri(reading.obs)
-                image = self.image_retriever.retrieve_image(image_uri, reading)
+                image, _ = self.image_retriever.retrieve_image(image_uri, reading)
 
                 assert image is not None, \
                     "No image retrieved for source reading %s" % reading
