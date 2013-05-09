@@ -89,30 +89,30 @@ class ParserTest(base_tests.FileReadingTestCase):
 
         # Source 0 reading 0
         data00 = source0[0]
-        assert_that(data00.x, equal_to("911.00"))
-        assert_that(data00.y, equal_to("3967.12"))
-        assert_that(data00.x0, equal_to("911.00"))
-        assert_that(data00.y0, equal_to("3967.12"))
-        assert_that(data00.ra, equal_to("26.6833367"))
-        assert_that(data00.dec, equal_to("29.2203532"))
+        assert_that(data00.x, equal_to(911.00))
+        assert_that(data00.y, equal_to(3967.12))
+        assert_that(data00.x0, equal_to(911.00))
+        assert_that(data00.y0, equal_to(3967.12))
+        assert_that(data00.ra, equal_to(26.6833367))
+        assert_that(data00.dec, equal_to(29.2203532))
 
         # Source 0 reading 1
         data01 = source0[1]
-        assert_that(data01.x, equal_to("944.25"))
-        assert_that(data01.y, equal_to("3964.03"))
-        assert_that(data01.x0, equal_to("938.93"))
-        assert_that(data01.y0, equal_to("3965.78"))
-        assert_that(data01.ra, equal_to("26.6816808"))
-        assert_that(data01.dec, equal_to("29.2202748"))
+        assert_that(data01.x, equal_to(944.25))
+        assert_that(data01.y, equal_to(3964.03))
+        assert_that(data01.x0, equal_to(938.93))
+        assert_that(data01.y0, equal_to(3965.78))
+        assert_that(data01.ra, equal_to(26.6816808))
+        assert_that(data01.dec, equal_to(29.2202748))
 
         # Source 0 reading 2
         data02 = source0[2]
-        assert_that(data02.x, equal_to("949.76"))
-        assert_that(data02.y, equal_to("3963.12"))
-        assert_that(data02.x0, equal_to("943.91"))
-        assert_that(data02.y0, equal_to("3965.20"))
-        assert_that(data02.ra, equal_to("26.6813840"))
-        assert_that(data02.dec, equal_to("29.2202469"))
+        assert_that(data02.x, equal_to(949.76))
+        assert_that(data02.y, equal_to(3963.12))
+        assert_that(data02.x0, equal_to(943.91))
+        assert_that(data02.y0, equal_to(3965.20))
+        assert_that(data02.ra, equal_to(26.6813840))
+        assert_that(data02.dec, equal_to(29.2202469))
 
         ## Test source 1
         assert_that(self.astrom_data.sources[1], has_length(3))
@@ -123,12 +123,12 @@ class ParserTest(base_tests.FileReadingTestCase):
 
         # Source 2 reading 2
         data22 = source2[2]
-        assert_that(data22.x, equal_to("1800.48"))
-        assert_that(data22.y, equal_to("1843.53"))
-        assert_that(data22.x0, equal_to("1795.10"))
-        assert_that(data22.y0, equal_to("1845.71"))
-        assert_that(data22.ra, equal_to("26.6311063"))
-        assert_that(data22.dec, equal_to("29.1102185"))
+        assert_that(data22.x, equal_to(1800.48))
+        assert_that(data22.y, equal_to(1843.53))
+        assert_that(data22.x0, equal_to(1795.10))
+        assert_that(data22.y0, equal_to(1845.71))
+        assert_that(data22.ra, equal_to(26.6311063))
+        assert_that(data22.dec, equal_to(29.1102185))
 
     def test_parse_source_readings_have_observations(self):
         obs0 = self.astrom_data.observations[0]
