@@ -2,7 +2,7 @@ import wx
 import wx.lib.mixins.listctrl as listmix
 
 
-class ListCtrlPanel(wx.Panel):
+class ListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
     """
     A list control panel with sortable columns.
     """
@@ -25,14 +25,28 @@ class ListCtrlPanel(wx.Panel):
         self.SetSizer(sizer)
 
     def populate_kv(self, datadict):
+        item_data_map = {}
         index = 0
         for key, value in datadict.iteritems():
             self.list.InsertStringItem(index, key)
             self.list.SetStringItem(index, 1, value)
+
+            # For ColumnSorterMixin
+            self.list.SetItemData(index, index)
+            item_data_map[index] = (key, value)
+
             index += 1
 
         self.list.SetColumnWidth(0, wx.LIST_AUTOSIZE)
         self.list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
+
+        # This field is required to be set for the ColumnSorterMixin to work
+        self.itemDataMap = item_data_map
+        listmix.ColumnSorterMixin.__init__(self, 2)
+
+    def GetListCtrl(self):
+        """Required by ColumnSorterMixin"""
+        return self.list
 
 
 class ListCtrlAutoWidth(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
