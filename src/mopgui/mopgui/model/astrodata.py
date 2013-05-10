@@ -59,7 +59,7 @@ class AstroDataModel(object):
     def _get_current_reading(self):
         return self._get_current_source()[self._current_obs_number]
 
-    def get_source_readings(self):
+    def get_reading_data(self):
         reading = self._get_current_reading()
         return (("X", reading.x), ("Y", reading.y), ("X_0", reading.x0),
                 ("Y_0", reading.y0), ("R.A.", reading.ra),
