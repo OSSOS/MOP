@@ -7,7 +7,7 @@ class ListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
     A list control panel with sortable columns.
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent, columns):
         super(ListCtrlPanel, self).__init__(parent)
 
         self.list = ListCtrlAutoWidth(self,
@@ -17,23 +17,24 @@ class ListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
                                             wx.LC_SORT_ASCENDING
         )
 
-        self.list.InsertColumn(0, "Key")
-        self.list.InsertColumn(1, "Value")
+        for i, column in enumerate(columns):
+            self.list.InsertColumn(i, column)
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.list, 1, wx.EXPAND)
         self.SetSizer(sizer)
 
-    def populate_kv(self, datadict):
+    def populate_list(self, datatuples):
         item_data_map = {}
         index = 0
-        for key, value in datadict.iteritems():
-            self.list.InsertStringItem(index, key)
-            self.list.SetStringItem(index, 1, value)
+        for tuple in datatuples:
+            self.list.InsertStringItem(index, str(index))
+            for colindex, item in enumerate(tuple):
+                self.list.SetStringItem(index, colindex, item)
 
             # For ColumnSorterMixin
             self.list.SetItemData(index, index)
-            item_data_map[index] = (key, value)
+            item_data_map[index] = tuple
 
             index += 1
 

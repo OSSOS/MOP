@@ -25,8 +25,14 @@ class ApplicationView(object):
 
     def _init_ui(self):
         # TODO refactor
-        self.mainframe.notebook.obs_header_panel.header_view.populate_kv(
-            self._get_current_reading().obs.header)
+        reading = self._get_current_reading()
+        reading_data_list = [("X", str(reading.x)), ("Y", str(reading.y)),
+                             ("X_0", str(reading.x0)), ("Y_0", str(reading.y0)),
+                             ("RA", str(reading.ra)), ("DEC", str(reading.dec))]
+        self.mainframe.notebook.reading_data_panel.populate_list(reading_data_list)
+
+        header_data_list = [(key, value) for key, value in reading.obs.header.iteritems()]
+        self.mainframe.notebook.obs_header_panel.populate_list(header_data_list)
 
     def _get_current_reading(self):
         return self.astrom_data.sources[self.current_source][self.current_observation]
@@ -155,19 +161,9 @@ class MainNotebook(wx.Notebook):
         self._init_ui_components()
 
     def _init_ui_components(self):
-        self.obs_header_panel = ObservationHeaderPanel(self)
+        self.reading_data_panel = ListCtrlPanel(self, ("Key", "Value"))
+        self.obs_header_panel = ListCtrlPanel(self, ("Key", "Value"))
+
+        self.AddPage(self.reading_data_panel, "Readings")
         self.AddPage(self.obs_header_panel, "Observation Header")
-
-
-class ObservationHeaderPanel(wx.Panel):
-    def __init__(self, parent):
-        super(ObservationHeaderPanel, self).__init__(parent)
-
-        self._init_ui_components()
-
-    def _init_ui_components(self):
-        self.header_view = ListCtrlPanel(self)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.header_view, 1, flag=wx.EXPAND)
-        self.SetSizer(sizer)
 
