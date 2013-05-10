@@ -2,7 +2,7 @@ import unittest
 
 from wx.lib.pubsub import Publisher as pub
 
-from hamcrest import assert_that, equal_to, has_length
+from hamcrest import assert_that, equal_to, has_length, contains
 from mock import Mock
 
 from test.base_tests import FileReadingTestCase
@@ -84,6 +84,12 @@ class AstroDataModelTest(FileReadingTestCase):
         msg = args[0]
         assert_that(msg.topic, equal_to(astrodata.ASTRODATA_MSG_PREV_SRC))
         assert_that(msg.data, equal_to(0))
+
+    def test_get_source_readings(self):
+        assert_that(self.model.get_source_readings(), contains(
+            ("X", 911.00), ("Y", 3967.12), ("X_0", 911.00), ("Y_0", 3967.12),
+            ("R.A.", 26.6833367), ("DEC", 29.2203532)
+        ))
 
 
 if __name__ == '__main__':
