@@ -68,7 +68,7 @@ class AstroDataModelTest(FileReadingTestCase):
     def test_receive_next_source_event(self):
         # Subscribe a mock
         observer = Mock()
-        pub.subscribe(observer.on_next_event, astrodata.ASTRODATA_MSG_NEXT_SRC)
+        pub.subscribe(observer.on_next_event, astrodata.MSG_NEXT_SRC)
 
         # Perform action
         self.model.next_source()
@@ -81,13 +81,13 @@ class AstroDataModelTest(FileReadingTestCase):
         assert_that(args, has_length(1))
 
         msg = args[0]
-        assert_that(msg.topic, equal_to(astrodata.ASTRODATA_MSG_NEXT_SRC))
+        assert_that(msg.topic, equal_to(astrodata.MSG_NEXT_SRC))
         assert_that(msg.data, equal_to(1))
 
     def test_receive_next_obs_event(self):
         # Subscribe a mock
         observer = Mock()
-        pub.subscribe(observer.on_next_event, astrodata.ASTRODATA_MSG_NEXT_OBS)
+        pub.subscribe(observer.on_next_event, astrodata.MSG_NEXT_OBS)
 
         # Perform action
         self.model.next_obs()
@@ -100,13 +100,13 @@ class AstroDataModelTest(FileReadingTestCase):
         assert_that(args, has_length(1))
 
         msg = args[0]
-        assert_that(msg.topic, equal_to(astrodata.ASTRODATA_MSG_NEXT_OBS))
+        assert_that(msg.topic, equal_to(astrodata.MSG_NEXT_OBS))
         assert_that(msg.data, equal_to(1))
 
     def test_receive_previous_source_event(self):
         # Subscribe a mock
         observer = Mock()
-        pub.subscribe(observer.on_previous_event, astrodata.ASTRODATA_MSG_PREV_SRC)
+        pub.subscribe(observer.on_previous_event, astrodata.MSG_PREV_SRC)
 
         # Perform actions
         self.model.next_source()
@@ -120,13 +120,13 @@ class AstroDataModelTest(FileReadingTestCase):
         assert_that(args, has_length(1))
 
         msg = args[0]
-        assert_that(msg.topic, equal_to(astrodata.ASTRODATA_MSG_PREV_SRC))
+        assert_that(msg.topic, equal_to(astrodata.MSG_PREV_SRC))
         assert_that(msg.data, equal_to(0))
 
     def test_receive_previous_source_event(self):
         # Subscribe a mock
         observer = Mock()
-        pub.subscribe(observer.on_previous_event, astrodata.ASTRODATA_MSG_PREV_OBS)
+        pub.subscribe(observer.on_previous_event, astrodata.MSG_PREV_OBS)
 
         # Perform actions
         self.model.next_obs()
@@ -140,7 +140,7 @@ class AstroDataModelTest(FileReadingTestCase):
         assert_that(args, has_length(1))
 
         msg = args[0]
-        assert_that(msg.topic, equal_to(astrodata.ASTRODATA_MSG_PREV_OBS))
+        assert_that(msg.topic, equal_to(astrodata.MSG_PREV_OBS))
         assert_that(msg.data, equal_to(0))
 
     def test_get_source_readings(self):
