@@ -65,3 +65,6 @@ class AstroDataModel(object):
                 ("Y_0", reading.y0), ("R.A.", reading.ra),
                 ("DEC", reading.dec))
 
+    def get_current_image(self):
+        return self._get_current_reading().image
+
