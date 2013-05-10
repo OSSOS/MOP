@@ -1,18 +1,21 @@
 import unittest
 
-from hamcrest import assert_that, equal_to
+from wx.lib.pubsub import Publisher as pub
+
+from hamcrest import assert_that, equal_to, has_length
+from mock import Mock
 
 from test.base_tests import FileReadingTestCase
-from mopgui.model.astrodata import AstroDataModel
+from mopgui.model import astrodata
 from mopgui.io.parser import AstromParser
 
 
 class AstroDataModelTest(FileReadingTestCase):
     def setUp(self):
         testfile = self.get_abs_path("data/1584431p15.measure3.cands.astrom")
-        astromdata = AstromParser().parse(testfile)
+        astrom_data = AstromParser().parse(testfile)
 
-        self.model = AstroDataModel(astromdata)
+        self.model = astrodata.AstroDataModel(astrom_data)
 
     def test_sources_initialized(self):
         assert_that(self.model.get_current_source_number(), equal_to(0))
@@ -42,6 +45,25 @@ class AstroDataModelTest(FileReadingTestCase):
         assert_that(self.model.get_current_source_number(), equal_to(1))
         self.model.previous_source()
         assert_that(self.model.get_current_source_number(), equal_to(0))
+
+    def test_receive_next_source_event(self):
+        # Subscribe a mock
+        observer = Mock()
+        pub.subscribe(observer.on_next_event, astrodata.ASTRODATA_MSG_NEXT_SRC)
+
+        # Perform action
+        self.model.next_source()
+
+        # Make sure event triggered
+        observer.on_next_event.assert_called_once()
+
+        # Make sure it was triggered with the right data
+        args = observer.on_next_event.call_args[0]
+        assert_that(args, has_length(1))
+
+        msg = args[0]
+        assert_that(msg.topic, equal_to(astrodata.ASTRODATA_MSG_NEXT_SRC))
+        assert_that(msg.data, equal_to(1))
 
 
 if __name__ == '__main__':
