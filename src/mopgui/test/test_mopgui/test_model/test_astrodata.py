@@ -65,6 +65,26 @@ class AstroDataModelTest(FileReadingTestCase):
         assert_that(msg.topic, equal_to(astrodata.ASTRODATA_MSG_NEXT_SRC))
         assert_that(msg.data, equal_to(1))
 
+    def test_receive_previous_source_event(self):
+        # Subscribe a mock
+        observer = Mock()
+        pub.subscribe(observer.on_previous_event, astrodata.ASTRODATA_MSG_PREV_SRC)
+
+        # Perform actions
+        self.model.next_source()
+        self.model.previous_source()
+
+        # Make sure event triggered
+        observer.on_previous_event.assert_called_once()
+
+        # Make sure it was triggered with the right data
+        args = observer.on_previous_event.call_args[0]
+        assert_that(args, has_length(1))
+
+        msg = args[0]
+        assert_that(msg.topic, equal_to(astrodata.ASTRODATA_MSG_PREV_SRC))
+        assert_that(msg.data, equal_to(0))
+
 
 if __name__ == '__main__':
     unittest.main()

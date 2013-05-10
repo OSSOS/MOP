@@ -8,6 +8,7 @@ from wx.lib.pubsub import Publisher as pub
 # Pub/Sub ids
 ASTRODATA_MSG_ROOT = ("astrodataroot", )
 ASTRODATA_MSG_NEXT_SRC = ASTRODATA_MSG_ROOT + ("nextsrc",)
+ASTRODATA_MSG_PREV_SRC = ASTRODATA_MSG_ROOT + ("prevsrc",)
 
 
 class AstroDataModel(object):
@@ -33,4 +34,5 @@ class AstroDataModel(object):
 
     def previous_source(self):
         self._current_source_number = (self._current_source_number - 1) % self.get_source_count()
+        pub.sendMessage(ASTRODATA_MSG_PREV_SRC, data=self._current_source_number)
 
