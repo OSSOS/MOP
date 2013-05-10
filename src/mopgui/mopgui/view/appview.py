@@ -16,7 +16,9 @@ class ApplicationView(object):
 
         self.wx_app = wx.App(False)
         self.mainframe = MainFrame()
+        # TODO refactor
         self.mainframe.subscribe(self)
+        self.mainframe.nav_ctrls.subscribe(self)
 
         self.current_source = 0
         self.current_observation = 0
@@ -79,9 +81,12 @@ class MainFrame(wx.Frame):
         self.SetIcon(wx.Icon(util.get_asset_full_path("cadc_icon.jpg"),
                              wx.BITMAP_TYPE_JPEG))
 
+        self.event_subscribers = []
+
         self._init_ui_components()
 
-        self.event_subscribers = []
+    def subscribe(self, subscriber):
+        self.event_subscribers.append(subscriber)
 
     def _init_ui_components(self):
         self.menubar = self._create_menus()
@@ -94,12 +99,9 @@ class MainFrame(wx.Frame):
         main_component_sizer = wx.BoxSizer(wx.VERTICAL)
         main_component_sizer.Add(self.nav_ctrls, 0, flag=wx.ALIGN_TOP |
                                                          wx.ALIGN_CENTER)
-        main_component_sizer.Add(self.notebook, 1, flag=wx.EXPAND)
+        main_component_sizer.Add(self.notebook, 2, flag=wx.EXPAND)
 
         self.SetSizer(main_component_sizer)
-
-    def subscribe(self, subscriber):
-        self.event_subscribers.append(subscriber)
 
     def _create_menus(self):
         def do_bind(handler, item):
@@ -118,20 +120,7 @@ class MainFrame(wx.Frame):
         return menubar
 
     def _create_navigation_controls(self):
-        next_source_button = wx.Button(self, wx.ID_FORWARD,
-                                       label="Next Source")
-        next_source_button.Bind(wx.EVT_BUTTON, self.on_next_source)
-
-        previous_source_button = wx.Button(self, wx.ID_BACKWARD,
-                                           label="Previous Source")
-        previous_source_button.Bind(wx.EVT_BUTTON, self.on_previous_source)
-
-        # Layout
-        source_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        source_button_sizer.Add(previous_source_button)
-        source_button_sizer.Add(next_source_button)
-
-        return source_button_sizer
+        return NavPanel(self)
 
     def set_source_status(self, current_source, total_sources):
         self.GetStatusBar().SetStatusText(
@@ -142,6 +131,42 @@ class MainFrame(wx.Frame):
         # TODO refactor
         for subscriber in self.event_subscribers:
             subscriber.on_exit()
+
+
+class NavPanel(wx.Panel):
+    def __init__(self, parent):
+        super(NavPanel, self).__init__(parent)
+
+        self.event_subscribers = []
+
+        self._init_ui()
+
+    def _init_ui(self):
+        next_source_button = wx.Button(self, wx.ID_FORWARD,
+                                       label="Next Source")
+        next_source_button.Bind(wx.EVT_BUTTON, self.on_next_source)
+
+        previous_source_button = wx.Button(self, wx.ID_BACKWARD,
+                                           label="Previous Source")
+        previous_source_button.Bind(wx.EVT_BUTTON, self.on_previous_source)
+
+        source_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        source_button_sizer.Add(previous_source_button)
+        source_button_sizer.Add(next_source_button)
+
+        navbox = wx.StaticBox(self, label="Navigation")
+
+        # Layout
+        bsizer = wx.StaticBoxSizer(navbox, wx.VERTICAL)
+
+        bsizer.Add(source_button_sizer, 0, flag=wx.TOP | wx.LEFT, border=5)
+
+        border = wx.BoxSizer()
+        border.Add(bsizer, 1, wx.EXPAND | wx.ALL, border=5)
+        self.SetSizer(border)
+
+    def subscribe(self, subscriber):
+        self.event_subscribers.append(subscriber)
 
     def on_next_source(self, event):
         # TODO refactor
