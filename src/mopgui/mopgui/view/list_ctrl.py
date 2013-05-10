@@ -20,6 +20,10 @@ class ListCtrlPanel(wx.Panel):
         self.list.InsertColumn(0, "Key")
         self.list.InsertColumn(1, "Value")
 
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(self.list, 1, wx.EXPAND)
+        self.SetSizer(sizer)
+
     def populate_kv(self, datadict):
         index = 0
         for key, value in datadict.iteritems():
