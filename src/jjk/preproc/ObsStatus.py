@@ -85,8 +85,9 @@ fout.close()
 tmpFile.close()
 
 ## make a plot of the coverage
-
-from matplotlib.pyplot import figure, show, savefig
+import matplotlib
+matplotlib.use('Agg')
+from matplotlib.pyplot import figure, savefig
 from matplotlib.patches import Rectangle
 from matplotlib import pyplot
 
