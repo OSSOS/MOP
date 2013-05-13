@@ -7,7 +7,7 @@ from wx.lib.pubsub import Publisher as pub
 import wx.lib.inspection
 
 from mopgui.view import util, navview
-from mopgui.view.list_ctrl import ListCtrlPanel
+from mopgui.view.dataview import ReadingDataView, ObservationHeaderView
 from mopgui.model import astrodata
 
 
@@ -23,19 +23,10 @@ class ApplicationView(object):
         self.wx_app = wx.App(False)
         self.mainframe = MainFrame(model, appcontroller, navcontroller)
 
-        self._init_ui()
+        # self._init_ui()
 
         # Set up event subscriptions
         pub.subscribe(self.appcontroller.on_change_image, astrodata.MSG_NAV)
-
-    def _init_ui(self):
-        # TODO refactor
-        reading_data_list = self.model.get_reading_data()
-        self.mainframe.notebook.reading_data_panel.populate_list(reading_data_list)
-
-        reading = self.model._get_current_reading()
-        header_data_list = self.model.get_header_data_list()
-        self.mainframe.notebook.obs_header_panel.populate_list(header_data_list)
 
     def display_current_image(self):
         self.image_viewer.view_image(self.model.get_current_image())
@@ -80,10 +71,11 @@ class MainFrame(wx.Frame):
 
     def _init_ui_components(self):
         self.menubar = self._create_menus()
+
         self.CreateStatusBar()
         self.nav_view = navview.NavPanel(self, self.navcontroller)
 
-        self.notebook = MainNotebook(self)
+        self.notebook = MainNotebook(self, self.model)
 
         # Layout
         main_component_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -115,14 +107,16 @@ class MainFrame(wx.Frame):
 
 
 class MainNotebook(wx.Notebook):
-    def __init__(self, parent):
+    def __init__(self, parent, model):
         super(MainNotebook, self).__init__(parent)
+
+        self.model = model
 
         self._init_ui_components()
 
     def _init_ui_components(self):
-        self.reading_data_panel = ListCtrlPanel(self, ("Key", "Value"))
-        self.obs_header_panel = ListCtrlPanel(self, ("Key", "Value"))
+        self.reading_data_panel = ReadingDataView(self, self.model)
+        self.obs_header_panel = ObservationHeaderView(self, self.model)
 
         self.AddPage(self.reading_data_panel, "Readings")
         self.AddPage(self.obs_header_panel, "Observation Header")
