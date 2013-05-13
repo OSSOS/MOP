@@ -7,6 +7,7 @@ from mopgui.data_retrieval.resolver import VOSpaceResolver
 from mopgui.data_retrieval.image_retriever import ImageSliceRetriever
 from mopgui.view.appview import ApplicationView
 from mopgui.view.imageview import DS9ImageViewer
+from mopgui.model.astrodata import AstroDataModel
 
 
 class ApplicationController(object):
@@ -37,5 +38,8 @@ class ApplicationController(object):
                 reading.converter = converter
                 print "Read image"
 
-        self.view = ApplicationView(self.astrom_data,
+        self.model = AstroDataModel(self.astrom_data)
+
+        self.view = ApplicationView(self.model, self.astrom_data,
                                     self.image_viewer).launch(debug_mode)
+

@@ -30,7 +30,7 @@ class ListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         for tuple in datatuples:
             self.list.InsertStringItem(index, str(index))
             for colindex, item in enumerate(tuple):
-                self.list.SetStringItem(index, colindex, item)
+                self.list.SetStringItem(index, colindex, str(item))
 
             # For ColumnSorterMixin
             self.list.SetItemData(index, index)
