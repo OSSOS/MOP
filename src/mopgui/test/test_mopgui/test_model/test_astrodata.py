@@ -143,6 +143,18 @@ class AstroDataModelTest(FileReadingTestCase):
         assert_that(msg.topic, equal_to(astrodata.MSG_PREV_OBS))
         assert_that(msg.data, equal_to(0))
 
+    def test_receive_nav_event_next_and_prev_source(self):
+        # Subscribe a mock
+        observer = Mock()
+        pub.subscribe(observer.on_nav, astrodata.MSG_NAV)
+
+        # Perform actions
+        self.model.next_obs()
+        self.model.previous_obs()
+
+        # Make sure event triggered
+        assert_that(observer.on_nav.call_count, equal_to(2))
+
     def test_get_reading_data(self):
         assert_that(self.model.get_reading_data(), contains(
             ("X", 911.00), ("Y", 3967.12), ("X_0", 911.00), ("Y_0", 3967.12),

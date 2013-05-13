@@ -26,8 +26,7 @@ class ApplicationView(object):
 
         self._init_ui()
 
-        pub.subscribe(self._view_current_image, astrodata.MSG_NEXT_SRC)
-        pub.subscribe(self._view_current_image, astrodata.MSG_PREV_SRC)
+        pub.subscribe(self._view_current_image, astrodata.MSG_NAV)
 
     def _init_ui(self):
         # TODO refactor
