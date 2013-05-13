@@ -25,6 +25,9 @@ class ListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.SetSizer(sizer)
 
     def populate_list(self, datatuples):
+        # Clear any existing data
+        self.list.DeleteAllItems()
+
         item_data_map = {}
         index = 0
         for tuple in datatuples:
