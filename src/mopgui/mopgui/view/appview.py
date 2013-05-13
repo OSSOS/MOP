@@ -3,83 +3,76 @@ The entry-point for the "view" of the Model-View-Controller.
 """
 
 import wx
+from wx.lib.pubsub import Publisher as pub
 import wx.lib.inspection
 
-from mopgui.view import util
+from mopgui.view import util, navview
 from mopgui.view.list_ctrl import ListCtrlPanel
+from mopgui.model import astrodata
 
 
 class ApplicationView(object):
-    def __init__(self, astrom_data, image_viewer):
+    def __init__(self, model, astrom_data, image_viewer):
+        self.model = model
+
+        # TODO remove astrom_data
         self.astrom_data = astrom_data
         self.image_viewer = image_viewer
 
         self.wx_app = wx.App(False)
-        self.mainframe = MainFrame()
+        self.mainframe = MainFrame(model)
         # TODO refactor
         self.mainframe.subscribe(self)
-        self.mainframe.nav_ctrls.subscribe(self)
-
-        self.current_source = 0
-        self.current_observation = 0
 
         self._init_ui()
 
+        pub.subscribe(self._view_current_image, astrodata.MSG_NEXT_SRC)
+        pub.subscribe(self._view_current_image, astrodata.MSG_PREV_SRC)
+
     def _init_ui(self):
         # TODO refactor
-        reading = self._get_current_reading()
-        reading_data_list = [("X", str(reading.x)), ("Y", str(reading.y)),
-                             ("X_0", str(reading.x0)), ("Y_0", str(reading.y0)),
-                             ("RA", str(reading.ra)), ("DEC", str(reading.dec))]
+        reading_data_list = self.model.get_reading_data()
         self.mainframe.notebook.reading_data_panel.populate_list(reading_data_list)
 
+        reading = self.model._get_current_reading()
         header_data_list = [(key, value) for key, value in reading.obs.header.iteritems()]
         self.mainframe.notebook.obs_header_panel.populate_list(header_data_list)
 
-    def _get_current_reading(self):
-        return self.astrom_data.sources[self.current_source][self.current_observation]
+    def _view_current_image(self, event):
+        self.image_viewer.view_image(self.model.get_current_image())
 
-    def _view_current_image(self):
-        current_reading = self._get_current_reading()
-        self.image_viewer.view_image(current_reading.image)
-
+        # TODO refactor
+        current_reading = self.model._get_current_reading()
         image_x, image_y = current_reading.image_source_point
         radius = 2 * round(float(current_reading.obs.header["FWHM"]))
         self.image_viewer.draw_circle(image_x, image_y, radius)
 
         # Add 1 so displayed source numbers don't start at 0
         self.mainframe.set_source_status(
-            self.current_source + 1, len(self.astrom_data.sources))
+            self.model.get_current_source_number() + 1,
+            self.model.get_source_count())
 
     def launch(self, debug_mode=False):
         if debug_mode:
             wx.lib.inspection.InspectionTool().Show()
 
-        self._view_current_image()
+        self._view_current_image(None)
 
         self.mainframe.Show()
         self.wx_app.MainLoop()
-
-    def on_next_source(self):
-        if self.current_source + 1 < len(self.astrom_data.sources):
-            self.current_source += 1
-        self._view_current_image()
-
-    def on_previous_source(self):
-        if self.current_source > 0:
-            self.current_source -= 1
-        self._view_current_image()
 
     def on_exit(self):
         self.image_viewer.close()
 
 
 class MainFrame(wx.Frame):
-    def __init__(self):
+    def __init__(self, model):
         super(MainFrame, self).__init__(None, title="Moving Object Pipeline")
 
         self.SetIcon(wx.Icon(util.get_asset_full_path("cadc_icon.jpg"),
                              wx.BITMAP_TYPE_JPEG))
+
+        self.model = model
 
         self.event_subscribers = []
 
@@ -120,7 +113,8 @@ class MainFrame(wx.Frame):
         return menubar
 
     def _create_navigation_controls(self):
-        return NavPanel(self)
+        # return NavPanel(self)
+        return navview.NavPanel(self, self.model)
 
     def set_source_status(self, current_source, total_sources):
         self.GetStatusBar().SetStatusText(
@@ -131,52 +125,6 @@ class MainFrame(wx.Frame):
         # TODO refactor
         for subscriber in self.event_subscribers:
             subscriber.on_exit()
-
-
-class NavPanel(wx.Panel):
-    def __init__(self, parent):
-        super(NavPanel, self).__init__(parent)
-
-        self.event_subscribers = []
-
-        self._init_ui()
-
-    def _init_ui(self):
-        next_source_button = wx.Button(self, wx.ID_FORWARD,
-                                       label="Next Source")
-        next_source_button.Bind(wx.EVT_BUTTON, self.on_next_source)
-
-        previous_source_button = wx.Button(self, wx.ID_BACKWARD,
-                                           label="Previous Source")
-        previous_source_button.Bind(wx.EVT_BUTTON, self.on_previous_source)
-
-        source_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        source_button_sizer.Add(previous_source_button)
-        source_button_sizer.Add(next_source_button)
-
-        navbox = wx.StaticBox(self, label="Navigation")
-
-        # Layout
-        bsizer = wx.StaticBoxSizer(navbox, wx.VERTICAL)
-
-        bsizer.Add(source_button_sizer, 0, flag=wx.TOP | wx.LEFT, border=5)
-
-        border = wx.BoxSizer()
-        border.Add(bsizer, 1, wx.EXPAND | wx.ALL, border=5)
-        self.SetSizer(border)
-
-    def subscribe(self, subscriber):
-        self.event_subscribers.append(subscriber)
-
-    def on_next_source(self, event):
-        # TODO refactor
-        for subscriber in self.event_subscribers:
-            subscriber.on_next_source()
-
-    def on_previous_source(self, event):
-        # TODO refactor
-        for subscriber in self.event_subscribers:
-            subscriber.on_previous_source()
 
 
 class MainNotebook(wx.Notebook):
