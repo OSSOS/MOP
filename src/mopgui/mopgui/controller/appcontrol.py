@@ -11,7 +11,7 @@ class ApplicationController(object):
     controllers, and handles high level events like exiting.
     """
 
-    def __init__(self, model, image_viewer, debug_mode=False):
+    def __init__(self, model, image_viewer, debug_mode=False, unittest=False):
         self.model = model
         self.image_viewer = image_viewer
 
@@ -20,7 +20,10 @@ class ApplicationController(object):
 
         self.view = ApplicationView(self.model, self, self.navcontroller,
                                     self.image_viewer)
-        self.view.launch(debug_mode)
+        self.view.launch(debug_mode=debug_mode, unittest=unittest)
+
+    def get_view(self):
+        return self.view
 
     def on_exit(self, event):
         self.view.close()
