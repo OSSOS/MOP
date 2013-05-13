@@ -39,7 +39,19 @@ class ApplicationController(object):
                 print "Read image"
 
         self.model = AstroDataModel(self.astrom_data)
+        self.navcontroller = NavigationController(self.model)
 
         self.view = ApplicationView(self.model,
+                                    self.navcontroller,
                                     self.image_viewer).launch(debug_mode)
 
+
+class NavigationController(object):
+    def __init__(self, model):
+        self.model = model
+
+    def on_next_source(self, event):
+        self.model.next_source()
+
+    def on_previous_source(self, event):
+        self.model.previous_source()
