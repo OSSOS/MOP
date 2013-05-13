@@ -25,6 +25,9 @@ class ApplicationController(object):
     def get_view(self):
         return self.view
 
+    def on_change_image(self, event):
+        self.view.view_current_image()
+
     def on_exit(self, event):
         self.view.close()
 

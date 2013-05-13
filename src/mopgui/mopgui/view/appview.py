@@ -27,7 +27,8 @@ class ApplicationView(object):
 
         self._init_ui()
 
-        pub.subscribe(self._view_current_image, astrodata.MSG_NAV)
+        # Set up event subscriptions
+        pub.subscribe(self.appcontroller.on_change_image, astrodata.MSG_NAV)
 
     def _init_ui(self):
         # TODO refactor
@@ -38,7 +39,7 @@ class ApplicationView(object):
         header_data_list = self.model.get_header_data_list()
         self.mainframe.notebook.obs_header_panel.populate_list(header_data_list)
 
-    def _view_current_image(self, event):
+    def view_current_image(self):
         self.image_viewer.view_image(self.model.get_current_image())
 
         # TODO refactor
@@ -55,7 +56,7 @@ class ApplicationView(object):
         if debug_mode:
             wx.lib.inspection.InspectionTool().Show()
 
-        self._view_current_image(None)
+        self.view_current_image()
 
         if not unittest:
             self.mainframe.Show()
