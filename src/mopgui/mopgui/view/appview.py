@@ -51,14 +51,15 @@ class ApplicationView(object):
             self.model.get_current_source_number() + 1,
             self.model.get_source_count())
 
-    def launch(self, debug_mode=False):
+    def launch(self, debug_mode=False, unittest=False):
         if debug_mode:
             wx.lib.inspection.InspectionTool().Show()
 
         self._view_current_image(None)
 
-        self.mainframe.Show()
-        self.wx_app.MainLoop()
+        if not unittest:
+            self.mainframe.Show()
+            self.wx_app.MainLoop()
 
     def close(self):
         self.image_viewer.close()
