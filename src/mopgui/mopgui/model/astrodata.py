@@ -66,6 +66,15 @@ class AstroDataModel(object):
                 ("Y_0", reading.y0), ("R.A.", reading.ra),
                 ("DEC", reading.dec))
 
+    def get_header_data_list(self):
+        reading = self._get_current_reading()
+        return [(key, value) for key, value in reading.obs.header.iteritems()]
+
     def get_current_image(self):
         return self._get_current_reading().image
 
+    def get_current_image_source_point(self):
+        return self._get_current_reading().image_source_point
+
+    def get_current_image_FWHM(self):
+        return float(self._get_current_reading().obs.header["FWHM"])

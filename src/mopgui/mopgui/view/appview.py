@@ -35,16 +35,15 @@ class ApplicationView(object):
         self.mainframe.notebook.reading_data_panel.populate_list(reading_data_list)
 
         reading = self.model._get_current_reading()
-        header_data_list = [(key, value) for key, value in reading.obs.header.iteritems()]
+        header_data_list = self.model.get_header_data_list()
         self.mainframe.notebook.obs_header_panel.populate_list(header_data_list)
 
     def _view_current_image(self, event):
         self.image_viewer.view_image(self.model.get_current_image())
 
         # TODO refactor
-        current_reading = self.model._get_current_reading()
-        image_x, image_y = current_reading.image_source_point
-        radius = 2 * round(float(current_reading.obs.header["FWHM"]))
+        image_x, image_y = self.model.get_current_image_source_point()
+        radius = 2 * round(self.model.get_current_image_FWHM())
         self.image_viewer.draw_circle(image_x, image_y, radius)
 
         # Add 1 so displayed source numbers don't start at 0
