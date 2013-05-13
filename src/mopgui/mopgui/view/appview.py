@@ -12,14 +12,16 @@ from mopgui.model import astrodata
 
 
 class ApplicationView(object):
-    def __init__(self, model, navcontroller, image_viewer):
+    def __init__(self, model, appcontroller, navcontroller, image_viewer):
         self.model = model
+
+        self.appcontroller = appcontroller
         self.navcontroller = navcontroller
 
         self.image_viewer = image_viewer
 
         self.wx_app = wx.App(False)
-        self.mainframe = MainFrame(model, navcontroller)
+        self.mainframe = MainFrame(model, appcontroller, navcontroller)
         # TODO refactor
         self.mainframe.subscribe(self)
 
@@ -59,12 +61,13 @@ class ApplicationView(object):
         self.mainframe.Show()
         self.wx_app.MainLoop()
 
-    def on_exit(self):
+    def close(self):
         self.image_viewer.close()
+        self.mainframe.Close()
 
 
 class MainFrame(wx.Frame):
-    def __init__(self, model, navcontroller):
+    def __init__(self, model, appcontroller, navcontroller):
         super(MainFrame, self).__init__(None, title="Moving Object Pipeline")
 
         self.SetIcon(wx.Icon(util.get_asset_full_path("cadc_icon.jpg"),
@@ -72,6 +75,7 @@ class MainFrame(wx.Frame):
 
         self.model = model
 
+        self.appcontroller = appcontroller
         self.navcontroller = navcontroller
 
         self.event_subscribers = []
@@ -103,7 +107,7 @@ class MainFrame(wx.Frame):
         # Create menus and their contents
         file_menu = wx.Menu()
         exit_item = file_menu.Append(wx.ID_EXIT, "Exit", "Exit the program")
-        do_bind(self.on_exit, exit_item)
+        do_bind(self.appcontroller.on_exit, exit_item)
 
         # Create menu bar
         menubar = wx.MenuBar()
@@ -115,12 +119,6 @@ class MainFrame(wx.Frame):
     def set_source_status(self, current_source, total_sources):
         self.GetStatusBar().SetStatusText(
             "Source %d of %d" % (current_source, total_sources))
-
-    def on_exit(self, event):
-        self.Close()
-        # TODO refactor
-        for subscriber in self.event_subscribers:
-            subscriber.on_exit()
 
 
 class MainNotebook(wx.Notebook):

@@ -2,48 +2,28 @@
 Main controller of the application.
 """
 
-from mopgui.io.parser import AstromParser
-from mopgui.data_retrieval.resolver import VOSpaceResolver
-from mopgui.data_retrieval.image_retriever import ImageSliceRetriever
 from mopgui.view.appview import ApplicationView
-from mopgui.view.imageview import DS9ImageViewer
-from mopgui.model.astrodata import AstroDataModel
 
 
 class ApplicationController(object):
     """
-    Controls and coordinates the various components of the application.
+    The top-level controller of the application.  Sets up the views and other
+    controllers, and handles high level events like exiting.
     """
 
-    def __init__(self):
-        self.parser = AstromParser()
-        self.resolver = VOSpaceResolver()
-        self.image_retriever = ImageSliceRetriever()
-        self.image_viewer = DS9ImageViewer()
+    def __init__(self, model, image_viewer, debug_mode=False):
+        self.model = model
+        self.image_viewer = image_viewer
 
-    def run(self, astrom_file, debug_mode):
-        self.astrom_data = self.parser.parse(astrom_file)
-
-        # Load all image slices up front for now
-        for source in self.astrom_data.sources:
-            for reading in source:
-                image_uri = self.resolver.resolve_uri(reading.obs)
-                image, converter = self.image_retriever.retrieve_image(
-                    image_uri, reading)
-
-                assert image is not None, \
-                    "No image retrieved for source reading %s" % reading
-
-                reading.image = image
-                reading.converter = converter
-                print "Read image"
-
-        self.model = AstroDataModel(self.astrom_data)
+        # set up the more fine-grained controllers
         self.navcontroller = NavigationController(self.model)
 
-        self.view = ApplicationView(self.model,
-                                    self.navcontroller,
-                                    self.image_viewer).launch(debug_mode)
+        self.view = ApplicationView(self.model, self, self.navcontroller,
+                                    self.image_viewer)
+        self.view.launch(debug_mode)
+
+    def on_exit(self, event):
+        self.view.close()
 
 
 class NavigationController(object):

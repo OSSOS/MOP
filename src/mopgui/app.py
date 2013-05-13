@@ -4,11 +4,11 @@ Script for launching the MOP application.
 
 import argparse
 
-from mopgui.controller.appcontrol import ApplicationController
+from mopgui.applauncher import AstromFileApplicationLauncher
 
 
 def run(astrom_file, debug_mode):
-    ApplicationController().run(astrom_file, debug_mode)
+    AstromFileApplicationLauncher().run(astrom_file, debug_mode)
 
 
 if __name__ == "__main__":
