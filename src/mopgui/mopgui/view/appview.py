@@ -22,8 +22,6 @@ class ApplicationView(object):
 
         self.wx_app = wx.App(False)
         self.mainframe = MainFrame(model, appcontroller, navcontroller)
-        # TODO refactor
-        self.mainframe.subscribe(self)
 
         self._init_ui()
 
@@ -39,10 +37,9 @@ class ApplicationView(object):
         header_data_list = self.model.get_header_data_list()
         self.mainframe.notebook.obs_header_panel.populate_list(header_data_list)
 
-    def view_current_image(self):
+    def display_current_image(self):
         self.image_viewer.view_image(self.model.get_current_image())
 
-        # TODO refactor
         image_x, image_y = self.model.get_current_image_source_point()
         radius = 2 * round(self.model.get_current_image_FWHM())
         self.image_viewer.draw_circle(image_x, image_y, radius)
@@ -56,7 +53,7 @@ class ApplicationView(object):
         if debug_mode:
             wx.lib.inspection.InspectionTool().Show()
 
-        self.view_current_image()
+        self.display_current_image()
 
         if not unittest:
             self.mainframe.Show()
@@ -79,12 +76,7 @@ class MainFrame(wx.Frame):
         self.appcontroller = appcontroller
         self.navcontroller = navcontroller
 
-        self.event_subscribers = []
-
         self._init_ui_components()
-
-    def subscribe(self, subscriber):
-        self.event_subscribers.append(subscriber)
 
     def _init_ui_components(self):
         self.menubar = self._create_menus()
