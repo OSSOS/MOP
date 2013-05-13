@@ -7,10 +7,11 @@ from wx.lib.pubsub import Publisher as pub
 
 # Pub/Sub ids
 MSG_ROOT = ("astrodataroot", )
-MSG_NEXT_SRC = MSG_ROOT + ("nextsrc",)
-MSG_PREV_SRC = MSG_ROOT + ("prevsrc",)
-MSG_NEXT_OBS = MSG_ROOT + ("nextobs",)
-MSG_PREV_OBS = MSG_ROOT + ("prevobs",)
+MSG_NAV = MSG_ROOT + ("nav", )
+MSG_NEXT_SRC = MSG_NAV + ("nextsrc", )
+MSG_PREV_SRC = MSG_NAV + ("prevsrc", )
+MSG_NEXT_OBS = MSG_NAV + ("nextobs", )
+MSG_PREV_OBS = MSG_NAV + ("prevobs", )
 
 
 class AstroDataModel(object):
