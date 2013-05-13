@@ -40,6 +40,6 @@ class ApplicationController(object):
 
         self.model = AstroDataModel(self.astrom_data)
 
-        self.view = ApplicationView(self.model, self.astrom_data,
+        self.view = ApplicationView(self.model,
                                     self.image_viewer).launch(debug_mode)
 

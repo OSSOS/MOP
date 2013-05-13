@@ -12,11 +12,9 @@ from mopgui.model import astrodata
 
 
 class ApplicationView(object):
-    def __init__(self, model, astrom_data, image_viewer):
+    def __init__(self, model, image_viewer):
         self.model = model
 
-        # TODO remove astrom_data
-        self.astrom_data = astrom_data
         self.image_viewer = image_viewer
 
         self.wx_app = wx.App(False)
