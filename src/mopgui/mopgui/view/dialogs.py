@@ -1,0 +1,68 @@
+import wx
+
+
+class WaitingGaugeDialog(wx.Dialog):
+    def __init__(self, parent, wait_message, pulse_period_ms=100):
+        super(WaitingGaugeDialog, self).__init__(parent)
+
+        self.wait_message = wait_message
+        self.pulse_period_ms = pulse_period_ms
+
+        self._init_ui()
+
+    def _init_ui(self):
+        # Non-visible component used to periodically update gauge
+        self.timer = wx.Timer(self)
+
+        # Create visible components
+        self.msg = wx.StaticText(self, label=self.wait_message)
+        self.gauge = wx.Gauge(self)
+        self.hidebutton = wx.Button(self, label="Hide")
+
+        self._do_layout()
+
+        self.hidebutton.Bind(wx.EVT_BUTTON, self.on_hide)
+        self.Bind(wx.EVT_TIMER, self.on_tick, self.timer)
+
+        self.timer.Start(self.pulse_period_ms)
+
+    def _do_layout(self):
+        vborder = 10
+        vsizer = wx.BoxSizer(wx.VERTICAL)
+        vsizer.Add(self.msg, flag=wx.CENTER | wx.TOP | wx.BOTTOM, border=vborder)
+        vsizer.Add(self.gauge, flag=wx.EXPAND | wx.TOP | wx.BOTTOM, border=vborder)
+        vsizer.Add(self.hidebutton, flag=wx.CENTER | wx.TOP | wx.BOTTOM, border=vborder)
+
+        hsizer = wx.BoxSizer(wx.HORIZONTAL)
+        hsizer.Add(vsizer, flag=wx.LEFT | wx.RIGHT, border=20)
+
+        self.SetSizer(hsizer)
+        hsizer.Fit(self)
+
+    def on_tick(self, event):
+        self.gauge.Pulse()
+
+    def on_hide(self, event):
+        self.Destroy()
+
+
+if __name__ == "__main__":
+    # Quick acceptance test
+
+    class TestFrame(wx.Frame):
+        def __init__(self, *args, **kwargs):
+            super(TestFrame, self).__init__(*args, **kwargs)
+
+            panel = wx.Panel(self, wx.ID_ANY)
+
+            button = wx.Button(panel, id=wx.ID_ANY, label="Press Me")
+            button.Bind(wx.EVT_BUTTON, self.onclick)
+
+        def onclick(self, event):
+            self.dlg = WaitingGaugeDialog(self, "Image loading...")
+            self.dlg.ShowModal()
+
+    app = wx.PySimpleApp()
+    frame = TestFrame(None)
+    frame.Show()
+    app.MainLoop()
