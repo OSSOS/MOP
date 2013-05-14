@@ -4,7 +4,7 @@ Performs necessary application startup tasks.
 
 from mopgui.io.parser import AstromParser
 from mopgui.data_retrieval.resolver import VOSpaceResolver
-from mopgui.data_retrieval.loader import ProgressiveImageLoader
+from mopgui.data_retrieval.loader import AsynchronousImageLoader
 from mopgui.data_retrieval.image_retriever import ImageSliceRetriever
 from mopgui.model.astrodata import AstroDataModel
 from mopgui.view.imageview import DS9ImageViewer
@@ -22,7 +22,7 @@ class AstromFileApplicationLauncher(object):
         self.image_retriever = ImageSliceRetriever()
         self.image_viewer = DS9ImageViewer()
 
-        self.image_loader = ProgressiveImageLoader(self.resolver, self.image_retriever)
+        self.image_loader = AsynchronousImageLoader(self.resolver, self.image_retriever)
 
     def run(self, astrom_file, debug_mode):
         self.astrom_data = self.parser.parse(astrom_file)
@@ -32,8 +32,11 @@ class AstromFileApplicationLauncher(object):
         def print_read():
             print "Read image"
 
-        self.image_loader.start_loading(self.astrom_data, print_read)
+        def do_launch():
+            self.appcontroller = ApplicationController(self.model,
+                                                       self.image_viewer,
+                                                       debug_mode=debug_mode)
 
-        self.appcontroller = ApplicationController(self.model,
-                                                   self.image_viewer,
-                                                   debug_mode=debug_mode)
+        self.image_loader.start_loading(self.astrom_data,
+                                        image_loaded_callback=print_read,
+                                        all_loaded_callback=do_launch)
