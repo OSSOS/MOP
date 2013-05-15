@@ -39,9 +39,7 @@ class AsynchronousImageLoader(object):
             self.image_loaded_callback(source_num, obs_num)
 
     def on_all_loaded(self):
-        print "All images loaded"
         if self.all_loaded_callback is not None:
-            print "All images loaded callback"
             self.all_loaded_callback()
 
 

@@ -11,6 +11,7 @@ import wx.lib.inspection
 from mopgui.view import util, navview, dialogs
 from mopgui.view.dataview import ReadingDataView, ObservationHeaderView
 from mopgui.model import astrodata
+from mopgui.controller import gui_events
 
 
 class ApplicationView(object):
@@ -25,25 +26,12 @@ class ApplicationView(object):
         self.wx_app = wx.App(False)
         self.mainframe = MainFrame(model, appcontroller, navcontroller)
 
-        # Set up event subscriptions
+        self.mainframe.Bind(gui_events.EVT_TOGGLE_IMG_LOADING, self._on_toggle_image_loading_dialog)
+        self.mainframe.Bind(gui_events.EVT_SET_SRC_STATUS, self._on_set_source_status)
+
+        # TODO: move to controller Set up event subscriptions
         pub.subscribe(self.appcontroller.on_change_image, astrodata.MSG_NAV)
         pub.subscribe(self.appcontroller.on_image_loaded, astrodata.MSG_IMG_LOADED)
-
-    def display_current_image(self):
-        current_image = self.model.get_current_image()
-
-        if current_image is None:
-            self.mainframe.show_image_loading_dialog()
-        else:
-            self.image_viewer.view_image(current_image)
-            image_x, image_y = self.model.get_current_image_source_point()
-            radius = 2 * round(self.model.get_current_image_FWHM())
-            self.image_viewer.draw_circle(image_x, image_y, radius)
-
-        # Add 1 so displayed source numbers don't start at 0
-        self.mainframe.set_source_status(
-            self.model.get_current_source_number() + 1,
-            self.model.get_source_count())
 
     def launch(self, debug_mode=False, unittest=False):
         if debug_mode:
@@ -54,17 +42,38 @@ class ApplicationView(object):
 
             # Do this after showing the rest of the UI, but before getting
             # blocked by the mainloop
-            self.model.start_loading_images()
             self.mainframe.show_image_loading_dialog()
+            self.model.start_loading_images()
 
             self.wx_app.MainLoop()
 
     def close(self):
+        # TODO: image viewer extracted completely to controller?
         self.image_viewer.close()
         self.mainframe.Close()
 
+    def show_image_loading_dialog(self):
+        self._fire_gui_thread_event(gui_events.ToggleImageLoadingEvent(True))
+
     def hide_image_loading_dialog(self):
-        self.mainframe.img_loading_dialog.Hide()
+        self._fire_gui_thread_event(gui_events.ToggleImageLoadingEvent(False))
+
+    def set_source_status(self, current_source, total_sources):
+        self._fire_gui_thread_event(
+            gui_events.SetSourceStatusEvent(current_source, total_sources))
+
+    def _fire_gui_thread_event(self, event):
+        wx.PostEvent(self.mainframe, event)
+
+    def _on_toggle_image_loading_dialog(self, event):
+        if event.should_show:
+            self.mainframe.show_image_loading_dialog()
+        else:
+            self.mainframe.hide_image_loading_dialog()
+
+    def _on_set_source_status(self, event):
+        self.mainframe.set_source_status(event.current_source,
+                                         event.total_sources)
 
 
 class MainFrame(wx.Frame):
@@ -116,10 +125,12 @@ class MainFrame(wx.Frame):
         return menubar
 
     def show_image_loading_dialog(self):
-        print "Show image loading dialog"
         if not self.img_loading_dialog.IsShown():
-            print "...was not already shown, showing now"
-            self.img_loading_dialog.ShowModal()
+            self.img_loading_dialog.Show()
+
+    def hide_image_loading_dialog(self):
+        if self.img_loading_dialog.IsShown():
+            self.img_loading_dialog.Hide()
 
     def set_source_status(self, current_source, total_sources):
         self.GetStatusBar().SetStatusText(
