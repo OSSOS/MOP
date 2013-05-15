@@ -30,8 +30,9 @@ class DS9ImageViewer(object):
             "image; circle %s %s %s" % (str(x), str(y), str(radius)))
 
     def close(self):
-        try:
-            self.ds9_instance.set("exit")
-        except ValueError as err:
-            # The user already closed ds9
-            pass
+        if self.ds9_instance is not None:
+            try:
+                self.ds9_instance.set("exit")
+            except ValueError as err:
+                # The user already closed ds9
+                pass
