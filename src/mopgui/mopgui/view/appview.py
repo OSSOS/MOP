@@ -8,7 +8,7 @@ import wx
 from wx.lib.pubsub import Publisher as pub
 import wx.lib.inspection
 
-from mopgui.view import util, navview
+from mopgui.view import util, navview, dialogs
 from mopgui.view.dataview import ReadingDataView, ObservationHeaderView
 from mopgui.model import astrodata
 
@@ -25,17 +25,19 @@ class ApplicationView(object):
         self.wx_app = wx.App(False)
         self.mainframe = MainFrame(model, appcontroller, navcontroller)
 
-        # self._init_ui()
-
         # Set up event subscriptions
         pub.subscribe(self.appcontroller.on_change_image, astrodata.MSG_NAV)
 
     def display_current_image(self):
-        self.image_viewer.view_image(self.model.get_current_image())
+        current_image = self.model.get_current_image()
 
-        image_x, image_y = self.model.get_current_image_source_point()
-        radius = 2 * round(self.model.get_current_image_FWHM())
-        self.image_viewer.draw_circle(image_x, image_y, radius)
+        if current_image is None:
+            self.mainframe.show_image_loading_dialog()
+        else:
+            self.image_viewer.view_image(current_image)
+            image_x, image_y = self.model.get_current_image_source_point()
+            radius = 2 * round(self.model.get_current_image_FWHM())
+            self.image_viewer.draw_circle(image_x, image_y, radius)
 
         # Add 1 so displayed source numbers don't start at 0
         self.mainframe.set_source_status(
@@ -46,10 +48,13 @@ class ApplicationView(object):
         if debug_mode:
             wx.lib.inspection.InspectionTool().Show()
 
-        self.display_current_image()
-
         if not unittest:
             self.mainframe.Show()
+
+            # Do this after showing the rest of the UI, but before getting
+            # blocked by the mainloop
+            self.display_current_image()
+
             self.wx_app.MainLoop()
 
     def close(self):
@@ -102,6 +107,10 @@ class MainFrame(wx.Frame):
         self.SetMenuBar(menubar)
 
         return menubar
+
+    def show_image_loading_dialog(self):
+        dialog = dialogs.WaitingGaugeDialog(self, "Image loading...")
+        dialog.ShowModal()
 
     def set_source_status(self, current_source, total_sources):
         self.GetStatusBar().SetStatusText(

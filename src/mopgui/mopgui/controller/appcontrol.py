@@ -22,6 +22,7 @@ class ApplicationController(object):
 
         self.view = ApplicationView(self.model, self, self.navcontroller,
                                     self.image_viewer)
+
         self.view.launch(debug_mode=debug_mode, unittest=unittest)
 
     def get_view(self):

@@ -34,11 +34,18 @@ class AstromFileApplicationLauncher(object):
         def print_read():
             print "Read image"
 
-        def do_launch():
-            self.appcontroller = ApplicationController(self.model,
-                                                       self.image_viewer,
-                                                       debug_mode=debug_mode)
+        # def do_launch():
+        #     self.appcontroller = ApplicationController(self.model,
+        #                                                self.image_viewer,
+        #                                                debug_mode=debug_mode)
+        #
+        # self.image_loader.start_loading(self.astrom_data,
+        #                                 image_loaded_callback=print_read,
+        #                                 all_loaded_callback=do_launch)
 
         self.image_loader.start_loading(self.astrom_data,
-                                        image_loaded_callback=print_read,
-                                        all_loaded_callback=do_launch)
+                                        image_loaded_callback=print_read)
+        self.appcontroller = ApplicationController(self.model,
+                                                   self.image_viewer,
+                                                   debug_mode=debug_mode)
+
