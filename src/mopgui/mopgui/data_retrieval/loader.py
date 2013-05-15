@@ -1,3 +1,5 @@
+__author__ = "David Rusk <drusk@uvic.ca>"
+
 import threading
 
 
@@ -5,6 +7,7 @@ class AsynchronousImageLoader(object):
     """
     Loads images asynchronously from the rest of the application.
     """
+
     def __init__(self, resolver, image_retriever):
         self.resolver = resolver
         self.image_retriever = image_retriever

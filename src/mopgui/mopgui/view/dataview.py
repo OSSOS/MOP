@@ -1,3 +1,5 @@
+__author__ = "David Rusk <drusk@uvic.ca>"
+
 from wx.lib.pubsub import Publisher as pub
 
 from mopgui.model import astrodata

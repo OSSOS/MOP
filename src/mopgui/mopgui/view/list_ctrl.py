@@ -1,3 +1,5 @@
+__author__ = "David Rusk <drusk@uvic.ca>"
+
 import wx
 import wx.lib.mixins.listctrl as listmix
 

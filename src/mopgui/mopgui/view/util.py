@@ -2,6 +2,8 @@
 Assorted utilities related to the application view.
 """
 
+__author__ = "David Rusk <drusk@uvic.ca>"
+
 import os
 
 

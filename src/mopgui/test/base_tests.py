@@ -2,6 +2,8 @@
 Base classes for test cases.
 """
 
+__author__ = "David Rusk <drusk@uvic.ca>"
+
 import os
 import unittest
 

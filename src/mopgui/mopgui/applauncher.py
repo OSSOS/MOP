@@ -2,6 +2,8 @@
 Performs necessary application startup tasks.
 """
 
+__author__ = "David Rusk <drusk@uvic.ca>"
+
 from mopgui.io.parser import AstromParser
 from mopgui.data_retrieval.resolver import VOSpaceResolver
 from mopgui.data_retrieval.loader import AsynchronousImageLoader

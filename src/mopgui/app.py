@@ -2,6 +2,8 @@
 Script for launching the MOP application.
 """
 
+__author__ = "David Rusk <drusk@uvic.ca>"
+
 import argparse
 
 from mopgui.applauncher import AstromFileApplicationLauncher

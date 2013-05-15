@@ -1,3 +1,5 @@
+__author__ = "David Rusk <drusk@uvic.ca>"
+
 import unittest
 
 from hamcrest import assert_that, contains

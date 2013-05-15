@@ -2,6 +2,8 @@
 The entry-point for the "view" of the Model-View-Controller.
 """
 
+__author__ = "David Rusk <drusk@uvic.ca>"
+
 import wx
 from wx.lib.pubsub import Publisher as pub
 import wx.lib.inspection
