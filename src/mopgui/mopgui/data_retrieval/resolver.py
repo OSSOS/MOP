@@ -2,6 +2,8 @@
 Resolves observation descriptions to their URIs.
 """
 
+__author__ = "David Rusk <drusk@uvic.ca>"
+
 
 class VOSpaceResolver(object):
     def __init__(self):

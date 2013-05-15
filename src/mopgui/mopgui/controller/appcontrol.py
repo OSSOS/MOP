@@ -2,6 +2,8 @@
 Main controller of the application.
 """
 
+__author__ = "David Rusk <drusk@uvic.ca>"
+
 from mopgui.view.appview import ApplicationView
 
 

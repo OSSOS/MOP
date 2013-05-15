@@ -3,6 +3,8 @@ Provides interfaces to the application data which can be manipulated by the
 user interface.
 """
 
+__author__ = "David Rusk <drusk@uvic.ca>"
+
 from wx.lib.pubsub import Publisher as pub
 
 # Pub/Sub ids

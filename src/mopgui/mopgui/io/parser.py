@@ -2,6 +2,8 @@
 Parsers for reading input specification files.
 """
 
+__author__ = "David Rusk <drusk@uvic.ca>"
+
 import re
 
 

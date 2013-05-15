@@ -2,6 +2,8 @@
 Handles displaying image data to the user.
 """
 
+__author__ = "David Rusk <drusk@uvic.ca>"
+
 import ds9
 
 

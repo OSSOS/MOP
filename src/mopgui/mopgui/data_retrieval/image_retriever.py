@@ -2,6 +2,8 @@
 Retrieves slices of images relevant for display of sources to the user.
 """
 
+__author__ = "David Rusk <drusk@uvic.ca>"
+
 import cStringIO
 
 from astropy.io import fits

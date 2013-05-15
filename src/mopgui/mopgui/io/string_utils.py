@@ -2,6 +2,8 @@
 Utility string functions for parsing.
 """
 
+__author__ = "David Rusk <drusk@uvic.ca>"
+
 import re
 
 
