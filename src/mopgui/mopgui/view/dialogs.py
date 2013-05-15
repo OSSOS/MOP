@@ -23,8 +23,8 @@ class WaitingGaugeDialog(wx.Dialog):
 
         self._do_layout()
 
-        self.hidebutton.Bind(wx.EVT_BUTTON, self.on_hide)
-        self.Bind(wx.EVT_TIMER, self.on_tick, self.timer)
+        self.hidebutton.Bind(wx.EVT_BUTTON, self._on_hide)
+        self.Bind(wx.EVT_TIMER, self._on_tick, self.timer)
 
         self.timer.Start(self.pulse_period_ms)
 
@@ -41,11 +41,11 @@ class WaitingGaugeDialog(wx.Dialog):
         self.SetSizer(hsizer)
         hsizer.Fit(self)
 
-    def on_tick(self, event):
+    def _on_tick(self, event):
         self.gauge.Pulse()
 
-    def on_hide(self, event):
-        self.Destroy()
+    def _on_hide(self, event):
+        self.Hide()
 
 
 if __name__ == "__main__":

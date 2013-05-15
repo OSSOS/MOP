@@ -28,6 +28,19 @@ class ApplicationController(object):
     def get_view(self):
         return self.view
 
+    def on_image_loaded(self, event):
+        source_num, obs_num = event.data
+        print "app control: on_image_loaded: (%d, %d)" % (source_num, obs_num)
+        if (self.model.get_current_source_number() == source_num and
+                    self.model.get_current_obs_number() == obs_num):
+            print "Image loaded is current image"
+            self.get_view().hide_image_loading_dialog()
+            print "Hid loading dialog"
+            self.view.display_current_image()
+            print "Displayed current image"
+        else:
+            print "Not the currently displayed image"
+
     def on_change_image(self, event):
         self.view.display_current_image()
 
