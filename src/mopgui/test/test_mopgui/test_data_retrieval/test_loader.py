@@ -38,12 +38,12 @@ class AsynchronousImageLoaderTest(unittest.TestCase):
         self.loader.start_loading(astrom_data)
 
         self.loader.do_loading.assert_called_with([
-            ("URI0", astrom_data.sources[0][0]),
-            ("URI1", astrom_data.sources[0][1]),
-            ("URI2", astrom_data.sources[1][0]),
-            ("URI3", astrom_data.sources[1][1]),
-            ("URI4", astrom_data.sources[2][0]),
-            ("URI5", astrom_data.sources[2][1]),
+            ("URI0", astrom_data.sources[0][0], 0, 0),
+            ("URI1", astrom_data.sources[0][1], 0, 1),
+            ("URI2", astrom_data.sources[1][0], 1, 0),
+            ("URI3", astrom_data.sources[1][1], 1, 1),
+            ("URI4", astrom_data.sources[2][0], 2, 0),
+            ("URI5", astrom_data.sources[2][1], 2, 1),
         ])
 
 
