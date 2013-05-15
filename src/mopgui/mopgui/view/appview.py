@@ -27,6 +27,7 @@ class ApplicationView(object):
 
         # Set up event subscriptions
         pub.subscribe(self.appcontroller.on_change_image, astrodata.MSG_NAV)
+        pub.subscribe(self.appcontroller.on_image_loaded, astrodata.MSG_IMG_LOADED)
 
     def display_current_image(self):
         current_image = self.model.get_current_image()
@@ -53,13 +54,17 @@ class ApplicationView(object):
 
             # Do this after showing the rest of the UI, but before getting
             # blocked by the mainloop
-            self.display_current_image()
+            self.model.start_loading_images()
+            self.mainframe.show_image_loading_dialog()
 
             self.wx_app.MainLoop()
 
     def close(self):
         self.image_viewer.close()
         self.mainframe.Close()
+
+    def hide_image_loading_dialog(self):
+        self.mainframe.img_loading_dialog.Hide()
 
 
 class MainFrame(wx.Frame):
@@ -92,6 +97,8 @@ class MainFrame(wx.Frame):
 
         self.SetSizer(main_component_sizer)
 
+        self.img_loading_dialog = dialogs.WaitingGaugeDialog(self, "Image loading...")
+
     def _create_menus(self):
         def do_bind(handler, item):
             self.Bind(wx.EVT_MENU, handler, item)
@@ -109,8 +116,10 @@ class MainFrame(wx.Frame):
         return menubar
 
     def show_image_loading_dialog(self):
-        dialog = dialogs.WaitingGaugeDialog(self, "Image loading...")
-        dialog.ShowModal()
+        print "Show image loading dialog"
+        if not self.img_loading_dialog.IsShown():
+            print "...was not already shown, showing now"
+            self.img_loading_dialog.ShowModal()
 
     def set_source_status(self, current_source, total_sources):
         self.GetStatusBar().SetStatusText(

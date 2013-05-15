@@ -19,7 +19,7 @@ class WaitingGaugeDialogTest(WxWidgetTestCase):
     def tearDown(self):
         self.rootframe.Destroy()
 
-    @patch.object(WaitingGaugeDialog, "on_tick")
+    @patch.object(WaitingGaugeDialog, "_on_tick")
     def test_dialog(self, on_tick_mock):
         tick_time = 10
         wait_msg = "Please wait..."
