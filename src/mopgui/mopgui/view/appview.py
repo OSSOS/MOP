@@ -8,7 +8,7 @@ import wx
 from wx.lib.pubsub import Publisher as pub
 import wx.lib.inspection
 
-from mopgui.view import util, navview, dialogs
+from mopgui.view import util, wxutil, navview, dialogs
 from mopgui.view.dataview import ReadingDataView, ObservationHeaderView
 from mopgui.model import astrodata
 
@@ -45,14 +45,17 @@ class ApplicationView(object):
         self.image_viewer.close()
         self.mainframe.Close()
 
+    @wxutil.threadsafe
     def show_image_loading_dialog(self):
-        wx.CallAfter(self.mainframe.show_image_loading_dialog)
+        self.mainframe.show_image_loading_dialog()
 
+    @wxutil.threadsafe
     def hide_image_loading_dialog(self):
-        wx.CallAfter(self.mainframe.hide_image_loading_dialog)
+        self.mainframe.hide_image_loading_dialog()
 
+    @wxutil.threadsafe
     def set_source_status(self, current_source, total_sources):
-        wx.CallAfter(self.mainframe.set_source_status, current_source, total_sources)
+        self.mainframe.set_source_status(current_source, total_sources)
 
 
 class MainFrame(wx.Frame):
