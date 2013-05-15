@@ -34,17 +34,14 @@ class ApplicationView(object):
         pub.subscribe(self.appcontroller.on_image_loaded, astrodata.MSG_IMG_LOADED)
 
     def launch(self, debug_mode=False, unittest=False):
+        wx.CallAfter(self.mainframe.show_image_loading_dialog)
+        wx.CallAfter(self.model.start_loading_images)
+
         if debug_mode:
             wx.lib.inspection.InspectionTool().Show()
 
         if not unittest:
             self.mainframe.Show()
-
-            # Do this after showing the rest of the UI, but before getting
-            # blocked by the mainloop
-            self.mainframe.show_image_loading_dialog()
-            self.model.start_loading_images()
-
             self.wx_app.MainLoop()
 
     def close(self):
@@ -77,8 +74,9 @@ class ApplicationView(object):
 
 
 class MainFrame(wx.Frame):
-    def __init__(self, model, appcontroller, navcontroller):
-        super(MainFrame, self).__init__(None, title="Moving Object Pipeline")
+    def __init__(self, model, appcontroller, navcontroller, size=(400, 500)):
+        super(MainFrame, self).__init__(None, title="Moving Object Pipeline",
+                                        size=size)
 
         self.SetIcon(wx.Icon(util.get_asset_full_path("cadc_icon.jpg"),
                              wx.BITMAP_TYPE_JPEG))
@@ -126,6 +124,7 @@ class MainFrame(wx.Frame):
 
     def show_image_loading_dialog(self):
         if not self.img_loading_dialog.IsShown():
+            self.img_loading_dialog.CenterOnParent()
             self.img_loading_dialog.Show()
 
     def hide_image_loading_dialog(self):
