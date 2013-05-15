@@ -95,6 +95,5 @@ class AstroDataModel(object):
         return self._num_images_loaded
 
     def _on_image_loaded(self, source_num, obs_num):
-        print "Loaded image: (%d, %d)" % (source_num, obs_num)
         self._num_images_loaded += 1
         pub.sendMessage(MSG_IMG_LOADED, (source_num, obs_num))

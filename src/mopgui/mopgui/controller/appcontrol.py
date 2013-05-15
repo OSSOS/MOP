@@ -28,21 +28,31 @@ class ApplicationController(object):
     def get_view(self):
         return self.view
 
+    def display_current_image(self):
+        current_image = self.model.get_current_image()
+
+        if current_image is None:
+            self.get_view().show_image_loading_dialog()
+        else:
+            self.image_viewer.view_image(current_image)
+            image_x, image_y = self.model.get_current_image_source_point()
+            radius = 2 * round(self.model.get_current_image_FWHM())
+            self.image_viewer.draw_circle(image_x, image_y, radius)
+
+        # Add 1 so displayed source numbers don't start at 0
+        self.get_view().set_source_status(
+            self.model.get_current_source_number() + 1,
+            self.model.get_source_count())
+
     def on_image_loaded(self, event):
         source_num, obs_num = event.data
-        print "app control: on_image_loaded: (%d, %d)" % (source_num, obs_num)
         if (self.model.get_current_source_number() == source_num and
                     self.model.get_current_obs_number() == obs_num):
-            print "Image loaded is current image"
             self.get_view().hide_image_loading_dialog()
-            print "Hid loading dialog"
-            self.view.display_current_image()
-            print "Displayed current image"
-        else:
-            print "Not the currently displayed image"
+            self.display_current_image()
 
     def on_change_image(self, event):
-        self.view.display_current_image()
+        self.display_current_image()
 
     def on_exit(self, event):
         self.view.close()
