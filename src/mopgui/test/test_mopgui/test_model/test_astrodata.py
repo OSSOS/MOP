@@ -16,8 +16,9 @@ class AstroDataModelTest(FileReadingTestCase):
     def setUp(self):
         testfile = self.get_abs_path("data/1584431p15.measure3.cands.astrom")
         astrom_data = AstromParser().parse(testfile)
+        self.image_loader = Mock()
 
-        self.model = astrodata.AstroDataModel(astrom_data)
+        self.model = astrodata.AstroDataModel(astrom_data, self.image_loader)
 
     def test_sources_initialized(self):
         assert_that(self.model.get_current_source_number(), equal_to(0))
@@ -162,6 +163,38 @@ class AstroDataModelTest(FileReadingTestCase):
             ("X", 911.00), ("Y", 3967.12), ("X_0", 911.00), ("Y_0", 3967.12),
             ("R.A.", 26.6833367), ("DEC", 29.2203532)
         ))
+
+    def test_loading_images(self):
+        observer = Mock()
+        pub.subscribe(observer.on_img_loaded, astrodata.MSG_IMG_LOADED)
+
+        self.model.start_loading_images()
+
+        assert_that(self.image_loader.start_loading.call_count, equal_to(1))
+
+        assert_that(self.model.get_loaded_image_count(), equal_to(0))
+
+        # Simulate receiving callback
+        self.model._on_image_loaded(0, 1)
+        assert_that(self.model.get_loaded_image_count(), equal_to(1))
+        assert_that(observer.on_img_loaded.call_count, equal_to(1))
+
+        # Simulate receiving callback
+        self.model._on_image_loaded(1, 1)
+        assert_that(self.model.get_loaded_image_count(), equal_to(2))
+        assert_that(observer.on_img_loaded.call_count, equal_to(2))
+
+        # Check event args
+        call_args_list = observer.on_img_loaded.call_args_list
+        assert_that(call_args_list, has_length(2))
+
+        msg0 = call_args_list[0][0][0]
+        assert_that(msg0.topic, equal_to(astrodata.MSG_IMG_LOADED))
+        assert_that(msg0.data, equal_to((0, 1)))
+
+        msg1 = call_args_list[1][0][0]
+        assert_that(msg1.topic, equal_to(astrodata.MSG_IMG_LOADED))
+        assert_that(msg1.data, equal_to((1, 1)))
 
 
 if __name__ == '__main__':

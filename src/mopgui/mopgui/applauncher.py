@@ -29,22 +29,8 @@ class AstromFileApplicationLauncher(object):
     def run(self, astrom_file, debug_mode):
         self.astrom_data = self.parser.parse(astrom_file)
 
-        self.model = AstroDataModel(self.astrom_data)
+        self.model = AstroDataModel(self.astrom_data, self.image_loader)
 
-        def print_read():
-            print "Read image"
-
-        # def do_launch():
-        #     self.appcontroller = ApplicationController(self.model,
-        #                                                self.image_viewer,
-        #                                                debug_mode=debug_mode)
-        #
-        # self.image_loader.start_loading(self.astrom_data,
-        #                                 image_loaded_callback=print_read,
-        #                                 all_loaded_callback=do_launch)
-
-        self.image_loader.start_loading(self.astrom_data,
-                                        image_loaded_callback=print_read)
         self.appcontroller = ApplicationController(self.model,
                                                    self.image_viewer,
                                                    debug_mode=debug_mode)

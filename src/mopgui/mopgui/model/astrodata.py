@@ -9,11 +9,14 @@ from wx.lib.pubsub import Publisher as pub
 
 # Pub/Sub ids
 MSG_ROOT = ("astrodataroot", )
+
 MSG_NAV = MSG_ROOT + ("nav", )
 MSG_NEXT_SRC = MSG_NAV + ("nextsrc", )
 MSG_PREV_SRC = MSG_NAV + ("prevsrc", )
 MSG_NEXT_OBS = MSG_NAV + ("nextobs", )
 MSG_PREV_OBS = MSG_NAV + ("prevobs", )
+
+MSG_IMG_LOADED = MSG_ROOT + ("imgload", )
 
 
 class AstroDataModel(object):
@@ -22,11 +25,14 @@ class AstroDataModel(object):
     application.
     """
 
-    def __init__(self, astrom_data):
+    def __init__(self, astrom_data, image_loader):
         self.astrom_data = astrom_data
+        self.image_loader = image_loader
 
         self._current_src_number = 0
         self._current_obs_number = 0
+
+        self._num_images_loaded = 0
 
     def get_current_source_number(self):
         return self._current_src_number
@@ -80,3 +86,15 @@ class AstroDataModel(object):
 
     def get_current_image_FWHM(self):
         return float(self._get_current_reading().obs.header["FWHM"])
+
+    def start_loading_images(self):
+        self.image_loader.start_loading(
+            self.astrom_data, image_loaded_callback=self._on_image_loaded)
+
+    def get_loaded_image_count(self):
+        return self._num_images_loaded
+
+    def _on_image_loaded(self, source_num, obs_num):
+        print "Loaded image: (%d, %d)" % (source_num, obs_num)
+        self._num_images_loaded += 1
+        pub.sendMessage(MSG_IMG_LOADED, (source_num, obs_num))

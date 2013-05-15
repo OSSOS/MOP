@@ -20,10 +20,10 @@ class AsynchronousImageLoader(object):
         self.all_loaded_callback = all_loaded_callback
 
         lookupinfo = []
-        for source in astrom_data.sources:
-            for reading in source:
+        for source_num, source in enumerate(astrom_data.sources):
+            for obs_num, reading in enumerate(source):
                 image_uri = self.resolver.resolve_uri(reading.obs)
-                lookupinfo.append((image_uri, reading))
+                lookupinfo.append((image_uri, reading, source_num, obs_num))
 
         self.do_loading(lookupinfo)
 
@@ -31,12 +31,12 @@ class AsynchronousImageLoader(object):
         SerialImageRetrievalThread(self, self.image_retriever,
                                    lookupinfo).start()
 
-    def on_image_loaded(self, image, converter, reading):
+    def on_image_loaded(self, image, converter, reading, source_num, obs_num):
         reading.image = image
         reading.converter = converter
 
         if self.image_loaded_callback is not None:
-            self.image_loaded_callback()
+            self.image_loaded_callback(source_num, obs_num)
 
     def on_all_loaded(self):
         if self.all_loaded_callback is not None:
@@ -57,8 +57,8 @@ class SerialImageRetrievalThread(threading.Thread):
         self.lookupinfo = lookupinfo
 
     def run(self):
-        for image_uri, reading in self.lookupinfo:
+        for image_uri, reading, source_num, obs_num in self.lookupinfo:
             image, converter = self.image_retriever.retrieve_image(image_uri, reading)
-            self.loader.on_image_loaded(image, converter, reading)
+            self.loader.on_image_loaded(image, converter, reading, source_num, obs_num)
 
         self.loader.on_all_loaded()
