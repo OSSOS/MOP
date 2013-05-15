@@ -11,7 +11,6 @@ import wx.lib.inspection
 from mopgui.view import util, navview, dialogs
 from mopgui.view.dataview import ReadingDataView, ObservationHeaderView
 from mopgui.model import astrodata
-from mopgui.controller import gui_events
 
 
 class ApplicationView(object):
@@ -25,9 +24,6 @@ class ApplicationView(object):
 
         self.wx_app = wx.App(False)
         self.mainframe = MainFrame(model, appcontroller, navcontroller)
-
-        self.mainframe.Bind(gui_events.EVT_TOGGLE_IMG_LOADING, self._on_toggle_image_loading_dialog)
-        self.mainframe.Bind(gui_events.EVT_SET_SRC_STATUS, self._on_set_source_status)
 
         # TODO: move to controller Set up event subscriptions
         pub.subscribe(self.appcontroller.on_change_image, astrodata.MSG_NAV)
@@ -50,27 +46,13 @@ class ApplicationView(object):
         self.mainframe.Close()
 
     def show_image_loading_dialog(self):
-        self._fire_gui_thread_event(gui_events.ToggleImageLoadingEvent(True))
+        wx.CallAfter(self.mainframe.show_image_loading_dialog)
 
     def hide_image_loading_dialog(self):
-        self._fire_gui_thread_event(gui_events.ToggleImageLoadingEvent(False))
+        wx.CallAfter(self.mainframe.hide_image_loading_dialog)
 
     def set_source_status(self, current_source, total_sources):
-        self._fire_gui_thread_event(
-            gui_events.SetSourceStatusEvent(current_source, total_sources))
-
-    def _fire_gui_thread_event(self, event):
-        wx.PostEvent(self.mainframe, event)
-
-    def _on_toggle_image_loading_dialog(self, event):
-        if event.should_show:
-            self.mainframe.show_image_loading_dialog()
-        else:
-            self.mainframe.hide_image_loading_dialog()
-
-    def _on_set_source_status(self, event):
-        self.mainframe.set_source_status(event.current_source,
-                                         event.total_sources)
+        wx.CallAfter(self.mainframe.set_source_status, current_source, total_sources)
 
 
 class MainFrame(wx.Frame):
