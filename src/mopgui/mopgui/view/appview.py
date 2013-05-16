@@ -1,7 +1,3 @@
-"""
-The entry-point for the "view" of the Model-View-Controller.
-"""
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
@@ -13,6 +9,10 @@ from mopgui.view.validationview import SourceValidationPanel
 
 
 class ApplicationView(object):
+    """
+    Provides the view's external interface.
+    """
+
     def __init__(self, model, appcontroller, validationcontroller, navcontroller):
         self.model = model
 
@@ -78,15 +78,17 @@ class MainFrame(wx.Frame):
 
         self.validation_view = SourceValidationPanel(self, self.validationcontroller)
 
-        # Layout
-        main_component_sizer = wx.BoxSizer(wx.VERTICAL)
-        main_component_sizer.Add(self.nav_view, 1, flag=wx.EXPAND)
-        main_component_sizer.Add(self.notebook, 2, flag=wx.EXPAND)
-        main_component_sizer.Add(self.validation_view, 1, flag=wx.EXPAND)
-
-        self.SetSizer(main_component_sizer)
-
         self.img_loading_dialog = dialogs.WaitingGaugeDialog(self, "Image loading...")
+
+        self._do_layout()
+
+    def _do_layout(self):
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.nav_view, 1, flag=wx.EXPAND)
+        sizer.Add(self.notebook, 2, flag=wx.EXPAND)
+        sizer.Add(self.validation_view, 1, flag=wx.EXPAND)
+
+        self.SetSizer(sizer)
 
     def _create_menus(self):
         def do_bind(handler, item):
