@@ -8,10 +8,10 @@ from hamcrest import assert_that, equal_to
 
 from test.base_tests import WxWidgetTestCase
 from mopgui.model import astrodata
-from mopgui.view.dataview import KeyValueListPanel
+from mopgui.view.listview import KeyValueListPanel
 
 
-class DataViewTest(WxWidgetTestCase):
+class ListViewTest(WxWidgetTestCase):
     def setUp(self):
         self.mock_model()
 

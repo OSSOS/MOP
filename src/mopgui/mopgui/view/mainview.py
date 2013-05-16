@@ -5,8 +5,8 @@ from wx.lib.pubsub import Publisher as pub
 
 from mopgui.model import astrodata
 from mopgui.view import util, navview, dialogs
-from mopgui.view.dataview import KeyValueListPanel
 from mopgui.view.validationview import SourceValidationPanel
+from mopgui.view.listview import KeyValueListPanel
 
 
 class MainFrame(wx.Frame):
