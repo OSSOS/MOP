@@ -45,6 +45,8 @@ class DataViewTest(WxWidgetTestCase):
                             equal_to(self.dataset1[item_ind][col_ind]))
 
     def test_kvlist_display_data_on_change_reading(self):
+        pub.subscribe(self.view.on_change_data, astrodata.MSG_NAV)
+
         # XXX have to manually update model return value here
         self.model.get_reading_data.return_value = self.dataset2
 

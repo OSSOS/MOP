@@ -1,7 +1,9 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
+from wx.lib.pubsub import Publisher as pub
 
+from mopgui.model import astrodata
 from mopgui.view import util, navview, dialogs
 from mopgui.view.dataview import KeyValueListPanel
 from mopgui.view.validationview import SourceValidationPanel
@@ -73,7 +75,10 @@ class MainFrame(wx.Frame):
         notebook = wx.Notebook(self)
 
         reading_data_panel = KeyValueListPanel(notebook, self.model.get_reading_data)
+        pub.subscribe(reading_data_panel.on_change_data, astrodata.MSG_NAV)
+
         obs_header_panel = KeyValueListPanel(notebook, self.model.get_header_data_list)
+        pub.subscribe(obs_header_panel.on_change_data, astrodata.MSG_NAV)
 
         notebook.AddPage(reading_data_panel, "Readings")
         notebook.AddPage(obs_header_panel, "Observation Header")

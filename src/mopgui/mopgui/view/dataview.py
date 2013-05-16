@@ -1,8 +1,5 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from wx.lib.pubsub import Publisher as pub
-
-from mopgui.model import astrodata
 from mopgui.view.listview import ListCtrlPanel
 
 
@@ -22,8 +19,6 @@ class KeyValueListPanel(ListCtrlPanel):
         super(KeyValueListPanel, self).__init__(parent, ("Key", "Value"))
 
         self.get_data = get_data
-
-        pub.subscribe(self.on_change_data, astrodata.MSG_NAV)
 
         self.display_data()
 
