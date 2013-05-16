@@ -64,7 +64,7 @@ if __name__ == "__main__":
             self.dlg = WaitingGaugeDialog(self, "Image loading...")
             self.dlg.ShowModal()
 
-    app = wx.PySimpleApp()
+    app = wx.App()
     frame = TestFrame(None)
     frame.Show()
     app.MainLoop()

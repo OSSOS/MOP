@@ -15,7 +15,7 @@ class TestSourceValidationPanel(WxWidgetTestCase):
     def setUp(self):
         # TODO: put this in super class?  Same thing being done in most
         # of the WxWidgetTestCases
-        self.app = wx.PySimpleApp()
+        self.app = wx.App()
         self.rootframe = wx.Frame(None)
 
     def test_accept_button(self):

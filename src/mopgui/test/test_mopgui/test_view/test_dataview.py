@@ -26,7 +26,7 @@ class DataViewTest(WxWidgetTestCase):
 
         self.model.next_source = pub_next_source
 
-        self.app = wx.PySimpleApp()
+        self.app = wx.App()
         self.rootframe = wx.Frame(None)
 
         self.view = KeyValueListPanel(self.rootframe, self.model.get_reading_data)

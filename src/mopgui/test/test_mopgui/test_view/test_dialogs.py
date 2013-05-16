@@ -13,7 +13,7 @@ from mopgui.view.dialogs import WaitingGaugeDialog
 
 class WaitingGaugeDialogTest(WxWidgetTestCase):
     def setUp(self):
-        self.app = wx.PySimpleApp()
+        self.app = wx.App()
         self.rootframe = wx.Frame(None)
 
     def tearDown(self):
