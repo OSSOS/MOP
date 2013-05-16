@@ -32,6 +32,7 @@ import re, os, string, sys
 import numpy as np
 from astropy.io import fits
 import logging
+import errno
 pyfits = fits
 
 version=__Version__
@@ -165,9 +166,9 @@ if __name__=='__main__':
     parser.add_argument("--combine",
                       action="store_true",
                       help="Combine multiple images into single OUTFILE")
-    parser.add_argument("--extname",
+    parser.add_argument("--extname_kw",
                       action="store",
-                      default="EXTVER",
+                      default="EXTNAME",
                       help="FITS keyword that is the extention name")
     parser.add_argument("--split",
                       action="store_true",
@@ -210,6 +211,9 @@ if __name__=='__main__':
     (args)=parser.parse_args()
     opt=args
 
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO)
+
     file_names = args.images
     if len(args.images) == 0:
         parser.error("You must provide a list of images to process")
@@ -230,26 +234,28 @@ if __name__=='__main__':
         raise ValueError(
             "BIAS (%s) and FLAT (%s) have different number of extensions" % ( args.bias, args.flat))
 
-    len = None
+    num_ext = None
     for filename in file_names:
         images[filename] = fits.open(filename, mode='readonly')
-        len = (len is None and len(images))
-        if len != len(images):
+        if num_ext is None:
+            num_ext = len(images[filename])
+        logging.info("Expecting %d extensions" % ( num_ext))
+        if num_ext != len(images[filename]):
             raise ValueError("Lengths of input MEFs are not all the same.")
 
-    if bias and len != len(bias):
+    if bias and num_ext != len(bias):
         raise ValueError("Length of bias MEF does not match input images.")
 
-    if flat and len != len(flat):
+    if flat and num_ext != len(flat):
         raise ValueError("Length of flat MEF does not match input images.")
 
 
-    for extno in range(len):
+    for extno in range(num_ext):
         print "Working on extxension "+str(extno)
 	stack=[]
 	mstack=[]
         for filename in images:
-            hdu = images[filename]
+            hdu = images[filename][extno]
             
             ### reopen the output file for each extension.
             ### Create an output MEF file based on extension name if
@@ -266,14 +272,14 @@ if __name__=='__main__':
                 parser.error("Multiple inputs with combine but no output fileanem")
 
             if args.split:
-                outfile += str(hdu.header.get(args.extname, args.extname))
+                outfile += str(hdu.header.get(args.extname_kw, args.extname_kw))
             
-            outfile=  outfile+".fits"
+            outfile = outfile+".fits"
             ### exit if the file exist and this is the ccd or
             ### were splitting so every file should only have one
             ### extension
-            if os.access(outfile,os.W_OK) and (ccd==0 or opt.split) and not opt.combine:
-                sys.exit("Output file "+outfile+" already exists")
+            if os.access(outfile,os.W_OK) and ( opt.split or extno == 0):
+                raise IOError(errno.EEXIST,"Output file "+outfile+" already exists")
                 
             ### do the overscan for each file
             print "Processing "+filename
@@ -297,6 +303,8 @@ if __name__=='__main__':
                 hdu.header.update("FLAT",args.flat,comment="Flat Image")
 
             if opt.normal:
+                if hdu.data is None:
+                    continue
                 logging.info("Normallizing input frame.")
                 (h, b) = np.histogram(hdu.data,bins=10000)
                 idx = h.argsort()
@@ -334,23 +342,20 @@ if __name__=='__main__':
                     logging.info("Writing extension %s to %s" % ( str(extno), outfile))
                     fitsobj.writeto(outfile)
                 else:
-		    if not os.access(outfile,os.R_OK):
-                        orig_hdu_list = fits.open(filename,
-                                                    mode='readonly')
-                        fits.HDUList(pyfits.PrimaryHDU(header=orig_hdu_list.header)).writeto(outfile)
-                        orig_hdu_list.close()
-                        orig_hdu_list = None
-                    else :
-                        hdu = pyfits.ImageHDU(header=hdu.header,
-                                                  data=hdu.data)
-                        if opt.short:
-                            logging.info("ushort'n the pixel values")
-                            hdu.scale(type='int16',bscale=1,bzero=32768)
-                        proc_hdu_list = pyfits.open(outfile,'append')
+                    if opt.short:
+                        logging.info("short'n the data")
+                        hdu.scale(type='int16',
+                                  bscale=1,
+                                  bzero=32768)
+                    try:
+                        proc_hdu_list = fits.open(outfile,'append')
                         proc_hdu_list.append(hdu)
                         proc_hdu_list.flush()
                         proc_hdu_list.close()
-                        proc_hdu_list = None
+                    except IOError as e:
+                        if e.errno == 2:
+                            pyfits.PrimaryHDU(header=hdu.header,
+                                              data=hdu.data).writeto(outfile)
             else:
                 mstack.append(hdu.data.astype('float16'))
                 naxis1 = mstack[-1].shape[0]
@@ -364,40 +369,41 @@ if __name__=='__main__':
             flat[extno]=None
             
         if opt.combine and len(file_names)>1:
-            mstack = np.vstack(mstack)
-            mstack.shape = [len(file_names),naxis1,naxis2]
-            data = np.percentile(mstack, 40, axis=0)
+            if len(mstack) > 0:
+                mstack = np.vstack(mstack)
+                mstack.shape = [len(file_names),naxis1,naxis2]
+                data = np.percentile(mstack, 40, axis=0)
+            else:
+                data = hdu.data
             del(mstack)
-            stack = pyfits.ImageHDU(data=data.astype('float32'))
-            stack.header[args.extname_kw] = (hdu.header[args.extname_kw], 'Extension Name')
-            stack.header['QRUNID'] = (hdu.header['QRUNID'], 'CFHT QSO Run flat built for')
-            stack.header['FILTER'] = (hdu.header['FILTER'], 'Filter flat works for')
-            stack.header['DETSIZE'] = hdu.header['DETSIZE']
-            stack.header['DETSEC'] = hdu.header['DETSEC']
+            stack = pyfits.ImageHDU(data)
+            if stack.data is not None:
+                stack.data = stack.data.astype('float32')
+            stack.header[args.extname_kw] = (hdu.header.get(args.extname_kw,args.extname_kw), 'Extension Name')
+            stack.header['QRUNID'] = (hdu.header.get('QRUNID',''), 'CFHT QSO Run flat built for')
+            stack.header['FILTER'] = (hdu.header.get('FILTER',''), 'Filter flat works for')
+            stack.header['DETSIZE'] = hdu.header.get('DETSIZE','')
+            stack.header['DETSEC'] = hdu.header.get('DETSEC','')
             
             for filename in images:
-                hdu.header['comment'] = str(filename)+" used to make this flat"
+                stack.header['comment'] = str(filename)+" used to make this flat"
             if opt.short:
                 logging.info("ushort'n data")
-                hdu.scale(type='int16',bscale=1,bzero=32768)
+                stack.scale(type='int16',bscale=1,bzero=32768)
             logging.info("Writing 40th percentile image to %s" % ( outfile))
             if opt.split:
                 logging.info("writing to %s" % ( outfile))
-                fitsobj=pyfits.open(outfile,'update')
-                fitsobj[0]=hdu
-		fitsobj.close()
+                stack.writeto(outfile)
             else:
-                if not os.access(outfile,os.W_OK) :
+                try:
+                    fitsobj = pyfits.open(outfile, 'append')
+                    fitsobj.append(stack)
+                    fitsobj.close()
+                except IOError as e:
+                    if e.errno != 2 :
+                        raise e
                     logging.info("Creating output image %s" % ( outfile))
-                    fitsobj = pyfits.HDUList()
-                    fitsobj.append(pyfits.ImageHDU())
-                    fitsobj.append(stack)
-                    fitsobj.writeto(outfile)
-                    fitsobj.close()
-                else:
-                    fitsobj=pyfits.open(outfile,'append')
-                    fitsobj.append(stack)
-                    fitsobj.close()
+                    fits.PrimaryHDU(stack).writeto(outfile)
             del(stack)
             del(hdu)
     
