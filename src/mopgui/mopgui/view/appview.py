@@ -35,15 +35,15 @@ class ApplicationView(object):
     def close(self):
         self.mainframe.Close()
 
-    @wxutil.threadsafe
+    @wxutil.guithread
     def show_image_loading_dialog(self):
         self.mainframe.show_image_loading_dialog()
 
-    @wxutil.threadsafe
+    @wxutil.guithread
     def hide_image_loading_dialog(self):
         self.mainframe.hide_image_loading_dialog()
 
-    @wxutil.threadsafe
+    @wxutil.guithread
     def set_source_status(self, current_source, total_sources):
         self.mainframe.set_source_status(current_source, total_sources)
 
