@@ -25,14 +25,16 @@ class NavigationPanelTest(WxWidgetTestCase):
         self.rootframe.Destroy()
 
     def test_press_next_source_button(self):
-        next_button = self.get_child_by_label(self.undertest, "next source")
+        next_button = self.get_child_by_label(
+            self.undertest, self.undertest.next_source_label)
         assert_that(next_button, not_none())
 
         self.fire_button_click_event(next_button)
         assert_that(self.model.next_source.call_count, equal_to(1))
 
     def test_press_next_source_button(self):
-        prev_button = self.get_child_by_label(self.undertest, "previous source")
+        prev_button = self.get_child_by_label(
+            self.undertest, self.undertest.prev_source_label)
         assert_that(prev_button, not_none())
 
         self.fire_button_click_event(prev_button)

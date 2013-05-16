@@ -4,33 +4,41 @@ import wx
 
 
 class NavPanel(wx.Panel):
-    def __init__(self, parent, navcontroller):
+    def __init__(self, parent, navcontroller,
+                 next_source_label="Next Source",
+                 prev_source_label="Previous Source"):
         super(NavPanel, self).__init__(parent)
 
         self.navcontroller = navcontroller
 
+        self.next_source_label = next_source_label
+        self.prev_source_label = prev_source_label
+
         self._init_ui()
 
     def _init_ui(self):
-        next_source_button = wx.Button(self, wx.ID_FORWARD,
-                                       label="Next Source")
-        next_source_button.Bind(wx.EVT_BUTTON, self.navcontroller.on_next_source)
+        self.sbox = wx.StaticBox(self, label="Navigation")
 
-        previous_source_button = wx.Button(self, wx.ID_BACKWARD,
-                                           label="Previous Source")
-        previous_source_button.Bind(wx.EVT_BUTTON, self.navcontroller.on_previous_source)
+        self.next_src_button = wx.Button(self, wx.ID_FORWARD, label=self.next_source_label)
+        self.prev_src_button = wx.Button(self, wx.ID_BACKWARD, label=self.prev_source_label)
 
-        source_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        source_button_sizer.Add(previous_source_button)
-        source_button_sizer.Add(next_source_button)
+        self.next_src_button.Bind(wx.EVT_BUTTON, self.navcontroller.on_next_source)
+        self.prev_src_button.Bind(wx.EVT_BUTTON, self.navcontroller.on_previous_source)
 
-        navbox = wx.StaticBox(self, label="Navigation")
+        self._do_layout()
 
-        # Layout
-        bsizer = wx.StaticBoxSizer(navbox, wx.VERTICAL)
+    def _do_layout(self):
+        sbox_sizer = wx.StaticBoxSizer(self.sbox, wx.VERTICAL)
 
-        bsizer.Add(source_button_sizer, 0, flag=wx.TOP | wx.LEFT, border=5)
+        hsizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_border = 10
+        hsizer.Add(self.next_src_button, proportion=0, flag=wx.ALL, border=button_border)
+        hsizer.Add(self.prev_src_button, proportion=0, flag=wx.ALL, border=button_border)
 
-        border = wx.BoxSizer()
-        border.Add(bsizer, 1, wx.EXPAND | wx.ALL, border=5)
-        self.SetSizer(border)
+        sbox_sizer.Add(hsizer, flag=wx.ALIGN_CENTER)
+
+        # Add a bit of border around the box sizer
+        border_sizer = wx.BoxSizer(wx.VERTICAL)
+        border_sizer.Add(sbox_sizer, flag=wx.EXPAND | wx.ALL, border=10)
+
+        self.SetSizer(border_sizer)

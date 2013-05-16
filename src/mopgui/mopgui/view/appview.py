@@ -80,8 +80,7 @@ class MainFrame(wx.Frame):
 
         # Layout
         main_component_sizer = wx.BoxSizer(wx.VERTICAL)
-        main_component_sizer.Add(self.nav_view, 0, flag=wx.ALIGN_TOP |
-                                                        wx.ALIGN_CENTER)
+        main_component_sizer.Add(self.nav_view, 1, flag=wx.EXPAND)
         main_component_sizer.Add(self.notebook, 2, flag=wx.EXPAND)
         main_component_sizer.Add(self.validation_view, 1, flag=wx.EXPAND)
 
