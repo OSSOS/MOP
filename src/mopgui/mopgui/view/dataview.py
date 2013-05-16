@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 from wx.lib.pubsub import Publisher as pub
 
 from mopgui.model import astrodata
-from mopgui.view.list_ctrl import ListCtrlPanel
+from mopgui.view.listview import ListCtrlPanel
 
 
 class AbstractKeyValueListPanel(ListCtrlPanel):
