@@ -74,7 +74,7 @@ class MainFrame(wx.Frame):
         self.CreateStatusBar()
         self.nav_view = navview.NavPanel(self, self.navcontroller)
 
-        self.notebook = MainNotebook(self, self.model)
+        self.data_view = self._create_data_notebook()
 
         self.validation_view = SourceValidationPanel(self, self.validationcontroller)
 
@@ -85,7 +85,7 @@ class MainFrame(wx.Frame):
     def _do_layout(self):
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.nav_view, 1, flag=wx.EXPAND)
-        sizer.Add(self.notebook, 2, flag=wx.EXPAND)
+        sizer.Add(self.data_view, 2, flag=wx.EXPAND)
         sizer.Add(self.validation_view, 1, flag=wx.EXPAND)
 
         self.SetSizer(sizer)
@@ -106,6 +106,17 @@ class MainFrame(wx.Frame):
 
         return menubar
 
+    def _create_data_notebook(self):
+        notebook = wx.Notebook(self)
+
+        reading_data_panel = KeyValueListPanel(notebook, self.model.get_reading_data)
+        obs_header_panel = KeyValueListPanel(notebook, self.model.get_header_data_list)
+
+        notebook.AddPage(reading_data_panel, "Readings")
+        notebook.AddPage(obs_header_panel, "Observation Header")
+
+        return notebook
+
     def show_image_loading_dialog(self):
         if not self.img_loading_dialog.IsShown():
             self.img_loading_dialog.CenterOnParent()
@@ -118,20 +129,3 @@ class MainFrame(wx.Frame):
     def set_source_status(self, current_source, total_sources):
         self.GetStatusBar().SetStatusText(
             "Source %d of %d" % (current_source, total_sources))
-
-
-class MainNotebook(wx.Notebook):
-    def __init__(self, parent, model):
-        super(MainNotebook, self).__init__(parent)
-
-        self.model = model
-
-        self._init_ui_components()
-
-    def _init_ui_components(self):
-        self.reading_data_panel = KeyValueListPanel(self, self.model.get_reading_data)
-        self.obs_header_panel = KeyValueListPanel(self, self.model.get_header_data_list)
-
-        self.AddPage(self.reading_data_panel, "Readings")
-        self.AddPage(self.obs_header_panel, "Observation Header")
-
