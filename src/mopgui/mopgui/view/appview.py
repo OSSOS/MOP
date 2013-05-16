@@ -9,17 +9,20 @@ import wx.lib.inspection
 
 from mopgui.view import util, wxutil, navview, dialogs
 from mopgui.view.dataview import KeyValueListPanel
+from mopgui.view.validationview import SourceValidationPanel
 
 
 class ApplicationView(object):
-    def __init__(self, model, appcontroller, navcontroller):
+    def __init__(self, model, appcontroller, validationcontroller, navcontroller):
         self.model = model
 
         self.appcontroller = appcontroller
+        self.validationcontroller = validationcontroller
         self.navcontroller = navcontroller
 
         self.wx_app = wx.App(False)
-        self.mainframe = MainFrame(model, appcontroller, navcontroller)
+        self.mainframe = MainFrame(model, appcontroller, validationcontroller,
+                                   navcontroller)
 
     def launch(self, debug_mode=False, unittest=False):
         wx.CallAfter(self.mainframe.show_image_loading_dialog)
@@ -49,7 +52,8 @@ class ApplicationView(object):
 
 
 class MainFrame(wx.Frame):
-    def __init__(self, model, appcontroller, navcontroller, size=(400, 500)):
+    def __init__(self, model, appcontroller, validationcontroller, navcontroller,
+                 size=(400, 500)):
         super(MainFrame, self).__init__(None, title="Moving Object Pipeline",
                                         size=size)
 
@@ -59,6 +63,7 @@ class MainFrame(wx.Frame):
         self.model = model
 
         self.appcontroller = appcontroller
+        self.validationcontroller = validationcontroller
         self.navcontroller = navcontroller
 
         self._init_ui_components()
@@ -71,11 +76,14 @@ class MainFrame(wx.Frame):
 
         self.notebook = MainNotebook(self, self.model)
 
+        self.validation_view = SourceValidationPanel(self, self.validationcontroller)
+
         # Layout
         main_component_sizer = wx.BoxSizer(wx.VERTICAL)
         main_component_sizer.Add(self.nav_view, 0, flag=wx.ALIGN_TOP |
                                                         wx.ALIGN_CENTER)
         main_component_sizer.Add(self.notebook, 2, flag=wx.EXPAND)
+        main_component_sizer.Add(self.validation_view, 1, flag=wx.EXPAND)
 
         self.SetSizer(main_component_sizer)
 
