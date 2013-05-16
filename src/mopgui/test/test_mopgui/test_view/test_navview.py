@@ -14,7 +14,7 @@ from mopgui.controller.appcontrol import NavigationController
 
 class NavigationPanelTest(WxWidgetTestCase):
     def setUp(self):
-        self.app = wx.PySimpleApp()
+        self.app = wx.App()
         self.rootframe = wx.Frame(None)
 
         self.model = Mock(spec=AstroDataModel)

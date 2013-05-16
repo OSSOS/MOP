@@ -52,7 +52,7 @@ if __name__ == "__main__":
         def on_reject(self, event):
             print "Reject"
 
-    app = wx.PySimpleApp()
+    app = wx.App()
     rootframe = wx.Frame(None)
 
     undertest = SourceValidationPanel(rootframe, DummyController())
