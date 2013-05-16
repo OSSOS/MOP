@@ -20,9 +20,7 @@ class ApplicationController(object):
         # set up the more fine-grained controllers
         self.navcontroller = NavigationController(self.model)
 
-        self.view = ApplicationView(self.model, self, self.navcontroller,
-                                    self.image_viewer)
-
+        self.view = ApplicationView(self.model, self, self.navcontroller)
         self.view.launch(debug_mode=debug_mode, unittest=unittest)
 
     def get_view(self):
@@ -55,6 +53,7 @@ class ApplicationController(object):
         self.display_current_image()
 
     def on_exit(self, event):
+        self.image_viewer.close()
         self.view.close()
 
 

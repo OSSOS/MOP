@@ -14,13 +14,11 @@ from mopgui.model import astrodata
 
 
 class ApplicationView(object):
-    def __init__(self, model, appcontroller, navcontroller, image_viewer):
+    def __init__(self, model, appcontroller, navcontroller):
         self.model = model
 
         self.appcontroller = appcontroller
         self.navcontroller = navcontroller
-
-        self.image_viewer = image_viewer
 
         self.wx_app = wx.App(False)
         self.mainframe = MainFrame(model, appcontroller, navcontroller)
@@ -41,8 +39,6 @@ class ApplicationView(object):
             self.wx_app.MainLoop()
 
     def close(self):
-        # TODO: image viewer extracted completely to controller?
-        self.image_viewer.close()
         self.mainframe.Close()
 
     @wxutil.threadsafe
