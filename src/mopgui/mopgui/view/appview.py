@@ -5,12 +5,10 @@ The entry-point for the "view" of the Model-View-Controller.
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
-from wx.lib.pubsub import Publisher as pub
 import wx.lib.inspection
 
 from mopgui.view import util, wxutil, navview, dialogs
 from mopgui.view.dataview import ReadingDataView, ObservationHeaderView
-from mopgui.model import astrodata
 
 
 class ApplicationView(object):
@@ -22,10 +20,6 @@ class ApplicationView(object):
 
         self.wx_app = wx.App(False)
         self.mainframe = MainFrame(model, appcontroller, navcontroller)
-
-        # TODO: move to controller Set up event subscriptions
-        pub.subscribe(self.appcontroller.on_change_image, astrodata.MSG_NAV)
-        pub.subscribe(self.appcontroller.on_image_loaded, astrodata.MSG_IMG_LOADED)
 
     def launch(self, debug_mode=False, unittest=False):
         wx.CallAfter(self.mainframe.show_image_loading_dialog)
