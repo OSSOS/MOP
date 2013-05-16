@@ -18,7 +18,7 @@ class WxUtilTest(unittest.TestCase):
         # Pretend we are not in the main GUI thread
         Thread_IsMain_mock.return_value = False
 
-        @wxutil.threadsafe
+        @wxutil.guithread
         def test_func():
             pass
 
@@ -34,7 +34,7 @@ class WxUtilTest(unittest.TestCase):
         # Pretend we ARE in the main GUI thread
         Thread_IsMain_mock.return_value = True
 
-        @wxutil.threadsafe
+        @wxutil.guithread
         def test_func():
             pass
 
