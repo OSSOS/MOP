@@ -8,7 +8,7 @@ from hamcrest import assert_that, equal_to
 
 from test.base_tests import WxWidgetTestCase
 from mopgui.model import astrodata
-from mopgui.view.dataview import ReadingDataView
+from mopgui.view.dataview import KeyValueListPanel
 
 
 class DataViewTest(WxWidgetTestCase):
@@ -29,12 +29,12 @@ class DataViewTest(WxWidgetTestCase):
         self.app = wx.PySimpleApp()
         self.rootframe = wx.Frame(None)
 
-        self.view = ReadingDataView(self.rootframe, self.model)
+        self.view = KeyValueListPanel(self.rootframe, self.model.get_reading_data)
 
     def tearDown(self):
         self.rootframe.Destroy()
 
-    def test_reading_data_view_display_data_startup(self):
+    def test_kvlist_display_data_startup(self):
         assert_that(self.view.list.GetColumnCount(), equal_to(2))
         assert_that(self.view.list.GetItemCount(), equal_to(3))
 
@@ -44,7 +44,7 @@ class DataViewTest(WxWidgetTestCase):
                 assert_that(self.view.list.GetItem(item_ind, col_ind).GetText(),
                             equal_to(self.dataset1[item_ind][col_ind]))
 
-    def test_reading_data_view_display_data_on_change_reading(self):
+    def test_kvlist_display_data_on_change_reading(self):
         # XXX have to manually update model return value here
         self.model.get_reading_data.return_value = self.dataset2
 
