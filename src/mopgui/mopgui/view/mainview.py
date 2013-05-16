@@ -96,6 +96,8 @@ class MainFrame(wx.Frame):
 
 if __name__ == "__main__":
     # Quick manual acceptance test
+    from test.testutil import Dummy
+
     class DummyModel(object):
         def get_reading_data(self):
             return [("X", 111), ("Y", 222)]
@@ -103,26 +105,8 @@ if __name__ == "__main__":
         def get_header_data_list(self):
             return [("FWHM", "3.00"), ("SNR", 10)]
 
-    class DummyAppController(object):
-        def on_exit(self, event):
-            print "Pressed exit"
-
-    class DummyValController(object):
-        def on_accept(self, event):
-            print "Accept"
-
-        def on_reject(self, event):
-            print "Reject"
-
-    class DummyNavController(object):
-        def on_next_source(self, event):
-            print "Pressed next source"
-
-        def on_previous_source(self, event):
-            print "Pressed previous source"
-
     app = wx.App()
-    frame = MainFrame(DummyModel(), DummyAppController(),
-                      DummyValController(), DummyNavController())
+    frame = MainFrame(DummyModel(), Dummy("AppController"),
+                      Dummy("ValController"), Dummy("NavController"))
     frame.Show()
     app.MainLoop()

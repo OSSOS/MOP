@@ -45,17 +45,12 @@ class SourceValidationPanel(wx.Panel):
 
 if __name__ == "__main__":
     # Quick acceptance test to see how it looks
-    class DummyController(object):
-        def on_accept(self, event):
-            print "Accept"
-
-        def on_reject(self, event):
-            print "Reject"
+    from test.testutil import Dummy
 
     app = wx.App()
     rootframe = wx.Frame(None)
 
-    undertest = SourceValidationPanel(rootframe, DummyController())
+    undertest = SourceValidationPanel(rootframe, Dummy("Controller"))
 
     rootframe.Show()
     app.MainLoop()
