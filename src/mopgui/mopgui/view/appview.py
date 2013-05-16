@@ -8,7 +8,7 @@ import wx
 import wx.lib.inspection
 
 from mopgui.view import util, wxutil, navview, dialogs
-from mopgui.view.dataview import ReadingDataView, ObservationHeaderView
+from mopgui.view.dataview import KeyValueListPanel
 
 
 class ApplicationView(object):
@@ -120,8 +120,8 @@ class MainNotebook(wx.Notebook):
         self._init_ui_components()
 
     def _init_ui_components(self):
-        self.reading_data_panel = ReadingDataView(self, self.model)
-        self.obs_header_panel = ObservationHeaderView(self, self.model)
+        self.reading_data_panel = KeyValueListPanel(self, self.model.get_reading_data)
+        self.obs_header_panel = KeyValueListPanel(self, self.model.get_header_data_list)
 
         self.AddPage(self.reading_data_panel, "Readings")
         self.AddPage(self.obs_header_panel, "Observation Header")
