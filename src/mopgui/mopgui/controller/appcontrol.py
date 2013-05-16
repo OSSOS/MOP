@@ -8,6 +8,7 @@ from wx.lib.pubsub import Publisher as pub
 
 from mopgui.model import astrodata
 from mopgui.view.appview import ApplicationView
+from mopgui.controller.validationcontrol import SourceValidationController
 
 
 class ApplicationController(object):
@@ -21,12 +22,14 @@ class ApplicationController(object):
         self.image_viewer = image_viewer
 
         # set up the more fine-grained controllers
+        self.validationcontroller = SourceValidationController()
         self.navcontroller = NavigationController(self.model)
 
         pub.subscribe(self.on_change_image, astrodata.MSG_NAV)
         pub.subscribe(self.on_image_loaded, astrodata.MSG_IMG_LOADED)
 
-        self.view = ApplicationView(self.model, self, self.navcontroller)
+        self.view = ApplicationView(self.model, self, self.validationcontroller,
+                                    self.navcontroller)
         self.view.launch(debug_mode=debug_mode, unittest=unittest)
 
     def get_view(self):
