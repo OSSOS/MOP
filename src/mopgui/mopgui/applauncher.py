@@ -5,7 +5,8 @@ Performs necessary application startup tasks.
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 from mopgui.io.parser import AstromParser
-from mopgui.io.output import AcceptRejectResultsWriter, ProvisionalNameGenerator
+from mopgui.io.writer import AcceptRejectResultsWriter
+from mopgui.io.naming import ProvisionalNameGenerator
 from mopgui.data_retrieval.resolver import VOSpaceResolver
 from mopgui.data_retrieval.loader import AsynchronousImageLoader
 from mopgui.data_retrieval.image_retriever import ImageSliceRetriever
