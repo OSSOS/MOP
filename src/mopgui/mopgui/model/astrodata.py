@@ -87,6 +87,9 @@ class AstroDataModel(object):
     def get_current_image_FWHM(self):
         return float(self._get_current_reading().obs.header["FWHM"])
 
+    def get_current_exposure_number(self):
+        return int(self._get_current_reading().obs.expnum)
+
     def start_loading_images(self):
         self.image_loader.start_loading(
             self.astrom_data, image_loaded_callback=self._on_image_loaded)
