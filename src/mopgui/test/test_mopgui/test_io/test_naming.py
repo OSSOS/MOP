@@ -4,7 +4,7 @@ import unittest
 
 from hamcrest import assert_that, has_length, less_than_or_equal_to, equal_to
 
-from mopgui.io.output import ProvisionalNameGenerator, to_base26
+from mopgui.io.naming import ProvisionalNameGenerator, to_base26
 
 
 class ProvisionalNameGeneratorTest(unittest.TestCase):
