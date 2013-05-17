@@ -79,11 +79,12 @@ class AcceptRejectResultsWriter(object):
     with all required data.
     """
 
-    def __init__(self, outputfilename):
-        self.filehandle = open(outputfilename, "wb")
+    def __init__(self, filehandle, name_generator):
+        self.name_generator = name_generator
+        self.filehandle= filehandle
 
     def write_result(self, sourcename, status):
-        self.filehandle.write("%s: %s" % (sourcename, status))
+        self.filehandle.write("%s: %s\n" % (sourcename, status))
 
     def close(self):
         self.filehandle.close()

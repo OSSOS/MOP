@@ -37,6 +37,9 @@ class ApplicationController(object):
     def get_view(self):
         return self.view
 
+    def get_model(self):
+        return self.model
+
     def display_current_image(self):
         current_image = self.model.get_current_image()
 
