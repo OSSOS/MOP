@@ -1,6 +1,24 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 
+def to_base26(number):
+    if number < 0:
+        raise ValueError("Must be a number >= 0")
+
+    converted = ""
+
+    should_continue = True
+    while should_continue:
+        remainder = number % 26
+        converted = chr(remainder + ord('A')) + converted
+        number = (number - remainder) / 26
+
+        if number <= 0:
+            should_continue = False
+
+    return converted
+
+
 class ProvisionalNameGenerator(object):
     """
     Creates provisional names for a new sources.

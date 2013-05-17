@@ -23,6 +23,20 @@ class ProvisionalNameGeneratorTest(unittest.TestCase):
         assert_that(name, equal_to(""))
 
 
+class Base26ConverterTest(unittest.TestCase):
+    def test_boundary(self):
+        assert_that(to_base26(0), equal_to("A"))
+        assert_that(to_base26(1), equal_to("B"))
+        assert_that(to_base26(9999999), equal_to("VWYXJ"))
+
+    def test_realistic_exposure_numbers(self):
+        assert_that(to_base26(1616703), equal_to("DNZOX"))
+        assert_that(to_base26(1616704), equal_to("DNZOY"))
+        assert_that(to_base26(1616705), equal_to("DNZOZ"))
+
+    def test_negative(self):
+        self.assertRaises(ValueError, to_base26, -1)
+
 
 if __name__ == '__main__':
     unittest.main()
