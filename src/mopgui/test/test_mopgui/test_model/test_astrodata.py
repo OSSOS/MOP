@@ -196,6 +196,17 @@ class AstroDataModelTest(FileReadingTestCase):
         assert_that(msg1.topic, equal_to(astrodata.MSG_IMG_LOADED))
         assert_that(msg1.data, equal_to((1, 1)))
 
+    def test_get_current_exposure_number(self):
+        assert_that(self.model.get_current_exposure_number(), equal_to(1584431))
+        self.model.next_obs()
+        assert_that(self.model.get_current_exposure_number(), equal_to(1584449))
+        self.model.next_obs()
+        assert_that(self.model.get_current_exposure_number(), equal_to(1584453))
+        self.model.next_obs()
+        assert_that(self.model.get_current_exposure_number(), equal_to(1584431))
+        self.model.previous_obs()
+        assert_that(self.model.get_current_exposure_number(), equal_to(1584453))
+
 
 if __name__ == '__main__':
     unittest.main()
