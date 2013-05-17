@@ -17,12 +17,14 @@ class ApplicationController(object):
     controllers, and handles high level events like exiting.
     """
 
-    def __init__(self, model, image_viewer, debug_mode=False, unittest=False):
+    def __init__(self, model, output_writer, name_generator, image_viewer,
+                 debug_mode=False, unittest=False):
         self.model = model
+        self.output_writer = output_writer
         self.image_viewer = image_viewer
 
         # set up the more fine-grained controllers
-        self.validationcontroller = SourceValidationController()
+        self.validationcontroller = SourceValidationController(self.model, self.output_writer, name_generator)
         self.navcontroller = NavigationController(self.model)
 
         pub.subscribe(self.on_change_image, astrodata.MSG_NAV)
