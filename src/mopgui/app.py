@@ -9,8 +9,9 @@ import argparse
 from mopgui.applauncher import AstromFileApplicationLauncher
 
 
-def run(astrom_file, output_file, debug_mode):
-    AstromFileApplicationLauncher().run(astrom_file, output_file, debug_mode)
+def run(astrom_file, output_file_name, debug_mode):
+    with open(output_file_name, "wb") as output_file:
+        AstromFileApplicationLauncher().run(astrom_file, output_file, debug_mode)
 
 
 if __name__ == "__main__":

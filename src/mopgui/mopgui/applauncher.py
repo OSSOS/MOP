@@ -28,15 +28,17 @@ class AstromFileApplicationLauncher(object):
 
         self.image_loader = AsynchronousImageLoader(self.resolver, self.image_retriever)
 
-    def run(self, astrom_file, output_file, debug_mode):
+    def run(self, astrom_file, output_filehandle, debug_mode, unittest=False):
         self.astrom_data = self.parser.parse(astrom_file)
 
         self.model = AstroDataModel(self.astrom_data, self.image_loader)
-        self.output_writer = AcceptRejectResultsWriter(output_file)
+        self.output_writer = AcceptRejectResultsWriter(output_filehandle,
+                                                       self.name_generator)
         self.appcontroller = ApplicationController(self.model,
                                                    self.output_writer,
                                                    self.name_generator,
                                                    self.image_viewer,
-                                                   debug_mode=debug_mode)
-
+                                                   debug_mode=debug_mode,
+                                                   unittest=unittest)
+        return self.appcontroller
 
