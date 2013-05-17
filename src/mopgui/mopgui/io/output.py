@@ -75,7 +75,8 @@ class ProvisionalNameGenerator(object):
 class AcceptRejectResultsWriter(object):
     """
     A simplified output that just writes the source name and whether it
-    was accepted or rejected.
+    was accepted or rejected.  It just does formatting, it must be provided
+    with all required data.
     """
 
     def __init__(self, outputfilename):

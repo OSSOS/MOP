@@ -13,10 +13,12 @@ from mopgui.controller.appcontrol import ApplicationController
 class ApplicationViewTest(WxWidgetTestCase):
     def setUp(self):
         self.mock_model()
+        self.output_writer = Mock()
+        self.name_generator = Mock()
 
         self.image_viewer = Mock()
-        self.appcontroller = ApplicationController(self.model, self.image_viewer,
-                                                   unittest=True)
+        self.appcontroller = ApplicationController(self.model, self.output_writer, self.name_generator,
+                                                   self.image_viewer, unittest=True)
         self.appview = self.appcontroller.get_view()
         self.mainframe = self.appview.mainframe
         self.mainframe_close = Mock()
