@@ -8,6 +8,8 @@ import os
 import unittest
 
 import wx
+
+from hamcrest import not_none, assert_that
 from mock import Mock
 
 
@@ -37,6 +39,9 @@ class WxWidgetTestCase(unittest.TestCase):
             if child.GetLabel().lower() == label.lower():
                 return child
         return None
+
+    def assert_has_child_with_label(self, parent, label):
+        assert_that(self.get_child_by_label(parent, label), not_none())
 
     def get_child_by_label(self, parent, label):
         return self._get_by_label(label, parent.GetChildren())
