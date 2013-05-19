@@ -34,17 +34,29 @@ class FileReadingTestCase(unittest.TestCase):
 
 
 class WxWidgetTestCase(unittest.TestCase):
-    def _get_by_label(self, label, iterable):
-        for child in iterable:
-            if child.GetLabel().lower() == label.lower():
-                return child
+    def _get_by_equality(self, iterable, is_equal):
+        for item in iterable:
+            if is_equal(item):
+                return item
         return None
+
+    def _get_by_label(self, label, iterable):
+        def has_same_label(item):
+            return item.GetLabel().lower() == label.lower()
+
+        return self._get_by_equality(iterable, has_same_label)
 
     def assert_has_child_with_label(self, parent, label):
         assert_that(self.get_child_by_label(parent, label), not_none())
 
     def get_child_by_label(self, parent, label):
         return self._get_by_label(label, parent.GetChildren())
+
+    def get_child_by_name(self, parent, name):
+        def has_same_name(item):
+            return item.GetName() == name
+
+        return self._get_by_equality(parent.GetChildren(), has_same_name)
 
     def get_menuitem_by_label(self, menu, label):
         return self._get_by_label(label, menu.GetMenuItems())
