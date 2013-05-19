@@ -4,16 +4,20 @@ import wx
 
 
 class AcceptSourceDialog(wx.Dialog):
-
     TITLE = "Accept Source"
     MINOR_PLANET_NUMBER = "Minor planet number: "
     PROVISIONAL_NAME = "Provisional name: "
     DISCOVERY_ASTERISK = "Discovery asterisk: "
+    NOTE1 = "Note 1: "
+    NOTE2 = "Note 2: "
 
-    def __init__(self, parent, provisional_name):
+    def __init__(self, parent, provisional_name, note1_choices=None, note2_choices=None):
         super(AcceptSourceDialog, self).__init__(parent, title=self.TITLE)
 
         self.provisional_name = provisional_name
+
+        self.note1_choices = note1_choices if note1_choices is not None else []
+        self.note2_choices = note2_choices if note2_choices is not None else []
 
         self._init_ui()
 
@@ -27,12 +31,23 @@ class AcceptSourceDialog(wx.Dialog):
         self.discovery_asterisk_cb = wx.CheckBox(self, label=self.DISCOVERY_ASTERISK,
                                                  style=wx.ALIGN_RIGHT)
 
+        self.note1_label = wx.StaticText(self, label=self.NOTE1)
+        self.note1_combobox = wx.ComboBox(self, choices=self.note1_choices, style=wx.CB_READONLY,
+                                          name=self.NOTE1)
+
+        self.note2_label = wx.StaticText(self, label=self.NOTE2)
+        self.note2_combobox = wx.ComboBox(self, choices=self.note2_choices, style=wx.CB_READONLY,
+                                          name=self.NOTE2)
+
         self._do_layout()
 
     def _get_vertical_widget_list(self):
         return [self._create_horizontal_pair(self.minor_planet_num_label, self.minor_planet_num_text),
                 self._create_horizontal_pair(self.provisional_name_label, self.provision_name_text),
-                self.discovery_asterisk_cb]
+                self.discovery_asterisk_cb,
+                (0, 0), # blank space
+                self._create_horizontal_pair(self.note1_label, self.note1_combobox),
+                self._create_horizontal_pair(self.note2_label, self.note2_combobox)]
 
     def _do_layout(self):
         vsizer = wx.BoxSizer(wx.VERTICAL)
@@ -63,7 +78,11 @@ if __name__ == "__main__":
     panel = wx.Panel(rootframe, wx.ID_ANY)
 
     def onclick(event):
-        AcceptSourceDialog(panel, "provisional-name-1").ShowModal()
+        note1_choices = ["n1a", "n1b"]
+        note2_choices = ["n2a", "n2b", "n2c"]
+        AcceptSourceDialog(panel, "provisional-name-1",
+                           note1_choices=note1_choices,
+                           note2_choices=note2_choices).ShowModal()
 
     button = wx.Button(panel, id=wx.ID_ANY, label="Press Me")
     button.Bind(wx.EVT_BUTTON, onclick)
