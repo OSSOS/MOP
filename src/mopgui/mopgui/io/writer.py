@@ -45,9 +45,10 @@ class MPCWriter(object):
         # TODO: handle inputs of different lengths (ex: proper padding)
         # TODO: handle inputs of different types (str vs int vs float)
         # TODO: check for invalid values
-        self.filehandle.write(minor_plant_number + provisional_name + discovery_asterisk +
-                              note1 + note2 + date_of_ob + ra + dec + obs_mag + band +
-                              observatory_code + "\n")
+        self.filehandle.write(
+            minor_plant_number + provisional_name + discovery_asterisk +
+            note1 + note2 + date_of_ob + ra + dec + " " * 9 + obs_mag + band +
+            " " * 6 + observatory_code + "\n")
         self.filehandle.flush()
 
 

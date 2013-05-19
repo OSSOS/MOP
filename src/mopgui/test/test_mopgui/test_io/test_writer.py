@@ -16,7 +16,10 @@ class MPCWriterTest(unittest.TestCase):
     def tearDown(self):
         self.outputfile.close()
 
-    @unittest.skip("TODO: in progress")
+    def read_outputfile(self):
+        self.outputfile.seek(0)
+        return self.outputfile.read()
+
     def test_write_line_valid_inputs(self):
         self.undertest.write_line("12345",
                                   "1234567",
@@ -32,12 +35,10 @@ class MPCWriterTest(unittest.TestCase):
 
         expected = "123451234567*MN2012 10 21.40516026.68333670029.220353200         123.5A      523\n"
 
-        actual = self.outputfile.read()
-        print "Actual: ", actual
-        assert_that(actual.endswith("\n"))
-        actual = actual[:-1]
+        actual = self.read_outputfile()
 
-        assert_that(actual, has_length(80))
+        assert_that(actual.endswith("\n"))
+        assert_that(actual, has_length(81))
         assert_that(actual, equal_to(expected))
 
     @unittest.skip("TODO: have test methods checking each input")
