@@ -111,29 +111,3 @@ class AcceptSourceDialog(wx.Dialog):
         hsizer.Add(widget1, flag=flag, border=border)
         hsizer.Add(widget2, flag=flag, border=border)
         return hsizer
-
-
-if __name__ == "__main__":
-    # Quick acceptance test
-
-    app = wx.App()
-    rootframe = wx.Frame(None)
-
-    # TODO helper test frame/panel for these test dialogs
-    # (use in dialogs.py as well)
-    panel = wx.Panel(rootframe, wx.ID_ANY)
-
-    def onclick(event):
-        note1_choices = ["n1a", "n1b"]
-        note2_choices = ["n2a", "n2b", "n2c"]
-        AcceptSourceDialog(panel, "provisional-name-1",
-                           "2012 01 01",
-                           27.213, 31.2123,
-                           note1_choices=note1_choices,
-                           note2_choices=note2_choices).ShowModal()
-
-    button = wx.Button(panel, id=wx.ID_ANY, label="Press Me")
-    button.Bind(wx.EVT_BUTTON, onclick)
-
-    rootframe.Show()
-    app.MainLoop()
