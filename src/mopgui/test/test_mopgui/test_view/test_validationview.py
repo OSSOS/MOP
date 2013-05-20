@@ -28,7 +28,7 @@ class TestSourceValidationPanel(WxWidgetTestCase):
             validation_panel, validation_panel.accept_label)
         self.fire_button_click_event(accept_button)
 
-        assert_that(validation_controller.on_accept.call_count, equal_to(1))
+        assert_that(validation_controller.on_initiate_accept.call_count, equal_to(1))
         assert_that(validation_controller.on_reject.call_count, equal_to(0))
 
     def test_reject_button(self):
