@@ -18,23 +18,16 @@ set finished = "plant_finished"
 
 set wdir = $1
 set dir = `pwd`
-if ( $#argv == 9 && $3 > 0 ) then 
- set rmin = $3
- set rmax = $5
- set ang = $7
- set aw = $9
+if ( $#argv == 5) then 
+ set rmin = $2
+ set rmax = $3
+ set ang = $4
+ set aw = $5
 else
-## base the rates on 25 AU (rmax and awidth) and 200AU (rmin and Angle)
- set au_min=30
- set au_max=250
- set file = `grep -v "#" $wdir/proc-these-files | head -1 | awk ' { print $1 }'`
- set file = $file.fits
- set rmin = `rate.pl --file $wdir/$file $au_max | awk ' { printf "%8.1f",$4 }' `
- set rmax = `rate.pl --file $wdir/$file $au_min | awk ' { printf "%8.1f", $5 } ' `
- set ang = `rate.pl --file $wdir/$file $au_max | awk ' { printf "%8.1f", $2 } ' `
- set aw = `rate.pl --file $wdir/$file $au_min | awk ' { printf "%8.1f", $3 } ' `
- echo "Using rmin=$rmin rmax=$rmax ang=$ang width=$aw "
-endif 
+ echo "bad calling sequence"
+ echo "plant.csh wdir rmin rmax ang awidth"
+ exit -1
+endif
 
 # match the .phot files left behind by the makepsf script.
 
@@ -42,10 +35,8 @@ endif
 # Should we plant or pass along to find? 
 
 set nl = `grep -v "#" $wdir/proc-these-files | grep "NO" | wc -l | awk ' { print $1 } '`
+echo "Read $nl lines from proc-these-files"
 
-if ( ! -e find.input ) then
-    touch find.input
-endif
 
 if ( $nl == "0" ) then 
 
@@ -56,30 +47,27 @@ if ( -e $lock || -e $finished )  exit;
 
 touch $lock
 
-match.pl  -f proc-these-files
+match.pl
 
 # create a list of random objects
 if ( -e Object.planted ) \rm Object.planted
 
-set im = `awk 'NR == 3 {print $1}' proc-these-files`
-#set nx = `gethead NAXIS1 $im.mopheader`
+set im = `grep -v "#" proc-these-files | awk ' NR == 1 { print $1 } ' `
 set nx = 2080
-#set ny = `gethead NAXIS2 $im.mopheader`
 set ny = 4612
 set pixs = `gethead PIXSCALE $im.mopheader`
+
 # here is a typical KBO planting line
-set rand = `date '+%N'`
-kbo_gen 33  $nx 1 $ny  $rmin $rmax $ang $aw 21.0 23.5  5  5 $rand $pixs  > Object.planted
-set rand = `date '+%N'`
-kbo_gen 33  $nx 1 $ny  $rmin $rmax $ang $aw 23.5 25.5 25 25 $rand $pixs | grep -v "#" >> Object.planted
-# Old kbo_gen version:
-#
-#    x_min x_max y_min y_max rate_min rate_max ang_min ang_max mag_min mag_max n_min n_max sd pixscale
-#
-# But this is not consistant with other programs, and with normal meaning of
-# $ang and $aw. So changed kbo_gen to take mean angle and half width:
-#
-#    x_min x_max y_min y_max rate_min rate_max ang_mean ang_width mag_min mag_max n_min n_max sd pixscale
+echo "Hard coded for MegaPrime untrimmed images, May 2013"
+set rand=`date '+%N'`
+kbo_gen 66  $nx 1 $ny $rmin $rmax $ang $aw 21.0 23.5 10 10 $rand $pixs  > Object.planted
+set rand=`date '+%N'`
+kbo_gen 66  $nx 1 $ny  $rmin $rmax $ang $aw 23.5 25.2 25 25 $rand $pixs | grep -v "#" >> Object.planted
+set ravg=`echo $rmax $rmin | awk ' { print( ($1 - $2)/2.0 ) } '`
+echo $ravg
+set rand=`date '+%N'`
+kbo_gen 66  $nx 1 $ny  $rmin $ravg $ang $aw 23.5 25.2 25 25 $rand $pixs | grep -v "#" >> Object.planted
+
 
 # go into IRAF and do the planting.
 set term = none
@@ -99,7 +87,10 @@ cd $wdir
 
 pipeplant proc-these-files Object.planted verbose+
 
+touch plant.csh.OK
+
 logout
+
 
 EOF
 
@@ -109,8 +100,6 @@ cd $wdir
 
 \rm $lock
 
-touch $finished
-touch plant.OK
 
 cd $dir
 
