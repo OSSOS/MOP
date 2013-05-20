@@ -97,21 +97,3 @@ class MainFrame(wx.Frame):
     def set_source_status(self, current_source, total_sources):
         self.GetStatusBar().SetStatusText(
             "Source %d of %d" % (current_source, total_sources))
-
-
-if __name__ == "__main__":
-    # Quick manual acceptance test
-    from test.testutil import Dummy
-
-    class DummyModel(object):
-        def get_reading_data(self):
-            return [("X", 111), ("Y", 222)]
-
-        def get_header_data_list(self):
-            return [("FWHM", "3.00"), ("SNR", 10)]
-
-    app = wx.App()
-    frame = MainFrame(DummyModel(), Dummy("AppController"),
-                      Dummy("ValController"), Dummy("NavController"))
-    frame.Show()
-    app.MainLoop()

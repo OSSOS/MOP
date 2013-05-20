@@ -41,16 +41,3 @@ class SourceValidationPanel(wx.Panel):
         border_sizer.Add(sbox_sizer, flag=wx.EXPAND | wx.ALL, border=10)
 
         self.SetSizer(border_sizer)
-
-
-if __name__ == "__main__":
-    # Quick acceptance test to see how it looks
-    from test.testutil import Dummy
-
-    app = wx.App()
-    rootframe = wx.Frame(None)
-
-    undertest = SourceValidationPanel(rootframe, Dummy("Controller"))
-
-    rootframe.Show()
-    app.MainLoop()
