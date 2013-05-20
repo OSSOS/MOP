@@ -31,7 +31,8 @@ class AcceptSourceDialogTest(WxWidgetTestCase):
                             AcceptSourceDialog.DISCOVERY_ASTERISK, AcceptSourceDialog.NOTE1,
                             AcceptSourceDialog.NOTE2, AcceptSourceDialog.DATE_OF_OBS,
                             AcceptSourceDialog.RA, AcceptSourceDialog.DEC, AcceptSourceDialog.OBS_MAG,
-                            AcceptSourceDialog.BAND, AcceptSourceDialog.OBSERVATORY_CODE]
+                            AcceptSourceDialog.BAND, AcceptSourceDialog.OBSERVATORY_CODE,
+                            AcceptSourceDialog.OK_BTN, AcceptSourceDialog.CANCEL_BTN]
 
         for label in component_labels:
             self.assert_has_child_with_label(undertest, label)

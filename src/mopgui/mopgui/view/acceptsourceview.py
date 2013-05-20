@@ -16,6 +16,8 @@ class AcceptSourceDialog(wx.Dialog):
     OBS_MAG = "Observed magnitude: "
     BAND = "Band: "
     OBSERVATORY_CODE = "Observatory code: "
+    OK_BTN = "Ok"
+    CANCEL_BTN = "Cancel"
 
     def __init__(self, parent, provisional_name, date_of_obs, ra, dec,
                  note1_choices=None, note2_choices=None):
@@ -67,6 +69,9 @@ class AcceptSourceDialog(wx.Dialog):
         self.observatory_code_label = wx.StaticText(self, label=self.OBSERVATORY_CODE)
         self.observatory_code_text = wx.TextCtrl(self)
 
+        self.ok_button = wx.Button(self, label=self.OK_BTN, name=self.OK_BTN)
+        self.cancel_button = wx.Button(self, label=self.CANCEL_BTN, name=self.CANCEL_BTN)
+
         self._do_layout()
 
     def _get_vertical_widget_list(self):
@@ -82,7 +87,8 @@ class AcceptSourceDialog(wx.Dialog):
                 self._create_horizontal_pair(self.dec_label, self.dec_text),
                 self._create_horizontal_pair(self.obs_mag_label, self.obs_mag_text),
                 self._create_horizontal_pair(self.band_label, self.band_text),
-                self._create_horizontal_pair(self.observatory_code_label, self.observatory_code_text)
+                self._create_horizontal_pair(self.observatory_code_label, self.observatory_code_text),
+                (0, 0)  # blank space
         ]
 
     def _do_layout(self):
@@ -90,16 +96,20 @@ class AcceptSourceDialog(wx.Dialog):
         for widget in self._get_vertical_widget_list():
             vsizer.Add(widget, proportion=0, flag=wx.ALL, border=5)
 
+        vsizer.Add(self._create_horizontal_pair(self.ok_button, self.cancel_button,
+                                                flag=wx.ALL, border=5),
+                   flag=wx.ALIGN_CENTER)
+
         # Extra border padding
         bordersizer = wx.BoxSizer(wx.VERTICAL)
         bordersizer.Add(vsizer, flag=wx.ALL, border=20)
 
         self.SetSizerAndFit(bordersizer)
 
-    def _create_horizontal_pair(self, widget1, widget2):
+    def _create_horizontal_pair(self, widget1, widget2, flag=0, border=0):
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
-        hsizer.Add(widget1)
-        hsizer.Add(widget2)
+        hsizer.Add(widget1, flag=flag, border=border)
+        hsizer.Add(widget2, flag=flag, border=border)
         return hsizer
 
 
