@@ -21,7 +21,7 @@ class SourceValidationPanel(wx.Panel):
         self.accept_button = wx.Button(self, label=self.accept_label)
         self.reject_button = wx.Button(self, label=self.reject_label)
 
-        self.accept_button.Bind(wx.EVT_BUTTON, self.validation_controller.on_accept)
+        self.accept_button.Bind(wx.EVT_BUTTON, self.validation_controller.on_initiate_accept)
         self.reject_button.Bind(wx.EVT_BUTTON, self.validation_controller.on_reject)
 
         self._do_layout()
