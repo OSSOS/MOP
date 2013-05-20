@@ -1,28 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 #/*+
-#************************************************************************
-#****  C A N A D I A N   A S T R O N O M Y   D A T A   C E N T R E  *****
-#*
-#* (c) 2004.				(c) 2004.
-#* National Research Council		Conseil national de recherches
-#* Ottawa, Canada, K1A 0R6 		Ottawa, Canada, K1A 0R6
-#* All rights reserved			Tous droits reserves
-#* 					
-#* NRC disclaims any warranties,	Le CNRC denie toute garantie
-#* expressed, implied, or statu-	enoncee, implicite ou legale,
-#* tory, of any kind with respect	de quelque nature que se soit,
-#* to the software, including		concernant le logiciel, y com-
-#* without limitation any war-		pris sans restriction toute
-#* ranty of merchantability or		garantie de valeur marchande
-#* fitness for a particular pur-	ou de pertinence pour un usage
-#* pose.  NRC shall not be liable	particulier.  Le CNRC ne
-#* in any event for any damages,	pourra en aucun cas etre tenu
-#* whether direct or indirect,		responsable de tout dommage,
-#* special or general, consequen-	direct ou indirect, particul-
-#* tial or incidental, arising		ier ou general, accessoire ou
-#* from the use of the software.	fortuit, resultant de l'utili-
-#* 					sation du logiciel.
-#*
 #************************************************************************
 #*
 #*   Script Name:	preproc.py
@@ -52,15 +29,28 @@
 
 """Create a MEGAPRIME bias frame given a list of input bias exposure numbers"""
 
-__Version__ = "$Revision: 1.7 $"
+__Version__ = "1.8"
 import re, os, string, sys
+import vos
 import numpy as np
-import numpy.ma as MaskArray
 from scipy import stats
-import MOPfits
+from cStringIO import StringIO
+#from astropy.io import fits as pyfits
 import pyfits
+version=__Version__
 
-version=re.match(r'\$Rev.*: (\d*.\d*) \$',__Version__).group(1)
+elixir_header={ 'PHOT_C' : (30.0000 , "Fake Elixir zero point"),
+                'PHOT_CS': (1.0000 , "Fake Elixir zero point - scatter" ) ,
+                'PHOT_NS': (0, 'Elixir zero point - N stars' ),
+                'PHOT_NM' : (0, 'Elixir zero point - N images'),
+                'PHOT_C0' : ( 25.978, 'Elixir zero point - nominal'),
+                'PHOT_X'  :             (  0.0000 ,'Elixir zero point - color term'),
+                'PHOT_K'  :             ( -0.1000 , 'Elixir zero point - airmass term'),
+                'PHOT_C1' : ('g_SDSS            ' , 'Elixir zero point - color 1'),
+                'PHOT_C2' : ('r_SDSS            ' , 'Elixir zero point - color 2')
+                }
+
+
 
 def trim(hdu):
     """TRIM a CFHT MEGAPRIME frame  using the DATASEC keyword"""
@@ -73,7 +63,8 @@ def trim(hdu):
     if opt.verbose:
         print "Trimming [%d:%d,%d:%d]" % ( l,r,b,t)
     hdu.data = hdu.data[b:t,l:r]    
-    hdu.header['DATASEC']="[%d:%d,%d:%d]" % (1,r-l+1,1,t-b+1)
+    hdu.header.update('DATASEC',"[%d:%d,%d:%d]" % (1,r-l+1,1,t-b+1), comment="Image was trimmed")
+    hdu.header.update('ODATASEC',"[%d:%d,%d:%d]" % (l+1,r,b+1,t), comment="previous DATASEC")
     return
 
 def overscan(hdu):
@@ -107,7 +98,9 @@ def overscan(hdu):
         bias = np.add.reduce(hdu.data[b:t,bl:bh],axis=1)/float(len(hdu.data[b:t,bl:bh][0]))
         mean = bias.mean()
         hdu.data[b:t,al:ah] -= bias[:,np.newaxis]
+	hdu.data = hdu.data.astype('int16')
         hdu.header.update("BIAS",mean,comment="Mean bias level")
+	del(bias)
 
     ### send back the mean bias level subtracted
     return mean
@@ -173,52 +166,71 @@ if __name__=='__main__':
 		      default=36,
                       type="int",
                       help="CCD to process [do all be default]")
+    parser.add_option("--dbimages",
+                      action="store",
+                      default="vos:OSSOS/dbimages",
+                      help="VOSpace location of the dbimages directory")
                       
     ### get the bias frames from the archive.
     (opt, file_ids)=parser.parse_args()
 
 
+    vos_client = vos.Client()
 
 
-
-
-    if opt.combine and opt.normal and 0==1:
+    if opt.combine and opt.normal and False:
         ## only take one image from each pointing
         t={}
         for file_id in file_ids:
-            f=pyfits.open(file_id)
+            filename = os.path.join(opt.dbimages,"%s/%so.head" % ( file_id, file_id))
+            f = pyfits.open(StringIO(vos_client.open(filename,view='data').read()))
             t[f[0].header['OBJECT']]=file_id
             f.close()
+            f = None
         file_ids=[]
         for object in t:
             file_ids.append(t[object])
 
-
     images={}
     file_names=[]
     for file_id in file_ids:
-	if not re.match(r'.*.fits',file_id):
-        	file_name=file_id+".fits"
-	else :
-		file_name=file_id
         if opt.verbose:
-            print "Attempting to get and open "+file_name
-	if not os.access(file_name,os.F_OK):
-            file_names.append(MOPfits.adGet(file_id))
-        if not os.access(file_name,os.F_OK):
-            sys.exit("Failed to get access to "+file_name)
-        images[file_id]=pyfits.open(file_name,"readonly")
+            print "Attempting to get and open file assocaiated with  "+str(file_id)
+	if not re.match(r'.*.fits.*',file_id):
+            filename=file_id+"o.fits.fz"
+	else :
+            filename=file_id
+	if not os.access(filename,os.F_OK):
+            vo_filename = os.path.join(opt.dbimages,
+                                       "%s/%s" % ( file_id, filename))
+            vos_client.copy(vo_filename, filename)
+        if not os.access(filename,os.F_OK):
+            sys.exit("Failed to get access to "+filename)
+        file_names.append(filename)
+        #images[file_id]=pyfits.open(filename,"readonly")
 
     ### zero is a zero field array of the required output size.
     ### get the required output size by looking a the first input
     ### array?
     ##
 
-    if opt.bias and os.access(opt.bias,os.F_OK):
+    if opt.bias:
+        if not os.access(opt.bias,os.F_OK):
+            uri = "/".join([opt.dbimages,
+                            "calibrators",
+                            opt.bias])
+            uri = os.path.normpath(uri)
+            vos_client.copy(uri, opt.bias)
         bias=pyfits.open(opt.bias,"readonly")
     else:
         opt.bias=None
-    if opt.flat and os.access(opt.flat,os.F_OK):
+    if opt.flat:
+        if not os.access(opt.flat,os.F_OK):
+            uri = "/".join([opt.dbimages,
+                            "calibrators",
+                            opt.flat])
+            uri = os.path.normpath(uri)
+            vos_client.copy(uri, opt.flat)
         flat=pyfits.open(opt.flat,"readonly")
     else:
         opt.flat=None
@@ -237,13 +249,13 @@ if __name__=='__main__':
         ccds=range(36)
 
     for ccd in ccds:
-        if opt.verbose:
-            print "Working on ccd "+str(ccd)
+        print "Working on ccd "+str(ccd)
 	stack=[]
+	mstack=[]
         nim=0
-        for image in images:
+        for filename in file_names:
             nim+=1
-            hdu=images[image][int(ccd)+1]
+            hdu = pyfits.open(filename,mode='readonly',memmap=True)[int(ccd)+1]
 
             ### reopen the output file for each extension.
             ### Create an output MEF file based on extension name if
@@ -251,12 +263,12 @@ if __name__=='__main__':
             if not opt.outfile and not opt.combine:
                 imtype=hdu.header.get('OBSTYPE')
                 outfile=str(hdu.header.get('EXPNUM'))+flag[imtype]
-            elif ( opt.combine or len(images)<2 ) and opt.outfile:
-                re.match(r'(^.*)\.fits',opt.outfile)
+            elif ( opt.combine or len(file_names)<2 ) and opt.outfile:
+                re.match(r'(^.*)\.fits.fz',opt.outfile)
                 outfile=opt.outfile
             else:
                 print "\nMulitple input images with only one output"
-                print "but --combine option not set? [Logic Error]"
+                print "but --output option not set? [Logic Error]"
                 sys.exit(-1)
             subs="."
             if opt.dist:
@@ -277,17 +289,9 @@ if __name__=='__main__':
             ### extension
             if os.access(outfile,os.W_OK) and (ccd==0 or opt.split) and not opt.combine:
                 sys.exit("Output file "+outfile+" already exists")
-            elif not os.access(outfile,os.W_OK) and not opt.split:
-                if opt.verbose:
-                    print "Creating output image "+outfile
-                fitsobj = pyfits.HDUList()
-                fitsobj.append(images[image][0])
-                fitsobj.writeto(outfile)
-                fitsobj.close
                 
             ### do the overscan for each file
-            if opt.verbose:
-                print "Processing "+image
+            print "Processing "+filename
 
             if opt.overscan:
                 if opt.verbose:
@@ -305,14 +309,17 @@ if __name__=='__main__':
                 if opt.verbose:
                     print "Dividing by flat field "+opt.flat
                 hdu.data /= flat[ccd+1].data
+		hdu.data = hdu.data.astype('float16')
                 hdu.header.update("Flat",opt.flat,comment="Flat Image")
             if opt.normal:
                 if opt.verbose:
                     print "Normalizing the frame"
                 (h, b) = np.histogram(hdu.data,bins=1000)
-                idx = h.argmax()
-                mode = (b[idx]+b[idx+1])/2.0
+                idx = h.argsort()
+                mode = float((b[idx[-1]]+b[idx[-2]])/2.0)
                 hdu.data = hdu.data/mode
+		hdu.data = hdu.data.astype('float16')
+
             if opt.flip:
 	        if ccd < 18 :
                     if opt.verbose:
@@ -326,7 +333,10 @@ if __name__=='__main__':
             hdu.header.update('CADCPROC',float(version),
                               comment='Version of cadcproc')
             ### write out this image if not combining
-            if not opt.combine or len(images)==1:
+            for keyword in elixir_header:
+                hdu.header.update(keyword,hdu.header.get(keyword,default=elixir_header[keyword][0]), elixir_header[keyword][1])
+
+            if not opt.combine or len(file_names)==1:
                 if opt.short:
                     if opt.verbose:
                         print "Scaling data to ushort"
@@ -337,8 +347,8 @@ if __name__=='__main__':
                 ### write out the image now (don't overwrite
                 ### files that exist at the start of this process
                 if opt.split:
-		    fitsobj=pyfits.HDUList()
-                    phdu=pyfits.PrimaryHDU()
+		    hdu_list=pyfits.HDUList()
+                    phdu=pyfits.ImageHDU()
                     phdu.header=hdu.header
                     phdu.data=hdu.data
                     del phdu.header['XTENSION']
@@ -349,15 +359,32 @@ if __name__=='__main__':
                     fitsobj.writeto(outfile)
                     #phdu.close()
                 else:
-                    fitsobj=pyfits.open(outfile,'append')
-                    fitsobj.append(hdu)
-                    fitsobj.close()
+		    if not os.access(outfile,os.R_OK):
+                       pdu = pyfits.open(filename,
+                                         mode='readonly',
+                                         memmap=True)[0]
+                       
+                       fitsobj = pyfits.HDUList(pyfits.PrimaryHDU(header=pdu.header))
+                       fitsobj.append(pyfits.ImageHDU(header=hdu.header,
+                                                    data=hdu.data))
+                       fitsobj.writeto(outfile)
+                       fitsobj.close()
+		    else :
+                       fitsobj=pyfits.open(outfile,'append')
+                       fitsobj.append(pyfits.ImageHDU(header=hdu.header,
+                                                    data=hdu.data))
+                       fitsobj.close()
+		hdu = None
+                fitsobj = None
                 nim=0
             else:
                 ### stack em up
                 if opt.verbose:
                     print "Saving the data for later"
-                stack.append(hdu)
+		data = hdu.data.astype('float16')
+	        naxis1 = hdu.data.shape[0]
+	        naxis2 = hdu.data.shape[1]
+                mstack.append(data)
 
         ### free up the memory being used by the bias and flat
         if opt.bias:
@@ -368,43 +395,47 @@ if __name__=='__main__':
         ### last image has been processed so combine the stack
         ### if this is a combine and we have more than on hdu
             
-        if opt.combine and len(images)>1:
-            import bottleneck as bn
+        if opt.combine and len(file_names)>1:
             if opt.verbose:
                 print "Median combining "+str(nim)+" images"
-            mstack = []
-            for im in stack:
-            #    print "computing clipping for %s" % ( im.header['EXPNUM'])
-            #    gain = im.header.get("GAINA",1.5)
-            #    im_med = np.median(im.data)
-            #    std = np.sqrt(im_med)/gain
-            #    im.data[(np.fabs(im.data - im_med)/std) > 2.0] = np.nan
-                mstack = np.append(mstack, im.data)
-            print mstack.shape
-            mstack.shape = [len(stack),stack[0].data.shape[0],stack[0].data.shape[1]]
-            print "Computing 40th Percentile"
-            #hdu.data = bn.nanmean(mstack, axis=0)
-            hdu.data = np.percentile(mstack, 34, axis=0)            
+            mstack = np.vstack(mstack)
+            mstack.shape = [len(file_names),naxis1,naxis2]
+            data = np.percentile(mstack, 40, axis=0)
+            del(mstack)
+            stack = pyfits.ImageHDU(data=data.astype('float32'))
+            #hdu.scale(type='int16',bscale=1E-5,bzero=0)
+            stack.header['EXTNAME'] = (hdu.header['EXTNAME'], 'CCD number in the mosaic')
+            stack.header['QRUNID'] = (hdu.header['QRUNID'], 'CFHT QSO Run flat built for')
+            stack.header['FILTER'] = (hdu.header['FILTER'], 'Filter flat works for')
+            stack.header['DETSIZE'] = hdu.header['DETSIZE']
+            stack.header['DETSEC'] = hdu.header['DETSEC']
+            
+            for im in file_names:
+                hdu.header['comment'] = str(im)+" used to make this flat"
             if opt.short:
                 if opt.verbose:
                     print "Scaling data to ushort"
-                hdu.scale(type='Int16',bscale=1,bzero=32768)
+                hdu.scale(type='int16',bscale=1,bzero=32768)
             if opt.verbose:
                 print "writing median combined stack to file "+outfile
             if opt.split:
                 fitsobj=pyfits.open(outfile,'update')
                 fitsobj[0]=hdu
+		fitsobj.close()
             else:
-                fitsobj=pyfits.open(outfile,'append')
-                fitsobj.append(hdu)
-            fitsobj.close()
-            mstack = None
-            stack = None
-            im = None
-            hdu.data = None
-            for i in stack:
-                i=None
+                if not os.access(outfile,os.W_OK) :
+                    if opt.verbose:
+                        print "Creating output image "+outfile
+                    fitsobj = pyfits.HDUList()
+                    fitsobj.append(pyfits.ImageHDU())
+                    fitsobj.append(stack)
+                    fitsobj.writeto(outfile)
+                    fitsobj.close()
+                else:
+                    fitsobj=pyfits.open(outfile,'append')
+                    fitsobj.append(stack)
+                    fitsobj.close()
+            del(stack)
+            del(hdu)
     
-#    for file_name in file_names:
-#        os.unlink(file_name)
 
