@@ -2,6 +2,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
 
+from context import testutil
 from mopgui.view.acceptsourceview import AcceptSourceDialog
 
 
@@ -14,9 +15,10 @@ def main():
     panel = wx.Panel(rootframe, wx.ID_ANY)
 
     def onclick(event):
+        controller = testutil.Dummy("Accept Source Controller")
         note1_choices = ["n1a", "n1b"]
         note2_choices = ["n2a", "n2b", "n2c"]
-        AcceptSourceDialog(panel, "provisional-name-1",
+        AcceptSourceDialog(panel, controller, "provisional-name-1",
                            "2012 01 01",
                            27.213, 31.2123,
                            note1_choices=note1_choices,
