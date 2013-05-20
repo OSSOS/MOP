@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 
 import argparse
-import urllib, ephem, datetime, atpy, tempfile, math
+import urllib, datetime, tempfile, math, ephem
+from astropy.io.votable import parse
+from astropy.io.votable.tree import Field
 import sys
 import vos, os
 import time
+
+saturn = ephem.Saturn()
 
 parser = argparse.ArgumentParser(description="Query the CADC for OSSOS observations.")
 parser.add_argument('date', nargs='?', action='store',default='2013-01-01')
@@ -70,4 +74,55 @@ for i in range(len(t)):
 fout.write(bar)
 sys.stdout.write(bar)
 fout.close()
+tmpFile.close()
+
+## make a plot of the coverage
+import matplotlib
+matplotlib.use('Agg')
+from matplotlib.pyplot import figure, savefig
+from matplotlib.patches import Rectangle
+from matplotlib import pyplot
+
+width = 0.98
+height  = 0.98
+
+nrows = ( ( opt.stack and night_count ) or 1 ) 
+fig = figure(figsize=(7,2*nrows))
+
+t2 = None
+count = 0
+ra_min = t['RA'].max() + 1.5
+ra_max = t['RA'].min() - 1.5
+dec_min = t['DEC'].min() - 1.5
+dec_max = t['DEC'].max() + 1.5
+
+for row in reversed(t.data):
+    date = ephem.date(row.StartDate + 2400000.5 - ephem.julian_date(ephem.date(0)))
+    sDate = str(date)
+    saturn.compute(date)
+    sra= math.degrees(saturn.ra)
+    sdec = math.degrees(saturn.dec)
+    t1 = time.strptime(sDate,"%Y/%m/%d %H:%M:%S")
+    if t2 is None or ( math.fabs(time.mktime(t2)-time.mktime(t1)) > 3*3600.0 and opt.stack):
+            count += 1
+            ax = fig.add_subplot(nrows, 1, count, aspect='equal' )
+            # ax.text(ra_max - 2.0, (dec_max + dec_min)/2.0, "%s/%s" % ( t1.tm_mon, t1.tm_mday), fontdict={'fontsize': 8} )
+            ax.set_title("date from %s-%s-%s" % ( t1.tm_year, t1.tm_mon, t1.tm_mday), fontdict={'fontsize': 8} )
+            ax.axis((ra_min,ra_max,dec_min,dec_max))
+            ax.grid()
+            ax.set_xlabel("RA (deg)", fontdict={'fontsize': 8} )
+            ax.set_ylabel("DEC (deg)", fontdict={'fontsize': 8} )
+    t2 = t1
+    ra = row.RA - width/2.0
+    dec = row.DEC - height/2.0
+    ax.add_artist(Rectangle(xy=(ra,dec), height=height, width=width, edgecolor='b', lw=0.5, fill='g', alpha=0.33))
+    ax.add_artist(Rectangle(xy=(sra,sdec), height=0.3, width=0.3, edgecolor='k', lw=0.5, fill='k', alpha=0.33))
+
+
+pyplot.title("CFHT coverage as of %s" % ( time.asctime() ))
+tmpFile = file('ObsLog.pdf','w')
+#tmpFile = tempfile.NamedTemporaryFile(suffix='.pdf')
+savefig(tmpFile.name)
+tmpFile.flush()
+#vos.Client(certFile="/Users/jjk/.ssl/cadcproxy.pem").copy(tmpFile.name,opt.outfile+".pdf")
 tmpFile.close()
