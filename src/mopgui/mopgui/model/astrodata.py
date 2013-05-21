@@ -78,6 +78,15 @@ class AstroDataModel(object):
         reading = self._get_current_reading()
         return [(key, value) for key, value in reading.obs.header.iteritems()]
 
+    def get_current_observation_date(self):
+        return self._get_current_reading().obs.header["MJD_OBS_CENTER"]
+
+    def get_current_ra(self):
+        return self._get_current_reading().ra
+
+    def get_current_dec(self):
+        return self._get_current_reading().dec
+
     def get_current_image(self):
         return self._get_current_reading().image
 

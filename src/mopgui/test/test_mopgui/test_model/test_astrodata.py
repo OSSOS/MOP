@@ -207,6 +207,23 @@ class AstroDataModelTest(FileReadingTestCase):
         self.model.previous_obs()
         assert_that(self.model.get_current_exposure_number(), equal_to(1584453))
 
+    def test_get_current_data(self):
+        assert_that(self.model.get_current_observation_date(), equal_to("2012 10 21.40516"))
+        assert_that(self.model.get_current_ra(), equal_to(26.6833367))
+        assert_that(self.model.get_current_dec(), equal_to(29.2203532))
+
+        self.model.next_obs()
+
+        assert_that(self.model.get_current_observation_date(), equal_to("2012 10 21.48212"))
+        assert_that(self.model.get_current_ra(), equal_to(26.6816808))
+        assert_that(self.model.get_current_dec(), equal_to(29.2202748))
+
+        self.model.next_source()
+
+        assert_that(self.model.get_current_observation_date(), equal_to("2012 10 21.48212"))
+        assert_that(self.model.get_current_ra(), equal_to(26.6816808))
+        assert_that(self.model.get_current_dec(), equal_to(29.2202748))
+
 
 if __name__ == '__main__':
     unittest.main()
