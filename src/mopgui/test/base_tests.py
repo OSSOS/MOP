@@ -74,3 +74,5 @@ class WxWidgetTestCase(unittest.TestCase):
         self.model.get_current_image_FWHM.return_value = 3
         self.model.get_current_source_number.return_value = 0
         self.model.get_source_count.return_value = 2
+        self.model.get_current_obs_number.return_value = 0
+        self.model.get_obs_count.return_value = 3

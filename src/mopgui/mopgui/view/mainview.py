@@ -97,3 +97,6 @@ class MainFrame(wx.Frame):
     def set_source_status(self, current_source, total_sources):
         self.GetStatusBar().SetStatusText(
             "Source %d of %d" % (current_source, total_sources))
+
+    def set_observation_status(self, current_obs, total_obs):
+        self.nav_view.set_status(current_obs, total_obs)
