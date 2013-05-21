@@ -3,9 +3,9 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import json
 import os
 
-from mopgui.patterns import Singleton
-
 DEFAULT_CONFIG_FILE = "config.json"
+
+_configs = {}
 
 
 def read(keypath, configfile=None):
@@ -23,7 +23,13 @@ def read(keypath, configfile=None):
     Returns:
       value from configuration file
     """
-    return AppConfig(configfile=configfile).read(keypath)
+    if configfile in _configs:
+        appconfig = _configs[configfile]
+    else:
+        appconfig = AppConfig(configfile=configfile)
+        _configs[configfile] = appconfig
+
+    return appconfig.read(keypath)
 
 
 class AppConfig(object):
@@ -31,8 +37,6 @@ class AppConfig(object):
     Provides programmatic access to contents of the application
     configuration file.
     """
-
-    __metaclass__ = Singleton
 
     def __init__(self, configfile=None):
         if configfile is None:
