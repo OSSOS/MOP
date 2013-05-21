@@ -25,20 +25,18 @@ class NavigationPanelTest(WxWidgetTestCase):
         self.rootframe.Destroy()
 
     def test_press_next_source_button(self):
-        next_button = self.get_child_by_label(
-            self.undertest, self.undertest.next_source_label)
+        next_button = self.get_child_by_label(self.undertest, NavPanel.NEXT_LABEL)
         assert_that(next_button, not_none())
 
         self.fire_button_click_event(next_button)
-        assert_that(self.model.next_source.call_count, equal_to(1))
+        assert_that(self.model.next_obs.call_count, equal_to(1))
 
     def test_press_next_source_button(self):
-        prev_button = self.get_child_by_label(
-            self.undertest, self.undertest.prev_source_label)
+        prev_button = self.get_child_by_label(self.undertest, NavPanel.PREV_LABEL)
         assert_that(prev_button, not_none())
 
         self.fire_button_click_event(prev_button)
-        assert_that(self.model.previous_source.call_count, equal_to(1))
+        assert_that(self.model.previous_obs.call_count, equal_to(1))
 
 
 if __name__ == '__main__':
