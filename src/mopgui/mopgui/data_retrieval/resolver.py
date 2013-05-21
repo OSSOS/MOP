@@ -4,11 +4,12 @@ Resolves observation descriptions to their URIs.
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+from mopgui import config
+
 
 class VOSpaceResolver(object):
     def __init__(self):
-        # TODO extract root location to an application-wide config file
-        self.dataset_root = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages"
+        self.dataset_root = config.read("IMG_RETRIEVAL.DATASET_ROOT")
 
     def resolve_uri(self, observation):
         # XXX can there be other file extensions?  For example, fits.fz?

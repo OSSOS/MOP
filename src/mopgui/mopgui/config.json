@@ -1,4 +1,10 @@
 {
+    "IMG_RETRIEVAL": {
+        "DATASET_ROOT": "vos://cadc.nrc.ca~vospace/OSSOS/dbimages",
+        "DEFAULT_SLICE_ROWS": 256,
+        "DEFAULT_SLICE_COLS": 256
+    },
+
     "MPC": {
         "NOTE1OPTIONS": [
             "A  earlier approximate position inferior",
