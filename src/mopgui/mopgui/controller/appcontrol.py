@@ -65,6 +65,8 @@ class ApplicationController(object):
                     self.model.get_current_obs_number() == obs_num):
             self.get_view().hide_image_loading_dialog()
             self.display_current_image()
+        self.get_view().set_loading_status(self.model.get_loaded_image_count(),
+                                           self.model.get_total_image_count())
 
     def on_change_image(self, event):
         self.display_current_image()

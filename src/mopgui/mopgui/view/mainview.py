@@ -7,6 +7,7 @@ from mopgui.model import astrodata
 from mopgui.view import util, navview, dialogs
 from mopgui.view.validationview import SourceValidationPanel
 from mopgui.view.listview import KeyValueListPanel
+from mopgui.view.statusview import AppStatusBar
 
 
 class MainFrame(wx.Frame):
@@ -36,7 +37,9 @@ class MainFrame(wx.Frame):
     def _init_ui_components(self):
         self.menubar = self._create_menus()
 
-        self.CreateStatusBar()
+        self.statusbar = AppStatusBar(self)
+        self.SetStatusBar(self.statusbar)
+
         self.nav_view = navview.NavPanel(self, self.navcontroller)
 
         self.data_view = self._create_data_notebook()
@@ -95,8 +98,10 @@ class MainFrame(wx.Frame):
             self.img_loading_dialog.Hide()
 
     def set_source_status(self, current_source, total_sources):
-        self.GetStatusBar().SetStatusText(
-            "Source %d of %d" % (current_source, total_sources))
+        self.statusbar.set_source_status(current_source, total_sources)
+
+    def set_loading_status(self, loaded, total):
+        self.statusbar.set_loading_status(loaded, total)
 
     def set_observation_status(self, current_obs, total_obs):
         self.nav_view.set_status(current_obs, total_obs)

@@ -109,6 +109,9 @@ class AstroDataModel(object):
     def get_loaded_image_count(self):
         return self._num_images_loaded
 
+    def get_total_image_count(self):
+        return self.get_source_count() * self.get_obs_count()
+
     def _on_image_loaded(self, source_num, obs_num):
         self._num_images_loaded += 1
         pub.sendMessage(MSG_IMG_LOADED, (source_num, obs_num))
