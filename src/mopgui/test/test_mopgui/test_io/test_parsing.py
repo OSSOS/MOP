@@ -3,33 +3,39 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import unittest
 
 from hamcrest import (assert_that, equal_to, has_length, has_entries,
-                      same_instance)
+                      same_instance, contains)
 
 from test import base_tests
 from mopgui.io.parser import AstromParser
+
+TEST_FILE_1 = "data/1584431p15.measure3.cands.astrom"
+TEST_FILE_2 = "data/1616681p22.measure3.cands.astrom"
 
 
 class ParserTest(base_tests.FileReadingTestCase):
     def setUp(self):
         self.parser = AstromParser()
 
-        # The main test file
-        filename = self.get_abs_path("data/1584431p15.measure3.cands.astrom")
-        self.astrom_data = self.parser.parse(filename)
+    def parse(self, filename):
+        return self.parser.parse(self.get_abs_path(filename))
 
     def test_parse_observation_rawnames(self):
-        assert_that(self.astrom_data.observations, has_length(3))
-        assert_that(self.astrom_data.observations[0].rawname,
+        astrom_data = self.parse(TEST_FILE_1)
+
+        assert_that(astrom_data.observations, has_length(3))
+        assert_that(astrom_data.observations[0].rawname,
                     equal_to("1584431p15"))
-        assert_that(self.astrom_data.observations[1].rawname,
+        assert_that(astrom_data.observations[1].rawname,
                     equal_to("1584449p15"))
-        assert_that(self.astrom_data.observations[2].rawname,
+        assert_that(astrom_data.observations[2].rawname,
                     equal_to("1584453p15"))
 
     def test_parse_observation_basic_details(self):
-        obs0 = self.astrom_data.observations[0]
-        obs1 = self.astrom_data.observations[1]
-        obs2 = self.astrom_data.observations[2]
+        astrom_data = self.parse(TEST_FILE_1)
+
+        obs0 = astrom_data.observations[0]
+        obs1 = astrom_data.observations[1]
+        obs2 = astrom_data.observations[2]
 
         assert_that(obs0.expnum, equal_to("1584431"))
         assert_that(obs0.ftype, equal_to("p"))
@@ -44,9 +50,11 @@ class ParserTest(base_tests.FileReadingTestCase):
         assert_that(obs2.ccdnum, equal_to("15"))
 
     def test_parse_observation_headers(self):
-        obs0 = self.astrom_data.observations[0]
-        obs1 = self.astrom_data.observations[1]
-        obs2 = self.astrom_data.observations[2]
+        astrom_data = self.parse(TEST_FILE_1)
+
+        obs0 = astrom_data.observations[0]
+        obs1 = astrom_data.observations[1]
+        obs2 = astrom_data.observations[2]
 
         assert_that(obs0.header, has_length(18))
         assert_that(obs0.header, has_entries(
@@ -74,8 +82,10 @@ class ParserTest(base_tests.FileReadingTestCase):
         assert_that(obs2.header, has_length(18))
 
     def test_parse_sys_header(self):
-        assert_that(self.astrom_data.sys_header, has_length(4))
-        assert_that(self.astrom_data.sys_header, has_entries(
+        astrom_data = self.parse(TEST_FILE_1)
+
+        assert_that(astrom_data.sys_header, has_length(4))
+        assert_that(astrom_data.sys_header, has_entries(
             {"RMIN": "0.5",
              "RMAX": "10.3",
              "ANGLE": "-19.9",
@@ -83,10 +93,12 @@ class ParserTest(base_tests.FileReadingTestCase):
         ))
 
     def test_parse_sources(self):
-        assert_that(self.astrom_data.sources, has_length(3))
+        astrom_data = self.parse(TEST_FILE_1)
+
+        assert_that(astrom_data.sources, has_length(3))
 
         ## Test source 0
-        source0 = self.astrom_data.sources[0]
+        source0 = astrom_data.sources[0]
         assert_that(source0, has_length(3))
 
         # Source 0 reading 0
@@ -117,10 +129,10 @@ class ParserTest(base_tests.FileReadingTestCase):
         assert_that(data02.dec, equal_to(29.2202469))
 
         ## Test source 1
-        assert_that(self.astrom_data.sources[1], has_length(3))
+        assert_that(astrom_data.sources[1], has_length(3))
 
         ## Test source 2
-        source2 = self.astrom_data.sources[2]
+        source2 = astrom_data.sources[2]
         assert_that(source2, has_length(3))
 
         # Source 2 reading 2
@@ -133,24 +145,35 @@ class ParserTest(base_tests.FileReadingTestCase):
         assert_that(data22.dec, equal_to(29.1102185))
 
     def test_parse_source_readings_have_observations(self):
-        obs0 = self.astrom_data.observations[0]
-        obs1 = self.astrom_data.observations[1]
-        obs2 = self.astrom_data.observations[2]
+        astrom_data = self.parse(TEST_FILE_1)
 
-        source0 = self.astrom_data.sources[0]
+        obs0 = astrom_data.observations[0]
+        obs1 = astrom_data.observations[1]
+        obs2 = astrom_data.observations[2]
+
+        source0 = astrom_data.sources[0]
         assert_that(source0[0].obs, same_instance(obs0))
         assert_that(source0[1].obs, same_instance(obs1))
         assert_that(source0[2].obs, same_instance(obs2))
 
-        source1 = self.astrom_data.sources[1]
+        source1 = astrom_data.sources[1]
         assert_that(source1[0].obs, same_instance(obs0))
         assert_that(source1[1].obs, same_instance(obs1))
         assert_that(source1[2].obs, same_instance(obs2))
 
-        source2 = self.astrom_data.sources[2]
+        source2 = astrom_data.sources[2]
         assert_that(source2[0].obs, same_instance(obs0))
         assert_that(source2[1].obs, same_instance(obs1))
         assert_that(source2[2].obs, same_instance(obs2))
+
+    def test_parse_file2_had_neg_crval2(self):
+        astrom_data = self.parse(TEST_FILE_2)
+
+        assert_that(astrom_data.sources, has_length(1))
+        assert_that(astrom_data.observations, has_length(3))
+
+        obs_names = [obs.rawname for obs in astrom_data.observations]
+        assert_that(obs_names, contains("1616681p22", "1616692p22", "1616703p22"))
 
 
 if __name__ == '__main__':
