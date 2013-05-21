@@ -2,6 +2,8 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 from wx.lib.pubsub import Publisher as pub
 
+from mopgui import config
+
 # Pub/Sub ids
 MSG_ROOT = ("valctrlroot", )
 MSG_INITIATE_ACCEPT = MSG_ROOT + ("initaccept", )
@@ -26,8 +28,8 @@ class SourceValidationController(object):
             self.model.get_current_observation_date(),
             self.model.get_current_ra(),
             self.model.get_current_dec(),
-            ["A", "B"], # TODO read from config file
-            ["C", "D", "E"]  # TODO read from config file
+            config.read("MPC.NOTE1OPTIONS"),
+            config.read("MPC.NOTE2OPTIONS")
         )
         pub.sendMessage(MSG_INITIATE_ACCEPT, data=preset_vals)
 
@@ -47,12 +49,16 @@ class SourceValidationController(object):
                      band,
                      observatory_code):
         """Final acceptance with collected data."""
+        # Just extract the character code from the notes, not the
+        # full description
+        note1_code = note1.split(" ")[0]
+        note2_code = note2.split(" ")[0]
         self.output_writer.write_line(
             minor_plant_number,
             provisional_name,
             discovery_asterisk,
-            note1,
-            note2,
+            note1_code,
+            note2_code,
             date_of_ob,
             ra,
             dec,
