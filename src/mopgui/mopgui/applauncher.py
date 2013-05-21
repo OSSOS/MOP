@@ -5,7 +5,7 @@ Performs necessary application startup tasks.
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 from mopgui.io.parser import AstromParser
-from mopgui.io.writer import AcceptRejectResultsWriter
+from mopgui.io.writer import MPCWriter
 from mopgui.io.naming import ProvisionalNameGenerator
 from mopgui.data_retrieval.resolver import VOSpaceResolver
 from mopgui.data_retrieval.loader import AsynchronousImageLoader
@@ -33,8 +33,7 @@ class AstromFileApplicationLauncher(object):
         self.astrom_data = self.parser.parse(astrom_file)
 
         self.model = AstroDataModel(self.astrom_data, self.image_loader)
-        self.output_writer = AcceptRejectResultsWriter(output_filehandle,
-                                                       self.name_generator)
+        self.output_writer = MPCWriter(output_filehandle)
         self.appcontroller = ApplicationController(self.model,
                                                    self.output_writer,
                                                    self.name_generator,
