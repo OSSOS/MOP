@@ -20,7 +20,7 @@ class AcceptSourceDialog(wx.Dialog):
     CANCEL_BTN = "Cancel"
 
     def __init__(self, parent, controller, provisional_name, date_of_obs, ra, dec,
-                 note1_choices=None, note2_choices=None):
+                 note1_choices=None, note2_choices=None, default_observatory_code=""):
         super(AcceptSourceDialog, self).__init__(parent, title=self.TITLE)
 
         self.controller = controller
@@ -28,6 +28,7 @@ class AcceptSourceDialog(wx.Dialog):
         self.date_of_obs = date_of_obs
         self.ra_str = str(ra)
         self.dec_str = str(dec)
+        self.default_observatory_code = str(default_observatory_code)
 
         self.note1_choices = note1_choices if note1_choices is not None else []
         self.note2_choices = note2_choices if note2_choices is not None else []
@@ -70,6 +71,7 @@ class AcceptSourceDialog(wx.Dialog):
 
         self.observatory_code_label = wx.StaticText(self, label=self.OBSERVATORY_CODE)
         self.observatory_code_text = wx.TextCtrl(self, name=self.OBSERVATORY_CODE)
+        self.observatory_code_text.SetValue(self.default_observatory_code)
 
         self.ok_button = wx.Button(self, label=self.OK_BTN, name=self.OK_BTN)
         self.cancel_button = wx.Button(self, label=self.CANCEL_BTN, name=self.CANCEL_BTN)
