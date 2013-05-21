@@ -23,9 +23,9 @@ class SourceValidationController(object):
         """Initiates acceptance procedure, gathering required data."""
         preset_vals = (
             self._get_provisional_name(),
-            "",  # TODO pull from model
-            1.2,  # TODO pull from model
-            3.4,  # TODO pull from model
+            self.model.get_current_observation_date(),
+            self.model.get_current_ra(),
+            self.model.get_current_dec(),
             ["A", "B"], # TODO read from config file
             ["C", "D", "E"]  # TODO read from config file
         )
