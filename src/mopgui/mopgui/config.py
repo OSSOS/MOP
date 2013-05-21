@@ -3,7 +3,27 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import json
 import os
 
+from mopgui.patterns import Singleton
+
 DEFAULT_CONFIG_FILE = "config.json"
+
+
+def read(keypath, configfile=None):
+    """
+    Reads a value from the configuration file.
+
+    Args:
+      keypath: str
+        Specifies the key for which the value is desired.  It can be a
+        hierarchical path.  Example: "section1.subsection.key1"
+      configfile: str
+        Path to the config file to read.  Defaults to None, in which case
+        the application's default config file is used.
+
+    Returns:
+      value from configuration file
+    """
+    return AppConfig(configfile=configfile).read(keypath)
 
 
 class AppConfig(object):
@@ -11,6 +31,8 @@ class AppConfig(object):
     Provides programmatic access to contents of the application
     configuration file.
     """
+
+    __metaclass__ = Singleton
 
     def __init__(self, configfile=None):
         if configfile is None:
@@ -23,17 +45,6 @@ class AppConfig(object):
         return os.path.join(os.path.dirname(__file__), DEFAULT_CONFIG_FILE)
 
     def read(self, keypath):
-        """
-        Reads a value from the configuration file.
-
-        Args:
-          keypath: str
-            Specifies the key for which the value is desired.  It can be a
-            hierarchical path.  Example: "section1.subsection.key1"
-
-        Returns:
-          value from configuration file
-        """
         curr_data = self._data
         for key in keypath.split("."):
             curr_data = curr_data[key]
