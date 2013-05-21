@@ -11,10 +11,13 @@ from wx.lib.pubsub import Publisher as pub
 MSG_ROOT = ("astrodataroot", )
 
 MSG_NAV = MSG_ROOT + ("nav", )
-MSG_NEXT_SRC = MSG_NAV + ("nextsrc", )
-MSG_PREV_SRC = MSG_NAV + ("prevsrc", )
-MSG_NEXT_OBS = MSG_NAV + ("nextobs", )
-MSG_PREV_OBS = MSG_NAV + ("prevobs", )
+MSG_NAV_SRC = MSG_NAV + ("src", )
+MSG_NAV_OBS = MSG_NAV + ("obs", )
+
+MSG_NEXT_SRC = MSG_NAV_SRC + ("next", )
+MSG_PREV_SRC = MSG_NAV_SRC + ("prev", )
+MSG_NEXT_OBS = MSG_NAV_OBS + ("next", )
+MSG_PREV_OBS = MSG_NAV_OBS + ("prev", )
 
 MSG_IMG_LOADED = MSG_ROOT + ("imgload", )
 
