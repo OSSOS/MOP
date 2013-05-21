@@ -18,6 +18,7 @@ class NavPanel(wx.Panel):
     def _init_ui(self):
         self.sbox = wx.StaticBox(self, label="Navigate observations for this source")
 
+        self.status_text = wx.StaticText(self, label="Loading...")
         self.next_button = wx.Button(self, wx.ID_FORWARD, label=self.NEXT_LABEL)
         self.prev_button = wx.Button(self, wx.ID_BACKWARD, label=self.PREV_LABEL)
 
@@ -26,12 +27,17 @@ class NavPanel(wx.Panel):
     def _do_layout(self):
         sbox_sizer = wx.StaticBoxSizer(self.sbox, wx.VERTICAL)
 
+        vsizer = wx.BoxSizer(wx.VERTICAL)
+        vsizer.Add(self.status_text, flag=wx.ALIGN_CENTER | wx.TOP, border=10)
+
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
         button_border = 10
         hsizer.Add(self.prev_button, proportion=0, flag=wx.ALL, border=button_border)
         hsizer.Add(self.next_button, proportion=0, flag=wx.ALL, border=button_border)
 
-        sbox_sizer.Add(hsizer, flag=wx.ALIGN_CENTER)
+        vsizer.Add(hsizer)
+
+        sbox_sizer.Add(vsizer, flag=wx.ALIGN_CENTER)
 
         # Add a bit of border around the box sizer
         border_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -48,3 +54,7 @@ class NavPanel(wx.Panel):
 
     def _on_prev(self, event):
         self.navcontroller.on_previous_obs()
+
+    def set_status(self, current_obs, total_obs):
+        assert 0 <= current_obs <= total_obs
+        self.status_text.SetLabel("Observation %s of %s" % (current_obs, total_obs))
