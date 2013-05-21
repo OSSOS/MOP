@@ -224,6 +224,9 @@ class AstroDataModelTest(FileReadingTestCase):
         assert_that(self.model.get_current_ra(), equal_to(26.6816808))
         assert_that(self.model.get_current_dec(), equal_to(29.2202748))
 
+    def test_get_total_image_count(self):
+        assert_that(self.model.get_total_image_count(), equal_to(9))
+
 
 if __name__ == '__main__':
     unittest.main()

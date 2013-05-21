@@ -62,6 +62,10 @@ class ApplicationView(object):
     def set_observation_status(self, current_obs, total_obs):
         self.mainframe.set_observation_status(current_obs, total_obs)
 
+    @wxutil.guithread
+    def set_loading_status(self, loaded, total):
+        self.mainframe.set_loading_status(loaded, total)
+
     def show_accept_source_dialog(self, event):
         self.accept_source_dialog = AcceptSourceDialog(
             self.mainframe, self.validationcontroller, *event.data)
