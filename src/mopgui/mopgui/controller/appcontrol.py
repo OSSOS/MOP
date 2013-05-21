@@ -80,3 +80,9 @@ class NavigationController(object):
 
     def on_previous_source(self, event):
         self.model.previous_source()
+
+    def on_next_obs(self):
+        self.model.next_obs()
+
+    def on_previous_obs(self):
+        self.model.previous_obs()
