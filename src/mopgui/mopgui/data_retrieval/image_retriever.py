@@ -9,10 +9,17 @@ import cStringIO
 from astropy.io import fits
 import vos
 
+from mopgui import config
+
 
 class ImageSliceRetriever(object):
-    def __init__(self, slice_rows=256, slice_cols=256, vosclient=None):
-        # TODO extract these to a application-wide config file
+    def __init__(self, slice_rows=None, slice_cols=None, vosclient=None):
+        # If not provided, read defaults from application config file
+        if slice_rows is None:
+            slice_rows = config.read("IMG_RETRIEVAL.DEFAULT_SLICE_ROWS")
+        if slice_cols is None:
+            slice_cols = config.read("IMG_RETRIEVAL.DEFAULT_SLICE_COLS")
+
         self.slice_rows = slice_rows
         self.slice_cols = slice_cols
 
