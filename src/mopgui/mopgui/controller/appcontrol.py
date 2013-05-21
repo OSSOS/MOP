@@ -55,6 +55,9 @@ class ApplicationController(object):
         self.get_view().set_source_status(
             self.model.get_current_source_number() + 1,
             self.model.get_source_count())
+        self.get_view().set_observation_status(
+            self.model.get_current_obs_number() + 1,
+            self.model.get_obs_count())
 
     def on_image_loaded(self, event):
         source_num, obs_num = event.data
