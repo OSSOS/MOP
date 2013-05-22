@@ -65,5 +65,12 @@
             "N   Normal place",
             "n   Mini-normal place derived from averaging observations from video frames"
         ]
+    },
+
+    "UI": {
+        "ALLPROC": {
+            "MSG": "Congratulations, you have processed the last source.\n\nWould you like to exit the program?",
+            "CAPTION": "All sources processed"
+        }
     }
 }

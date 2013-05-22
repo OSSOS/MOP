@@ -36,6 +36,7 @@ class SourceValidationController(object):
         pub.sendMessage(MSG_INITIATE_ACCEPT, data=preset_vals)
 
     def on_reject(self, event):
+        self.model.set_current_source_processed()
         self.model.next_source()
 
     def on_do_accept(self,
@@ -69,6 +70,7 @@ class SourceValidationController(object):
             observatory_code)
 
         pub.sendMessage(MSG_DO_ACCEPT)
+        self.model.set_current_source_processed()
         self.model.next_source()
 
     def on_cancel_accept(self):
