@@ -47,8 +47,10 @@
             "w  weak solution"
         ],
 
+        "NOTE2DEFAULT": "C   CCD",
+
         "NOTE2OPTIONS": [
-            "P   Photographic (default if column is blank)",
+            "P   Photographic",
             "e   Encoder",
             "C   CCD",
             "T   Meridian or transit circle",

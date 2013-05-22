@@ -20,7 +20,7 @@ class AcceptSourceDialog(wx.Dialog):
     CANCEL_BTN = "Cancel"
 
     def __init__(self, parent, controller, provisional_name, date_of_obs, ra, dec,
-                 note1_choices=None, note2_choices=None, default_observatory_code=""):
+                 note1_choices=None, note2_choices=None, note2_default=None, default_observatory_code=""):
         super(AcceptSourceDialog, self).__init__(parent, title=self.TITLE)
 
         self.controller = controller
@@ -32,6 +32,8 @@ class AcceptSourceDialog(wx.Dialog):
 
         self.note1_choices = note1_choices if note1_choices is not None else []
         self.note2_choices = note2_choices if note2_choices is not None else []
+
+        self.note2_default = note2_default if note2_default is not None else ""
 
         self._init_ui()
         self._bind_events()
@@ -51,8 +53,8 @@ class AcceptSourceDialog(wx.Dialog):
                                           name=self.NOTE1)
 
         self.note2_label = wx.StaticText(self, label=self.NOTE2)
-        self.note2_combobox = wx.ComboBox(self, choices=self.note2_choices, style=wx.CB_READONLY,
-                                          name=self.NOTE2)
+        self.note2_combobox = wx.ComboBox(self, value=self.note2_default, choices=self.note2_choices,
+                                          style=wx.CB_READONLY, name=self.NOTE2)
 
         self.date_of_obs_label = wx.StaticText(self, label=self.DATE_OF_OBS)
         self.date_of_obs_text = wx.StaticText(self, label=self.date_of_obs, name=self.DATE_OF_OBS)
