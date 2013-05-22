@@ -21,6 +21,8 @@ MSG_PREV_OBS = MSG_NAV_OBS + ("prev", )
 
 MSG_IMG_LOADED = MSG_ROOT + ("imgload", )
 
+MSG_ALL_SRC_PROC = MSG_ROOT + ("allproc", )
+
 
 class AstroDataModel(object):
     """
@@ -36,6 +38,8 @@ class AstroDataModel(object):
         self._current_obs_number = 0
 
         self._num_images_loaded = 0
+
+        self._sources_processed = [False] * self.get_source_count()
 
     def get_current_source_number(self):
         return self._current_src_number
@@ -115,3 +119,16 @@ class AstroDataModel(object):
     def _on_image_loaded(self, source_num, obs_num):
         self._num_images_loaded += 1
         pub.sendMessage(MSG_IMG_LOADED, (source_num, obs_num))
+
+    def set_current_source_processed(self):
+        self._sources_processed[self.get_current_source_number()] = True
+
+        if all(self._sources_processed):
+            pub.sendMessage(MSG_ALL_SRC_PROC)
+
+    def get_num_sources_processed(self):
+        return self._sources_processed.count(True)
+
+    def is_source_processed(self, sourcenum):
+        assert 0 <= sourcenum <= self.get_source_count()
+        return self._sources_processed[sourcenum]
