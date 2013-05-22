@@ -20,6 +20,14 @@ class WCSTest(unittest.TestCase):
         pv = [range(10), range(10)]
         assert_that(wcs.get_order(pv), equal_to(3))
 
+    def test_xy2sky_linear(self):
+        x = 100
+        y = 200
+        crpix1 = 50
+        crpix2 = 25
+        cd = [[1, 2], [3, 4]]
+        pv = [range(1, 4), range(1, 4)]
+
 
 if __name__ == '__main__':
     unittest.main()
