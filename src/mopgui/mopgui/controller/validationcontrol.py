@@ -30,6 +30,7 @@ class SourceValidationController(object):
             self.model.get_current_dec(),
             config.read("MPC.NOTE1OPTIONS"),
             config.read("MPC.NOTE2OPTIONS"),
+            config.read("MPC.NOTE2DEFAULT"),
             config.read("MPC.DEFAULT_OBSERVATORY_CODE")
         )
         pub.sendMessage(MSG_INITIATE_ACCEPT, data=preset_vals)
