@@ -19,6 +19,8 @@ class ApplicationController(object):
 
     def __init__(self, model, output_writer, name_generator, image_viewer,
                  debug_mode=False, unittest=False):
+        self.unittest = unittest
+
         self.model = model
         self.output_writer = output_writer
         self.image_viewer = image_viewer
@@ -29,6 +31,7 @@ class ApplicationController(object):
 
         pub.subscribe(self.on_change_image, astrodata.MSG_NAV)
         pub.subscribe(self.on_image_loaded, astrodata.MSG_IMG_LOADED)
+        pub.subscribe(self.on_all_sources_processed, astrodata.MSG_ALL_SRC_PROC)
 
         self.view = ApplicationView(self.model, self, self.validationcontroller,
                                     self.navcontroller)
@@ -71,7 +74,17 @@ class ApplicationController(object):
     def on_change_image(self, event):
         self.display_current_image()
 
+    def on_all_sources_processed(self, event):
+        # TODO: yuck, refactor
+        if not self.unittest:
+            should_exit = self.get_view().all_processed_should_exit_prompt()
+            if should_exit:
+                self._do_exit()
+
     def on_exit(self, event):
+        self._do_exit()
+
+    def _do_exit(self):
         self.image_viewer.close()
         self.view.close()
 

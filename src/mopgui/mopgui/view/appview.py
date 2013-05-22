@@ -4,7 +4,7 @@ import wx
 import wx.lib.inspection
 from wx.lib.pubsub import Publisher as pub
 
-from mopgui.view import wxutil
+from mopgui.view import wxutil, finishedview
 from mopgui.view.mainview import MainFrame
 from mopgui.view.acceptsourceview import AcceptSourceDialog
 from mopgui.controller import validationcontrol
@@ -74,6 +74,9 @@ class ApplicationView(object):
     def close_accept_source_dialog(self, event):
         if self.accept_source_dialog is not None:
             self.accept_source_dialog.Destroy()
+
+    def all_processed_should_exit_prompt(self):
+        return finishedview.should_exit_prompt(self.mainframe)
 
     def as_widget(self):
         return self.mainframe
