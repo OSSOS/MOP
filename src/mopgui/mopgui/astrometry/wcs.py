@@ -19,11 +19,13 @@ def get_order(pv):
     # TODO should check all rows same length and throw exception if not
     row_len = len(pv[0])
 
-    if row_len == 3:
+    if row_len == 1:
+        return 0
+    elif row_len == 4:
         return 1
-    elif row_len == 6:
+    elif row_len == 7:
         return 2
-    elif row_len == 10:
+    elif row_len == 11:
         return 3
     else:
         raise ValueError("PV matrix has unknown order: "
