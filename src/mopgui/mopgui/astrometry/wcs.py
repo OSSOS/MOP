@@ -101,7 +101,7 @@ def xy2sky(x, y, crpix1, crpix2, crval1, crval2, cd, pv, nord):
     return ra, dec
 
 
-def sky2xy(ra, dec, crpix1, crpix2, crval1, crval2, dc, pv, nord):
+def sky2xy(ra, dec, crpix1, crpix2, crval1, crval2, dc, pv, nord, maxiter=300):
     """
     Transforms from celestial coordinates to pixel coordinates to taking
     non-linear distortion into account with the World Coordinate System
@@ -231,9 +231,7 @@ def sky2xy(ra, dec, crpix1, crpix2, crval1, crval2, dc, pv, nord):
 
             iter += 1
 
-            if iter > 300:
-                # TODO: optional maxiter keyword arg
-                print "sky2xy: ERROR: Too many iterations"
+            if iter > maxiter:
                 break
 
     xp = dc[0][0] * x + dc[0][1] * y
