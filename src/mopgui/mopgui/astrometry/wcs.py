@@ -5,37 +5,6 @@ import math
 PI180 = 57.2957795130823208767981548141052
 
 
-def get_order(pv):
-    """
-    Determine the order of a PV matrix.
-
-    Args:
-      pv: 2d array
-        PV coefficients.
-
-    Returns:
-      order: int
-        1 for linear, 2
-    """
-    if len(pv) != 2:
-        raise ValueError("PV matrix must have 2 rows, but had: %d" % len(pv))
-
-    # TODO should check all rows same length and throw exception if not
-    row_len = len(pv[0])
-
-    if row_len == 1:
-        return 0
-    elif row_len == 4:
-        return 1
-    elif row_len == 7:
-        return 2
-    elif row_len == 11:
-        return 3
-    else:
-        raise ValueError("PV matrix has unknown order: "
-                         "%d coefficients per row" % row_len)
-
-
 def xy2sky(x, y, crpix1, crpix2, crval1, crval2, cd, pv, nord):
     """
     Transforms from pixel coordinates to celestial coordinates taking
