@@ -4,6 +4,7 @@
 * http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHTSG/
 * 821543p.head
 * Compile with "gfortran -o test_xy2sky wcs.f test_xy2sky.f"
+* or use the Makefile's testxy target
       DOUBLE PRECISION x, y, crpix1, crpix2, crval1, crval2, cd(2,2),
      & pv(2,0:10), ra, dec
       INTEGER nord
