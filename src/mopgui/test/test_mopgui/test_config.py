@@ -9,6 +9,9 @@ from mopgui import config
 
 
 class AppConfigTest(FileReadingTestCase):
+    def setUp(self):
+        reload(config)
+
     def conffile(self):
         return self.get_abs_path("data/testconf.json")
 
