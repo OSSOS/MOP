@@ -1,4 +1,4 @@
-      PROGRAM test_wx2sky
+      PROGRAM test_xy2sky
 * Run subroutines to generate test data for Python code
 * Test data acquired from:
 * http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHTSG/
@@ -73,4 +73,4 @@
       PRINT *, 'ra = ', ra
       PRINT *, 'dec = ', dec
 
-      END PROGRAM test_wx2sky
+      END PROGRAM test_xy2sky

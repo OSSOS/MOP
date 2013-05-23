@@ -40,8 +40,6 @@ def xy2sky(x, y, crpix1, crpix2, crval1, crval2, cd, pv, nord):
     xp = x - crpix1
     yp = y - crpix2
 
-    print "xp=%.16e, yp=%.16e" % (xp, yp)
-
     # IMPORTANT NOTE: 0-based indexing in Python means indexing for values
     # in cd and pv will be shifted from in the paper.
     x_deg = cd[0][0] * xp + cd[0][1] * yp
@@ -54,8 +52,6 @@ def xy2sky(x, y, crpix1, crpix2, crval1, crval2, cd, pv, nord):
     if nord >= 0:
         xi = pv[0][0]
         eta = pv[1][0]
-
-    print ">=0: xi=%.16e, eta=%.16e" % (xi, eta)
 
     if nord >= 1:
         r = math.sqrt(x_deg ** 2 + y_deg ** 2)
