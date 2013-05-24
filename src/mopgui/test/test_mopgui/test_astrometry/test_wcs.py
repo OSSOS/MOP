@@ -8,8 +8,7 @@ from mopgui.astrometry import wcs
 
 from test.matchers import almost_equal
 
-DELTA = 0.000005
-SIGFIGS = 5
+SIGFIGS = 16
 
 
 class WCSTest(unittest.TestCase):
@@ -39,8 +38,8 @@ class WCSTest(unittest.TestCase):
 
         ra, dec = wcs.xy2sky(x, y, crpix1, crpix2, crval1, crval2, cd, pv, nord)
 
-        assert_that(ra, almost_equal(177.62042274595882, SIGFIGS))
-        assert_that(dec, almost_equal(7.5256071336988679, SIGFIGS))
+        assert_that(ra, almost_equal(177.62041959006154, SIGFIGS))
+        assert_that(dec, almost_equal(7.5256066570082263, SIGFIGS))
 
     def test_sky2xy_nord3(self):
         ra = 177.62042274595882
@@ -63,8 +62,8 @@ class WCSTest(unittest.TestCase):
 
         x, y = wcs.sky2xy(ra, dec, crpix1, crpix2, crval1, crval2, dc, pv, nord)
 
-        assert_that(x, almost_equal(14999.992142486342, SIGFIGS))
-        assert_that(y, almost_equal(20000.000428960717, SIGFIGS))
+        assert_that(x, almost_equal(15000.066582252624, SIGFIGS))
+        assert_that(y, almost_equal(19999.992539886229, SIGFIGS))
 
 
 if __name__ == '__main__':
