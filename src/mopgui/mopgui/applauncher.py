@@ -1,6 +1,7 @@
 """
 Performs necessary application startup tasks.
 """
+from mopgui.view.image.ds9view import DS9ImageViewer
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -11,7 +12,6 @@ from mopgui.data_retrieval.resolver import VOSpaceResolver
 from mopgui.data_retrieval.loader import AsynchronousImageLoader
 from mopgui.data_retrieval.image_retriever import ImageSliceRetriever
 from mopgui.model.astrodata import AstroDataModel
-from mopgui.view.imageview import DS9ImageViewer
 from mopgui.controller.appcontrol import ApplicationController
 
 
