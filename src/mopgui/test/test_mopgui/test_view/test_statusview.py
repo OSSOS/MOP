@@ -6,7 +6,7 @@ import wx
 
 from hamcrest import assert_that, equal_to
 
-from mopgui.view.statusview import AppStatusBar
+from mopgui.view.core.statusview import AppStatusBar
 
 
 class AppStatusBarTest(unittest.TestCase):

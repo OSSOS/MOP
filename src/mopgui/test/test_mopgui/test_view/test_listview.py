@@ -8,7 +8,7 @@ from hamcrest import assert_that, equal_to
 
 from test.base_tests import WxWidgetTestCase
 from mopgui.model import astrodata
-from mopgui.view.listview import KeyValueListPanel
+from mopgui.view.core.listview import KeyValueListPanel
 
 
 class ListViewTest(WxWidgetTestCase):

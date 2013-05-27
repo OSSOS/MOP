@@ -2,7 +2,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
 
-from mopgui.view import finishedview
+from mopgui.view.core import finishedview
 
 
 def main():

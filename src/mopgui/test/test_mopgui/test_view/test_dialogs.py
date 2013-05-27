@@ -1,14 +1,13 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
-import time
 
 import wx
-from hamcrest import assert_that, greater_than, equal_to
-from mock import Mock, patch
+from hamcrest import assert_that, equal_to
+from mock import patch
 
 from test.base_tests import WxWidgetTestCase
-from mopgui.view.dialogs import WaitingGaugeDialog
+from mopgui.view.core.dialogs import WaitingGaugeDialog
 
 
 class WaitingGaugeDialogTest(WxWidgetTestCase):

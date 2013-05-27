@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import wx
 
 from context import testutil
-from mopgui.view.mainview import MainFrame
+from mopgui.view.core.mainview import MainFrame
 
 
 def main():

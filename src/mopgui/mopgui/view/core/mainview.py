@@ -4,10 +4,10 @@ import wx
 from wx.lib.pubsub import Publisher as pub
 
 from mopgui.model import astrodata
-from mopgui.view import util, navview, dialogs
-from mopgui.view.validationview import SourceValidationPanel
-from mopgui.view.listview import KeyValueListPanel
-from mopgui.view.statusview import AppStatusBar
+from mopgui.view.core.validationview import SourceValidationPanel
+from mopgui.view.core.listview import KeyValueListPanel
+from mopgui.view.core.statusview import AppStatusBar
+from mopgui.view.core import navview, dialogs, util
 
 
 class MainFrame(wx.Frame):
