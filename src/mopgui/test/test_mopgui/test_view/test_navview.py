@@ -8,7 +8,7 @@ from hamcrest import assert_that, equal_to, not_none
 
 from test.base_tests import WxWidgetTestCase
 from mopgui.model.astrodata import AstroDataModel
-from mopgui.view.navview import NavPanel
+from mopgui.view.core.navview import NavPanel
 from mopgui.controller.appcontrol import NavigationController
 
 

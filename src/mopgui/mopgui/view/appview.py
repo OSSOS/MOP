@@ -4,9 +4,10 @@ import wx
 import wx.lib.inspection
 from wx.lib.pubsub import Publisher as pub
 
-from mopgui.view import wxutil, finishedview
-from mopgui.view.mainview import MainFrame
-from mopgui.view.acceptsourceview import AcceptSourceDialog
+from mopgui.view import wxutil
+from mopgui.view.core import finishedview
+from mopgui.view.core.mainview import MainFrame
+from mopgui.view.core.acceptsourceview import AcceptSourceDialog
 from mopgui.controller import validationcontrol
 
 

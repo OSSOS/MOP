@@ -2,7 +2,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
 
-from mopgui.view.dialogs import WaitingGaugeDialog
+from mopgui.view.core.dialogs import WaitingGaugeDialog
 
 
 def main():

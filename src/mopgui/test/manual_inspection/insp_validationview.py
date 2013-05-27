@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import wx
 
 from context import testutil
-from mopgui.view.validationview import SourceValidationPanel
+from mopgui.view.core.validationview import SourceValidationPanel
 
 
 def main():
