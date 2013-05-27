@@ -71,7 +71,7 @@ close($fhc);
 my ($fhm, $magfile) = tempfile(SUFFIX=>'.mag');
 close($fhm);
 unlink ($magfile);
-open (IRAF,"| (cd ~/iraf; cl) ");
+open (IRAF,"| (cd ~/iraf; cl -old) ");
 print IRAF " pwd\n";
 print IRAF " cd $curdir  \n";
 print STDERR "$curdir\n" if ( $debug ) ;
