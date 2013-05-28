@@ -28,6 +28,7 @@ class SourceValidationController(object):
             self.model.get_current_observation_date(),
             self.model.get_current_ra(),
             self.model.get_current_dec(),
+            self.model.get_current_band(),
             config.read("MPC.NOTE1OPTIONS"),
             config.read("MPC.NOTE2OPTIONS"),
             config.read("MPC.NOTE2DEFAULT"),

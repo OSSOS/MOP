@@ -36,7 +36,7 @@ class AcceptSourceDialogTest(WxWidgetTestCase):
     def create_undertest(self, note1_choices=None, note2_choices=None):
         return AcceptSourceDialog(self.rootframe, self.controller,
                                   TEST_PROVISIONAL_NAME,
-                                  TEST_DATE, TEST_RA, TEST_DEC,
+                                  TEST_DATE, TEST_RA, TEST_DEC, TEST_BAND,
                                   note1_choices=note1_choices,
                                   note2_choices=note2_choices)
 
@@ -102,7 +102,6 @@ class AcceptSourceDialogTest(WxWidgetTestCase):
         get(AcceptSourceDialog.NOTE1).SetStringSelection(TEST_NOTE1)
         get(AcceptSourceDialog.NOTE2).SetStringSelection(TEST_NOTE2)
         get(AcceptSourceDialog.OBS_MAG).SetValue(TEST_MAG)
-        get(AcceptSourceDialog.BAND).SetValue(TEST_BAND)
         get(AcceptSourceDialog.OBSERVATORY_CODE).SetValue(TEST_OBS_CODE)
 
         # Submit data

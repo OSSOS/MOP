@@ -19,7 +19,7 @@ class AcceptSourceDialog(wx.Dialog):
     OK_BTN = "Ok"
     CANCEL_BTN = "Cancel"
 
-    def __init__(self, parent, controller, provisional_name, date_of_obs, ra, dec,
+    def __init__(self, parent, controller, provisional_name, date_of_obs, ra, dec, band,
                  note1_choices=None, note2_choices=None, note2_default=None, default_observatory_code=""):
         super(AcceptSourceDialog, self).__init__(parent, title=self.TITLE)
 
@@ -28,6 +28,7 @@ class AcceptSourceDialog(wx.Dialog):
         self.date_of_obs = date_of_obs
         self.ra_str = str(ra)
         self.dec_str = str(dec)
+        self.band = band
         self.default_observatory_code = str(default_observatory_code)
 
         self.note1_choices = note1_choices if note1_choices is not None else []
@@ -69,7 +70,7 @@ class AcceptSourceDialog(wx.Dialog):
         self.obs_mag_text = wx.TextCtrl(self, name=self.OBS_MAG)
 
         self.band_label = wx.StaticText(self, label=self.BAND)
-        self.band_text = wx.TextCtrl(self, name=self.BAND)
+        self.band_text = wx.StaticText(self, label=self.band, name=self.BAND)
 
         self.observatory_code_label = wx.StaticText(self, label=self.OBSERVATORY_CODE)
         self.observatory_code_text = wx.TextCtrl(self, name=self.OBSERVATORY_CODE)
@@ -130,7 +131,7 @@ class AcceptSourceDialog(wx.Dialog):
         note1 = self.note1_combobox.GetStringSelection()
         note2 = self.note2_combobox.GetStringSelection()
         obs_mag = self.obs_mag_text.GetValue()
-        band = self.band_text.GetValue()
+        band = self.band
         observatory_code = self.observatory_code_text.GetValue()
 
         self.controller.on_do_accept(minor_planet_number,
