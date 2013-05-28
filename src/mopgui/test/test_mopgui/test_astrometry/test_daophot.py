@@ -2,6 +2,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 
+from astropy.io import fits
 from hamcrest import assert_that, close_to, has_length
 
 from test.base_tests import FileReadingTestCase
@@ -27,9 +28,11 @@ class DaophotTest(FileReadingTestCase):
         swidth = outsky - insky
         apcor = 0.0
 
-        hdu = daophot.phot(self.get_abs_path("data/1616681p22.fits"),
-                           x_in, y_in, aperture=ap, sky=insky, swidth=swidth,
-                           apcor=apcor, maxcount=maxcount, exptime=exptime)
+        hdulist_in = fits.open(self.get_abs_path("data/1616681p22.fits"))
+
+        hdu = daophot.phot(hdulist_in, x_in, y_in, aperture=ap, sky=insky,
+                           swidth=swidth, apcor=apcor, maxcount=maxcount,
+                           exptime=exptime)
 
         def get_first(param):
             value_list = hdu["data"][param]
