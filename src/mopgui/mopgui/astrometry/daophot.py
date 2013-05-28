@@ -13,23 +13,14 @@ class TaskError(Exception):
         Exception.__init__(message)
 
 
-def phot(image, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
+def phot(hdulist_in, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
          maxcount=30000.0, exptime=1.0):
     """Compute the centroids and magnitudes of a bunch sources detected on CFHT-MEGAPRIME images.
 
     Returns a MOPfiles data structure."""
 
-    ### make sure we have a chance of success at least.
-    fits_file = image
-    if not os.access(fits_file, os.R_OK):
-        fits_file += '.fits'
-    try:
-        f = pyfits.open(fits_file)
-    except:
-        raise TaskError("Failed to open input image")
-
     ## get the filter for this image
-    filter = f[0].header.get('FILTER', 'DEFAULT')
+    filter = hdulist_in[0].header.get('FILTER', 'DEFAULT')
 
     ### Some CFHT zeropoints that might be useful
     zeropoints = {"I": 25.77,
@@ -44,8 +35,7 @@ def phot(image, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
     if not filter in zeropoints:
         filter = "DEFAULT"
 
-    zmag = f[0].header.get('PHOTZP', zeropoints[filter])
-    f.close()
+    zmag = hdulist_in[0].header.get('PHOTZP', zeropoints[filter])
 
     ### setup IRAF to do the magnitude/centroid measurements
     iraf.set(uparm="./")
@@ -56,8 +46,8 @@ def phot(image, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
     ### check for the magical 'zeropoint.used' file
     zpu_file = "zeropoint.used"
     if os.access(zpu_file, os.R_OK):
-        with open(zpu_file) as f:
-            zmag = float(f.read())
+        with open(zpu_file) as zpu_fh:
+            zmag = float(zpu_fh.read())
 
     iraf.photpars.apertures = int(aperture)
     iraf.photpars.zmag = zmag
@@ -78,6 +68,9 @@ def phot(image, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
     iraf.phot.verify = 'no'
     iraf.phot.interactive = 'no'
 
+    imagefile = tempfile.NamedTemporaryFile(suffix=".fits", delete=False)
+    hdulist_in.writeto(imagefile.name)
+
     # Used for passing the input coordinates
     coofile = tempfile.NamedTemporaryFile(suffix=".coo", delete=False)
     coofile.write("%f %f \n" % (x_in, y_in))
@@ -89,19 +82,22 @@ def phot(image, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
     # Close the temp files before sending to IRAF due to docstring:
     # "Whether the name can be used to open the file a second time, while
     # the named temporary file is still open, varies across platforms"
+    imagefile.close()
     coofile.close()
     magfile.close()
 
-    iraf.phot(image, coofile.name, magfile.name)
+    iraf.phot(imagefile.name, coofile.name, magfile.name)
     pdump_out = iraf.pdump(magfile.name, "XCENTER,YCENTER,MAG,MERR,ID,XSHIFT,YSHIFT,LID",
                            "MERR < 0.4 && MERR != INDEF && MAG != INDEF && PIER==0", header='no', parameters='yes',
                            Stdout=1)
+
+    os.remove(imagefile.name)
     os.remove(coofile.name)
     os.remove(magfile.name)
 
     ### setup the mop output file structure
     hdu = {}
-    hdu['header'] = {'image': image,
+    hdu['header'] = {'image': hdulist_in,
                      'aper': aperture,
                      's_aper': sky,
                      'd_s_aper': swidth,
