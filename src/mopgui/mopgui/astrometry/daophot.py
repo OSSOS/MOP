@@ -13,7 +13,8 @@ class TaskError(Exception):
         Exception.__init__(message)
 
 
-def phot(image, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3):
+def phot(image, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
+         maxcount=30000.0, exptime=1.0):
     """Compute the centroids and magnitudes of a bunch sources detected on CFHT-MEGAPRIME images.
 
     Returns a MOPfiles data structure."""
@@ -26,9 +27,6 @@ def phot(image, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3):
         f = pyfits.open(fits_file)
     except:
         raise TaskError("Failed to open input image")
-
-    ### overide the default malin if header keyword exists
-    maxlin = f[0].header.get('MAXLIN', 64000)
 
     ## get the filter for this image
     filter = f[0].header.get('FILTER', 'DEFAULT')
@@ -64,10 +62,10 @@ def phot(image, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3):
     iraf.photpars.apertures = int(aperture)
     iraf.photpars.zmag = zmag
     iraf.datapars.datamin = 0
-    iraf.datapars.datamax = maxlin
+    iraf.datapars.datamax = maxcount
     #iraf.datapars.exposur="EXPTIME"
     iraf.datapars.exposur = ""
-    iraf.datapars.itime = 1
+    iraf.datapars.itime = exptime
     iraf.fitskypars.annulus = sky
     iraf.fitskypars.dannulus = swidth
     iraf.centerpars.calgori = "centroid"
