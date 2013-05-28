@@ -41,7 +41,26 @@ class MPCWriterTest(unittest.TestCase):
         assert_that(actual, has_length(81))
         assert_that(actual, equal_to(expected))
 
-    # TODO: test numeric RA, DEC, OBS_MAG
+    def test_write_line_valid_inputs_numeric(self):
+        self.undertest.write_line("12345",
+                                  "A234567",
+                                  "*",
+                                  "M",
+                                  "N",
+                                  "2012 10 21.405160",
+                                  26.683336700, # 01 46 44.001
+                                  29.220353200, # +29 13 13.27
+                                  123.5,
+                                  "A",
+                                  523)
+
+        expected = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         123.5A      523\n"
+
+        actual = self.read_outputfile()
+
+        assert_that(actual.endswith("\n"))
+        assert_that(actual, has_length(81))
+        assert_that(actual, equal_to(expected))
 
     def test_write_line_empty_minor_planet_number(self):
         self.undertest.write_line("",
