@@ -54,6 +54,41 @@ class MPCWriter(object):
         # TODO: handle inputs of different lengths (ex: proper padding)
         # TODO: handle inputs of different types (str vs int vs float)
         # TODO: check for invalid values
+
+        # Convert some fields to strings for convenience
+        minor_planet_number = str(minor_planet_number)
+
+        # Check for invalid values
+        if len(minor_planet_number) > 5:
+            raise MPCFormatException("Minor planet number",
+                                     "must be 5 characters or less",
+                                     minor_planet_number)
+
+        if not 0 < len(provisional_name) <= 7:
+            raise MPCFormatException("Provisional name",
+                                     "must be 7 characters or less",
+                                     provisional_name)
+
+        if not provisional_name[0].isalpha():
+            raise MPCFormatException("Provisional name",
+                                     "must start with a letter",
+                                     provisional_name)
+
+        if not discovery_asterisk in ["", "*"]:
+            raise MPCFormatException("Discovery asterisk",
+                                     "must be one of ['', '*']",
+                                     discovery_asterisk)
+
+        if not len(note1) in [0, 1]:
+            raise MPCFormatException("Note1",
+                                     "must have length 0 or 1",
+                                     note1)
+
+        if not len(note2) in [0, 1]:
+            raise MPCFormatException("Note2",
+                                     "must have length 0 or 1",
+                                     note2)
+
         formatted_ra, formatted_dec = format_ra_dec(ra, dec)
 
         self.filehandle.write(
@@ -61,6 +96,12 @@ class MPCWriter(object):
             note1 + note2 + date_of_ob + formatted_ra + formatted_dec +
             " " * 9 + obs_mag + band + " " * 6 + observatory_code + "\n")
         self.filehandle.flush()
+
+
+class MPCFormatException(Exception):
+    def __init__(self, field, requirement, actual):
+        super(MPCFormatException, self).__init__(
+            "Field %s: %s; but was %s" % (field, requirement, actual))
 
 
 def format_ra_dec(ra_deg, dec_deg):
