@@ -94,6 +94,10 @@ class AstroDataModel(object):
     def get_current_dec(self):
         return self._get_current_reading().dec
 
+    def get_current_band(self):
+        hdu0 = self._get_current_reading().image[0]
+        return hdu0.header["FILTER"][0]
+
     def get_current_image(self):
         return self._get_current_reading().image
 

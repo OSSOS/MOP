@@ -3,6 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import unittest
 
 from wx.lib.pubsub import Publisher as pub
+from astropy.io import fits
 
 from hamcrest import assert_that, equal_to, has_length, contains
 from mock import Mock
@@ -15,10 +16,10 @@ from mopgui.io.parser import AstromParser
 class AstroDataModelTest(FileReadingTestCase):
     def setUp(self):
         testfile = self.get_abs_path("data/1584431p15.measure3.cands.astrom")
-        astrom_data = AstromParser().parse(testfile)
+        self.astrom_data = AstromParser().parse(testfile)
         self.image_loader = Mock()
 
-        self.model = astrodata.AstroDataModel(astrom_data, self.image_loader)
+        self.model = astrodata.AstroDataModel(self.astrom_data, self.image_loader)
 
     def test_sources_initialized(self):
         assert_that(self.model.get_current_source_number(), equal_to(0))
@@ -267,6 +268,14 @@ class AstroDataModelTest(FileReadingTestCase):
         self.model.set_current_source_processed()
 
         assert_that(observer.on_all_processed.call_count, equal_to(1))
+
+    def test_get_current_band(self):
+        source = 0
+        obs = 0
+        self.astrom_data.sources[source][obs].image = fits.open(
+            self.get_abs_path("data/1616681p22.fits"))
+
+        assert_that(self.model.get_current_band(), equal_to("r"))
 
 
 if __name__ == '__main__':

@@ -28,6 +28,23 @@ class ImageSliceRetriever(object):
         self.cutout_calculator = CutoutCalculator(slice_rows, slice_cols)
 
     def retrieve_image(self, uri, source_reading):
+        """
+        Retrieves a remote image.
+
+        Args:
+          uri: str
+            URI of the remote image to be retrieved.
+          source_reading: mopgui.io.parser.SourceReading
+            Contains information about the CCD number and point about
+            which the slice should be taken.
+
+        Returns:
+          hdulist: astropy HDUList
+            HDU list for the requested image slice
+          converter:
+            Can be used to find a point in the sliced image based on its
+            coordinate in the original image.
+        """
         # NOTE: ccd number is the extension, BUT Fits file extensions start at 1
         # Therefore ccd n = extension n + 1
         extension = str(int(source_reading.obs.ccdnum) + 1)
