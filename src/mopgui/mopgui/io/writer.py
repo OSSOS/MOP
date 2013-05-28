@@ -34,7 +34,7 @@ class MPCWriter(object):
 
     def __init__(self, filehandle):
         self.filehandle = filehandle
-        self.date_regex = re.compile("\d{4} \d{2} \d{2}\.\d{6}")
+        self.date_regex = re.compile("\d{4} \d{2} \d{2}\.\d{5,6}")
 
     def write_line(self,
                    minor_planet_number,
@@ -54,8 +54,13 @@ class MPCWriter(object):
         Minor planet number can be left empty ("").  All other fields
         should be provided.
         """
-        # Convert some fields to strings for convenience
+        # Convert some fields to strings for convenience and perform
+        # filling/justification
         minor_planet_number = str(minor_planet_number).ljust(5)
+        date_of_obs = date_of_obs.ljust(17)
+        discovery_asterisk = discovery_asterisk.ljust(1)
+        note1 = note1.ljust(1)
+        note2 = note2.ljust(1)
         observatory_code = str(observatory_code).zfill(3)
         obs_mag = str(obs_mag)
 
@@ -75,19 +80,21 @@ class MPCWriter(object):
                                           "must start with a letter",
                                           provisional_name)
 
-        if not discovery_asterisk in ["", "*"]:
+        if not discovery_asterisk in ["", " ", "*"]:
             raise MPCFieldFormatException("Discovery asterisk",
-                                          "must be one of ['', '*']",
+                                          "must be one of ['', ' ', '*']",
                                           discovery_asterisk)
 
-        if not len(note1) in [0, 1]:
+        # has already been justified
+        if not len(note1) == 1:
             raise MPCFieldFormatException("Note1",
-                                          "must have length 0 or 1",
+                                          "must be 0 or 1 characters",
                                           note1)
 
-        if not len(note2) in [0, 1]:
+        # has already been justified
+        if not len(note2) == 1:
             raise MPCFieldFormatException("Note2",
-                                          "must have length 0 or 1",
+                                          "must be 0 or 1 characters",
                                           note2)
 
         if not self.date_regex.match(date_of_obs):
@@ -112,7 +119,7 @@ class MPCWriter(object):
 
         if not len(band) == 1:
             raise MPCFieldFormatException("Band",
-                                          "must be 1 exactly 1 character",
+                                          "must be exactly 1 character",
                                           band)
 
         if not len(observatory_code) <= 3:
@@ -129,7 +136,7 @@ class MPCWriter(object):
         # subtract 1 because of newline character
         line_len = len(line) - 1
         if line_len != 80:
-            raise MPCFormatException("MPC line must be 80 characters but was: " % line_len)
+            raise MPCFormatException("MPC line must be 80 characters but was: %d" % line_len)
 
         self.filehandle.write(line)
         self.filehandle.flush()
