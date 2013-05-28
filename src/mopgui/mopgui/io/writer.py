@@ -1,5 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import re
+
 from astropy import coordinates
 from astropy import units
 
@@ -32,6 +34,7 @@ class MPCWriter(object):
 
     def __init__(self, filehandle):
         self.filehandle = filehandle
+        self.date_regex = re.compile("\d{4} \d{2} \d{2}\.\d{6}")
 
     def write_line(self,
                    minor_planet_number,
@@ -39,7 +42,7 @@ class MPCWriter(object):
                    discovery_asterisk,
                    note1,
                    note2,
-                   date_of_ob,
+                   date_of_obs,
                    ra,
                    dec,
                    obs_mag,
@@ -51,12 +54,10 @@ class MPCWriter(object):
         Minor planet number can be left empty ("").  All other fields
         should be provided.
         """
-        # TODO: handle inputs of different lengths (ex: proper padding)
-        # TODO: handle inputs of different types (str vs int vs float)
-        # TODO: check for invalid values
-
         # Convert some fields to strings for convenience
-        minor_planet_number = str(minor_planet_number)
+        minor_planet_number = str(minor_planet_number).ljust(5)
+        observatory_code = str(observatory_code).zfill(3)
+        obs_mag = str(obs_mag)
 
         # Check for invalid values
         if len(minor_planet_number) > 5:
@@ -89,11 +90,41 @@ class MPCWriter(object):
                                      "must have length 0 or 1",
                                      note2)
 
+        if not self.date_regex.match(date_of_obs):
+            raise MPCFormatException("Date of observation",
+                                     "must match regex: %s" % self.date_regex.pattern,
+                                     date_of_obs)
+
+        if not _is_numeric(ra):
+            raise MPCFormatException("RA",
+                                     "must be numeric (can be in string form)",
+                                     ra)
+
+        if not _is_numeric(dec):
+            raise MPCFormatException("DEC",
+                                     "must be numeric (can be in string form)",
+                                     dec)
+
+        if not _is_numeric(obs_mag) or not len(obs_mag) <= 5:
+            raise MPCFormatException("Observed magnitude",
+                                     "must be numeric (can be in string form) and no more than 5 characters",
+                                     obs_mag)
+
+        if not len(band) == 1:
+            raise MPCFormatException("Band",
+                                     "must be 1 exactly 1 character",
+                                     band)
+
+        if not len(observatory_code) <= 3:
+            raise MPCFormatException("Observatory code",
+                                     "must be 3 characters or less",
+                                     observatory_code)
+
         formatted_ra, formatted_dec = format_ra_dec(ra, dec)
 
         self.filehandle.write(
-            minor_planet_number.ljust(5) + provisional_name + discovery_asterisk +
-            note1 + note2 + date_of_ob + formatted_ra + formatted_dec +
+            minor_planet_number + provisional_name + discovery_asterisk +
+            note1 + note2 + date_of_obs + formatted_ra + formatted_dec +
             " " * 9 + obs_mag + band + " " * 6 + observatory_code + "\n")
         self.filehandle.flush()
 
@@ -139,3 +170,10 @@ def format_ra_dec(ra_deg, dec_deg):
 
     return formatted_ra, formatted_dec
 
+
+def _is_numeric(string):
+    try:
+        float(string)
+        return True
+    except ValueError:
+        return False
