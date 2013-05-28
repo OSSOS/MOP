@@ -1,5 +1,8 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+from astropy import coordinates
+from astropy import units
+
 
 class MPCWriter(object):
     """
@@ -50,6 +53,42 @@ class MPCWriter(object):
             note1 + note2 + date_of_ob + ra + dec + " " * 9 + obs_mag + band +
             " " * 6 + observatory_code + "\n")
         self.filehandle.flush()
+
+
+def format_ra_dec(ra_deg, dec_deg):
+    """
+    Converts RA and DEC values from degrees into the formatting required
+    by the Minor Planet Center:
+
+    Formats:
+      RA: 'HH MM SS.ddd'
+      DEC: 'sDD MM SS.dd' (with 's' being the sign)
+
+    (From: http://www.minorplanetcenter.net/iau/info/OpticalObs.html)
+
+    Args:
+      ra_deg: float
+        Right ascension in degrees
+      dec_deg: float
+        Declination in degrees
+
+    Returns:
+      formatted_ra: str
+      formatted_dec: str
+    """
+    coords = coordinates.ICRSCoordinates(ra=ra_deg, dec=dec_deg,
+                                         unit=(units.degree, units.degree))
+
+    # decimal=False results in using sexagesimal form
+    formatted_ra = coords.ra.format(unit=units.hour, decimal=False,
+                                    sep=" ", precision=3, alwayssign=False,
+                                    pad=True)
+
+    formatted_dec = coords.dec.format(unit=units.degree, decimal=False,
+                                      sep=" ", precision=2, alwayssign=True,
+                                      pad=True)
+
+    return formatted_ra, formatted_dec
 
 
 class AcceptRejectResultsWriter(object):
