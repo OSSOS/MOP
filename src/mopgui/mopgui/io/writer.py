@@ -34,7 +34,7 @@ class MPCWriter(object):
         self.filehandle = filehandle
 
     def write_line(self,
-                   minor_plant_number,
+                   minor_planet_number,
                    provisional_name,
                    discovery_asterisk,
                    note1,
@@ -45,13 +45,19 @@ class MPCWriter(object):
                    obs_mag,
                    band,
                    observatory_code="568"):
+        """
+        Writes a single entry in the Minor Planet Center's format.
+
+        Minor planet number can be left empty ("").  All other fields
+        should be provided.
+        """
         # TODO: handle inputs of different lengths (ex: proper padding)
         # TODO: handle inputs of different types (str vs int vs float)
         # TODO: check for invalid values
         formatted_ra, formatted_dec = format_ra_dec(ra, dec)
 
         self.filehandle.write(
-            minor_plant_number + provisional_name + discovery_asterisk +
+            minor_planet_number.ljust(5) + provisional_name + discovery_asterisk +
             note1 + note2 + date_of_ob + formatted_ra + formatted_dec +
             " " * 9 + obs_mag + band + " " * 6 + observatory_code + "\n")
         self.filehandle.flush()
