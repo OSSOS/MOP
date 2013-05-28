@@ -20,7 +20,7 @@ def main():
         note2_choices = ["n2a", "n2b", "n2c"]
         AcceptSourceDialog(panel, controller, "provisional-name-1",
                            "2012 01 01",
-                           27.213, 31.2123,
+                           27.213, 31.2123, "A",
                            note1_choices=note1_choices,
                            note2_choices=note2_choices).ShowModal()
 
