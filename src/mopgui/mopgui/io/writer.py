@@ -20,13 +20,13 @@ class MPCWriter(object):
         13            A1     Discovery asterisk
         14            A1     Note 1
         15            A1     Note 2
-        16 - 32              Date of observation
-        33 - 44              Observed RA (J2000.0)
-        45 - 56              Observed Decl. (J2000.0)
+        16 - 32      A17     Date of observation
+        33 - 44      A12     Observed RA (J2000.0)
+        45 - 56      A12     Observed Decl. (J2000.0)
         57 - 65       9X     Must be blank
         66 - 71    F5.2,A1   Observed magnitude and band
                                (or nuclear/total flag for comets)
-        72 - 77       X      Must be blank
+        72 - 77       6X     Must be blank
         78 - 80       A3     Observatory code
     """
 
@@ -48,10 +48,12 @@ class MPCWriter(object):
         # TODO: handle inputs of different lengths (ex: proper padding)
         # TODO: handle inputs of different types (str vs int vs float)
         # TODO: check for invalid values
+        formatted_ra, formatted_dec = format_ra_dec(ra, dec)
+
         self.filehandle.write(
             minor_plant_number + provisional_name + discovery_asterisk +
-            note1 + note2 + date_of_ob + ra + dec + " " * 9 + obs_mag + band +
-            " " * 6 + observatory_code + "\n")
+            note1 + note2 + date_of_ob + formatted_ra + formatted_dec +
+            " " * 9 + obs_mag + band + " " * 6 + observatory_code + "\n")
         self.filehandle.flush()
 
 

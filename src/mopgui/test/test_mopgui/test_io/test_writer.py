@@ -27,13 +27,13 @@ class MPCWriterTest(unittest.TestCase):
                                   "M",
                                   "N",
                                   "2012 10 21.405160",
-                                  "26.683336700",
-                                  "29.220353200",
+                                  "26.683336700", # 01 46 44.001
+                                  "29.220353200", # +29 13 13.27
                                   "123.5",
                                   "A",
                                   "523")
 
-        expected = "123451234567*MN2012 10 21.40516026.68333670029.220353200         123.5A      523\n"
+        expected = "123451234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         123.5A      523\n"
 
         actual = self.read_outputfile()
 
@@ -59,6 +59,11 @@ class MPCWriterTest(unittest.TestCase):
          http://docs.astropy.org/en/latest/coordinates/index.html
         """
         _, formatted_dec = writer.format_ra_dec(10.68458, 41.26917)
+        assert_that(formatted_dec, equal_to("+41 16 09.01"))
+
+    def test_format_ra_dec_strings(self):
+        formatted_ra, formatted_dec = writer.format_ra_dec(10.68458, 41.26917)
+        assert_that(formatted_ra, equal_to("00 42 44.299"))
         assert_that(formatted_dec, equal_to("+41 16 09.01"))
 
 
