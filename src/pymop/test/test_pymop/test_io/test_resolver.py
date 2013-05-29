@@ -4,8 +4,8 @@ import unittest
 
 from hamcrest import assert_that, equal_to
 
-from pymop.io.resolver import VOSpaceResolver
 from pymop.io.parser import Observation
+from pymop.io.imgaccess import VOSpaceResolver
 
 
 class ResolverTest(unittest.TestCase):

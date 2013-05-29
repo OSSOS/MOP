@@ -18,7 +18,7 @@ class AstromFileApplicationLauncherTest(FileReadingTestCase):
         self.outputfile.close()
 
     @patch("wx.CallAfter")
-    @patch("pymop.io.loader.AsynchronousImageDownloadManager")
+    @patch("pymop.io.imgaccess.AsynchronousImageDownloadManager")
     @patch("pymop.gui.view.image.ds9view.DS9ImageViewer")
     def test_run_startup(self, mock_image_viewer, mock_image_loader, mock_wxCallAfter):
         launcher = AstromFileApplicationLauncher()

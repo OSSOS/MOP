@@ -4,7 +4,7 @@ import unittest
 
 from mock import Mock
 
-from pymop.io.loader import AsynchronousImageDownloadManager
+from pymop.io.imgaccess import AsynchronousImageDownloadManager
 
 
 class AsynchronousImageDownloadManagerTest(unittest.TestCase):
