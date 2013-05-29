@@ -10,7 +10,7 @@ from mock import Mock
 from test.base_tests import FileReadingTestCase
 from pymop.gui.model import astrodata
 from pymop.io.parser import AstromParser
-from pymop.io.img import InMemoryFitsImage
+from pymop.io.img import FitsImage
 
 
 class AstroDataModelTest(FileReadingTestCase):
@@ -276,7 +276,7 @@ class AstroDataModelTest(FileReadingTestCase):
         obs = 0
         with open(self.get_abs_path("data/1616681p22.fits"), "rb") as fh:
             self.astrom_data.sources[source][obs].set_fits_image(
-                InMemoryFitsImage(fh.read(), Mock()))
+                FitsImage(fh.read(), Mock(), in_memory=True))
 
         assert_that(self.model.get_current_band(), equal_to("r"))
 
