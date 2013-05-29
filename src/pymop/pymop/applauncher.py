@@ -7,9 +7,9 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 from pymop.io.parser import AstromParser
 from pymop.io.writer import MPCWriter
 from pymop.io.naming import ProvisionalNameGenerator
-from pymop.data_retrieval.resolver import VOSpaceResolver
-from pymop.data_retrieval.loader import AsynchronousImageLoader
-from pymop.data_retrieval.image_retriever import ImageSliceRetriever
+from pymop.io.resolver import VOSpaceResolver
+from pymop.io.loader import AsynchronousImageLoader
+from pymop.io.image_retriever import ImageSliceRetriever
 from pymop.model.astrodata import AstroDataModel
 from pymop.controller.appcontrol import ApplicationController
 from pymop.view.image.ds9view import DS9ImageViewer

@@ -4,7 +4,7 @@ import unittest
 
 from mock import Mock
 
-from pymop.data_retrieval.loader import AsynchronousImageLoader
+from pymop.io.loader import AsynchronousImageLoader
 
 
 class AsynchronousImageLoaderTest(unittest.TestCase):
