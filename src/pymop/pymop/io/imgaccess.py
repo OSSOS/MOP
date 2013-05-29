@@ -65,7 +65,7 @@ class SerialImageDownloadThread(threading.Thread):
 
     def run(self):
         for image_uri, reading, source_num, obs_num in self.lookupinfo:
-            image, converter = self.image_retriever.retrieve_image(image_uri, reading)
+            image, converter = self.image_retriever.download_image_slice(image_uri, reading)
             self.download_manager.on_image_downloaded(image, converter, reading, source_num, obs_num)
 
         self.download_manager.on_all_downloaded()
@@ -86,11 +86,7 @@ class VOSpaceResolver(object):
                                     observation.expnum, observation.ftype)
 
 
-class ImageSliceRetriever(object):
-    """
-    Retrieves slices of images which are relevant for display to the user.
-    """
-
+class AbstractImageSliceDownloader(object):
     def __init__(self, slice_rows=None, slice_cols=None, vosclient=None):
         # If not provided, read defaults from application config file
         if slice_rows is None:
@@ -105,7 +101,32 @@ class ImageSliceRetriever(object):
 
         self.cutout_calculator = CutoutCalculator(slice_rows, slice_cols)
 
-    def retrieve_image(self, uri, source_reading):
+    def _do_download(self, source_reading, uri):
+        # NOTE: ccd number is the extension, BUT Fits file extensions start at 1
+        # Therefore ccd n = extension n + 1
+        extension = str(int(source_reading.obs.ccdnum) + 1)
+
+        # XXX have to be careful about boundary locations
+        cutout_str, converter = self.cutout_calculator.build_cutout_str(
+            extension, source_reading.source_point)
+
+        vofile = self.vosclient.open(uri, view="cutout", cutout=cutout_str)
+
+        return vofile, converter
+
+    def download_image_slice(self, uri, source_reading):
+        raise NotImplementedError("Subclasses must implement this method.")
+
+
+class InMemoryImageSliceDownloader(AbstractImageSliceDownloader):
+    """
+    Downloads an image slice without ever writing it to disk.
+    """
+
+    def __init__(self, slice_rows=None, slice_cols=None, vosclient=None):
+        super(InMemoryImageSliceDownloader, self).__init__(slice_rows, slice_cols, vosclient)
+
+    def download_image_slice(self, uri, source_reading):
         """
         Retrieves a remote image.
 
@@ -123,14 +144,7 @@ class ImageSliceRetriever(object):
             Can be used to find a point in the sliced image based on its
             coordinate in the original image.
         """
-        # NOTE: ccd number is the extension, BUT Fits file extensions start at 1
-        # Therefore ccd n = extension n + 1
-        extension = str(int(source_reading.obs.ccdnum) + 1)
-
-        # XXX have to be careful about boundary locations
-        cutout_str, converter = self.cutout_calculator.build_cutout_str(
-            extension, source_reading.source_point)
-        vofile = self.vosclient.open(uri, view="cutout", cutout=cutout_str)
+        vofile, converter = self._do_download(source_reading, uri)
 
         return fits.open(cStringIO.StringIO(vofile.read())), converter
 

@@ -8,13 +8,13 @@ from mock import Mock
 
 from test.base_tests import FileReadingTestCase
 from pymop.io.parser import SourceReading, Observation
-from pymop.io.imgaccess import ImageSliceRetriever, CutoutCalculator
+from pymop.io.imgaccess import InMemoryImageSliceDownloader, CutoutCalculator
 
 
 class ImageRetrieverTest(FileReadingTestCase):
     def setUp(self):
         self.vosclient = Mock(spec=vos.Client)
-        self.retriever = ImageSliceRetriever(slice_rows=100, slice_cols=200,
+        self.retriever = InMemoryImageSliceDownloader(slice_rows=100, slice_cols=200,
                                              vosclient=self.vosclient)
 
         # Mock vosclient to open a local file instead of one from vospace
@@ -33,7 +33,7 @@ class ImageRetrieverTest(FileReadingTestCase):
         # Putting in 0's for don't cares
         source_reading = SourceReading(reading_x, reading_y, 0, 0, 0, 0, obs)
 
-        hdulist, _ = self.retriever.retrieve_image(image_uri, source_reading)
+        hdulist, _ = self.retriever.download_image_slice(image_uri, source_reading)
 
         # XXX is ccdnum actually the extension we want or is it something
         # standard like 2
