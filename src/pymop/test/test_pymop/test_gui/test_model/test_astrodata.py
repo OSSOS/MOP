@@ -9,7 +9,7 @@ from hamcrest import assert_that, equal_to, has_length, contains
 from mock import Mock
 
 from test.base_tests import FileReadingTestCase
-from pymop.model import astrodata
+from pymop.gui.model import astrodata
 from pymop.io.parser import AstromParser
 
 

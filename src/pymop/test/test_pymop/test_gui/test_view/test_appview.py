@@ -7,7 +7,7 @@ from mock import Mock
 from hamcrest import assert_that, equal_to
 
 from test.base_tests import WxWidgetTestCase
-from pymop.controller.appcontrol import ApplicationController
+from pymop.gui.controller.appcontrol import ApplicationController
 
 
 class ApplicationViewTest(WxWidgetTestCase):

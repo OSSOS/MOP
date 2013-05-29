@@ -1,13 +1,14 @@
+from pymop.gui.view.core import util, navview, dialogs
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
 from wx.lib.pubsub import Publisher as pub
 
-from pymop.model import astrodata
-from pymop.view.core.validationview import SourceValidationPanel
-from pymop.view.core.listview import KeyValueListPanel
-from pymop.view.core.statusview import AppStatusBar
-from pymop.view.core import navview, dialogs, util
+from pymop.gui.model import astrodata
+from pymop.gui.view.core.validationview import SourceValidationPanel
+from pymop.gui.view.core.listview import KeyValueListPanel
+from pymop.gui.view.core.statusview import AppStatusBar
 
 
 class MainFrame(wx.Frame):

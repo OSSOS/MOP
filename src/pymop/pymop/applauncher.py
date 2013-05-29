@@ -10,9 +10,9 @@ from pymop.io.naming import ProvisionalNameGenerator
 from pymop.io.resolver import VOSpaceResolver
 from pymop.io.loader import AsynchronousImageLoader
 from pymop.io.image_retriever import ImageSliceRetriever
-from pymop.model.astrodata import AstroDataModel
-from pymop.controller.appcontrol import ApplicationController
-from pymop.view.image.ds9view import DS9ImageViewer
+from pymop.gui.model.astrodata import AstroDataModel
+from pymop.gui.controller.appcontrol import ApplicationController
+from pymop.gui.view.image.ds9view import DS9ImageViewer
 
 
 class AstromFileApplicationLauncher(object):

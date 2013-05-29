@@ -1,8 +1,8 @@
+from pymop.gui.view.core import finishedview
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
-
-from pymop.view.core import finishedview
 
 
 def main():

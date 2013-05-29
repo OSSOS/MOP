@@ -7,8 +7,8 @@ from wx.lib.pubsub import Publisher as pub
 from hamcrest import assert_that, equal_to
 
 from test.base_tests import WxWidgetTestCase
-from pymop.model import astrodata
-from pymop.view.core.listview import KeyValueListPanel
+from pymop.gui.model import astrodata
+from pymop.gui.view.core.listview import KeyValueListPanel
 
 
 class ListViewTest(WxWidgetTestCase):

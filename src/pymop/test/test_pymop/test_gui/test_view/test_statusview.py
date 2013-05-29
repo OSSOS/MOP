@@ -6,7 +6,7 @@ import wx
 
 from hamcrest import assert_that, equal_to
 
-from pymop.view.core.statusview import AppStatusBar
+from pymop.gui.view.core.statusview import AppStatusBar
 
 
 class AppStatusBarTest(unittest.TestCase):
