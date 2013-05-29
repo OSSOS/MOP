@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import wx
 
 from context import testutil
-from pymop.view.core.acceptsourceview import AcceptSourceDialog
+from pymop.gui.view.core.acceptsourceview import AcceptSourceDialog
 
 
 def main():

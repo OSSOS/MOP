@@ -1,13 +1,11 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import collections
-
-from mock import Mock
-
 import numpy as np
 import wx
 
-from pymop.view.image.mplview import MPLImageViewer
+from mock import Mock
+
+from pymop.gui.view.image.mplview import MPLImageViewer
 
 
 def main():

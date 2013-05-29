@@ -8,7 +8,7 @@ from mock import Mock, call
 from hamcrest import assert_that, equal_to, has_length, contains
 
 from test.base_tests import WxWidgetTestCase
-from pymop.view.core.acceptsourceview import AcceptSourceDialog
+from pymop.gui.view.core.acceptsourceview import AcceptSourceDialog
 
 # Constants used for test data
 TEST_MINOR_PLANET_NUMBER = "mpn01"

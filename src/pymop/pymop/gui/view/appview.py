@@ -1,14 +1,15 @@
+from pymop.gui.controller import validationcontrol
+from pymop.gui.view import wxutil
+from pymop.gui.view.core import finishedview
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
 import wx.lib.inspection
 from wx.lib.pubsub import Publisher as pub
 
-from pymop.view import wxutil
-from pymop.view.core import finishedview
-from pymop.view.core.mainview import MainFrame
-from pymop.view.core.acceptsourceview import AcceptSourceDialog
-from pymop.controller import validationcontrol
+from pymop.gui.view.core.mainview import MainFrame
+from pymop.gui.view.core.acceptsourceview import AcceptSourceDialog
 
 
 class ApplicationView(object):

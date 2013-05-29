@@ -1,3 +1,5 @@
+from pymop.gui.view import wxutil
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
@@ -6,8 +8,6 @@ import wx
 
 from mock import patch
 from hamcrest import assert_that, equal_to
-
-from pymop.view import wxutil
 
 
 class WxUtilTest(unittest.TestCase):

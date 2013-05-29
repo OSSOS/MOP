@@ -6,9 +6,9 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 from wx.lib.pubsub import Publisher as pub
 
-from pymop.model import astrodata
-from pymop.view.appview import ApplicationView
-from pymop.controller.validationcontrol import SourceValidationController
+from pymop.gui.model import astrodata
+from pymop.gui.view.appview import ApplicationView
+from pymop.gui.controller.validationcontrol import SourceValidationController
 
 
 class ApplicationController(object):

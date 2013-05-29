@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import wx
 
 from context import testutil
-from pymop.view.core.navview import NavPanel
+from pymop.gui.view.core.navview import NavPanel
 
 
 def main():
