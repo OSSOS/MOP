@@ -17,9 +17,9 @@ class AstroDataModelTest(FileReadingTestCase):
     def setUp(self):
         testfile = self.get_abs_path("data/1584431p15.measure3.cands.astrom")
         self.astrom_data = AstromParser().parse(testfile)
-        self.image_loader = Mock()
+        self.download_manager = Mock()
 
-        self.model = astrodata.AstroDataModel(self.astrom_data, self.image_loader)
+        self.model = astrodata.AstroDataModel(self.astrom_data, self.download_manager)
 
     def test_sources_initialized(self):
         assert_that(self.model.get_current_source_number(), equal_to(0))
@@ -171,7 +171,7 @@ class AstroDataModelTest(FileReadingTestCase):
 
         self.model.start_loading_images()
 
-        assert_that(self.image_loader.start_loading.call_count, equal_to(1))
+        assert_that(self.download_manager.start_download.call_count, equal_to(1))
 
         assert_that(self.model.get_loaded_image_count(), equal_to(0))
 
