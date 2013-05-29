@@ -1,13 +1,11 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import cStringIO
-import tempfile
 import threading
 
-from astropy.io import fits
 import vos
 
 from pymop import config
+from pymop.io.img import InMemoryFitsImage, InFileFitsImage
 
 
 class AsynchronousImageDownloadManager(object):
@@ -39,9 +37,8 @@ class AsynchronousImageDownloadManager(object):
         SerialImageDownloadThread(self, self.image_retriever,
                                   lookupinfo).start()
 
-    def on_image_downloaded(self, image, converter, reading, source_num, obs_num):
-        reading.image = image
-        reading.converter = converter
+    def on_image_downloaded(self, fitsimage, reading, source_num, obs_num):
+        reading.fitsimage = fitsimage
 
         if self.image_loaded_callback is not None:
             self.image_loaded_callback(source_num, obs_num)
@@ -66,8 +63,8 @@ class SerialImageDownloadThread(threading.Thread):
 
     def run(self):
         for image_uri, reading, source_num, obs_num in self.lookupinfo:
-            image, converter = self.image_retriever.download_image_slice(image_uri, reading)
-            self.download_manager.on_image_downloaded(image, converter, reading, source_num, obs_num)
+            fitsimage = self.image_retriever.download_image_slice(image_uri, reading)
+            self.download_manager.on_image_downloaded(fitsimage, reading, source_num, obs_num)
 
         self.download_manager.on_all_downloaded()
 
@@ -147,7 +144,7 @@ class InMemoryImageSliceDownloader(AbstractImageSliceDownloader):
         """
         vofile, converter = self._do_download(source_reading, uri)
 
-        return fits.open(cStringIO.StringIO(vofile.read())), converter
+        return InMemoryFitsImage(vofile.read(), converter)
 
 
 class TempfileImageSliceDownloader(AbstractImageSliceDownloader):
@@ -180,12 +177,7 @@ class TempfileImageSliceDownloader(AbstractImageSliceDownloader):
         """
         vofile, converter = self._do_download(source_reading, uri)
 
-        image_file = tempfile.NamedTemporaryFile(mode="r+b", suffix=".fits")
-        image_file.write(vofile.read())
-        image_file.flush()
-        image_file.seek(0)
-
-        return image_file, converter
+        return InFileFitsImage(vofile.read(), converter)
 
 
 class CutoutCalculator(object):

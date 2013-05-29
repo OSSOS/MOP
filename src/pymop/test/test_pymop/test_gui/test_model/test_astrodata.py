@@ -3,7 +3,6 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import unittest
 
 from wx.lib.pubsub import Publisher as pub
-from astropy.io import fits
 
 from hamcrest import assert_that, equal_to, has_length, contains
 from mock import Mock
@@ -11,10 +10,13 @@ from mock import Mock
 from test.base_tests import FileReadingTestCase
 from pymop.gui.model import astrodata
 from pymop.io.parser import AstromParser
+from pymop.io.img import InMemoryFitsImage
 
 
 class AstroDataModelTest(FileReadingTestCase):
     def setUp(self):
+        pub.unsubAll()
+
         testfile = self.get_abs_path("data/1584431p15.measure3.cands.astrom")
         self.astrom_data = AstromParser().parse(testfile)
         self.download_manager = Mock()
@@ -272,8 +274,8 @@ class AstroDataModelTest(FileReadingTestCase):
     def test_get_current_band(self):
         source = 0
         obs = 0
-        self.astrom_data.sources[source][obs].image = fits.open(
-            self.get_abs_path("data/1616681p22.fits"))
+        with open(self.get_abs_path("data/1616681p22.fits"), "rb") as fh:
+            self.astrom_data.sources[source][obs].fitsimage = InMemoryFitsImage(fh.read(), Mock())
 
         assert_that(self.model.get_current_band(), equal_to("r"))
 
