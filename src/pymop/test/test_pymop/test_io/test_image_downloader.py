@@ -4,21 +4,19 @@ import unittest
 import os
 
 import vos
-from astropy.io import fits
 from hamcrest import assert_that, equal_to
 from mock import Mock
 
 from test.base_tests import FileReadingTestCase
 from pymop.io.parser import SourceReading, Observation
-from pymop.io.imgaccess import (TempfileImageSliceDownloader,
-                                InMemoryImageSliceDownloader, CutoutCalculator)
+from pymop.io.imgaccess import (ImageSliceDownloader, CutoutCalculator)
 
 
-class BaseImageDownloaderSliceTest(FileReadingTestCase):
-    def initialize(self, ImageDownloaderClass):
+class ImageDownloaderSliceTest(FileReadingTestCase):
+    def setUp(self):
         self.vosclient = Mock(spec=vos.Client)
-        self.undertest = ImageDownloaderClass(slice_rows=100, slice_cols=200,
-                                              vosclient=self.vosclient)
+        self.undertest = ImageSliceDownloader(slice_rows=100, slice_cols=200,
+                                                      vosclient=self.vosclient)
 
         # Mock vosclient to open a local file instead of one from vospace
         self.localfile = open(self.get_abs_path("data/testimg.fits"), "rb")
@@ -40,15 +38,11 @@ class BaseImageDownloaderSliceTest(FileReadingTestCase):
     def tearDown(self):
         self.localfile.close()
 
-
-class InMemoryImageSliceDownloaderTest(BaseImageDownloaderSliceTest):
-    def setUp(self):
-        self.initialize(InMemoryImageSliceDownloader)
-
-    def test_retrieve_sliced_image(self):
+    def test_retrieve_sliced_image_in_memory(self):
         image_uri, source_reading = self.create_default_data()
 
-        fitsfile = self.undertest.download_image_slice(image_uri, source_reading)
+        fitsfile = self.undertest.download_image_slice(image_uri, source_reading,
+                                                       in_memory=True)
 
         # XXX is ccdnum actually the extension we want or is it something
         # standard like 2
@@ -60,38 +54,20 @@ class InMemoryImageSliceDownloaderTest(BaseImageDownloaderSliceTest):
         assert_that(fitsfile.as_hdulist()[0].header["FILENAME"],
                     equal_to("u5780205r_cvt.c0h"))
 
-    def test_retrieve_sliced_image(self):
+    def test_download_image_slice_in_file(self):
         image_uri, source_reading = self.create_default_data()
 
-        fitsfile = self.undertest.download_image_slice(image_uri, source_reading)
-
-        # XXX is ccdnum actually the extension we want or is it something
-        # standard like 2
-        self.vosclient.open.assert_called_with(image_uri, view="cutout",
-                                               cutout="[16][400:600,550:650]")
-
-        # This is just a test file, make sure we can read an expected value
-        # it.  It won't have the right shape necessarily though.
-        assert_that(fitsfile.as_hdulist()[0].header["FILENAME"],
-                    equal_to("u5780205r_cvt.c0h"))
-
-
-class TempfileImageSliceDownloaderTest(BaseImageDownloaderSliceTest):
-    def setUp(self):
-        self.initialize(TempfileImageSliceDownloader)
-
-    def test_download_image_slice(self):
-        image_uri, source_reading = self.create_default_data()
-
-        fitsfile = self.undertest.download_image_slice(image_uri, source_reading)
+        fitsfile = self.undertest.download_image_slice(image_uri, source_reading,
+                                                       in_memory=False)
 
         assert_that(fitsfile.as_hdulist()[0].header["FILENAME"],
                     equal_to("u5780205r_cvt.c0h"))
 
-    def test_download_image_removed_when_file_closed(self):
+    def test_download_image_in_file_removed_when_file_closed(self):
         image_uri, source_reading = self.create_default_data()
 
-        fitsfile = self.undertest.download_image_slice(image_uri, source_reading)
+        fitsfile = self.undertest.download_image_slice(image_uri, source_reading,
+                                                       in_memory=False)
         assert_that(os.path.exists(fitsfile._tempfile.name))
 
         fitsfile.close()

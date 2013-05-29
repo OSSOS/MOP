@@ -84,7 +84,7 @@ class VOSpaceResolver(object):
                                     observation.expnum, observation.ftype)
 
 
-class AbstractImageSliceDownloader(object):
+class ImageSliceDownloader(object):
     def __init__(self, slice_rows=None, slice_cols=None, vosclient=None):
         # If not provided, read defaults from application config file
         if slice_rows is None:
@@ -112,19 +112,7 @@ class AbstractImageSliceDownloader(object):
 
         return vofile, converter
 
-    def download_image_slice(self, uri, source_reading):
-        raise NotImplementedError("Subclasses must implement this method.")
-
-
-class InMemoryImageSliceDownloader(AbstractImageSliceDownloader):
-    """
-    Downloads an image slice without ever writing it to disk.
-    """
-
-    def __init__(self, slice_rows=None, slice_cols=None, vosclient=None):
-        super(InMemoryImageSliceDownloader, self).__init__(slice_rows, slice_cols, vosclient)
-
-    def download_image_slice(self, uri, source_reading):
+    def download_image_slice(self, uri, source_reading, in_memory=True):
         """
         Retrieves a remote image.
 
@@ -134,50 +122,20 @@ class InMemoryImageSliceDownloader(AbstractImageSliceDownloader):
           source_reading: pymop.io.parser.SourceReading
             Contains information about the CCD number and point about
             which the slice should be taken.
+          in_memory: bool
+            If True, the image is stored in memory without being written to
+            disk.  If False, the image will be written to a temporary file.
 
         Returns:
-          hdulist: astropy HDUList
-            HDU list for the requested image slice
-          converter:
-            Can be used to find a point in the sliced image based on its
-            coordinate in the original image.
+          fitsimage: pymop.io.img.FitsImage
+            The downloaded image, either in-memory or on disk as specified.
         """
         vofile, converter = self._do_download(source_reading, uri)
 
-        return InMemoryFitsImage(vofile.read(), converter)
-
-
-class TempfileImageSliceDownloader(AbstractImageSliceDownloader):
-    """
-    Downloads an image slice and writes it to a temporary file on disk.
-    """
-
-    def __init__(self, slice_rows=None, slice_cols=None, vosclient=None):
-        super(TempfileImageSliceDownloader, self).__init__(slice_rows, slice_cols, vosclient)
-
-    def download_image_slice(self, uri, source_reading):
-        """
-        Retrieves a remote image.
-
-        Args:
-          uri: str
-            URI of the remote image to be retrieved.
-          source_reading: pymop.io.parser.SourceReading
-            Contains information about the CCD number and point about
-            which the slice should be taken.
-
-        Returns:
-          imagefile: tempfile.NamedTemporaryFile
-            A temporary file storing the FITS data on disk.  Open for
-            reading and writing.  Note that this file will be automatically
-            deleted when closed.
-          converter:
-            Can be used to find a point in the sliced image based on its
-            coordinate in the original image.
-        """
-        vofile, converter = self._do_download(source_reading, uri)
-
-        return InFileFitsImage(vofile.read(), converter)
+        if in_memory:
+            return InMemoryFitsImage(vofile.read(), converter)
+        else:
+            return InFileFitsImage(vofile.read(), converter)
 
 
 class CutoutCalculator(object):
