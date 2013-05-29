@@ -38,7 +38,7 @@ class AsynchronousImageDownloadManager(object):
                                   lookupinfo).start()
 
     def on_image_downloaded(self, fitsimage, reading, source_num, obs_num):
-        reading.fitsimage = fitsimage
+        reading.set_fits_image(fitsimage)
 
         if self.image_loaded_callback is not None:
             self.image_loaded_callback(source_num, obs_num)

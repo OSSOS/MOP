@@ -99,7 +99,7 @@ class AstroDataModel(object):
         return hdu0.header["FILTER"][0]
 
     def get_current_hdulist(self):
-        fitsimage = self._get_current_reading().fitsimage
+        fitsimage = self._get_current_reading().get_fits_image()
 
         if fitsimage is None:
             return None
