@@ -1,44 +1,50 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
+import os
 
 import vos
+from astropy.io import fits
 from hamcrest import assert_that, equal_to
 from mock import Mock
 
 from test.base_tests import FileReadingTestCase
 from pymop.io.parser import SourceReading, Observation
-from pymop.io.imgaccess import InMemoryImageSliceDownloader, CutoutCalculator
+from pymop.io.imgaccess import (TempfileImageSliceDownloader,
+                                InMemoryImageSliceDownloader, CutoutCalculator)
 
 
-class BaseImageDownloaderTest(FileReadingTestCase):
+class BaseImageDownloaderSliceTest(FileReadingTestCase):
     def initialize(self, ImageDownloaderClass):
         self.vosclient = Mock(spec=vos.Client)
-        self.retriever = ImageDownloaderClass(slice_rows=100, slice_cols=200,
+        self.undertest = ImageDownloaderClass(slice_rows=100, slice_cols=200,
                                               vosclient=self.vosclient)
 
         # Mock vosclient to open a local file instead of one from vospace
         self.localfile = open(self.get_abs_path("data/testimg.fits"), "rb")
         self.vosclient.open.return_value = self.localfile
 
+    def create_default_data(self):
+        image_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/1584431p15.fits"
+        obs = Observation("1584431", "p", "15")
+        reading_x = 500
+        reading_y = 600
+        # Putting in 0's for don't cares
+        source_reading = SourceReading(reading_x, reading_y, 0, 0, 0, 0, obs)
+        return image_uri, source_reading
+
     def tearDown(self):
         self.localfile.close()
 
 
-class InMemoryImageDownloaderTest(BaseImageDownloaderTest):
+class InMemoryImageSliceDownloaderTest(BaseImageDownloaderSliceTest):
     def setUp(self):
         self.initialize(InMemoryImageSliceDownloader)
 
     def test_retrieve_sliced_image(self):
-        image_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/1584431p15.fits"
+        image_uri, source_reading = self.create_default_data()
 
-        obs = Observation("1584431", "p", "15")
-        reading_x = 500
-        reading_y = 600
-        # Putting in 0's for don't cares
-        source_reading = SourceReading(reading_x, reading_y, 0, 0, 0, 0, obs)
-
-        hdulist, _ = self.retriever.download_image_slice(image_uri, source_reading)
+        hdulist, _ = self.undertest.download_image_slice(image_uri, source_reading)
 
         # XXX is ccdnum actually the extension we want or is it something
         # standard like 2
@@ -51,15 +57,9 @@ class InMemoryImageDownloaderTest(BaseImageDownloaderTest):
                     equal_to("u5780205r_cvt.c0h"))
 
     def test_retrieve_sliced_image(self):
-        image_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/1584431p15.fits"
+        image_uri, source_reading = self.create_default_data()
 
-        obs = Observation("1584431", "p", "15")
-        reading_x = 500
-        reading_y = 600
-        # Putting in 0's for don't cares
-        source_reading = SourceReading(reading_x, reading_y, 0, 0, 0, 0, obs)
-
-        hdulist, _ = self.retriever.download_image_slice(image_uri, source_reading)
+        hdulist, _ = self.undertest.download_image_slice(image_uri, source_reading)
 
         # XXX is ccdnum actually the extension we want or is it something
         # standard like 2
@@ -70,6 +70,32 @@ class InMemoryImageDownloaderTest(BaseImageDownloaderTest):
         # it.  It won't have the right shape necessarily though.
         assert_that(hdulist[0].header["FILENAME"],
                     equal_to("u5780205r_cvt.c0h"))
+
+
+class TempfileImageSliceDownloaderTest(BaseImageDownloaderSliceTest):
+    def setUp(self):
+        self.initialize(TempfileImageSliceDownloader)
+
+    def test_download_image_slice(self):
+        image_uri, source_reading = self.create_default_data()
+
+        tf, _ = self.undertest.download_image_slice(image_uri, source_reading)
+        assert_that(not tf.close_called)
+        assert_that(tf.name.endswith(".fits"))
+
+        # Load into a HDUList and check some of the data
+        hdulist = fits.open(tf)
+        assert_that(hdulist[0].header["FILENAME"],
+                    equal_to("u5780205r_cvt.c0h"))
+
+    def test_download_image_removed_when_file_closed(self):
+        image_uri, source_reading = self.create_default_data()
+
+        tf, _ = self.undertest.download_image_slice(image_uri, source_reading)
+        assert_that(os.path.exists(tf.name))
+
+        tf.close()
+        assert_that(not os.path.exists(tf.name))
 
 
 class CutoutCalculatorTest(unittest.TestCase):
