@@ -7,9 +7,8 @@ from hamcrest import assert_that, equal_to
 from mock import Mock
 
 from test.base_tests import FileReadingTestCase
-from pymop.io.image_retriever import ImageSliceRetriever
-from pymop.io.image_retriever import CutoutCalculator
 from pymop.io.parser import SourceReading, Observation
+from pymop.io.imgaccess import ImageSliceRetriever, CutoutCalculator
 
 
 class ImageRetrieverTest(FileReadingTestCase):

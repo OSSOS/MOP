@@ -1,10 +1,7 @@
-"""
-Retrieves slices of images relevant for display of sources to the user.
-"""
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import cStringIO
+import threading
 
 from astropy.io import fits
 import vos
@@ -12,7 +9,88 @@ import vos
 from pymop import config
 
 
+class AsynchronousImageDownloadManager(object):
+    """
+    Coordinates the downloading of images asynchronously from the rest of
+    the application.
+    """
+
+    def __init__(self, resolver, image_retriever):
+        self.resolver = resolver
+        self.image_retriever = image_retriever
+
+    def start_download(self, astrom_data,
+                       image_loaded_callback=None,
+                       all_loaded_callback=None):
+
+        self.image_loaded_callback = image_loaded_callback
+        self.all_loaded_callback = all_loaded_callback
+
+        lookupinfo = []
+        for source_num, source in enumerate(astrom_data.sources):
+            for obs_num, reading in enumerate(source):
+                image_uri = self.resolver.resolve_uri(reading.obs)
+                lookupinfo.append((image_uri, reading, source_num, obs_num))
+
+        self.do_download(lookupinfo)
+
+    def do_download(self, lookupinfo):
+        SerialImageDownloadThread(self, self.image_retriever,
+                                  lookupinfo).start()
+
+    def on_image_downloaded(self, image, converter, reading, source_num, obs_num):
+        reading.image = image
+        reading.converter = converter
+
+        if self.image_loaded_callback is not None:
+            self.image_loaded_callback(source_num, obs_num)
+
+    def on_all_downloaded(self):
+        if self.all_loaded_callback is not None:
+            self.all_loaded_callback()
+
+
+class SerialImageDownloadThread(threading.Thread):
+    """
+    Retrieve each image serially, but in this separate thread so it can
+    happen in the background.
+    """
+
+    def __init__(self, loader, image_retriever, lookupinfo):
+        super(SerialImageDownloadThread, self).__init__()
+
+        self.download_manager = loader
+        self.image_retriever = image_retriever
+        self.lookupinfo = lookupinfo
+
+    def run(self):
+        for image_uri, reading, source_num, obs_num in self.lookupinfo:
+            image, converter = self.image_retriever.retrieve_image(image_uri, reading)
+            self.download_manager.on_image_downloaded(image, converter, reading, source_num, obs_num)
+
+        self.download_manager.on_all_downloaded()
+
+
+class VOSpaceResolver(object):
+    """
+    Resolves observation descriptions to their URIs.
+    """
+
+    def __init__(self):
+        self.dataset_root = config.read("IMG_RETRIEVAL.DATASET_ROOT")
+
+    def resolve_uri(self, observation):
+        # XXX can there be other file extensions?  For example, fits.fz?
+        # Do we need to search the vospace directory and choose based on that?
+        return "%s/%s/%s%s.fits" % (self.dataset_root, observation.expnum,
+                                    observation.expnum, observation.ftype)
+
+
 class ImageSliceRetriever(object):
+    """
+    Retrieves slices of images which are relevant for display to the user.
+    """
+
     def __init__(self, slice_rows=None, slice_cols=None, vosclient=None):
         # If not provided, read defaults from application config file
         if slice_rows is None:
