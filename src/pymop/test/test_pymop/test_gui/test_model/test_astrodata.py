@@ -4,7 +4,7 @@ import unittest
 
 from wx.lib.pubsub import Publisher as pub
 
-from hamcrest import assert_that, equal_to, has_length, contains
+from hamcrest import assert_that, equal_to, has_length, contains, none, same_instance
 from mock import Mock
 
 from test.base_tests import FileReadingTestCase
@@ -22,6 +22,12 @@ class AstroDataModelTest(FileReadingTestCase):
         self.download_manager = Mock()
 
         self.model = astrodata.AstroDataModel(self.astrom_data, self.download_manager)
+
+    def create_real_first_image(self, path="data/testimg.fits"):
+        # Put a real fits image on the first source, first observation
+        with open(self.get_abs_path(path), "rb") as fh:
+            self.first_image = FitsImage(fh.read(), Mock(), in_memory=True)
+            self.astrom_data.sources[0][0].set_fits_image(self.first_image)
 
     def test_sources_initialized(self):
         assert_that(self.model.get_current_source_number(), equal_to(0))
@@ -272,13 +278,17 @@ class AstroDataModelTest(FileReadingTestCase):
         assert_that(observer.on_all_processed.call_count, equal_to(1))
 
     def test_get_current_band(self):
-        source = 0
-        obs = 0
-        with open(self.get_abs_path("data/1616681p22.fits"), "rb") as fh:
-            self.astrom_data.sources[source][obs].set_fits_image(
-                FitsImage(fh.read(), Mock(), in_memory=True))
-
+        self.create_real_first_image("data/1616681p22.fits")
         assert_that(self.model.get_current_band(), equal_to("r"))
+
+    def test_get_current_image(self):
+        self.create_real_first_image()
+        assert_that(self.model.get_current_image(),
+                    same_instance(self.first_image))
+
+    def test_get_current_hdulist_is_none(self):
+        self.model.next_source()
+        assert_that(self.model.get_current_hdulist(), none())
 
 
 if __name__ == '__main__':
