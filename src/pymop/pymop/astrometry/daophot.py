@@ -13,11 +13,13 @@ class TaskError(Exception):
         Exception.__init__(message)
 
 
-def phot(hdulist_in, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
+def phot(fitsimage, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
          maxcount=30000.0, exptime=1.0):
     """Compute the centroids and magnitudes of a bunch sources detected on CFHT-MEGAPRIME images.
 
     Returns a MOPfiles data structure."""
+
+    hdulist_in = fitsimage.as_hdulist()
 
     ## get the filter for this image
     filter = hdulist_in[0].header.get('FILTER', 'DEFAULT')
@@ -68,9 +70,6 @@ def phot(hdulist_in, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
     iraf.phot.verify = 'no'
     iraf.phot.interactive = 'no'
 
-    imagefile = tempfile.NamedTemporaryFile(suffix=".fits", delete=False)
-    hdulist_in.writeto(imagefile.name)
-
     # Used for passing the input coordinates
     coofile = tempfile.NamedTemporaryFile(suffix=".coo", delete=False)
     coofile.write("%f %f \n" % (x_in, y_in))
@@ -82,16 +81,14 @@ def phot(hdulist_in, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
     # Close the temp files before sending to IRAF due to docstring:
     # "Whether the name can be used to open the file a second time, while
     # the named temporary file is still open, varies across platforms"
-    imagefile.close()
     coofile.close()
     magfile.close()
 
-    iraf.phot(imagefile.name, coofile.name, magfile.name)
+    iraf.phot(fitsimage.as_file().name, coofile.name, magfile.name)
     pdump_out = iraf.pdump(magfile.name, "XCENTER,YCENTER,MAG,MERR,ID,XSHIFT,YSHIFT,LID",
                            "MERR < 0.4 && MERR != INDEF && MAG != INDEF && PIER==0", header='no', parameters='yes',
                            Stdout=1)
 
-    os.remove(imagefile.name)
     os.remove(coofile.name)
     os.remove(magfile.name)
 
