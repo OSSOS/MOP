@@ -182,8 +182,7 @@ class SourceReading(object):
 
         self.obs = obs
 
-        self.image = None
-        self.converter = None
+        self.fitsimage = None
 
     @property
     def source_point(self):
@@ -195,8 +194,8 @@ class SourceReading(object):
         The location of the source point in the image, taking into account
         that the image may be a cutout.
         """
-        assert self.converter is not None, "No converter found"
-        return self.converter.convert(self.source_point)
+        assert self.fitsimage is not None, "No FITS image loaded"
+        return self.fitsimage.get_pixel_coordinates(self.source_point)
 
     def __repr__(self):
         return "<SourceReading x=%s, y=%s, x0=%s, y0=%s, ra=%s, dec=%s, obs=%s" % (
