@@ -94,17 +94,20 @@ class AstroDataModel(object):
     def get_current_dec(self):
         return self._get_current_reading().dec
 
-    def get_current_band(self):
-        hdu0 = self.get_current_hdulist()[0]
-        return hdu0.header["FILTER"][0]
+    def get_current_image(self):
+        return self._get_current_reading().get_fits_image()
 
     def get_current_hdulist(self):
-        fitsimage = self._get_current_reading().get_fits_image()
+        fitsimage = self.get_current_image()
 
         if fitsimage is None:
             return None
 
         return fitsimage.as_hdulist()
+
+    def get_current_band(self):
+        hdu0 = self.get_current_hdulist()[0]
+        return hdu0.header["FILTER"][0]
 
     def get_current_image_source_point(self):
         return self._get_current_reading().image_source_point
