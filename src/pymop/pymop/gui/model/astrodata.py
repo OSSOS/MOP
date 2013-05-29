@@ -30,9 +30,9 @@ class AstroDataModel(object):
     application.
     """
 
-    def __init__(self, astrom_data, image_loader):
+    def __init__(self, astrom_data, download_manager):
         self.astrom_data = astrom_data
-        self.image_loader = image_loader
+        self.download_manager = download_manager
 
         self._current_src_number = 0
         self._current_obs_number = 0
@@ -111,7 +111,7 @@ class AstroDataModel(object):
         return int(self._get_current_reading().obs.expnum)
 
     def start_loading_images(self):
-        self.image_loader.start_loading(
+        self.download_manager.start_download(
             self.astrom_data, image_loaded_callback=self._on_image_loaded)
 
     def get_loaded_image_count(self):
