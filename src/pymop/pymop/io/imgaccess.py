@@ -5,7 +5,7 @@ import threading
 import vos
 
 from pymop import config
-from pymop.io.img import InMemoryFitsImage, InFileFitsImage
+from pymop.io.img import FitsImage
 
 
 class AsynchronousImageDownloadManager(object):
@@ -132,10 +132,7 @@ class ImageSliceDownloader(object):
         """
         vofile, converter = self._do_download(source_reading, uri)
 
-        if in_memory:
-            return InMemoryFitsImage(vofile.read(), converter)
-        else:
-            return InFileFitsImage(vofile.read(), converter)
+        return FitsImage(vofile.read(), converter, in_memory=in_memory)
 
 
 class CutoutCalculator(object):
