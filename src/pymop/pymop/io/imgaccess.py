@@ -1,6 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import cStringIO
+import tempfile
 import threading
 
 from astropy.io import fits
@@ -147,6 +148,44 @@ class InMemoryImageSliceDownloader(AbstractImageSliceDownloader):
         vofile, converter = self._do_download(source_reading, uri)
 
         return fits.open(cStringIO.StringIO(vofile.read())), converter
+
+
+class TempfileImageSliceDownloader(AbstractImageSliceDownloader):
+    """
+    Downloads an image slice and writes it to a temporary file on disk.
+    """
+
+    def __init__(self, slice_rows=None, slice_cols=None, vosclient=None):
+        super(TempfileImageSliceDownloader, self).__init__(slice_rows, slice_cols, vosclient)
+
+    def download_image_slice(self, uri, source_reading):
+        """
+        Retrieves a remote image.
+
+        Args:
+          uri: str
+            URI of the remote image to be retrieved.
+          source_reading: pymop.io.parser.SourceReading
+            Contains information about the CCD number and point about
+            which the slice should be taken.
+
+        Returns:
+          imagefile: tempfile.NamedTemporaryFile
+            A temporary file storing the FITS data on disk.  Open for
+            reading and writing.  Note that this file will be automatically
+            deleted when closed.
+          converter:
+            Can be used to find a point in the sliced image based on its
+            coordinate in the original image.
+        """
+        vofile, converter = self._do_download(source_reading, uri)
+
+        image_file = tempfile.NamedTemporaryFile(mode="r+b", suffix=".fits")
+        image_file.write(vofile.read())
+        image_file.flush()
+        image_file.seek(0)
+
+        return image_file, converter
 
 
 class CutoutCalculator(object):
