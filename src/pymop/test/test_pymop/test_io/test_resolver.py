@@ -4,7 +4,7 @@ import unittest
 
 from hamcrest import assert_that, equal_to
 
-from pymop.data_retrieval.resolver import VOSpaceResolver
+from pymop.io.resolver import VOSpaceResolver
 from pymop.io.parser import Observation
 
 
