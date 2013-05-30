@@ -66,68 +66,68 @@ class MPCWriter(object):
 
         # Check for invalid values
         if len(minor_planet_number) > 5:
-            raise MPCFieldFormatException("Minor planet number",
-                                          "must be 5 characters or less",
-                                          minor_planet_number)
+            raise MPCFieldFormatError("Minor planet number",
+                                      "must be 5 characters or less",
+                                      minor_planet_number)
 
         if not 0 < len(provisional_name) <= 7:
-            raise MPCFieldFormatException("Provisional name",
-                                          "must be 7 characters or less",
-                                          provisional_name)
+            raise MPCFieldFormatError("Provisional name",
+                                      "must be 7 characters or less",
+                                      provisional_name)
 
         if not provisional_name[0].isalpha():
-            raise MPCFieldFormatException("Provisional name",
-                                          "must start with a letter",
-                                          provisional_name)
+            raise MPCFieldFormatError("Provisional name",
+                                      "must start with a letter",
+                                      provisional_name)
 
         if not discovery_asterisk in ["", " ", "*"]:
-            raise MPCFieldFormatException("Discovery asterisk",
-                                          "must be one of ['', ' ', '*']",
-                                          discovery_asterisk)
+            raise MPCFieldFormatError("Discovery asterisk",
+                                      "must be one of ['', ' ', '*']",
+                                      discovery_asterisk)
 
         # has already been justified
         if not len(note1) == 1:
-            raise MPCFieldFormatException("Note1",
-                                          "must be 0 or 1 characters",
-                                          note1)
+            raise MPCFieldFormatError("Note1",
+                                      "must be 0 or 1 characters",
+                                      note1)
 
         # has already been justified
         if not len(note2) == 1:
-            raise MPCFieldFormatException("Note2",
-                                          "must be 0 or 1 characters",
-                                          note2)
+            raise MPCFieldFormatError("Note2",
+                                      "must be 0 or 1 characters",
+                                      note2)
 
         if not self.date_regex.match(date_of_obs):
-            raise MPCFieldFormatException("Date of observation",
-                                          "must match regex: %s" % self.date_regex.pattern,
-                                          date_of_obs)
+            raise MPCFieldFormatError("Date of observation",
+                                      "must match regex: %s" % self.date_regex.pattern,
+                                      date_of_obs)
 
         if not _is_numeric(ra):
-            raise MPCFieldFormatException("RA",
-                                          "must be numeric (can be in string form)",
-                                          ra)
+            raise MPCFieldFormatError("RA",
+                                      "must be numeric (can be in string form)",
+                                      ra)
 
         if not _is_numeric(dec):
-            raise MPCFieldFormatException("DEC",
-                                          "must be numeric (can be in string form)",
-                                          dec)
+            raise MPCFieldFormatError("DEC",
+                                      "must be numeric (can be in string form)",
+                                      dec)
 
         if not _is_numeric(obs_mag) or not len(obs_mag) <= 5:
-            raise MPCFieldFormatException("Observed magnitude",
-                                          "must be numeric (can be in string form) "
-                                          "and less than or equal to 5 characters "
-                                          "after being rounded to 2 decimal places",
-                                          obs_mag)
+            raise MPCFieldFormatError("Observed magnitude",
+                                      "must be numeric (can be in string form) "
+                                      "and less than or equal to 5 characters "
+                                      "after being rounded to 2 decimal places",
+                                      obs_mag)
 
         if not len(band) == 1:
-            raise MPCFieldFormatException("Band",
-                                          "must be exactly 1 character",
-                                          band)
+            raise MPCFieldFormatError("Band",
+                                      "must be exactly 1 character",
+                                      band)
 
         if not len(observatory_code) <= 3:
-            raise MPCFieldFormatException("Observatory code",
-                                          "must be 3 characters or less",
-                                          observatory_code)
+            raise MPCFieldFormatError("Observatory code",
+                                      "must be 3 characters or less",
+                                      observatory_code)
 
         formatted_ra, formatted_dec = format_ra_dec(ra, dec)
 
@@ -138,20 +138,19 @@ class MPCWriter(object):
         # subtract 1 because of newline character
         line_len = len(line) - 1
         if line_len != 80:
-            raise MPCFormatException("MPC line must be 80 characters but was: %d" % line_len)
+            raise MPCFormatError("MPC line must be 80 characters but was: %d" % line_len)
 
         self.filehandle.write(line)
         self.filehandle.flush()
 
 
-class MPCFormatException(Exception):
-    def __init__(self, message):
-        super(MPCFormatException, self).__init__(message)
+class MPCFormatError(Exception):
+    """Base class for errors in MPC formatting."""
 
 
-class MPCFieldFormatException(MPCFormatException):
+class MPCFieldFormatError(MPCFormatError):
     def __init__(self, field, requirement, actual):
-        super(MPCFieldFormatException, self).__init__(
+        super(MPCFieldFormatError, self).__init__(
             "Field %s: %s; but was %s" % (field, requirement, actual))
 
 

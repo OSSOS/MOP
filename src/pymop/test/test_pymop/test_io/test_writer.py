@@ -168,7 +168,7 @@ class MPCWriterTest(unittest.TestCase):
         assert_that(actual, equal_to(expected))
 
     def test_MPCFormatException_message(self):
-        ex = writer.MPCFieldFormatException("Note1", "must be 1 character", "AB")
+        ex = writer.MPCFieldFormatError("Note1", "must be 1 character", "AB")
         assert_that(ex.message,
                     equal_to("Field Note1: must be 1 character; but was AB"))
 
@@ -185,7 +185,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatException,
+        self.assertRaises(writer.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -202,7 +202,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatException,
+        self.assertRaises(writer.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -219,7 +219,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatException,
+        self.assertRaises(writer.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -236,7 +236,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatException,
+        self.assertRaises(writer.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -253,7 +253,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatException,
+        self.assertRaises(writer.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -270,7 +270,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatException,
+        self.assertRaises(writer.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -287,7 +287,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatException,
+        self.assertRaises(writer.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -304,7 +304,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatException,
+        self.assertRaises(writer.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -321,7 +321,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatException,
+        self.assertRaises(writer.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -338,7 +338,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatException,
+        self.assertRaises(writer.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -355,7 +355,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatException,
+        self.assertRaises(writer.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -389,7 +389,7 @@ class MPCWriterTest(unittest.TestCase):
                 "",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatException,
+        self.assertRaises(writer.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -406,7 +406,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "5234"]
 
-        self.assertRaises(writer.MPCFieldFormatException,
+        self.assertRaises(writer.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
