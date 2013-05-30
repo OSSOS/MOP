@@ -62,6 +62,48 @@ class MPCWriterTest(unittest.TestCase):
         assert_that(actual, has_length(81))
         assert_that(actual, equal_to(expected))
 
+    def test_write_line_round_obs_mag(self):
+        self.undertest.write_line("12345",
+                                  "A234567",
+                                  "*",
+                                  "M",
+                                  "N",
+                                  "2012 10 21.405160",
+                                  26.683336700, # 01 46 44.001
+                                  29.220353200, # +29 13 13.27
+                                  22.5211,
+                                  "A",
+                                  523)
+
+        expected = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         22.52A      523\n"
+
+        actual = self.read_outputfile()
+
+        assert_that(actual.endswith("\n"))
+        assert_that(actual, has_length(81))
+        assert_that(actual, equal_to(expected))
+
+    def test_write_line_round_obs_mag_str(self):
+        self.undertest.write_line("12345",
+                                  "A234567",
+                                  "*",
+                                  "M",
+                                  "N",
+                                  "2012 10 21.405160",
+                                  26.683336700,
+                                  29.220353200,
+                                  "22.5211", # In string form
+                                  "A",
+                                  523)
+
+        expected = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         22.52A      523\n"
+
+        actual = self.read_outputfile()
+
+        assert_that(actual.endswith("\n"))
+        assert_that(actual, has_length(81))
+        assert_that(actual, equal_to(expected))
+
     def test_write_line_valid_date_short(self):
         self.undertest.write_line("12345",
                                   "A234567",
@@ -326,11 +368,11 @@ class MPCWriterTest(unittest.TestCase):
                 "2012 10 21.405160",
                 "26.683336700",
                 "29.683336700",
-                "123.5B",
+                "12.5B",
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatException,
+        self.assertRaises(ValueError,
                           self.undertest.write_line,
                           *args)
 
