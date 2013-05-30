@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import unittest
 import os
 
-from mock import Mock
+from mock import Mock, patch
 from hamcrest import assert_that, not_none, none, equal_to
 
 from test.base_tests import FileReadingTestCase
@@ -67,6 +67,18 @@ class FitsImageTest(FileReadingTestCase):
         fitsimage.close()
 
         assert_that(not os.path.exists(as_file.name))
+
+    @patch("pymop.astrometry.daophot.phot_mag")
+    def test_get_observed_magnitude(self, mock_phot_mag):
+        fitsimage = FitsImage(self.strdata, self.apcor_str, self.coord_converter,
+                              in_memory=True)
+        x = 1500
+        y = 2500
+        fitsimage.get_observed_magnitude(x, y)
+
+        mock_phot_mag.assert_called_once_with(
+            fitsimage, x, y, aperture=4.0, sky=16.0, swidth=4.0, apcor=0.19
+        )
 
 
 class ApcorDataTest(unittest.TestCase):
