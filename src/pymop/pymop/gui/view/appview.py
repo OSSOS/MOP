@@ -16,13 +16,13 @@ class ApplicationView(object):
     Provides the view's external interface.
     """
 
-    def __init__(self, model, appcontroller):
+    def __init__(self, model, controller):
         self.model = model
 
-        self.appcontroller = appcontroller
+        self.controller = controller
 
         self.wx_app = wx.App(False)
-        self.mainframe = MainFrame(model, appcontroller)
+        self.mainframe = MainFrame(model, controller)
         self.accept_source_dialog = None
 
     def launch(self, debug_mode=False, unittest=False):
@@ -61,7 +61,7 @@ class ApplicationView(object):
 
     def show_accept_source_dialog(self, preset_vals):
         self.accept_source_dialog = AcceptSourceDialog(
-            self.mainframe, self.appcontroller, *preset_vals)
+            self.mainframe, self.controller, *preset_vals)
         self.accept_source_dialog.ShowModal()
 
     def close_accept_source_dialog(self):
