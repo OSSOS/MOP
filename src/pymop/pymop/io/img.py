@@ -11,13 +11,15 @@ class FitsImage(object):
     Provides the MOP's abstraction of a FITS file image.
     """
 
-    def __init__(self, strdata, coord_converter, in_memory=True):
+    def __init__(self, fits_str, apcor_str, coord_converter, in_memory=True):
         """
         Constructs a new FitsImage object.
 
         Args:
-          strdata: str
+          fits_str: str
             Raw data read from a FITS file in string format.
+          apcor_str: str:
+            Raw data from from the .apcor file associated with this image.
           coord_converter: pymop.io.imgaccess.CoordinateConverter
             Converts coordinates from the original FITS file into pixel
             locations.  Takes into account cutouts.
@@ -31,18 +33,20 @@ class FitsImage(object):
             parameter is mostly for specifying the PREFERRED way of storing
             the data, not the only way in which it may be stored.
         """
-        assert strdata is not None, "No data"
+        assert fits_str is not None, "No fits data"
+        assert apcor_str is not None, "No apcor data"
         assert coord_converter is not None, "Must have a coordinate converter"
+
+        self._coord_converter = coord_converter
+        self._apcordata = ApcorData.from_raw_string(apcor_str)
 
         self._hdulist = None
         self._tempfile = None
 
         if in_memory:
-            self._hdulist = self._create_hdulist(strdata)
+            self._hdulist = self._create_hdulist(fits_str)
         else:
-            self._tempfile = self._create_tempfile(strdata)
-
-        self._coord_converter = coord_converter
+            self._tempfile = self._create_tempfile(fits_str)
 
     def _create_hdulist(self, strdata):
         return fits.open(cStringIO.StringIO(strdata))

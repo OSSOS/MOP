@@ -25,8 +25,9 @@ class AstroDataModelTest(FileReadingTestCase):
 
     def create_real_first_image(self, path="data/testimg.fits"):
         # Put a real fits image on the first source, first observation
+        apcor_str = "4 15   0.19   0.01"
         with open(self.get_abs_path(path), "rb") as fh:
-            self.first_image = FitsImage(fh.read(), Mock(), in_memory=True)
+            self.first_image = FitsImage(fh.read(), apcor_str, Mock(), in_memory=True)
             self.astrom_data.sources[0][0].set_fits_image(self.first_image)
 
     def test_sources_initialized(self):
