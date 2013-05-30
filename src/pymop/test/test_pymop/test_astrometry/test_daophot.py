@@ -54,6 +54,24 @@ class DaophotTest(FileReadingTestCase):
         # NOTE: minor difference in magnitude error: 0.290 vs 0.291
         assert_that(magerr, close_to(0.290, 0.0011))
 
+    def test_phot_mag(self):
+        x_in = 560.06
+        y_in = 406.51
+        ap = 4
+        insky = 11
+        outsky = 15
+        maxcount = 30000.0
+        exptime = 1.0
+
+        swidth = outsky - insky
+        apcor = 0.0
+
+        mag = daophot.phot_mag(self.fitsimage, x_in, y_in, aperture=ap, sky=insky,
+                               swidth=swidth, apcor=apcor, maxcount=maxcount,
+                               exptime=exptime)
+
+        assert_that(mag, close_to(24.769, DELTA))
+
 
 if __name__ == '__main__':
     unittest.main()
