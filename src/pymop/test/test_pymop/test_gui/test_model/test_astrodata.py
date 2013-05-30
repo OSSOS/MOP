@@ -5,7 +5,7 @@ import unittest
 from wx.lib.pubsub import Publisher as pub
 
 from hamcrest import assert_that, equal_to, has_length, contains, none, same_instance
-from mock import Mock
+from mock import Mock, patch
 
 from test.base_tests import FileReadingTestCase
 from pymop.gui.model import astrodata
@@ -286,6 +286,18 @@ class AstroDataModelTest(FileReadingTestCase):
         self.create_real_first_image()
         assert_that(self.model.get_current_image(),
                     same_instance(self.first_image))
+
+    @patch("pymop.astrometry.daophot.phot_mag")
+    def test_get_current_source_observed_magnitude(self, mock_phot_mag):
+        first_image = Mock()
+        self.astrom_data.sources[0][0].set_fits_image(first_image)
+
+        x, y = (1500, 2500)
+        self.model.get_current_image_source_point = Mock(return_value=(x, y))
+
+        self.model.get_current_source_observed_magnitude()
+
+        first_image.get_observed_magnitude.assert_called_once_with(x, y)
 
     def test_get_current_hdulist_is_none(self):
         self.model.next_source()

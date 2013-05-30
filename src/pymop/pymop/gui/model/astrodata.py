@@ -112,6 +112,10 @@ class AstroDataModel(object):
     def get_current_image_source_point(self):
         return self._get_current_reading().image_source_point
 
+    def get_current_source_observed_magnitude(self):
+        x, y = self.get_current_image_source_point()
+        return self.get_current_image().get_observed_magnitude(x, y)
+
     def get_current_image_FWHM(self):
         return float(self._get_current_reading().obs.header["FWHM"])
 
