@@ -1,3 +1,5 @@
+from pymop.gui import models
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
@@ -8,7 +10,6 @@ from hamcrest import assert_that, equal_to, has_length, contains, none, same_ins
 from mock import Mock, patch
 
 from test.base_tests import FileReadingTestCase
-from pymop.gui.model import models
 from pymop.io.parser import AstromParser
 from pymop.io.img import FitsImage
 

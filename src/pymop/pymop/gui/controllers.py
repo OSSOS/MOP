@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 from wx.lib.pubsub import Publisher as pub
 
 from pymop import config
-from pymop.gui.model import models
+from pymop.gui import models
 from pymop.gui.view.appview import ApplicationView
 
 

@@ -9,8 +9,8 @@ from pymop.io.writer import MPCWriter
 from pymop.io.naming import ProvisionalNameGenerator
 from pymop.io.imgaccess import (AsynchronousImageDownloadManager,
                                 ImageSliceDownloader, VOSpaceResolver)
-from pymop.gui.model.models import AstroDataModel
-from pymop.gui.controller.controllers import ApplicationController
+from pymop.gui.models import AstroDataModel
+from pymop.gui.controllers import ApplicationController
 from pymop.gui.view.image.ds9view import DS9ImageViewer
 
 
