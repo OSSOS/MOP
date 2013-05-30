@@ -297,11 +297,21 @@ class AstroDataModelTest(FileReadingTestCase):
 
         self.model.get_current_source_observed_magnitude()
 
-        first_image.get_observed_magnitude.assert_called_once_with(x, y)
+        first_image.get_observed_magnitude.assert_called_once_with(x, y,
+                                                                   maxcount=30000.0)
 
     def test_get_current_hdulist_is_none(self):
         self.model.next_source()
         assert_that(self.model.get_current_hdulist(), none())
+
+    def test_get_current_reading_data(self):
+        self.model.next_source()
+        self.model.next_obs()
+
+        assert_that(self.model.get_current_ra(), equal_to(26.6816808))
+        assert_that(self.model.get_current_dec(), equal_to(29.2202748))
+        assert_that(self.model.get_current_image_FWHM(), equal_to(3.30))
+        assert_that(self.model.get_current_image_maxcount(), equal_to(30000.0))
 
 
 if __name__ == '__main__':

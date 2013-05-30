@@ -114,10 +114,14 @@ class AstroDataModel(object):
 
     def get_current_source_observed_magnitude(self):
         x, y = self.get_current_image_source_point()
-        return self.get_current_image().get_observed_magnitude(x, y)
+        maxcount = self.get_current_image_maxcount()
+        return self.get_current_image().get_observed_magnitude(x, y, maxcount=maxcount)
 
     def get_current_image_FWHM(self):
         return float(self._get_current_reading().obs.header["FWHM"])
+
+    def get_current_image_maxcount(self):
+        return float(self._get_current_reading().obs.header["MAXCOUNT"])
 
     def get_current_exposure_number(self):
         return int(self._get_current_reading().obs.expnum)
