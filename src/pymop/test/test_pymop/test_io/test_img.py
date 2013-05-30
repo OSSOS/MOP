@@ -87,6 +87,17 @@ class ApcorDataTest(unittest.TestCase):
         # TODO verify this with JJ, seems suspicious
         assert_that(self.undertest.swidth, equal_to(self.ap_in))
 
+    def test_from_raw_string(self):
+        rawstr = "4 15   0.19   0.01\n"
+
+        # NOTE: not undertest
+        self.parsed = ApcorData.from_raw_string(rawstr)
+
+        assert_that(self.parsed.ap_in, equal_to(self.ap_in))
+        assert_that(self.parsed.ap_out, equal_to(self.ap_out))
+        assert_that(self.parsed.apcor, equal_to(self.apcor))
+        assert_that(self.parsed.apcor_err, equal_to(self.apcor_err))
+
 
 if __name__ == '__main__':
     unittest.main()
