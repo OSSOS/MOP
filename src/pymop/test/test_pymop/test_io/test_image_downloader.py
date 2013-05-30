@@ -2,10 +2,11 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 import os
+import tempfile
 
 import vos
-from hamcrest import assert_that, equal_to
-from mock import Mock
+from hamcrest import assert_that, equal_to, contains
+from mock import Mock, call
 
 from test.base_tests import FileReadingTestCase
 from pymop.io.parser import SourceReading, Observation
@@ -14,16 +15,33 @@ from pymop.io.imgaccess import (ImageSliceDownloader, CutoutCalculator)
 
 class ImageDownloaderSliceTest(FileReadingTestCase):
     def setUp(self):
+        self.create_default_data()
+
         self.vosclient = Mock(spec=vos.Client)
         self.undertest = ImageSliceDownloader(slice_rows=100, slice_cols=200,
-                                                      vosclient=self.vosclient)
+                                              vosclient=self.vosclient)
 
         # Mock vosclient to open a local file instead of one from vospace
         self.localfile = open(self.get_abs_path("data/testimg.fits"), "rb")
-        self.vosclient.open.return_value = self.localfile
+        self.apcorfile = tempfile.TemporaryFile("r+b")
+        self.apcorfile.write("4 10 0.3 0.1")
+        self.apcorfile.flush()
+        self.apcorfile.seek(0)
+
+        def choose_ret_val(*args, **kwargs):
+            if self.image_uri in args:
+                return self.localfile
+            elif self.apcor_uri in args:
+                return self.apcorfile
+            else:
+                self.fail("Unrecognized URI")
+
+        self.vosclient.open.side_effect = choose_ret_val
+        # return_value = self.localfile
 
     def create_default_data(self):
-        image_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/1584431p15.fits"
+        self.image_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/1584431p15.fits"
+        self.apcor_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/ccd15/1584431p15.apcor"
 
         obs = Observation("1584431", "p", "15")
 
@@ -31,23 +49,22 @@ class ImageDownloaderSliceTest(FileReadingTestCase):
         reading_y = 600
 
         # Putting in 0's for don't cares
-        source_reading = SourceReading(reading_x, reading_y, 0, 0, 0, 0, obs)
-
-        return image_uri, source_reading
+        self.source_reading = SourceReading(reading_x, reading_y, 0, 0, 0, 0, obs)
 
     def tearDown(self):
         self.localfile.close()
+        self.apcorfile.close()
 
     def test_retrieve_sliced_image_in_memory(self):
-        image_uri, source_reading = self.create_default_data()
-
-        fitsfile = self.undertest.download_image_slice(image_uri, source_reading,
-                                                       in_memory=True)
+        fitsfile = self.undertest.download_image_slice(
+            self.image_uri, self.apcor_uri, self.source_reading, in_memory=True)
 
         # XXX is ccdnum actually the extension we want or is it something
         # standard like 2
-        self.vosclient.open.assert_called_with(image_uri, view="cutout",
-                                               cutout="[16][400:600,550:650]")
+        assert_that(self.vosclient.open.call_args_list, contains(
+            call(self.image_uri, view="cutout", cutout="[16][400:600,550:650]"),
+            call(self.apcor_uri, view="data")
+        ))
 
         # This is just a test file, make sure we can read an expected value
         # it.  It won't have the right shape necessarily though.
@@ -55,19 +72,16 @@ class ImageDownloaderSliceTest(FileReadingTestCase):
                     equal_to("u5780205r_cvt.c0h"))
 
     def test_download_image_slice_in_file(self):
-        image_uri, source_reading = self.create_default_data()
-
-        fitsfile = self.undertest.download_image_slice(image_uri, source_reading,
-                                                       in_memory=False)
+        fitsfile = self.undertest.download_image_slice(
+            self.image_uri, self.apcor_uri, self.source_reading, in_memory=False)
 
         assert_that(fitsfile.as_hdulist()[0].header["FILENAME"],
                     equal_to("u5780205r_cvt.c0h"))
 
     def test_download_image_in_file_removed_when_file_closed(self):
-        image_uri, source_reading = self.create_default_data()
+        fitsfile = self.undertest.download_image_slice(
+            self.image_uri, self.apcor_uri, self.source_reading, in_memory=False)
 
-        fitsfile = self.undertest.download_image_slice(image_uri, source_reading,
-                                                       in_memory=False)
         assert_that(os.path.exists(fitsfile._tempfile.name))
 
         fitsfile.close()

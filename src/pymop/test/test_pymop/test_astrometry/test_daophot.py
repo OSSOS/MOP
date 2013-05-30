@@ -15,7 +15,8 @@ DELTA = 0.0001
 class DaophotTest(FileReadingTestCase):
     def setUp(self):
         with open(self.get_abs_path("data/1616681p22.fits"), "rb") as fh:
-            self.fitsimage = FitsImage(fh.read(), Mock(), in_memory=False)
+            apcor_str = "4 10 0.0 0.0"
+            self.fitsimage = FitsImage(fh.read(), apcor_str, Mock(), in_memory=False)
 
     def test_phot(self):
         """

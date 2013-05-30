@@ -25,11 +25,13 @@ class AsynchronousImageDownloadManager(object):
         self.image_loaded_callback = image_loaded_callback
         self.all_loaded_callback = all_loaded_callback
 
+        # TODO refactor: this probably belongs in the SerialImageDownloadThread
         lookupinfo = []
         for source_num, source in enumerate(astrom_data.sources):
             for obs_num, reading in enumerate(source):
                 image_uri = self.resolver.resolve_image_uri(reading.obs)
-                lookupinfo.append((image_uri, reading, source_num, obs_num))
+                apcor_uri = self.resolver.resolve_apcor_uri(reading.obs)
+                lookupinfo.append((image_uri, apcor_uri, reading, source_num, obs_num))
 
         self.do_download(lookupinfo)
 
@@ -62,8 +64,8 @@ class SerialImageDownloadThread(threading.Thread):
         self.lookupinfo = lookupinfo
 
     def run(self):
-        for image_uri, reading, source_num, obs_num in self.lookupinfo:
-            fitsimage = self.downloader.download_image_slice(image_uri, reading)
+        for image_uri, apcor_uri, reading, source_num, obs_num in self.lookupinfo:
+            fitsimage = self.downloader.download_image_slice(image_uri, apcor_uri, reading)
             self.download_manager.on_image_downloaded(fitsimage, reading, source_num, obs_num)
 
         self.download_manager.on_all_downloaded()
@@ -103,7 +105,7 @@ class ImageSliceDownloader(object):
 
         self.cutout_calculator = CutoutCalculator(slice_rows, slice_cols)
 
-    def _do_download(self, source_reading, uri):
+    def _download_fits_file(self, uri, source_reading):
         # NOTE: ccd number is the extension, BUT Fits file extensions start at 1
         # Therefore ccd n = extension n + 1
         extension = str(int(source_reading.obs.ccdnum) + 1)
@@ -114,15 +116,21 @@ class ImageSliceDownloader(object):
 
         vofile = self.vosclient.open(uri, view="cutout", cutout=cutout_str)
 
-        return vofile, converter
+        return vofile.read(), converter
 
-    def download_image_slice(self, image_uri, source_reading, in_memory=True):
+    def _download_apcor_file(self, uri):
+        vofile = self.vosclient.open(uri, view="data")
+        return vofile.read()
+
+    def download_image_slice(self, image_uri, apcor_uri, source_reading, in_memory=True):
         """
         Retrieves a remote image.
 
         Args:
-          uri: str
+          image_uri: str
             URI of the remote image to be retrieved.
+          apcor_uri: str
+            URI of the remote .apcor file associated with the image.
           source_reading: pymop.io.parser.SourceReading
             Contains information about the CCD number and point about
             which the slice should be taken.
@@ -134,9 +142,10 @@ class ImageSliceDownloader(object):
           fitsimage: pymop.io.img.FitsImage
             The downloaded image, either in-memory or on disk as specified.
         """
-        vofile, converter = self._do_download(source_reading, image_uri)
+        fits_str, converter = self._download_fits_file(image_uri, source_reading)
+        apcor_str = self._download_apcor_file(apcor_uri)
 
-        return FitsImage(vofile.read(), converter, in_memory=in_memory)
+        return FitsImage(fits_str, apcor_str, converter, in_memory=in_memory)
 
 
 class CutoutCalculator(object):
