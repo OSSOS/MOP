@@ -14,9 +14,9 @@ class AsynchronousImageDownloadManager(object):
     the application.
     """
 
-    def __init__(self, resolver, image_retriever):
+    def __init__(self, resolver, downloader):
         self.resolver = resolver
-        self.image_retriever = image_retriever
+        self.downloader = downloader
 
     def start_download(self, astrom_data,
                        image_loaded_callback=None,
@@ -34,7 +34,7 @@ class AsynchronousImageDownloadManager(object):
         self.do_download(lookupinfo)
 
     def do_download(self, lookupinfo):
-        SerialImageDownloadThread(self, self.image_retriever,
+        SerialImageDownloadThread(self, self.downloader,
                                   lookupinfo).start()
 
     def on_image_downloaded(self, fitsimage, reading, source_num, obs_num):
@@ -54,16 +54,16 @@ class SerialImageDownloadThread(threading.Thread):
     happen in the background.
     """
 
-    def __init__(self, loader, image_retriever, lookupinfo):
+    def __init__(self, loader, downloader, lookupinfo):
         super(SerialImageDownloadThread, self).__init__()
 
         self.download_manager = loader
-        self.image_retriever = image_retriever
+        self.downloader = downloader
         self.lookupinfo = lookupinfo
 
     def run(self):
         for image_uri, reading, source_num, obs_num in self.lookupinfo:
-            fitsimage = self.image_retriever.download_image_slice(image_uri, reading)
+            fitsimage = self.downloader.download_image_slice(image_uri, reading)
             self.download_manager.on_image_downloaded(fitsimage, reading, source_num, obs_num)
 
         self.download_manager.on_all_downloaded()
@@ -116,7 +116,7 @@ class ImageSliceDownloader(object):
 
         return vofile, converter
 
-    def download_image_slice(self, uri, source_reading, in_memory=True):
+    def download_image_slice(self, image_uri, source_reading, in_memory=True):
         """
         Retrieves a remote image.
 
@@ -134,7 +134,7 @@ class ImageSliceDownloader(object):
           fitsimage: pymop.io.img.FitsImage
             The downloaded image, either in-memory or on disk as specified.
         """
-        vofile, converter = self._do_download(source_reading, uri)
+        vofile, converter = self._do_download(source_reading, image_uri)
 
         return FitsImage(vofile.read(), converter, in_memory=in_memory)
 
