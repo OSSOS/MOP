@@ -31,7 +31,7 @@ class AsynchronousImageDownloadManagerTest(unittest.TestCase):
         astrom_data = self.mock_astrom_data(sources, observations)
 
         resolved_uris = ["URI%d" % i for i in range(sources * observations)]
-        self.resolver.resolve_uri.side_effect = resolved_uris
+        self.resolver.resolve_image_uri.side_effect = resolved_uris
 
         self.undertest.do_download = Mock()
 

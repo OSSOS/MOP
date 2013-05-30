@@ -28,7 +28,7 @@ class AsynchronousImageDownloadManager(object):
         lookupinfo = []
         for source_num, source in enumerate(astrom_data.sources):
             for obs_num, reading in enumerate(source):
-                image_uri = self.resolver.resolve_uri(reading.obs)
+                image_uri = self.resolver.resolve_image_uri(reading.obs)
                 lookupinfo.append((image_uri, reading, source_num, obs_num))
 
         self.do_download(lookupinfo)
@@ -71,17 +71,21 @@ class SerialImageDownloadThread(threading.Thread):
 
 class VOSpaceResolver(object):
     """
-    Resolves observation descriptions to their URIs.
+    Resolves resources in VOSpace.
     """
 
     def __init__(self):
         self.dataset_root = config.read("IMG_RETRIEVAL.DATASET_ROOT")
 
-    def resolve_uri(self, observation):
+    def resolve_image_uri(self, observation):
         # XXX can there be other file extensions?  For example, fits.fz?
         # Do we need to search the vospace directory and choose based on that?
         return "%s/%s/%s%s.fits" % (self.dataset_root, observation.expnum,
                                     observation.expnum, observation.ftype)
+
+    def resolve_apcor_uri(self, observation):
+        return "%s/%s/ccd%s/%s.apcor" % (self.dataset_root, observation.expnum,
+                                         observation.ccdnum, observation.rawname)
 
 
 class ImageSliceDownloader(object):
