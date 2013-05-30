@@ -5,6 +5,8 @@ import tempfile
 
 from astropy.io import fits
 
+from pymop.astrometry import daophot
+
 
 class FitsImage(object):
     """
@@ -102,6 +104,13 @@ class FitsImage(object):
             self._hdulist.close()
         if self._tempfile is not None:
             self._tempfile.close()
+
+    def get_observed_magnitude(self, x, y):
+        return daophot.phot_mag(self, x, y,
+                                aperture=self._apcordata.aperture,
+                                sky=self._apcordata.sky,
+                                swidth=self._apcordata.swidth,
+                                apcor=self._apcordata.apcor)
 
 
 class ApcorData(object):
