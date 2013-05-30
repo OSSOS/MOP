@@ -19,7 +19,7 @@ class AcceptSourceDialog(wx.Dialog):
     OK_BTN = "Ok"
     CANCEL_BTN = "Cancel"
 
-    def __init__(self, parent, controller, provisional_name, date_of_obs, ra, dec, band,
+    def __init__(self, parent, controller, provisional_name, date_of_obs, ra, dec, obs_mag, band,
                  note1_choices=None, note2_choices=None, note2_default=None, default_observatory_code=""):
         super(AcceptSourceDialog, self).__init__(parent, title=self.TITLE)
 
@@ -28,6 +28,7 @@ class AcceptSourceDialog(wx.Dialog):
         self.date_of_obs = date_of_obs
         self.ra_str = str(ra)
         self.dec_str = str(dec)
+        self.obs_mag = str(obs_mag)
         self.band = band
         self.default_observatory_code = str(default_observatory_code)
 
@@ -67,7 +68,7 @@ class AcceptSourceDialog(wx.Dialog):
         self.dec_text = wx.StaticText(self, label=self.dec_str, name=self.DEC)
 
         self.obs_mag_label = wx.StaticText(self, label=self.OBS_MAG)
-        self.obs_mag_text = wx.TextCtrl(self, name=self.OBS_MAG)
+        self.obs_mag_text = wx.StaticText(self, label=self.obs_mag, name=self.OBS_MAG)
 
         self.band_label = wx.StaticText(self, label=self.BAND)
         self.band_text = wx.StaticText(self, label=self.band, name=self.BAND)
@@ -130,7 +131,7 @@ class AcceptSourceDialog(wx.Dialog):
         discover_asterisk = "*" if self.discovery_asterisk_cb.IsChecked() else " "
         note1 = self.note1_combobox.GetStringSelection()
         note2 = self.note2_combobox.GetStringSelection()
-        obs_mag = self.obs_mag_text.GetValue()
+        obs_mag = self.obs_mag
         band = self.band
         observatory_code = self.observatory_code_text.GetValue()
 
