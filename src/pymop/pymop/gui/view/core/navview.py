@@ -7,10 +7,10 @@ class NavPanel(wx.Panel):
     NEXT_LABEL = "Next"
     PREV_LABEL = "Previous"
 
-    def __init__(self, parent, navcontroller):
+    def __init__(self, parent, controller):
         super(NavPanel, self).__init__(parent)
 
-        self.navcontroller = navcontroller
+        self.controller = controller
 
         self._init_ui()
         self._bind_events()
@@ -50,10 +50,10 @@ class NavPanel(wx.Panel):
         self.prev_button.Bind(wx.EVT_BUTTON, self._on_prev)
 
     def _on_next(self, event):
-        self.navcontroller.on_next_obs()
+        self.controller.on_next_obs()
 
     def _on_prev(self, event):
-        self.navcontroller.on_previous_obs()
+        self.controller.on_previous_obs()
 
     def set_status(self, current_obs, total_obs):
         assert 0 <= current_obs <= total_obs

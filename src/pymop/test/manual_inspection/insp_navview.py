@@ -10,7 +10,7 @@ def main():
     app = wx.App()
     rootframe = wx.Frame(None)
 
-    NavPanel(rootframe, testutil.Dummy("Navigation Controller"))
+    NavPanel(rootframe, testutil.Dummy("Controller"))
 
     rootframe.Show()
     app.MainLoop()

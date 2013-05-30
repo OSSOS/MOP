@@ -1,4 +1,3 @@
-from pymop.gui.controller import validationcontrol
 from pymop.gui.view import wxutil
 from pymop.gui.view.core import finishedview
 
@@ -17,22 +16,14 @@ class ApplicationView(object):
     Provides the view's external interface.
     """
 
-    def __init__(self, model, appcontroller, validationcontroller, navcontroller):
+    def __init__(self, model, appcontroller):
         self.model = model
 
         self.appcontroller = appcontroller
-        self.validationcontroller = validationcontroller
-        self.navcontroller = navcontroller
 
         self.wx_app = wx.App(False)
-        self.mainframe = MainFrame(model, appcontroller, validationcontroller,
-                                   navcontroller)
+        self.mainframe = MainFrame(model, appcontroller)
         self.accept_source_dialog = None
-
-        # TODO refactor
-        pub.subscribe(self.show_accept_source_dialog, validationcontrol.MSG_INITIATE_ACCEPT)
-        pub.subscribe(self.close_accept_source_dialog, validationcontrol.MSG_DO_ACCEPT)
-        pub.subscribe(self.close_accept_source_dialog, validationcontrol.MSG_CANCEL_ACCEPT)
 
     def launch(self, debug_mode=False, unittest=False):
         wx.CallAfter(self.mainframe.show_image_loading_dialog)
@@ -68,12 +59,12 @@ class ApplicationView(object):
     def set_loading_status(self, loaded, total):
         self.mainframe.set_loading_status(loaded, total)
 
-    def show_accept_source_dialog(self, event):
+    def show_accept_source_dialog(self, preset_vals):
         self.accept_source_dialog = AcceptSourceDialog(
-            self.mainframe, self.validationcontroller, *event.data)
+            self.mainframe, self.appcontroller, *preset_vals)
         self.accept_source_dialog.ShowModal()
 
-    def close_accept_source_dialog(self, event):
+    def close_accept_source_dialog(self):
         if self.accept_source_dialog is not None:
             self.accept_source_dialog.Destroy()
 
