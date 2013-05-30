@@ -7,7 +7,7 @@ from mock import Mock
 from hamcrest import assert_that, not_none, none, equal_to
 
 from test.base_tests import FileReadingTestCase
-from pymop.io.img import FitsImage
+from pymop.io.img import FitsImage, ApcorData
 
 
 class FitsImageTest(FileReadingTestCase):
@@ -59,6 +59,33 @@ class FitsImageTest(FileReadingTestCase):
         fitsimage.close()
 
         assert_that(not os.path.exists(as_file.name))
+
+
+class ApcorDataTest(unittest.TestCase):
+    def setUp(self):
+        """
+        Example data from
+        vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1616681/ccd22/1616681p22.apcor
+        """
+        self.ap_in = 4
+        self.ap_out = 15
+        self.apcor = 0.19
+        self.apcor_err = 0.01
+
+        self.undertest = ApcorData(self.ap_in, self.ap_out, self.apcor,
+                                   self.apcor_err)
+
+    def test_basic_properties(self):
+        assert_that(self.undertest.ap_in, equal_to(self.ap_in))
+        assert_that(self.undertest.ap_out, equal_to(self.ap_out))
+        assert_that(self.undertest.apcor, equal_to(self.apcor))
+        assert_that(self.undertest.apcor_err, equal_to(self.apcor_err))
+
+    def test_generated_properties(self):
+        assert_that(self.undertest.aperture, equal_to(self.ap_in))
+        assert_that(self.undertest.sky, equal_to(self.ap_out + 1))
+        # TODO verify this with JJ, seems suspicious
+        assert_that(self.undertest.swidth, equal_to(self.ap_in))
 
 
 if __name__ == '__main__':

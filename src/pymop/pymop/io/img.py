@@ -98,3 +98,24 @@ class FitsImage(object):
             self._hdulist.close()
         if self._tempfile is not None:
             self._tempfile.close()
+
+
+class ApcorData(object):
+    def __init__(self, ap_in, ap_out, apcor, apcor_err):
+        self.ap_in = ap_in
+        self.ap_out = ap_out
+        self.apcor = apcor
+        self.apcor_err = apcor_err
+
+    @property
+    def aperture(self):
+        return self.ap_in
+
+    @property
+    def sky(self):
+        return self.ap_out + 1
+
+    @property
+    def swidth(self):
+        # TODO verify this with JJ, seems suspicious
+        return self.ap_in
