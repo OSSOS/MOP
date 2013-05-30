@@ -105,12 +105,15 @@ class FitsImage(object):
         if self._tempfile is not None:
             self._tempfile.close()
 
-    def get_observed_magnitude(self, x, y):
+    def get_observed_magnitude(self, x, y, maxcount=30000.0):
+        # TODO refactor: associate SourceReadings here?  Don't want to pass
+        # in maxcount like this...
         return daophot.phot_mag(self, x, y,
                                 aperture=self._apcordata.aperture,
                                 sky=self._apcordata.sky,
                                 swidth=self._apcordata.swidth,
-                                apcor=self._apcordata.apcor)
+                                apcor=self._apcordata.apcor,
+                                maxcount=maxcount)
 
 
 class ApcorData(object):
