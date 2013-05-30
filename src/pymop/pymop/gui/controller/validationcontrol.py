@@ -3,7 +3,6 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 from wx.lib.pubsub import Publisher as pub
 
 from pymop import config
-from pymop.astrometry import daophot
 
 # Pub/Sub ids
 MSG_ROOT = ("valctrlroot", )
@@ -24,18 +23,12 @@ class SourceValidationController(object):
 
     def on_initiate_accept(self, event):
         """Initiates acceptance procedure, gathering required data."""
-        # TODO: does IRAF need the pixel coordinates or original image coordinates?
-        x, y = self.model.get_current_image_source_point()
-        # TODO refactor
-        hdu = daophot.phot(self.model.get_current_image(), x, y)
-        obs_mag = hdu["data"]["MAG"][0]
-        print "Observed magnitude: %f" % obs_mag
         preset_vals = (
             self._get_provisional_name(),
             self.model.get_current_observation_date(),
             self.model.get_current_ra(),
             self.model.get_current_dec(),
-            obs_mag,
+            self.model.get_current_source_observed_magnitude(),
             self.model.get_current_band(),
             config.read("MPC.NOTE1OPTIONS"),
             config.read("MPC.NOTE2OPTIONS"),
