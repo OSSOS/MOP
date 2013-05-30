@@ -15,10 +15,24 @@ from pymop.io.imgaccess import (ImageSliceDownloader, CutoutCalculator)
 
 class ImageDownloaderSliceTest(FileReadingTestCase):
     def setUp(self):
-        self.create_default_data()
+        self.image_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/1584431p15.fits"
+        self.apcor_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/ccd15/1584431p15.apcor"
+
+        self.resolver = Mock()
+        self.resolver.resolve_image_uri.return_value = self.image_uri
+        self.resolver.resolve_apcor_uri.return_value = self.apcor_uri
+
+        obs = Observation("1584431", "p", "15")
+
+        reading_x = 500
+        reading_y = 600
+
+        # Putting in 0's for don't cares
+        self.source_reading = SourceReading(reading_x, reading_y, 0, 0, 0, 0, obs)
 
         self.vosclient = Mock(spec=vos.Client)
-        self.undertest = ImageSliceDownloader(slice_rows=100, slice_cols=200,
+        self.undertest = ImageSliceDownloader(self.resolver,
+                                              slice_rows=100, slice_cols=200,
                                               vosclient=self.vosclient)
 
         # Mock vosclient to open a local file instead of one from vospace
@@ -39,25 +53,12 @@ class ImageDownloaderSliceTest(FileReadingTestCase):
         self.vosclient.open.side_effect = choose_ret_val
         # return_value = self.localfile
 
-    def create_default_data(self):
-        self.image_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/1584431p15.fits"
-        self.apcor_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/ccd15/1584431p15.apcor"
-
-        obs = Observation("1584431", "p", "15")
-
-        reading_x = 500
-        reading_y = 600
-
-        # Putting in 0's for don't cares
-        self.source_reading = SourceReading(reading_x, reading_y, 0, 0, 0, 0, obs)
-
     def tearDown(self):
         self.localfile.close()
         self.apcorfile.close()
 
     def test_retrieve_sliced_image_in_memory(self):
-        fitsfile = self.undertest.download_image_slice(
-            self.image_uri, self.apcor_uri, self.source_reading, in_memory=True)
+        fitsfile = self.undertest.download(self.source_reading, in_memory=True)
 
         # XXX is ccdnum actually the extension we want or is it something
         # standard like 2
@@ -72,15 +73,13 @@ class ImageDownloaderSliceTest(FileReadingTestCase):
                     equal_to("u5780205r_cvt.c0h"))
 
     def test_download_image_slice_in_file(self):
-        fitsfile = self.undertest.download_image_slice(
-            self.image_uri, self.apcor_uri, self.source_reading, in_memory=False)
+        fitsfile = self.undertest.download(self.source_reading, in_memory=False)
 
         assert_that(fitsfile.as_hdulist()[0].header["FILENAME"],
                     equal_to("u5780205r_cvt.c0h"))
 
     def test_download_image_in_file_removed_when_file_closed(self):
-        fitsfile = self.undertest.download_image_slice(
-            self.image_uri, self.apcor_uri, self.source_reading, in_memory=False)
+        fitsfile = self.undertest.download(self.source_reading, in_memory=False)
 
         assert_that(os.path.exists(fitsfile._tempfile.name))
 
