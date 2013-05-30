@@ -1,20 +1,16 @@
-"""
-Main controller of the application.
-"""
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 from wx.lib.pubsub import Publisher as pub
 
+from pymop import config
 from pymop.gui.model import astrodata
 from pymop.gui.view.appview import ApplicationView
-from pymop.gui.controller.validationcontrol import SourceValidationController
 
 
 class ApplicationController(object):
     """
-    The top-level controller of the application.  Sets up the views and other
-    controllers, and handles high level events like exiting.
+    The main controller of the application.  Sets up the view and
+    handles user interactions.
     """
 
     def __init__(self, model, output_writer, name_generator, image_viewer,
@@ -23,18 +19,14 @@ class ApplicationController(object):
 
         self.model = model
         self.output_writer = output_writer
+        self.name_generator = name_generator
         self.image_viewer = image_viewer
-
-        # set up the more fine-grained controllers
-        self.validationcontroller = SourceValidationController(self.model, self.output_writer, name_generator)
-        self.navcontroller = NavigationController(self.model)
 
         pub.subscribe(self.on_change_image, astrodata.MSG_NAV)
         pub.subscribe(self.on_image_loaded, astrodata.MSG_IMG_LOADED)
         pub.subscribe(self.on_all_sources_processed, astrodata.MSG_ALL_SRC_PROC)
 
-        self.view = ApplicationView(self.model, self, self.validationcontroller,
-                                    self.navcontroller)
+        self.view = ApplicationView(self.model, self)
         self.view.launch(debug_mode=debug_mode, unittest=unittest)
 
     def get_view(self):
@@ -88,11 +80,6 @@ class ApplicationController(object):
         self.image_viewer.close()
         self.view.close()
 
-
-class NavigationController(object):
-    def __init__(self, model):
-        self.model = model
-
     def on_next_source(self, event):
         self.model.next_source()
 
@@ -104,3 +91,64 @@ class NavigationController(object):
 
     def on_previous_obs(self):
         self.model.previous_obs()
+
+    def _get_provisional_name(self):
+        return self.name_generator.generate_name(
+            self.model.get_current_exposure_number())
+
+    def on_initiate_accept(self, event):
+        """Initiates acceptance procedure, gathering required data."""
+        preset_vals = (
+            self._get_provisional_name(),
+            self.model.get_current_observation_date(),
+            self.model.get_current_ra(),
+            self.model.get_current_dec(),
+            self.model.get_current_source_observed_magnitude(),
+            self.model.get_current_band(),
+            config.read("MPC.NOTE1OPTIONS"),
+            config.read("MPC.NOTE2OPTIONS"),
+            config.read("MPC.NOTE2DEFAULT"),
+            config.read("MPC.DEFAULT_OBSERVATORY_CODE")
+        )
+        self.get_view().show_accept_source_dialog(preset_vals)
+
+    def on_reject(self, event):
+        self.model.set_current_source_processed()
+        self.model.next_source()
+
+    def on_do_accept(self,
+                     minor_plant_number,
+                     provisional_name,
+                     discovery_asterisk,
+                     note1,
+                     note2,
+                     date_of_ob,
+                     ra,
+                     dec,
+                     obs_mag,
+                     band,
+                     observatory_code):
+        """Final acceptance with collected data."""
+        # Just extract the character code from the notes, not the
+        # full description
+        note1_code = note1.split(" ")[0]
+        note2_code = note2.split(" ")[0]
+        self.output_writer.write_line(
+            minor_plant_number,
+            provisional_name,
+            discovery_asterisk,
+            note1_code,
+            note2_code,
+            date_of_ob,
+            ra,
+            dec,
+            obs_mag,
+            band,
+            observatory_code)
+
+        self.get_view().close_accept_source_dialog()
+        self.model.set_current_source_processed()
+        self.model.next_source()
+
+    def on_cancel_accept(self):
+        self.get_view().close_accept_source_dialog()

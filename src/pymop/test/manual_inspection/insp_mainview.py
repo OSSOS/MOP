@@ -15,9 +15,7 @@ def main():
             return [("FWHM", "3.00"), ("SNR", 10)]
 
     app = wx.App()
-    frame = MainFrame(DummyModel(), testutil.Dummy("AppController"),
-                      testutil.Dummy("ValController"),
-                      testutil.Dummy("NavController"))
+    frame = MainFrame(DummyModel(), testutil.Dummy("Controller"))
     frame.Show()
     app.MainLoop()
 

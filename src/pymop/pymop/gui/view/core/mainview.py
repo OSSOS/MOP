@@ -19,8 +19,8 @@ class MainFrame(wx.Frame):
     ApplicationView.
     """
 
-    def __init__(self, model, appcontroller, validationcontroller, navcontroller,
-                 size=(400, 500)):
+    def __init__(self, model, controller, size=(400, 500)):
+        # TODO put default size in config
         super(MainFrame, self).__init__(None, title="Moving Object Pipeline",
                                         size=size)
 
@@ -29,9 +29,7 @@ class MainFrame(wx.Frame):
 
         self.model = model
 
-        self.appcontroller = appcontroller
-        self.validationcontroller = validationcontroller
-        self.navcontroller = navcontroller
+        self.controller = controller
 
         self._init_ui_components()
 
@@ -41,11 +39,11 @@ class MainFrame(wx.Frame):
         self.statusbar = AppStatusBar(self)
         self.SetStatusBar(self.statusbar)
 
-        self.nav_view = navview.NavPanel(self, self.navcontroller)
+        self.nav_view = navview.NavPanel(self, self.controller)
 
         self.data_view = self._create_data_notebook()
 
-        self.validation_view = SourceValidationPanel(self, self.validationcontroller)
+        self.validation_view = SourceValidationPanel(self, self.controller)
 
         self.img_loading_dialog = dialogs.WaitingGaugeDialog(self, "Image loading...")
 
@@ -66,7 +64,7 @@ class MainFrame(wx.Frame):
         # Create menus and their contents
         file_menu = wx.Menu()
         exit_item = file_menu.Append(wx.ID_EXIT, "Exit", "Exit the program")
-        do_bind(self.appcontroller.on_exit, exit_item)
+        do_bind(self.controller.on_exit, exit_item)
 
         # Create menu bar
         menubar = wx.MenuBar()

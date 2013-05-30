@@ -4,11 +4,11 @@ import wx
 
 
 class SourceValidationPanel(wx.Panel):
-    def __init__(self, parent, validation_controller,
+    def __init__(self, parent, controller,
                  accept_label="Accept", reject_label="Reject"):
         super(SourceValidationPanel, self).__init__(parent)
 
-        self.validation_controller = validation_controller
+        self.controller = controller
 
         self.accept_label = accept_label
         self.reject_label = reject_label
@@ -21,8 +21,8 @@ class SourceValidationPanel(wx.Panel):
         self.accept_button = wx.Button(self, label=self.accept_label)
         self.reject_button = wx.Button(self, label=self.reject_label)
 
-        self.accept_button.Bind(wx.EVT_BUTTON, self.validation_controller.on_initiate_accept)
-        self.reject_button.Bind(wx.EVT_BUTTON, self.validation_controller.on_reject)
+        self.accept_button.Bind(wx.EVT_BUTTON, self.controller.on_initiate_accept)
+        self.reject_button.Bind(wx.EVT_BUTTON, self.controller.on_reject)
 
         self._do_layout()
 
