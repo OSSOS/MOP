@@ -10,7 +10,7 @@ from pymop.io.naming import ProvisionalNameGenerator
 from pymop.io.imgaccess import (AsynchronousImageDownloadManager,
                                 ImageSliceDownloader, VOSpaceResolver)
 from pymop.gui.model.astrodata import AstroDataModel
-from pymop.gui.controller.appcontrol import ApplicationController
+from pymop.gui.controller.controllers import ApplicationController
 from pymop.gui.view.image.ds9view import DS9ImageViewer
 
 
@@ -32,11 +32,11 @@ class AstromFileApplicationLauncher(object):
 
         self.model = AstroDataModel(self.astrom_data, self.download_manager)
         self.output_writer = MPCWriter(output_filehandle)
-        self.appcontroller = ApplicationController(self.model,
+        self.controller = ApplicationController(self.model,
                                                    self.output_writer,
                                                    self.name_generator,
                                                    self.image_viewer,
                                                    debug_mode=debug_mode,
                                                    unittest=unittest)
-        return self.appcontroller
+        return self.controller
 
