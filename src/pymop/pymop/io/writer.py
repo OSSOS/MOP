@@ -62,7 +62,7 @@ class MPCWriter(object):
         note1 = note1.ljust(1)
         note2 = note2.ljust(1)
         observatory_code = str(observatory_code).zfill(3)
-        obs_mag = str(obs_mag)
+        obs_mag = str(round(float(obs_mag), 2)).ljust(5)
 
         # Check for invalid values
         if len(minor_planet_number) > 5:
@@ -114,7 +114,9 @@ class MPCWriter(object):
 
         if not _is_numeric(obs_mag) or not len(obs_mag) <= 5:
             raise MPCFieldFormatException("Observed magnitude",
-                                          "must be numeric (can be in string form) and no more than 5 characters",
+                                          "must be numeric (can be in string form) "
+                                          "and less than or equal to 5 characters "
+                                          "after being rounded to 2 decimal places",
                                           obs_mag)
 
         if not len(band) == 1:
