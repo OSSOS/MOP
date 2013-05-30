@@ -8,7 +8,7 @@ from hamcrest import assert_that, equal_to, has_length, contains, none, same_ins
 from mock import Mock, patch
 
 from test.base_tests import FileReadingTestCase
-from pymop.gui.model import astrodata
+from pymop.gui.model import models
 from pymop.io.parser import AstromParser
 from pymop.io.img import FitsImage
 
@@ -21,7 +21,7 @@ class AstroDataModelTest(FileReadingTestCase):
         self.astrom_data = AstromParser().parse(testfile)
         self.download_manager = Mock()
 
-        self.model = astrodata.AstroDataModel(self.astrom_data, self.download_manager)
+        self.model = models.AstroDataModel(self.astrom_data, self.download_manager)
 
     def create_real_first_image(self, path="data/testimg.fits"):
         # Put a real fits image on the first source, first observation
@@ -81,7 +81,7 @@ class AstroDataModelTest(FileReadingTestCase):
     def test_receive_next_source_event(self):
         # Subscribe a mock
         observer = Mock()
-        pub.subscribe(observer.on_next_event, astrodata.MSG_NEXT_SRC)
+        pub.subscribe(observer.on_next_event, models.MSG_NEXT_SRC)
 
         # Perform action
         self.model.next_source()
@@ -94,13 +94,13 @@ class AstroDataModelTest(FileReadingTestCase):
         assert_that(args, has_length(1))
 
         msg = args[0]
-        assert_that(msg.topic, equal_to(astrodata.MSG_NEXT_SRC))
+        assert_that(msg.topic, equal_to(models.MSG_NEXT_SRC))
         assert_that(msg.data, equal_to(1))
 
     def test_receive_next_obs_event(self):
         # Subscribe a mock
         observer = Mock()
-        pub.subscribe(observer.on_next_event, astrodata.MSG_NEXT_OBS)
+        pub.subscribe(observer.on_next_event, models.MSG_NEXT_OBS)
 
         # Perform action
         self.model.next_obs()
@@ -113,13 +113,13 @@ class AstroDataModelTest(FileReadingTestCase):
         assert_that(args, has_length(1))
 
         msg = args[0]
-        assert_that(msg.topic, equal_to(astrodata.MSG_NEXT_OBS))
+        assert_that(msg.topic, equal_to(models.MSG_NEXT_OBS))
         assert_that(msg.data, equal_to(1))
 
     def test_receive_previous_source_event(self):
         # Subscribe a mock
         observer = Mock()
-        pub.subscribe(observer.on_previous_event, astrodata.MSG_PREV_SRC)
+        pub.subscribe(observer.on_previous_event, models.MSG_PREV_SRC)
 
         # Perform actions
         self.model.next_source()
@@ -133,13 +133,13 @@ class AstroDataModelTest(FileReadingTestCase):
         assert_that(args, has_length(1))
 
         msg = args[0]
-        assert_that(msg.topic, equal_to(astrodata.MSG_PREV_SRC))
+        assert_that(msg.topic, equal_to(models.MSG_PREV_SRC))
         assert_that(msg.data, equal_to(0))
 
     def test_receive_previous_source_event(self):
         # Subscribe a mock
         observer = Mock()
-        pub.subscribe(observer.on_previous_event, astrodata.MSG_PREV_OBS)
+        pub.subscribe(observer.on_previous_event, models.MSG_PREV_OBS)
 
         # Perform actions
         self.model.next_obs()
@@ -153,13 +153,13 @@ class AstroDataModelTest(FileReadingTestCase):
         assert_that(args, has_length(1))
 
         msg = args[0]
-        assert_that(msg.topic, equal_to(astrodata.MSG_PREV_OBS))
+        assert_that(msg.topic, equal_to(models.MSG_PREV_OBS))
         assert_that(msg.data, equal_to(0))
 
     def test_receive_nav_event_next_and_prev_source(self):
         # Subscribe a mock
         observer = Mock()
-        pub.subscribe(observer.on_nav, astrodata.MSG_NAV)
+        pub.subscribe(observer.on_nav, models.MSG_NAV)
 
         # Perform actions
         self.model.next_obs()
@@ -176,7 +176,7 @@ class AstroDataModelTest(FileReadingTestCase):
 
     def test_loading_images(self):
         observer = Mock()
-        pub.subscribe(observer.on_img_loaded, astrodata.MSG_IMG_LOADED)
+        pub.subscribe(observer.on_img_loaded, models.MSG_IMG_LOADED)
 
         self.model.start_loading_images()
 
@@ -199,11 +199,11 @@ class AstroDataModelTest(FileReadingTestCase):
         assert_that(call_args_list, has_length(2))
 
         msg0 = call_args_list[0][0][0]
-        assert_that(msg0.topic, equal_to(astrodata.MSG_IMG_LOADED))
+        assert_that(msg0.topic, equal_to(models.MSG_IMG_LOADED))
         assert_that(msg0.data, equal_to((0, 1)))
 
         msg1 = call_args_list[1][0][0]
-        assert_that(msg1.topic, equal_to(astrodata.MSG_IMG_LOADED))
+        assert_that(msg1.topic, equal_to(models.MSG_IMG_LOADED))
         assert_that(msg1.data, equal_to((1, 1)))
 
     def test_get_current_exposure_number(self):
@@ -262,7 +262,7 @@ class AstroDataModelTest(FileReadingTestCase):
 
     def test_receive_all_sources_processed_event(self):
         observer = Mock()
-        pub.subscribe(observer.on_all_processed, astrodata.MSG_ALL_SRC_PROC)
+        pub.subscribe(observer.on_all_processed, models.MSG_ALL_SRC_PROC)
 
         assert_that(not observer.on_all_processed.called)
 

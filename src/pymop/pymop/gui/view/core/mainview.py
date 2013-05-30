@@ -1,14 +1,13 @@
-from pymop.gui.view.core import util, navview, dialogs
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
 from wx.lib.pubsub import Publisher as pub
 
-from pymop.gui.model import astrodata
+from pymop.gui.model import models
 from pymop.gui.view.core.validationview import SourceValidationPanel
 from pymop.gui.view.core.listview import KeyValueListPanel
 from pymop.gui.view.core.statusview import AppStatusBar
+from pymop.gui.view.core import util, navview, dialogs
 
 
 class MainFrame(wx.Frame):
@@ -77,10 +76,10 @@ class MainFrame(wx.Frame):
         notebook = wx.Notebook(self)
 
         reading_data_panel = KeyValueListPanel(notebook, self.model.get_reading_data)
-        pub.subscribe(reading_data_panel.on_change_data, astrodata.MSG_NAV)
+        pub.subscribe(reading_data_panel.on_change_data, models.MSG_NAV)
 
         obs_header_panel = KeyValueListPanel(notebook, self.model.get_header_data_list)
-        pub.subscribe(obs_header_panel.on_change_data, astrodata.MSG_NAV)
+        pub.subscribe(obs_header_panel.on_change_data, models.MSG_NAV)
 
         notebook.AddPage(reading_data_panel, "Readings")
         notebook.AddPage(obs_header_panel, "Observation Header")

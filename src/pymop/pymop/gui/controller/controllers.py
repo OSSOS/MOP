@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 from wx.lib.pubsub import Publisher as pub
 
 from pymop import config
-from pymop.gui.model import astrodata
+from pymop.gui.model import models
 from pymop.gui.view.appview import ApplicationView
 
 
@@ -22,9 +22,9 @@ class ApplicationController(object):
         self.name_generator = name_generator
         self.image_viewer = image_viewer
 
-        pub.subscribe(self.on_change_image, astrodata.MSG_NAV)
-        pub.subscribe(self.on_image_loaded, astrodata.MSG_IMG_LOADED)
-        pub.subscribe(self.on_all_sources_processed, astrodata.MSG_ALL_SRC_PROC)
+        pub.subscribe(self.on_change_image, models.MSG_NAV)
+        pub.subscribe(self.on_image_loaded, models.MSG_IMG_LOADED)
+        pub.subscribe(self.on_all_sources_processed, models.MSG_ALL_SRC_PROC)
 
         self.view = ApplicationView(self.model, self)
         self.view.launch(debug_mode=debug_mode, unittest=unittest)
