@@ -21,12 +21,11 @@ class AstromFileApplicationLauncher(object):
 
     def __init__(self):
         self.parser = AstromParser()
-        self.resolver = VOSpaceResolver()
-        self.downloader = ImageSliceDownloader()
         self.image_viewer = DS9ImageViewer()
         self.name_generator = ProvisionalNameGenerator()
 
-        self.download_manager = AsynchronousImageDownloadManager(self.resolver, self.downloader)
+        self.download_manager = AsynchronousImageDownloadManager(
+            ImageSliceDownloader(VOSpaceResolver()))
 
     def run(self, astrom_file, output_filehandle, debug_mode, unittest=False):
         self.astrom_data = self.parser.parse(astrom_file)

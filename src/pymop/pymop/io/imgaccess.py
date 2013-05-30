@@ -14,8 +14,7 @@ class AsynchronousImageDownloadManager(object):
     the application.
     """
 
-    def __init__(self, resolver, downloader):
-        self.resolver = resolver
+    def __init__(self, downloader):
         self.downloader = downloader
 
     def start_download(self, astrom_data,
@@ -25,19 +24,10 @@ class AsynchronousImageDownloadManager(object):
         self.image_loaded_callback = image_loaded_callback
         self.all_loaded_callback = all_loaded_callback
 
-        # TODO refactor: this probably belongs in the SerialImageDownloadThread
-        lookupinfo = []
-        for source_num, source in enumerate(astrom_data.sources):
-            for obs_num, reading in enumerate(source):
-                image_uri = self.resolver.resolve_image_uri(reading.obs)
-                apcor_uri = self.resolver.resolve_apcor_uri(reading.obs)
-                lookupinfo.append((image_uri, apcor_uri, reading, source_num, obs_num))
+        self.do_download(astrom_data)
 
-        self.do_download(lookupinfo)
-
-    def do_download(self, lookupinfo):
-        SerialImageDownloadThread(self, self.downloader,
-                                  lookupinfo).start()
+    def do_download(self, astrom_data):
+        SerialImageDownloadThread(self, self.downloader, astrom_data).start()
 
     def on_image_downloaded(self, fitsimage, reading, source_num, obs_num):
         reading.set_fits_image(fitsimage)
@@ -56,17 +46,18 @@ class SerialImageDownloadThread(threading.Thread):
     happen in the background.
     """
 
-    def __init__(self, loader, downloader, lookupinfo):
+    def __init__(self, loader, downloader, astrom_data):
         super(SerialImageDownloadThread, self).__init__()
 
         self.download_manager = loader
         self.downloader = downloader
-        self.lookupinfo = lookupinfo
+        self.astrom_data = astrom_data
 
     def run(self):
-        for image_uri, apcor_uri, reading, source_num, obs_num in self.lookupinfo:
-            fitsimage = self.downloader.download_image_slice(image_uri, apcor_uri, reading)
-            self.download_manager.on_image_downloaded(fitsimage, reading, source_num, obs_num)
+        for source_num, source in enumerate(self.astrom_data.sources):
+            for obs_num, reading in enumerate(source):
+                fitsimage = self.downloader.download(reading)
+                self.download_manager.on_image_downloaded(fitsimage, reading, source_num, obs_num)
 
         self.download_manager.on_all_downloaded()
 
@@ -91,7 +82,24 @@ class VOSpaceResolver(object):
 
 
 class ImageSliceDownloader(object):
-    def __init__(self, slice_rows=None, slice_cols=None, vosclient=None):
+    """
+    Downloads a slice of an image relevant to examining a (potential) source.
+    """
+
+    def __init__(self, resolver, slice_rows=None, slice_cols=None, vosclient=None):
+        """
+        Constructor.
+
+        Args:
+          resolver:
+            Resolves source readings to the URI's from which they can be
+            retrieved.
+          slice_rows, slice_cols: int
+            The number of rows and columns (pixels) to slice out around the
+            source.  Leave as None to use default configuration values.
+        """
+        self.resolver = resolver
+
         # If not provided, read defaults from application config file
         if slice_rows is None:
             slice_rows = config.read("IMG_RETRIEVAL.DEFAULT_SLICE_ROWS")
@@ -122,18 +130,13 @@ class ImageSliceDownloader(object):
         vofile = self.vosclient.open(uri, view="data")
         return vofile.read()
 
-    def download_image_slice(self, image_uri, apcor_uri, source_reading, in_memory=True):
+    def download(self, source_reading, in_memory=True):
         """
         Retrieves a remote image.
 
         Args:
-          image_uri: str
-            URI of the remote image to be retrieved.
-          apcor_uri: str
-            URI of the remote .apcor file associated with the image.
           source_reading: pymop.io.parser.SourceReading
-            Contains information about the CCD number and point about
-            which the slice should be taken.
+            The reading to take a cutout around.
           in_memory: bool
             If True, the image is stored in memory without being written to
             disk.  If False, the image will be written to a temporary file.
@@ -142,6 +145,9 @@ class ImageSliceDownloader(object):
           fitsimage: pymop.io.img.FitsImage
             The downloaded image, either in-memory or on disk as specified.
         """
+        image_uri = self.resolver.resolve_image_uri(source_reading.obs)
+        apcor_uri = self.resolver.resolve_apcor_uri(source_reading.obs)
+
         fits_str, converter = self._download_fits_file(image_uri, source_reading)
         apcor_str = self._download_apcor_file(apcor_uri)
 
