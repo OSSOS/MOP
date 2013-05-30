@@ -107,6 +107,17 @@ class ApcorData(object):
         self.apcor = apcor
         self.apcor_err = apcor_err
 
+    @classmethod
+    def from_raw_string(cls, rawstr):
+        """
+        Creates an ApcorData record from the raw string format.
+
+        Expected string format:
+        ap_in ap_out   ap_cor  apcor_err
+        """
+        args = map(float, rawstr.split())
+        return cls(*args)
+
     @property
     def aperture(self):
         return self.ap_in
