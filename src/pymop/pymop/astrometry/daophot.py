@@ -5,12 +5,10 @@ import re
 import tempfile
 
 from pyraf import iraf
-import pyfits
 
 
 class TaskError(Exception):
-    def __init__(self, message):
-        Exception.__init__(message)
+    """Base task error"""
 
 
 def phot(fitsimage, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
@@ -126,3 +124,9 @@ def phot(fitsimage, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
                 hdu['data'][col].append(values.pop(0))
 
     return hdu
+
+
+def phot_mag(*args, **kwargs):
+    """Wrapper around phot which only returns the computed magnitude directly."""
+    hdu = phot(*args, **kwargs)
+    return hdu["data"]["MAG"][0]
