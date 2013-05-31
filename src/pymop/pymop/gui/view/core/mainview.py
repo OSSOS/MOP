@@ -36,33 +36,37 @@ class MainFrame(wx.Frame):
     def _init_ui_components(self):
         self.menubar = self._create_menus()
 
-        self.statusbar = AppStatusBar(self)
-        self.SetStatusBar(self.statusbar)
+        self.main_panel = wx.Panel(self, style=wx.RAISED_BORDER)
+        self.control_panel = wx.Panel(self.main_panel)
 
-        self.nav_view = navview.NavPanel(self, self.controller)
+        self.nav_view = navview.NavPanel(self.control_panel, self.controller)
 
         self.data_view = self._create_data_notebook()
 
-        self.validation_view = SourceValidationPanel(self, self.controller)
+        self.validation_view = SourceValidationPanel(self.control_panel, self.controller)
 
-        self.viewer_panel = wx.Panel(self)
+        self.viewer_panel = wx.Panel(self.main_panel, style=wx.RAISED_BORDER)
         self.image_viewer = MPLImageViewer(self.viewer_panel)
+
+        self.statusbar = AppStatusBar(self)
+        self.SetStatusBar(self.statusbar)
 
         self.img_loading_dialog = dialogs.WaitingGaugeDialog(self, "Image loading...")
 
         self._do_layout()
 
     def _do_layout(self):
-        vsizer = wx.BoxSizer(wx.VERTICAL)
-        vsizer.Add(self.nav_view, 1, flag=wx.EXPAND)
-        vsizer.Add(self.data_view, 2, flag=wx.EXPAND)
-        vsizer.Add(self.validation_view, 1, flag=wx.EXPAND)
+        control_sizer = wx.BoxSizer(wx.VERTICAL)
+        control_sizer.Add(self.nav_view, 1, flag=wx.EXPAND)
+        control_sizer.Add(self.data_view, 2, flag=wx.EXPAND)
+        control_sizer.Add(self.validation_view, 1, flag=wx.EXPAND)
+        self.control_panel.SetSizerAndFit(control_sizer)
 
-        hsizer = wx.BoxSizer(wx.HORIZONTAL)
-        hsizer.Add(vsizer, proportion=1)
-        hsizer.Add(self.viewer_panel, proportion=3)
+        main_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        main_sizer.Add(self.control_panel, flag=wx.EXPAND)
+        main_sizer.Add(self.viewer_panel, flag=wx.EXPAND)
 
-        self.SetSizer(hsizer)
+        self.main_panel.SetSizerAndFit(main_sizer)
 
     def _create_menus(self):
         def do_bind(handler, item):
@@ -81,7 +85,7 @@ class MainFrame(wx.Frame):
         return menubar
 
     def _create_data_notebook(self):
-        notebook = wx.Notebook(self)
+        notebook = wx.Notebook(self.control_panel)
 
         reading_data_panel = KeyValueListPanel(notebook, self.model.get_reading_data)
         pub.subscribe(reading_data_panel.on_change_data, models.MSG_NAV)
