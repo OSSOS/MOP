@@ -40,7 +40,7 @@ class MPLImageViewer(object):
         self.interaction_context.create_circle(x, y, radius)
 
     def close(self):
-        pass
+        self.interaction_context.disconnect()
 
 
 class InteractionContext(object):
@@ -90,11 +90,13 @@ class InteractionContext(object):
 
     def on_motion(self, event):
         self.state.on_motion(event)
+        self.figure.canvas.draw()
 
     def on_release(self, event):
         self.state.on_release(event)
+        self.figure.canvas.draw()
 
-    def _disconnect(self):
+    def disconnect(self):
         """Disconnects all the stored connection ids"""
         self.figure.canvas.mpl_disconnect(self.cidpress)
         self.figure.figure.canvas.mpl_disconnect(self.cidrelease)
@@ -107,28 +109,36 @@ class MoveCircleState(object):
             raise MPLImageViewer("Can not move a circle if it doesn't exist!")
 
         self.context = context
-        self.press = None
+
+        self.pressed = False
+        self.center_x = None
+        self.center_y = None
+        self.mouse_x = None
+        self.mouse_y = None
 
     def on_press(self, event):
-        circle_x, circle_y = self.context.circle.center
-        self.press = circle_x, circle_y, event.xdata, event.ydata
+        self.pressed = True
+
+        self.center_x, self.center_y = self.context.circle.center
+        self.mouse_x = event.xdata
+        self.mouse_y = event.ydata
 
     def on_motion(self, event):
-        if self.press is None:
+        if not self.pressed:
             return
 
-        circle_x, circle_y, mouse_x, mouse_y = self.press
+        dx = event.xdata - self.mouse_x
+        dy = event.ydata - self.mouse_y
 
-        dx = event.xdata - mouse_x
-        dy = event.ydata - mouse_y
-
-        self.context.circle.center = (circle_x + dx, circle_y + dy)
-
-        self.context.circle.figure.canvas.draw()
+        # Update the circle's center
+        self.context.circle.center = (self.center_x + dx, self.center_y + dy)
 
     def on_release(self, event):
-        self.press = None
-        self.context.circle.figure.canvas.draw()
+        self.pressed = False
+        self.center_x = None
+        self.center_y = None
+        self.mouse_x = None
+        self.mouse_y = None
 
 
 class CreateCircleState(object):
@@ -157,8 +167,8 @@ class CreateCircleState(object):
         centerx = float(self.startx + self.endx) / 2
         centery = float(self.starty + self.endy) / 2
 
-        radius = max(abs(self.startx - self.endx),
-                     abs(self.starty - self.endy))
+        radius = max(abs(self.startx - self.endx) / 2,
+                     abs(self.starty - self.endy) / 2)
 
         self.context.create_circle(centerx, centery, radius)
 
@@ -168,8 +178,6 @@ class CreateCircleState(object):
         self.starty = None
         self.endx = None
         self.endy = None
-
-        self.context.circle.figure.canvas.draw()
 
 
 def zscale(img):
