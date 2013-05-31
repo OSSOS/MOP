@@ -33,10 +33,10 @@ class AstromFileApplicationLauncher(object):
         self.model = AstroDataModel(self.astrom_data, self.download_manager)
         self.output_writer = MPCWriter(output_filehandle)
         self.controller = ApplicationController(self.model,
-                                                   self.output_writer,
-                                                   self.name_generator,
-                                                   self.image_viewer,
-                                                   debug_mode=debug_mode,
-                                                   unittest=unittest)
+                                                self.output_writer,
+                                                self.name_generator,
+                                                self.image_viewer,
+                                                debug_mode=debug_mode,
+                                                unittest=unittest)
         return self.controller
 

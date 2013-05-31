@@ -19,7 +19,7 @@ class MPLImageViewer(object):
         self.canvas = FigureCanvas(parent, wx.ID_ANY, self.figure)
 
     def view_image(self, hdulist):
-        plt.imshow(hdulist[0].data)
+        plt.imshow(hdulist[0].data, cmap="gray")
 
     def draw_circle(self, x, y, radius):
         # TODO
