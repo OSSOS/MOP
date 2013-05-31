@@ -7,6 +7,10 @@ from matplotlib.backends.backend_wxagg import \
 from stsci import numdisplay
 
 
+class MPLViewerError(object):
+    """Base exception for matplotlib viewer"""
+
+
 class MPLImageViewer(object):
     """
     Display images using matplotlib.
@@ -50,9 +54,9 @@ class InteractionContext(object):
         self.axes = axes
 
         self._connect()
-        self.state = MoveCircleState()
 
         self.circle = None
+        self.state = CreateCircleState(self)
 
     def create_circle(self, x, y, radius):
         if self.circle is not None:
@@ -60,6 +64,8 @@ class InteractionContext(object):
 
         self.circle = plt.Circle((x, y), radius, color="y", fill=False)
         self.axes.add_patch(self.circle)
+
+        self.figure.canvas.draw()
 
     def _connect(self):
         """
@@ -73,13 +79,20 @@ class InteractionContext(object):
             "motion_notify_event", self.on_motion)
 
     def on_press(self, event):
-        self.state.on_press(self, event)
+        in_circle, _ = self.circle.contains(event)
+
+        if in_circle:
+            self.state = MoveCircleState(self)
+        else:
+            self.state = CreateCircleState(self)
+
+        self.state.on_press(event)
 
     def on_motion(self, event):
-        self.state.on_motion(self, event)
+        self.state.on_motion(event)
 
     def on_release(self, event):
-        self.state.on_release(self, event)
+        self.state.on_release(event)
 
     def _disconnect(self):
         """Disconnects all the stored connection ids"""
@@ -89,24 +102,19 @@ class InteractionContext(object):
 
 
 class MoveCircleState(object):
-    def __init__(self):
+    def __init__(self, context):
+        if context.circle is None:
+            raise MPLImageViewer("Can not move a circle if it doesn't exist!")
+
+        self.context = context
         self.press = None
 
-    def on_press(self, context, event):
-        if event.inaxes != context.circle.axes:
-            return
-
-        contains_event, _ = context.circle.contains(event)
-
-        if not contains_event:
-            return
-
-        circle_x, circle_y = context.circle.center
-
+    def on_press(self, event):
+        circle_x, circle_y = self.context.circle.center
         self.press = circle_x, circle_y, event.xdata, event.ydata
 
-    def on_motion(self, context, event):
-        if self.press is None or event.inaxes != context.circle.axes:
+    def on_motion(self, event):
+        if self.press is None:
             return
 
         circle_x, circle_y, mouse_x, mouse_y = self.press
@@ -114,27 +122,54 @@ class MoveCircleState(object):
         dx = event.xdata - mouse_x
         dy = event.ydata - mouse_y
 
-        context.circle.center = (circle_x + dx, circle_y + dy)
+        self.context.circle.center = (circle_x + dx, circle_y + dy)
 
-        context.circle.figure.canvas.draw()
+        self.context.circle.figure.canvas.draw()
 
-    def on_release(self, context, event):
+    def on_release(self, event):
         self.press = None
-        context.circle.figure.canvas.draw()
+        self.context.circle.figure.canvas.draw()
 
 
 class CreateCircleState(object):
-    def __init__(self):
-        self.press = None
+    def __init__(self, context):
+        self.context = context
 
-    def on_press(self, context, event):
-        pass
+        self.pressed = False
+        self.startx = None
+        self.starty = None
+        self.endx = None
+        self.endy = None
 
-    def on_motion(self, context, event):
-        pass
+    def on_press(self, event):
+        self.pressed = True
 
-    def on_release(self, context, event):
-        pass
+        self.startx = event.xdata
+        self.starty = event.ydata
+
+    def on_motion(self, event):
+        if not self.pressed:
+            return
+
+        self.endx = event.xdata
+        self.endy = event.ydata
+
+        centerx = float(self.startx + self.endx) / 2
+        centery = float(self.starty + self.endy) / 2
+
+        radius = max(abs(self.startx - self.endx),
+                     abs(self.starty - self.endy))
+
+        self.context.create_circle(centerx, centery, radius)
+
+    def on_release(self, event):
+        self.pressed = False
+        self.startx = None
+        self.starty = None
+        self.endx = None
+        self.endy = None
+
+        self.context.circle.figure.canvas.draw()
 
 
 def zscale(img):
