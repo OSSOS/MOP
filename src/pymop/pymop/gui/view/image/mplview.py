@@ -16,6 +16,10 @@ class MPLImageViewer(object):
         # Create the actual mpl figure we will draw on
         self.figure = plt.figure()
 
+        self.axes = self.figure.add_subplot(1, 1, 1)
+        self.axes.set_aspect("equal", adjustable="datalim")
+        self.axes.autoscale_view(tight=True, scalex=True, scaley=True)
+
         # Create the canvas on which the figure is rendered
         self.canvas = FigureCanvas(parent, wx.ID_ANY, self.figure)
 
@@ -23,8 +27,8 @@ class MPLImageViewer(object):
         plt.imshow(zscale(hdulist[0].data), cmap="gray")
 
     def draw_circle(self, x, y, radius):
-        # TODO
-        pass
+        source_circle = plt.Circle((x, y), radius, color="y", fill=False)
+        self.axes.add_patch(source_circle)
 
     def close(self):
         pass
