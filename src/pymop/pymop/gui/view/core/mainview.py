@@ -8,6 +8,7 @@ from pymop.gui.view.core.validationview import SourceValidationPanel
 from pymop.gui.view.core.listview import KeyValueListPanel
 from pymop.gui.view.core.statusview import AppStatusBar
 from pymop.gui.view.core import util, navview, dialogs
+from pymop.gui.view.image.mplview import MPLImageViewer
 
 
 class MainFrame(wx.Frame):
@@ -18,7 +19,7 @@ class MainFrame(wx.Frame):
     ApplicationView.
     """
 
-    def __init__(self, model, controller, size=(400, 500)):
+    def __init__(self, model, controller, size=(1000, 500)):
         # TODO put default size in config
         super(MainFrame, self).__init__(None, title="Moving Object Pipeline",
                                         size=size)
@@ -44,17 +45,24 @@ class MainFrame(wx.Frame):
 
         self.validation_view = SourceValidationPanel(self, self.controller)
 
+        self.viewer_panel = wx.Panel(self)
+        self.image_viewer = MPLImageViewer(self.viewer_panel)
+
         self.img_loading_dialog = dialogs.WaitingGaugeDialog(self, "Image loading...")
 
         self._do_layout()
 
     def _do_layout(self):
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.nav_view, 1, flag=wx.EXPAND)
-        sizer.Add(self.data_view, 2, flag=wx.EXPAND)
-        sizer.Add(self.validation_view, 1, flag=wx.EXPAND)
+        vsizer = wx.BoxSizer(wx.VERTICAL)
+        vsizer.Add(self.nav_view, 1, flag=wx.EXPAND)
+        vsizer.Add(self.data_view, 2, flag=wx.EXPAND)
+        vsizer.Add(self.validation_view, 1, flag=wx.EXPAND)
 
-        self.SetSizer(sizer)
+        hsizer = wx.BoxSizer(wx.HORIZONTAL)
+        hsizer.Add(vsizer, proportion=1)
+        hsizer.Add(self.viewer_panel, proportion=3)
+
+        self.SetSizer(hsizer)
 
     def _create_menus(self):
         def do_bind(handler, item):
@@ -85,6 +93,12 @@ class MainFrame(wx.Frame):
         notebook.AddPage(obs_header_panel, "Observation Header")
 
         return notebook
+
+    def view_image(self, img):
+        self.image_viewer.view_image(img)
+
+    def draw_circle(self, x, y, radius):
+        self.image_viewer.draw_circle(x, y, radius)
 
     def show_image_loading_dialog(self):
         if not self.img_loading_dialog.IsShown():
