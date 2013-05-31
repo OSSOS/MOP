@@ -23,7 +23,7 @@ class MPLImageViewer(object):
         # Create the canvas on which the figure is rendered
         self.canvas = FigureCanvas(parent, wx.ID_ANY, self.figure)
 
-        self.source_circle = None
+        self.interaction_context = InteractionContext(self.figure, self.axes)
 
     def view_image(self, hdulist):
         plt.imshow(zscale(hdulist[0].data), cmap="gray")
@@ -33,86 +33,108 @@ class MPLImageViewer(object):
         Draws a circle with the specified dimensions.  Only one circle can
         be on the image at a time, so any existing circle will be replaced.
         """
-        if self.source_circle is not None:
-            self.source_circle.remove()
-
-        circle = plt.Circle((x, y), radius, color="y", fill=False)
-        self.axes.add_patch(circle)
-        self.source_circle = DraggableCircle(circle)
-        self.source_circle.connect()
+        self.interaction_context.create_circle(x, y, radius)
 
     def close(self):
         pass
 
 
-class DraggableCircle(object):
+class InteractionContext(object):
     """
-    A circle to be displayed in Matplotlib which can be dragged around
-    within the figure.
-
-    Very useful reference:
+    Very useful reference for matplotlib event handling:
     http://matplotlib.org/users/event_handling.html
     """
 
-    def __init__(self, circle):
-        """
-        Constructor.
+    def __init__(self, figure, axes):
+        self.figure = figure
+        self.axes = axes
 
-        Args:
-          circle: matplotlib Circle patch
-        """
-        self.circle = circle
-        self.press = None
+        self._connect()
+        self.state = MoveCircleState()
 
-    def connect(self):
+        self.circle = None
+
+    def create_circle(self, x, y, radius):
+        if self.circle is not None:
+            self.circle.remove()
+
+        self.circle = plt.Circle((x, y), radius, color="y", fill=False)
+        self.axes.add_patch(self.circle)
+
+    def _connect(self):
         """
         Connect to start listening for the relevant events.
         """
-        self.cidpress = self.circle.figure.canvas.mpl_connect(
+        self.cidpress = self.figure.canvas.mpl_connect(
             "button_press_event", self.on_press)
-        self.cidrelease = self.circle.figure.canvas.mpl_connect(
+        self.cidrelease = self.figure.canvas.mpl_connect(
             "button_release_event", self.on_release)
-        self.cidmotion = self.circle.figure.canvas.mpl_connect(
+        self.cidmotion = self.figure.canvas.mpl_connect(
             "motion_notify_event", self.on_motion)
 
     def on_press(self, event):
-        if event.inaxes != self.circle.axes:
+        self.state.on_press(self, event)
+
+    def on_motion(self, event):
+        self.state.on_motion(self, event)
+
+    def on_release(self, event):
+        self.state.on_release(self, event)
+
+    def _disconnect(self):
+        """Disconnects all the stored connection ids"""
+        self.figure.canvas.mpl_disconnect(self.cidpress)
+        self.figure.figure.canvas.mpl_disconnect(self.cidrelease)
+        self.figure.figure.canvas.mpl_disconnect(self.cidmotion)
+
+
+class MoveCircleState(object):
+    def __init__(self):
+        self.press = None
+
+    def on_press(self, context, event):
+        if event.inaxes != context.circle.axes:
             return
 
-        contains_event, attrs = self.circle.contains(event)
-        print attrs
+        contains_event, _ = context.circle.contains(event)
 
         if not contains_event:
             return
 
-        x0, y0 = self.circle.center
+        circle_x, circle_y = context.circle.center
 
-        self.press = x0, y0, event.xdata, event.ydata
+        self.press = circle_x, circle_y, event.xdata, event.ydata
 
-    def on_motion(self, event):
-        if self.press is None or event.inaxes != self.circle.axes:
+    def on_motion(self, context, event):
+        if self.press is None or event.inaxes != context.circle.axes:
             return
 
-        x0, y0, xpress, ypress = self.press
+        circle_x, circle_y, mouse_x, mouse_y = self.press
 
-        dx = event.xdata - xpress
-        dy = event.ydata - ypress
+        dx = event.xdata - mouse_x
+        dy = event.ydata - mouse_y
 
-        self.circle.center = (x0 + dx, y0 + dy)
+        context.circle.center = (circle_x + dx, circle_y + dy)
 
-        self.circle.figure.canvas.draw()
+        context.circle.figure.canvas.draw()
 
-    def on_release(self, event):
+    def on_release(self, context, event):
         self.press = None
-        self.circle.figure.canvas.draw()
+        context.circle.figure.canvas.draw()
 
-    def remove(self):
-        """Disconnects all the stored connection ids"""
-        self.circle.figure.canvas.mpl_disconnect(self.cidpress)
-        self.circle.figure.canvas.mpl_disconnect(self.cidrelease)
-        self.circle.figure.canvas.mpl_disconnect(self.cidmotion)
 
-        self.circle.remove()
+class CreateCircleState(object):
+    def __init__(self):
+        self.press = None
+
+    def on_press(self, context, event):
+        pass
+
+    def on_motion(self, context, event):
+        pass
+
+    def on_release(self, context, event):
+        pass
 
 
 def zscale(img):
