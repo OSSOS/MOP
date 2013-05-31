@@ -79,7 +79,13 @@ class InteractionContext(object):
             "motion_notify_event", self.on_motion)
 
     def on_press(self, event):
-        in_circle, _ = self.circle.contains(event)
+        if event.inaxes != self.axes:
+            return
+
+        if self.circle is None:
+            in_circle = False
+        else:
+            in_circle, _ = self.circle.contains(event)
 
         if in_circle:
             self.state = MoveCircleState(self)
@@ -89,6 +95,9 @@ class InteractionContext(object):
         self.state.on_press(event)
 
     def on_motion(self, event):
+        if event.inaxes != self.axes:
+            return
+
         self.state.on_motion(event)
         self.redraw()
 
