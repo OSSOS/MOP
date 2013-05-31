@@ -36,11 +36,83 @@ class MPLImageViewer(object):
         if self.source_circle is not None:
             self.source_circle.remove()
 
-        self.source_circle = plt.Circle((x, y), radius, color="y", fill=False)
-        self.axes.add_patch(self.source_circle)
+        circle = plt.Circle((x, y), radius, color="y", fill=False)
+        self.axes.add_patch(circle)
+        self.source_circle = DraggableCircle(circle)
+        self.source_circle.connect()
 
     def close(self):
         pass
+
+
+class DraggableCircle(object):
+    """
+    A circle to be displayed in Matplotlib which can be dragged around
+    within the figure.
+
+    Very useful reference:
+    http://matplotlib.org/users/event_handling.html
+    """
+
+    def __init__(self, circle):
+        """
+        Constructor.
+
+        Args:
+          circle: matplotlib Circle patch
+        """
+        self.circle = circle
+        self.press = None
+
+    def connect(self):
+        """
+        Connect to start listening for the relevant events.
+        """
+        self.cidpress = self.circle.figure.canvas.mpl_connect(
+            "button_press_event", self.on_press)
+        self.cidrelease = self.circle.figure.canvas.mpl_connect(
+            "button_release_event", self.on_release)
+        self.cidmotion = self.circle.figure.canvas.mpl_connect(
+            "motion_notify_event", self.on_motion)
+
+    def on_press(self, event):
+        if event.inaxes != self.circle.axes:
+            return
+
+        contains_event, attrs = self.circle.contains(event)
+        print attrs
+
+        if not contains_event:
+            return
+
+        x0, y0 = self.circle.center
+
+        self.press = x0, y0, event.xdata, event.ydata
+
+    def on_motion(self, event):
+        if self.press is None or event.inaxes != self.circle.axes:
+            return
+
+        x0, y0, xpress, ypress = self.press
+
+        dx = event.xdata - xpress
+        dy = event.ydata - ypress
+
+        self.circle.center = (x0 + dx, y0 + dy)
+
+        self.circle.figure.canvas.draw()
+
+    def on_release(self, event):
+        self.press = None
+        self.circle.figure.canvas.draw()
+
+    def remove(self):
+        """Disconnects all the stored connection ids"""
+        self.circle.figure.canvas.mpl_disconnect(self.cidpress)
+        self.circle.figure.canvas.mpl_disconnect(self.cidrelease)
+        self.circle.figure.canvas.mpl_disconnect(self.cidmotion)
+
+        self.circle.remove()
 
 
 def zscale(img):
