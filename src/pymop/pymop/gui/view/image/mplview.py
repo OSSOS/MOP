@@ -23,12 +23,21 @@ class MPLImageViewer(object):
         # Create the canvas on which the figure is rendered
         self.canvas = FigureCanvas(parent, wx.ID_ANY, self.figure)
 
+        self.source_circle = None
+
     def view_image(self, hdulist):
         plt.imshow(zscale(hdulist[0].data), cmap="gray")
 
     def draw_circle(self, x, y, radius):
-        source_circle = plt.Circle((x, y), radius, color="y", fill=False)
-        self.axes.add_patch(source_circle)
+        """
+        Draws a circle with the specified dimensions.  Only one circle can
+        be on the image at a time, so any existing circle will be replaced.
+        """
+        if self.source_circle is not None:
+            self.source_circle.remove()
+
+        self.source_circle = plt.Circle((x, y), radius, color="y", fill=False)
+        self.axes.add_patch(self.source_circle)
 
     def close(self):
         pass

@@ -31,6 +31,28 @@ class MPLViewTest(unittest.TestCase):
         assert_that(circle.center, equal_to((cx, cy)))
         assert_that(circle.radius, equal_to(cr))
 
+    def test_draw_second_circle_removes_first(self):
+        axes = self.viewer.axes
+
+        c1x = 1
+        c1y = 2
+        c1r = 3
+        self.viewer.draw_circle(c1x, c1y, c1r)
+
+        assert_that(axes.patches, has_length(1))
+
+        c2x = 4
+        c2y = 5
+        c2r = 6
+        self.viewer.draw_circle(c2x, c2y, c2r)
+
+        assert_that(axes.patches, has_length(1))
+
+        circle = axes.patches[0]
+
+        assert_that(circle.center, equal_to((c2x, c2y)))
+        assert_that(circle.radius, equal_to(c2r))
+
 
 class UtilityTest(unittest.TestCase):
     def test_normalize_array(self):
