@@ -78,6 +78,8 @@ if __name__=='__main__':
                         action='store_true')
     args=parser.parse_args()
 
+    storage._dbimages = args.dbimages
+
     ## setup logging
     level = logging.CRITICAL
     if args.debug:
