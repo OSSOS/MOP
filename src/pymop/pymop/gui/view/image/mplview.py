@@ -65,7 +65,7 @@ class InteractionContext(object):
         self.circle = plt.Circle((x, y), radius, color="y", fill=False)
         self.axes.add_patch(self.circle)
 
-        self.figure.canvas.draw()
+        self.redraw()
 
     def _connect(self):
         """
@@ -90,10 +90,13 @@ class InteractionContext(object):
 
     def on_motion(self, event):
         self.state.on_motion(event)
-        self.figure.canvas.draw()
+        self.redraw()
 
     def on_release(self, event):
         self.state.on_release(event)
+        self.redraw()
+
+    def redraw(self):
         self.figure.canvas.draw()
 
     def disconnect(self):

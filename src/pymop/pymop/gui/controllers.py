@@ -13,14 +13,13 @@ class ApplicationController(object):
     handles user interactions.
     """
 
-    def __init__(self, model, output_writer, name_generator, image_viewer,
+    def __init__(self, model, output_writer, name_generator,
                  debug_mode=False, unittest=False):
         self.unittest = unittest
 
         self.model = model
         self.output_writer = output_writer
         self.name_generator = name_generator
-        self.image_viewer = image_viewer
 
         pub.subscribe(self.on_change_image, models.MSG_NAV)
         pub.subscribe(self.on_image_loaded, models.MSG_IMG_LOADED)
@@ -41,10 +40,10 @@ class ApplicationController(object):
         if current_image is None:
             self.get_view().show_image_loading_dialog()
         else:
-            self.image_viewer.view_image(current_image)
+            self.get_view().view_image(current_image)
             image_x, image_y = self.model.get_current_image_source_point()
             radius = 2 * round(self.model.get_current_image_FWHM())
-            self.image_viewer.draw_circle(image_x, image_y, radius)
+            self.get_view().draw_circle(image_x, image_y, radius)
 
         # Add 1 so displayed source numbers don't start at 0
         self.get_view().set_source_status(
@@ -77,7 +76,6 @@ class ApplicationController(object):
         self._do_exit()
 
     def _do_exit(self):
-        self.image_viewer.close()
         self.view.close()
 
     def on_next_source(self, event):

@@ -36,6 +36,14 @@ class ApplicationView(object):
             self.mainframe.Show()
             self.wx_app.MainLoop()
 
+    @wxutil.guithread
+    def view_image(self, img):
+        self.mainframe.view_image(img)
+
+    @wxutil.guithread
+    def draw_circle(self, x, y, radius):
+        self.mainframe.draw_circle(x, y, radius)
+
     def close(self):
         self.mainframe.Close()
 

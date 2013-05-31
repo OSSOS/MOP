@@ -21,7 +21,6 @@ class AstromFileApplicationLauncher(object):
 
     def __init__(self):
         self.parser = AstromParser()
-        self.image_viewer = DS9ImageViewer()
         self.name_generator = ProvisionalNameGenerator()
 
         self.download_manager = AsynchronousImageDownloadManager(
@@ -35,7 +34,6 @@ class AstromFileApplicationLauncher(object):
         self.controller = ApplicationController(self.model,
                                                 self.output_writer,
                                                 self.name_generator,
-                                                self.image_viewer,
                                                 debug_mode=debug_mode,
                                                 unittest=unittest)
         return self.controller
