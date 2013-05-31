@@ -1,11 +1,14 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import numpy as np
 import wx
 
-from mock import Mock
+from astropy.io import fits
 
+import context
 from pymop.gui.view.image.mplview import MPLImageViewer
+
+
+TEST_FILE = "cutout_1200_2400_1350_2300-1616681p.fits"
 
 
 def main():
@@ -13,9 +16,8 @@ def main():
     rootframe = wx.Frame(None)
 
     viewer = MPLImageViewer(rootframe)
-    hdu = Mock()
-    hdu.data = np.random.uniform(size=(512, 512))
-    hdulist = [hdu]
+
+    hdulist = fits.open(context.get_test_data_path(TEST_FILE))
     viewer.view_image(hdulist)
 
     rootframe.Show()
