@@ -7,7 +7,7 @@ from hamcrest import assert_that, equal_to
 from mock import patch
 
 from test.base_tests import WxWidgetTestCase
-from pymop.gui.view.appview import WaitingGaugeDialog
+from pymop.gui.views import WaitingGaugeDialog
 
 
 class WaitingGaugeDialogTest(WxWidgetTestCase):

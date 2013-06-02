@@ -4,7 +4,7 @@ from wx.lib.pubsub import Publisher as pub
 
 from pymop import config
 from pymop.gui import models
-from pymop.gui.view.appview import ApplicationView
+from pymop.gui.views import ApplicationView
 
 
 class ApplicationController(object):

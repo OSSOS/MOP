@@ -5,7 +5,7 @@ import wx
 from astropy.io import fits
 
 import context
-from pymop.gui.view.image.mplview import MPLImageViewer
+from pymop.gui.imgviewer import MPLImageViewer
 
 
 TEST_FILE = "cutout_1200_2400_1350_2300-1616681p.fits"

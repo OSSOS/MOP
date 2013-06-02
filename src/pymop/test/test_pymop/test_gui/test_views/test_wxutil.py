@@ -7,7 +7,7 @@ import wx
 from mock import patch
 from hamcrest import assert_that, equal_to
 
-from pymop.gui.view.appview import guithread
+from pymop.gui.views import guithread
 
 
 class WxUtilTest(unittest.TestCase):
