@@ -4,7 +4,7 @@ import os
 import sys
 
 root_test_dir = os.path.dirname(os.path.dirname(__file__))
-sys.path.insert(0, os.path.abspath(root_test_dir))
+sys.path.insert(0, os.path.dirname(root_test_dir))
 
 from test import testutil
 
