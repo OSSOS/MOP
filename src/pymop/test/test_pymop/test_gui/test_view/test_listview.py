@@ -8,7 +8,7 @@ from hamcrest import assert_that, equal_to
 
 from test.base_tests import WxWidgetTestCase
 from pymop.gui import models
-from pymop.gui.view.core.listview import KeyValueListPanel
+from pymop.gui.view.appview import KeyValueListPanel
 
 
 class ListViewTest(WxWidgetTestCase):

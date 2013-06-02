@@ -2,7 +2,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
 
-from pymop.gui.view.core.statusview import AppStatusBar
+from pymop.gui.view.appview import AppStatusBar
 
 
 def main():

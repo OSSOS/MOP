@@ -7,7 +7,7 @@ from mock import Mock
 from hamcrest import assert_that, equal_to, not_none
 
 from test.base_tests import WxWidgetTestCase
-from pymop.gui.view.core.navview import NavPanel
+from pymop.gui.view.appview import NavPanel
 
 
 class NavigationPanelTest(WxWidgetTestCase):
