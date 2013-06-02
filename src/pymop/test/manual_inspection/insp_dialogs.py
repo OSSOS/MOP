@@ -2,7 +2,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
 
-from pymop.gui.view.core.dialogs import WaitingGaugeDialog
+from pymop.gui.view.appview import WaitingGaugeDialog
 
 
 def main():

@@ -1,8 +1,9 @@
-from pymop.gui.view.core import finishedview
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
+
+from pymop.gui.view.appview import should_exit_prompt
+from pymop.gui.view.core import finishedview
 
 
 def main():
@@ -16,7 +17,7 @@ def main():
             button.Bind(wx.EVT_BUTTON, self.onclick)
 
         def onclick(self, event):
-            user_choice = finishedview.should_exit_prompt(self)
+            user_choice = should_exit_prompt(self)
             print "Should exit: %s" % user_choice
 
     app = wx.App()

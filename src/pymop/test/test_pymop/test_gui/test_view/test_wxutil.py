@@ -1,5 +1,3 @@
-from pymop.gui.view import wxutil
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
@@ -8,6 +6,8 @@ import wx
 
 from mock import patch
 from hamcrest import assert_that, equal_to
+
+from pymop.gui.view.appview import guithread
 
 
 class WxUtilTest(unittest.TestCase):
@@ -18,7 +18,7 @@ class WxUtilTest(unittest.TestCase):
         # Pretend we are not in the main GUI thread
         Thread_IsMain_mock.return_value = False
 
-        @wxutil.guithread
+        @guithread
         def test_func():
             pass
 
@@ -34,7 +34,7 @@ class WxUtilTest(unittest.TestCase):
         # Pretend we ARE in the main GUI thread
         Thread_IsMain_mock.return_value = True
 
-        @wxutil.guithread
+        @guithread
         def test_func():
             pass
 
