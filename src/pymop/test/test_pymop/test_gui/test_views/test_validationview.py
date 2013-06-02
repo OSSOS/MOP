@@ -8,7 +8,7 @@ from mock import Mock
 from hamcrest import assert_that, equal_to
 
 from test.base_tests import WxWidgetTestCase
-from pymop.gui.view.appview import SourceValidationPanel
+from pymop.gui.views import SourceValidationPanel
 
 
 class TestSourceValidationPanel(WxWidgetTestCase):

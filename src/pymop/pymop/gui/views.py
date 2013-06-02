@@ -9,7 +9,7 @@ from wx.lib.mixins import listctrl as listmix
 
 from pymop import config
 from pymop.gui import models
-from pymop.gui.view.image.mplview import MPLImageViewer
+from pymop.gui.imgviewer import MPLImageViewer
 
 
 def guithread(function):
