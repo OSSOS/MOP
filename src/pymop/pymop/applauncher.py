@@ -11,7 +11,6 @@ from pymop.io.imgaccess import (AsynchronousImageDownloadManager,
                                 ImageSliceDownloader, VOSpaceResolver)
 from pymop.gui.models import AstroDataModel
 from pymop.gui.controllers import ApplicationController
-from pymop.gui.view.image.ds9view import DS9ImageViewer
 
 
 class AstromFileApplicationLauncher(object):
