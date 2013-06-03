@@ -94,7 +94,7 @@ class ApplicationController(object):
         return self.name_generator.generate_name(
             self.model.get_current_exposure_number())
 
-    def on_initiate_accept(self, event):
+    def on_initiate_accept(self):
         """Initiates acceptance procedure, gathering required data."""
         preset_vals = (
             self._get_provisional_name(),
@@ -110,7 +110,7 @@ class ApplicationController(object):
         )
         self.get_view().show_accept_source_dialog(preset_vals)
 
-    def on_reject(self, event):
+    def on_reject(self):
         self.model.set_current_source_processed()
         self.model.next_source()
 
