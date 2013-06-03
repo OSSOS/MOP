@@ -1,4 +1,9 @@
 {
+    "KEYBINDS": {
+        "ACCEPT_SRC": "a",
+        "REJECT_SRC": "r"
+    },
+
     "IMG_RETRIEVAL": {
         "DATASET_ROOT": "vos://cadc.nrc.ca~vospace/OSSOS/dbimages",
         "DEFAULT_SLICE_ROWS": 256,

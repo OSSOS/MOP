@@ -236,11 +236,14 @@ class KeybindManager(object):
         view.Bind(wx.EVT_MENU, self.on_accept_src_keybind, id=accept_src_kb_id)
         view.Bind(wx.EVT_MENU, self.on_reject_src_keybind, id=reject_src_kb_id)
 
+        accept_key = config.read("KEYBINDS.ACCEPT_SRC")
+        reject_key = config.read("KEYBINDS.REJECT_SRC")
+
         accelerators = wx.AcceleratorTable(
             [
                 (wx.ACCEL_NORMAL, wx.WXK_TAB, next_obs_kb_id),
-                (wx.ACCEL_NORMAL, ord('a'), accept_src_kb_id),
-                (wx.ACCEL_NORMAL, ord('r'), reject_src_kb_id),
+                (wx.ACCEL_NORMAL, ord(accept_key), accept_src_kb_id),
+                (wx.ACCEL_NORMAL, ord(reject_key), reject_src_kb_id),
             ]
         )
 
