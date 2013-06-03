@@ -48,7 +48,7 @@ class AcceptSourceDialogTest(WxWidgetTestCase):
                             AcceptSourceDialog.NOTE2, AcceptSourceDialog.DATE_OF_OBS,
                             AcceptSourceDialog.RA, AcceptSourceDialog.DEC, AcceptSourceDialog.OBS_MAG,
                             AcceptSourceDialog.BAND, AcceptSourceDialog.OBSERVATORY_CODE,
-                            AcceptSourceDialog.OK_BTN, AcceptSourceDialog.CANCEL_BTN]
+                            AcceptSourceDialog.SUBMIT_BTN, AcceptSourceDialog.CANCEL_BTN]
 
         for label in component_labels:
             self.assert_has_child_with_label(undertest, label)
@@ -104,7 +104,7 @@ class AcceptSourceDialogTest(WxWidgetTestCase):
         get(AcceptSourceDialog.OBSERVATORY_CODE).SetValue(TEST_OBS_CODE)
 
         # Submit data
-        ok_button = self.get_child_by_name(undertest, AcceptSourceDialog.OK_BTN)
+        ok_button = self.get_child_by_name(undertest, AcceptSourceDialog.SUBMIT_BTN)
         self.fire_button_click_event(ok_button)
 
         # Check data
