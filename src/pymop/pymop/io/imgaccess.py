@@ -120,7 +120,7 @@ class ImageSliceDownloader(object):
 
         # XXX have to be careful about boundary locations
         cutout_str, converter = self.cutout_calculator.build_cutout_str(
-            extension, source_reading.source_point)
+            extension, source_reading.reference_source_point)
 
         vofile = self.vosclient.open(uri, view="cutout", cutout=cutout_str)
 

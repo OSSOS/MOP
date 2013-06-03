@@ -26,9 +26,12 @@ class ImageDownloaderSliceTest(FileReadingTestCase):
 
         reading_x = 500
         reading_y = 600
+        reading_x0 = 1000
+        reading_y0 = 800
 
         # Putting in 0's for don't cares
-        self.source_reading = SourceReading(reading_x, reading_y, 0, 0, 0, 0, obs)
+        self.source_reading = SourceReading(reading_x, reading_y, reading_x0,
+                                            reading_y0, 0, 0, obs)
 
         self.vosclient = Mock(spec=vos.Client)
         self.undertest = ImageSliceDownloader(self.resolver,
@@ -51,7 +54,6 @@ class ImageDownloaderSliceTest(FileReadingTestCase):
                 self.fail("Unrecognized URI")
 
         self.vosclient.open.side_effect = choose_ret_val
-        # return_value = self.localfile
 
     def tearDown(self):
         self.localfile.close()
@@ -63,7 +65,7 @@ class ImageDownloaderSliceTest(FileReadingTestCase):
         # XXX is ccdnum actually the extension we want or is it something
         # standard like 2
         assert_that(self.vosclient.open.call_args_list, contains(
-            call(self.image_uri, view="cutout", cutout="[16][400:600,550:650]"),
+            call(self.image_uri, view="cutout", cutout="[16][900:1100,750:850]"),
             call(self.apcor_uri, view="data")
         ))
 

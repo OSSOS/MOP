@@ -195,6 +195,10 @@ class SourceReading(object):
         return self.x, self.y
 
     @property
+    def reference_source_point(self):
+        return self.x0, self.y0
+
+    @property
     def image_source_point(self):
         """
         The location of the source point in the image, taking into account
