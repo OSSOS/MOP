@@ -482,6 +482,8 @@ class AcceptSourceDialog(wx.Dialog):
         self._init_ui()
         self._bind_events()
 
+        self.submit_button.SetDefault()
+
     def _init_ui(self):
         self.minor_planet_num_label = wx.StaticText(self, label=self.MINOR_PLANET_NUMBER)
         self.minor_planet_num_text = wx.TextCtrl(self, name=self.MINOR_PLANET_NUMBER)
@@ -519,10 +521,16 @@ class AcceptSourceDialog(wx.Dialog):
         self.observatory_code_text = wx.TextCtrl(self, name=self.OBSERVATORY_CODE)
         self.observatory_code_text.SetValue(self.default_observatory_code)
 
-        self.ok_button = wx.Button(self, label=self.SUBMIT_BTN, name=self.SUBMIT_BTN)
+        self.submit_button = wx.Button(self, label=self.SUBMIT_BTN, name=self.SUBMIT_BTN)
         self.cancel_button = wx.Button(self, label=self.CANCEL_BTN, name=self.CANCEL_BTN)
 
         self._do_layout()
+
+    def _create_horizontal_pair(self, widget1, widget2, flag=0, border=0):
+        hsizer = wx.BoxSizer(wx.HORIZONTAL)
+        hsizer.Add(widget1, flag=flag, border=border)
+        hsizer.Add(widget2, flag=flag, border=border)
+        return hsizer
 
     def _get_vertical_widget_list(self):
         return [self._create_horizontal_pair(self.minor_planet_num_label, self.minor_planet_num_text),
@@ -546,7 +554,7 @@ class AcceptSourceDialog(wx.Dialog):
         for widget in self._get_vertical_widget_list():
             vsizer.Add(widget, proportion=0, flag=wx.ALL, border=5)
 
-        vsizer.Add(self._create_horizontal_pair(self.ok_button, self.cancel_button,
+        vsizer.Add(self._create_horizontal_pair(self.submit_button, self.cancel_button,
                                                 flag=wx.ALL, border=5),
                    flag=wx.ALIGN_CENTER)
 
@@ -556,17 +564,11 @@ class AcceptSourceDialog(wx.Dialog):
 
         self.SetSizerAndFit(bordersizer)
 
-    def _create_horizontal_pair(self, widget1, widget2, flag=0, border=0):
-        hsizer = wx.BoxSizer(wx.HORIZONTAL)
-        hsizer.Add(widget1, flag=flag, border=border)
-        hsizer.Add(widget2, flag=flag, border=border)
-        return hsizer
-
     def _bind_events(self):
-        self.ok_button.Bind(wx.EVT_BUTTON, self._on_ok)
+        self.submit_button.Bind(wx.EVT_BUTTON, self._on_submit)
         self.cancel_button.Bind(wx.EVT_BUTTON, self._on_cancel)
 
-    def _on_ok(self, event):
+    def _on_submit(self, event):
         # Grab data out of the form
         # TODO validation
         minor_planet_number = self.minor_planet_num_text.GetValue()
