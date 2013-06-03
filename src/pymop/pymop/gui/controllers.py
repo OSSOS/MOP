@@ -35,7 +35,7 @@ class ApplicationController(object):
         return self.model
 
     def display_current_image(self):
-        current_image = self.model.get_current_hdulist()
+        current_image = self.model.get_current_image()
 
         if current_image is None:
             self.get_view().show_image_loading_dialog()
