@@ -3,7 +3,6 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import wx
 
 from pymop.gui.views import should_exit_prompt
-from pymop.gui.view.core import finishedview
 
 
 def main():
