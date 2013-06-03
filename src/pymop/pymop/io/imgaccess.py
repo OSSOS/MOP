@@ -205,10 +205,27 @@ class CutoutCalculator(object):
         x_mid_offset = self.slice_cols / 2
         y_mid_offset = self.slice_rows / 2
 
-        coords = (x - x_mid_offset, x + x_mid_offset,
-                  y - y_mid_offset, y + y_mid_offset)
+        x0 = x - x_mid_offset
+        x1 = x + x_mid_offset
+        y0 = y - y_mid_offset
+        y1 = y + y_mid_offset
 
-        return coords, CoordinateConverter(x - x_mid_offset, y - y_mid_offset)
+        # Make sure we don't try to slice negative pixel locations
+        if x0 < 1:
+            diff = abs(x0 - 1)
+            x0 += diff
+            x1 += diff
+
+        if y0 < 1:
+            diff = abs(y0 - 1)
+            y0 += diff
+            y1 += diff
+
+        # XXX how do we know if we slice too far in the other direction though?
+
+        coords = (x0, x1, y0, y1)
+
+        return coords, CoordinateConverter(x0, y0)
 
 
 class CoordinateConverter(object):
