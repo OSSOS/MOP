@@ -72,17 +72,11 @@ class ApplicationController(object):
             if should_exit:
                 self._do_exit()
 
-    def on_exit(self, event):
+    def on_exit(self):
         self._do_exit()
 
     def _do_exit(self):
         self.view.close()
-
-    def on_next_source(self, event):
-        self.model.next_source()
-
-    def on_previous_source(self, event):
-        self.model.previous_source()
 
     def on_next_obs(self):
         self.model.next_obs()

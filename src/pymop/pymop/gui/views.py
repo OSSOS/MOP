@@ -173,7 +173,7 @@ class MainFrame(wx.Frame):
         # Create menus and their contents
         file_menu = wx.Menu()
         exit_item = file_menu.Append(wx.ID_EXIT, "Exit", "Exit the program")
-        do_bind(self.controller.on_exit, exit_item)
+        do_bind(self._on_select_exit, exit_item)
 
         # Create menu bar
         menubar = wx.MenuBar()
@@ -195,6 +195,9 @@ class MainFrame(wx.Frame):
         notebook.AddPage(obs_header_panel, "Observation Header")
 
         return notebook
+
+    def _on_select_exit(self, event):
+        self.controller.on_exit()
 
     def view_image(self, img):
         self.image_viewer.view_image(img)
@@ -455,7 +458,7 @@ class AcceptSourceDialog(wx.Dialog):
     OBS_MAG = "Observed magnitude: "
     BAND = "Band: "
     OBSERVATORY_CODE = "Observatory code: "
-    OK_BTN = "Ok"
+    SUBMIT_BTN = "Submit"
     CANCEL_BTN = "Cancel"
 
     def __init__(self, parent, controller, provisional_name, date_of_obs, ra, dec, obs_mag, band,
@@ -516,7 +519,7 @@ class AcceptSourceDialog(wx.Dialog):
         self.observatory_code_text = wx.TextCtrl(self, name=self.OBSERVATORY_CODE)
         self.observatory_code_text.SetValue(self.default_observatory_code)
 
-        self.ok_button = wx.Button(self, label=self.OK_BTN, name=self.OK_BTN)
+        self.ok_button = wx.Button(self, label=self.SUBMIT_BTN, name=self.SUBMIT_BTN)
         self.cancel_button = wx.Button(self, label=self.CANCEL_BTN, name=self.CANCEL_BTN)
 
         self._do_layout()
