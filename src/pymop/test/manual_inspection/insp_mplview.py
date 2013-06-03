@@ -2,6 +2,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
 
+from mock import Mock
 from astropy.io import fits
 
 import context
@@ -18,7 +19,10 @@ def main():
     viewer = MPLImageViewer(rootframe)
 
     hdulist = fits.open(context.get_test_data_path(TEST_FILE))
-    viewer.view_image(hdulist)
+    fits_image = Mock()
+    fits_image.as_hdulist.return_value = hdulist
+
+    viewer.view_image(fits_image)
 
     viewer.draw_circle(50, 50, 10)
     viewer.draw_circle(20, 70, 5)

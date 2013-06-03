@@ -58,8 +58,8 @@ class ApplicationView(object):
             self.wx_app.MainLoop()
 
     @guithread
-    def view_image(self, img):
-        self.mainframe.view_image(img)
+    def view_image(self, fits_image):
+        self.mainframe.view_image(fits_image)
 
     @guithread
     def draw_circle(self, x, y, radius):
@@ -199,8 +199,8 @@ class MainFrame(wx.Frame):
     def _on_select_exit(self, event):
         self.controller.on_exit()
 
-    def view_image(self, img):
-        self.image_viewer.view_image(img)
+    def view_image(self, fits_image):
+        self.image_viewer.view_image(fits_image)
 
     def draw_circle(self, x, y, radius):
         self.image_viewer.draw_circle(x, y, radius)

@@ -29,8 +29,11 @@ class MPLImageViewer(object):
 
         self.interaction_context = InteractionContext(self.figure, self.axes)
 
-    def view_image(self, hdulist):
-        plt.imshow(zscale(hdulist[0].data), cmap="gray")
+        self.current_image = None
+
+    def view_image(self, fits_image):
+        plt.imshow(zscale(fits_image.as_hdulist()[0].data), cmap="gray")
+        self.current_image = fits_image
 
     def draw_circle(self, x, y, radius):
         """
