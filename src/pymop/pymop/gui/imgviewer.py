@@ -35,6 +35,9 @@ class MPLImageViewer(object):
         plt.imshow(zscale(fits_image.as_hdulist()[0].data), cmap="gray")
         self.current_image = fits_image
 
+    def has_had_interaction(self):
+        return self.interaction_context.has_had_interaction()
+
     def draw_circle(self, x, y, radius):
         """
         Draws a circle with the specified dimensions.  Only one circle can
@@ -61,12 +64,30 @@ class InteractionContext(object):
         self.circle = None
         self.state = CreateCircleState(self)
 
+        self._has_had_interaction = False
+
+    def has_had_interaction(self):
+        return self._has_had_interaction
+
     def create_circle(self, x, y, radius):
         if self.circle is not None:
             self.circle.remove()
 
         self.circle = plt.Circle((x, y), radius, color="y", fill=False)
         self.axes.add_patch(self.circle)
+
+        self.redraw()
+
+    def update_circle(self, x, y, radius=None):
+        if self.circle is None:
+            raise MPLViewerError("No circle to update.")
+
+        self.circle.center = (x, y)
+
+        if radius is not None:
+            self.circle.radius = radius
+
+        self._has_had_interaction = True
 
         self.redraw()
 
@@ -145,8 +166,7 @@ class MoveCircleState(object):
         dx = event.xdata - self.mouse_x
         dy = event.ydata - self.mouse_y
 
-        # Update the circle's center
-        self.context.circle.center = (self.center_x + dx, self.center_y + dy)
+        self.context.update_circle(self.center_x + dx, self.center_y + dy)
 
     def on_release(self, event):
         self.pressed = False
@@ -185,7 +205,7 @@ class CreateCircleState(object):
         radius = max(abs(self.startx - self.endx) / 2,
                      abs(self.starty - self.endy) / 2)
 
-        self.context.create_circle(centerx, centery, radius)
+        self.context.update_circle(centerx, centery, radius)
 
     def on_release(self, event):
         self.pressed = False
