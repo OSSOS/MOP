@@ -13,7 +13,7 @@ from pymop.io.parser import SourceReading, Observation
 from pymop.io.imgaccess import (ImageSliceDownloader, CutoutCalculator)
 
 
-class ImageDownloaderSliceTest(FileReadingTestCase):
+class ImageSliceDownloaderTest(FileReadingTestCase):
     def setUp(self):
         self.image_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/1584431p15.fits"
         self.apcor_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/ccd15/1584431p15.apcor"
@@ -142,6 +142,38 @@ class CutoutCalculatorTest(unittest.TestCase):
         assert_that(converter.convert((400, 650)), equal_to((0, 100)))
         assert_that(converter.convert((600, 650)), equal_to((200, 100)))
         assert_that(converter.convert((500, 600)), equal_to((100, 50)))
+
+    def test_calc_cutout_boundary_x(self):
+        self.calculator = CutoutCalculator(200, 200)
+
+        (x0, x1, y0, y1), _ = self.calculator.calc_cutout((50, 400))
+        assert_that(x0, equal_to(1))
+        assert_that(x1, equal_to(201))
+        assert_that(y0, equal_to(300))
+        assert_that(y1, equal_to(500))
+
+    def test_calc_cutout_boundary_y(self):
+        self.calculator = CutoutCalculator(200, 200)
+
+        (x0, x1, y0, y1), _ = self.calculator.calc_cutout((400, 50))
+        assert_that(x0, equal_to(300))
+        assert_that(x1, equal_to(500))
+        assert_that(y0, equal_to(1))
+        assert_that(y1, equal_to(201))
+
+    def test_calc_cutout_boundary_x_converter(self):
+        self.calculator = CutoutCalculator(200, 200)
+
+        _, converter = self.calculator.build_cutout_str(15, (50, 400))
+        assert_that(converter.convert((51, 400)), equal_to((50, 100)))
+        assert_that(converter.convert((1, 300)), equal_to((0, 0)))
+
+    def test_calc_cutout_boundary_x_converter(self):
+        self.calculator = CutoutCalculator(200, 200)
+
+        _, converter = self.calculator.build_cutout_str(15, (400, 50))
+        assert_that(converter.convert((400, 51)), equal_to((100, 50)))
+        assert_that(converter.convert((300, 1)), equal_to((0, 0)))
 
 
 if __name__ == '__main__':
