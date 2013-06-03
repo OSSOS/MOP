@@ -1,6 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
+import wx.lib.inspection
 
 from context import testutil
 from pymop.gui.views import MainFrame
@@ -17,6 +18,7 @@ def main():
     app = wx.App()
     frame = MainFrame(DummyModel(), testutil.Dummy("Controller"))
     frame.Show()
+    wx.lib.inspection.InspectionTool().Show()
     app.MainLoop()
 
 

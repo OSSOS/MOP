@@ -126,6 +126,11 @@ class MainFrame(wx.Frame):
 
         self._init_ui_components()
 
+        self.keybind_manager = KeybindManager(self)
+
+        # needed for keybinds to work on startup
+        self.main_panel.SetFocus()
+
     def _init_ui_components(self):
         self.menubar = self._create_menus()
 
@@ -214,6 +219,31 @@ class MainFrame(wx.Frame):
 
     def set_observation_status(self, current_obs, total_obs):
         self.nav_view.set_status(current_obs, total_obs)
+
+    def get_controller(self):
+        return self.controller
+
+
+class KeybindManager(object):
+    def __init__(self, view):
+        self.view = view
+
+        next_obs_kb_id = wx.NewId()
+
+        self.view.Bind(wx.EVT_MENU, self.on_next_obs_keybind,
+                       id=next_obs_kb_id)
+
+        accelerators = wx.AcceleratorTable(
+            [(wx.ACCEL_NORMAL, wx.WXK_TAB, next_obs_kb_id), ]
+        )
+
+        self.view.SetAcceleratorTable(accelerators)
+
+    def on_next_obs_keybind(self, event):
+        self.view.get_controller().on_next_obs()
+
+        # Note: event consumed (no call to event.Skip()) so that we don't
+        # have tab iterating over the buttons like it does by default
 
 
 class NavPanel(wx.Panel):
