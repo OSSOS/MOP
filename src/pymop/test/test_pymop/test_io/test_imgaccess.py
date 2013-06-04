@@ -4,10 +4,10 @@ import unittest
 import os
 import tempfile
 
-import vos
 from hamcrest import assert_that, equal_to, contains
 from mock import Mock, call
 
+import vos
 from test.base_tests import FileReadingTestCase
 from pymop.io.parser import SourceReading, Observation
 from pymop.io.imgaccess import (ImageSliceDownloader, CutoutCalculator)
@@ -46,12 +46,17 @@ class ImageSliceDownloaderTest(FileReadingTestCase):
         self.apcorfile.seek(0)
 
         def choose_ret_val(*args, **kwargs):
+            selected_file = None
             if self.image_uri in args:
-                return self.localfile
+                selected_file = self.localfile
             elif self.apcor_uri in args:
-                return self.apcorfile
+                selected_file = self.apcorfile
             else:
                 self.fail("Unrecognized URI")
+
+            selected_file.seek(0)
+
+            return selected_file
 
         self.vosclient.open.side_effect = choose_ret_val
 
@@ -65,6 +70,7 @@ class ImageSliceDownloaderTest(FileReadingTestCase):
         # XXX is ccdnum actually the extension we want or is it something
         # standard like 2
         assert_that(self.vosclient.open.call_args_list, contains(
+            call(self.image_uri, view="cutout", cutout="[16]"), # Determining image size
             call(self.image_uri, view="cutout", cutout="[16][900:1100,750:850]"),
             call(self.apcor_uri, view="data")
         ))
