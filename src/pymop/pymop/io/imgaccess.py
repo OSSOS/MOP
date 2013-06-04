@@ -1,11 +1,22 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import cStringIO
 import threading
 
-import vos
+from astropy.io import fits
 
+import vos
 from pymop import config
 from pymop.io.img import FitsImage
+
+
+FITS_HEADER_UNIT_SIZE_BYTES = 2880
+FITS_HEADER_X_SIZE = "NAXIS1"
+FITS_HEADER_Y_SIZE = "NAXIS2"
+
+
+class ImageRetrievalError(Exception):
+    """Base class for errors in image retrieval."""
 
 
 class AsynchronousImageDownloadManager(object):
@@ -118,6 +129,9 @@ class ImageSliceDownloader(object):
         # Therefore ccd n = extension n + 1
         extension = str(int(source_reading.obs.ccdnum) + 1)
 
+        xsize, ysize = self.get_image_size(uri, extension)
+        print "Got image size: (%d, %d)" % (xsize, ysize)
+
         # XXX have to be careful about boundary locations
         cutout_str, converter = self.cutout_calculator.build_cutout_str(
             extension, source_reading.reference_source_point)
@@ -125,6 +139,49 @@ class ImageSliceDownloader(object):
         vofile = self.vosclient.open(uri, view="cutout", cutout=cutout_str)
 
         return vofile.read(), converter
+
+    def get_image_size(self, uri, extension):
+        """
+        Effeciently retrieve the image size without loading all the data.
+
+        Looks at the beginning of the specified extension's header for
+        keyword values.
+
+        Args:
+          image_uri: str
+            URI for the fits file we are interested in.
+          extension: str
+            the extension whose header will be read for the
+            size information.
+
+        Returns:
+          xsize: int
+            Size of the image in the x direction.
+          ysize: int
+            Size of the image in the y direction.
+        """
+        vofile = self.vosclient.open(uri, view="cutout", cutout="[%s]" % extension)
+
+        header_data = cStringIO.StringIO(
+            vofile.read(FITS_HEADER_UNIT_SIZE_BYTES))
+        hdulist = fits.open(header_data, ignore_missing_end=True)
+
+        assert len(hdulist) == 1, "Expected 1 HDU but was: %d" % len(hdulist)
+
+        header = hdulist[0].header
+
+        if FITS_HEADER_X_SIZE not in header:
+            raise ImageRetrievalError("%s keyword missing from header; "
+                                      "cannot determine image size for "
+                                      "%s, extension %s" % (FITS_HEADER_X_SIZE,
+                                                            uri, extension))
+        if FITS_HEADER_Y_SIZE not in header:
+            raise ImageRetrievalError("%s keyword missing from header; "
+                                      "cannot determine image size for "
+                                      "%s, extension %s" % (FITS_HEADER_Y_SIZE,
+                                                            uri, extension))
+
+        return header[FITS_HEADER_X_SIZE], header[FITS_HEADER_Y_SIZE]
 
     def _download_apcor_file(self, uri):
         vofile = self.vosclient.open(uri, view="data")
