@@ -129,12 +129,11 @@ class ImageSliceDownloader(object):
         # Therefore ccd n = extension n + 1
         extension = str(int(source_reading.obs.ccdnum) + 1)
 
-        xsize, ysize = self.get_image_size(uri, extension)
-        print "Got image size: (%d, %d)" % (xsize, ysize)
+        imgsize = self.get_image_size(uri, extension)
 
         # XXX have to be careful about boundary locations
         cutout_str, converter = self.cutout_calculator.build_cutout_str(
-            extension, source_reading.reference_source_point)
+            extension, source_reading.reference_source_point, imgsize)
 
         vofile = self.vosclient.open(uri, view="cutout", cutout=cutout_str)
 
@@ -216,7 +215,7 @@ class CutoutCalculator(object):
         self.slice_rows = slice_rows
         self.slice_cols = slice_cols
 
-    def build_cutout_str(self, extnum, point):
+    def build_cutout_str(self, extnum, point, img_size):
         """
         Generates the cutout string needed for the vospace client's open
         with cutout feature.
@@ -225,9 +224,11 @@ class CutoutCalculator(object):
           extnum: str
             The extension number of the cutout.  See also the vospace service
             documentation at http://www.cadc.hia.nrc.gc.ca/data/
-          point: (x, y)
+          point: tuple(int x, int y)
             The x and y coordinates of the point which is the focus of the
             cutout.
+          img_size: tuple(int xsize, int ysize)
+            The size of the image being cutout from.
 
         Returns:
           cutout_str: str
@@ -236,13 +237,13 @@ class CutoutCalculator(object):
             Can be used to find a point in the sliced image based on its
             coordinate in the original image.
         """
-        (x0, x1, y0, y1), converter = self.calc_cutout(point)
+        (x0, x1, y0, y1), converter = self.calc_cutout(point, img_size)
 
         cutout_str = "[%s][%d:%d,%d:%d]" % (extnum, x0, x1, y0, y1)
 
         return cutout_str, converter
 
-    def calc_cutout(self, point):
+    def calc_cutout(self, point, img_size):
         """
         Calculates the start and stop points of the cutout around a point.
 
@@ -250,6 +251,8 @@ class CutoutCalculator(object):
           point: (x, y)
             The x and y coordinates of the point which is the focus of the
             cutout.
+          img_size: tuple(int xsize, int ysize)
+            The size of the image being cutout from.
         Returns:
             coords: (x0, x1, y0, y1)
               The cutout boundary coordinates
@@ -258,6 +261,7 @@ class CutoutCalculator(object):
               coordinate in the original image.
         """
         x, y = point
+        img_size_x, img_size_y = img_size
 
         x_mid_offset = self.slice_cols / 2
         y_mid_offset = self.slice_rows / 2
@@ -267,7 +271,7 @@ class CutoutCalculator(object):
         y0 = y - y_mid_offset
         y1 = y + y_mid_offset
 
-        # Make sure we don't try to slice negative pixel locations
+        # Make sure we don't try to slice outside the image boundaries
         if x0 < 1:
             diff = abs(x0 - 1)
             x0 += diff
@@ -278,7 +282,15 @@ class CutoutCalculator(object):
             y0 += diff
             y1 += diff
 
-        # XXX how do we know if we slice too far in the other direction though?
+        if x1 > img_size_x:
+            diff = abs(img_size_x - x1)
+            x1 -= diff
+            x0 -= diff
+
+        if y1 > img_size_y:
+            diff = abs(img_size_y - y1)
+            y1 -= diff
+            y0 -= diff
 
         coords = (x0, x1, y0, y1)
 
