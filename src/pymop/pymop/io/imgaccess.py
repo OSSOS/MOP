@@ -14,6 +14,9 @@ FITS_HEADER_UNIT_SIZE_BYTES = 2880
 FITS_HEADER_X_SIZE = "NAXIS1"
 FITS_HEADER_Y_SIZE = "NAXIS2"
 
+# Images from CCDs < 18 have their coordinates flipped
+MAX_INVERTED_CCD = 17
+
 
 class ImageRetrievalError(Exception):
     """Base class for errors in image retrieval."""
@@ -127,13 +130,16 @@ class ImageSliceDownloader(object):
     def _download_fits_file(self, uri, source_reading):
         # NOTE: ccd number is the extension, BUT Fits file extensions start at 1
         # Therefore ccd n = extension n + 1
-        extension = str(int(source_reading.obs.ccdnum) + 1)
+        ccdnum = int(source_reading.obs.ccdnum)
+        extension = str(ccdnum + 1)
 
         imgsize = self.get_image_size(uri, extension)
 
-        # XXX have to be careful about boundary locations
+        inverted = True if ccdnum <= MAX_INVERTED_CCD else False
+
         cutout_str, converter = self.cutout_calculator.build_cutout_str(
-            extension, source_reading.reference_source_point, imgsize)
+            extension, source_reading.reference_source_point, imgsize,
+            inverted=inverted)
 
         vofile = self.vosclient.open(uri, view="cutout", cutout=cutout_str)
 
@@ -215,7 +221,7 @@ class CutoutCalculator(object):
         self.slice_rows = slice_rows
         self.slice_cols = slice_cols
 
-    def build_cutout_str(self, extnum, point, img_size):
+    def build_cutout_str(self, extnum, point, img_size, inverted=False):
         """
         Generates the cutout string needed for the vospace client's open
         with cutout feature.
@@ -229,6 +235,8 @@ class CutoutCalculator(object):
             cutout.
           img_size: tuple(int xsize, int ysize)
             The size of the image being cutout from.
+          inverted: bool
+            Inverts the image before applying the cutout.  Defaults to False.
 
         Returns:
           cutout_str: str
@@ -237,7 +245,7 @@ class CutoutCalculator(object):
             Can be used to find a point in the sliced image based on its
             coordinate in the original image.
         """
-        (x0, x1, y0, y1), converter = self.calc_cutout(point, img_size)
+        (x0, x1, y0, y1), converter = self.calc_cutout(point, img_size, inverted)
 
         cutout_str = "[%s][%d:%d,%d:%d]" % (extnum, x0, x1, y0, y1)
 

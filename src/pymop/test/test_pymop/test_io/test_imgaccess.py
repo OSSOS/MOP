@@ -22,7 +22,7 @@ class ImageSliceDownloaderTest(FileReadingTestCase):
         self.resolver.resolve_image_uri.return_value = self.image_uri
         self.resolver.resolve_apcor_uri.return_value = self.apcor_uri
 
-        obs = Observation("1584431", "p", "15")
+        obs = Observation("1584431", "p", "18")
 
         reading_x = 55
         reading_y = 60
@@ -67,11 +67,9 @@ class ImageSliceDownloaderTest(FileReadingTestCase):
     def test_retrieve_sliced_image_in_memory(self):
         fitsfile = self.undertest.download(self.source_reading, in_memory=True)
 
-        # XXX is ccdnum actually the extension we want or is it something
-        # standard like 2
         assert_that(self.vosclient.open.call_args_list, contains(
-            call(self.image_uri, view="cutout", cutout="[16]"), # Determining image size
-            call(self.image_uri, view="cutout", cutout="[16][50:100,30:130]"),
+            call(self.image_uri, view="cutout", cutout="[19]"), # Determining image size
+            call(self.image_uri, view="cutout", cutout="[19][50:100,30:130]"),
             call(self.apcor_uri, view="data")
         ))
 
@@ -242,6 +240,13 @@ class CutoutCalculatorTest(unittest.TestCase):
         assert_that(converter.convert((10, 30)), equal_to((0, 20)))
         assert_that(converter.convert((30, 30)), equal_to((20, 20)))
         assert_that(converter.convert((20, 20)), equal_to((10, 10)))
+
+    def test_build_cutout_str_inverted(self):
+        self.calculator = CutoutCalculator(20, 20)
+
+        cutout_str, _ = self.calculator.build_cutout_str("10", (20, 20), (200, 200),
+                                                         inverted=True)
+        assert_that(cutout_str, equal_to("[10][190:170,190:170]"))
 
 
 if __name__ == '__main__':
