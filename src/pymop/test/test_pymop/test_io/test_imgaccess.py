@@ -69,7 +69,6 @@ class ImageSliceDownloaderTest(FileReadingTestCase):
 
         # XXX is ccdnum actually the extension we want or is it something
         # standard like 2
-        print self.vosclient.open.call_args_list
         assert_that(self.vosclient.open.call_args_list, contains(
             call(self.image_uri, view="cutout", cutout="[16]"), # Determining image size
             call(self.image_uri, view="cutout", cutout="[16][50:100,30:130]"),
@@ -222,6 +221,27 @@ class CutoutCalculatorTest(unittest.TestCase):
         assert_that(converter.convert((100, 175)), equal_to((50, 75)))
         assert_that(converter.convert((50, 100)), equal_to((0, 0)))
         assert_that(converter.convert((150, 200)), equal_to((100, 100)))
+
+    def test_calc_cutout_inverted(self):
+        self.calculator = CutoutCalculator(20, 20)
+
+        (x0, x1, y0, y1), _ = self.calculator.calc_cutout((20, 20), (200, 200),
+                                                          inverted=True)
+        assert_that(x0, equal_to(190))
+        assert_that(x1, equal_to(170))
+        assert_that(y0, equal_to(190))
+        assert_that(y1, equal_to(170))
+
+    def test_calc_cutout_inverted_converter(self):
+        self.calculator = CutoutCalculator(20, 20)
+
+        _, converter = self.calculator.calc_cutout((20, 20), (200, 200),
+                                                   inverted=True)
+        assert_that(converter.convert((10, 10)), equal_to((0, 0)))
+        assert_that(converter.convert((30, 10)), equal_to((20, 0)))
+        assert_that(converter.convert((10, 30)), equal_to((0, 20)))
+        assert_that(converter.convert((30, 30)), equal_to((20, 20)))
+        assert_that(converter.convert((20, 20)), equal_to((10, 10)))
 
 
 if __name__ == '__main__':
