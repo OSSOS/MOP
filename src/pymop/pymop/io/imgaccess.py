@@ -243,7 +243,7 @@ class CutoutCalculator(object):
 
         return cutout_str, converter
 
-    def calc_cutout(self, point, img_size):
+    def calc_cutout(self, point, img_size, inverted=False):
         """
         Calculates the start and stop points of the cutout around a point.
 
@@ -253,6 +253,8 @@ class CutoutCalculator(object):
             cutout.
           img_size: tuple(int xsize, int ysize)
             The size of the image being cutout from.
+          inverted: bool
+            Inverts the image before applying the cutout.  Defaults to False.
         Returns:
             coords: (x0, x1, y0, y1)
               The cutout boundary coordinates
@@ -263,38 +265,55 @@ class CutoutCalculator(object):
         x, y = point
         img_size_x, img_size_y = img_size
 
+        if inverted:
+            x = img_size_x - x
+            y = img_size_y - y
+
         x_mid_offset = self.slice_cols / 2
         y_mid_offset = self.slice_rows / 2
 
-        x0 = x - x_mid_offset
-        x1 = x + x_mid_offset
-        y0 = y - y_mid_offset
-        y1 = y + y_mid_offset
+        xmin = x - x_mid_offset
+        xmax = x + x_mid_offset
+        ymin = y - y_mid_offset
+        ymax = y + y_mid_offset
 
         # Make sure we don't try to slice outside the image boundaries
-        if x0 < 1:
-            diff = abs(x0 - 1)
-            x0 += diff
-            x1 += diff
+        if xmin < 1:
+            diff = abs(xmin - 1)
+            xmin += diff
+            xmax += diff
 
-        if y0 < 1:
-            diff = abs(y0 - 1)
-            y0 += diff
-            y1 += diff
+        if ymin < 1:
+            diff = abs(ymin - 1)
+            ymin += diff
+            ymax += diff
 
-        if x1 > img_size_x:
-            diff = abs(img_size_x - x1)
-            x1 -= diff
-            x0 -= diff
+        if xmax > img_size_x:
+            diff = abs(img_size_x - xmax)
+            xmax -= diff
+            xmin -= diff
 
-        if y1 > img_size_y:
-            diff = abs(img_size_y - y1)
-            y1 -= diff
-            y0 -= diff
+        if ymax > img_size_y:
+            diff = abs(img_size_y - ymax)
+            ymax -= diff
+            ymin -= diff
 
-        coords = (x0, x1, y0, y1)
+        if inverted:
+            x0 = xmax
+            x1 = xmin
+            y0 = ymax
+            y1 = ymin
+            x_offset = img_size_x - xmax
+            y_offset = img_size_y - ymax
+        else:
+            x0 = xmin
+            x1 = xmax
+            y0 = ymin
+            y1 = ymax
+            x_offset = xmin
+            y_offset = ymin
 
-        return coords, CoordinateConverter(x0, y0)
+        return (x0, x1, y0, y1), CoordinateConverter(x_offset, y_offset)
 
 
 class CoordinateConverter(object):
@@ -303,5 +322,19 @@ class CoordinateConverter(object):
         self.y_offset = y_offset
 
     def convert(self, point):
+        """
+        Convert a point from one coordinate system to another.
+
+        Args:
+          point: tuple(int x, int y)
+            The point in the original coordinate system.
+
+        Returns:
+          converted_point: tuple(int x, int y)
+            The point in the new coordinate system.
+
+        Example: convert coordinate from original image into a pixel location
+          within a cutout image.
+        """
         x, y = point
         return x - self.x_offset, y - self.y_offset
