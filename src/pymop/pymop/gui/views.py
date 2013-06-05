@@ -66,6 +66,7 @@ class ApplicationView(object):
         self.mainframe.draw_circle(x, y, radius)
 
     def close(self):
+        self.model.stop_loading_images()
         self.mainframe.Close()
 
     @guithread

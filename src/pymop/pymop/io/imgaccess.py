@@ -30,6 +30,7 @@ class AsynchronousImageDownloadManager(object):
 
     def __init__(self, downloader):
         self.downloader = downloader
+        self.download_thread = None
 
     def start_download(self, astrom_data,
                        image_loaded_callback=None,
@@ -40,8 +41,14 @@ class AsynchronousImageDownloadManager(object):
 
         self.do_download(astrom_data)
 
+    def stop_download(self):
+        assert self.download_thread is not None, "No download to stop."
+        self.download_thread.stop()
+
     def do_download(self, astrom_data):
-        SerialImageDownloadThread(self, self.downloader, astrom_data).start()
+        self.download_thread = SerialImageDownloadThread(
+            self, self.downloader, astrom_data)
+        self.download_thread.start()
 
     def on_image_downloaded(self, fitsimage, reading, source_num, obs_num):
         reading.set_fits_image(fitsimage)
@@ -67,13 +74,22 @@ class SerialImageDownloadThread(threading.Thread):
         self.downloader = downloader
         self.astrom_data = astrom_data
 
+        self._should_stop = False
+
     def run(self):
         for source_num, source in enumerate(self.astrom_data.sources):
             for obs_num, reading in enumerate(source):
+                if self._should_stop:
+                    return
+
                 fitsimage = self.downloader.download(reading)
                 self.download_manager.on_image_downloaded(fitsimage, reading, source_num, obs_num)
 
         self.download_manager.on_all_downloaded()
+
+    def stop(self):
+        """Finish current download, but don't start any more."""
+        self._should_stop = True
 
 
 class VOSpaceResolver(object):
