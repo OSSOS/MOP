@@ -113,8 +113,9 @@ class MainFrame(wx.Frame):
     ApplicationView.
     """
 
-    def __init__(self, model, controller, size=(1000, 500)):
-        # TODO put default size in config
+    def __init__(self, model, controller):
+        size = (config.read("UI.DIMENSIONS.WIDTH"),
+                config.read("UI.DIMENSIONS.HEIGHT"))
         super(MainFrame, self).__init__(None, title="Moving Object Pipeline",
                                         size=size)
 
