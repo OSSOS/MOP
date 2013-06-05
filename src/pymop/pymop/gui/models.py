@@ -130,6 +130,9 @@ class AstroDataModel(object):
         self.download_manager.start_download(
             self.astrom_data, image_loaded_callback=self._on_image_loaded)
 
+    def stop_loading_images(self):
+        self.download_manager.stop_download()
+
     def get_loaded_image_count(self):
         return self._num_images_loaded
 
