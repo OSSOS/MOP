@@ -74,8 +74,8 @@
 
     "UI": {
         "DIMENSIONS": {
-            "WIDTH": 900,
-            "HEIGHT": 500
+            "WIDTH": 890,
+            "HEIGHT": 540
         },
 
         "ALLPROC": {

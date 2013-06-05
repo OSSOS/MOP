@@ -6,6 +6,8 @@ from matplotlib.backends.backend_wxagg import \
     FigureCanvasWxAgg as FigureCanvas
 from stsci import numdisplay
 
+from pymop import config
+
 
 class MPLViewerError(object):
     """Base exception for matplotlib viewer"""
@@ -20,9 +22,21 @@ class MPLImageViewer(object):
         # Create the actual mpl figure we will draw on
         self.figure = plt.figure()
 
-        self.axes = self.figure.add_subplot(1, 1, 1)
+        # Don't draw extra whitespace around image
+        self.axes = plt.Axes(self.figure, [0., 0., 1., 1.])
+
         self.axes.set_aspect("equal", adjustable="datalim")
-        self.axes.autoscale_view(tight=True, scalex=True, scaley=True)
+
+        # Make the axes fit the image tightly
+        imgwidth = config.read("IMG_RETRIEVAL.DEFAULT_SLICE_COLS")
+        imgheight = config.read("IMG_RETRIEVAL.DEFAULT_SLICE_ROWS")
+        self.axes.set_xlim([0, imgwidth])
+        self.axes.set_ylim([0, imgheight])
+
+        # Don't draw tick marks and labels
+        self.axes.set_axis_off()
+
+        self.figure.add_axes(self.axes)
 
         # Create the canvas on which the figure is rendered
         self.canvas = FigureCanvas(parent, wx.ID_ANY, self.figure)
