@@ -207,6 +207,11 @@ class SourceReading(object):
         assert self.get_fits_image() is not None, "No FITS image loaded"
         return self.get_fits_image().get_pixel_coordinates(self.source_point)
 
+    def get_original_image_size(self):
+        header = self.obs.header
+        return (int(header[Observation.HEADER_IMG_SIZE_X]),
+                int(header[Observation.HEADER_IMG_SIZE_Y]))
+
     def __repr__(self):
         return "<SourceReading x=%s, y=%s, x0=%s, y0=%s, ra=%s, dec=%s, obs=%s" % (
             self.x, self.y, self.x0, self.y0, self.ra, self.dec, self.obs)
@@ -217,6 +222,10 @@ class Observation(object):
     Stores data for a single observation (which may be associated with many
     point sources/readings).
     """
+
+    # Useful header keys
+    HEADER_IMG_SIZE_X = "NAX1"
+    HEADER_IMG_SIZE_Y = "NAX2"
 
     @staticmethod
     def from_parse_data(rawname, expnum, ftype, ccdnum):
