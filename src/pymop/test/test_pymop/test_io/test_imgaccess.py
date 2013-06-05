@@ -23,6 +23,7 @@ class ImageSliceDownloaderTest(FileReadingTestCase):
         self.resolver.resolve_apcor_uri.return_value = self.apcor_uri
 
         obs = Observation("1584431", "p", "18")
+        obs.header = {"NAX1": "2000", "NAX2": "3000"}
 
         reading_x = 55
         reading_y = 60
@@ -68,7 +69,6 @@ class ImageSliceDownloaderTest(FileReadingTestCase):
         fitsfile = self.undertest.download(self.source_reading, in_memory=True)
 
         assert_that(self.vosclient.open.call_args_list, contains(
-            call(self.image_uri, view="cutout", cutout="[19]"), # Determining image size
             call(self.image_uri, view="cutout", cutout="[19][50:100,30:130]"),
             call(self.apcor_uri, view="data")
         ))
