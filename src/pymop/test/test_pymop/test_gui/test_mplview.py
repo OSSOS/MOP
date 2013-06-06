@@ -1,12 +1,16 @@
-from pymop.gui import imgviewer
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 import wx
 
 import numpy as np
-from hamcrest import assert_that, equal_to, has_length
+from matplotlib.backend_bases import MouseEvent as MPLMouseEvent
+from mock import Mock
+from hamcrest import assert_that, equal_to, has_length, instance_of, none
+
+from pymop.gui import imgviewer
+from pymop.gui.imgviewer import (InteractionContext, MoveCircleState,
+                                 CreateCircleState)
 
 
 class MPLViewTest(unittest.TestCase):
@@ -52,6 +56,130 @@ class MPLViewTest(unittest.TestCase):
 
         assert_that(circle.center, equal_to((c2x, c2y)))
         assert_that(circle.radius, equal_to(c2r))
+
+
+class InteractionTest(unittest.TestCase):
+    def setUp(self):
+        self.figure = Mock()
+        self.axes = Mock()
+        self.interaction_context = InteractionContext(self.figure, self.axes)
+
+    def _create_mouse_event(self, x, y, inaxes=True):
+        event = Mock(spec=MPLMouseEvent)
+        event.x = x
+        event.xdata = x
+        event.y = y
+        event.ydata = y
+
+        if inaxes:
+            event.inaxes = self.axes
+        else:
+            event.inaxes = Mock()  # a new, different axes
+
+        return event
+
+    def fire_press_event(self, x, y, inaxes=True):
+        self.interaction_context.on_press(
+            self._create_mouse_event(x, y, inaxes))
+
+    def fire_release_event(self):
+        self.interaction_context.on_release(Mock(spec=MPLMouseEvent))
+
+    def fire_motion_event(self, x, y, inaxes=True):
+        self.interaction_context.on_motion(
+            self._create_mouse_event(x, y, inaxes))
+
+    def test_state_click_in_circle(self):
+        x = 10
+        y = 10
+        radius = 5
+
+        self.interaction_context.create_circle(x, y, radius)
+        self.fire_press_event(x + 2, y + 2)
+        assert_that(self.interaction_context.state, instance_of(MoveCircleState))
+
+    def test_press_release(self):
+        x = 10
+        y = 10
+        radius = 5
+
+        self.interaction_context.create_circle(x, y, radius)
+        assert_that(not self.interaction_context.state.pressed)
+        self.fire_press_event(x + 2, y + 2)
+        assert_that(self.interaction_context.state.pressed)
+        self.fire_release_event()
+        assert_that(not self.interaction_context.state.pressed)
+
+    def test_state_click_outside_circle(self):
+        x = 10
+        y = 10
+        radius = 5
+
+        self.interaction_context.create_circle(x, y, radius)
+        self.fire_press_event(x + 2, y + 2)
+        assert_that(self.interaction_context.state, instance_of(MoveCircleState))
+        self.fire_release_event()
+        assert_that(self.interaction_context.state, instance_of(MoveCircleState))
+        self.fire_press_event(x + 6, y + 6)
+        assert_that(self.interaction_context.state, instance_of(CreateCircleState))
+
+    def test_drag_circle(self):
+        x0 = 10
+        y0 = 10
+        radius = 5
+
+        xclick = x0 + 2
+        yclick = y0 + 2
+        dx = 10
+        dy = 5
+
+        self.interaction_context.create_circle(x0, y0, radius)
+        assert_that(self.interaction_context.circle.center, equal_to((x0, y0)))
+        self.fire_press_event(xclick, yclick)
+
+        self.fire_motion_event(xclick + dx, yclick + dy)
+        assert_that(self.interaction_context.circle.center,
+                    equal_to((x0 + dx, y0 + dy)))
+        assert_that(self.interaction_context.circle.radius, equal_to(radius))
+
+    def test_create_circle(self):
+        x0 = 10
+        y0 = 10
+        dx = 10
+        dy = 30
+
+        assert_that(self.interaction_context.circle, none())
+        self.fire_press_event(x0, y0)
+        self.fire_motion_event(x0 + dx, y0 + dy)
+        assert_that(self.interaction_context.circle.center,
+                    equal_to((15, 25)))
+        assert_that(self.interaction_context.circle.radius, equal_to(15))
+
+    def test_has_had_interaction(self):
+        assert_that(not self.interaction_context.has_had_interaction())
+        self.fire_press_event(10, 10)
+        # NOTE: don't count an interaction until it has altered the viewer in
+        # a visible way
+        assert_that(not self.interaction_context.has_had_interaction())
+        self.fire_motion_event(12, 12)
+        assert_that(self.interaction_context.has_had_interaction())
+
+    def test_motion_not_pressed(self):
+        x = 10
+        y = 10
+        radius = 5
+
+        self.interaction_context.create_circle(x, y, radius)
+
+        self.interaction_context.state = CreateCircleState(self.interaction_context)
+        self.fire_motion_event(x + 2, y + 2)
+        assert_that(self.interaction_context.circle.center, equal_to((x, y)))
+        assert_that(self.interaction_context.circle.radius, equal_to(radius))
+
+        self.interaction_context.state = MoveCircleState(self.interaction_context)
+        self.fire_motion_event(x + 2, y + 2)
+        assert_that(self.interaction_context.circle.center, equal_to((x, y)))
+        assert_that(self.interaction_context.circle.radius, equal_to(radius))
 
 
 class UtilityTest(unittest.TestCase):

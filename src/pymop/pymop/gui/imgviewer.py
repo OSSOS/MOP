@@ -94,7 +94,11 @@ class InteractionContext(object):
 
     def update_circle(self, x, y, radius=None):
         if self.circle is None:
-            raise MPLViewerError("No circle to update.")
+            if radius is None:
+                raise MPLViewerError("No circle to update.")
+            else:
+                # For convenience go ahead and make one
+                self.create_circle(x, y, radius)
 
         self.circle.center = (x, y)
 
