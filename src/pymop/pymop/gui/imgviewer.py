@@ -2,6 +2,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.backends.backend_wxagg import \
     FigureCanvasWxAgg as FigureCanvas
 from stsci import numdisplay
@@ -249,6 +250,7 @@ class AdjustColormapState(object):
     """
     TODO: refactor out similarity of these states
     """
+
     def __init__(self, context):
         self.context = context
 
@@ -267,6 +269,21 @@ class AdjustColormapState(object):
     def on_release(self, event):
         self.pressed = False
         print "TODO: colormap adjustment finished"
+
+
+class GrayscaleColorMap(object):
+    def __init__(self):
+        self.cdict = {"red": ((0.0, 0.0, 0.0),
+                              (1.0, 1.0, 1.0)),
+
+                      "green": ((0.0, 0.0, 0.0),
+                                (1.0, 1.0, 1.0)),
+
+                      "blue": ((0.0, 0.0, 0.0),
+                               (1.0, 1.0, 1.0))}
+
+    def as_mpl_cmap(self):
+        return LinearSegmentedColormap("Custom grayscale", self.cdict)
 
 
 def zscale(img):
