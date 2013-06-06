@@ -223,6 +223,15 @@ class UtilityTest(unittest.TestCase):
         assert_that(norm[1, 0], equal_to(5))
         assert_that(norm[1, 1], equal_to(8))
 
+    def test_clip_in_range(self):
+        assert_that(imgviewer.clip(0.5, 0, 1), equal_to(0.5))
+
+    def test_clip_below_range(self):
+        assert_that(imgviewer.clip(-0.5, 0, 1), equal_to(0.0))
+
+    def test_clip_above_range(self):
+        assert_that(imgviewer.clip(1.5, 0, 1), equal_to(1.0))
+
 
 if __name__ == '__main__':
     unittest.main()

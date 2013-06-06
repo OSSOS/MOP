@@ -310,3 +310,28 @@ def normalize(arr, lower, upper):
     """
     scaling_factor = float(upper - lower) / (arr.max() - arr.min())
     return scaling_factor * arr + lower
+
+
+def clip(value, min_val, max_val):
+    """
+    Clip a value to a certain range.
+
+    Args:
+      value: number
+        The value to be clipped.
+      min_val: number
+        The lowest allowable value.
+      max_val: number
+        The maximum allowable value.
+
+    Returns:
+      clipped: number
+        The original value if it is between min_val and max_val.
+        If it is less than min_val, return min_val.  If it is greater
+        than max_val, return max_val.
+
+    Examples;
+      clip(0.1, 0, 1) -> 0.1
+      clip(-0.1, 0, 1) -> 0
+    """
+    return max(min(value, max_val), min_val)
