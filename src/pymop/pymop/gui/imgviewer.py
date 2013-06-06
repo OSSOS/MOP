@@ -69,6 +69,9 @@ class InteractionContext(object):
     http://matplotlib.org/users/event_handling.html
     """
 
+    MOUSE_BUTTON_LEFT = 1
+    MOUSE_BUTTON_RIGHT = 3
+
     def __init__(self, figure, axes):
         self.figure = figure
         self.axes = axes
@@ -124,17 +127,26 @@ class InteractionContext(object):
         if event.inaxes != self.axes:
             return
 
+        if event.button == InteractionContext.MOUSE_BUTTON_LEFT:
+            self.state = self._choose_left_click_state(event)
+        elif event.button == InteractionContext.MOUSE_BUTTON_RIGHT:
+            self.state = AdjustColormapState(self)
+        else:
+            # Ignore any other button such as middle click.
+            return
+
+        self.state.on_press(event)
+
+    def _choose_left_click_state(self, event):
         if self.circle is None:
             in_circle = False
         else:
             in_circle, _ = self.circle.contains(event)
 
         if in_circle:
-            self.state = MoveCircleState(self)
+            return MoveCircleState(self)
         else:
-            self.state = CreateCircleState(self)
-
-        self.state.on_press(event)
+            return CreateCircleState(self)
 
     def on_motion(self, event):
         if event.inaxes != self.axes:
@@ -231,6 +243,30 @@ class CreateCircleState(object):
         self.starty = None
         self.endx = None
         self.endy = None
+
+
+class AdjustColormapState(object):
+    """
+    TODO: refactor out similarity of these states
+    """
+    def __init__(self, context):
+        self.context = context
+
+        self.pressed = False
+
+    def on_press(self, event):
+        self.pressed = True
+        print "TODO: set up colormap adjustment"
+
+    def on_motion(self, event):
+        if not self.pressed:
+            return
+
+        print "TODO: perform colormap adjustment"
+
+    def on_release(self, event):
+        self.pressed = False
+        print "TODO: colormap adjustment finished"
 
 
 def zscale(img):
