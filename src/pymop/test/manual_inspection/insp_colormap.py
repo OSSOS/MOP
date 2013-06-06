@@ -35,12 +35,14 @@ def main():
         plt.show()
 
     def update_contrast(contrast):
-        print "New contrast value: %f" % contrast
-        plt.draw()
+        print "Setting contrast to %f" % contrast
+        colormap.set_contrast(contrast)
+        # draw()
 
     def update_bias(bias):
-        print "New bias value: %f" % bias
-        plt.draw()
+        print "Setting bias to %f" % bias
+        colormap.set_bias(bias)
+        # draw()
 
     contrast_slider.on_changed(update_contrast)
     bias_slider.on_changed(update_bias)
