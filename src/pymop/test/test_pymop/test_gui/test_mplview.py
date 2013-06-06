@@ -10,7 +10,7 @@ from hamcrest import assert_that, equal_to, has_length, instance_of, none
 
 from pymop.gui import imgviewer
 from pymop.gui.imgviewer import (InteractionContext, MoveCircleState,
-                                 CreateCircleState)
+                                 CreateCircleState, AdjustColormapState)
 
 
 class MPLViewTest(unittest.TestCase):
@@ -64,12 +64,13 @@ class InteractionTest(unittest.TestCase):
         self.axes = Mock()
         self.interaction_context = InteractionContext(self.figure, self.axes)
 
-    def _create_mouse_event(self, x, y, inaxes=True):
+    def _create_mouse_event(self, x, y, button, inaxes=True):
         event = Mock(spec=MPLMouseEvent)
         event.x = x
         event.xdata = x
         event.y = y
         event.ydata = y
+        event.button = button
 
         if inaxes:
             event.inaxes = self.axes
@@ -78,12 +79,15 @@ class InteractionTest(unittest.TestCase):
 
         return event
 
-    def fire_press_event(self, x, y, inaxes=True):
+    def fire_press_event(self, x, y, button=InteractionContext.MOUSE_BUTTON_LEFT,
+                         inaxes=True):
         self.interaction_context.on_press(
-            self._create_mouse_event(x, y, inaxes))
+            self._create_mouse_event(x, y, button, inaxes))
 
-    def fire_release_event(self):
-        self.interaction_context.on_release(Mock(spec=MPLMouseEvent))
+    def fire_release_event(self, button=InteractionContext.MOUSE_BUTTON_LEFT):
+        event = Mock(spec=MPLMouseEvent)
+        event.button = button
+        self.interaction_context.on_release(event)
 
     def fire_motion_event(self, x, y, inaxes=True):
         self.interaction_context.on_motion(
@@ -122,6 +126,22 @@ class InteractionTest(unittest.TestCase):
         assert_that(self.interaction_context.state, instance_of(MoveCircleState))
         self.fire_press_event(x + 6, y + 6)
         assert_that(self.interaction_context.state, instance_of(CreateCircleState))
+
+    def test_state_right_click(self):
+        x = 10
+        y = 10
+
+        self.fire_press_event(x, y, button=InteractionContext.MOUSE_BUTTON_LEFT)
+        assert_that(self.interaction_context.state, instance_of(CreateCircleState))
+        self.fire_release_event(button=InteractionContext.MOUSE_BUTTON_LEFT)
+
+        self.fire_press_event(x, y, button=InteractionContext.MOUSE_BUTTON_RIGHT)
+        assert_that(self.interaction_context.state, instance_of(AdjustColormapState))
+        self.fire_release_event(button=InteractionContext.MOUSE_BUTTON_RIGHT)
+
+        self.fire_press_event(x, y, button=InteractionContext.MOUSE_BUTTON_LEFT)
+        assert_that(self.interaction_context.state, instance_of(CreateCircleState))
+        self.fire_release_event(button=InteractionContext.MOUSE_BUTTON_LEFT)
 
     def test_drag_circle(self):
         x0 = 10
