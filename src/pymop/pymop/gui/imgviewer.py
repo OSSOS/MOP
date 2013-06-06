@@ -272,15 +272,85 @@ class AdjustColormapState(object):
 
 
 class GrayscaleColorMap(object):
+    """
+    An image color map, which allows its contrast and bias to be controlled.
+
+    Refer to http://matplotlib.org/api/colors_api.html,
+    specifically class matplotlib.colors.LinearSegmentedColormap
+    to better understand how this works.
+
+    For an example, also see
+    http://matplotlib.org/examples/pylab_examples/custom_cmap.html?highlight=codex%20colormap
+
+    For explanation of contrast and bias as in ds9, see:
+    http://chandra-ed.harvard.edu/learning_ds9_page2.html
+    """
+
     def __init__(self):
-        self.cdict = {"red": ((0.0, 0.0, 0.0),
-                              (1.0, 1.0, 1.0)),
+        # These two are required
+        self.min_bounds = (0.0, 0.0, 0.0)
+        self.max_bounds = (1.0, 1.0, 1.0)
 
-                      "green": ((0.0, 0.0, 0.0),
-                                (1.0, 1.0, 1.0)),
+        # These allow us to control the contrast and bias
+        # NOTE: no discontinuities, so y0 and y1 are the same
+        self.lower_segment_x = 0.0
+        self.lower_segment_y = 0.0
+        self.lower_segment_bounds = (self.lower_segment_x, self.lower_segment_y,
+                                     self.lower_segment_y)
 
-                      "blue": ((0.0, 0.0, 0.0),
-                               (1.0, 1.0, 1.0))}
+        self.upper_segment_x = 1.0
+        self.upper_segment_y = 1.0
+        self.upper_segment_bounds = (self.upper_segment_x, self.upper_segment_y,
+                                     self.upper_segment_y)
+
+        self.cdict = {}
+        for color in ["red", "green", "blue"]:
+            self.cdict[color] = [self.min_bounds, self.lower_segment_bounds,
+                                 self.upper_segment_bounds, self.max_bounds]
+
+    def set_bias(self, bias):
+        """
+        Adjusts the image bias.
+
+        Bias determines where the color changes start.  At low bias, low
+        intensities (i.e., low pixel values) will have non-zero color
+        differences, while at high bias only high pixel values will have
+        non-zero differences
+
+        Args:
+          bias: float
+            A number between 0 and 1.  This represents the midpoint of
+            the grayscale.  Setting it to 0
+
+        Returns: void
+        """
+        pass
+
+    def set_contrast(self, contrast):
+        """
+        Adjusts the image contrast.
+
+        Contrast refers to the rate of change of color with color level.
+        At low contrast, color changes gradually over many intensity
+        levels, while at high contrast it can change rapidly within a
+        few levels
+
+        Args:
+          contrast: float
+            A number between 0 and 1.  This represents the midpoint of
+            the grayscale.
+
+        Returns: void
+        """
+        pass
+
+        # TODO: something similar to this, but actually updating the cdict field
+        # self.lower_segment_x = self._clip(0.5 - contrast)
+        # self.upper_segment_y = self._clip(0.5 + contrast)
+
+    def _clip(self, value):
+        """Clip to range 0 to 1"""
+        return clip(value, 0, 1)
 
     def as_mpl_cmap(self):
         return LinearSegmentedColormap("Custom grayscale", self.cdict)
