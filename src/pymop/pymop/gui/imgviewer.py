@@ -287,21 +287,29 @@ class GrayscaleColorMap(object):
     """
 
     def __init__(self):
-        # These two are required
-        self.min_bounds = (0.0, 0.0, 0.0)
-        self.max_bounds = (1.0, 1.0, 1.0)
+        # NOTE: we don't have discontinuities in our colormap, so y0=y1=y
+        self.abs_min_x = 0.0
+        self.abs_min_y = 0.0
 
-        # These allow us to control the contrast and bias
-        # NOTE: no discontinuities, so y0 and y1 are the same
+        self.abs_max_x = 1.0
+        self.abs_max_y = 1.0
+
+        # These extra points give us better control over contrast and bias
         self.lower_segment_x = 0.0
         self.lower_segment_y = 0.0
-        self.lower_segment_bounds = (self.lower_segment_x, self.lower_segment_y,
-                                     self.lower_segment_y)
 
         self.upper_segment_x = 1.0
         self.upper_segment_y = 1.0
+
+        self._build_cdict()
+
+    def _build_cdict(self):
+        self.min_bounds = (self.abs_min_x, self.abs_min_y, self.abs_min_y)
+        self.lower_segment_bounds = (self.lower_segment_x, self.lower_segment_y,
+                                     self.lower_segment_y)
         self.upper_segment_bounds = (self.upper_segment_x, self.upper_segment_y,
                                      self.upper_segment_y)
+        self.max_bounds = (self.abs_max_x, self.abs_max_y, self.abs_max_y)
 
         self.cdict = {}
         for color in ["red", "green", "blue"]:
@@ -342,11 +350,19 @@ class GrayscaleColorMap(object):
 
         Returns: void
         """
-        pass
+        self.lower_segment_x = self._clip(0.5 - contrast)
+        self.upper_segment_x = self._clip(0.5 + contrast)
 
-        # TODO: something similar to this, but actually updating the cdict field
-        # self.lower_segment_x = self._clip(0.5 - contrast)
-        # self.upper_segment_y = self._clip(0.5 + contrast)
+        min_y = self._clip(contrast - 0.5)
+        max_y = self._clip(1.5 - contrast)
+
+        self.abs_min_y = min_y
+        self.lower_segment_y = min_y
+
+        self.abs_max_y = max_y
+        self.upper_segment_y = max_y
+
+        self._build_cdict()
 
     def _clip(self, value):
         """Clip to range 0 to 1"""
