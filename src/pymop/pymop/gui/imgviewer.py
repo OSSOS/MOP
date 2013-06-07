@@ -343,6 +343,12 @@ class GrayscaleColorMap(object):
         min_y = self._clip(0.5 - (self.y_spread / 2))
         max_y = self._clip(0.5 + (self.y_spread / 2))
 
+        if lower_segment_x > upper_segment_x:
+            # If they try to go past maximum contrast, flip the colorbar
+            # ds9 style
+            lower_segment_x, upper_segment_x = upper_segment_x, lower_segment_x
+            min_y, max_y = max_y, min_y
+
         self.min_bounds = (0.0, min_y, min_y)
         self.lower_segment_bounds = (lower_segment_x, min_y, min_y)
         self.upper_segment_bounds = (upper_segment_x, max_y, max_y)
