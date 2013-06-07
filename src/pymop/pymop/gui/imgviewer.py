@@ -303,6 +303,8 @@ class GrayscaleColorMap(object):
 
         self._build_cdict()
 
+        self.bias = 0.5
+
     def _build_cdict(self):
         self.min_bounds = (self.abs_min_x, self.abs_min_y, self.abs_min_y)
         self.lower_segment_bounds = (self.lower_segment_x, self.lower_segment_y,
@@ -332,7 +334,13 @@ class GrayscaleColorMap(object):
 
         Returns: void
         """
-        pass
+        x_offset = self.bias - bias
+        self.bias = bias
+
+        self.lower_segment_x = self._clip(self.lower_segment_x + x_offset)
+        self.upper_segment_x = self._clip(self.upper_segment_x + x_offset)
+
+        self._build_cdict()
 
     def set_contrast(self, contrast):
         """
