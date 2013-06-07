@@ -42,13 +42,20 @@ class MPLImageViewer(object):
         # Create the canvas on which the figure is rendered
         self.canvas = FigureCanvas(parent, wx.ID_ANY, self.figure)
 
-        self.interaction_context = InteractionContext(self.figure, self.axes)
+        self.colormap = GrayscaleColorMap()
+        self.interaction_context = InteractionContext(self.figure, self.axes, self.colormap)
 
         self.current_image = None
+        self.img_axes = None
 
     def view_image(self, fits_image):
-        plt.imshow(zscale(fits_image.as_hdulist()[0].data), cmap="gray")
+        self.img_axes = plt.imshow(zscale(fits_image.as_hdulist()[0].data),
+                                   cmap=self.colormap.as_mpl_cmap())
         self.current_image = fits_image
+
+    def update_colormap(self):
+        assert self.img_axes is not None, "No image to update colormap for."
+        self.img_axes.set_cmap(self.colormap.as_mpl_cmap())
 
     def has_had_interaction(self):
         return self.interaction_context.has_had_interaction()
@@ -73,9 +80,10 @@ class InteractionContext(object):
     MOUSE_BUTTON_LEFT = 1
     MOUSE_BUTTON_RIGHT = 3
 
-    def __init__(self, figure, axes):
+    def __init__(self, figure, axes, colormap):
         self.figure = figure
         self.axes = axes
+        self.colormap = colormap
 
         self._connect()
 

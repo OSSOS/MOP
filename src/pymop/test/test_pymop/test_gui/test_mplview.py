@@ -62,7 +62,9 @@ class InteractionTest(unittest.TestCase):
     def setUp(self):
         self.figure = Mock()
         self.axes = Mock()
-        self.interaction_context = InteractionContext(self.figure, self.axes)
+        self.colormap = Mock()
+        self.interaction_context = InteractionContext(self.figure, self.axes,
+                                                      self.colormap)
 
     def _create_mouse_event(self, x, y, button, inaxes=True):
         event = Mock(spec=MPLMouseEvent)
