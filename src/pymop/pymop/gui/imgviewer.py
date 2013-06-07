@@ -47,6 +47,7 @@ class MPLImageViewer(object):
 
         self.current_image = None
         self.img_axes = None
+        self.colorbar = None
 
         self.circle = None
 
@@ -55,6 +56,13 @@ class MPLImageViewer(object):
     def view_image(self, fits_image):
         self.img_axes = plt.imshow(zscale(fits_image.as_hdulist()[0].data),
                                    cmap=self.colormap.as_mpl_cmap())
+
+        if self.colorbar is None:
+            self.colorbar = self.figure.colorbar(self.img_axes, orientation="horizontal")
+        else:
+            self.colorbar.set_cmap(self.colormap.as_mpl_cmap())
+            self.colorbar.changed()
+
         self.current_image = fits_image
 
     def update_colormap(self, dx, dy):
