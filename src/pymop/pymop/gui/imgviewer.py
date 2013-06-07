@@ -291,7 +291,7 @@ class GrayscaleColorMap(object):
         self.y_spread = 1.0
 
         self.x_offset = 0.0
-        self._last_bias = 0.5
+        self._previous_bias = 0.5
 
         self._build_cdict()
 
@@ -328,8 +328,8 @@ class GrayscaleColorMap(object):
 
         Returns: void
         """
-        self.x_offset += (self._last_bias - bias)
-        self._last_bias = bias
+        self.x_offset += (bias - self._previous_bias)
+        self._previous_bias = bias
 
         self._build_cdict()
 
@@ -349,8 +349,8 @@ class GrayscaleColorMap(object):
 
         Returns: void
         """
-        self.x_spread = 2 * contrast
-        self.y_spread = 2.0 - 2 * contrast
+        self.x_spread = 2 * (1.0 - contrast)
+        self.y_spread = 2.0 - 2 * (1.0 - contrast)
 
         self._build_cdict()
 
