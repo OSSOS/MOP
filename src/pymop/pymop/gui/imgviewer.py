@@ -60,7 +60,7 @@ class MPLImageViewer(object):
     def update_colormap(self, dx, dy):
         assert self.img_axes is not None, "No image to update colormap for."
 
-        contrast_diff = float(dy) / self.imgheight
+        contrast_diff = float(-dy) / self.imgheight
         bias_diff = float(dx) / self.imgwidth
 
         self.colormap.update_contrast(contrast_diff)
