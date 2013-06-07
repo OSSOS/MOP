@@ -295,11 +295,13 @@ class GrayscaleColorMap(object):
     """
 
     def __init__(self):
+        self._contrast = 0.5
+        self._bias = 0.5
+
         self.x_spread = 1.0
         self.y_spread = 1.0
 
         self.x_offset = 0.0
-        self._previous_bias = 0.5
 
         self._build_cdict()
 
@@ -336,10 +338,13 @@ class GrayscaleColorMap(object):
 
         Returns: void
         """
-        self.x_offset += (bias - self._previous_bias)
-        self._previous_bias = bias
+        self.x_offset += (bias - self._bias)
+        self._bias = bias
 
         self._build_cdict()
+
+    def update_bias(self, bias_diff):
+        self.set_bias(self._bias + bias_diff)
 
     def set_contrast(self, contrast):
         """
@@ -357,10 +362,15 @@ class GrayscaleColorMap(object):
 
         Returns: void
         """
+        self._contrast = contrast
+
         self.x_spread = 2 * (1.0 - contrast)
         self.y_spread = 2.0 - 2 * (1.0 - contrast)
 
         self._build_cdict()
+
+    def update_contrast(self, contrast_diff):
+        self.set_contrast(self._contrast + contrast_diff)
 
     def _clip(self, value):
         """Clip to range 0 to 1"""
