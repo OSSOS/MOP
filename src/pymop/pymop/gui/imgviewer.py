@@ -29,10 +29,10 @@ class MPLImageViewer(object):
         self.axes.set_aspect("equal", adjustable="datalim")
 
         # Make the axes fit the image tightly
-        imgwidth = config.read("IMG_RETRIEVAL.DEFAULT_SLICE_COLS")
-        imgheight = config.read("IMG_RETRIEVAL.DEFAULT_SLICE_ROWS")
-        self.axes.set_xlim([0, imgwidth])
-        self.axes.set_ylim([0, imgheight])
+        self.imgwidth = config.read("IMG_RETRIEVAL.DEFAULT_SLICE_COLS")
+        self.imgheight = config.read("IMG_RETRIEVAL.DEFAULT_SLICE_ROWS")
+        self.axes.set_xlim([0, self.imgwidth])
+        self.axes.set_ylim([0, self.imgheight])
 
         # Don't draw tick marks and labels
         self.axes.set_axis_off()
@@ -43,59 +43,39 @@ class MPLImageViewer(object):
         self.canvas = FigureCanvas(parent, wx.ID_ANY, self.figure)
 
         self.colormap = GrayscaleColorMap()
-        self.interaction_context = InteractionContext(self.figure, self.axes, self.colormap)
+        self.interaction_context = InteractionContext(self)
 
         self.current_image = None
         self.img_axes = None
+
+        self.circle = None
+
+        self._has_had_interaction = False
 
     def view_image(self, fits_image):
         self.img_axes = plt.imshow(zscale(fits_image.as_hdulist()[0].data),
                                    cmap=self.colormap.as_mpl_cmap())
         self.current_image = fits_image
 
-    def update_colormap(self):
+    def update_colormap(self, dx, dy):
         assert self.img_axes is not None, "No image to update colormap for."
+
+        contrast_diff = float(dy) / self.imgheight
+        bias_diff = float(dx) / self.imgwidth
+
+        self.colormap.update_contrast(contrast_diff)
+        self.colormap.update_bias(bias_diff)
+
         self.img_axes.set_cmap(self.colormap.as_mpl_cmap())
 
     def has_had_interaction(self):
-        return self.interaction_context.has_had_interaction()
+        return self._has_had_interaction
 
     def draw_circle(self, x, y, radius):
         """
         Draws a circle with the specified dimensions.  Only one circle can
         be on the image at a time, so any existing circle will be replaced.
         """
-        self.interaction_context.create_circle(x, y, radius)
-
-    def close(self):
-        self.interaction_context.disconnect()
-
-
-class InteractionContext(object):
-    """
-    Very useful reference for matplotlib event handling:
-    http://matplotlib.org/users/event_handling.html
-    """
-
-    MOUSE_BUTTON_LEFT = 1
-    MOUSE_BUTTON_RIGHT = 3
-
-    def __init__(self, figure, axes, colormap):
-        self.figure = figure
-        self.axes = axes
-        self.colormap = colormap
-
-        self._connect()
-
-        self.circle = None
-        self.state = CreateCircleState(self)
-
-        self._has_had_interaction = False
-
-    def has_had_interaction(self):
-        return self._has_had_interaction
-
-    def create_circle(self, x, y, radius):
         if self.circle is not None:
             self.circle.remove()
 
@@ -110,7 +90,7 @@ class InteractionContext(object):
                 raise MPLViewerError("No circle to update.")
             else:
                 # For convenience go ahead and make one
-                self.create_circle(x, y, radius)
+                self.draw_circle(x, y, radius)
 
         self.circle.center = (x, y)
 
@@ -121,19 +101,53 @@ class InteractionContext(object):
 
         self.redraw()
 
-    def _connect(self):
+    def get_circle(self):
+        return self.circle
+
+    def redraw(self):
+        self.figure.canvas.draw()
+
+    def is_event_in_axes(self, event):
+        return self.axes == event.inaxes
+
+    def close(self):
+        self.interaction_context.disconnect()
+
+    def register_event_handler(self, eventname, handler):
+        return self.figure.canvas.mpl_connect(eventname, handler)
+
+    def deregister_event_handler(self, id):
+        self.figure.canvas.mpl_disconnect(id)
+
+
+class InteractionContext(object):
+    """
+    Very useful reference for matplotlib event handling:
+    http://matplotlib.org/users/event_handling.html
+    """
+
+    MOUSE_BUTTON_LEFT = 1
+    MOUSE_BUTTON_RIGHT = 3
+
+    def __init__(self, viewer):
+        self.viewer = viewer
+        self._register_event_handlers()
+
+        self.state = CreateCircleState(self)
+
+    def _register_event_handlers(self):
         """
         Connect to start listening for the relevant events.
         """
-        self.cidpress = self.figure.canvas.mpl_connect(
+        self.cidpress = self.viewer.register_event_handler(
             "button_press_event", self.on_press)
-        self.cidrelease = self.figure.canvas.mpl_connect(
+        self.cidrelease = self.viewer.register_event_handler(
             "button_release_event", self.on_release)
-        self.cidmotion = self.figure.canvas.mpl_connect(
+        self.cidmotion = self.viewer.register_event_handler(
             "motion_notify_event", self.on_motion)
 
     def on_press(self, event):
-        if event.inaxes != self.axes:
+        if not self.viewer.is_event_in_axes(event):
             return
 
         if event.button == InteractionContext.MOUSE_BUTTON_LEFT:
@@ -147,10 +161,12 @@ class InteractionContext(object):
         self.state.on_press(event)
 
     def _choose_left_click_state(self, event):
-        if self.circle is None:
+        circle = self.viewer.get_circle()
+
+        if circle is None:
             in_circle = False
         else:
-            in_circle, _ = self.circle.contains(event)
+            in_circle, _ = circle.contains(event)
 
         if in_circle:
             return MoveCircleState(self)
@@ -158,29 +174,35 @@ class InteractionContext(object):
             return CreateCircleState(self)
 
     def on_motion(self, event):
-        if event.inaxes != self.axes:
+        if not self.viewer.is_event_in_axes(event):
             return
 
         self.state.on_motion(event)
-        self.redraw()
+        self.viewer.redraw()
 
     def on_release(self, event):
         self.state.on_release(event)
-        self.redraw()
+        self.viewer.redraw()
 
-    def redraw(self):
-        self.figure.canvas.draw()
+    def get_circle(self):
+        return self.viewer.get_circle()
+
+    def update_circle(self, x, y, radius=None):
+        self.viewer.update_circle(x, y, radius)
+
+    def update_colormap(self, dx, dy):
+        self.viewer.update_colormap(dx, dy)
 
     def disconnect(self):
         """Disconnects all the stored connection ids"""
-        self.figure.canvas.mpl_disconnect(self.cidpress)
-        self.figure.figure.canvas.mpl_disconnect(self.cidrelease)
-        self.figure.figure.canvas.mpl_disconnect(self.cidmotion)
+        self.viewer.deregister_event_handler(self.cidpress)
+        self.viewer.deregister_event_handler(self.cidrelease)
+        self.viewer.deregister_event_handler(self.cidmotion)
 
 
 class MoveCircleState(object):
     def __init__(self, context):
-        if context.circle is None:
+        if context.get_circle() is None:
             raise MPLImageViewer("Can not move a circle if it doesn't exist!")
 
         self.context = context
@@ -194,7 +216,7 @@ class MoveCircleState(object):
     def on_press(self, event):
         self.pressed = True
 
-        self.center_x, self.center_y = self.context.circle.center
+        self.center_x, self.center_y = self.context.get_circle().center
         self.mouse_x = event.xdata
         self.mouse_y = event.ydata
 
@@ -263,20 +285,29 @@ class AdjustColormapState(object):
         self.context = context
 
         self.pressed = False
+        self.lastx = None
+        self.lasty = None
 
     def on_press(self, event):
         self.pressed = True
-        print "TODO: set up colormap adjustment"
+
+        self.lastx = event.xdata
+        self.lasty = event.ydata
 
     def on_motion(self, event):
         if not self.pressed:
             return
 
-        print "TODO: perform colormap adjustment"
+        self.context.update_colormap(event.xdata - self.lastx,
+                                     event.ydata - self.lasty)
+
+        self.lastx = event.xdata
+        self.lasty = event.ydata
 
     def on_release(self, event):
         self.pressed = False
-        print "TODO: colormap adjustment finished"
+        self.lastx = None
+        self.lasty = None
 
 
 class GrayscaleColorMap(object):
