@@ -287,31 +287,25 @@ class GrayscaleColorMap(object):
     """
 
     def __init__(self):
-        # NOTE: we don't have discontinuities in our colormap, so y0=y1=y
-        self.abs_min_x = 0.0
-        self.abs_min_y = 0.0
+        self.x_spread = 1.0
+        self.y_spread = 1.0
 
-        self.abs_max_x = 1.0
-        self.abs_max_y = 1.0
-
-        # These extra points give us better control over contrast and bias
-        self.lower_segment_x = 0.0
-        self.lower_segment_y = 0.0
-
-        self.upper_segment_x = 1.0
-        self.upper_segment_y = 1.0
+        self.x_offset = 0.0
+        self._last_bias = 0.5
 
         self._build_cdict()
 
-        self.bias = 0.5
-
     def _build_cdict(self):
-        self.min_bounds = (self.abs_min_x, self.abs_min_y, self.abs_min_y)
-        self.lower_segment_bounds = (self.lower_segment_x, self.lower_segment_y,
-                                     self.lower_segment_y)
-        self.upper_segment_bounds = (self.upper_segment_x, self.upper_segment_y,
-                                     self.upper_segment_y)
-        self.max_bounds = (self.abs_max_x, self.abs_max_y, self.abs_max_y)
+        lower_segment_x = self._clip(self.x_offset + 0.5 - self.x_spread / 2)
+        upper_segment_x = self._clip(self.x_offset + 0.5 + self.x_spread / 2)
+
+        min_y = self._clip(0.5 - (self.y_spread / 2))
+        max_y = self._clip(0.5 + (self.y_spread / 2))
+
+        self.min_bounds = (0.0, min_y, min_y)
+        self.lower_segment_bounds = (lower_segment_x, min_y, min_y)
+        self.upper_segment_bounds = (upper_segment_x, max_y, max_y)
+        self.max_bounds = (1.0, max_y, max_y)
 
         self.cdict = {}
         for color in ["red", "green", "blue"]:
@@ -329,16 +323,13 @@ class GrayscaleColorMap(object):
 
         Args:
           bias: float
-            A number between 0 and 1.  This represents the midpoint of
-            the grayscale.  Setting it to 0
+            A number between 0 and 1.  Note that upon initialization the
+            colormap has a default bias of 0.5.
 
         Returns: void
         """
-        x_offset = self.bias - bias
-        self.bias = bias
-
-        self.lower_segment_x = self._clip(self.lower_segment_x + x_offset)
-        self.upper_segment_x = self._clip(self.upper_segment_x + x_offset)
+        self.x_offset += (self._last_bias - bias)
+        self._last_bias = bias
 
         self._build_cdict()
 
@@ -353,22 +344,13 @@ class GrayscaleColorMap(object):
 
         Args:
           contrast: float
-            A number between 0 and 1.  This represents the midpoint of
-            the grayscale.
+            A number between 0 and 1.  Note that upon initialization the
+            colormap has a default contrast value of 0.5.
 
         Returns: void
         """
-        self.lower_segment_x = self._clip(0.5 - contrast)
-        self.upper_segment_x = self._clip(0.5 + contrast)
-
-        min_y = self._clip(contrast - 0.5)
-        max_y = self._clip(1.5 - contrast)
-
-        self.abs_min_y = min_y
-        self.lower_segment_y = min_y
-
-        self.abs_max_y = max_y
-        self.upper_segment_y = max_y
+        self.x_spread = 2 * contrast
+        self.y_spread = 2.0 - 2 * contrast
 
         self._build_cdict()
 
