@@ -15,6 +15,49 @@ _CERTFILE=os.path.join(os.getenv('HOME'),
 
 _dbimages='vos:OSSOS/dbimages'
 
+
+
+def populate(dataset_name, data_web_service_url = "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHT"):
+    """Given a dataset_name created the desired dbimages directories and links to the raw data files stored at CADC."""
+
+    data_dest = get_uri(dataset_name,version='o',ext='fits.fz')
+    data_source = "%s/%so.fits.fz" % (data_web_service_url,dataset_name)
+
+    c = vos.Client(certFile=_CERTFILE)
+
+    try:
+        c.mkdir(os.path.dirname(data_dest))
+    except IOError as e:
+        print e
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            raise e
+
+    try: 
+        c.link(data_source, data_dest)
+    except IOError as e:
+        print e
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            raise e
+
+    header_dest = get_uri(dataset_name,version='o',ext='head')
+    header_source = "%s/%so.fits.fz?cutout=[0]" % (data_web_service_url, dataset_name) 
+    try:
+        c.link(header_source, header_dest)
+    except IOError as e:
+        print e
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            raise e
+
+    return True
+        
+
+
 def get_uri(expnum, ccd=None, version='p', ext='fits', subdir=None, prefix=None):
     '''build the uri for an OSSOS image stored in the dbimages containerNode.
 
