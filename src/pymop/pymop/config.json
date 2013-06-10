@@ -1,4 +1,6 @@
 {
+    "DEBUG": true,
+
     "KEYBINDS": {
         "ACCEPT_SRC": "a",
         "REJECT_SRC": "r"

@@ -4,6 +4,8 @@ import wx
 import wx.wizard as wiz
 import wx.lib.filebrowsebutton as filebrowse
 
+from pymop import config
+
 
 class DynamicLaunchWizardPage(wiz.PyWizardPage):
     def __init__(self, parent, wizard_manager):
@@ -84,6 +86,9 @@ class VetCandidatesPage(DynamicLaunchWizardPage):
         super(VetCandidatesPage, self).__init__(parent, wizard_manager)
         self.wizard_manager = wizard_manager
 
+        self.input_filename = ""
+        self.output_filename = ""
+
         self._init_ui_components()
         self._bind_events()
 
@@ -136,13 +141,19 @@ class VetCandidatesPage(DynamicLaunchWizardPage):
         self.fill_output_button.Bind(wx.EVT_BUTTON, self._on_autofill_output)
 
     def _on_input_selected(self, event):
-        print event.GetString()
+        self.input_filename = event.GetString()
 
     def _on_output_selected(self, event):
-        print event.GetString()
+        self.output_filename = event.GetString()
 
     def _on_autofill_output(self, event):
-        print "Auto-filling output"
+        self.output_filename = self.input_filename[0:self.input_filename.index(".cands.astrom")]
+
+    def get_input_filename(self):
+        return self.input_filename
+
+    def get_output_filename(self):
+        return self.output_filename
 
 
 class ProcessRealsPage(DynamicLaunchWizardPage):
@@ -173,7 +184,11 @@ class ProcessRealsPage(DynamicLaunchWizardPage):
 
 
 class LaunchWizardManager(object):
-    def __init__(self):
+    def __init__(self, launcher):
+        self.debug = config.read("DEBUG")
+
+        self.launcher = launcher
+
         self.wizard = wiz.Wizard(None, -1, "Moving Object Pipeline")
 
         self.task_selection_page = TaskSelectionPage(self.wizard, self)
@@ -182,24 +197,24 @@ class LaunchWizardManager(object):
 
         # Default selection
         self.task_selection_page.SetNext(self.vet_candidates_page)
-        self.vet_candidates_page.prev = self.task_selection_page
-        self.process_reals_page.prev = self.task_selection_page
+        self.vet_candidates_page.SetPrev(self.task_selection_page)
+        self.process_reals_page.SetPrev(self.task_selection_page)
 
         self.wizard.FitToPage(self.task_selection_page)
 
         self.wizard.GetPageAreaSizer().Add(self.task_selection_page)
 
         if self.wizard.RunWizard(self.task_selection_page):
-            wx.MessageBox("Launching main program.", "MOP")
-        else:
-            wx.MessageBox("Exiting program.", "MOP")
+            input_filename = self.vet_candidates_page.get_input_filename()
+            output_filename = self.vet_candidates_page.get_output_filename()
+            launcher.run(input_filename, output_filename, self.debug)
 
     def choose_vet_task(self):
-        self.task_selection_page.next = self.vet_candidates_page
+        self.task_selection_page.SetNext(self.vet_candidates_page)
 
     def choose_process_reals_task(self):
-        self.task_selection_page.next = self.process_reals_page
+        self.task_selection_page.SetNext(self.process_reals_page)
 
 
-def run_wizard():
-    LaunchWizardManager()
+def run_wizard(applauncher):
+    LaunchWizardManager(applauncher)
