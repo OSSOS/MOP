@@ -12,7 +12,7 @@ from pymop.applauncher import AstromFileApplicationLauncher
 
 class AstromFileApplicationLauncherTest(FileReadingTestCase):
     def setUp(self):
-        self.outputfile = tempfile.TemporaryFile(mode="wb")
+        self.outputfile = tempfile.NamedTemporaryFile(mode="wb")
 
     def tearDown(self):
         self.outputfile.close()
@@ -22,7 +22,7 @@ class AstromFileApplicationLauncherTest(FileReadingTestCase):
     def test_run_startup(self, mock_image_loader, mock_wxCallAfter):
         launcher = AstromFileApplicationLauncher()
         appcontrol = launcher.run(self.get_abs_path("data/1584431p15.measure3.cands.astrom"),
-                                  self.outputfile, False, unittest=True)
+                                  self.outputfile.name, False, unittest=True)
 
         # Check some things that should happen on startup
         assert_that(mock_wxCallAfter.call_args_list,

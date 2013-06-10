@@ -25,15 +25,16 @@ class AstromFileApplicationLauncher(object):
         self.download_manager = AsynchronousImageDownloadManager(
             ImageSliceDownloader(VOSpaceResolver()))
 
-    def run(self, astrom_file, output_filehandle, debug_mode, unittest=False):
-        self.astrom_data = self.parser.parse(astrom_file)
+    def run(self, astrom_file, output_filename, debug_mode, unittest=False):
+        with open(output_filename, "wb") as output_filehandle:
+            self.astrom_data = self.parser.parse(astrom_file)
 
-        self.model = AstroDataModel(self.astrom_data, self.download_manager)
-        self.output_writer = MPCWriter(output_filehandle)
-        self.controller = ApplicationController(self.model,
-                                                self.output_writer,
-                                                self.name_generator,
-                                                debug_mode=debug_mode,
-                                                unittest=unittest)
+            self.model = AstroDataModel(self.astrom_data, self.download_manager)
+            self.output_writer = MPCWriter(output_filehandle)
+            self.controller = ApplicationController(self.model,
+                                                    self.output_writer,
+                                                    self.name_generator,
+                                                    debug_mode=debug_mode,
+                                                    unittest=unittest)
         return self.controller
 
