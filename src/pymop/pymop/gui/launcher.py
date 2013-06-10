@@ -2,6 +2,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
 import wx.wizard as wiz
+import wx.lib.filebrowsebutton as filebrowse
 
 
 class DynamicLaunchWizardPage(wiz.PyWizardPage):
@@ -76,28 +77,72 @@ class TaskSelectionPage(DynamicLaunchWizardPage):
 
 class VetCandidatesPage(DynamicLaunchWizardPage):
     TITLE = "Vetting candidate objects"
+    INPUT_LABEL = "Candidates file to process"
+    OUTPUT_LABEL = "Reals output file"
 
     def __init__(self, parent, wizard_manager):
         super(VetCandidatesPage, self).__init__(parent, wizard_manager)
         self.wizard_manager = wizard_manager
 
         self._init_ui_components()
+        self._bind_events()
 
     def _init_ui_components(self):
         self.title = wx.StaticText(self, -1, VetCandidatesPage.TITLE)
         self.title.SetFont(wx.Font(18, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL,
                                    wx.FONTWEIGHT_BOLD))
 
+        self.input_label = wx.StaticText(self, -1, label=VetCandidatesPage.INPUT_LABEL)
+
+        self.input_file_selector = filebrowse.FileBrowseButton(
+            self, -1, fileMode=wx.OPEN, labelText="",
+            dialogTitle="Select input file",
+            fileMask="*.cands.astrom",
+            changeCallback=self._on_input_selected)
+
+        self.output_label = wx.StaticText(self, -1, label=VetCandidatesPage.OUTPUT_LABEL)
+        self.fill_output_button = wx.Button(self, -1, label="Auto-fill")
+
+        self.output_file_selector = filebrowse.FileBrowseButton(
+            self, -1, fileMode=wx.SAVE, labelText="",
+            dialogTitle="Select output location",
+            changeCallback=self._on_output_selected)
+
         self._do_layout()
 
     def _do_layout(self):
         border = 5
 
+        output_info_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        output_info_sizer.Add(self.output_label, 0, wx.ALL, border)
+        output_info_sizer.Add(self.fill_output_button, 0, wx.ALIGN_RIGHT | wx.ALL, border)
+
         vsizer = wx.BoxSizer(wx.VERTICAL)
         vsizer.Add(self.title, 0, wx.ALIGN_CENTRE | wx.ALL, border)
         vsizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.ALL, border)
 
+        vsizer.Add(self.input_label)
+        vsizer.Add(self.input_file_selector, 0, wx.EXPAND | wx.ALL, border)
+
+        vsizer.AddSpacer(20)
+
+        vsizer.Add(self.output_label, 0, wx.EXPAND | wx.ALL, border)
+        vsizer.Add(self.fill_output_button, 0, wx.ALL, border)
+        vsizer.Add(self.output_file_selector, 0, wx.EXPAND | wx.ALL, border)
+
         self.SetSizer(vsizer)
+
+    def _bind_events(self):
+        self.fill_output_button.Bind(wx.EVT_BUTTON, self._on_autofill_output)
+
+    def _on_input_selected(self, event):
+        print event.GetString()
+
+    def _on_output_selected(self, event):
+        print event.GetString()
+
+    def _on_autofill_output(self, event):
+        print "Auto-filling output"
 
 
 class ProcessRealsPage(DynamicLaunchWizardPage):
