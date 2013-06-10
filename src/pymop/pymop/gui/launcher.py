@@ -4,17 +4,35 @@ import wx
 import wx.wizard as wiz
 
 
-class TaskSelectionPage(wiz.PyWizardPage):
+class DynamicLaunchWizardPage(wiz.PyWizardPage):
+    def __init__(self, parent, wizard_manager):
+        super(DynamicLaunchWizardPage, self).__init__(parent)
+
+        self.wizard_manager = wizard_manager
+
+        self.next = None
+        self.prev = None
+
+    def SetNext(self, next):
+        self.next = next
+
+    def SetPrev(self, prev):
+        self.prev = prev
+
+    def GetNext(self):
+        return self.next
+
+    def GetPrev(self):
+        return self.prev
+
+
+class TaskSelectionPage(DynamicLaunchWizardPage):
     TITLE = "Select a task:"
     TASK_VET = "Vet candidate objects"
     TASK_PROCESS_REAL = "Process real objects"
 
     def __init__(self, parent, wizard_manager):
-        super(TaskSelectionPage, self).__init__(parent)
-        self.wizard_manager = wizard_manager
-
-        self.next = None
-        self.prev = None
+        super(TaskSelectionPage, self).__init__(parent, wizard_manager)
 
         self._init_ui_components()
 
@@ -55,28 +73,13 @@ class TaskSelectionPage(wiz.PyWizardPage):
     def _on_select_process_reals(self, event):
         self.wizard_manager.choose_process_reals_task()
 
-    def SetNext(self, next):
-        self.next = next
 
-    def SetPrev(self, prev):
-        self.prev = prev
-
-    def GetNext(self):
-        return self.next
-
-    def GetPrev(self):
-        return self.prev
-
-
-class VetCandidatesPage(wiz.PyWizardPage):
+class VetCandidatesPage(DynamicLaunchWizardPage):
     TITLE = "Vetting candidate objects"
 
     def __init__(self, parent, wizard_manager):
-        super(VetCandidatesPage, self).__init__(parent)
+        super(VetCandidatesPage, self).__init__(parent, wizard_manager)
         self.wizard_manager = wizard_manager
-
-        self.next = None
-        self.prev = None
 
         self._init_ui_components()
 
@@ -96,28 +99,13 @@ class VetCandidatesPage(wiz.PyWizardPage):
 
         self.SetSizer(vsizer)
 
-    def SetNext(self, next):
-        self.next = next
 
-    def SetPrev(self, prev):
-        self.prev = prev
-
-    def GetNext(self):
-        return self.next
-
-    def GetPrev(self):
-        return self.prev
-
-
-class ProcessRealsPage(wiz.PyWizardPage):
+class ProcessRealsPage(DynamicLaunchWizardPage):
     TITLE = "Processing real objects"
 
     def __init__(self, parent, wizard_manager):
-        super(ProcessRealsPage, self).__init__(parent)
+        super(ProcessRealsPage, self).__init__(parent, wizard_manager)
         self.wizard_manager = wizard_manager
-
-        self.next = None
-        self.prev = None
 
         self._init_ui_components()
 
@@ -137,18 +125,6 @@ class ProcessRealsPage(wiz.PyWizardPage):
         vsizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.ALL, border)
 
         self.SetSizer(vsizer)
-
-    def SetNext(self, next):
-        self.next = next
-
-    def SetPrev(self, prev):
-        self.prev = prev
-
-    def GetNext(self):
-        return self.next
-
-    def GetPrev(self):
-        return self.prev
 
 
 class LaunchWizardManager(object):
