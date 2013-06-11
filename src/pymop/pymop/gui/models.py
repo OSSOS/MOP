@@ -24,7 +24,7 @@ MSG_IMG_LOADED = MSG_ROOT + ("imgload", )
 MSG_ALL_SRC_PROC = MSG_ROOT + ("allproc", )
 
 
-class AstroDataModel(object):
+class ProcessRealsModel(object):
     """
     Main model for storing and accessing astronomical data in the
     application.

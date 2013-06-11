@@ -9,7 +9,7 @@ from pymop.io.mpc import MPCWriter
 from pymop.io.naming import ProvisionalNameGenerator
 from pymop.io.imgaccess import (AsynchronousImageDownloadManager,
                                 ImageSliceDownloader, VOSpaceResolver)
-from pymop.gui.models import AstroDataModel
+from pymop.gui.models import ProcessRealsModel
 from pymop.gui.controllers import ApplicationController
 
 
@@ -29,7 +29,7 @@ class AstromFileApplicationLauncher(object):
         with open(output_filename, "wb") as output_filehandle:
             self.astrom_data = self.parser.parse(astrom_file)
 
-            self.model = AstroDataModel(self.astrom_data, self.download_manager)
+            self.model = ProcessRealsModel(self.astrom_data, self.download_manager)
             self.output_writer = MPCWriter(output_filehandle)
             self.controller = ApplicationController(self.model,
                                                     self.output_writer,
