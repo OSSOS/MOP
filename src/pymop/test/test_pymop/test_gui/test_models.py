@@ -14,7 +14,7 @@ from pymop.io.astrom import AstromParser
 from pymop.io.img import FitsImage
 
 
-class AstroDataModelTest(FileReadingTestCase):
+class ProcessRealsModelTest(FileReadingTestCase):
     def setUp(self):
         pub.unsubAll()
 
@@ -116,6 +116,38 @@ class AstroDataModelTest(FileReadingTestCase):
         msg = args[0]
         assert_that(msg.topic, equal_to(models.MSG_NEXT_OBS))
         assert_that(msg.data, equal_to(1))
+
+    def test_next_item(self):
+        observer = Mock()
+        pub.subscribe(observer.on_next_obs, models.MSG_NEXT_OBS)
+        pub.subscribe(observer.on_next_src, models.MSG_NEXT_SRC)
+
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
+
+        self.model.next_item()
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_obs_number(), equal_to(1))
+        assert_that(observer.on_next_obs.call_count, equal_to(1))
+        assert_that(observer.on_next_src.call_count, equal_to(0))
+
+        self.model.next_item()
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_obs_number(), equal_to(2))
+        assert_that(observer.on_next_obs.call_count, equal_to(2))
+        assert_that(observer.on_next_src.call_count, equal_to(0))
+
+        self.model.next_item()
+        assert_that(self.model.get_current_source_number(), equal_to(1))
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
+        assert_that(observer.on_next_obs.call_count, equal_to(2))
+        assert_that(observer.on_next_src.call_count, equal_to(1))
+
+        self.model.next_item()
+        assert_that(self.model.get_current_source_number(), equal_to(1))
+        assert_that(self.model.get_current_obs_number(), equal_to(1))
+        assert_that(observer.on_next_obs.call_count, equal_to(3))
+        assert_that(observer.on_next_src.call_count, equal_to(1))
 
     def test_receive_previous_source_event(self):
         # Subscribe a mock
