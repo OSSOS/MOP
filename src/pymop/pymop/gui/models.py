@@ -145,7 +145,7 @@ class ProcessRealsModel(object):
         return self._num_images_loaded
 
     def get_total_image_count(self):
-        return self.get_source_count() * self.get_obs_count()
+        return self.astrom_data.get_reading_count()
 
     def _on_image_loaded(self, source_num, obs_num):
         self._num_images_loaded += 1
