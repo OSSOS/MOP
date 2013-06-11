@@ -21,7 +21,7 @@ MSG_PREV_OBS = MSG_NAV_OBS + ("prev", )
 
 MSG_IMG_LOADED = MSG_ROOT + ("imgload", )
 
-MSG_ALL_SRC_PROC = MSG_ROOT + ("allproc", )
+MSG_ALL_ITEMS_PROC = MSG_ROOT + ("allproc", )
 
 
 class ProcessRealsModel(object):
@@ -39,7 +39,10 @@ class ProcessRealsModel(object):
 
         self._num_images_loaded = 0
 
-        self._sources_processed = [False] * self.get_source_count()
+        self._items_processed = {}
+        for source in self.astrom_data.sources:
+            for reading in source:
+                self._items_processed[reading] = False
 
     def next_item(self):
         """Move to the next item to process."""
@@ -144,22 +147,24 @@ class ProcessRealsModel(object):
     def get_loaded_image_count(self):
         return self._num_images_loaded
 
-    def get_total_image_count(self):
+    def get_item_count(self):
         return self.astrom_data.get_reading_count()
+
+    def get_total_image_count(self):
+        return self.get_item_count()
 
     def _on_image_loaded(self, source_num, obs_num):
         self._num_images_loaded += 1
         pub.sendMessage(MSG_IMG_LOADED, (source_num, obs_num))
 
-    def set_current_source_processed(self):
-        self._sources_processed[self.get_current_source_number()] = True
+    def set_current_item_processed(self):
+        self._items_processed[self._get_current_reading()] = True
 
-        if all(self._sources_processed):
-            pub.sendMessage(MSG_ALL_SRC_PROC)
+        if all(self._items_processed.values()):
+            pub.sendMessage(MSG_ALL_ITEMS_PROC)
 
-    def get_num_sources_processed(self):
-        return self._sources_processed.count(True)
+    def get_num_items_processed(self):
+        return self._items_processed.values().count(True)
 
-    def is_source_processed(self, sourcenum):
-        assert 0 <= sourcenum <= self.get_source_count()
-        return self._sources_processed[sourcenum]
+    def is_item_processed(self, reading):
+        return self._items_processed[reading]

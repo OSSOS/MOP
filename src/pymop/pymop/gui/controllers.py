@@ -23,7 +23,7 @@ class ApplicationController(object):
 
         pub.subscribe(self.on_change_image, models.MSG_NAV)
         pub.subscribe(self.on_image_loaded, models.MSG_IMG_LOADED)
-        pub.subscribe(self.on_all_sources_processed, models.MSG_ALL_SRC_PROC)
+        pub.subscribe(self.on_all_sources_processed, models.MSG_ALL_ITEMS_PROC)
 
         self.view = ApplicationView(self.model, self)
         self.view.launch(debug_mode=debug_mode, unittest=unittest)
@@ -105,8 +105,8 @@ class ApplicationController(object):
         self.get_view().show_accept_source_dialog(preset_vals)
 
     def on_reject(self):
-        self.model.set_current_source_processed()
-        self.model.next_source()
+        self.model.set_current_item_processed()
+        self.model.next_item()
 
     def on_do_accept(self,
                      minor_plant_number,
@@ -139,8 +139,8 @@ class ApplicationController(object):
             observatory_code)
 
         self.get_view().close_accept_source_dialog()
-        self.model.set_current_source_processed()
-        self.model.next_source()
+        self.model.set_current_item_processed()
+        self.model.next_item()
 
     def on_cancel_accept(self):
         self.get_view().close_accept_source_dialog()

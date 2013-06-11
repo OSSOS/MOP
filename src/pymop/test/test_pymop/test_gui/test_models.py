@@ -271,44 +271,40 @@ class ProcessRealsModelTest(FileReadingTestCase):
         assert_that(self.model.get_total_image_count(), equal_to(9))
 
     def test_sources_processed(self):
-        assert_that(self.model.get_num_sources_processed(), equal_to(0))
+        assert_that(self.model.get_num_items_processed(), equal_to(0))
         assert_that(self.model.get_current_source_number(), equal_to(0))
 
-        self.model.set_current_source_processed()
+        self.model.set_current_item_processed()
 
         assert_that(self.model.get_current_source_number(), equal_to(0))
-        assert_that(self.model.get_num_sources_processed(), equal_to(1))
-        assert_that(self.model.is_source_processed(0))
-        assert_that(not self.model.is_source_processed(1))
-        assert_that(not self.model.is_source_processed(2))
+        assert_that(self.model.get_num_items_processed(), equal_to(1))
+        assert_that(self.model.is_item_processed(self.astrom_data.sources[0][0]))
+        assert_that(not self.model.is_item_processed(self.astrom_data.sources[0][1]))
+        assert_that(not self.model.is_item_processed(self.astrom_data.sources[0][2]))
 
-        self.model.set_current_source_processed()
+        self.model.set_current_item_processed()
 
         assert_that(self.model.get_current_source_number(), equal_to(0))
-        assert_that(self.model.get_num_sources_processed(), equal_to(1))
+        assert_that(self.model.get_num_items_processed(), equal_to(1))
 
-        self.model.next_source()
-        self.model.set_current_source_processed()
+        self.model.next_item()
+        self.model.set_current_item_processed()
 
-        assert_that(self.model.get_current_source_number(), equal_to(1))
-        assert_that(self.model.get_num_sources_processed(), equal_to(2))
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_num_items_processed(), equal_to(2))
 
     def test_receive_all_sources_processed_event(self):
         observer = Mock()
-        pub.subscribe(observer.on_all_processed, models.MSG_ALL_SRC_PROC)
+        pub.subscribe(observer.on_all_processed, models.MSG_ALL_ITEMS_PROC)
 
-        assert_that(not observer.on_all_processed.called)
+        item = 0
+        while item < self.model.get_item_count() - 1:
+            self.model.set_current_item_processed()
+            assert_that(observer.on_all_processed.call_count, equal_to(0))
+            self.model.next_item()
+            item += 1
 
-        self.model.set_current_source_processed()
-        assert_that(not observer.on_all_processed.called)
-
-        self.model.next_source()
-        self.model.set_current_source_processed()
-        assert_that(not observer.on_all_processed.called)
-
-        self.model.next_source()
-        self.model.set_current_source_processed()
-
+        self.model.set_current_item_processed()
         assert_that(observer.on_all_processed.call_count, equal_to(1))
 
     def test_get_current_band(self):
