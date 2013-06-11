@@ -1,18 +1,19 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import tempfile
 import unittest
 
 from hamcrest import (assert_that, equal_to, has_length, has_entries,
                       same_instance, contains)
 
-from test import base_tests
-from pymop.io.astrom import AstromParser
+from test.base_tests import FileReadingTestCase
+from pymop.io.astrom import AstromParser, AstromWriter, Observation
 
 TEST_FILE_1 = "data/1584431p15.measure3.cands.astrom"
 TEST_FILE_2 = "data/1616681p22.measure3.cands.astrom"
 
 
-class ParserTest(base_tests.FileReadingTestCase):
+class ParserTest(FileReadingTestCase):
     def setUp(self):
         self.parser = AstromParser()
 
@@ -174,6 +175,53 @@ class ParserTest(base_tests.FileReadingTestCase):
 
         obs_names = [obs.rawname for obs in astrom_data.observations]
         assert_that(obs_names, contains("1616681p22", "1616692p22", "1616703p22"))
+
+
+class WriterTest(FileReadingTestCase):
+    def setUp(self):
+        self.parser = AstromParser()
+        self.outputfile = tempfile.NamedTemporaryFile(suffix=".astrom",
+                                                      mode="w+b")
+        self.writer = AstromWriter(self.outputfile)
+
+    def tearDown(self):
+        self.outputfile.close()
+
+    def read_output(self):
+        self.outputfile.seek(0)
+        return self.outputfile.read()
+
+    @unittest.skip("TODO: finish implementing")
+    def test_parse_then_rewrite(self):
+        """
+        Sanity check that we can parse data, then write that data back out
+        identically.
+        """
+        test_file_path = self.get_abs_path(TEST_FILE_1)
+
+        astrom_data = AstromParser().parse(test_file_path)
+        self.writer.write(astrom_data)
+
+        actual = self.read_output()
+
+        with open(test_file_path, "rb") as fh:
+            expected = fh.read()
+
+        assert_that(actual, equal_to(expected))
+
+    def test_write_observation_list(self):
+        expected = ("# 1584431p15                                                                    \n"
+                    "# 1584449p15                                                                    \n"
+                    "# 1584453p15                                                                    \n"
+        )
+
+        observations = [Observation("1584431", "p", "15"),
+                        Observation("1584449", "p", "15"),
+                        Observation("1584453", "p", "15")]
+
+        self.writer._write_observation_list(observations)
+
+        assert_that(self.read_output(), equal_to(expected))
 
 
 if __name__ == '__main__':
