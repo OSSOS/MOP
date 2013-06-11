@@ -31,6 +31,12 @@ DETECTOR = "DETECTOR"
 PHADU = "PHADU"
 RDNOIS = "RDNOIS"
 
+# System header keys
+RMIN = "RMIN"
+RMAX = "RMAX"
+ANGLE = "ANGLE"
+AWIDTH = "AWIDTH"
+
 
 class AstromParser(object):
     """
@@ -206,10 +212,17 @@ class AstromWriter(object):
             self._write_line("# %6.3f%4d%10.2f%10.2f%6d%6d %s%5.2f %5.2f" % get_header_vals(
                 [SCALE, CHIP, CRPIX1, CRPIX2, NAX1, NAX2, DETECTOR, PHADU, RDNOIS]))
 
+    def _write_sys_header(self, sys_header):
+        header_vals = [sys_header[RMIN], sys_header[RMAX], sys_header[ANGLE],
+                       sys_header[AWIDTH]]
+        self._write_line("##     RMIN    RMAX   ANGLE   AWIDTH")
+        self._write_line("# %8.1f%8.1f%8.1f%8.1f" % tuple(map(float, header_vals)))
+
     def write(self, astrom_data):
         observations = astrom_data.observations
         self._write_observation_list(observations)
         self._write_observation_headers(observations)
+        self._write_sys_header(astrom_data.sys_header)
 
 
 class AstromData(object):

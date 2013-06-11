@@ -252,6 +252,17 @@ class WriterTest(FileReadingTestCase):
 
         assert_that(self.read_output(), equal_to(expected))
 
+    def test_write_sys_header(self):
+        expected = ("##     RMIN    RMAX   ANGLE   AWIDTH                                            \n"
+                    "#      0.5    10.3   -19.9    22.3                                              \n"
+        )
+
+        astrom_data = self.parse(TEST_FILE_1)
+
+        self.writer._write_sys_header(astrom_data.sys_header)
+
+        assert_that(self.read_output(), equal_to(expected))
+
 
 if __name__ == '__main__':
     unittest.main()
