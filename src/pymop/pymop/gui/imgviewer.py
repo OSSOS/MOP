@@ -15,6 +15,24 @@ class MPLViewerError(object):
     """Base exception for matplotlib viewer"""
 
 
+class ColormappedFitsImage(object):
+    def __init__(self, fits_image):
+        self.fits_image = fits_image
+        self.colormap = GrayscaleColorMap()
+
+    def update_contrast(self, contrast_diff):
+        self.colormap.update_contrast(contrast_diff)
+
+    def update_bias(self, bias_diff):
+        self.colormap.update_bias(bias_diff)
+
+    def get_image_data(self):
+        return self.fits_image.as_hdulist()[0].data
+
+    def get_cmap(self):
+        return self.colormap.as_mpl_cmap()
+
+
 class MPLImageViewer(object):
     """
     Display images using matplotlib.
@@ -43,39 +61,58 @@ class MPLImageViewer(object):
         # Create the canvas on which the figure is rendered
         self.canvas = FigureCanvas(parent, wx.ID_ANY, self.figure)
 
-        self.colormap = GrayscaleColorMap()
         self.interaction_context = InteractionContext(self)
 
         self.current_image = None
-        self.img_axes = None
+        self.axes_image = None
         self.colorbar = None
 
         self.circle = None
 
         self._has_had_interaction = False
 
+        self._viewed_images = {}
+
     def view_image(self, fits_image):
-        self.img_axes = plt.imshow(zscale(fits_image.as_hdulist()[0].data),
-                                   cmap=self.colormap.as_mpl_cmap())
+        # TODO: defaultdict?
+        if fits_image not in self._viewed_images:
+            colormapped_image = ColormappedFitsImage(fits_image)
+            self._viewed_images[fits_image] = colormapped_image
+
+        self.current_image = self._viewed_images[fits_image]
+
+        processed_image_data = zscale(self.current_image.get_image_data())
+
+        if self.axes_image is None:
+            self.axes_image = plt.imshow(processed_image_data,
+                                         cmap=self.current_image.get_cmap())
+        else:
+            # We re-use the old AxesImage object so that the colorbar can
+            # be conveniently updated.  The colorbar gets left in a disconnected
+            # state if we call imshow again.
+            self.axes_image.set_data(processed_image_data)
+            self.axes_image.set_clim(vmin=np.min(processed_image_data),
+                                     vmax=np.max(processed_image_data))
+            self._refresh_displayed_colormap()
+            plt.draw()
 
         if self.colorbar is None:
-            self.colorbar = self.figure.colorbar(self.img_axes, orientation="horizontal")
-        else:
-            self.colorbar.set_cmap(self.colormap.as_mpl_cmap())
-            self.colorbar.changed()
+            self.colorbar = self.figure.colorbar(self.axes_image, orientation="horizontal")
 
-        self.current_image = fits_image
+    def _refresh_displayed_colormap(self):
+        self.axes_image.set_cmap(self.current_image.get_cmap())
+        self.axes_image.changed()
 
     def update_colormap(self, dx, dy):
-        assert self.img_axes is not None, "No image to update colormap for."
+        assert self.current_image is not None, "No image to update colormap for."
 
         contrast_diff = float(-dy) / self.imgheight
         bias_diff = float(dx) / self.imgwidth
 
-        self.colormap.update_contrast(contrast_diff)
-        self.colormap.update_bias(bias_diff)
+        self.current_image.update_contrast(contrast_diff)
+        self.current_image.update_bias(bias_diff)
 
-        self.img_axes.set_cmap(self.colormap.as_mpl_cmap())
+        self._refresh_displayed_colormap()
 
     def has_had_interaction(self):
         return self._has_had_interaction
@@ -423,7 +460,7 @@ class GrayscaleColorMap(object):
         return clip(value, 0, 1)
 
     def as_mpl_cmap(self):
-        return LinearSegmentedColormap("Custom grayscale", self.cdict)
+        return LinearSegmentedColormap("CustomGrayscale", self.cdict)
 
 
 def zscale(img):
