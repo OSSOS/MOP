@@ -6,7 +6,7 @@ from hamcrest import (assert_that, equal_to, has_length, has_entries,
                       same_instance, contains)
 
 from test import base_tests
-from pymop.io.parser import AstromParser
+from pymop.io.astrom import AstromParser
 
 TEST_FILE_1 = "data/1584431p15.measure3.cands.astrom"
 TEST_FILE_2 = "data/1616681p22.measure3.cands.astrom"

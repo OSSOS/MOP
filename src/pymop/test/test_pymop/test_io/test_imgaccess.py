@@ -9,7 +9,7 @@ from mock import Mock, call
 
 import vos
 from test.base_tests import FileReadingTestCase
-from pymop.io.parser import SourceReading, Observation
+from pymop.io.astrom import SourceReading, Observation
 from pymop.io.imgaccess import (ImageSliceDownloader, CutoutCalculator)
 
 

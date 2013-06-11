@@ -5,13 +5,13 @@ import tempfile
 
 from hamcrest import assert_that, equal_to, has_length
 
-from pymop.io import writer
+from pymop.io import mpc
 
 
 class MPCWriterTest(unittest.TestCase):
     def setUp(self):
         self.outputfile = tempfile.TemporaryFile()
-        self.undertest = writer.MPCWriter(self.outputfile)
+        self.undertest = mpc.MPCWriter(self.outputfile)
 
     def tearDown(self):
         self.outputfile.close()
@@ -168,7 +168,7 @@ class MPCWriterTest(unittest.TestCase):
         assert_that(actual, equal_to(expected))
 
     def test_MPCFormatException_message(self):
-        ex = writer.MPCFieldFormatError("Note1", "must be 1 character", "AB")
+        ex = mpc.MPCFieldFormatError("Note1", "must be 1 character", "AB")
         assert_that(ex.message,
                     equal_to("Field Note1: must be 1 character; but was AB"))
 
@@ -185,7 +185,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatError,
+        self.assertRaises(mpc.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -202,7 +202,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatError,
+        self.assertRaises(mpc.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -219,7 +219,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatError,
+        self.assertRaises(mpc.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -236,7 +236,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatError,
+        self.assertRaises(mpc.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -253,7 +253,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatError,
+        self.assertRaises(mpc.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -270,7 +270,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatError,
+        self.assertRaises(mpc.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -287,7 +287,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatError,
+        self.assertRaises(mpc.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -304,7 +304,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatError,
+        self.assertRaises(mpc.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -321,7 +321,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatError,
+        self.assertRaises(mpc.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -338,7 +338,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatError,
+        self.assertRaises(mpc.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -355,7 +355,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatError,
+        self.assertRaises(mpc.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -389,7 +389,7 @@ class MPCWriterTest(unittest.TestCase):
                 "",
                 "523"]
 
-        self.assertRaises(writer.MPCFieldFormatError,
+        self.assertRaises(mpc.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -406,7 +406,7 @@ class MPCWriterTest(unittest.TestCase):
                 "A",
                 "5234"]
 
-        self.assertRaises(writer.MPCFieldFormatError,
+        self.assertRaises(mpc.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
 
@@ -415,7 +415,7 @@ class MPCWriterTest(unittest.TestCase):
         Example based on:
          http://docs.astropy.org/en/latest/coordinates/index.html
         """
-        formatted_ra, _ = writer.format_ra_dec(10.68458, 41.26917)
+        formatted_ra, _ = mpc.format_ra_dec(10.68458, 41.26917)
         assert_that(formatted_ra, equal_to("00 42 44.299"))
 
     def test_format_dec(self):
@@ -423,11 +423,11 @@ class MPCWriterTest(unittest.TestCase):
         Example based on:
          http://docs.astropy.org/en/latest/coordinates/index.html
         """
-        _, formatted_dec = writer.format_ra_dec(10.68458, 41.26917)
+        _, formatted_dec = mpc.format_ra_dec(10.68458, 41.26917)
         assert_that(formatted_dec, equal_to("+41 16 09.01"))
 
     def test_format_ra_dec_strings(self):
-        formatted_ra, formatted_dec = writer.format_ra_dec(10.68458, 41.26917)
+        formatted_ra, formatted_dec = mpc.format_ra_dec(10.68458, 41.26917)
         assert_that(formatted_ra, equal_to("00 42 44.299"))
         assert_that(formatted_dec, equal_to("+41 16 09.01"))
 

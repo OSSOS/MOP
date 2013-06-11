@@ -1,5 +1,5 @@
 """
-Parsers for reading input specification files.
+Reads and writes .astrom files.
 """
 
 __author__ = "David Rusk <drusk@uvic.ca>"
