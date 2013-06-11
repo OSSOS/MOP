@@ -3,6 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import numpy as np
 import wx
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.backends.backend_wxagg import \
     FigureCanvasWxAgg as FigureCanvas
@@ -43,7 +44,9 @@ class MPLImageViewer(object):
         self.figure = plt.figure()
 
         # Don't draw extra whitespace around image
-        self.axes = plt.Axes(self.figure, [0., 0., 1., 1.])
+        self.colorbar_height_portion = 0.05
+        self.axes = plt.Axes(self.figure, [0.0, self.colorbar_height_portion,
+                                           1., 1.])
 
         self.axes.set_aspect("equal", adjustable="datalim")
 
@@ -97,7 +100,12 @@ class MPLImageViewer(object):
             plt.draw()
 
         if self.colorbar is None:
-            self.colorbar = self.figure.colorbar(self.axes_image, orientation="horizontal")
+            # Create axes for colorbar.  Make it tightly fit the image.
+            divider = make_axes_locatable(self.axes)
+            size = str(100 * self.colorbar_height_portion) + "%"
+            self.cax = divider.append_axes("bottom", size=size, pad=0.05)
+            self.colorbar = self.figure.colorbar(
+                self.axes_image, orientation="horizontal", cax=self.cax)
 
     def _refresh_displayed_colormap(self):
         self.axes_image.set_cmap(self.current_image.get_cmap())
