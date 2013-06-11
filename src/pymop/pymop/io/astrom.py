@@ -175,8 +175,14 @@ class AstromWriter(object):
     def __init__(self, filehandle):
         self.output_file = filehandle
 
-    def _write_line(self, line):
-        self.output_file.write(line.ljust(HEADER_LINE_LENGTH) + "\n")
+    def _write_line(self, line, ljust=True):
+        if ljust:
+            line = line.ljust(HEADER_LINE_LENGTH)
+
+        self.output_file.write(line + "\n")
+
+    def _write_blank_line(self):
+        self._write_line("", ljust=False)
 
     def _write_observation_list(self, observations):
         for observation in observations:
@@ -213,16 +219,37 @@ class AstromWriter(object):
                 [SCALE, CHIP, CRPIX1, CRPIX2, NAX1, NAX2, DETECTOR, PHADU, RDNOIS]))
 
     def _write_sys_header(self, sys_header):
+        """
+        See src/pipematt/step3matt-c
+        """
         header_vals = [sys_header[RMIN], sys_header[RMAX], sys_header[ANGLE],
                        sys_header[AWIDTH]]
         self._write_line("##     RMIN    RMAX   ANGLE   AWIDTH")
         self._write_line("# %8.1f%8.1f%8.1f%8.1f" % tuple(map(float, header_vals)))
+
+    def _write_source_data(self, sources):
+        """
+        See src/jjk/measure3
+        """
+        self._write_line("##   X        Y        X_0     Y_0          R.A.          DEC")
+        self._write_blank_line()
+
+        for i, source in enumerate(sources):
+            for reading in source:
+                self._write_line(" %8.2f %8.2f %8.2f %8.2f %12.7f %12.7f" % (
+                    reading.x, reading.y, reading.x0, reading.y0, reading.ra,
+                    reading.dec), ljust=False)
+
+            if i < len(sources) - 1:
+                # Put a blank line between objects, but not at the end.
+                self._write_blank_line()
 
     def write(self, astrom_data):
         observations = astrom_data.observations
         self._write_observation_list(observations)
         self._write_observation_headers(observations)
         self._write_sys_header(astrom_data.sys_header)
+        self._write_source_data(astrom_data.sources)
 
 
 class AstromData(object):
