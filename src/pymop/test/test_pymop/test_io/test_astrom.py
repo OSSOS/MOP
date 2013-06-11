@@ -194,20 +194,17 @@ class WriterTest(FileReadingTestCase):
     def parse(self, filename=TEST_FILE_1):
         return AstromParser().parse(self.get_abs_path(filename))
 
-    @unittest.skip("TODO: finish implementing")
     def test_parse_then_rewrite(self):
         """
         Sanity check that we can parse data, then write that data back out
         identically.
         """
-        test_file_path = self.get_abs_path(TEST_FILE_1)
-
-        astrom_data = self.parse(test_file_path)
+        astrom_data = self.parse(TEST_FILE_1)
         self.writer.write(astrom_data)
 
         actual = self.read_output()
 
-        with open(test_file_path, "rb") as fh:
+        with open(self.get_abs_path(TEST_FILE_1), "rb") as fh:
             expected = fh.read()
 
         assert_that(actual, equal_to(expected))
@@ -260,6 +257,28 @@ class WriterTest(FileReadingTestCase):
         astrom_data = self.parse(TEST_FILE_1)
 
         self.writer._write_sys_header(astrom_data.sys_header)
+
+        assert_that(self.read_output(), equal_to(expected))
+
+    def test_write_sources(self):
+        expected = ("##   X        Y        X_0     Y_0          R.A.          DEC                   \n"
+                    "\n"
+                    "   911.00  3967.12   911.00  3967.12   26.6833367   29.2203532\n"
+                    "   944.25  3964.03   938.93  3965.78   26.6816808   29.2202748\n"
+                    "   949.76  3963.12   943.91  3965.20   26.6813840   29.2202469\n"
+                    "\n"
+                    "   925.73  3967.76   925.73  3967.76   26.6824630   29.2203830\n"
+                    "   944.25  3964.03   938.93  3965.78   26.6816808   29.2202748\n"
+                    "   949.76  3963.12   943.91  3965.20   26.6813840   29.2202469\n"
+                    "\n"
+                    "  1698.04  1842.46  1698.04  1842.46   26.6368529   29.1100700\n"
+                    "  1780.20  1843.71  1775.28  1845.56   26.6322821   29.1102127\n"
+                    "  1800.48  1843.53  1795.10  1845.71   26.6311063   29.1102185\n"
+        )
+
+        astrom_data = self.parse(TEST_FILE_1)
+
+        self.writer._write_source_data(astrom_data.sources)
 
         assert_that(self.read_output(), equal_to(expected))
 
