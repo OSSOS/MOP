@@ -22,7 +22,7 @@ class AstroDataModelTest(FileReadingTestCase):
         self.astrom_data = AstromParser().parse(testfile)
         self.download_manager = Mock()
 
-        self.model = models.AstroDataModel(self.astrom_data, self.download_manager)
+        self.model = models.ProcessRealsModel(self.astrom_data, self.download_manager)
 
     def create_real_first_image(self, path="data/testimg.fits"):
         # Put a real fits image on the first source, first observation
