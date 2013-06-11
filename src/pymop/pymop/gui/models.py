@@ -41,6 +41,14 @@ class ProcessRealsModel(object):
 
         self._sources_processed = [False] * self.get_source_count()
 
+    def next_item(self):
+        """Move to the next item to process."""
+        if self.get_current_obs_number() == self.get_obs_count() - 1:
+            self.next_source()
+            self._current_obs_number = 0
+        else:
+            self.next_obs()
+
     def get_current_source_number(self):
         return self._current_src_number
 
