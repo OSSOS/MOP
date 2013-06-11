@@ -8,6 +8,29 @@ import re
 
 HEADER_LINE_LENGTH = 80
 
+## Observation header keys
+MOPVERSION = "MOPversion"
+
+# NOTE: MJD_OBS_CENTER is actually MJD-OBS-CENTER in the .astrom files, but
+# dashes aren't valid as regex names so I use underscores
+MJD_OBS_CENTER = "MJD_OBS_CENTER"
+EXPTIME = "EXPTIME"
+THRES = "THRES"
+FWHM = "FWHM"
+MAXCOUNT = "MAXCOUNT"
+CRVAL1 = "CRVAL1"
+CRVAL2 = "CRVAL2"
+EXPNUM = "EXPNUM"
+SCALE = "SCALE"
+CHIP = "CHIP"
+CRPIX1 = "CRPIX1"
+CRPIX2 = "CRPIX2"
+NAX1 = "NAX1"
+NAX2 = "NAX2"
+DETECTOR = "DETECTOR"
+PHADU = "PHADU"
+RDNOIS = "RDNOIS"
+
 
 class AstromParser(object):
     """
@@ -146,15 +169,47 @@ class AstromWriter(object):
     def __init__(self, filehandle):
         self.output_file = filehandle
 
+    def _write_line(self, line):
+        self.output_file.write(line.ljust(HEADER_LINE_LENGTH) + "\n")
+
     def _write_observation_list(self, observations):
         for observation in observations:
-            name = "# %s" % observation.rawname
-            line = name + " " * (HEADER_LINE_LENGTH - len(name)) + "\n"
-            self.output_file.write(line)
+            self._write_line("# %s" % observation.rawname)
+
+    def _write_observation_headers(self, observations):
+        """
+        See src/pipematt/step1matt-c
+        """
+        for observation in observations:
+            header = observation.header
+
+            def get_header_vals(header_list):
+                header_vals = []
+                for key in header_list:
+                    val = header[key]
+
+                    if key == MJD_OBS_CENTER:
+                        header_vals.append(val)
+                    elif key == DETECTOR:
+                        header_vals.append(val.ljust(20))
+                    else:
+                        header_vals.append(float(val))
+
+                return tuple(header_vals)
+
+            self._write_line("## MOPversion")
+            self._write_line("#  %s" % header[MOPVERSION])
+            self._write_line("## MJD-OBS-CENTER  EXPTIME THRES FWHM  MAXCOUNT CRVAL1     CRVAL2     EXPNUM")
+            self._write_line("# %s%8.2f%6.2f%6.2f%9.1f%11.5f%11.5f%9d" % get_header_vals(
+                [MJD_OBS_CENTER, EXPTIME, THRES, FWHM, MAXCOUNT, CRVAL1, CRVAL2, EXPNUM]))
+            self._write_line("## SCALE CHIP CRPIX1    CRPIX2    NAX1  NAX2   DETECTOR           PHADU RDNOIS")
+            self._write_line("# %6.3f%4d%10.2f%10.2f%6d%6d %s%5.2f %5.2f" % get_header_vals(
+                [SCALE, CHIP, CRPIX1, CRPIX2, NAX1, NAX2, DETECTOR, PHADU, RDNOIS]))
 
     def write(self, astrom_data):
-        self._write_observation_list(astrom_data.observations)
-        self.output_file.write("TODO")
+        observations = astrom_data.observations
+        self._write_observation_list(observations)
+        self._write_observation_headers(observations)
 
 
 class AstromData(object):
@@ -240,9 +295,9 @@ class Observation(object):
     point sources/readings).
     """
 
-    # Useful header keys
-    HEADER_IMG_SIZE_X = "NAX1"
-    HEADER_IMG_SIZE_Y = "NAX2"
+    # Aliases for useful header keys
+    HEADER_IMG_SIZE_X = NAX1
+    HEADER_IMG_SIZE_Y = NAX2
 
     @staticmethod
     def from_parse_data(rawname, expnum, ftype, ccdnum):

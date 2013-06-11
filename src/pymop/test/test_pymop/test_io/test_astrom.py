@@ -191,6 +191,9 @@ class WriterTest(FileReadingTestCase):
         self.outputfile.seek(0)
         return self.outputfile.read()
 
+    def parse(self, filename=TEST_FILE_1):
+        return AstromParser().parse(self.get_abs_path(filename))
+
     @unittest.skip("TODO: finish implementing")
     def test_parse_then_rewrite(self):
         """
@@ -199,7 +202,7 @@ class WriterTest(FileReadingTestCase):
         """
         test_file_path = self.get_abs_path(TEST_FILE_1)
 
-        astrom_data = AstromParser().parse(test_file_path)
+        astrom_data = self.parse(test_file_path)
         self.writer.write(astrom_data)
 
         actual = self.read_output()
@@ -220,6 +223,32 @@ class WriterTest(FileReadingTestCase):
                         Observation("1584453", "p", "15")]
 
         self.writer._write_observation_list(observations)
+
+        assert_that(self.read_output(), equal_to(expected))
+
+    def test_write_observation_headers(self):
+        expected = ("## MOPversion                                                                   \n"
+                    "#  1.20                                                                         \n"
+                    "## MJD-OBS-CENTER  EXPTIME THRES FWHM  MAXCOUNT CRVAL1     CRVAL2     EXPNUM    \n"
+                    "# 2012 10 21.40516  320.14  2.70  2.90  30000.0   26.92871   29.01125  1584431  \n"
+                    "## SCALE CHIP CRPIX1    CRPIX2    NAX1  NAX2   DETECTOR           PHADU RDNOIS  \n"
+                    "#  0.185  16  -3227.00    -75.96  2112  4644 MegaPrime            1.60  3.00    \n"
+                    "## MOPversion                                                                   \n"
+                    "#  1.20                                                                         \n"
+                    "## MJD-OBS-CENTER  EXPTIME THRES FWHM  MAXCOUNT CRVAL1     CRVAL2     EXPNUM    \n"
+                    "# 2012 10 21.48212  320.15  2.70  3.30  30000.0   26.92871   29.01128  1584449  \n"
+                    "## SCALE CHIP CRPIX1    CRPIX2    NAX1  NAX2   DETECTOR           PHADU RDNOIS  \n"
+                    "#  0.185  16  -3222.28    -76.24  2112  4644 MegaPrime            1.60  3.00    \n"
+                    "## MOPversion                                                                   \n"
+                    "#  1.20                                                                         \n"
+                    "## MJD-OBS-CENTER  EXPTIME THRES FWHM  MAXCOUNT CRVAL1     CRVAL2     EXPNUM    \n"
+                    "# 2012 10 21.49934  320.15  2.70  3.40  30000.0   26.92871   29.01128  1584453  \n"
+                    "## SCALE CHIP CRPIX1    CRPIX2    NAX1  NAX2   DETECTOR           PHADU RDNOIS  \n"
+                    "#  0.185  16  -3221.49    -76.45  2112  4644 MegaPrime            1.60  3.00    \n")
+
+        astrom_data = self.parse(TEST_FILE_1)
+
+        self.writer._write_observation_headers(astrom_data.observations)
 
         assert_that(self.read_output(), equal_to(expected))
 
