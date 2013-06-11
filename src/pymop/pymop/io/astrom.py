@@ -278,6 +278,13 @@ class AstromData(object):
         self.sys_header = sys_header
         self.sources = sources
 
+    def get_reading_count(self):
+        count = 0
+        for source in self.sources:
+            count += len(source)
+
+        return count
+
 
 class SourceReading(object):
     """

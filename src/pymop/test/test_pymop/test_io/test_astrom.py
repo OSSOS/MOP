@@ -283,5 +283,11 @@ class WriterTest(FileReadingTestCase):
         assert_that(self.read_output(), equal_to(expected))
 
 
+class AstromDataTest(FileReadingTestCase):
+    def test_get_reading_count(self):
+        astrom_data = AstromParser().parse(self.get_abs_path(TEST_FILE_1))
+        assert_that(astrom_data.get_reading_count(), equal_to(9))
+
+
 if __name__ == '__main__':
     unittest.main()
