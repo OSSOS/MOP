@@ -6,6 +6,8 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import re
 
+HEADER_LINE_LENGTH = 80
+
 
 class AstromParser(object):
     """
@@ -138,6 +140,21 @@ class AstromParser(object):
         sources = self._parse_source_data(filestr, observations)
 
         return AstromData(observations, sys_header, sources)
+
+
+class AstromWriter(object):
+    def __init__(self, filehandle):
+        self.output_file = filehandle
+
+    def _write_observation_list(self, observations):
+        for observation in observations:
+            name = "# %s" % observation.rawname
+            line = name + " " * (HEADER_LINE_LENGTH - len(name)) + "\n"
+            self.output_file.write(line)
+
+    def write(self, astrom_data):
+        self._write_observation_list(astrom_data.observations)
+        self.output_file.write("TODO")
 
 
 class AstromData(object):
