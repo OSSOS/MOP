@@ -4,7 +4,7 @@ import unittest
 
 from hamcrest import assert_that, equal_to
 
-from pymop.io.parser import Observation
+from pymop.io.astrom import Observation
 from pymop.io.imgaccess import VOSpaceResolver
 
 

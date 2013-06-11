@@ -10,7 +10,7 @@ from hamcrest import assert_that, equal_to, has_length, contains, none, same_ins
 from mock import Mock, patch
 
 from test.base_tests import FileReadingTestCase
-from pymop.io.parser import AstromParser
+from pymop.io.astrom import AstromParser
 from pymop.io.img import FitsImage
 
 

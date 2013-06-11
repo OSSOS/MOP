@@ -4,8 +4,8 @@ Performs necessary application startup tasks.
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from pymop.io.parser import AstromParser
-from pymop.io.writer import MPCWriter
+from pymop.io.astrom import AstromParser
+from pymop.io.mpc import MPCWriter
 from pymop.io.naming import ProvisionalNameGenerator
 from pymop.io.imgaccess import (AsynchronousImageDownloadManager,
                                 ImageSliceDownloader, VOSpaceResolver)
