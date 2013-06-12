@@ -1,5 +1,3 @@
-from pymop.gui import models
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
@@ -10,6 +8,8 @@ from hamcrest import assert_that, equal_to, has_length, contains, none, same_ins
 from mock import Mock, patch
 
 from test.base_tests import FileReadingTestCase
+from pymop.gui import models
+from pymop.gui.models import VettableItem
 from pymop.io.astrom import AstromParser
 from pymop.io.img import FitsImage
 
@@ -274,7 +274,7 @@ class ProcessRealsModelTest(FileReadingTestCase):
         assert_that(self.model.get_num_items_processed(), equal_to(0))
         assert_that(self.model.get_current_source_number(), equal_to(0))
 
-        self.model.set_current_item_processed()
+        self.model.accept_current_item()
 
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_num_items_processed(), equal_to(1))
@@ -282,29 +282,43 @@ class ProcessRealsModelTest(FileReadingTestCase):
         assert_that(not self.model.is_item_processed(self.astrom_data.sources[0][1]))
         assert_that(not self.model.is_item_processed(self.astrom_data.sources[0][2]))
 
-        self.model.set_current_item_processed()
+        self.model.reject_current_item()
 
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_num_items_processed(), equal_to(1))
 
         self.model.next_item()
-        self.model.set_current_item_processed()
+        self.model.reject_current_item()
 
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_num_items_processed(), equal_to(2))
 
-    def test_receive_all_sources_processed_event(self):
+    def test_receive_all_sources_processed_event_on_final_accept(self):
         observer = Mock()
         pub.subscribe(observer.on_all_processed, models.MSG_ALL_ITEMS_PROC)
 
         item = 0
         while item < self.model.get_item_count() - 1:
-            self.model.set_current_item_processed()
+            self.model.accept_current_item()
             assert_that(observer.on_all_processed.call_count, equal_to(0))
             self.model.next_item()
             item += 1
 
-        self.model.set_current_item_processed()
+        self.model.accept_current_item()
+        assert_that(observer.on_all_processed.call_count, equal_to(1))
+
+    def test_receive_all_sources_processed_event_on_final_reject(self):
+        observer = Mock()
+        pub.subscribe(observer.on_all_processed, models.MSG_ALL_ITEMS_PROC)
+
+        item = 0
+        while item < self.model.get_item_count() - 1:
+            self.model.accept_current_item()
+            assert_that(observer.on_all_processed.call_count, equal_to(0))
+            self.model.next_item()
+            item += 1
+
+        self.model.reject_current_item()
         assert_that(observer.on_all_processed.call_count, equal_to(1))
 
     def test_get_current_band(self):
@@ -341,6 +355,69 @@ class ProcessRealsModelTest(FileReadingTestCase):
         assert_that(self.model.get_current_dec(), equal_to(29.2202748))
         assert_that(self.model.get_current_image_FWHM(), equal_to(3.30))
         assert_that(self.model.get_current_image_maxcount(), equal_to(30000.0))
+
+    def test_is_source_discovered(self):
+        assert_that(self.model.is_current_source_discovered(), equal_to(False))
+        self.model.reject_current_item()
+        assert_that(self.model.is_current_source_discovered(), equal_to(False))
+        self.model.next_item()
+        assert_that(self.model.is_current_source_discovered(), equal_to(False))
+        self.model.accept_current_item()
+        assert_that(self.model.is_current_source_discovered(), equal_to(True))
+        self.model.next_item()
+        assert_that(self.model.is_current_source_discovered(), equal_to(True))
+        self.model.accept_current_item()
+        assert_that(self.model.is_current_source_discovered(), equal_to(True))
+        self.model.next_source()
+        assert_that(self.model.is_current_source_discovered(), equal_to(False))
+
+    def test_accept_current_item(self):
+        first_item = self.astrom_data.sources[0][0]
+        second_item = self.astrom_data.sources[0][1]
+
+        assert_that(self.model.is_item_processed(first_item), equal_to(False))
+        assert_that(self.model.get_item_status(first_item), equal_to(VettableItem.UNPROCESSED))
+        assert_that(self.model.is_item_processed(second_item), equal_to(False))
+        assert_that(self.model.get_item_status(second_item), equal_to(VettableItem.UNPROCESSED))
+
+        self.model.accept_current_item()
+
+        assert_that(self.model.is_item_processed(first_item), equal_to(True))
+        assert_that(self.model.get_item_status(first_item), equal_to(VettableItem.ACCEPTED))
+        assert_that(self.model.is_item_processed(second_item), equal_to(False))
+        assert_that(self.model.get_item_status(second_item), equal_to(VettableItem.UNPROCESSED))
+
+        self.model.next_item()
+        self.model.accept_current_item()
+
+        assert_that(self.model.is_item_processed(first_item), equal_to(True))
+        assert_that(self.model.get_item_status(first_item), equal_to(VettableItem.ACCEPTED))
+        assert_that(self.model.is_item_processed(second_item), equal_to(True))
+        assert_that(self.model.get_item_status(second_item), equal_to(VettableItem.ACCEPTED))
+
+    def test_reject_current_item(self):
+        first_item = self.astrom_data.sources[0][0]
+        second_item = self.astrom_data.sources[0][1]
+
+        assert_that(self.model.is_item_processed(first_item), equal_to(False))
+        assert_that(self.model.get_item_status(first_item), equal_to(VettableItem.UNPROCESSED))
+        assert_that(self.model.is_item_processed(second_item), equal_to(False))
+        assert_that(self.model.get_item_status(second_item), equal_to(VettableItem.UNPROCESSED))
+
+        self.model.reject_current_item()
+
+        assert_that(self.model.is_item_processed(first_item), equal_to(True))
+        assert_that(self.model.get_item_status(first_item), equal_to(VettableItem.REJECTED))
+        assert_that(self.model.is_item_processed(second_item), equal_to(False))
+        assert_that(self.model.get_item_status(second_item), equal_to(VettableItem.UNPROCESSED))
+
+        self.model.next_item()
+        self.model.reject_current_item()
+
+        assert_that(self.model.is_item_processed(first_item), equal_to(True))
+        assert_that(self.model.get_item_status(first_item), equal_to(VettableItem.REJECTED))
+        assert_that(self.model.is_item_processed(second_item), equal_to(True))
+        assert_that(self.model.get_item_status(second_item), equal_to(VettableItem.REJECTED))
 
 
 if __name__ == '__main__':

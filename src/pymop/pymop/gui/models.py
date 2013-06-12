@@ -24,6 +24,34 @@ MSG_IMG_LOADED = MSG_ROOT + ("imgload", )
 MSG_ALL_ITEMS_PROC = MSG_ROOT + ("allproc", )
 
 
+class VettableItem(object):
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    UNPROCESSED = "unprocessed"
+
+    def __init__(self, item):
+        self.item = item
+        self._status = VettableItem.UNPROCESSED
+
+    def is_processed(self):
+        return self._status != VettableItem.UNPROCESSED
+
+    def is_accepted(self):
+        return self._status == VettableItem.ACCEPTED
+
+    def is_rejected(self):
+        return self._status == VettableItem.REJECTED
+
+    def accept(self):
+        self._status = VettableItem.ACCEPTED
+
+    def reject(self):
+        self._status = VettableItem.REJECTED
+
+    def get_status(self):
+        return self._status
+
+
 class ProcessRealsModel(object):
     """
     Main model for storing and accessing astronomical data in the
@@ -39,10 +67,12 @@ class ProcessRealsModel(object):
 
         self._num_images_loaded = 0
 
-        self._items_processed = {}
+        self._vettable_items = {}
         for source in self.astrom_data.sources:
             for reading in source:
-                self._items_processed[reading] = False
+                self._vettable_items[reading] = VettableItem(reading)
+
+        self._source_discovery_asterisk = [False] * self.get_source_count()
 
     def next_item(self):
         """Move to the next item to process."""
@@ -51,6 +81,10 @@ class ProcessRealsModel(object):
             self._current_obs_number = 0
         else:
             self.next_obs()
+
+    def get_current_item(self):
+        reading = self.astrom_data.sources[self.get_current_source_number()][self.get_current_obs_number()]
+        return self._vettable_items[reading]
 
     def get_current_source_number(self):
         return self._current_src_number
@@ -157,14 +191,29 @@ class ProcessRealsModel(object):
         self._num_images_loaded += 1
         pub.sendMessage(MSG_IMG_LOADED, (source_num, obs_num))
 
-    def set_current_item_processed(self):
-        self._items_processed[self._get_current_reading()] = True
+    def accept_current_item(self):
+        self.get_current_item().accept()
+        self._source_discovery_asterisk[self.get_current_source_number()] = True
+        self._check_if_finished()
 
-        if all(self._items_processed.values()):
+    def reject_current_item(self):
+        self.get_current_item().reject()
+        self._check_if_finished()
+
+    def _check_if_finished(self):
+        if self.get_num_items_processed() == self.get_item_count():
             pub.sendMessage(MSG_ALL_ITEMS_PROC)
 
     def get_num_items_processed(self):
-        return self._items_processed.values().count(True)
+        processed = [item.is_processed() for item in self._vettable_items.values()]
+        return processed.count(True)
 
     def is_item_processed(self, reading):
-        return self._items_processed[reading]
+        return self._vettable_items[reading].is_processed()
+
+    def get_item_status(self, reading):
+        return self._vettable_items[reading].get_status()
+
+    def is_current_source_discovered(self):
+        return self._source_discovery_asterisk[self.get_current_source_number()]
+
