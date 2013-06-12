@@ -3,7 +3,6 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 
 import wx
-import wx.lib.inspection
 from wx.lib.pubsub import Publisher as pub
 from wx.lib.mixins import listctrl as listmix
 
@@ -42,20 +41,12 @@ class ApplicationView(object):
 
         self.controller = controller
 
-        self.wx_app = wx.App(False)
         self.mainframe = MainFrame(model, controller)
         self.accept_source_dialog = None
 
-    def launch(self, debug_mode=False, unittest=False):
-        wx.CallAfter(self.mainframe.show_image_loading_dialog)
-        wx.CallAfter(self.model.start_loading_images)
-
-        if debug_mode:
-            wx.lib.inspection.InspectionTool().Show()
-
-        if not unittest:
-            self.mainframe.Show()
-            self.wx_app.MainLoop()
+        self.mainframe.Show()
+        self.mainframe.show_image_loading_dialog()
+        self.model.start_loading_images()
 
     @guithread
     def view_image(self, fits_image):

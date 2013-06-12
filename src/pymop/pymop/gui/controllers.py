@@ -13,10 +13,8 @@ class ApplicationController(object):
     handles user interactions.
     """
 
-    def __init__(self, model, output_writer, name_generator,
-                 debug_mode=False, unittest=False):
-        self.unittest = unittest
-
+    def __init__(self, task, model, output_writer, name_generator):
+        self.task = task
         self.model = model
         self.output_writer = output_writer
         self.name_generator = name_generator
@@ -26,7 +24,6 @@ class ApplicationController(object):
         pub.subscribe(self.on_all_sources_processed, models.MSG_ALL_ITEMS_PROC)
 
         self.view = ApplicationView(self.model, self)
-        self.view.launch(debug_mode=debug_mode, unittest=unittest)
 
     def get_view(self):
         return self.view
@@ -66,17 +63,16 @@ class ApplicationController(object):
         self.display_current_image()
 
     def on_all_sources_processed(self, event):
-        # TODO: yuck, refactor
-        if not self.unittest:
-            should_exit = self.get_view().all_processed_should_exit_prompt()
-            if should_exit:
-                self._do_exit()
+        should_exit = self.get_view().all_processed_should_exit_prompt()
+        if should_exit:
+            self._do_exit()
 
     def on_exit(self):
         self._do_exit()
 
     def _do_exit(self):
         self.view.close()
+        self.task.finish()
 
     def on_next_obs(self):
         self.model.next_obs()

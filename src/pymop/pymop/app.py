@@ -42,21 +42,21 @@ class ProcessRealsTask(object):
             ImageSliceDownloader(VOSpaceResolver()))
 
     def start(self, working_directory):
-        print "Starting process reals task"
         # TODO Get all .reals.astrom files in working directory
-        real_astrom_file = "/home/drusk/gitcadc/MOP/src/pymop/test/data/1616681p10.measure3.cands.astrom"
+        real_astrom_file = "/home/drusk/gitcadc/MOP/src/pymop/test/data/1616681p22.measure3.cands.astrom"
 
         # Parse into AstromData
         astrom_data = self.parser.parse(real_astrom_file)
 
         # Create output file
         # TODO: check if one already exists (related to continuing existing work)
-        with open("/home/drusk/gitcadc/MOP/src/pymop/test/data/reals.mpc") as output_filehandle:
-            model = ProcessRealsModel(astrom_data, self.download_manager)
-            output_writer = MPCWriter(output_filehandle)
-            controller = ApplicationController(model,
-                                               output_writer,
-                                               self.name_generator)
+        self.output_filehandle = open("/home/drusk/gitcadc/MOP/src/pymop/test/data/reals.mpc", "wb")
+        model = ProcessRealsModel(astrom_data, self.download_manager)
+        output_writer = MPCWriter(self.output_filehandle)
+        ApplicationController(self, model, output_writer, self.name_generator)
+
+    def finish(self):
+        self.output_filehandle.close()
 
 
 class PymopApplication(object):
@@ -72,7 +72,8 @@ class PymopApplication(object):
         if debug_mode:
             wx.lib.inspection.InspectionTool().Show()
 
-        wx.CallAfter(self.launch)
+        self.launch()
+
         self.wx_app.MainLoop()
 
     def launch(self):
@@ -85,7 +86,7 @@ class PymopApplication(object):
             print "Working directory already locked by %s" % err.owner
 
         try:
-            self.start_task(task)
+            self.start_task(working_directory, task)
         except PymopError as err:
             # TODO: GUI dialog
             print "Cannot start task: %s" % err.message
@@ -94,7 +95,7 @@ class PymopApplication(object):
         # TODO: Get real values using wizard
         return "/home/drusk/gitcadc/MOP/src/pymop/test/measure3", REALS_TASK
 
-    def start_task(self, taskname, working_directory):
+    def start_task(self, working_directory, taskname):
         try:
             self.task = self.task_name_mapping[taskname]()
         except KeyError:
