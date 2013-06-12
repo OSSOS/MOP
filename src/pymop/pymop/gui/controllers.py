@@ -92,6 +92,7 @@ class ApplicationController(object):
         """Initiates acceptance procedure, gathering required data."""
         preset_vals = (
             self._get_provisional_name(),
+            self.model.is_current_source_discovered(),
             self.model.get_current_observation_date(),
             self.model.get_current_ra(),
             self.model.get_current_dec(),
