@@ -29,7 +29,7 @@ class ProcessRealsModelTest(FileReadingTestCase):
         apcor_str = "4 15   0.19   0.01"
         with open(self.get_abs_path(path), "rb") as fh:
             self.first_image = FitsImage(fh.read(), apcor_str, Mock(), in_memory=True)
-            self.astrom_data.sources[0][0].set_fits_image(self.first_image)
+            self.astrom_data.sources[0].get_reading(0).set_fits_image(self.first_image)
 
     def test_sources_initialized(self):
         assert_that(self.model.get_current_source_number(), equal_to(0))
@@ -278,9 +278,9 @@ class ProcessRealsModelTest(FileReadingTestCase):
 
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_num_items_processed(), equal_to(1))
-        assert_that(self.model.is_item_processed(self.astrom_data.sources[0][0]))
-        assert_that(not self.model.is_item_processed(self.astrom_data.sources[0][1]))
-        assert_that(not self.model.is_item_processed(self.astrom_data.sources[0][2]))
+        assert_that(self.model.is_item_processed(self.astrom_data.sources[0].get_reading(0)))
+        assert_that(not self.model.is_item_processed(self.astrom_data.sources[0].get_reading(1)))
+        assert_that(not self.model.is_item_processed(self.astrom_data.sources[0].get_reading(2)))
 
         self.model.reject_current_item()
 
@@ -333,7 +333,7 @@ class ProcessRealsModelTest(FileReadingTestCase):
     @patch("pymop.astrometry.daophot.phot_mag")
     def test_get_current_source_observed_magnitude(self, mock_phot_mag):
         first_image = Mock()
-        self.astrom_data.sources[0][0].set_fits_image(first_image)
+        self.astrom_data.sources[0].get_reading(0).set_fits_image(first_image)
 
         x, y = (1500, 2500)
         self.model.get_current_image_source_point = Mock(return_value=(x, y))
@@ -372,8 +372,8 @@ class ProcessRealsModelTest(FileReadingTestCase):
         assert_that(self.model.is_current_source_discovered(), equal_to(False))
 
     def test_accept_current_item(self):
-        first_item = self.astrom_data.sources[0][0]
-        second_item = self.astrom_data.sources[0][1]
+        first_item = self.astrom_data.sources[0].get_reading(0)
+        second_item = self.astrom_data.sources[0].get_reading(1)
 
         assert_that(self.model.is_item_processed(first_item), equal_to(False))
         assert_that(self.model.get_item_status(first_item), equal_to(VettableItem.UNPROCESSED))
@@ -396,8 +396,8 @@ class ProcessRealsModelTest(FileReadingTestCase):
         assert_that(self.model.get_item_status(second_item), equal_to(VettableItem.ACCEPTED))
 
     def test_reject_current_item(self):
-        first_item = self.astrom_data.sources[0][0]
-        second_item = self.astrom_data.sources[0][1]
+        first_item = self.astrom_data.sources[0].get_reading(0)
+        second_item = self.astrom_data.sources[0].get_reading(1)
 
         assert_that(self.model.is_item_processed(first_item), equal_to(False))
         assert_that(self.model.get_item_status(first_item), equal_to(VettableItem.UNPROCESSED))

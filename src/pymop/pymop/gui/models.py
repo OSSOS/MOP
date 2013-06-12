@@ -83,7 +83,7 @@ class ProcessRealsModel(object):
             self.next_obs()
 
     def get_current_item(self):
-        reading = self.astrom_data.sources[self.get_current_source_number()][self.get_current_obs_number()]
+        reading = self.astrom_data.sources[self.get_current_source_number()].get_reading(self.get_current_obs_number())
         return self._vettable_items[reading]
 
     def get_current_source_number(self):
@@ -104,7 +104,7 @@ class ProcessRealsModel(object):
         return self._current_obs_number
 
     def get_obs_count(self):
-        return len(self._get_current_source())
+        return self._get_current_source().num_readings()
 
     def next_obs(self):
         self._current_obs_number = (self._current_obs_number + 1) % self.get_obs_count()
@@ -118,7 +118,7 @@ class ProcessRealsModel(object):
         return self.astrom_data.sources[self._current_src_number]
 
     def _get_current_reading(self):
-        return self._get_current_source()[self._current_obs_number]
+        return self._get_current_source().get_reading(self._current_obs_number)
 
     def get_reading_data(self):
         reading = self._get_current_reading()

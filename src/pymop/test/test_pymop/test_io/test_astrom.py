@@ -100,10 +100,10 @@ class ParserTest(FileReadingTestCase):
 
         ## Test source 0
         source0 = astrom_data.sources[0]
-        assert_that(source0, has_length(3))
+        assert_that(source0.num_readings(), equal_to(3))
 
         # Source 0 reading 0
-        data00 = source0[0]
+        data00 = source0.get_reading(0)
         assert_that(data00.x, equal_to(911.00))
         assert_that(data00.y, equal_to(3967.12))
         assert_that(data00.x0, equal_to(911.00))
@@ -112,7 +112,7 @@ class ParserTest(FileReadingTestCase):
         assert_that(data00.dec, equal_to(29.2203532))
 
         # Source 0 reading 1
-        data01 = source0[1]
+        data01 = source0.get_reading(1)
         assert_that(data01.x, equal_to(944.25))
         assert_that(data01.y, equal_to(3964.03))
         assert_that(data01.x0, equal_to(938.93))
@@ -121,7 +121,7 @@ class ParserTest(FileReadingTestCase):
         assert_that(data01.dec, equal_to(29.2202748))
 
         # Source 0 reading 2
-        data02 = source0[2]
+        data02 = source0.get_reading(2)
         assert_that(data02.x, equal_to(949.76))
         assert_that(data02.y, equal_to(3963.12))
         assert_that(data02.x0, equal_to(943.91))
@@ -130,14 +130,14 @@ class ParserTest(FileReadingTestCase):
         assert_that(data02.dec, equal_to(29.2202469))
 
         ## Test source 1
-        assert_that(astrom_data.sources[1], has_length(3))
+        assert_that(astrom_data.sources[1].num_readings(), equal_to(3))
 
         ## Test source 2
         source2 = astrom_data.sources[2]
-        assert_that(source2, has_length(3))
+        assert_that(source2.num_readings(), equal_to(3))
 
         # Source 2 reading 2
-        data22 = source2[2]
+        data22 = source2.get_reading(2)
         assert_that(data22.x, equal_to(1800.48))
         assert_that(data22.y, equal_to(1843.53))
         assert_that(data22.x0, equal_to(1795.10))
@@ -153,19 +153,19 @@ class ParserTest(FileReadingTestCase):
         obs2 = astrom_data.observations[2]
 
         source0 = astrom_data.sources[0]
-        assert_that(source0[0].obs, same_instance(obs0))
-        assert_that(source0[1].obs, same_instance(obs1))
-        assert_that(source0[2].obs, same_instance(obs2))
+        assert_that(source0.get_reading(0).obs, same_instance(obs0))
+        assert_that(source0.get_reading(1).obs, same_instance(obs1))
+        assert_that(source0.get_reading(2).obs, same_instance(obs2))
 
         source1 = astrom_data.sources[1]
-        assert_that(source1[0].obs, same_instance(obs0))
-        assert_that(source1[1].obs, same_instance(obs1))
-        assert_that(source1[2].obs, same_instance(obs2))
+        assert_that(source1.get_reading(0).obs, same_instance(obs0))
+        assert_that(source1.get_reading(1).obs, same_instance(obs1))
+        assert_that(source1.get_reading(2).obs, same_instance(obs2))
 
         source2 = astrom_data.sources[2]
-        assert_that(source2[0].obs, same_instance(obs0))
-        assert_that(source2[1].obs, same_instance(obs1))
-        assert_that(source2[2].obs, same_instance(obs2))
+        assert_that(source2.get_reading(0).obs, same_instance(obs0))
+        assert_that(source2.get_reading(1).obs, same_instance(obs1))
+        assert_that(source2.get_reading(2).obs, same_instance(obs2))
 
     def test_parse_file2_had_neg_crval2(self):
         astrom_data = self.parse(TEST_FILE_2)
