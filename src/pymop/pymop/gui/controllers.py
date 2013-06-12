@@ -105,7 +105,7 @@ class ApplicationController(object):
         self.get_view().show_accept_source_dialog(preset_vals)
 
     def on_reject(self):
-        self.model.set_current_item_processed()
+        self.model.reject_current_item()
         self.model.next_item()
 
     def on_do_accept(self,
@@ -139,7 +139,7 @@ class ApplicationController(object):
             observatory_code)
 
         self.get_view().close_accept_source_dialog()
-        self.model.set_current_item_processed()
+        self.model.accept_current_item()
         self.model.next_item()
 
     def on_cancel_accept(self):
