@@ -83,6 +83,8 @@
         "ALLPROC": {
             "MSG": "Congratulations, you have processed the last source.\n\nWould you like to exit the program?",
             "CAPTION": "All sources processed"
-        }
+        },
+
+        "APPTITLE": "Moving Object Pipeline"
     }
 }
