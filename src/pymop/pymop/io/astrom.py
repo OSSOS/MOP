@@ -276,14 +276,32 @@ class AstromData(object):
         """
         self.observations = observations
         self.sys_header = sys_header
-        self.sources = sources
+        self.sources = [Source(reading_list) for reading_list in sources]
 
     def get_reading_count(self):
         count = 0
         for source in self.sources:
-            count += len(source)
+            count += source.num_readings()
 
         return count
+
+
+class Source(object):
+    """
+    A collection of source readings.
+    """
+
+    def __init__(self, source_list):
+        self.source_list = source_list
+
+    def __iter__(self):
+        return iter(self.source_list)
+
+    def get_reading(self, index):
+        return self.source_list[index]
+
+    def num_readings(self):
+        return len(self.source_list)
 
 
 class SourceReading(object):
