@@ -1,5 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import os
+
 import wx
 import wx.lib.inspection
 
@@ -110,3 +112,8 @@ def acquire_lock(directory):
     # If it doesn't exist, create one containing our user name
     # If one does exist, throw exception
     pass
+
+
+def listdir_for_suffix(directory, suffix):
+    return filter(lambda name: name.endswith(suffix), os.listdir(directory))
+
