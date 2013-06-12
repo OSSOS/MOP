@@ -349,6 +349,9 @@ class SourceReading(object):
         return (int(header[Observation.HEADER_IMG_SIZE_X]),
                 int(header[Observation.HEADER_IMG_SIZE_Y]))
 
+    def get_exposure_number(self):
+        return self.obs.expnum
+
     def __repr__(self):
         return "<SourceReading x=%s, y=%s, x0=%s, y0=%s, ra=%s, dec=%s, obs=%s" % (
             self.x, self.y, self.x0, self.y0, self.ra, self.dec, self.obs)

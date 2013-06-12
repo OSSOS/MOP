@@ -104,7 +104,7 @@ class ProcessRealsModel(object):
         return self._current_obs_number
 
     def get_obs_count(self):
-        return self._get_current_source().num_readings()
+        return self.get_current_source().num_readings()
 
     def next_obs(self):
         self._current_obs_number = (self._current_obs_number + 1) % self.get_obs_count()
@@ -114,11 +114,11 @@ class ProcessRealsModel(object):
         self._current_obs_number = (self._current_obs_number - 1) % self.get_obs_count()
         pub.sendMessage(MSG_PREV_OBS, data=self._current_obs_number)
 
-    def _get_current_source(self):
+    def get_current_source(self):
         return self.astrom_data.sources[self._current_src_number]
 
     def _get_current_reading(self):
-        return self._get_current_source().get_reading(self._current_obs_number)
+        return self.get_current_source().get_reading(self._current_obs_number)
 
     def get_reading_data(self):
         reading = self._get_current_reading()
