@@ -4,6 +4,13 @@ import wx
 import wx.lib.inspection
 
 from pymop import config
+from pymop.io.astrom import AstromParser
+from pymop.io.mpc import MPCWriter
+from pymop.io.naming import ProvisionalNameGenerator
+from pymop.io.imgaccess import (AsynchronousImageDownloadManager,
+                                ImageSliceDownloader, VOSpaceResolver)
+from pymop.gui.models import ProcessRealsModel
+from pymop.gui.controllers import ApplicationController
 
 CANDS_TASK = "process_cands_task"
 REALS_TASK = "process_reals_task"
@@ -28,7 +35,28 @@ class ProcessCandidatesTask(object):
 
 class ProcessRealsTask(object):
     def __init__(self):
+        self.parser = AstromParser()
+        self.name_generator = ProvisionalNameGenerator()
+
+        self.download_manager = AsynchronousImageDownloadManager(
+            ImageSliceDownloader(VOSpaceResolver()))
+
+    def start(self, working_directory):
         print "Starting process reals task"
+        # TODO Get all .reals.astrom files in working directory
+        real_astrom_file = "/home/drusk/gitcadc/MOP/src/pymop/test/data/1616681p10.measure3.cands.astrom"
+
+        # Parse into AstromData
+        astrom_data = self.parser.parse(real_astrom_file)
+
+        # Create output file
+        # TODO: check if one already exists (related to continuing existing work)
+        with open("/home/drusk/gitcadc/MOP/src/pymop/test/data/reals.mpc") as output_filehandle:
+            model = ProcessRealsModel(astrom_data, self.download_manager)
+            output_writer = MPCWriter(output_filehandle)
+            controller = ApplicationController(model,
+                                               output_writer,
+                                               self.name_generator)
 
 
 class PymopApplication(object):
@@ -66,11 +94,13 @@ class PymopApplication(object):
         # TODO: Get real values using wizard
         return "/home/drusk/gitcadc/MOP/src/pymop/test/measure3", REALS_TASK
 
-    def start_task(self, taskname):
+    def start_task(self, taskname, working_directory):
         try:
-            self.task_name_mapping[taskname]()
+            self.task = self.task_name_mapping[taskname]()
         except KeyError:
             raise PymopError("Unknown task: %s" % taskname)
+
+        self.task.start(working_directory)
 
 
 def acquire_lock(directory):
