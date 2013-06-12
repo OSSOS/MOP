@@ -85,8 +85,7 @@ class ApplicationController(object):
         self.model.previous_obs()
 
     def _get_provisional_name(self):
-        return self.name_generator.generate_name(
-            self.model.get_current_exposure_number())
+        return self.name_generator.name_source(self.model.get_current_source())
 
     def on_initiate_accept(self):
         """Initiates acceptance procedure, gathering required data."""

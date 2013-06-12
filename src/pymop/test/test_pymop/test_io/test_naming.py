@@ -2,61 +2,76 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 
-from hamcrest import assert_that, has_length, less_than_or_equal_to, equal_to
+from hamcrest import assert_that, equal_to
 
 from pymop.io.naming import ProvisionalNameGenerator, to_base26
+from pymop.io.astrom import Observation, Source, SourceReading
 
 
 class ProvisionalNameGeneratorTest(unittest.TestCase):
     def setUp(self):
         self.undertest = ProvisionalNameGenerator()
 
-    def assert_valid_length(self, name):
-        assert_that(name, has_length(less_than_or_equal_to(7)))
+    def create_reading(self, obs):
+        """Create a test reading containing the provided observation"""
+        return SourceReading(0, 0, 0, 0, 0, 0, obs)
+
+    def create_source(self, expnums):
+        """
+        Create a test source with default values but the provided exposure numbers.
+        """
+        readings = [self.create_reading(Observation(expnum, "p", "22")) for expnum in expnums]
+        return Source(readings)
 
     def test_exposure_number_not_7_digits(self):
-        self.assertRaises(ValueError, self.undertest.generate_name, 123456)
-        self.assertRaises(ValueError, self.undertest.generate_name, 12345678)
-        self.assertRaises(ValueError, self.undertest.generate_name, 0)
-        self.assertRaises(ValueError, self.undertest.generate_name, None)
-        self.assertRaises(ValueError, self.undertest.generate_name, "abcdefg")
+        self.assertRaises(ValueError, self.undertest.compress_exposure_number, 123456)
+        self.assertRaises(ValueError, self.undertest.compress_exposure_number, 12345678)
+        self.assertRaises(ValueError, self.undertest.compress_exposure_number, 0)
+        self.assertRaises(ValueError, self.undertest.compress_exposure_number, None)
+        self.assertRaises(ValueError, self.undertest.compress_exposure_number, "abcdefg")
 
-    def test_generate_names_from_str_no_repeat_exp1(self):
-        name = self.undertest.generate_name("1616703")
-        self.assert_valid_length(name)
-        assert_that(name, equal_to("DNZOX00"))
+    def test_compress_exposure_number_from_str_no_repeat_exp1(self):
+        compressed = self.undertest.compress_exposure_number("1616703")
+        assert_that(compressed, equal_to("DNZOX"))
 
-    def test_generate_names_from_str_no_repeat_exp2(self):
-        name = self.undertest.generate_name("1616704")
-        self.assert_valid_length(name)
-        assert_that(name, equal_to("DNZOY00"))
+    def test_compress_exposure_number_from_str_no_repeat_exp2(self):
+        compressed = self.undertest.compress_exposure_number("1616704")
+        assert_that(compressed, equal_to("DNZOY"))
 
-    def test_generate_names_from_int_no_repeat_exp1(self):
-        name = self.undertest.generate_name(1616703)
-        self.assert_valid_length(name)
-        assert_that(name, equal_to("DNZOX00"))
+    def test_compress_exposure_number_from_int_no_repeat_exp1(self):
+        compressed = self.undertest.compress_exposure_number(1616703)
+        assert_that(compressed, equal_to("DNZOX"))
 
-    def test_generate_names_from_int_no_repeat_exp2(self):
-        name = self.undertest.generate_name(1616704)
-        self.assert_valid_length(name)
-        assert_that(name, equal_to("DNZOY00"))
+    def test_compress_exposure_number_from_int_no_repeat_exp2(self):
+        compressed = self.undertest.compress_exposure_number(1616704)
+        assert_that(compressed, equal_to("DNZOY"))
 
     def test_generate_names_repeat_exp(self):
-        name = self.undertest.generate_name(1616703)
-        self.assert_valid_length(name)
-        assert_that(name, equal_to("DNZOX00"))
+        source1 = self.create_source(["1616703"])
+        source2 = self.create_source(["1616703"])
+        source3 = self.create_source(["1616703"])
+        source4 = self.create_source(["1616704"])
 
-        name2 = self.undertest.generate_name(1616703)
-        self.assert_valid_length(name2)
-        assert_that(name2, equal_to("DNZOX01"))
+        assert_that(self.undertest.name_source(source1), equal_to("DNZOX00"))
+        assert_that(self.undertest.name_source(source2), equal_to("DNZOX01"))
+        assert_that(self.undertest.name_source(source3), equal_to("DNZOX02"))
+        assert_that(self.undertest.name_source(source4), equal_to("DNZOY00"))
 
-        name3 = self.undertest.generate_name(1616703)
-        self.assert_valid_length(name3)
-        assert_that(name3, equal_to("DNZOX02"))
+    def test_name_source(self):
+        source = self.create_source(["1616704", "1616703"])
+        assert_that(self.undertest.name_source(source), equal_to("DNZOX00"))
 
-        name4 = self.undertest.generate_name(1616704)
-        self.assert_valid_length(name4)
-        assert_that(name4, equal_to("DNZOY00"))
+    def test_name_same_source(self):
+        source = self.create_source(["1616704", "1616703"])
+        assert_that(self.undertest.name_source(source), equal_to("DNZOX00"))
+        # Generating the name again should produce the same thing
+        assert_that(self.undertest.name_source(source), equal_to("DNZOX00"))
+
+    def test_name_source_different_for_same_obs_diff_src(self):
+        source1 = self.create_source(["1616703", "1616704"])
+        source2 = self.create_source(["1616703", "1616705"])
+        assert_that(self.undertest.name_source(source1), equal_to("DNZOX00"))
+        assert_that(self.undertest.name_source(source2), equal_to("DNZOX01"))
 
 
 class Base26ConverterTest(unittest.TestCase):
