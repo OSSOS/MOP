@@ -2,16 +2,11 @@
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import wx
-
-from pymop.applauncher import AstromFileApplicationLauncher
-from pymop.gui.launcher import LaunchWizardManager
+from pymop.app import PymopApplication
 
 
 def main():
-    app = wx.App()
-    LaunchWizardManager(AstromFileApplicationLauncher())
-    app.MainLoop()
+    PymopApplication()
 
 
 if __name__ == "__main__":
