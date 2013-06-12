@@ -466,12 +466,13 @@ class AcceptSourceDialog(wx.Dialog):
     SUBMIT_BTN = "Submit"
     CANCEL_BTN = "Cancel"
 
-    def __init__(self, parent, controller, provisional_name, date_of_obs, ra, dec, obs_mag, band,
+    def __init__(self, parent, controller, provisional_name, already_discovered, date_of_obs, ra, dec, obs_mag, band,
                  note1_choices=None, note2_choices=None, note2_default=None, default_observatory_code=""):
         super(AcceptSourceDialog, self).__init__(parent, title=self.TITLE)
 
         self.controller = controller
         self.provisional_name = provisional_name
+        self.already_discovered = already_discovered
         self.date_of_obs = date_of_obs
         self.ra_str = str(ra)
         self.dec_str = str(dec)
@@ -496,8 +497,9 @@ class AcceptSourceDialog(wx.Dialog):
         self.provisional_name_label = wx.StaticText(self, label=self.PROVISIONAL_NAME)
         self.provision_name_text = wx.StaticText(self, label=self.provisional_name, name=self.PROVISIONAL_NAME)
 
-        self.discovery_asterisk_cb = wx.CheckBox(self, label=self.DISCOVERY_ASTERISK,
-                                                 style=wx.ALIGN_RIGHT, name=self.DISCOVERY_ASTERISK)
+        self.discovery_asterisk_label = wx.StaticText(self, label=self.DISCOVERY_ASTERISK)
+        discovery_asterisk = "No" if self.already_discovered else "Yes"
+        self.discovery_asterisk_text = wx.StaticText(self, label=discovery_asterisk)
 
         self.note1_label = wx.StaticText(self, label=self.NOTE1)
         self.note1_combobox = wx.ComboBox(self, choices=self.note1_choices, style=wx.CB_READONLY,
@@ -540,7 +542,7 @@ class AcceptSourceDialog(wx.Dialog):
     def _get_vertical_widget_list(self):
         return [self._create_horizontal_pair(self.minor_planet_num_label, self.minor_planet_num_text),
                 self._create_horizontal_pair(self.provisional_name_label, self.provision_name_text),
-                self.discovery_asterisk_cb,
+                self._create_horizontal_pair(self.discovery_asterisk_label, self.discovery_asterisk_text),
                 (0, 0), # blank space
                 self._create_horizontal_pair(self.note1_label, self.note1_combobox),
                 self._create_horizontal_pair(self.note2_label, self.note2_combobox),
@@ -577,7 +579,7 @@ class AcceptSourceDialog(wx.Dialog):
         # Grab data out of the form
         # TODO validation
         minor_planet_number = self.minor_planet_num_text.GetValue()
-        discover_asterisk = "*" if self.discovery_asterisk_cb.IsChecked() else " "
+        discovery_asterisk = " " if self.already_discovered else "*"
         note1 = self.note1_combobox.GetStringSelection()
         note2 = self.note2_combobox.GetStringSelection()
         obs_mag = self.obs_mag
@@ -586,7 +588,7 @@ class AcceptSourceDialog(wx.Dialog):
 
         self.controller.on_do_accept(minor_planet_number,
                                      self.provisional_name,
-                                     discover_asterisk,
+                                     discovery_asterisk,
                                      note1,
                                      note2,
                                      self.date_of_obs,
