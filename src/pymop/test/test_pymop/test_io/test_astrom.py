@@ -8,7 +8,8 @@ from hamcrest import (assert_that, equal_to, has_length, has_entries,
 
 from test.base_tests import FileReadingTestCase
 from pymop.io.astrom import (AstromParser, AbstractAstromWriter,
-                             BulkAstromWriter, Observation)
+                             BulkAstromWriter, StreamingAstromWriter,
+                             Observation)
 
 TEST_FILE_1 = "data/1584431p15.measure3.cands.astrom"
 TEST_FILE_2 = "data/1616681p22.measure3.cands.astrom"
@@ -295,6 +296,35 @@ class BulkAstromWriterTest(GeneralAstromWriterTest):
             expected = fh.read()
 
         assert_that(actual, equal_to(expected))
+
+
+class StreamingAstromWriterTest(GeneralAstromWriterTest):
+    def setUp(self):
+        super(StreamingAstromWriterTest, self).setUp()
+
+        self.astrom_data = self.parse(TEST_FILE_1)
+        self.writer = StreamingAstromWriter(self.outputfile,
+                                            self.astrom_data.observations,
+                                            self.astrom_data.sys_header)
+
+    def test_write_line(self):
+        with open(self.get_abs_path(TEST_FILE_1), "rb") as fh:
+            expected_lines = fh.readlines()
+
+        def get_expected(num_lines):
+            return "".join(expected_lines[:num_lines])
+
+        source1 = self.astrom_data.sources[0]
+        source2 = self.astrom_data.sources[1]
+        source3 = self.astrom_data.sources[2]
+
+        assert_that(self.read_output(), equal_to(get_expected(24)))
+        self.writer.write_source(source1)
+        assert_that(self.read_output(), equal_to(get_expected(28)))
+        self.writer.write_source(source2)
+        assert_that(self.read_output(), equal_to(get_expected(32)))
+        self.writer.write_source(source3)
+        assert_that(self.read_output(), equal_to(get_expected(37)))
 
 
 class AstromDataTest(FileReadingTestCase):
