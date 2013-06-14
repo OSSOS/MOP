@@ -14,7 +14,7 @@ from pymop.io.astrom import AstromParser
 from pymop.io.img import FitsImage
 
 
-class ProcessRealsModelTest(FileReadingTestCase):
+class GeneralModelTest(FileReadingTestCase):
     def setUp(self):
         pub.unsubAll()
 
@@ -22,14 +22,20 @@ class ProcessRealsModelTest(FileReadingTestCase):
         self.astrom_data = AstromParser().parse(testfile)
         self.download_manager = Mock()
 
-        self.model = models.ProcessRealsModel(self.astrom_data, self.download_manager)
-
     def create_real_first_image(self, path="data/testimg.fits"):
         # Put a real fits image on the first source, first observation
         apcor_str = "4 15   0.19   0.01"
         with open(self.get_abs_path(path), "rb") as fh:
             self.first_image = FitsImage(fh.read(), apcor_str, Mock(), in_memory=True)
             self.astrom_data.sources[0].get_reading(0).set_fits_image(self.first_image)
+
+
+class AbstractRealsModelTest(GeneralModelTest):
+    def setUp(self):
+        super(AbstractRealsModelTest, self).setUp()
+
+        # TODO: just use AbstractModel?
+        self.model = models.ProcessRealsModel(self.astrom_data, self.download_manager)
 
     def test_sources_initialized(self):
         assert_that(self.model.get_current_source_number(), equal_to(0))
@@ -116,38 +122,6 @@ class ProcessRealsModelTest(FileReadingTestCase):
         msg = args[0]
         assert_that(msg.topic, equal_to(models.MSG_NEXT_OBS))
         assert_that(msg.data, equal_to(1))
-
-    def test_next_item(self):
-        observer = Mock()
-        pub.subscribe(observer.on_next_obs, models.MSG_NEXT_OBS)
-        pub.subscribe(observer.on_next_src, models.MSG_NEXT_SRC)
-
-        assert_that(self.model.get_current_source_number(), equal_to(0))
-        assert_that(self.model.get_current_obs_number(), equal_to(0))
-
-        self.model.next_item()
-        assert_that(self.model.get_current_source_number(), equal_to(0))
-        assert_that(self.model.get_current_obs_number(), equal_to(1))
-        assert_that(observer.on_next_obs.call_count, equal_to(1))
-        assert_that(observer.on_next_src.call_count, equal_to(0))
-
-        self.model.next_item()
-        assert_that(self.model.get_current_source_number(), equal_to(0))
-        assert_that(self.model.get_current_obs_number(), equal_to(2))
-        assert_that(observer.on_next_obs.call_count, equal_to(2))
-        assert_that(observer.on_next_src.call_count, equal_to(0))
-
-        self.model.next_item()
-        assert_that(self.model.get_current_source_number(), equal_to(1))
-        assert_that(self.model.get_current_obs_number(), equal_to(0))
-        assert_that(observer.on_next_obs.call_count, equal_to(2))
-        assert_that(observer.on_next_src.call_count, equal_to(1))
-
-        self.model.next_item()
-        assert_that(self.model.get_current_source_number(), equal_to(1))
-        assert_that(self.model.get_current_obs_number(), equal_to(1))
-        assert_that(observer.on_next_obs.call_count, equal_to(3))
-        assert_that(observer.on_next_src.call_count, equal_to(1))
 
     def test_receive_previous_source_event(self):
         # Subscribe a mock
@@ -293,34 +267,6 @@ class ProcessRealsModelTest(FileReadingTestCase):
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_num_items_processed(), equal_to(2))
 
-    def test_receive_all_sources_processed_event_on_final_accept(self):
-        observer = Mock()
-        pub.subscribe(observer.on_all_processed, models.MSG_ALL_ITEMS_PROC)
-
-        item = 0
-        while item < self.model.get_item_count() - 1:
-            self.model.accept_current_item()
-            assert_that(observer.on_all_processed.call_count, equal_to(0))
-            self.model.next_item()
-            item += 1
-
-        self.model.accept_current_item()
-        assert_that(observer.on_all_processed.call_count, equal_to(1))
-
-    def test_receive_all_sources_processed_event_on_final_reject(self):
-        observer = Mock()
-        pub.subscribe(observer.on_all_processed, models.MSG_ALL_ITEMS_PROC)
-
-        item = 0
-        while item < self.model.get_item_count() - 1:
-            self.model.accept_current_item()
-            assert_that(observer.on_all_processed.call_count, equal_to(0))
-            self.model.next_item()
-            item += 1
-
-        self.model.reject_current_item()
-        assert_that(observer.on_all_processed.call_count, equal_to(1))
-
     def test_get_current_band(self):
         self.create_real_first_image("data/1616681p22.fits")
         assert_that(self.model.get_current_band(), equal_to("r"))
@@ -355,6 +301,73 @@ class ProcessRealsModelTest(FileReadingTestCase):
         assert_that(self.model.get_current_dec(), equal_to(29.2202748))
         assert_that(self.model.get_current_image_FWHM(), equal_to(3.30))
         assert_that(self.model.get_current_image_maxcount(), equal_to(30000.0))
+
+    def test_receive_all_sources_processed_event_on_final_accept(self):
+        observer = Mock()
+        pub.subscribe(observer.on_all_processed, models.MSG_ALL_ITEMS_PROC)
+
+        item = 0
+        while item < self.model.get_item_count() - 1:
+            self.model.accept_current_item()
+            assert_that(observer.on_all_processed.call_count, equal_to(0))
+            self.model.next_item()
+            item += 1
+
+        self.model.accept_current_item()
+        assert_that(observer.on_all_processed.call_count, equal_to(1))
+
+    def test_receive_all_sources_processed_event_on_final_reject(self):
+        observer = Mock()
+        pub.subscribe(observer.on_all_processed, models.MSG_ALL_ITEMS_PROC)
+
+        item = 0
+        while item < self.model.get_item_count() - 1:
+            self.model.accept_current_item()
+            assert_that(observer.on_all_processed.call_count, equal_to(0))
+            self.model.next_item()
+            item += 1
+
+        self.model.reject_current_item()
+        assert_that(observer.on_all_processed.call_count, equal_to(1))
+
+
+class ProcessRealsModelTest(GeneralModelTest):
+    def setUp(self):
+        super(ProcessRealsModelTest, self).setUp()
+
+        self.model = models.ProcessRealsModel(self.astrom_data, self.download_manager)
+
+    def test_next_item(self):
+        observer = Mock()
+        pub.subscribe(observer.on_next_obs, models.MSG_NEXT_OBS)
+        pub.subscribe(observer.on_next_src, models.MSG_NEXT_SRC)
+
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
+
+        self.model.next_item()
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_obs_number(), equal_to(1))
+        assert_that(observer.on_next_obs.call_count, equal_to(1))
+        assert_that(observer.on_next_src.call_count, equal_to(0))
+
+        self.model.next_item()
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_obs_number(), equal_to(2))
+        assert_that(observer.on_next_obs.call_count, equal_to(2))
+        assert_that(observer.on_next_src.call_count, equal_to(0))
+
+        self.model.next_item()
+        assert_that(self.model.get_current_source_number(), equal_to(1))
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
+        assert_that(observer.on_next_obs.call_count, equal_to(2))
+        assert_that(observer.on_next_src.call_count, equal_to(1))
+
+        self.model.next_item()
+        assert_that(self.model.get_current_source_number(), equal_to(1))
+        assert_that(self.model.get_current_obs_number(), equal_to(1))
+        assert_that(observer.on_next_obs.call_count, equal_to(3))
+        assert_that(observer.on_next_src.call_count, equal_to(1))
 
     def test_is_source_discovered(self):
         assert_that(self.model.is_current_source_discovered(), equal_to(False))

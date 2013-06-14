@@ -52,10 +52,9 @@ class VettableItem(object):
         return self._status
 
 
-class ProcessRealsModel(object):
+class AbstractModel(object):
     """
-    Main model for storing and accessing astronomical data in the
-    application.
+    Functionality common to the models of all tasks.
     """
 
     def __init__(self, astrom_data, download_manager):
@@ -66,25 +65,6 @@ class ProcessRealsModel(object):
         self._current_obs_number = 0
 
         self._num_images_loaded = 0
-
-        self._vettable_items = {}
-        for source in self.astrom_data.sources:
-            for reading in source:
-                self._vettable_items[reading] = VettableItem(reading)
-
-        self._source_discovery_asterisk = [False] * self.get_source_count()
-
-    def next_item(self):
-        """Move to the next item to process."""
-        if self.get_current_obs_number() == self.get_obs_count() - 1:
-            self.next_source()
-            self._current_obs_number = 0
-        else:
-            self.next_obs()
-
-    def get_current_item(self):
-        reading = self.astrom_data.sources[self.get_current_source_number()].get_reading(self.get_current_obs_number())
-        return self._vettable_items[reading]
 
     def get_current_source_number(self):
         return self._current_src_number
@@ -191,15 +171,6 @@ class ProcessRealsModel(object):
         self._num_images_loaded += 1
         pub.sendMessage(MSG_IMG_LOADED, (source_num, obs_num))
 
-    def accept_current_item(self):
-        self.get_current_item().accept()
-        self._source_discovery_asterisk[self.get_current_source_number()] = True
-        self._check_if_finished()
-
-    def reject_current_item(self):
-        self.get_current_item().reject()
-        self._check_if_finished()
-
     def _check_if_finished(self):
         if self.get_num_items_processed() == self.get_item_count():
             pub.sendMessage(MSG_ALL_ITEMS_PROC)
@@ -217,3 +188,48 @@ class ProcessRealsModel(object):
     def is_current_source_discovered(self):
         return self._source_discovery_asterisk[self.get_current_source_number()]
 
+    def next_item(self):
+        raise NotImplementedError()
+
+    def accept_current_item(self):
+        raise NotImplementedError()
+
+    def reject_current_item(self):
+        raise NotImplementedError()
+
+
+class ProcessRealsModel(AbstractModel):
+    """
+    Manages the application state for the process reals task.
+    """
+
+    def __init__(self, astrom_data, download_manager):
+        super(ProcessRealsModel, self).__init__(astrom_data, download_manager)
+
+        self._vettable_items = {}
+        for source in self.astrom_data.sources:
+            for reading in source:
+                self._vettable_items[reading] = VettableItem(reading)
+
+        self._source_discovery_asterisk = [False] * self.get_source_count()
+
+    def next_item(self):
+        """Move to the next item to process."""
+        if self.get_current_obs_number() == self.get_obs_count() - 1:
+            self.next_source()
+            self._current_obs_number = 0
+        else:
+            self.next_obs()
+
+    def get_current_item(self):
+        reading = self.astrom_data.sources[self.get_current_source_number()].get_reading(self.get_current_obs_number())
+        return self._vettable_items[reading]
+
+    def accept_current_item(self):
+        self.get_current_item().accept()
+        self._source_discovery_asterisk[self.get_current_source_number()] = True
+        self._check_if_finished()
+
+    def reject_current_item(self):
+        self.get_current_item().reject()
+        self._check_if_finished()
