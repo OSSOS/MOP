@@ -153,10 +153,12 @@ class ProcessCandidatesController(AbstractController):
         super(ProcessCandidatesController, self).__init__(task, model)
 
         self.output_writer = output_writer
+        astrom_data = self.model.astrom_data
+        self.output_writer.write_headers(
+            astrom_data.observations, astrom_data.sys_header)
 
     def on_accept(self):
-        # TODO: don't rewrite whole file each time!  Only write when the
-        # user exits?
-        self.output_writer.write(self.model.astrom_data)
+        self.output_writer.write_source(self.model.get_current_source())
+
         self.model.accept_current_item()
         self.model.next_item()
