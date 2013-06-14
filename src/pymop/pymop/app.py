@@ -6,6 +6,7 @@ import wx
 import wx.lib.inspection
 
 from pymop import config
+from pymop import tasks
 from pymop.io.astrom import AstromParser, AstromWriter
 from pymop.io.mpc import MPCWriter
 from pymop.io.naming import ProvisionalNameGenerator
@@ -13,11 +14,7 @@ from pymop.io.imgaccess import (AsynchronousImageDownloadManager,
                                 ImageSliceDownloader, VOSpaceResolver)
 from pymop.gui.models import ProcessRealsModel, ProcessCandidatesModel
 from pymop.gui.controllers import ProcessRealsController, ProcessCandidatesController
-from pymop.gui.taskselect import WorkingDirectorySelector
-
-
-CANDS_TASK = "process_cands_task"
-REALS_TASK = "process_reals_task"
+from pymop.gui.taskselect import TaskSetupManager
 
 
 class PymopError(Exception):
@@ -110,8 +107,8 @@ class ProcessRealsTask(AbstractTask):
 
 class PymopApplication(object):
     task_name_mapping = {
-        CANDS_TASK: ProcessCandidatesTask,
-        REALS_TASK: ProcessRealsTask
+        tasks.CANDS_TASK: ProcessCandidatesTask,
+        tasks.REALS_TASK: ProcessRealsTask
     }
 
     def __init__(self):
@@ -121,13 +118,12 @@ class PymopApplication(object):
         if debug_mode:
             wx.lib.inspection.InspectionTool().Show()
 
-        selector = WorkingDirectorySelector(self)
-        wx.CallAfter(selector.run)
+        setup_manager = TaskSetupManager(self)
+        wx.CallAfter(setup_manager.run)
 
         self.wx_app.MainLoop()
 
-    def set_working_directory(self, working_directory):
-        task = CANDS_TASK # TODO get this from user as well
+    def set_task_info(self, working_directory, task):
         self.launch(working_directory, task)
 
     def launch(self, working_directory, task):
