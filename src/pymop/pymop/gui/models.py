@@ -66,6 +66,11 @@ class AbstractModel(object):
 
         self._num_images_loaded = 0
 
+        self._vettable_items = self._create_vettable_items()
+
+    def _create_vettable_items(self):
+        raise NotImplementedError()
+
     def get_current_source_number(self):
         return self._current_src_number
 
@@ -179,22 +184,29 @@ class AbstractModel(object):
         processed = [item.is_processed() for item in self._vettable_items.values()]
         return processed.count(True)
 
-    def is_item_processed(self, reading):
-        return self._vettable_items[reading].is_processed()
+    def is_item_processed(self, item):
+        return self._vettable_items[item].is_processed()
 
-    def get_item_status(self, reading):
-        return self._vettable_items[reading].get_status()
-
-    def is_current_source_discovered(self):
-        return self._source_discovery_asterisk[self.get_current_source_number()]
+    def get_item_status(self, item):
+        return self._vettable_items[item].get_status()
 
     def next_item(self):
         raise NotImplementedError()
 
     def accept_current_item(self):
-        raise NotImplementedError()
+        self.get_current_item().accept()
+        self._on_accept()
+        self._check_if_finished()
+
+    def _on_accept(self):
+        """Hook you can override to do extra processing when accepting an item."""
+        pass
 
     def reject_current_item(self):
+        self.get_current_item().reject()
+        self._check_if_finished()
+
+    def get_current_item(self):
         raise NotImplementedError()
 
 
@@ -206,12 +218,17 @@ class ProcessRealsModel(AbstractModel):
     def __init__(self, astrom_data, download_manager):
         super(ProcessRealsModel, self).__init__(astrom_data, download_manager)
 
-        self._vettable_items = {}
-        for source in self.astrom_data.sources:
-            for reading in source:
-                self._vettable_items[reading] = VettableItem(reading)
+        self._create_vettable_items()
 
         self._source_discovery_asterisk = [False] * self.get_source_count()
+
+    def _create_vettable_items(self):
+        vettable_items = {}
+        for source in self.astrom_data.sources:
+            for reading in source:
+                vettable_items[reading] = VettableItem(reading)
+
+        return vettable_items
 
     def next_item(self):
         """Move to the next item to process."""
@@ -222,14 +239,28 @@ class ProcessRealsModel(AbstractModel):
             self.next_obs()
 
     def get_current_item(self):
-        reading = self.astrom_data.sources[self.get_current_source_number()].get_reading(self.get_current_obs_number())
-        return self._vettable_items[reading]
+        return self._vettable_items[self._get_current_reading()]
 
-    def accept_current_item(self):
-        self.get_current_item().accept()
+    def _on_accept(self):
         self._source_discovery_asterisk[self.get_current_source_number()] = True
-        self._check_if_finished()
 
-    def reject_current_item(self):
-        self.get_current_item().reject()
-        self._check_if_finished()
+    def is_current_source_discovered(self):
+        return self._source_discovery_asterisk[self.get_current_source_number()]
+
+
+class ProcessCandidatesModel(AbstractModel):
+    def __init__(self, astrom_data, download_manager):
+        super(ProcessCandidatesModel, self).__init__(astrom_data, download_manager)
+
+    def _create_vettable_items(self):
+        vettable_items = {}
+        for source in self.astrom_data.sources:
+            vettable_items[source] = VettableItem(source)
+
+        return vettable_items
+
+    def next_item(self):
+        self.next_source()
+
+    def get_current_item(self):
+        return self._vettable_items[self.get_current_source()]

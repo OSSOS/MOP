@@ -433,5 +433,87 @@ class ProcessRealsModelTest(GeneralModelTest):
         assert_that(self.model.get_item_status(second_item), equal_to(VettableItem.REJECTED))
 
 
+class ProcessCandidatesModelTest(GeneralModelTest):
+    def setUp(self):
+        super(ProcessCandidatesModelTest, self).setUp()
+
+        self.model = models.ProcessCandidatesModel(self.astrom_data, self.download_manager)
+
+    def test_next_item(self):
+        observer = Mock()
+        pub.subscribe(observer.on_next_obs, models.MSG_NEXT_OBS)
+        pub.subscribe(observer.on_next_src, models.MSG_NEXT_SRC)
+
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
+
+        self.model.next_item()
+        assert_that(self.model.get_current_source_number(), equal_to(1))
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
+        assert_that(observer.on_next_obs.call_count, equal_to(0))
+        assert_that(observer.on_next_src.call_count, equal_to(1))
+
+        self.model.next_item()
+        assert_that(self.model.get_current_source_number(), equal_to(2))
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
+        assert_that(observer.on_next_obs.call_count, equal_to(0))
+        assert_that(observer.on_next_src.call_count, equal_to(2))
+
+        self.model.next_item()
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
+        assert_that(observer.on_next_obs.call_count, equal_to(0))
+        assert_that(observer.on_next_src.call_count, equal_to(3))
+
+    def test_accept_current_item(self):
+        first_item = self.astrom_data.sources[0]
+        second_item = self.astrom_data.sources[1]
+
+        assert_that(self.model.is_item_processed(first_item), equal_to(False))
+        assert_that(self.model.get_item_status(first_item), equal_to(VettableItem.UNPROCESSED))
+        assert_that(self.model.is_item_processed(second_item), equal_to(False))
+        assert_that(self.model.get_item_status(second_item), equal_to(VettableItem.UNPROCESSED))
+
+        self.model.accept_current_item()
+
+        assert_that(self.model.is_item_processed(first_item), equal_to(True))
+        assert_that(self.model.get_item_status(first_item), equal_to(VettableItem.ACCEPTED))
+        assert_that(self.model.is_item_processed(second_item), equal_to(False))
+        assert_that(self.model.get_item_status(second_item), equal_to(VettableItem.UNPROCESSED))
+
+        self.model.next_item()
+        self.model.accept_current_item()
+
+        assert_that(self.model.is_item_processed(first_item), equal_to(True))
+        assert_that(self.model.get_item_status(first_item), equal_to(VettableItem.ACCEPTED))
+        assert_that(self.model.is_item_processed(second_item), equal_to(True))
+        assert_that(self.model.get_item_status(second_item), equal_to(VettableItem.ACCEPTED))
+
+
+    def test_reject_current_item(self):
+        first_item = self.astrom_data.sources[0]
+        second_item = self.astrom_data.sources[1]
+
+        assert_that(self.model.is_item_processed(first_item), equal_to(False))
+        assert_that(self.model.get_item_status(first_item), equal_to(VettableItem.UNPROCESSED))
+        assert_that(self.model.is_item_processed(second_item), equal_to(False))
+        assert_that(self.model.get_item_status(second_item), equal_to(VettableItem.UNPROCESSED))
+
+        self.model.reject_current_item()
+
+        assert_that(self.model.is_item_processed(first_item), equal_to(True))
+        assert_that(self.model.get_item_status(first_item), equal_to(VettableItem.REJECTED))
+        assert_that(self.model.is_item_processed(second_item), equal_to(False))
+        assert_that(self.model.get_item_status(second_item), equal_to(VettableItem.UNPROCESSED))
+
+        self.model.next_item()
+        self.model.reject_current_item()
+
+        assert_that(self.model.is_item_processed(first_item), equal_to(True))
+        assert_that(self.model.get_item_status(first_item), equal_to(VettableItem.REJECTED))
+        assert_that(self.model.is_item_processed(second_item), equal_to(True))
+        assert_that(self.model.get_item_status(second_item), equal_to(VettableItem.REJECTED))
+
+
 if __name__ == '__main__':
     unittest.main()
