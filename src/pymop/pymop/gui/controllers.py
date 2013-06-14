@@ -7,17 +7,10 @@ from pymop.gui import models
 from pymop.gui.views import ApplicationView
 
 
-class ApplicationController(object):
-    """
-    The main controller of the application.  Sets up the view and
-    handles user interactions.
-    """
-
-    def __init__(self, task, model, output_writer, name_generator):
+class AbstractController(object):
+    def __init__(self, task, model):
         self.task = task
         self.model = model
-        self.output_writer = output_writer
-        self.name_generator = name_generator
 
         pub.subscribe(self.on_change_image, models.MSG_NAV)
         pub.subscribe(self.on_image_loaded, models.MSG_IMG_LOADED)
@@ -80,6 +73,23 @@ class ApplicationController(object):
     def on_previous_obs(self):
         self.model.previous_obs()
 
+    def on_reject(self):
+        self.model.reject_current_item()
+        self.model.next_item()
+
+
+class ProcessRealsController(AbstractController):
+    """
+    The main controller of the process reals task.  Sets up the view and
+    handles user interactions.
+    """
+
+    def __init__(self, task, model, output_writer, name_generator):
+        super(ProcessRealsController, self).__init__(task, model)
+
+        self.output_writer = output_writer
+        self.name_generator = name_generator
+
     def _get_provisional_name(self):
         return self.name_generator.name_source(self.model.get_current_source())
 
@@ -99,10 +109,6 @@ class ApplicationController(object):
             config.read("MPC.DEFAULT_OBSERVATORY_CODE")
         )
         self.get_view().show_accept_source_dialog(preset_vals)
-
-    def on_reject(self):
-        self.model.reject_current_item()
-        self.model.next_item()
 
     def on_do_accept(self,
                      minor_plant_number,

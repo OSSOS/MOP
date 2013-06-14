@@ -12,7 +12,7 @@ from pymop.io.naming import ProvisionalNameGenerator
 from pymop.io.imgaccess import (AsynchronousImageDownloadManager,
                                 ImageSliceDownloader, VOSpaceResolver)
 from pymop.gui.models import ProcessRealsModel
-from pymop.gui.controllers import ApplicationController
+from pymop.gui.controllers import ProcessRealsController
 from pymop.gui.taskselect import WorkingDirectorySelector
 
 
@@ -59,7 +59,7 @@ class ProcessRealsTask(object):
         self.output_filehandle = open(output_filename, "wb")
         model = ProcessRealsModel(astrom_data, self.download_manager)
         output_writer = MPCWriter(self.output_filehandle)
-        ApplicationController(self, model, output_writer, self.name_generator)
+        ProcessRealsController(self, model, output_writer, self.name_generator)
 
     def finish(self):
         self.output_filehandle.close()
