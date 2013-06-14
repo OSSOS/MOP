@@ -6,13 +6,13 @@ import wx
 import wx.lib.inspection
 
 from pymop import config
-from pymop.io.astrom import AstromParser
+from pymop.io.astrom import AstromParser, AstromWriter
 from pymop.io.mpc import MPCWriter
 from pymop.io.naming import ProvisionalNameGenerator
 from pymop.io.imgaccess import (AsynchronousImageDownloadManager,
                                 ImageSliceDownloader, VOSpaceResolver)
-from pymop.gui.models import ProcessRealsModel
-from pymop.gui.controllers import ProcessRealsController
+from pymop.gui.models import ProcessRealsModel, ProcessCandidatesModel
+from pymop.gui.controllers import ProcessRealsController, ProcessCandidatesController
 from pymop.gui.taskselect import WorkingDirectorySelector
 
 
@@ -33,36 +33,79 @@ class PymopLockError(Exception):
         self.owner = owner
 
 
-class ProcessCandidatesTask(object):
-    pass
-
-
-class ProcessRealsTask(object):
+class AbstractTask(object):
     def __init__(self):
         self.parser = AstromParser()
-        self.name_generator = ProvisionalNameGenerator()
-
         self.download_manager = AsynchronousImageDownloadManager(
             ImageSliceDownloader(VOSpaceResolver()))
 
+    def get_suffix(self):
+        """The suffix for files this task processes."""
+        raise NotImplementedError()
+
+    def _create_model(self, astrom_data):
+        raise NotImplementedError()
+
+    def _create_writer(self):
+        raise NotImplementedError()
+
+    def _create_controller(self, model, output_writer):
+        raise NotImplementedError()
+
     def start(self, working_directory):
-        # TODO Get all .reals.astrom files in working directory
         # TODO process all files not just first one found
-        astrom_filename = listdir_for_suffix(working_directory, ".reals.astrom")[0]
+        astrom_filename = listdir_for_suffix(working_directory, self.get_suffix())[0]
         astrom_path = os.path.join(working_directory, astrom_filename)
 
         # Parse into AstromData
         astrom_data = self.parser.parse(astrom_path)
 
         # TODO: check if one already exists (related to continuing existing work)
-        output_filename = os.path.join(working_directory, "reals.mpc")
+        output_filename = os.path.join(working_directory, self.get_suffix()[1:])
         self.output_filehandle = open(output_filename, "wb")
-        model = ProcessRealsModel(astrom_data, self.download_manager)
-        output_writer = MPCWriter(self.output_filehandle)
-        ProcessRealsController(self, model, output_writer, self.name_generator)
+        model = self._create_model(astrom_data)
+        output_writer = self._create_writer()
+        self._create_controller(model, output_writer)
 
     def finish(self):
         self.output_filehandle.close()
+
+
+class ProcessCandidatesTask(AbstractTask):
+    def __init__(self):
+        super(ProcessCandidatesTask, self).__init__()
+
+    def get_suffix(self):
+        return ".cands.astrom"
+
+    def _create_model(self, astrom_data):
+        return ProcessCandidatesModel(astrom_data, self.download_manager)
+
+    def _create_writer(self):
+        return AstromWriter(self.output_filehandle)
+
+    def _create_controller(self, model, output_writer):
+        return ProcessCandidatesController(self, model, output_writer)
+
+
+class ProcessRealsTask(AbstractTask):
+    def __init__(self):
+        super(ProcessRealsTask, self).__init__()
+
+        self.name_generator = ProvisionalNameGenerator()
+
+    def get_suffix(self):
+        return ".reals.astrom"
+
+    def _create_model(self, astrom_data):
+        return ProcessRealsModel(astrom_data, self.download_manager)
+
+    def _create_writer(self):
+        return MPCWriter(self.output_filehandle)
+
+    def _create_controller(self, model, output_writer):
+        return ProcessRealsController(self, model, output_writer,
+                                      self.name_generator)
 
 
 class PymopApplication(object):
@@ -84,7 +127,7 @@ class PymopApplication(object):
         self.wx_app.MainLoop()
 
     def set_working_directory(self, working_directory):
-        task = REALS_TASK # TODO get this from user as well
+        task = CANDS_TASK # TODO get this from user as well
         self.launch(working_directory, task)
 
     def launch(self, working_directory, task):
@@ -120,4 +163,3 @@ def acquire_lock(directory):
 def listdir_for_suffix(directory, suffix):
     """Note this returns file names, not full paths."""
     return filter(lambda name: name.endswith(suffix), os.listdir(directory))
-
