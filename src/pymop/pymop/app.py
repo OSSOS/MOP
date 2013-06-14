@@ -13,6 +13,8 @@ from pymop.io.imgaccess import (AsynchronousImageDownloadManager,
                                 ImageSliceDownloader, VOSpaceResolver)
 from pymop.gui.models import ProcessRealsModel
 from pymop.gui.controllers import ApplicationController
+from pymop.gui.taskselect import WorkingDirectorySelector
+
 
 CANDS_TASK = "process_cands_task"
 REALS_TASK = "process_reals_task"
@@ -45,14 +47,16 @@ class ProcessRealsTask(object):
 
     def start(self, working_directory):
         # TODO Get all .reals.astrom files in working directory
-        real_astrom_file = "/home/drusk/gitcadc/MOP/src/pymop/test/data/1616681p22.measure3.cands.astrom"
+        # TODO process all files not just first one found
+        astrom_filename = listdir_for_suffix(working_directory, ".reals.astrom")[0]
+        astrom_path = os.path.join(working_directory, astrom_filename)
 
         # Parse into AstromData
-        astrom_data = self.parser.parse(real_astrom_file)
+        astrom_data = self.parser.parse(astrom_path)
 
-        # Create output file
         # TODO: check if one already exists (related to continuing existing work)
-        self.output_filehandle = open("/home/drusk/gitcadc/MOP/src/pymop/test/data/reals.mpc", "wb")
+        output_filename = os.path.join(working_directory, "reals.mpc")
+        self.output_filehandle = open(output_filename, "wb")
         model = ProcessRealsModel(astrom_data, self.download_manager)
         output_writer = MPCWriter(self.output_filehandle)
         ApplicationController(self, model, output_writer, self.name_generator)
@@ -74,13 +78,16 @@ class PymopApplication(object):
         if debug_mode:
             wx.lib.inspection.InspectionTool().Show()
 
-        self.launch()
+        selector = WorkingDirectorySelector(self)
+        wx.CallAfter(selector.run)
 
         self.wx_app.MainLoop()
 
-    def launch(self):
-        working_directory, task = self.run_startup_wizard()
+    def set_working_directory(self, working_directory):
+        task = REALS_TASK # TODO get this from user as well
+        self.launch(working_directory, task)
 
+    def launch(self, working_directory, task):
         try:
             acquire_lock(working_directory)
         except PymopLockError as err:
@@ -92,10 +99,6 @@ class PymopApplication(object):
         except PymopError as err:
             # TODO: GUI dialog
             print "Cannot start task: %s" % err.message
-
-    def run_startup_wizard(self):
-        # TODO: Get real values using wizard
-        return "/home/drusk/gitcadc/MOP/src/pymop/test/measure3", REALS_TASK
 
     def start_task(self, working_directory, taskname):
         try:
@@ -115,5 +118,6 @@ def acquire_lock(directory):
 
 
 def listdir_for_suffix(directory, suffix):
+    """Note this returns file names, not full paths."""
     return filter(lambda name: name.endswith(suffix), os.listdir(directory))
 
