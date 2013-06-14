@@ -7,7 +7,8 @@ from hamcrest import (assert_that, equal_to, has_length, has_entries,
                       same_instance, contains)
 
 from test.base_tests import FileReadingTestCase
-from pymop.io.astrom import AstromParser, AstromWriter, Observation
+from pymop.io.astrom import (AstromParser, AbstractAstromWriter,
+                             BulkAstromWriter, Observation)
 
 TEST_FILE_1 = "data/1584431p15.measure3.cands.astrom"
 TEST_FILE_2 = "data/1616681p22.measure3.cands.astrom"
@@ -177,12 +178,11 @@ class ParserTest(FileReadingTestCase):
         assert_that(obs_names, contains("1616681p22", "1616692p22", "1616703p22"))
 
 
-class WriterTest(FileReadingTestCase):
+class GeneralAstromWriterTest(FileReadingTestCase):
     def setUp(self):
         self.parser = AstromParser()
         self.outputfile = tempfile.NamedTemporaryFile(suffix=".astrom",
                                                       mode="w+b")
-        self.writer = AstromWriter(self.outputfile)
 
     def tearDown(self):
         self.outputfile.close()
@@ -194,20 +194,12 @@ class WriterTest(FileReadingTestCase):
     def parse(self, filename=TEST_FILE_1):
         return AstromParser().parse(self.get_abs_path(filename))
 
-    def test_parse_then_rewrite(self):
-        """
-        Sanity check that we can parse data, then write that data back out
-        identically.
-        """
-        astrom_data = self.parse(TEST_FILE_1)
-        self.writer.write(astrom_data)
 
-        actual = self.read_output()
+class AbstractAstromWriterTest(GeneralAstromWriterTest):
+    def setUp(self):
+        super(AbstractAstromWriterTest, self).setUp()
 
-        with open(self.get_abs_path(TEST_FILE_1), "rb") as fh:
-            expected = fh.read()
-
-        assert_that(actual, equal_to(expected))
+        self.writer = AbstractAstromWriter(self.outputfile)
 
     def test_write_observation_list(self):
         expected = ("# 1584431p15                                                                    \n"
@@ -281,6 +273,28 @@ class WriterTest(FileReadingTestCase):
         self.writer._write_source_data(astrom_data.sources)
 
         assert_that(self.read_output(), equal_to(expected))
+
+
+class BulkAstromWriterTest(GeneralAstromWriterTest):
+    def setUp(self):
+        super(BulkAstromWriterTest, self).setUp()
+
+        self.writer = BulkAstromWriter(self.outputfile)
+
+    def test_parse_then_rewrite(self):
+        """
+        Sanity check that we can parse data, then write that data back out
+        identically.
+        """
+        astrom_data = self.parse(TEST_FILE_1)
+        self.writer.write(astrom_data)
+
+        actual = self.read_output()
+
+        with open(self.get_abs_path(TEST_FILE_1), "rb") as fh:
+            expected = fh.read()
+
+        assert_that(actual, equal_to(expected))
 
 
 class AstromDataTest(FileReadingTestCase):

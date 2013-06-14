@@ -171,7 +171,7 @@ class AstromParser(object):
         return AstromData(observations, sys_header, sources)
 
 
-class AstromWriter(object):
+class AbstractAstromWriter(object):
     def __init__(self, filehandle):
         self.output_file = filehandle
 
@@ -243,6 +243,12 @@ class AstromWriter(object):
             if i < len(sources) - 1:
                 # Put a blank line between objects, but not at the end.
                 self._write_blank_line()
+
+
+class BulkAstromWriter(AbstractAstromWriter):
+    """Writes out the full AstromData structure at once."""
+    def __init__(self, filehandle):
+        super(BulkAstromWriter, self).__init__(filehandle)
 
     def write(self, astrom_data):
         observations = astrom_data.observations
