@@ -231,22 +231,26 @@ class AbstractAstromWriter(object):
         """
         See src/jjk/measure3
         """
-        self._write_line("##   X        Y        X_0     Y_0          R.A.          DEC")
-        self._write_blank_line()
+        self._write_source_header()
 
         for i, source in enumerate(sources):
-            for reading in source:
-                self._write_line(" %8.2f %8.2f %8.2f %8.2f %12.7f %12.7f" % (
-                    reading.x, reading.y, reading.x0, reading.y0, reading.ra,
-                    reading.dec), ljust=False)
+            self.write_source(source)
 
-            if i < len(sources) - 1:
-                # Put a blank line between objects, but not at the end.
-                self._write_blank_line()
+    def _write_source_header(self):
+        self._write_line("##   X        Y        X_0     Y_0          R.A.          DEC")
+
+    def write_source(self, source):
+        self._write_blank_line()
+
+        for reading in source:
+            self._write_line(" %8.2f %8.2f %8.2f %8.2f %12.7f %12.7f" % (
+                reading.x, reading.y, reading.x0, reading.y0, reading.ra,
+                reading.dec), ljust=False)
 
 
 class BulkAstromWriter(AbstractAstromWriter):
     """Writes out the full AstromData structure at once."""
+
     def __init__(self, filehandle):
         super(BulkAstromWriter, self).__init__(filehandle)
 
@@ -256,6 +260,18 @@ class BulkAstromWriter(AbstractAstromWriter):
         self._write_observation_headers(observations)
         self._write_sys_header(astrom_data.sys_header)
         self._write_source_data(astrom_data.sources)
+
+
+class StreamingAstromWriter(AbstractAstromWriter):
+    """Writes out the AstromData one source at a time."""
+
+    def __init__(self, filehandle, observations, sys_headers):
+        super(StreamingAstromWriter, self).__init__(filehandle)
+
+        self._write_observation_list(observations)
+        self._write_observation_headers(observations)
+        self._write_sys_header(sys_headers)
+        self._write_source_header()
 
 
 class AstromData(object):
