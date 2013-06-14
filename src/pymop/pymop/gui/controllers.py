@@ -93,7 +93,7 @@ class ProcessRealsController(AbstractController):
     def _get_provisional_name(self):
         return self.name_generator.name_source(self.model.get_current_source())
 
-    def on_initiate_accept(self):
+    def on_accept(self):
         """Initiates acceptance procedure, gathering required data."""
         preset_vals = (
             self._get_provisional_name(),
@@ -146,3 +146,17 @@ class ProcessRealsController(AbstractController):
 
     def on_cancel_accept(self):
         self.get_view().close_accept_source_dialog()
+
+
+class ProcessCandidatesController(AbstractController):
+    def __init__(self, task, model, output_writer):
+        super(ProcessCandidatesController, self).__init__(task, model)
+
+        self.output_writer = output_writer
+
+    def on_accept(self):
+        # TODO: don't rewrite whole file each time!  Only write when the
+        # user exits?
+        self.output_writer.write(self.model.astrom_data)
+        self.model.accept_current_item()
+        self.model.next_item()
