@@ -6,7 +6,7 @@ import wx
 import wx.lib.inspection
 
 from pymop import config
-from pymop.io.astrom import AstromParser, AstromWriter
+from pymop.io.astrom import AstromParser, BulkAstromWriter
 from pymop.io.mpc import MPCWriter
 from pymop.io.naming import ProvisionalNameGenerator
 from pymop.io.imgaccess import (AsynchronousImageDownloadManager,
@@ -82,7 +82,7 @@ class ProcessCandidatesTask(AbstractTask):
         return ProcessCandidatesModel(astrom_data, self.download_manager)
 
     def _create_writer(self):
-        return AstromWriter(self.output_filehandle)
+        return BulkAstromWriter(self.output_filehandle)
 
     def _create_controller(self, model, output_writer):
         return ProcessCandidatesController(self, model, output_writer)
