@@ -7,9 +7,7 @@ from hamcrest import (assert_that, equal_to, has_length, has_entries,
                       same_instance, contains)
 
 from test.base_tests import FileReadingTestCase
-from pymop.io.astrom import (AstromParser, AbstractAstromWriter,
-                             BulkAstromWriter, StreamingAstromWriter,
-                             Observation)
+from pymop.io.astrom import (AstromParser, AstromWriter, Observation)
 
 TEST_FILE_1 = "data/1584431p15.measure3.cands.astrom"
 TEST_FILE_2 = "data/1616681p22.measure3.cands.astrom"
@@ -184,6 +182,7 @@ class GeneralAstromWriterTest(FileReadingTestCase):
         self.parser = AstromParser()
         self.outputfile = tempfile.NamedTemporaryFile(suffix=".astrom",
                                                       mode="w+b")
+        self.writer = AstromWriter(self.outputfile)
 
     def tearDown(self):
         self.outputfile.close()
@@ -194,13 +193,6 @@ class GeneralAstromWriterTest(FileReadingTestCase):
 
     def parse(self, filename=TEST_FILE_1):
         return AstromParser().parse(self.get_abs_path(filename))
-
-
-class AbstractAstromWriterTest(GeneralAstromWriterTest):
-    def setUp(self):
-        super(AbstractAstromWriterTest, self).setUp()
-
-        self.writer = AbstractAstromWriter(self.outputfile)
 
     def test_write_observation_list(self):
         expected = ("# 1584431p15                                                                    \n"
@@ -254,8 +246,7 @@ class AbstractAstromWriterTest(GeneralAstromWriterTest):
         assert_that(self.read_output(), equal_to(expected))
 
     def test_write_sources(self):
-        expected = ("##   X        Y        X_0     Y_0          R.A.          DEC                   \n"
-                    "\n"
+        expected = ("\n"
                     "   911.00  3967.12   911.00  3967.12   26.6833367   29.2203532\n"
                     "   944.25  3964.03   938.93  3965.78   26.6816808   29.2202748\n"
                     "   949.76  3963.12   943.91  3965.20   26.6813840   29.2202469\n"
@@ -271,16 +262,9 @@ class AbstractAstromWriterTest(GeneralAstromWriterTest):
 
         astrom_data = self.parse(TEST_FILE_1)
 
-        self.writer._write_source_data(astrom_data.sources)
+        self.writer._write_source_data(astrom_data.sources, ignore_warn=True)
 
         assert_that(self.read_output(), equal_to(expected))
-
-
-class BulkAstromWriterTest(GeneralAstromWriterTest):
-    def setUp(self):
-        super(BulkAstromWriterTest, self).setUp()
-
-        self.writer = BulkAstromWriter(self.outputfile)
 
     def test_parse_then_rewrite(self):
         """
@@ -288,7 +272,7 @@ class BulkAstromWriterTest(GeneralAstromWriterTest):
         identically.
         """
         astrom_data = self.parse(TEST_FILE_1)
-        self.writer.write(astrom_data)
+        self.writer.write_astrom_data(astrom_data)
 
         actual = self.read_output()
 
@@ -297,16 +281,6 @@ class BulkAstromWriterTest(GeneralAstromWriterTest):
 
         assert_that(actual, equal_to(expected))
 
-
-class StreamingAstromWriterTest(GeneralAstromWriterTest):
-    def setUp(self):
-        super(StreamingAstromWriterTest, self).setUp()
-
-        self.astrom_data = self.parse(TEST_FILE_1)
-        self.writer = StreamingAstromWriter(self.outputfile,
-                                            self.astrom_data.observations,
-                                            self.astrom_data.sys_header)
-
     def test_write_line(self):
         with open(self.get_abs_path(TEST_FILE_1), "rb") as fh:
             expected_lines = fh.readlines()
@@ -314,10 +288,14 @@ class StreamingAstromWriterTest(GeneralAstromWriterTest):
         def get_expected(num_lines):
             return "".join(expected_lines[:num_lines])
 
-        source1 = self.astrom_data.sources[0]
-        source2 = self.astrom_data.sources[1]
-        source3 = self.astrom_data.sources[2]
+        astrom_data = self.parse(TEST_FILE_1)
 
+        source1 = astrom_data.sources[0]
+        source2 = astrom_data.sources[1]
+        source3 = astrom_data.sources[2]
+
+        assert_that(self.read_output(), equal_to(""))
+        self.writer.write_headers(astrom_data.observations, astrom_data.sys_header)
         assert_that(self.read_output(), equal_to(get_expected(24)))
         self.writer.write_source(source1)
         assert_that(self.read_output(), equal_to(get_expected(28)))
