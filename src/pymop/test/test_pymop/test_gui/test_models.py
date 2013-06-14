@@ -302,34 +302,6 @@ class AbstractRealsModelTest(GeneralModelTest):
         assert_that(self.model.get_current_image_FWHM(), equal_to(3.30))
         assert_that(self.model.get_current_image_maxcount(), equal_to(30000.0))
 
-    def test_receive_all_sources_processed_event_on_final_accept(self):
-        observer = Mock()
-        pub.subscribe(observer.on_all_processed, models.MSG_ALL_ITEMS_PROC)
-
-        item = 0
-        while item < self.model.get_item_count() - 1:
-            self.model.accept_current_item()
-            assert_that(observer.on_all_processed.call_count, equal_to(0))
-            self.model.next_item()
-            item += 1
-
-        self.model.accept_current_item()
-        assert_that(observer.on_all_processed.call_count, equal_to(1))
-
-    def test_receive_all_sources_processed_event_on_final_reject(self):
-        observer = Mock()
-        pub.subscribe(observer.on_all_processed, models.MSG_ALL_ITEMS_PROC)
-
-        item = 0
-        while item < self.model.get_item_count() - 1:
-            self.model.accept_current_item()
-            assert_that(observer.on_all_processed.call_count, equal_to(0))
-            self.model.next_item()
-            item += 1
-
-        self.model.reject_current_item()
-        assert_that(observer.on_all_processed.call_count, equal_to(1))
-
 
 class ProcessRealsModelTest(GeneralModelTest):
     def setUp(self):
@@ -432,6 +404,34 @@ class ProcessRealsModelTest(GeneralModelTest):
         assert_that(self.model.is_item_processed(second_item), equal_to(True))
         assert_that(self.model.get_item_status(second_item), equal_to(VettableItem.REJECTED))
 
+    def test_receive_all_sources_processed_event_on_final_accept(self):
+        observer = Mock()
+        pub.subscribe(observer.on_all_processed, models.MSG_ALL_ITEMS_PROC)
+
+        item = 0
+        while item < self.model.get_item_count() - 1:
+            self.model.accept_current_item()
+            assert_that(observer.on_all_processed.call_count, equal_to(0))
+            self.model.next_item()
+            item += 1
+
+        self.model.accept_current_item()
+        assert_that(observer.on_all_processed.call_count, equal_to(1))
+
+    def test_receive_all_sources_processed_event_on_final_reject(self):
+        observer = Mock()
+        pub.subscribe(observer.on_all_processed, models.MSG_ALL_ITEMS_PROC)
+
+        item = 0
+        while item < self.model.get_item_count() - 1:
+            self.model.accept_current_item()
+            assert_that(observer.on_all_processed.call_count, equal_to(0))
+            self.model.next_item()
+            item += 1
+
+        self.model.reject_current_item()
+        assert_that(observer.on_all_processed.call_count, equal_to(1))
+
 
 class ProcessCandidatesModelTest(GeneralModelTest):
     def setUp(self):
@@ -512,6 +512,34 @@ class ProcessCandidatesModelTest(GeneralModelTest):
         assert_that(self.model.get_item_status(first_item), equal_to(VettableItem.REJECTED))
         assert_that(self.model.is_item_processed(second_item), equal_to(True))
         assert_that(self.model.get_item_status(second_item), equal_to(VettableItem.REJECTED))
+
+    def test_receive_all_sources_processed_event_on_final_accept(self):
+        observer = Mock()
+        pub.subscribe(observer.on_all_processed, models.MSG_ALL_ITEMS_PROC)
+
+        item = 0
+        while item < self.model.get_item_count() - 1:
+            self.model.accept_current_item()
+            assert_that(observer.on_all_processed.call_count, equal_to(0))
+            self.model.next_item()
+            item += 1
+
+        self.model.accept_current_item()
+        assert_that(observer.on_all_processed.call_count, equal_to(1))
+
+    def test_receive_all_sources_processed_event_on_final_reject(self):
+        observer = Mock()
+        pub.subscribe(observer.on_all_processed, models.MSG_ALL_ITEMS_PROC)
+
+        item = 0
+        while item < self.model.get_item_count() - 1:
+            self.model.accept_current_item()
+            assert_that(observer.on_all_processed.call_count, equal_to(0))
+            self.model.next_item()
+            item += 1
+
+        self.model.reject_current_item()
+        assert_that(observer.on_all_processed.call_count, equal_to(1))
 
 
 if __name__ == '__main__':

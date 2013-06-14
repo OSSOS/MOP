@@ -167,10 +167,10 @@ class AbstractModel(object):
         return self._num_images_loaded
 
     def get_item_count(self):
-        return self.astrom_data.get_reading_count()
+        return len(self._vettable_items)
 
     def get_total_image_count(self):
-        return self.get_item_count()
+        return self.astrom_data.get_reading_count()
 
     def _on_image_loaded(self, source_num, obs_num):
         self._num_images_loaded += 1
