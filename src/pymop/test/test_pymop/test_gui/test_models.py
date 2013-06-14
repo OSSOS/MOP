@@ -489,7 +489,6 @@ class ProcessCandidatesModelTest(GeneralModelTest):
         assert_that(self.model.is_item_processed(second_item), equal_to(True))
         assert_that(self.model.get_item_status(second_item), equal_to(VettableItem.ACCEPTED))
 
-
     def test_reject_current_item(self):
         first_item = self.astrom_data.sources[0]
         second_item = self.astrom_data.sources[1]

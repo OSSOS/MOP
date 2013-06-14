@@ -249,7 +249,7 @@ class KeybindManager(object):
         # have tab iterating over the buttons like it does by default
 
     def on_accept_src_keybind(self, event):
-        self.controller.on_initiate_accept()
+        self.controller.on_accept()
 
     def on_reject_src_keybind(self, event):
         self.controller.on_reject()
