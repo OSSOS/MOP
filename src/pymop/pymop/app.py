@@ -7,7 +7,7 @@ import wx.lib.inspection
 
 from pymop import config
 from pymop import tasks
-from pymop.io.astrom import AstromParser, AstromWriter
+from pymop.io.astrom import AstromParser, AstromWriter, AstromWorkload
 from pymop.io.mpc import MPCWriter
 from pymop.io.naming import ProvisionalNameGenerator
 from pymop.io.imgaccess import (AsynchronousImageDownloadManager,
@@ -40,7 +40,7 @@ class AbstractTask(object):
         """The suffix for files this task processes."""
         raise NotImplementedError()
 
-    def _create_model(self, astrom_data):
+    def _create_model(self, workload):
         raise NotImplementedError()
 
     def _create_writer(self):
@@ -50,17 +50,13 @@ class AbstractTask(object):
         raise NotImplementedError()
 
     def start(self, working_directory):
-        # TODO process all files not just first one found
-        astrom_filename = listdir_for_suffix(working_directory, self.get_suffix())[0]
-        astrom_path = os.path.join(working_directory, astrom_filename)
-
-        # Parse into AstromData
-        astrom_data = self.parser.parse(astrom_path)
+        workload_files = listdir_for_suffix(working_directory, self.get_suffix())
+        workload = AstromWorkload(working_directory, workload_files)
 
         # TODO: check if one already exists (related to continuing existing work)
         output_filename = os.path.join(working_directory, self.get_suffix()[1:])
         self.output_filehandle = open(output_filename, "wb")
-        model = self._create_model(astrom_data)
+        model = self._create_model(workload)
         output_writer = self._create_writer()
         self._create_controller(model, output_writer)
 
@@ -75,8 +71,8 @@ class ProcessCandidatesTask(AbstractTask):
     def get_suffix(self):
         return ".cands.astrom"
 
-    def _create_model(self, astrom_data):
-        return ProcessCandidatesModel(astrom_data, self.download_manager)
+    def _create_model(self, workload):
+        return ProcessCandidatesModel(workload, self.download_manager)
 
     def _create_writer(self):
         return AstromWriter(self.output_filehandle)
@@ -94,8 +90,8 @@ class ProcessRealsTask(AbstractTask):
     def get_suffix(self):
         return ".reals.astrom"
 
-    def _create_model(self, astrom_data):
-        return ProcessRealsModel(astrom_data, self.download_manager)
+    def _create_model(self, workload):
+        return ProcessRealsModel(workload, self.download_manager)
 
     def _create_writer(self):
         return MPCWriter(self.output_filehandle)
