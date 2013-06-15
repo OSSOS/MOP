@@ -4,6 +4,7 @@ Reads and writes .astrom files.
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import os
 import re
 
 HEADER_LINE_LENGTH = 80
@@ -278,6 +279,24 @@ class AstromWriter(object):
         """
         self.write_headers(astrom_data.observations, astrom_data.sys_header)
         self._write_source_data(astrom_data.sources)
+
+
+class AstromWorkload(object):
+    def __init__(self, working_directory, workload_filenames):
+        if len(workload_filenames) == 0:
+            raise ValueError("No files in workload!")
+
+        self.working_directory = working_directory
+
+        full_paths = [os.path.join(working_directory, filename)
+                      for filename in workload_filenames]
+
+        parser = AstromParser()
+
+        self.astrom_data_list = [parser.parse(filename) for filename in full_paths]
+
+    def get_astrom_data(self, index):
+        return self.astrom_data_list[index]
 
 
 class AstromData(object):

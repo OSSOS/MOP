@@ -1,5 +1,6 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import os
 import unittest
 
 from wx.lib.pubsub import Publisher as pub
@@ -10,7 +11,7 @@ from mock import Mock, patch
 from test.base_tests import FileReadingTestCase
 from pymop.gui import models
 from pymop.gui.models import VettableItem
-from pymop.io.astrom import AstromParser
+from pymop.io.astrom import AstromWorkload
 from pymop.io.img import FitsImage
 
 
@@ -19,7 +20,8 @@ class GeneralModelTest(FileReadingTestCase):
         pub.unsubAll()
 
         testfile = self.get_abs_path("data/1584431p15.measure3.cands.astrom")
-        self.astrom_data = AstromParser().parse(testfile)
+        working_dir, filename = os.path.split(testfile)
+        self.workload = AstromWorkload(working_dir, [filename])
         self.download_manager = Mock()
 
     def create_real_first_image(self, path="data/testimg.fits"):
@@ -27,7 +29,7 @@ class GeneralModelTest(FileReadingTestCase):
         apcor_str = "4 15   0.19   0.01"
         with open(self.get_abs_path(path), "rb") as fh:
             self.first_image = FitsImage(fh.read(), apcor_str, Mock(), in_memory=True)
-            self.astrom_data.sources[0].get_reading(0).set_fits_image(self.first_image)
+            self.workload.get_astrom_data(0).sources[0].get_reading(0).set_fits_image(self.first_image)
 
 
 class AbstractRealsModelTest(GeneralModelTest):
@@ -35,7 +37,7 @@ class AbstractRealsModelTest(GeneralModelTest):
         super(AbstractRealsModelTest, self).setUp()
 
         # TODO: just use AbstractModel?
-        self.model = models.ProcessRealsModel(self.astrom_data, self.download_manager)
+        self.model = models.ProcessRealsModel(self.workload, self.download_manager)
 
     def test_sources_initialized(self):
         assert_that(self.model.get_current_source_number(), equal_to(0))
@@ -250,11 +252,12 @@ class AbstractRealsModelTest(GeneralModelTest):
 
         self.model.accept_current_item()
 
+        astrom_data = self.workload.get_astrom_data(0)
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_num_items_processed(), equal_to(1))
-        assert_that(self.model.is_item_processed(self.astrom_data.sources[0].get_reading(0)))
-        assert_that(not self.model.is_item_processed(self.astrom_data.sources[0].get_reading(1)))
-        assert_that(not self.model.is_item_processed(self.astrom_data.sources[0].get_reading(2)))
+        assert_that(self.model.is_item_processed(astrom_data.sources[0].get_reading(0)))
+        assert_that(not self.model.is_item_processed(astrom_data.sources[0].get_reading(1)))
+        assert_that(not self.model.is_item_processed(astrom_data.sources[0].get_reading(2)))
 
         self.model.reject_current_item()
 
@@ -279,7 +282,7 @@ class AbstractRealsModelTest(GeneralModelTest):
     @patch("pymop.astrometry.daophot.phot_mag")
     def test_get_current_source_observed_magnitude(self, mock_phot_mag):
         first_image = Mock()
-        self.astrom_data.sources[0].get_reading(0).set_fits_image(first_image)
+        self.workload.get_astrom_data(0).sources[0].get_reading(0).set_fits_image(first_image)
 
         x, y = (1500, 2500)
         self.model.get_current_image_source_point = Mock(return_value=(x, y))
@@ -307,7 +310,7 @@ class ProcessRealsModelTest(GeneralModelTest):
     def setUp(self):
         super(ProcessRealsModelTest, self).setUp()
 
-        self.model = models.ProcessRealsModel(self.astrom_data, self.download_manager)
+        self.model = models.ProcessRealsModel(self.workload, self.download_manager)
 
     def test_next_item(self):
         observer = Mock()
@@ -357,8 +360,9 @@ class ProcessRealsModelTest(GeneralModelTest):
         assert_that(self.model.is_current_source_discovered(), equal_to(False))
 
     def test_accept_current_item(self):
-        first_item = self.astrom_data.sources[0].get_reading(0)
-        second_item = self.astrom_data.sources[0].get_reading(1)
+        astrom_data = self.workload.get_astrom_data(0)
+        first_item = astrom_data.sources[0].get_reading(0)
+        second_item = astrom_data.sources[0].get_reading(1)
 
         assert_that(self.model.is_item_processed(first_item), equal_to(False))
         assert_that(self.model.get_item_status(first_item), equal_to(VettableItem.UNPROCESSED))
@@ -381,8 +385,9 @@ class ProcessRealsModelTest(GeneralModelTest):
         assert_that(self.model.get_item_status(second_item), equal_to(VettableItem.ACCEPTED))
 
     def test_reject_current_item(self):
-        first_item = self.astrom_data.sources[0].get_reading(0)
-        second_item = self.astrom_data.sources[0].get_reading(1)
+        astrom_data = self.workload.get_astrom_data(0)
+        first_item = astrom_data.sources[0].get_reading(0)
+        second_item = astrom_data.sources[0].get_reading(1)
 
         assert_that(self.model.is_item_processed(first_item), equal_to(False))
         assert_that(self.model.get_item_status(first_item), equal_to(VettableItem.UNPROCESSED))
@@ -437,7 +442,7 @@ class ProcessCandidatesModelTest(GeneralModelTest):
     def setUp(self):
         super(ProcessCandidatesModelTest, self).setUp()
 
-        self.model = models.ProcessCandidatesModel(self.astrom_data, self.download_manager)
+        self.model = models.ProcessCandidatesModel(self.workload, self.download_manager)
 
     def test_next_item(self):
         observer = Mock()
@@ -466,8 +471,9 @@ class ProcessCandidatesModelTest(GeneralModelTest):
         assert_that(observer.on_next_src.call_count, equal_to(3))
 
     def test_accept_current_item(self):
-        first_item = self.astrom_data.sources[0]
-        second_item = self.astrom_data.sources[1]
+        astrom_data = self.workload.get_astrom_data(0)
+        first_item = astrom_data.sources[0]
+        second_item = astrom_data.sources[1]
 
         assert_that(self.model.is_item_processed(first_item), equal_to(False))
         assert_that(self.model.get_item_status(first_item), equal_to(VettableItem.UNPROCESSED))
@@ -490,8 +496,9 @@ class ProcessCandidatesModelTest(GeneralModelTest):
         assert_that(self.model.get_item_status(second_item), equal_to(VettableItem.ACCEPTED))
 
     def test_reject_current_item(self):
-        first_item = self.astrom_data.sources[0]
-        second_item = self.astrom_data.sources[1]
+        astrom_data = self.workload.get_astrom_data(0)
+        first_item = astrom_data.sources[0]
+        second_item = astrom_data.sources[1]
 
         assert_that(self.model.is_item_processed(first_item), equal_to(False))
         assert_that(self.model.get_item_status(first_item), equal_to(VettableItem.UNPROCESSED))

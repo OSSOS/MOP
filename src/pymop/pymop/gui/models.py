@@ -57,8 +57,9 @@ class AbstractModel(object):
     Functionality common to the models of all tasks.
     """
 
-    def __init__(self, astrom_data, download_manager):
-        self.astrom_data = astrom_data
+    def __init__(self, workload, download_manager):
+        self.workload = workload
+        self.astrom_data = self.workload.get_astrom_data(0)
         self.download_manager = download_manager
 
         self._current_src_number = 0
@@ -215,8 +216,8 @@ class ProcessRealsModel(AbstractModel):
     Manages the application state for the process reals task.
     """
 
-    def __init__(self, astrom_data, download_manager):
-        super(ProcessRealsModel, self).__init__(astrom_data, download_manager)
+    def __init__(self, workload, download_manager):
+        super(ProcessRealsModel, self).__init__(workload, download_manager)
 
         self._create_vettable_items()
 
@@ -249,8 +250,8 @@ class ProcessRealsModel(AbstractModel):
 
 
 class ProcessCandidatesModel(AbstractModel):
-    def __init__(self, astrom_data, download_manager):
-        super(ProcessCandidatesModel, self).__init__(astrom_data, download_manager)
+    def __init__(self, workload, download_manager):
+        super(ProcessCandidatesModel, self).__init__(workload, download_manager)
 
     def _create_vettable_items(self):
         vettable_items = {}
