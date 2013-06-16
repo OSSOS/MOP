@@ -114,9 +114,6 @@ class MainFrame(wx.Frame):
         super(MainFrame, self).__init__(None, title="Moving Object Pipeline",
                                         size=size)
 
-        self.SetIcon(wx.Icon(get_asset_full_path("cadc_icon.jpg"),
-                             wx.BITMAP_TYPE_JPEG))
-
         self.model = model
 
         self.controller = controller
