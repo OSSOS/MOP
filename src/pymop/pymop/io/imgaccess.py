@@ -25,22 +25,22 @@ class AsynchronousImageDownloadManager(object):
         self.downloader = downloader
         self.download_thread = None
 
-    def start_download(self, astrom_data,
+    def start_download(self, workload,
                        image_loaded_callback=None,
                        all_loaded_callback=None):
 
         self.image_loaded_callback = image_loaded_callback
         self.all_loaded_callback = all_loaded_callback
 
-        self.do_download(astrom_data)
+        self.do_download(workload)
 
     def stop_download(self):
         assert self.download_thread is not None, "No download to stop."
         self.download_thread.stop()
 
-    def do_download(self, astrom_data):
+    def do_download(self, workload):
         self.download_thread = SerialImageDownloadThread(
-            self, self.downloader, astrom_data)
+            self, self.downloader, workload)
         self.download_thread.start()
 
     def on_image_downloaded(self, fitsimage, reading, source_num, obs_num):
@@ -60,17 +60,17 @@ class SerialImageDownloadThread(threading.Thread):
     happen in the background.
     """
 
-    def __init__(self, loader, downloader, astrom_data):
+    def __init__(self, loader, downloader, workload):
         super(SerialImageDownloadThread, self).__init__()
 
         self.download_manager = loader
         self.downloader = downloader
-        self.astrom_data = astrom_data
+        self.workload = workload
 
         self._should_stop = False
 
     def run(self):
-        for source_num, source in enumerate(self.astrom_data.sources):
+        for source_num, source in enumerate(self.workload.get_sources()):
             for obs_num, reading in enumerate(source):
                 if self._should_stop:
                     return

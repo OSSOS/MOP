@@ -298,6 +298,26 @@ class AstromWorkload(object):
     def get_astrom_data(self, index):
         return self.astrom_data_list[index]
 
+    def get_load_length(self):
+        return len(self.astrom_data_list)
+
+    def get_sources(self):
+        all_sources = []
+        for astrom_data in self.astrom_data_list:
+            all_sources.extend(astrom_data.sources)
+
+        return all_sources
+
+    def get_source_count(self):
+        return len(self.get_sources())
+
+    def get_reading_count(self):
+        count = 0
+        for astrom_data in self.astrom_data_list:
+            count += astrom_data.get_reading_count()
+
+        return count
+
 
 class AstromData(object):
     """
@@ -331,6 +351,12 @@ class AstromData(object):
             count += source.num_readings()
 
         return count
+
+    def get_sources(self):
+        return self.sources
+
+    def get_source_count(self):
+        return len(self.get_sources())
 
 
 class Source(object):

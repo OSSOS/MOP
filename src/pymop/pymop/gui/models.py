@@ -59,9 +59,11 @@ class AbstractModel(object):
 
     def __init__(self, workload, download_manager):
         self.workload = workload
-        self.astrom_data = self.workload.get_astrom_data(0)
         self.download_manager = download_manager
 
+        self._current_astrom_data_number = 0
+
+        # These indices are within the current astrom data
         self._current_src_number = 0
         self._current_obs_number = 0
 
@@ -69,21 +71,39 @@ class AbstractModel(object):
 
         self._vettable_items = self._create_vettable_items()
 
+    def _get_current_astrom_data(self):
+        return self.workload.get_astrom_data(self._current_astrom_data_number)
+
     def _create_vettable_items(self):
         raise NotImplementedError()
 
     def get_current_source_number(self):
-        return self._current_src_number
+        already_processed = 0
+        for index in range(self._current_astrom_data_number):
+            processed_data = self.workload.get_astrom_data(index)
+            already_processed += processed_data.get_source_count()
+
+        return already_processed + self._current_src_number
 
     def get_source_count(self):
-        return len(self.astrom_data.sources)
+        return self.workload.get_source_count()
 
     def next_source(self):
-        self._current_src_number = (self._current_src_number + 1) % self.get_source_count()
+        if self._current_src_number + 1 == self._get_current_astrom_data().get_source_count():
+            self._current_astrom_data_number = (self._current_astrom_data_number + 1) % self.workload.get_load_length()
+            self._current_src_number = 0
+        else:
+            self._current_src_number += 1
+
         pub.sendMessage(MSG_NEXT_SRC, data=self._current_src_number)
 
     def previous_source(self):
-        self._current_src_number = (self._current_src_number - 1) % self.get_source_count()
+        if self._current_src_number == 0:
+            self._current_astrom_data_number = (self._current_astrom_data_number - 1) % self.workload.get_load_length()
+            self._current_src_number = self._get_current_astrom_data().get_source_count() - 1
+        else:
+            self._current_src_number -= 1
+
         pub.sendMessage(MSG_PREV_SRC, data=self._current_src_number)
 
     def get_current_obs_number(self):
@@ -101,7 +121,7 @@ class AbstractModel(object):
         pub.sendMessage(MSG_PREV_OBS, data=self._current_obs_number)
 
     def get_current_source(self):
-        return self.astrom_data.sources[self._current_src_number]
+        return self._get_current_astrom_data().sources[self._current_src_number]
 
     def _get_current_reading(self):
         return self.get_current_source().get_reading(self._current_obs_number)
@@ -159,7 +179,7 @@ class AbstractModel(object):
 
     def start_loading_images(self):
         self.download_manager.start_download(
-            self.astrom_data, image_loaded_callback=self._on_image_loaded)
+            self.workload, image_loaded_callback=self._on_image_loaded)
 
     def stop_loading_images(self):
         self.download_manager.stop_download()
@@ -171,7 +191,7 @@ class AbstractModel(object):
         return len(self._vettable_items)
 
     def get_total_image_count(self):
-        return self.astrom_data.get_reading_count()
+        return self.workload.get_reading_count()
 
     def _on_image_loaded(self, source_num, obs_num):
         self._num_images_loaded += 1
@@ -225,7 +245,7 @@ class ProcessRealsModel(AbstractModel):
 
     def _create_vettable_items(self):
         vettable_items = {}
-        for source in self.astrom_data.sources:
+        for source in self.workload.get_sources():
             for reading in source:
                 vettable_items[reading] = VettableItem(reading)
 
@@ -255,7 +275,7 @@ class ProcessCandidatesModel(AbstractModel):
 
     def _create_vettable_items(self):
         vettable_items = {}
-        for source in self.astrom_data.sources:
+        for source in self.workload.get_sources():
             vettable_items[source] = VettableItem(source)
 
         return vettable_items
