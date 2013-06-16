@@ -34,6 +34,14 @@ class FileReadingTestCase(unittest.TestCase):
 
 
 class WxWidgetTestCase(unittest.TestCase):
+    def setUp(self):
+        self.app = wx.App(False)
+        self.rootframe = wx.Frame(None)
+
+    def tearDown(self):
+        self.rootframe.Destroy()
+        self.app.Exit()
+
     def _get_by_equality(self, iterable, is_equal):
         for item in iterable:
             if is_equal(item):

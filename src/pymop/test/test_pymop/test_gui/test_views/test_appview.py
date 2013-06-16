@@ -12,6 +12,8 @@ from pymop.gui.views import ApplicationView
 
 class ApplicationViewTest(WxWidgetTestCase):
     def setUp(self):
+        super(ApplicationViewTest, self).setUp()
+
         self.mock_model()
         self.output_writer = Mock()
         self.name_generator = Mock()

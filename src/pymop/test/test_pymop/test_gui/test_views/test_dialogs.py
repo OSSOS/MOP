@@ -12,11 +12,7 @@ from pymop.gui.views import WaitingGaugeDialog
 
 class WaitingGaugeDialogTest(WxWidgetTestCase):
     def setUp(self):
-        self.app = wx.App()
-        self.rootframe = wx.Frame(None)
-
-    def tearDown(self):
-        self.rootframe.Destroy()
+        super(WaitingGaugeDialogTest, self).setUp()
 
     @patch.object(WaitingGaugeDialog, "_on_tick")
     def test_dialog(self, on_tick_mock):

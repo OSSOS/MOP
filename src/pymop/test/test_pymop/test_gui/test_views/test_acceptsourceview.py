@@ -26,12 +26,9 @@ TEST_OBS_CODE = "523"
 
 class AcceptSourceDialogTest(WxWidgetTestCase):
     def setUp(self):
-        self.app = wx.App()
-        self.rootframe = wx.Frame(None)
-        self.controller = Mock()
+        super(AcceptSourceDialogTest, self).setUp()
 
-    def tearDown(self):
-        self.rootframe.Destroy()
+        self.controller = Mock()
 
     def create_undertest(self, note1_choices=None, note2_choices=None):
         return AcceptSourceDialog(self.rootframe, self.controller,

@@ -12,12 +12,6 @@ from pymop.gui.views import SourceValidationPanel
 
 
 class TestSourceValidationPanel(WxWidgetTestCase):
-    def setUp(self):
-        # TODO: put this in super class?  Same thing being done in most
-        # of the WxWidgetTestCases
-        self.app = wx.App()
-        self.rootframe = wx.Frame(None)
-
     def test_accept_button(self):
         validation_controller = Mock()
         validation_panel = SourceValidationPanel(self.rootframe, validation_controller)
