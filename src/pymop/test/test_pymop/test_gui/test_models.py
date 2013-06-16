@@ -3,13 +3,9 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 import unittest
 
-try:
-    # wxPython 2.8
-    from wx.lib.pubsub import Publisher as pub
-except ImportError:
-    # wxPython 2.9
-    from wx.lib.pubsub import setupv1
-    from wx.lib.pubsub import pub
+# TODO: upgrade
+from wx.lib.pubsub import setupv1
+from wx.lib.pubsub import Publisher as pub
 
 from hamcrest import assert_that, equal_to, has_length, contains, none, same_instance
 from mock import Mock, patch
