@@ -16,6 +16,7 @@
         "DEFAULT_OBSERVATORY_CODE": "568",
 
         "NOTE1OPTIONS": [
+            "",
             "A  earlier approximate position inferior",
             "a  sense of motion ambiguous",
             "B  bright sky/black or dark plate",
@@ -57,6 +58,7 @@
         "NOTE2DEFAULT": "C   CCD",
 
         "NOTE2OPTIONS": [
+            "",
             "P   Photographic",
             "e   Encoder",
             "C   CCD",
