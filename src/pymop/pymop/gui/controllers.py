@@ -1,12 +1,8 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-try:
-    # wxPython 2.8
-    from wx.lib.pubsub import Publisher as pub
-except ImportError:
-    # wxPython 2.9
-    from wx.lib.pubsub import setupv1
-    from wx.lib.pubsub import pub
+# TODO: upgrade
+from wx.lib.pubsub import setupv1
+from wx.lib.pubsub import Publisher as pub
 
 from pymop import config
 from pymop.gui import models

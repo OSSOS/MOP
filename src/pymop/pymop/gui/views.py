@@ -4,13 +4,9 @@ import os
 
 import wx
 
-try:
-    # wxPython 2.8
-    from wx.lib.pubsub import Publisher as pub
-except ImportError:
-    # wxPython 2.9
-    from wx.lib.pubsub import setupv1
-    from wx.lib.pubsub import pub
+# TODO: upgrade
+from wx.lib.pubsub import setupv1
+from wx.lib.pubsub import Publisher as pub
 
 from wx.lib.mixins import listctrl as listmix
 
