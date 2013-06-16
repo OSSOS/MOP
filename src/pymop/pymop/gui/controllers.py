@@ -153,7 +153,8 @@ class ProcessCandidatesController(AbstractController):
         super(ProcessCandidatesController, self).__init__(task, model)
 
         self.output_writer = output_writer
-        astrom_data = self.model.astrom_data
+        # TODO: fix writers - write to different files for different astrom_data
+        astrom_data = self.model._get_current_astrom_data()
         self.output_writer.write_headers(
             astrom_data.observations, astrom_data.sys_header)
 

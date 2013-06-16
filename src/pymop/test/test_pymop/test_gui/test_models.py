@@ -549,5 +549,69 @@ class ProcessCandidatesModelTest(GeneralModelTest):
         assert_that(observer.on_all_processed.call_count, equal_to(1))
 
 
+class MultipleAstromDataModelTest(FileReadingTestCase):
+    def setUp(self):
+        pub.unsubAll()
+
+        testfile1 = self.get_abs_path("data/1584431p15.measure3.cands.astrom")
+        testfile2 = self.get_abs_path("data/1616681p10.measure3.cands.astrom")
+        working_dir, filename1 = os.path.split(testfile1)
+        working_dir, filename2 = os.path.split(testfile2)
+
+        self.workload = AstromWorkload(working_dir, [filename1, filename2])
+        self.download_manager = Mock()
+
+        self.model = models.ProcessRealsModel(self.workload, self.download_manager)
+
+    def test_meta_data(self):
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_source_count(), equal_to(5))
+        assert_that(self.model.get_obs_count(), equal_to(3)) # for the current data only
+
+    def test_next_source(self):
+        first_sources = self.workload.get_astrom_data(0).get_sources()
+        second_sources = self.workload.get_astrom_data(1).get_sources()
+
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_source(), equal_to(first_sources[0]))
+        self.model.next_source()
+        assert_that(self.model.get_current_source_number(), equal_to(1))
+        assert_that(self.model.get_current_source(), equal_to(first_sources[1]))
+        self.model.next_source()
+        assert_that(self.model.get_current_source_number(), equal_to(2))
+        assert_that(self.model.get_current_source(), equal_to(first_sources[2]))
+        self.model.next_source()
+        assert_that(self.model.get_current_source_number(), equal_to(3))
+        assert_that(self.model.get_current_source(), equal_to(second_sources[0]))
+        self.model.next_source()
+        assert_that(self.model.get_current_source_number(), equal_to(4))
+        assert_that(self.model.get_current_source(), equal_to(second_sources[1]))
+        self.model.next_source()
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_source(), equal_to(first_sources[0]))
+
+    def test_previous_source(self):
+        first_sources = self.workload.get_astrom_data(0).get_sources()
+        second_sources = self.workload.get_astrom_data(1).get_sources()
+
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_source(), equal_to(first_sources[0]))
+        self.model.previous_source()
+        assert_that(self.model.get_current_source_number(), equal_to(4))
+        assert_that(self.model.get_current_source(), equal_to(second_sources[1]))
+        self.model.previous_source()
+        assert_that(self.model.get_current_source_number(), equal_to(3))
+        assert_that(self.model.get_current_source(), equal_to(second_sources[0]))
+        self.model.previous_source()
+        assert_that(self.model.get_current_source_number(), equal_to(2))
+        assert_that(self.model.get_current_source(), equal_to(first_sources[2]))
+        self.model.previous_source()
+        assert_that(self.model.get_current_source_number(), equal_to(1))
+        assert_that(self.model.get_current_source(), equal_to(first_sources[1]))
+        self.model.previous_source()
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_source(), equal_to(first_sources[0]))
+
+
 if __name__ == '__main__':
     unittest.main()
