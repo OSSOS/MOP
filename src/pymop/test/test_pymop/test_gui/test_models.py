@@ -87,6 +87,15 @@ class AbstractRealsModelTest(GeneralModelTest):
         self.model.previous_obs()
         assert_that(self.model.get_current_obs_number(), equal_to(0))
 
+    def test_next_source_resets_obs(self):
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
+        self.model.next_obs()
+        assert_that(self.model.get_current_obs_number(), equal_to(1))
+        self.model.next_source()
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
+        self.model.next_obs()
+        assert_that(self.model.get_current_obs_number(), equal_to(1))
+
     def test_receive_next_source_event(self):
         # Subscribe a mock
         observer = Mock()
@@ -238,6 +247,7 @@ class AbstractRealsModelTest(GeneralModelTest):
         assert_that(self.model.get_current_dec(), equal_to(29.2202748))
 
         self.model.next_source()
+        self.model.next_obs()
 
         assert_that(self.model.get_current_observation_date(), equal_to("2012 10 21.48212"))
         assert_that(self.model.get_current_ra(), equal_to(26.6816808))
