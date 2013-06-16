@@ -7,7 +7,12 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import os
 
-from wx.lib.pubsub import Publisher as pub
+try:
+    # wxPython 2.8
+    from wx.lib.pubsub import Publisher as pub
+except ImportError:
+    # wxPython 2.9
+    from wx.lib.pubsub import pub
 
 from pymop.io.mpc import MPCWriter
 from pymop.io.astrom import AstromWriter

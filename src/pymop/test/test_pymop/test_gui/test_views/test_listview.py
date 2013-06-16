@@ -3,7 +3,14 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import unittest
 
 import wx
-from wx.lib.pubsub import Publisher as pub
+
+try:
+    # wxPython 2.8
+    from wx.lib.pubsub import Publisher as pub
+except ImportError:
+    # wxPython 2.9
+    from wx.lib.pubsub import pub
+
 from hamcrest import assert_that, equal_to
 
 from test.base_tests import WxWidgetTestCase
