@@ -100,6 +100,7 @@ class AbstractModel(object):
         else:
             self._current_src_number += 1
 
+        self._current_obs_number = 0
         pub.sendMessage(MSG_NEXT_SRC, data=self._current_src_number)
 
     def previous_source(self):
