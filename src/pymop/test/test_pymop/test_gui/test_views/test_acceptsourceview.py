@@ -65,8 +65,8 @@ class AcceptSourceDialogTest(WxWidgetTestCase):
         self.assert_has_child_with_label(undertest, TEST_DATE)
 
     def test_note_comboboxes_populated(self):
-        note1_choices = ["n1a", "n1b"]
-        note2_choices = ["n2a", "n2b", "n2c"]
+        note1_choices = ["", "n1a", "n1b"]
+        note2_choices = ["", "n2a", "n2b", "n2c"]
         undertest = self.create_undertest(note1_choices, note2_choices)
 
         note1_combobox = self.get_child_by_name(undertest, AcceptSourceDialog.NOTE1)
