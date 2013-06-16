@@ -12,14 +12,10 @@ from pymop.gui.views import NavPanel
 
 class NavigationPanelTest(WxWidgetTestCase):
     def setUp(self):
-        self.app = wx.App()
-        self.rootframe = wx.Frame(None)
+        super(NavigationPanelTest, self).setUp()
 
         self.controller = Mock()
         self.undertest = NavPanel(self.rootframe, self.controller)
-
-    def tearDown(self):
-        self.rootframe.Destroy()
 
     def test_press_next_source_button(self):
         next_button = self.get_child_by_label(self.undertest, NavPanel.NEXT_LABEL)

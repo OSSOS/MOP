@@ -17,6 +17,8 @@ from pymop.gui.views import KeyValueListPanel
 
 class ListViewTest(WxWidgetTestCase):
     def setUp(self):
+        super(ListViewTest, self).setUp()
+
         self.mock_model()
 
         self.dataset1 = (("Key1", "Val1"), ("Key2", "Val2"), ("Key3", "Val3"))
@@ -30,13 +32,7 @@ class ListViewTest(WxWidgetTestCase):
 
         self.model.next_source = pub_next_source
 
-        self.app = wx.App()
-        self.rootframe = wx.Frame(None)
-
         self.view = KeyValueListPanel(self.rootframe, self.model.get_reading_data)
-
-    def tearDown(self):
-        self.rootframe.Destroy()
 
     def test_kvlist_display_data_startup(self):
         assert_that(self.view.list.GetColumnCount(), equal_to(2))
