@@ -12,6 +12,7 @@ try:
     from wx.lib.pubsub import Publisher as pub
 except ImportError:
     # wxPython 2.9
+    from wx.lib.pubsub import setupv1
     from wx.lib.pubsub import pub
 
 from pymop.io.mpc import MPCWriter
