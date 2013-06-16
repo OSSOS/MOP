@@ -7,8 +7,7 @@ import wx.lib.inspection
 
 from pymop import config
 from pymop import tasks
-from pymop.io.astrom import AstromParser, AstromWriter, AstromWorkload
-from pymop.io.mpc import MPCWriter
+from pymop.io.astrom import AstromParser, AstromWorkload
 from pymop.io.naming import ProvisionalNameGenerator
 from pymop.io.imgaccess import (AsynchronousImageDownloadManager,
                                 ImageSliceDownloader, VOSpaceResolver)
@@ -43,25 +42,18 @@ class AbstractTask(object):
     def _create_model(self, workload):
         raise NotImplementedError()
 
-    def _create_writer(self):
-        raise NotImplementedError()
-
-    def _create_controller(self, model, output_writer):
+    def _create_controller(self, model):
         raise NotImplementedError()
 
     def start(self, working_directory):
         workload_files = listdir_for_suffix(working_directory, self.get_suffix())
         workload = AstromWorkload(working_directory, workload_files)
 
-        # TODO: check if one already exists (related to continuing existing work)
-        output_filename = os.path.join(working_directory, self.get_suffix()[1:])
-        self.output_filehandle = open(output_filename, "wb")
         model = self._create_model(workload)
-        output_writer = self._create_writer()
-        self._create_controller(model, output_writer)
+        self._create_controller(model)
 
     def finish(self):
-        self.output_filehandle.close()
+        pass
 
 
 class ProcessCandidatesTask(AbstractTask):
@@ -74,11 +66,8 @@ class ProcessCandidatesTask(AbstractTask):
     def _create_model(self, workload):
         return ProcessCandidatesModel(workload, self.download_manager)
 
-    def _create_writer(self):
-        return AstromWriter(self.output_filehandle)
-
-    def _create_controller(self, model, output_writer):
-        return ProcessCandidatesController(self, model, output_writer)
+    def _create_controller(self, model):
+        return ProcessCandidatesController(self, model)
 
 
 class ProcessRealsTask(AbstractTask):
@@ -93,12 +82,8 @@ class ProcessRealsTask(AbstractTask):
     def _create_model(self, workload):
         return ProcessRealsModel(workload, self.download_manager)
 
-    def _create_writer(self):
-        return MPCWriter(self.output_filehandle)
-
-    def _create_controller(self, model, output_writer):
-        return ProcessRealsController(self, model, output_writer,
-                                      self.name_generator)
+    def _create_controller(self, model):
+        return ProcessRealsController(self, model, self.name_generator)
 
 
 class PymopApplication(object):

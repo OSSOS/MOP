@@ -5,7 +5,12 @@ user interface.
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import os
+
 from wx.lib.pubsub import Publisher as pub
+
+from pymop.io.mpc import MPCWriter
+from pymop.io.astrom import AstromWriter
 
 # Pub/Sub ids
 MSG_ROOT = ("astrodataroot", )
@@ -230,6 +235,12 @@ class AbstractModel(object):
     def get_current_item(self):
         raise NotImplementedError()
 
+    def get_writer(self):
+        raise NotImplementedError()
+
+    def exit(self):
+        pass
+
 
 class ProcessRealsModel(AbstractModel):
     """
@@ -243,6 +254,10 @@ class ProcessRealsModel(AbstractModel):
 
         self._source_discovery_asterisk = [False] * self.get_source_count()
 
+        output_filename = os.path.join(self.workload.get_working_directory(), "reals.mpc")
+        self.output_file = open(output_filename, "wb")
+        self.writer = MPCWriter(self.output_file)
+
     def _create_vettable_items(self):
         vettable_items = {}
         for source in self.workload.get_sources():
@@ -250,6 +265,9 @@ class ProcessRealsModel(AbstractModel):
                 vettable_items[reading] = VettableItem(reading)
 
         return vettable_items
+
+    def exit(self):
+        self.output_file.close()
 
     def next_item(self):
         """Move to the next item to process."""
@@ -268,10 +286,25 @@ class ProcessRealsModel(AbstractModel):
     def is_current_source_discovered(self):
         return self._source_discovery_asterisk[self.get_current_source_number()]
 
+    def get_writer(self):
+        return self.writer
+
 
 class ProcessCandidatesModel(AbstractModel):
     def __init__(self, workload, download_manager):
         super(ProcessCandidatesModel, self).__init__(workload, download_manager)
+
+        self.outputfiles = []
+        self.writers = []
+        for input_filename, astrom_data in self.workload:
+            output_filename = os.path.join(self.workload.get_working_directory(),
+                                           input_filename.replace(".cands.astrom", ".reals.astrom"))
+            output_filehandle = open(output_filename, "wb")
+            self.outputfiles.append(output_filehandle)
+
+            writer = AstromWriter(output_filehandle)
+            writer.write_headers(astrom_data.observations, astrom_data.sys_header)
+            self.writers.append(writer)
 
     def _create_vettable_items(self):
         vettable_items = {}
@@ -280,8 +313,15 @@ class ProcessCandidatesModel(AbstractModel):
 
         return vettable_items
 
+    def exit(self):
+        for outputfile in self.outputfiles:
+            outputfile.close()
+
     def next_item(self):
         self.next_source()
 
     def get_current_item(self):
         return self._vettable_items[self.get_current_source()]
+
+    def get_writer(self):
+        return self.writers[self._current_astrom_data_number]
