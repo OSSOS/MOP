@@ -287,16 +287,26 @@ class AstromWorkload(object):
             raise ValueError("No files in workload!")
 
         self.working_directory = working_directory
+        self.workload_filenames = workload_filenames
 
-        full_paths = [os.path.join(working_directory, filename)
-                      for filename in workload_filenames]
+        self.full_paths = [os.path.join(working_directory, filename)
+                           for filename in workload_filenames]
 
         parser = AstromParser()
 
-        self.astrom_data_list = [parser.parse(filename) for filename in full_paths]
+        self.astrom_data_list = [parser.parse(filename) for filename in self.full_paths]
+
+    def __iter__(self):
+        return iter(zip(self.workload_filenames, self.astrom_data_list))
+
+    def get_working_directory(self):
+        return self.working_directory
 
     def get_astrom_data(self, index):
         return self.astrom_data_list[index]
+
+    def get_full_path(self, index):
+        return self.full_paths[index]
 
     def get_load_length(self):
         return len(self.astrom_data_list)

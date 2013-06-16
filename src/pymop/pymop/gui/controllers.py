@@ -65,6 +65,7 @@ class AbstractController(object):
 
     def _do_exit(self):
         self.view.close()
+        self.model.exit()
         self.task.finish()
 
     def on_next_obs(self):
@@ -84,10 +85,9 @@ class ProcessRealsController(AbstractController):
     handles user interactions.
     """
 
-    def __init__(self, task, model, output_writer, name_generator):
+    def __init__(self, task, model, name_generator):
         super(ProcessRealsController, self).__init__(task, model)
 
-        self.output_writer = output_writer
         self.name_generator = name_generator
 
     def _get_provisional_name(self):
@@ -127,7 +127,8 @@ class ProcessRealsController(AbstractController):
         # full description
         note1_code = note1.split(" ")[0]
         note2_code = note2.split(" ")[0]
-        self.output_writer.write_line(
+
+        self.model.get_writer().write_line(
             minor_plant_number,
             provisional_name,
             discovery_asterisk,
@@ -149,17 +150,14 @@ class ProcessRealsController(AbstractController):
 
 
 class ProcessCandidatesController(AbstractController):
-    def __init__(self, task, model, output_writer):
+    def __init__(self, task, model):
         super(ProcessCandidatesController, self).__init__(task, model)
 
-        self.output_writer = output_writer
-        # TODO: fix writers - write to different files for different astrom_data
-        astrom_data = self.model._get_current_astrom_data()
-        self.output_writer.write_headers(
-            astrom_data.observations, astrom_data.sys_header)
+        # self.output_writer.write_headers(
+        #     astrom_data.observations, astrom_data.sys_header)
 
     def on_accept(self):
-        self.output_writer.write_source(self.model.get_current_source())
+        self.model.get_writer().write_source(self.model.get_current_source())
 
         self.model.accept_current_item()
         self.model.next_item()
