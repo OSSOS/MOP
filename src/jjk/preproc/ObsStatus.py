@@ -140,7 +140,7 @@ if opt.outfile[0:4] == "vos:":
     tmpFile = tempfile.NamedTemporaryFile(suffix='.pdf')
     savefig(tmpFile.name)
     tmpFile.flush()
-    vos.Client()..copy(tmpFile.name,opt.outfile+".pdf")
+    vos.Client().copy(tmpFile.name,opt.outfile+".pdf")
     tmpFile.close()
 else:
     savefig(opt.outfile+".pdf")
