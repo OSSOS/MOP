@@ -1,0 +1,10 @@
+{
+    "testsection1": {
+        "key1": "val1",
+        "key2": 1.2,
+        "key3": ["lval1", "lval2", "lval3"]
+    },
+    "testsection2": {
+        "s2key1": "someval"
+    }
+}
