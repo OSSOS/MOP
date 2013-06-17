@@ -1,0 +1,14 @@
+# 1616319p00
+## MOPversion
+#  1.20                                                                         
+## MJD-OBS-CENTER  EXPTIME THRES FWHM  MAXCOUNT CRVAL1     CRVAL2     EXPNUM    
+# 2012 10 21.40516  320.14  2.70  2.90  30000.0   26.92871   29.01125  1616319
+## SCALE CHIP CRPIX1    CRPIX2    NAX1  NAX2   DETECTOR           PHADU RDNOIS  
+#  0.185  0  -3227.00    -75.96  2112  4644 MegaPrime            1.60  3.00
+##     RMIN    RMAX   ANGLE   AWIDTH
+#      0.5    10.3   -19.9    22.3                                              
+##   X        Y        X_0     Y_0          R.A.          DEC                   
+
+   1005.00  2246.00   1005.00  2246.00   26.6833367   29.2203532
+
+   814.00  2229.00   814.00  2229.00   26.6833367   29.2203532
