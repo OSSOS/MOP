@@ -84,6 +84,17 @@ class ApplicationView(object):
     def set_loading_status(self, loaded, total):
         self.mainframe.set_loading_status(loaded, total)
 
+    @guithread
+    def enable_source_validation(self):
+        self.mainframe.enable_validation()
+
+    @guithread
+    def disable_source_validation(self):
+        self.mainframe.disable_validation()
+
+    def is_source_validation_enabled(self):
+        return self.mainframe.is_source_validation_enabled()
+
     def show_accept_source_dialog(self, preset_vals):
         self.accept_source_dialog = AcceptSourceDialog(
             self.mainframe, self.controller, *preset_vals)
@@ -216,6 +227,15 @@ class MainFrame(wx.Frame):
 
     def set_observation_status(self, current_obs, total_obs):
         self.nav_view.set_status(current_obs, total_obs)
+
+    def disable_validation(self):
+        self.validation_view.disable()
+
+    def enable_validation(self):
+        self.validation_view.enable()
+
+    def is_source_validation_enabled(self):
+        return self.validation_view.is_validation_enabled()
 
 
 class KeybindManager(object):
@@ -440,6 +460,17 @@ class SourceValidationPanel(wx.Panel):
 
     def _on_click_reject(self, event):
         self.controller.on_reject()
+
+    def disable(self):
+        self.accept_button.Disable()
+        self.reject_button.Disable()
+
+    def enable(self):
+        self.accept_button.Enable()
+        self.reject_button.Enable()
+
+    def is_validation_enabled(self):
+        return self.accept_button.IsEnabled() and self.reject_button.IsEnabled()
 
 
 class AcceptSourceDialog(wx.Dialog):
