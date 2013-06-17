@@ -272,12 +272,21 @@ class ProcessRealsModel(AbstractModel):
     def exit(self):
         self.output_file.close()
 
+    def _is_source_all_processed(self, source):
+        for reading in source:
+            if not self._vettable_items[reading].is_processed():
+                return False
+
+        return True
+
     def next_item(self):
         """Move to the next item to process."""
-        if self.get_current_obs_number() == self.get_obs_count() - 1:
+        if self._is_source_all_processed(self.get_current_source()):
             self.next_source()
-            self._current_obs_number = 0
-        else:
+            return
+
+        self.next_obs()
+        while self.get_current_item().is_processed():
             self.next_obs()
 
     def get_current_item(self):
