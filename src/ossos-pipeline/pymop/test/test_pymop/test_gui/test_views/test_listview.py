@@ -2,8 +2,6 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 
-import wx
-
 # TODO: upgrade
 from wx.lib.pubsub import setupv1
 from wx.lib.pubsub import Publisher as pub
