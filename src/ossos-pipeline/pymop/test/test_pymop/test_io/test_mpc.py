@@ -22,17 +22,17 @@ class MPCWriterTest(unittest.TestCase):
         return self.outputfile.read()
 
     def test_write_line_valid_inputs(self):
-        self.undertest.write_line("12345",
-                                  "A234567",
-                                  "*",
-                                  "M",
-                                  "N",
-                                  "2012 10 21.405160",
-                                  "26.683336700", # 01 46 44.001
-                                  "29.220353200", # +29 13 13.27
-                                  "123.5",
-                                  "A",
-                                  "523")
+        self.undertest.write_mpc_line("12345",
+                                      "A234567",
+                                      "*",
+                                      "M",
+                                      "N",
+                                      "2012 10 21.405160",
+                                      "26.683336700", # 01 46 44.001
+                                      "29.220353200", # +29 13 13.27
+                                      "123.5",
+                                      "A",
+                                      "523")
 
         expected = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         123.5A      523\n"
 
@@ -43,17 +43,17 @@ class MPCWriterTest(unittest.TestCase):
         assert_that(actual, equal_to(expected))
 
     def test_write_line_valid_inputs_numeric(self):
-        self.undertest.write_line("12345",
-                                  "A234567",
-                                  "*",
-                                  "M",
-                                  "N",
-                                  "2012 10 21.405160",
-                                  26.683336700, # 01 46 44.001
-                                  29.220353200, # +29 13 13.27
-                                  123.5,
-                                  "A",
-                                  523)
+        self.undertest.write_mpc_line("12345",
+                                      "A234567",
+                                      "*",
+                                      "M",
+                                      "N",
+                                      "2012 10 21.405160",
+                                      26.683336700, # 01 46 44.001
+                                      29.220353200, # +29 13 13.27
+                                      123.5,
+                                      "A",
+                                      523)
 
         expected = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         123.5A      523\n"
 
@@ -64,17 +64,17 @@ class MPCWriterTest(unittest.TestCase):
         assert_that(actual, equal_to(expected))
 
     def test_write_line_round_obs_mag(self):
-        self.undertest.write_line("12345",
-                                  "A234567",
-                                  "*",
-                                  "M",
-                                  "N",
-                                  "2012 10 21.405160",
-                                  26.683336700, # 01 46 44.001
-                                  29.220353200, # +29 13 13.27
-                                  22.5211,
-                                  "A",
-                                  523)
+        self.undertest.write_mpc_line("12345",
+                                      "A234567",
+                                      "*",
+                                      "M",
+                                      "N",
+                                      "2012 10 21.405160",
+                                      26.683336700, # 01 46 44.001
+                                      29.220353200, # +29 13 13.27
+                                      22.5211,
+                                      "A",
+                                      523)
 
         expected = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         22.52A      523\n"
 
@@ -85,17 +85,17 @@ class MPCWriterTest(unittest.TestCase):
         assert_that(actual, equal_to(expected))
 
     def test_write_line_round_obs_mag_str(self):
-        self.undertest.write_line("12345",
-                                  "A234567",
-                                  "*",
-                                  "M",
-                                  "N",
-                                  "2012 10 21.405160",
-                                  26.683336700,
-                                  29.220353200,
-                                  "22.5211", # In string form
-                                  "A",
-                                  523)
+        self.undertest.write_mpc_line("12345",
+                                      "A234567",
+                                      "*",
+                                      "M",
+                                      "N",
+                                      "2012 10 21.405160",
+                                      26.683336700,
+                                      29.220353200,
+                                      "22.5211", # In string form
+                                      "A",
+                                      523)
 
         expected = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         22.52A      523\n"
 
@@ -106,17 +106,17 @@ class MPCWriterTest(unittest.TestCase):
         assert_that(actual, equal_to(expected))
 
     def test_write_line_valid_date_short(self):
-        self.undertest.write_line("12345",
-                                  "A234567",
-                                  "*",
-                                  "M",
-                                  "N",
-                                  "2013 04 09.36658",
-                                  "26.683336700", # 01 46 44.001
-                                  "29.220353200", # +29 13 13.27
-                                  "123.5",
-                                  "A",
-                                  "523")
+        self.undertest.write_mpc_line("12345",
+                                      "A234567",
+                                      "*",
+                                      "M",
+                                      "N",
+                                      "2013 04 09.36658",
+                                      "26.683336700", # 01 46 44.001
+                                      "29.220353200", # +29 13 13.27
+                                      "123.5",
+                                      "A",
+                                      "523")
 
         expected = "12345A234567*MN2013 04 09.36658 01 46 44.001+29 13 13.27         123.5A      523\n"
 
@@ -127,17 +127,17 @@ class MPCWriterTest(unittest.TestCase):
         assert_that(actual, equal_to(expected))
 
     def test_write_line_valid_pad_empties(self):
-        self.undertest.write_line("12345",
-                                  "A234567",
-                                  "",
-                                  "",
-                                  "",
-                                  "2013 04 09.36658",
-                                  "26.683336700", # 01 46 44.001
-                                  "29.220353200", # +29 13 13.27
-                                  "123.5",
-                                  "A",
-                                  "523")
+        self.undertest.write_mpc_line("12345",
+                                      "A234567",
+                                      "",
+                                      "",
+                                      "",
+                                      "2013 04 09.36658",
+                                      "26.683336700", # 01 46 44.001
+                                      "29.220353200", # +29 13 13.27
+                                      "123.5",
+                                      "A",
+                                      "523")
 
         expected = "12345A234567   2013 04 09.36658 01 46 44.001+29 13 13.27         123.5A      523\n"
 
@@ -148,17 +148,17 @@ class MPCWriterTest(unittest.TestCase):
         assert_that(actual, equal_to(expected))
 
     def test_write_line_empty_minor_planet_number(self):
-        self.undertest.write_line("",
-                                  "A234567",
-                                  "*",
-                                  "M",
-                                  "N",
-                                  "2012 10 21.405160",
-                                  "26.683336700", # 01 46 44.001
-                                  "29.220353200", # +29 13 13.27
-                                  "123.5",
-                                  "A",
-                                  "523")
+        self.undertest.write_mpc_line("",
+                                      "A234567",
+                                      "*",
+                                      "M",
+                                      "N",
+                                      "2012 10 21.405160",
+                                      "26.683336700", # 01 46 44.001
+                                      "29.220353200", # +29 13 13.27
+                                      "123.5",
+                                      "A",
+                                      "523")
 
         expected = "     A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         123.5A      523\n"
 
@@ -187,7 +187,7 @@ class MPCWriterTest(unittest.TestCase):
                 "523"]
 
         self.assertRaises(mpc.MPCFieldFormatError,
-                          self.undertest.write_line,
+                          self.undertest.write_mpc_line,
                           *args)
 
     def test_write_line_provisional_name_too_long(self):
@@ -204,7 +204,7 @@ class MPCWriterTest(unittest.TestCase):
                 "523"]
 
         self.assertRaises(mpc.MPCFieldFormatError,
-                          self.undertest.write_line,
+                          self.undertest.write_mpc_line,
                           *args)
 
     def test_write_line_provisional_name_too_short(self):
@@ -221,7 +221,7 @@ class MPCWriterTest(unittest.TestCase):
                 "523"]
 
         self.assertRaises(mpc.MPCFieldFormatError,
-                          self.undertest.write_line,
+                          self.undertest.write_mpc_line,
                           *args)
 
     def test_write_line_provisional_name_doesnt_start_with_letter(self):
@@ -238,7 +238,7 @@ class MPCWriterTest(unittest.TestCase):
                 "523"]
 
         self.assertRaises(mpc.MPCFieldFormatError,
-                          self.undertest.write_line,
+                          self.undertest.write_mpc_line,
                           *args)
 
     def test_write_line_discovery_asterisk_invalid(self):
@@ -255,7 +255,7 @@ class MPCWriterTest(unittest.TestCase):
                 "523"]
 
         self.assertRaises(mpc.MPCFieldFormatError,
-                          self.undertest.write_line,
+                          self.undertest.write_mpc_line,
                           *args)
 
     def test_write_line_note1_too_long(self):
@@ -272,7 +272,7 @@ class MPCWriterTest(unittest.TestCase):
                 "523"]
 
         self.assertRaises(mpc.MPCFieldFormatError,
-                          self.undertest.write_line,
+                          self.undertest.write_mpc_line,
                           *args)
 
     def test_write_line_note2_too_long(self):
@@ -289,7 +289,7 @@ class MPCWriterTest(unittest.TestCase):
                 "523"]
 
         self.assertRaises(mpc.MPCFieldFormatError,
-                          self.undertest.write_line,
+                          self.undertest.write_mpc_line,
                           *args)
 
     def test_write_line_date_wrong_format(self):
@@ -306,7 +306,7 @@ class MPCWriterTest(unittest.TestCase):
                 "523"]
 
         self.assertRaises(mpc.MPCFieldFormatError,
-                          self.undertest.write_line,
+                          self.undertest.write_mpc_line,
                           *args)
 
     def test_write_line_ra_not_numeric(self):
@@ -323,7 +323,7 @@ class MPCWriterTest(unittest.TestCase):
                 "523"]
 
         self.assertRaises(mpc.MPCFieldFormatError,
-                          self.undertest.write_line,
+                          self.undertest.write_mpc_line,
                           *args)
 
     def test_write_line_dec_not_numeric(self):
@@ -340,7 +340,7 @@ class MPCWriterTest(unittest.TestCase):
                 "523"]
 
         self.assertRaises(mpc.MPCFieldFormatError,
-                          self.undertest.write_line,
+                          self.undertest.write_mpc_line,
                           *args)
 
     def test_write_line_obs_mag_too_long(self):
@@ -357,7 +357,7 @@ class MPCWriterTest(unittest.TestCase):
                 "523"]
 
         self.assertRaises(mpc.MPCFieldFormatError,
-                          self.undertest.write_line,
+                          self.undertest.write_mpc_line,
                           *args)
 
     def test_write_line_obs_mag_not_numeric(self):
@@ -374,7 +374,7 @@ class MPCWriterTest(unittest.TestCase):
                 "523"]
 
         self.assertRaises(ValueError,
-                          self.undertest.write_line,
+                          self.undertest.write_mpc_line,
                           *args)
 
     def test_write_line_no_band(self):
@@ -391,7 +391,7 @@ class MPCWriterTest(unittest.TestCase):
                 "523"]
 
         self.assertRaises(mpc.MPCFieldFormatError,
-                          self.undertest.write_line,
+                          self.undertest.write_mpc_line,
                           *args)
 
     def test_write_line_observatory_code_too_long(self):
@@ -408,7 +408,7 @@ class MPCWriterTest(unittest.TestCase):
                 "5234"]
 
         self.assertRaises(mpc.MPCFieldFormatError,
-                          self.undertest.write_line,
+                          self.undertest.write_mpc_line,
                           *args)
 
     def test_write_comment(self):

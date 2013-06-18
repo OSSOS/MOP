@@ -46,7 +46,7 @@ class MPCWriter(object):
         self.filehandle.write("# %s %s %s %s\n" % (
             reading.obs.rawname, reading.x, reading.y, comment))
 
-    def write_line(self,
+    def write_mpc_line(self,
                    minor_planet_number,
                    provisional_name,
                    discovery_asterisk,

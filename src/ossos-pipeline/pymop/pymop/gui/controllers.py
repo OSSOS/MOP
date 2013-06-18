@@ -138,7 +138,10 @@ class ProcessRealsController(AbstractController):
         note1_code = note1.split(" ")[0]
         note2_code = note2.split(" ")[0]
 
-        self.model.get_writer().write_line(
+        writer = self.model.get_writer()
+        # TODO: get comment from user
+        writer.write_comment(self.model.get_current_reading(), "Default comment")
+        writer.write_mpc_line(
             minor_plant_number,
             provisional_name,
             discovery_asterisk,
