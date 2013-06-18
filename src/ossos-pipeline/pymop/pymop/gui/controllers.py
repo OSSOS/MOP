@@ -81,6 +81,9 @@ class AbstractController(object):
     def on_previous_obs(self):
         self.model.previous_obs()
 
+    def on_accept(self):
+        raise NotImplementedError()
+
     def on_reject(self):
         self.model.reject_current_item()
         self.model.next_item()

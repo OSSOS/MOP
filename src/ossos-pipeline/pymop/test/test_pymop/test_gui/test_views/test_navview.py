@@ -1,7 +1,6 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
-import wx
 
 from mock import Mock
 from hamcrest import assert_that, equal_to, not_none

@@ -456,7 +456,7 @@ class SourceValidationPanel(wx.Panel):
         self.SetSizer(border_sizer)
 
     def _on_click_accept(self, event):
-        self.controller.on_initiate_accept()
+        self.controller.on_accept()
 
     def _on_click_reject(self, event):
         self.controller.on_reject()

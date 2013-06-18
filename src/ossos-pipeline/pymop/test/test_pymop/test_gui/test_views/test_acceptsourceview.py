@@ -2,13 +2,12 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 
-import wx
-
 from mock import Mock, call
 from hamcrest import assert_that, equal_to, has_length, contains
 
 from test.base_tests import WxWidgetTestCase
 from pymop.gui.views import AcceptSourceDialog
+from pymop.gui.controllers import ProcessRealsController
 
 # Constants used for test data
 TEST_MINOR_PLANET_NUMBER = "mpn01"
@@ -28,7 +27,7 @@ class AcceptSourceDialogTest(WxWidgetTestCase):
     def setUp(self):
         super(AcceptSourceDialogTest, self).setUp()
 
-        self.controller = Mock()
+        self.controller = Mock(spec=ProcessRealsController)
 
     def create_undertest(self, note1_choices=None, note2_choices=None):
         return AcceptSourceDialog(self.rootframe, self.controller,
