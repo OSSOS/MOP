@@ -131,7 +131,8 @@ class ProcessRealsController(AbstractController):
                      dec,
                      obs_mag,
                      band,
-                     observatory_code):
+                     observatory_code,
+                     comment):
         """Final acceptance with collected data."""
         # Just extract the character code from the notes, not the
         # full description
@@ -139,8 +140,7 @@ class ProcessRealsController(AbstractController):
         note2_code = note2.split(" ")[0]
 
         writer = self.model.get_writer()
-        # TODO: get comment from user
-        writer.write_comment(self.model.get_current_reading(), "Default comment")
+        writer.write_comment(self.model.get_current_reading(), comment)
         writer.write_mpc_line(
             minor_plant_number,
             provisional_name,
