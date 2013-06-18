@@ -7,6 +7,9 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 import re
 
+from pymop import tasks
+
+
 HEADER_LINE_LENGTH = 80
 
 ## Observation header keys
@@ -291,7 +294,9 @@ class AstromWriter(object):
 
 
 class AstromWorkload(object):
-    def __init__(self, working_directory, workload_filenames):
+    def __init__(self, working_directory, task):
+        workload_filenames = tasks.listdir_for_task(working_directory, task)
+
         if len(workload_filenames) == 0:
             raise ValueError("No files in workload!")
 
