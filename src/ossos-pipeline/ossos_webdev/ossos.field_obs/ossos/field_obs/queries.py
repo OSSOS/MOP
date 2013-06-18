@@ -1,12 +1,11 @@
 import sqlalchemy as sa
-import ossos.overview.queries as oq
-import ephem
+from ossos.overview.ossuary import OssuaryTable
 
 
 class ImagesQuery(object):
 
 	def __init__(self):
-		ot = oq.ossuaryTable('images')
+		ot = OssuaryTable('images')
 		self.images = ot.table
 		self.conn = ot.conn
 

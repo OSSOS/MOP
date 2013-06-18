@@ -1,6 +1,7 @@
 from sqlalchemy import *
 from numpy import median
 import ossos.field_obs.queries as foq
+from ossos.overview.ossuary import OssuaryTable
 
 
 def all_blocks(images):
@@ -57,7 +58,7 @@ def block_images(blockID, images):
 	return retval
 
 
-def most_recent_block_completion(images):
+def most_recent_block_completion():
 
 	retval = 'Awaiting May data processing to be sure'
 	return retval

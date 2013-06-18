@@ -1,7 +1,6 @@
 from pyramid.response import Response
 from pyramid.view import view_config
 from queries import ImagesQuery
-import ossos.overview.queries as oq
 
 class Field(object):
 
@@ -9,7 +8,7 @@ class Field(object):
 		self.request = request
 		self.imagesQuery = ImagesQuery()
 
-		# BIT HACKED - FIX!
+		# BIT HACKED - FIX! Transfer to urllib parsing. More Reliable.
 		fi = request.current_route_url().rpartition('/')[2]
 		if fi.__contains__('%2B'):
 			fi2 = fi.split('%2B')

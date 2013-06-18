@@ -1,74 +1,77 @@
 from pyramid.response import Response
 from pyramid.view import view_config
-import queries
+from queries import SurveyQuery
+
+# won't need this soon
 import ossos.block.queries as bq
-import ossos.discoveries.queries as dq
 
 class Overview(object):
 
 	def __init__(self, request):
 		self.request = request
-		self.images = queries.ossuaryTable('images')
-		self.discoveries = queries.ossuaryTable('discoveries')
+		self.surveyQuery = SurveyQuery()
+		
 
 	@property
 	def percentComplete(self):
-		retval = queries.survey_proportion_complete(self.images)
+		retval = self.surveyQuery.survey_proportion_complete()
 		return retval
 
 	@property
 	def fractionSurveyed(self):
-		retval = queries.fields_observed_to_completion(self.images)
+		retval = self.surveyQuery.fields_observed_to_completion()
 		return retval
 
 	@property
 	def fractionProcessed(self):
-		retval = queries.fields_processed(self.images)
+		retval = self.surveyQuery.fields_processed()
 		return retval
 
 	@property
 	def numDiscoveries(self):
-		retval = dq.num_discoveries(self.discoveries)
+		disc = self.surveyQuery.disc
+		retval = disc.num_discoveries()
 		return retval
 
 	@property
 	def mpcTold(self):
-		retval = dq.mpc_informed(self.discoveries)
+		disc = self.surveyQuery.disc
+		retval = disc.mpc_informed()
 		return retval
 	
 	@property
 	def surveyEfficiency(self):
-		retval = queries.survey_efficiency(self.images)
+		retval = self.surveyQuery.survey_efficiency()
 		return retval
 
 	@property
 	def mostRecentBlockCompletionObs(self):
-		retval = bq.most_recent_block_completion(self.images)
+		retval = bq.most_recent_block_completion()
 		return retval
 
 	@property
 	def most_recent_obs(self):
-		retval = queries.most_recent_observation(self.images)
+		retval = self.surveyQuery.most_recent_observation()
 		return retval
 
 	@property
 	def nextScheduledObservations(self):
-		retval = queries.next_observing_window()
+		retval = self.surveyQuery.next_observing_window()
 		return retval
 
 	@property
 	def next_moondark(self):
-		retval = queries.next_moondark()
+		retval = self.surveyQuery.next_moondark()
 		return retval
 
 	@property
 	def nearest_megacam_run(self):
-		retval = queries.nearest_megacam_run()
+		retval = self.surveyQuery.nearest_megacam_run()
 		return retval
 
 	@property
 	def blocks(self):
-		retval = bq.all_blocks(self.images)
+		retval = bq.all_blocks(self.surveyQuery.ims)
 		return retval
 
 
