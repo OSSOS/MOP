@@ -11,20 +11,29 @@ from hamcrest import assert_that, equal_to, has_length, contains, none, same_ins
 from mock import Mock, patch
 
 from test.base_tests import FileReadingTestCase
+from pymop import tasks
 from pymop.gui import models
 from pymop.gui.models import VettableItem
 from pymop.io.astrom import AstromWorkload
 from pymop.io.img import FitsImage
+
+MODEL_TEST_DIR_1 = "data/model_testdir_1"
+MODEL_TEST_DIR_2 = "data/model_testdir_2"
+MODEL_TEST_DIR_3 = "data/model_testdir_3"
 
 
 class GeneralModelTest(FileReadingTestCase):
     def setUp(self):
         pub.unsubAll()
 
-        testfile = self.get_abs_path("data/1584431p15.measure3.cands.astrom")
-        working_dir, filename = os.path.split(testfile)
-        self.workload = AstromWorkload(working_dir, [filename])
+        self.workload = AstromWorkload(self._get_working_dir(), self._get_task())
         self.download_manager = Mock()
+
+    def _get_task(self):
+        raise NotImplementedError()
+
+    def _get_working_dir(self):
+        raise NotImplementedError()
 
     def create_real_first_image(self, path="data/testimg.fits"):
         # Put a real fits image on the first source, first observation
@@ -35,6 +44,12 @@ class GeneralModelTest(FileReadingTestCase):
 
 
 class AbstractRealsModelTest(GeneralModelTest):
+    def _get_working_dir(self):
+        return self.get_abs_path(MODEL_TEST_DIR_1)
+
+    def _get_task(self):
+        return tasks.REALS_TASK
+
     def setUp(self):
         super(AbstractRealsModelTest, self).setUp()
 
@@ -319,6 +334,12 @@ class AbstractRealsModelTest(GeneralModelTest):
 
 
 class ProcessRealsModelTest(GeneralModelTest):
+    def _get_working_dir(self):
+        return self.get_abs_path(MODEL_TEST_DIR_1)
+
+    def _get_task(self):
+        return tasks.REALS_TASK
+
     def setUp(self):
         super(ProcessRealsModelTest, self).setUp()
 
@@ -509,6 +530,12 @@ class ProcessRealsModelTest(GeneralModelTest):
 
 
 class ProcessCandidatesModelTest(GeneralModelTest):
+    def _get_working_dir(self):
+        return self.get_abs_path(MODEL_TEST_DIR_3)
+
+    def _get_task(self):
+        return tasks.CANDS_TASK
+
     def setUp(self):
         super(ProcessCandidatesModelTest, self).setUp()
 
@@ -623,12 +650,8 @@ class MultipleAstromDataModelTest(FileReadingTestCase):
     def setUp(self):
         pub.unsubAll()
 
-        testfile1 = self.get_abs_path("data/1584431p15.measure3.cands.astrom")
-        testfile2 = self.get_abs_path("data/1616681p10.measure3.cands.astrom")
-        working_dir, filename1 = os.path.split(testfile1)
-        working_dir, filename2 = os.path.split(testfile2)
-
-        self.workload = AstromWorkload(working_dir, [filename1, filename2])
+        working_dir = self.get_abs_path(MODEL_TEST_DIR_2)
+        self.workload = AstromWorkload(working_dir, tasks.REALS_TASK)
         self.download_manager = Mock()
 
         self.model = models.ProcessRealsModel(self.workload, self.download_manager)
