@@ -34,17 +34,17 @@ make clean
 make all
 
 # Install sextractor
-
-if [ ! -f ${BINDIRA}/sex ]; then
-    echo "Installing Sextractor."
-    gunzip < sextractor2.1.6.tar.gz | tar xf -
-    cd sextractor2.1.6/source
-    make clean
-    make SEXMACHINE=$SEXARCH
-    cp sex $BINDIRA/
-    cd ../..
-    \rm -rf sextractor2.1.6
-fi
+# Now use the system install sex
+#if [ ! -f ${BINDIRA}/sex ]; then
+#    echo "Installing Sextractor."
+#    gunzip < sextractor2.1.6.tar.gz | tar xf -
+#    cd sextractor2.1.6/source
+#    make clean
+#    make SEXMACHINE=$SEXARCH
+#    cp sex $BINDIRA/
+#    cd ../..
+#    \rm -rf sextractor2.1.6
+#fi
 
 # Install match
 
@@ -71,7 +71,7 @@ fi
     \rm -rf wcstools-2.9.3
 
 # Editing configuration files
-
+## but use these sex configs still
 echo "Editing configuration files."
 cd config
 cat fnd-c.sex | sed "s|AA-CONFIGDIR|$CONFIGDIR|" > fnd.sex.edited

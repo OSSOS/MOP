@@ -5,6 +5,10 @@
 if ( -e aper.corr) then
 	\rm aper.corr
 endif
+if ( $#argv != 3 ) then 
+   echo "bad command line, got : $0 $*" 
+   exit -1
+endif
 cat $1.apcor > aper.corr
 cat $2.apcor >> aper.corr
 cat $3.apcor >> aper.corr
@@ -12,14 +16,14 @@ cat $3.apcor >> aper.corr
 ## compute the x/y shifts
 step2ajmp $1 $2 $3
 if ( ! -e step2ajmp.OK ) then
-  echo "step2ajmp failed for $1 $2 $3."
+  echo "step2ajmp failed for $1 $2 $3. Trying match_matt"
   match_matt -f1 $1 -f2 $2 -f3 $3 -who jmp
 endif
 \rm -f step2ajmp.OK step2ajmp.FAILED
 
 if ( ! -e $1.trans.jmp ) then
 #  match_matt -f1 $1 -f2 $2 -f3 $3 -who jmp
-  exit
+  exit -1
 endif
 
 cat $1.trans.jmp > shifts.nomag;
@@ -34,6 +38,7 @@ awk ' { if ( $8 == "\\" ) { print $2,$3,$4,$5 } } ' $3.phot > $3.align
 
 ## compute the mag shifts
 
+echo "trans.pl --shift shifts.nomag --file1 $1.align --file2 $2.align --file3 $3.align --verbose"
 trans.pl --shift shifts.nomag --file1 $1.align --file2 $2.align --file3 $3.align --verbose
 
 #\rm shifts.nomag
