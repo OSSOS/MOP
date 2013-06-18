@@ -2,18 +2,17 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 
-import wx
-
 from mock import Mock
 from hamcrest import assert_that, equal_to
 
 from test.base_tests import WxWidgetTestCase
 from pymop.gui.views import SourceValidationPanel
+from pymop.gui.controllers import ProcessRealsController
 
 
 class TestSourceValidationPanel(WxWidgetTestCase):
     def test_accept_button(self):
-        validation_controller = Mock()
+        validation_controller = Mock(spec=ProcessRealsController)
         validation_panel = SourceValidationPanel(self.rootframe, validation_controller)
 
         assert_that(validation_controller.on_accept.call_count, equal_to(0))
@@ -22,7 +21,7 @@ class TestSourceValidationPanel(WxWidgetTestCase):
             validation_panel, validation_panel.accept_label)
         self.fire_button_click_event(accept_button)
 
-        assert_that(validation_controller.on_initiate_accept.call_count, equal_to(1))
+        assert_that(validation_controller.on_accept.call_count, equal_to(1))
         assert_that(validation_controller.on_reject.call_count, equal_to(0))
 
     def test_reject_button(self):
