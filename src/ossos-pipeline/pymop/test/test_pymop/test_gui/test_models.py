@@ -26,7 +26,10 @@ class GeneralModelTest(FileReadingTestCase):
     def setUp(self):
         pub.unsubAll()
 
-        self.workload = AstromWorkload(self._get_working_dir(), self._get_task())
+        progress = Mock()
+        progress.get_processed.return_value = []
+        self.workload = AstromWorkload(self._get_working_dir(), progress,
+                                       self._get_task())
         self.download_manager = Mock()
 
     def _get_task(self):
@@ -651,7 +654,9 @@ class MultipleAstromDataModelTest(FileReadingTestCase):
         pub.unsubAll()
 
         working_dir = self.get_abs_path(MODEL_TEST_DIR_2)
-        self.workload = AstromWorkload(working_dir, tasks.REALS_TASK)
+        progress = Mock()
+        progress.get_processed.return_value = []
+        self.workload = AstromWorkload(working_dir, progress, tasks.REALS_TASK)
         self.download_manager = Mock()
 
         self.model = models.ProcessRealsModel(self.workload, self.download_manager)
