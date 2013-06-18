@@ -131,30 +131,30 @@ class AbstractModel(object):
     def get_current_source(self):
         return self._get_current_astrom_data().sources[self._current_src_number]
 
-    def _get_current_reading(self):
+    def get_current_reading(self):
         return self.get_current_source().get_reading(self._current_obs_number)
 
     def get_reading_data(self):
-        reading = self._get_current_reading()
+        reading = self.get_current_reading()
         return (("X", reading.x), ("Y", reading.y), ("X_0", reading.x0),
                 ("Y_0", reading.y0), ("R.A.", reading.ra),
                 ("DEC", reading.dec))
 
     def get_header_data_list(self):
-        reading = self._get_current_reading()
+        reading = self.get_current_reading()
         return [(key, value) for key, value in reading.obs.header.iteritems()]
 
     def get_current_observation_date(self):
-        return self._get_current_reading().obs.header["MJD_OBS_CENTER"]
+        return self.get_current_reading().obs.header["MJD_OBS_CENTER"]
 
     def get_current_ra(self):
-        return self._get_current_reading().ra
+        return self.get_current_reading().ra
 
     def get_current_dec(self):
-        return self._get_current_reading().dec
+        return self.get_current_reading().dec
 
     def get_current_image(self):
-        return self._get_current_reading().get_fits_image()
+        return self.get_current_reading().get_fits_image()
 
     def get_current_hdulist(self):
         fitsimage = self.get_current_image()
@@ -169,7 +169,7 @@ class AbstractModel(object):
         return hdu0.header["FILTER"][0]
 
     def get_current_image_source_point(self):
-        return self._get_current_reading().image_source_point
+        return self.get_current_reading().image_source_point
 
     def get_current_source_observed_magnitude(self):
         x, y = self.get_current_image_source_point()
@@ -177,13 +177,13 @@ class AbstractModel(object):
         return self.get_current_image().get_observed_magnitude(x, y, maxcount=maxcount)
 
     def get_current_image_FWHM(self):
-        return float(self._get_current_reading().obs.header["FWHM"])
+        return float(self.get_current_reading().obs.header["FWHM"])
 
     def get_current_image_maxcount(self):
-        return float(self._get_current_reading().obs.header["MAXCOUNT"])
+        return float(self.get_current_reading().obs.header["MAXCOUNT"])
 
     def get_current_exposure_number(self):
-        return int(self._get_current_reading().obs.expnum)
+        return int(self.get_current_reading().obs.expnum)
 
     def start_loading_images(self):
         self.download_manager.start_download(
@@ -290,7 +290,7 @@ class ProcessRealsModel(AbstractModel):
             self.next_obs()
 
     def get_current_item(self):
-        return self._vettable_items[self._get_current_reading()]
+        return self._vettable_items[self.get_current_reading()]
 
     def _on_accept(self):
         self._source_discovery_asterisk[self.get_current_source_number()] = True
