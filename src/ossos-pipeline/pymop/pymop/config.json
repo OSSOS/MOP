@@ -1,5 +1,5 @@
 {
-    "DEBUG": true,
+    "DEBUG": false,
 
     "KEYBINDS": {
         "ACCEPT_SRC": "a",
