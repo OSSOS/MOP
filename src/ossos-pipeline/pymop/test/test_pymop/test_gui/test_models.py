@@ -324,7 +324,7 @@ class ProcessRealsModelTest(GeneralModelTest):
 
         self.model = models.ProcessRealsModel(self.workload, self.download_manager)
 
-    def test_next_item(self):
+    def test_next_item_no_validation(self):
         observer = Mock()
         pub.subscribe(observer.on_next_obs, models.MSG_NEXT_OBS)
         pub.subscribe(observer.on_next_src, models.MSG_NEXT_SRC)
@@ -345,16 +345,74 @@ class ProcessRealsModelTest(GeneralModelTest):
         assert_that(observer.on_next_src.call_count, equal_to(0))
 
         self.model.next_item()
-        assert_that(self.model.get_current_source_number(), equal_to(1))
+        # Should have looped back to first observation of the same source
+        # because we haven't finished processing it.
+        assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
-        assert_that(observer.on_next_obs.call_count, equal_to(2))
-        assert_that(observer.on_next_src.call_count, equal_to(1))
+        assert_that(observer.on_next_obs.call_count, equal_to(3))
+        assert_that(observer.on_next_src.call_count, equal_to(0))
+
+    def test_next_item_after_validate_last(self):
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
 
         self.model.next_item()
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_obs_number(), equal_to(1))
+
+        self.model.next_item()
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_obs_number(), equal_to(2))
+
+        self.model.accept_current_item()
+        self.model.next_item()
+
+        # Should have looped back to first observation of the same source
+        # because we haven't finished processing it.
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
+
+        self.model.accept_current_item()
+        self.model.next_item()
+
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_obs_number(), equal_to(1))
+
+        self.model.accept_current_item()
+        self.model.next_item()
+
+        # We already validated the last reading, so we should be jumping
+        # straight to the second source now.
+
+        assert_that(self.model.get_current_source_number(), equal_to(1))
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
+
+        self.model.next_item()
+
         assert_that(self.model.get_current_source_number(), equal_to(1))
         assert_that(self.model.get_current_obs_number(), equal_to(1))
-        assert_that(observer.on_next_obs.call_count, equal_to(3))
-        assert_that(observer.on_next_src.call_count, equal_to(1))
+
+    def test_next_item_jump_over_processed(self):
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
+
+        self.model.next_item()
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_obs_number(), equal_to(1))
+
+        self.model.reject_current_item()
+        self.model.next_item()
+
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_obs_number(), equal_to(2))
+
+        self.model.next_item()
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
+
+        self.model.next_item()
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_obs_number(), equal_to(2))
 
     def test_is_source_discovered(self):
         assert_that(self.model.is_current_source_discovered(), equal_to(False))
