@@ -1,11 +1,11 @@
 import sqlalchemy as sa
-import ossos.overview.queries as oq
+from ossos.overview.ossuary import OssuaryTable
 
 
 class DiscoveriesQuery(object):
 
 	def __init__(self):
-		ot = oq.ossuaryTable('discoveries')
+		ot = OssuaryTable('discoveries')
 		self.discoveries = ot.table
 		self.conn = ot.conn
 
@@ -23,7 +23,7 @@ class DiscoveriesQuery(object):
 		ss = sa.select([it.c.mpc_told])
 		# CONFIRM THIS WORKS AFTER ADDING OBJECTS
 		ss.append_whereclause(it.c.mpc_told == True)
-		retval = [n[0] for n in self.conn.execute(ss)][0]
+		retval = [n[0] for n in self.conn.execute(ss)]  # might need to fix this
 
 		return retval 
 
