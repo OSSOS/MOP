@@ -76,7 +76,13 @@ class SerialImageDownloadThread(threading.Thread):
                     return
 
                 fitsimage = self.downloader.download(reading)
-                self.download_manager.on_image_downloaded(fitsimage, reading, source_num, obs_num)
+
+                if self._should_stop:
+                    # Quit without calling callback
+                    return
+
+                self.download_manager.on_image_downloaded(
+                        fitsimage, reading, source_num, obs_num)
 
         self.download_manager.on_all_downloaded()
 
