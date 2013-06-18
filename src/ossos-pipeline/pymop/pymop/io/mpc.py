@@ -36,7 +36,17 @@ class MPCWriter(object):
         self.filehandle = filehandle
         self.date_regex = re.compile("\d{4} \d{2} \d{2}\.\d{5,6}")
 
-    def write_line(self,
+    def write_comment(self, reading, comment):
+        """
+        Writes a special comment line intended to annotate the following line.
+
+        Has format:
+        # expnum_ccd xcen ycen <comment text>
+        """
+        self.filehandle.write("# %s %s %s %s\n" % (
+            reading.obs.rawname, reading.x, reading.y, comment))
+
+    def write_mpc_line(self,
                    minor_planet_number,
                    provisional_name,
                    discovery_asterisk,

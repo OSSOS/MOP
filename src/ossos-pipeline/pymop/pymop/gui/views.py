@@ -486,6 +486,7 @@ class AcceptSourceDialog(wx.Dialog):
     OBS_MAG = "Observed magnitude: "
     BAND = "Band: "
     OBSERVATORY_CODE = "Observatory code: "
+    COMMENT = "Comment: "
     SUBMIT_BTN = "Submit"
     CANCEL_BTN = "Cancel"
 
@@ -551,6 +552,9 @@ class AcceptSourceDialog(wx.Dialog):
         self.observatory_code_text = wx.TextCtrl(self, name=self.OBSERVATORY_CODE)
         self.observatory_code_text.SetValue(self.default_observatory_code)
 
+        self.comment_label = wx.StaticText(self, label=self.COMMENT)
+        self.comment_text = wx.TextCtrl(self, name=self.COMMENT)
+
         self.submit_button = wx.Button(self, label=self.SUBMIT_BTN, name=self.SUBMIT_BTN)
         self.cancel_button = wx.Button(self, label=self.CANCEL_BTN, name=self.CANCEL_BTN)
 
@@ -576,6 +580,7 @@ class AcceptSourceDialog(wx.Dialog):
                 self._create_horizontal_pair(self.obs_mag_label, self.obs_mag_text),
                 self._create_horizontal_pair(self.band_label, self.band_text),
                 self._create_horizontal_pair(self.observatory_code_label, self.observatory_code_text),
+                self._create_horizontal_pair(self.comment_label, self.comment_text),
                 (0, 0)  # blank space
         ]
 
@@ -608,6 +613,7 @@ class AcceptSourceDialog(wx.Dialog):
         obs_mag = self.obs_mag
         band = self.band
         observatory_code = self.observatory_code_text.GetValue()
+        comment = self.comment_text.GetValue()
 
         self.controller.on_do_accept(minor_planet_number,
                                      self.provisional_name,
@@ -619,7 +625,8 @@ class AcceptSourceDialog(wx.Dialog):
                                      self.dec_str,
                                      obs_mag,
                                      band,
-                                     observatory_code
+                                     observatory_code,
+                                     comment
         )
 
     def _on_cancel(self, event):
