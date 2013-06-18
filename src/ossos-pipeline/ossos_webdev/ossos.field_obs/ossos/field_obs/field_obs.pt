@@ -1,0 +1,69 @@
+<?xml version="1.0" charset="UTF-8"?>
+<!DOCTYPE html>
+<html>
+  <head>
+  	<!-- No indexing by search engines, for now -->
+  <meta http-equiv="Content-Type" name="robots" content="noindex; text/html; charset=utf-8" />
+  <title>OSSOS: Field Inspection</title>
+  <link rel="stylesheet" type="text/css" href="/css/bootstrap.css" />
+  <style type = "text/css">
+    .triplet-image {font-weight: bold;}
+  </style>
+  </head>
+
+  <body>
+    <div class="container-fluid">
+      <div class="page-header">
+            <h1>OSSOS <small>Outer Solar System Origins Survey</small></h1>
+      </div><!--page-header-->
+
+      <h2>field ${fieldId} <small>(${ra}, ${dec})</small></h2>
+
+      <div class="well well-small">
+        <dl class="dl-horizontal">
+          <dt>Observations:</dt>
+          <dd>${totalObs}</dd>
+          <dt>Precoveries:</dt>
+          <dd>${precoveries}</dd>
+          <dt>Nailings:</dt>
+          <dd>${nailings}</dd>
+          <dt>Doubles:</dt>
+          <dd>${doubles}</dd>
+        </dl>
+      </div> <!-- well -->
+
+      <table class="table table-striped table-condensed table-hover">
+      	<caption colspan="10">
+      		Images forming the discovery triplet are <b>highlighted</b>
+      	</caption>
+      	<thead>
+      		<tr>
+      			<th>observation endtime</th>
+      			<th>IQ</th>
+                  <th>image ID</th>
+      		</tr>
+      	</thead>
+      	<tbody>
+      		<tal:block tal:repeat="obj observations['obs']">
+      			<tr tal:attributes = "class 'success' if obj[2] in discovery_triplet else 'normal-image'">
+      				<tal:block tal:condition="obj">
+      					<td>${obj[0].strftime('%Y-%m-%d %H:%M:%S')}</td> 
+      					<td>${'%.2f' % obj[1]}</td>
+                <td>${obj[2]}</td>	
+      				</tal:block>
+      				<td tal:condition="not(obj)" colspan="3">
+      					&mdash;
+      				</td>
+      			</tr>
+      		</tal:block>
+      	</tbody>
+      </table>
+
+    </div><!--container-fluid-->
+  </body>
+</html>
+
+<!-- want this page to have little plots of the sky coverage for the images
+on this field
+and a list of the Solar System objects that are in the field when it is observed
+(use SSOS?) -->
