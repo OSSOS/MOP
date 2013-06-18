@@ -29,14 +29,12 @@ class Overview(object):
 
 	@property
 	def numDiscoveries(self):
-		disc = self.surveyQuery.disc
-		retval = disc.num_discoveries()
+		retval = self.surveyQuery.disc.num_discoveries()
 		return retval
 
 	@property
 	def mpcTold(self):
-		disc = self.surveyQuery.disc
-		retval = disc.mpc_informed()
+		retval = self.surveyQuery.disc.mpc_informed()
 		return retval
 	
 	@property
@@ -46,7 +44,7 @@ class Overview(object):
 
 	@property
 	def mostRecentBlockCompletionObs(self):
-		retval = bq.most_recent_block_completion()
+		retval = self.surveyQuery.most_recent_block_completion()
 		return retval
 
 	@property
@@ -71,7 +69,7 @@ class Overview(object):
 
 	@property
 	def blocks(self):
-		retval = bq.all_blocks(self.surveyQuery.ims)
+		retval = self.surveyQuery.bk.all_blocks()
 		return retval
 
 

@@ -2,6 +2,7 @@ import sqlalchemy as sa
 import math, ephem, pytz, datetime
 from ossos.field_obs.queries import ImagesQuery
 from ossos.discoveries.queries import DiscoveriesQuery
+from ossos.block.queries import BlockQuery
 
 
 class SurveyQuery(object):
@@ -9,6 +10,7 @@ class SurveyQuery(object):
 	def __init__(self):
 		self.ims = ImagesQuery()
 		self.disc = DiscoveriesQuery()
+		self.bk = BlockQuery()
 
 
 	def survey_proportion_complete(self):
@@ -38,6 +40,12 @@ class SurveyQuery(object):
 
 		return dates[-1]
 
+
+	def most_recent_block_completion(self):
+		it = self.bk
+		retval = 'Awaiting May data processing to be sure'
+		return retval
+	
 
 	def next_moondark(self):  # this is producing an off by one error: fix!
 		mn = ephem.Moon()
