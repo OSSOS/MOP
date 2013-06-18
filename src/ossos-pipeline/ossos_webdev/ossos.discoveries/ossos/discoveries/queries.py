@@ -23,7 +23,11 @@ class DiscoveriesQuery(object):
 		ss = sa.select([it.c.mpc_told])
 		# CONFIRM THIS WORKS AFTER ADDING OBJECTS
 		ss.append_whereclause(it.c.mpc_told == True)
-		retval = [n[0] for n in self.conn.execute(ss)]  # might need to fix this
+		ret = [n[0] for n in self.conn.execute(ss)]  # might need to fix this
+		if len(ret) == 0:
+			retval = 0
+		else:
+			retval = ret[0]
 
 		return retval 
 
