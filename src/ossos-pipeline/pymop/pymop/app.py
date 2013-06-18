@@ -99,8 +99,7 @@ class PymopApplication(object):
         if debug_mode:
             wx.lib.inspection.InspectionTool().Show()
 
-        setup_manager = TaskSetupManager(self)
-        wx.CallAfter(setup_manager.run)
+        TaskSetupManager(self).run()
 
         self.wx_app.MainLoop()
 
