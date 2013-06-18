@@ -6,6 +6,7 @@ import tempfile
 from hamcrest import assert_that, equal_to, has_length
 
 from pymop.io import mpc
+from pymop.io.astrom import SourceReading, Observation
 
 
 class MPCWriterTest(unittest.TestCase):
@@ -409,6 +410,15 @@ class MPCWriterTest(unittest.TestCase):
         self.assertRaises(mpc.MPCFieldFormatError,
                           self.undertest.write_line,
                           *args)
+
+    def test_write_comment(self):
+        obs = Observation("1234567", "p", "00")
+        reading = SourceReading(334.56, 884.22, 335.56, 885.22, 0, 0, obs)
+
+        self.undertest.write_comment(reading, "Something fishy.")
+
+        assert_that(self.read_outputfile(),
+                    equal_to("# 1234567p00 334.56 884.22 Something fishy.\n"))
 
     def test_format_ra(self):
         """
