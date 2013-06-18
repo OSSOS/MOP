@@ -3,6 +3,9 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 import json
 
+from pymop import tasks
+
+
 LOGFILE = ".pymop.log"
 CANDS = "CANDS"
 REALS = "REALS"
@@ -28,6 +31,14 @@ class ProgressRecord(object):
 
     def get_processed_reals_files(self):
         return self.records[REALS]
+
+    def get_processed(self, task):
+        if task == tasks.CANDS_TASK:
+            return self.get_processed_cands_files()
+        elif task == tasks.REALS_TASK:
+            return self.get_processed_reals_files()
+        else:
+            raise ValueError("Unknown task: %s" % task)
 
 
 def load_progress(working_directory):
