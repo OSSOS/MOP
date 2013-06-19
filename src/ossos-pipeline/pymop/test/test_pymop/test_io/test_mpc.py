@@ -413,7 +413,8 @@ class MPCWriterTest(unittest.TestCase):
 
     def test_write_comment(self):
         obs = Observation("1234567", "p", "00")
-        reading = SourceReading(334.56, 884.22, 335.56, 885.22, 0, 0, obs)
+        reading = SourceReading(334.56, 884.22, 335.56, 885.22, 0, 0,
+                                335.56, 885.22, obs)
 
         self.undertest.write_comment(reading, "Something fishy.")
 
