@@ -14,13 +14,12 @@ class Block(object):
 	
 	@property
 	def num_fields(self):
-		# number of fields in the block
-		retval = self.blockQuery.num_fields_in_block(self.blockID)
+		empty_units, fields = self.blockQuery.fields_in_block(self.blockID)
+		retval = len(fields)
 		return retval
 
 	@property
 	def observed_fields(self):
-		# HACKED FOR TESTING
 		retval = self.blockQuery.link_images_to_tripleplus_nights(self.blockID)
 		return retval
 	
@@ -36,22 +35,22 @@ class Block(object):
 
 	@property
 	def numObs(self):
-		retval = len(self.blockQuery.block_images(self.blockID)['obs'])
+		retval = self.blockQuery.num_block_images(self.blockID)
 		return retval
 
 	@property
 	def num_precoveries(self):
-		retval = self.blockQuery.bk.num_precoveries('E+0+0')  # HACKED FOR TESTING
+		retval = self.blockQuery.block_precoveries(self.blockID)
 		return retval
 
 	@property
 	def num_nailings(self):
-		retval = self.blockQuery.bk.num_nailings('E+0+0')  # HACKED FOR TESTING
+		retval = self.blockQuery.block_nailings(self.blockID)
 		return retval
 
 	@property
 	def num_doubles(self):
-		retval = self.blockQuery.bk.num_doubles('E+0+0')  # HACKED FOR TESTING
+		retval = self.blockQuery.block_doubles(self.blockID)
 		return retval
 
 
