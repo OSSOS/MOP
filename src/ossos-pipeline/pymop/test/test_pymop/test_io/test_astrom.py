@@ -4,7 +4,7 @@ import tempfile
 import unittest
 
 from hamcrest import (assert_that, equal_to, has_length, has_entries,
-                      same_instance, contains)
+                      same_instance, contains, close_to)
 
 from test.base_tests import FileReadingTestCase
 from pymop.io.astrom import (AstromParser, AstromWriter, Observation)
@@ -110,6 +110,8 @@ class ParserTest(FileReadingTestCase):
         assert_that(data00.y0, equal_to(3967.12))
         assert_that(data00.ra, equal_to(26.6833367))
         assert_that(data00.dec, equal_to(29.2203532))
+        assert_that(data00.xref, equal_to(911.00))
+        assert_that(data00.yref, equal_to(3967.12))
 
         # Source 0 reading 1
         data01 = source0.get_reading(1)
@@ -119,6 +121,8 @@ class ParserTest(FileReadingTestCase):
         assert_that(data01.y0, equal_to(3965.78))
         assert_that(data01.ra, equal_to(26.6816808))
         assert_that(data01.dec, equal_to(29.2202748))
+        assert_that(data01.xref, equal_to(911.00))
+        assert_that(data01.yref, equal_to(3967.12))
 
         # Source 0 reading 2
         data02 = source0.get_reading(2)
@@ -128,6 +132,8 @@ class ParserTest(FileReadingTestCase):
         assert_that(data02.y0, equal_to(3965.20))
         assert_that(data02.ra, equal_to(26.6813840))
         assert_that(data02.dec, equal_to(29.2202469))
+        assert_that(data02.xref, equal_to(911.00))
+        assert_that(data02.yref, equal_to(3967.12))
 
         ## Test source 1
         assert_that(astrom_data.sources[1].num_readings(), equal_to(3))
@@ -144,6 +150,8 @@ class ParserTest(FileReadingTestCase):
         assert_that(data22.y0, equal_to(1845.71))
         assert_that(data22.ra, equal_to(26.6311063))
         assert_that(data22.dec, equal_to(29.1102185))
+        assert_that(data22.xref, equal_to(1698.04))
+        assert_that(data22.yref, equal_to(1842.46))
 
     def test_parse_source_readings_have_observations(self):
         astrom_data = self.parse(TEST_FILE_1)
@@ -175,6 +183,22 @@ class ParserTest(FileReadingTestCase):
 
         obs_names = [obs.rawname for obs in astrom_data.observations]
         assert_that(obs_names, contains("1616681p22", "1616692p22", "1616703p22"))
+
+    def test_parse_source_reference_point(self):
+        astrom_data = self.parse(TEST_FILE_2)
+        source = astrom_data.get_sources()[0]
+
+        reading0 = source.get_reading(0)
+        reading1 = source.get_reading(1)
+        reading2 = source.get_reading(2)
+
+        delta = 0.00000001
+        assert_that(reading0.reference_source_point[0], close_to(560.06, delta))
+        assert_that(reading0.reference_source_point[1], close_to(406.51, delta))
+        assert_that(reading1.reference_source_point[0], close_to(562.82, delta))
+        assert_that(reading1.reference_source_point[1], close_to(406.68, delta))
+        assert_that(reading2.reference_source_point[0], close_to(564.44, delta))
+        assert_that(reading2.reference_source_point[1], close_to(406.03, delta))
 
 
 class GeneralAstromWriterTest(FileReadingTestCase):

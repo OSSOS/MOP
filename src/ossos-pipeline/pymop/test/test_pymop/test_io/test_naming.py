@@ -14,7 +14,7 @@ class ProvisionalNameGeneratorTest(unittest.TestCase):
 
     def create_reading(self, obs):
         """Create a test reading containing the provided observation"""
-        return SourceReading(0, 0, 0, 0, 0, 0, obs)
+        return SourceReading(0, 0, 0, 0, 0, 0, 0, 0, obs)
 
     def create_source(self, expnums):
         """

@@ -29,10 +29,12 @@ class ImageSliceDownloaderTest(FileReadingTestCase):
         reading_y = 60
         reading_x0 = 75
         reading_y0 = 80
+        ref_x = 95
+        ref_y = 100
 
         # Putting in 0's for don't cares
         self.source_reading = SourceReading(reading_x, reading_y, reading_x0,
-                                            reading_y0, 0, 0, obs)
+                                            reading_y0, 0, 0, ref_x, ref_y, obs)
 
         self.vosclient = Mock(spec=vos.Client)
         self.undertest = ImageSliceDownloader(self.resolver,
