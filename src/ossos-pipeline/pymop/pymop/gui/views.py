@@ -513,6 +513,7 @@ class AcceptSourceDialog(wx.Dialog):
         self._bind_events()
 
         self.submit_button.SetDefault()
+        self.note1_combobox.SetFocus()
 
     def _init_ui(self):
         self.minor_planet_num_label = wx.StaticText(self, label=self.MINOR_PLANET_NUMBER)
@@ -526,12 +527,12 @@ class AcceptSourceDialog(wx.Dialog):
         self.discovery_asterisk_text = wx.StaticText(self, label=discovery_asterisk)
 
         self.note1_label = wx.StaticText(self, label=self.NOTE1)
-        self.note1_combobox = wx.ComboBox(self, choices=self.note1_choices, style=wx.CB_READONLY,
+        self.note1_combobox = wx.ComboBox(self, choices=self.note1_choices, style=wx.CB_DROPDOWN,
                                           name=self.NOTE1)
 
         self.note2_label = wx.StaticText(self, label=self.NOTE2)
         self.note2_combobox = wx.ComboBox(self, value=self.note2_default, choices=self.note2_choices,
-                                          style=wx.CB_READONLY, name=self.NOTE2)
+                                          style=wx.CB_DROPDOWN, name=self.NOTE2)
 
         self.date_of_obs_label = wx.StaticText(self, label=self.DATE_OF_OBS)
         self.date_of_obs_text = wx.StaticText(self, label=self.date_of_obs, name=self.DATE_OF_OBS)
@@ -608,8 +609,8 @@ class AcceptSourceDialog(wx.Dialog):
         # TODO validation
         minor_planet_number = self.minor_planet_num_text.GetValue()
         discovery_asterisk = " " if self.already_discovered else "*"
-        note1 = self.note1_combobox.GetStringSelection()
-        note2 = self.note2_combobox.GetStringSelection()
+        note1 = self.note1_combobox.GetValue()
+        note2 = self.note2_combobox.GetValue()
         obs_mag = self.obs_mag
         band = self.band
         observatory_code = self.observatory_code_text.GetValue()
