@@ -41,24 +41,19 @@ class PersistenceTest(FileReadingTestCase):
         workload = AstromWorkload(working_directory, progress, tasks.REALS_TASK)
 
         expected_filenames = ["xxx1.reals.astrom", "xxx2.reals.astrom"]
-        expected_fullpaths = [os.path.join(working_directory, filename)
-                              for filename in expected_filenames]
+        actual_filenames = [filename for filename, astromdata in workload]
 
-        actual_fullpaths = [fullpath for fullpath, astromdata in workload]
-        assert_that(actual_fullpaths, contains_inanyorder(*expected_fullpaths))
+        assert_that(actual_filenames, contains_inanyorder(*expected_filenames))
 
     def test_astrom_workload_filtered_cands(self):
         working_directory = self.get_abs_path(WD_HAS_LOG)
-
         progress = persistence.load_progress(working_directory)
         workload = AstromWorkload(working_directory, progress, tasks.CANDS_TASK)
 
         expected_filenames = ["xxx2.cands.astrom"]
-        expected_fullpaths = [os.path.join(working_directory, filename)
-                              for filename in expected_filenames]
+        actual_filenames = [filename for filename, astromdata in workload]
 
-        actual_fullpaths = [fullpath for fullpath, astromdata in workload]
-        assert_that(actual_fullpaths, contains_inanyorder(*expected_fullpaths))
+        assert_that(actual_filenames, contains_inanyorder(*expected_filenames))
 
 
 if __name__ == '__main__':

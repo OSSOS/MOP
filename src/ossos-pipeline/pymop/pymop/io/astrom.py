@@ -295,9 +295,9 @@ class AstromWriter(object):
 
 class AstromWorkload(object):
     def __init__(self, working_directory, progress, task):
-        workload_filenames = tasks.listdir_for_task(working_directory, task)
-
-        
+        working_dir_files = tasks.listdir_for_task(working_directory, task)
+        workload_filenames = [filename for filename in working_dir_files
+                              if filename not in progress.get_processed(task)]
 
         if len(workload_filenames) == 0:
             raise ValueError("Empty workload!")
