@@ -7,6 +7,8 @@ from mock import Mock
 from hamcrest import assert_that, equal_to
 
 from test.base_tests import FileReadingTestCase, WxWidgetTestCase
+from pymop import tasks
+from pymop.io.persistence import ProgressRecord
 from pymop.io.astrom import AstromWorkload
 from pymop.gui.controllers import ProcessRealsController
 from pymop.gui.models import ProcessRealsModel
@@ -16,12 +18,11 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase):
     def setUp(self):
         super(ProcessRealsControllerTest, self).setUp()
 
-        testfile1 = self.get_abs_path("data/1584431p15.measure3.cands.astrom")
-        testfile2 = self.get_abs_path("data/1616681p10.measure3.cands.astrom")
-        working_dir, filename1 = os.path.split(testfile1)
-        working_dir, filename2 = os.path.split(testfile2)
+        progress = Mock(spec=ProgressRecord)
+        progress.get_processed.return_value = []
 
-        workload = AstromWorkload(working_dir, [filename1, filename2])
+        workload = AstromWorkload(self.get_abs_path("data/controller_testdir"),
+                                  progress, tasks.REALS_TASK)
         download_manager = Mock()
 
         self.model = ProcessRealsModel(workload, download_manager)
