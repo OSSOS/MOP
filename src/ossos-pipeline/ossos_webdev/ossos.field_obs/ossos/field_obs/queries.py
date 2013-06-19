@@ -61,29 +61,7 @@ class ImagesQuery(object):
 		return retval
 
 
-	def find_field_triples(self, field):
-		tplus = sa.text("""
-			select cfht_field, extract(year from obs_end) as year, 
-			extract(month from obs_end) as month, extract(day from obs_end) as day, 
-			count(image_id) from images 
-			where cfht_field = :field
-			group by cfht_field, year, month, day 
-			having count(image_id) > 2
-			order by cfht_field, year, month, day;""")
-		pp = {'field': field}
-		tplus_res = self.conn.execute(tplus, pp)
-
-		threeplus_fields = {}
-		for row in tplus_res:  
-			field = row[0]  # preceding 'u' indicates unicode
-			night = row[1:4]
-			field_nights = threeplus_fields.get(field, [])
-			field_nights.append(night)
-			threeplus_fields[field] = field_nights
-
-		return threeplus_fields
-
-
+	# WHY is this def in here? Doesn't seem to do anything individual field-related.
 	def what_fields_have_any_observations(self):
 		it = self.images
 		ss = sa.select([it.c.cfht_field],
@@ -93,6 +71,21 @@ class ImagesQuery(object):
 		fields = [{'fieldId': n[0], 'triplet':None} for n in self.conn.execute(ss)]
 
 		return fields
+
+
+	# Process of getting the three best images that form a discovery triplet.
+	def discovery_triplet(self, field):
+		# The block one is going to want to know if there's even a valid triplet yet.
+
+		# First: need the images on the nights that have 3+ images, this field.
+
+		# Then: parse those 3+ sets for the best triple.
+
+		# Return that triple. That's it. Nothing more fancy.
+
+		retval = [long('1607779'), long('1609158'), long('1612253')]  # TESTING
+
+		return retval
 
 
 	def do_triples_exist(self):
@@ -116,14 +109,34 @@ class ImagesQuery(object):
 
 		return threeplus_fields
 
-		
 
-	def discovery_triplet(self, field):
-	#	triples = oq.link_images_to_tripleplus_nights()
-	    # tt = field_triples(field)
-		retval = [long('1607779'), long('1609158'), long('1612253')]  # TESTING
+	def images_in_tripleplus_night(self, field, date):
 
+		ss = sa.text(
+			"""select cfht_field, extract(year from obs_end) as year, 
+				extract(month from obs_end) as month, 
+				extract(day from obs_end) as day, image_id, obs_end, 
+				iq_ossos from images
+				where (cfht_field = :field
+				and extract(year from obs_end) = :year
+				and extract(month from obs_end) = :month
+				and extract(day from obs_end) = :day)
+				order by obs_end""")
+		pp = {'field':field, 'year':date[0], 'month':date[1], 'day':date[2]}
+		tplus_res = self.conn.execute(ss, pp)
+
+		ret_images = []
+		for row in tplus_res:
+			ret_images.append([row[5], row[4], (row[6])])
+
+		return ret_images
+
+
+	def parse_night_for_best_triple(self):
+
+		retval = ''
 		return retval
+
 
 
 	def num_precoveries(self, field):
