@@ -41,12 +41,6 @@ class SurveyQuery(object):
 		return dates[-1]
 
 
-	def most_recent_block_completion(self):
-		it = self.bk
-		retval = 'Awaiting May data processing to be sure'
-		return retval
-	
-
 	def next_moondark(self):  # this is producing an off by one error: fix!
 		mn = ephem.Moon()
 		mp = []

@@ -34,7 +34,7 @@
               <dt>Fully processed<dt>
               <dd> 
             	 <abbr class = "val"
-            		    title = "0/8 blocks run entirely through the processing pipeline.">${processed_sqdeg}</abbr> 
+            		    title = "Blocks run entirely through the processing pipeline.">${processed_sqdeg}</abbr> 
                 sq. deg.
               </dd>
               <!-- (ie. area awaiting processing: difference between those two) -->
