@@ -14,7 +14,13 @@
   <body>
     <div class="container-fluid">
       <div class="page-header">
-            <h1>OSSOS <small>Outer Solar System Origins Survey</small></h1>
+        <h1>OSSOS <small>Outer Solar System Origins Survey</small></h1>
+        <ul class="breadcrumb">
+          <li><a href="/">Overview</a> <span class="divider">/</span></li>
+          <li><a href=""></a>
+          <span class="divider">/</span></li>
+          <li class="active">${fieldId}</li>
+        </ul>
       </div><!--page-header-->
 
       <h2>field ${fieldId} <small>(${ra}, ${dec})</small></h2>
