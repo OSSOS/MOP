@@ -135,8 +135,17 @@ class AstromParser(object):
                 observations), "Source doesn't have same number of observations (%d) as in observations list (%d)." % (
                 len(source_obs), len(observations))
 
+            x_ref = None
+            y_ref = None
             for i, source_ob in enumerate(source_obs):
                 fields = source_ob.split()
+
+                if i == 0:
+                    x_ref = fields[0]
+                    y_ref = fields[1]
+
+                fields.append(x_ref)
+                fields.append(y_ref)
 
                 # Find the observation corresponding to this reading
                 fields.append(observations[i])
@@ -392,13 +401,29 @@ class SourceReading(object):
     Data for a detected point source (which is a potential moving objects).
     """
 
-    def __init__(self, x, y, x0, y0, ra, dec, obs):
+    def __init__(self, x, y, x0, y0, ra, dec, xref, yref, obs):
+        """
+        Args:
+          x, y: the coordinates of the source in this reading.
+          x0, y0: the coordinates of the source in this reading, but in
+            the coordinate frame of the reference image.
+          ra: right ascension
+          dec: declination
+          xref, yref: coordinates of the source in the reference image, in
+            the reference image's coordinate frame.
+          obs: the observation in which this reading was taken.
+        """
         self.x = float(x)
         self.y = float(y)
         self.x0 = float(x0)
         self.y0 = float(y0)
         self.ra = float(ra)
         self.dec = float(dec)
+        self.xref = float(xref)
+        self.yref = float(yref)
+
+        self.x_ref_offset = self.x - self.x0
+        self.y_ref_offset = self.y - self.y0
 
         self.obs = obs
 
@@ -416,7 +441,11 @@ class SourceReading(object):
 
     @property
     def reference_source_point(self):
-        return self.x0, self.y0
+        """
+        The location of the source in the reference image, in terms of the
+        current image coordinates.
+        """
+        return self.xref + self.x_ref_offset, self.yref + self.y_ref_offset
 
     @property
     def image_source_point(self):
