@@ -473,6 +473,40 @@ class SourceValidationPanel(wx.Panel):
         return self.accept_button.IsEnabled() and self.reject_button.IsEnabled()
 
 
+class KeyboardCompleteComboBox(wx.ComboBox):
+    """
+    A combo-box with read-only, preset values.  When the user types a key
+    in the text field, it will look through the possible choices and if
+    there is one starting with that character, it will select it.
+    """
+
+    def __init__(self, parent, choices=None, **kwargs):
+        if choices is None:
+            choices = []
+
+        self.choices = choices
+        super(KeyboardCompleteComboBox, self).__init__(parent, choices=choices,
+                                                       style=wx.CB_READONLY,
+                                                       **kwargs)
+        self.Bind(wx.EVT_CHAR, self._on_char)
+
+    def _on_char(self, event):
+        keycode = event.GetKeyCode()
+
+        if keycode == wx.WXK_RETURN:
+            event.Skip()
+            return
+
+        if keycode < 0 or keycode > 255:
+            # Something like a up arrow key, etc.  Ignore it.
+            return
+
+        char = chr(keycode)
+        for choice in self.choices:
+            if choice.startswith(char):
+                self.SetStringSelection(choice)
+
+
 class AcceptSourceDialog(wx.Dialog):
     TITLE = "Accept Source"
     MINOR_PLANET_NUMBER = "Minor planet number: "
@@ -527,12 +561,13 @@ class AcceptSourceDialog(wx.Dialog):
         self.discovery_asterisk_text = wx.StaticText(self, label=discovery_asterisk)
 
         self.note1_label = wx.StaticText(self, label=self.NOTE1)
-        self.note1_combobox = wx.ComboBox(self, choices=self.note1_choices, style=wx.CB_DROPDOWN,
-                                          name=self.NOTE1)
+        self.note1_combobox = KeyboardCompleteComboBox(self, choices=self.note1_choices,
+                                                       name=self.NOTE1)
 
         self.note2_label = wx.StaticText(self, label=self.NOTE2)
-        self.note2_combobox = wx.ComboBox(self, value=self.note2_default, choices=self.note2_choices,
-                                          style=wx.CB_DROPDOWN, name=self.NOTE2)
+        self.note2_combobox = KeyboardCompleteComboBox(self, value=self.note2_default,
+                                                       choices=self.note2_choices,
+                                                       name=self.NOTE2)
 
         self.date_of_obs_label = wx.StaticText(self, label=self.DATE_OF_OBS)
         self.date_of_obs_text = wx.StaticText(self, label=self.date_of_obs, name=self.DATE_OF_OBS)
