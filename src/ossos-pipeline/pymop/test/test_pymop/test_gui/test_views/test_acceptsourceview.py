@@ -68,12 +68,10 @@ class AcceptSourceDialogTest(WxWidgetTestCase):
 
         note1_combobox = self.get_child_by_name(undertest, AcceptSourceDialog.NOTE1)
         assert_that(note1_combobox.GetValue(), equal_to(""))
-        assert_that(not note1_combobox.IsEditable())
         assert_that(note1_combobox.GetCount(), equal_to(len(note1_choices)))
 
         note2_combobox = self.get_child_by_name(undertest, AcceptSourceDialog.NOTE2)
         assert_that(note2_combobox.GetValue(), equal_to(""))
-        assert_that(not note2_combobox.IsEditable())
         assert_that(note2_combobox.GetCount(), equal_to(len(note2_choices)))
 
     def test_cancel_event(self):
