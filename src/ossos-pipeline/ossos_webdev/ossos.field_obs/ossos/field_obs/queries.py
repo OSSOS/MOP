@@ -23,7 +23,7 @@ class ImagesQuery(object):
 		ret_images = self.format_imquery_return(ims_query)
 
 		retval = {'obs':ret_images}
-		print retval
+
 		return retval
 
 

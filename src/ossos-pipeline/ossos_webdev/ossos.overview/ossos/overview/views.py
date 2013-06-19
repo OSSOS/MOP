@@ -43,11 +43,6 @@ class Overview(object):
 		return retval
 
 	@property
-	def mostRecentBlockCompletionObs(self):
-		retval = self.surveyQuery.most_recent_block_completion()
-		return retval
-
-	@property
 	def most_recent_obs(self):
 		retval = self.surveyQuery.most_recent_observation()
 		return retval
@@ -81,7 +76,6 @@ class Overview(object):
 					'num_discoveries': self.numDiscoveries,
 					'mpc_told': self.mpcTold,
 					'efficiency': self.surveyEfficiency,
-					'most_recent_completion': self.mostRecentBlockCompletionObs,
 					'most_recent_obs': self.most_recent_obs,
 					'next_obs': self.nextScheduledObservations,
 					'next_moondark': self.next_moondark,
