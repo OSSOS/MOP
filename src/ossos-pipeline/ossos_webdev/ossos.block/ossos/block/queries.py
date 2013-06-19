@@ -85,29 +85,6 @@ class BlockQuery(object):
 		return retval
 		
 
-	def images_in_tripleplus_night(self, field, date):
-
-		ss = sa.text(
-			"""select cfht_field, extract(year from obs_end) as year, 
-				extract(month from obs_end) as month, 
-				extract(day from obs_end) as day, image_id, obs_end, 
-				iq_ossos from images
-				where (cfht_field = :field
-				and extract(year from obs_end) = :year
-				and extract(month from obs_end) = :month
-				and extract(day from obs_end) = :day)
-				order by obs_end""")
-		pp = {'field':field, 'year':date[0], 'month':date[1], 'day':date[2]}
-		tplus_res = self.bk.conn.execute(ss, pp)
-
-		ret_images = []
-		for row in tplus_res:
-			ret_images.append([row[5], row[4], (row[6])])
-
-
-		return ret_images
-
-
 	def link_images_to_tripleplus_nights(self, blockID):
 
 		retval, fieldIds = self.fields_in_block(blockID)
@@ -120,7 +97,7 @@ class BlockQuery(object):
 			if len(retfs) > 0:
 				retfield = retfs[0]
 				for night in nights[0:1]:  # TESTING
-					images_info = self.images_in_tripleplus_night(field, night)
+					images_info = self.bk.images_in_tripleplus_night(field, night)
 					retfield['triplet'] = images_info
 					retfield['worstIQ'] = max([n[2] for n in images_info])
 

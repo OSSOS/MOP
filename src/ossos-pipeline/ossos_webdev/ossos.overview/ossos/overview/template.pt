@@ -2,11 +2,18 @@
 <!DOCTYPE html>
 <html>
   <head>
-	<title>OSSOS Survey Overview</title>
-	<!-- No indexing by search engines, for now -->
-	<meta http-equiv="Content-Type" name="robots" 
-			content="noindex; text/html; charset=utf-8" />
+  	<title>OSSOS Survey Overview</title>
+  	<!-- No indexing by search engines, for now -->
+  	<meta http-equiv="Content-Type" name="robots" 
+  			content="noindex; text/html; charset=utf-8" />
     <link rel="stylesheet" type="text/css" href="/css/bootstrap.css" />
+    <!--[if IE]><script language="javascript" type="text/javascript" src="./flot/excanvas.js"></script><![endif]-->
+    <script language="javascript" type="text/javascript" src="./flot/jquery.js"></script>
+    <script language="javascript" type="text/javascript" src="./flot/jquery.flot.js"></script>
+    <script language="javascript" type="text/javascript" src="./flot/jquery.flot.errorbars.js"></script>
+    <script language="javascript" type="text/javascript" src="./flot/jquery.flot.navigate.js"></script>
+    <script language="javascript" type="text/javascript" src="./flot/jquery.flot.axislabels.js"></script>
+    <script language="javascript" type="text/javascript" src="./flot/jquery.flot.togglelegend.js"></script>
   </head>
 
   <body>
