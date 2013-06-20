@@ -50,6 +50,7 @@ class ApplicationView(object):
         self.mainframe.Bind(wx.EVT_CLOSE, self._on_close_window)
 
         self.accept_source_dialog = None
+        self.reject_source_dialog = None
 
         self.mainframe.Show()
         self.mainframe.show_image_loading_dialog()
@@ -109,6 +110,15 @@ class ApplicationView(object):
     def close_accept_source_dialog(self):
         if self.accept_source_dialog is not None:
             self.accept_source_dialog.Destroy()
+
+    def show_reject_source_dialog(self):
+        self.reject_source_dialog = RejectSourceDialog(
+            self.mainframe, self.controller)
+        self.reject_source_dialog.ShowModal()
+
+    def close_reject_source_dialog(self):
+        if self.reject_source_dialog is not None:
+            self.reject_source_dialog.Destroy()
 
     def all_processed_should_exit_prompt(self):
         return should_exit_prompt(self.mainframe)
