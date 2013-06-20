@@ -20,25 +20,32 @@ class ProgressRecord(object):
         self.filehandle = filehandle
 
         try:
-            self.records = json.loads(filehandle.read())
+            self.records = json.load(filehandle)
         except ValueError:
             # No existing data, or it has become corrupted.
             # In either case, start from a clean slate.
             self.records = {CANDS: [], REALS: []}
 
-    def get_processed_cands_files(self):
-        return self.records[CANDS]
-
-    def get_processed_reals_files(self):
-        return self.records[REALS]
-
-    def get_processed(self, task):
+    def _get_records(self, task):
         if task == tasks.CANDS_TASK:
-            return self.get_processed_cands_files()
+            return self.records[CANDS]
         elif task == tasks.REALS_TASK:
-            return self.get_processed_reals_files()
+            return self.records[REALS]
         else:
             raise ValueError("Unknown task: %s" % task)
+
+    def get_processed(self, task):
+        return self._get_records(task)
+
+    def record_processed(self, filename, task):
+        self._get_records(task).append(filename)
+
+    def flush(self):
+        json.dump(self.records, self.filehandle)
+
+    def close(self):
+        self.flush()
+        self.filehandle.close()
 
 
 def load_progress(working_directory):
