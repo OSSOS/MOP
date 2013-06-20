@@ -41,7 +41,7 @@ def phot(fitsimage, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
     iraf.set(uparm="./")
     iraf.digiphot()
     iraf.apphot()
-    iraf.daophot()
+    iraf.daophot(_doprint=0)
 
     ### check for the magical 'zeropoint.used' file
     zpu_file = "zeropoint.used"
