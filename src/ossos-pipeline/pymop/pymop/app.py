@@ -6,6 +6,7 @@ import wx.lib.inspection
 from pymop import config
 from pymop import tasks
 from pymop.io.astrom import AstromParser, AstromWorkload
+from pymop.io import persistence
 from pymop.io.naming import ProvisionalNameGenerator
 from pymop.io.imgaccess import (AsynchronousImageDownloadManager,
                                 ImageSliceDownloader, VOSpaceResolver)
@@ -43,7 +44,8 @@ class AbstractTask(object):
         raise NotImplementedError()
 
     def start(self, working_directory):
-        workload = AstromWorkload(working_directory, self.get_task())
+        progress = persistence.load_progress(working_directory)
+        workload = AstromWorkload(working_directory, progress, self.get_task())
         model = self._create_model(workload)
         self._create_controller(model)
 
