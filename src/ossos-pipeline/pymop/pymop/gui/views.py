@@ -46,11 +46,17 @@ class ApplicationView(object):
         self.controller = controller
 
         self.mainframe = MainFrame(model, controller)
+        # Handle user clicking on the window's "x" button
+        self.mainframe.Bind(wx.EVT_CLOSE, self._on_close_window)
+
         self.accept_source_dialog = None
 
         self.mainframe.Show()
         self.mainframe.show_image_loading_dialog()
         self.model.start_loading_images()
+
+    def _on_close_window(self, event):
+        self.close()
 
     @guithread
     def view_image(self, fits_image):
@@ -62,7 +68,7 @@ class ApplicationView(object):
 
     def close(self):
         self.model.stop_loading_images()
-        self.mainframe.Close()
+        self.mainframe.Destroy()
 
     @guithread
     def show_image_loading_dialog(self):
