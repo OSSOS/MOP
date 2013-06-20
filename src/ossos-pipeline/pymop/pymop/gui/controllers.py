@@ -85,8 +85,7 @@ class AbstractController(object):
         raise NotImplementedError()
 
     def on_reject(self):
-        self.model.reject_current_item()
-        self.model.next_item()
+        raise NotImplementedError()
 
 
 class ProcessRealsController(AbstractController):
@@ -161,13 +160,22 @@ class ProcessRealsController(AbstractController):
     def on_cancel_accept(self):
         self.get_view().close_accept_source_dialog()
 
+    def on_reject(self):
+        self.get_view().show_reject_source_dialog()
+
     def on_do_reject(self, comment):
-        # TODO
-        pass
+        writer = self.model.get_writer()
+        writer.write_comment(self.model.get_current_reading(), comment)
+        writer.write_rejection_line(self.model.get_current_observation_date(),
+                                    self.model.get_current_ra(),
+                                    self.model.get_current_dec())
+
+        self.get_view().close_reject_source_dialog()
+        self.model.reject_current_item()
+        self.model.next_item()
 
     def on_cancel_reject(self):
-        # TODO
-        pass
+        self.get_view().close_reject_source_dialog()
 
 
 class ProcessCandidatesController(AbstractController):
@@ -181,4 +189,8 @@ class ProcessCandidatesController(AbstractController):
         self.model.get_writer().write_source(self.model.get_current_source())
 
         self.model.accept_current_item()
+        self.model.next_item()
+
+    def on_reject(self):
+        self.model.reject_current_item()
         self.model.next_item()
