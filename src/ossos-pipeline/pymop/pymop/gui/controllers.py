@@ -161,6 +161,14 @@ class ProcessRealsController(AbstractController):
     def on_cancel_accept(self):
         self.get_view().close_accept_source_dialog()
 
+    def on_do_reject(self, comment):
+        # TODO
+        pass
+
+    def on_cancel_reject(self):
+        # TODO
+        pass
+
 
 class ProcessCandidatesController(AbstractController):
     def __init__(self, task, model):
