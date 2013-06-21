@@ -3,7 +3,8 @@
 
     "KEYBINDS": {
         "ACCEPT_SRC": "a",
-        "REJECT_SRC": "r"
+        "REJECT_SRC": "r",
+        "RESET_CMAP": "c"
     },
 
     "IMG_RETRIEVAL": {
