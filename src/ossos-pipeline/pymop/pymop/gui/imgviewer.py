@@ -254,7 +254,7 @@ class InteractionContext(object):
         self.viewer.deregister_event_handler(self.cidmotion)
 
 
-class BaseRecenterableState(object):
+class BaseInteractionState(object):
     def __init__(self, context):
         self.context = context
         self._set_blank_state()
@@ -296,7 +296,7 @@ class BaseRecenterableState(object):
         self._set_blank_state()
 
 
-class MoveCircleState(BaseRecenterableState):
+class MoveCircleState(BaseInteractionState):
     def __init__(self, context):
         super(MoveCircleState, self).__init__(context)
 
@@ -312,7 +312,7 @@ class MoveCircleState(BaseRecenterableState):
         self.context.update_circle(center_x + dx, center_y + dy)
 
 
-class CreateCircleState(BaseRecenterableState):
+class CreateCircleState(BaseInteractionState):
     def __init__(self, context):
         super(CreateCircleState, self).__init__(context)
 
@@ -326,38 +326,13 @@ class CreateCircleState(BaseRecenterableState):
         self.context.update_circle(center_x, center_y, radius)
 
 
-class AdjustColormapState(object):
-    """
-    TODO: refactor out similarity of these states
-    """
-
+class AdjustColormapState(BaseInteractionState):
     def __init__(self, context):
-        self.context = context
+        super(AdjustColormapState, self).__init__(context)
 
-        self.pressed = False
-        self.lastx = None
-        self.lasty = None
-
-    def on_press(self, event):
-        self.pressed = True
-
-        self.lastx = event.xdata
-        self.lasty = event.ydata
-
-    def on_motion(self, event):
-        if not self.pressed:
-            return
-
-        self.context.update_colormap(event.xdata - self.lastx,
-                                     event.ydata - self.lasty)
-
-        self.lastx = event.xdata
-        self.lasty = event.ydata
-
-    def on_release(self, event):
-        self.pressed = False
-        self.lastx = None
-        self.lasty = None
+    def on_drag(self, event):
+        self.context.update_colormap(event.xdata - self.last_x,
+                                     event.ydata - self.last_y)
 
 
 class GrayscaleColorMap(object):
