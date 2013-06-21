@@ -19,7 +19,7 @@ class Overview(object):
 
 	@property
 	def fractionSurveyed(self):
-		retval = self.surveyQuery.fields_observed_to_completion()
+		retval = self.surveyQuery.fields_observed()   # remember to also do fields_observed_to_completion
 		return retval
 
 	@property
@@ -68,7 +68,7 @@ class Overview(object):
 		return retval
 
 
-	@view_config(route_name='overview', renderer='template.pt')
+	@view_config(route_name='overview', renderer='template.pt', permission='ossos')
 	def general_overview(self):
 		retval = {'propor_complete': self.percentComplete,
 					'surveyed': self.fractionSurveyed,

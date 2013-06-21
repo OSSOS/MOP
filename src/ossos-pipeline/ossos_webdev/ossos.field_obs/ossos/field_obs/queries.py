@@ -61,7 +61,7 @@ class ImagesQuery(object):
 		return retval
 
 
-	# WHY is this def in here? Doesn't seem to do anything individual field-related.
+	# used in BlockQuery to get observed fields in the block.
 	def what_fields_have_any_observations(self):
 		it = self.images
 		ss = sa.select([it.c.cfht_field],

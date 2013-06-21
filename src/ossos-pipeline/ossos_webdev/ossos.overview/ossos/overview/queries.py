@@ -18,6 +18,19 @@ class SurveyQuery(object):
 		return retval
 
 
+	def fields_observed(self):
+		# prune fields_observed to not include wallpaper.
+		fields = self.ims.what_fields_have_any_observations()
+		tno_fields = [f for f in fields if not f['fieldId'].__contains__('WP')]
+		num_fields = len(tno_fields)
+		# pixel scale is symmetric, 0.1850 arcsec/pixel. Dectector is [1:23219,1:19354] pixels.
+		field_area = ((0.185*23219)/3600.) * ((0.185*19354)/3600.)  # sq. deg
+		sqdeg_observed = num_fields * field_area
+		retval = (sqdeg_observed, num_fields)
+
+		return retval
+
+
 	def fields_observed_to_completion(self):
 		retval = []  # UPDATE THIS
 		return retval

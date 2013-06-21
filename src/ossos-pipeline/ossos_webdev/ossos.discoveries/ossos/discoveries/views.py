@@ -21,7 +21,7 @@ class Discovery(object):
 		return retval
 
 
-	@view_config(route_name='discoveries', renderer='discoveries.pt')
+	@view_config(route_name='discoveries', renderer='discoveries.pt', permission='ossos')
 	def inspect_observations(self):	
 		retval = {'num_discoveries': self.num_discoveries,
 		'discoveries': self.ossos_discoveries
