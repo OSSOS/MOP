@@ -41,7 +41,10 @@ class ProgressRecord(object):
         self._get_records(task).append(filename)
 
     def flush(self):
+        self.filehandle.truncate(0)
+        self.filehandle.seek(0)
         json.dump(self.records, self.filehandle)
+        self.filehandle.flush()
 
     def close(self):
         self.flush()

@@ -81,6 +81,68 @@ class PersistenceStartsWithNoLogTest(FileReadingTestCase):
         assert_that(reopened_progress.get_processed(tasks.REALS_TASK),
                     contains(processed1))
 
+    def test_write_progress_flush_twice_new_logfile(self):
+        progress = persistence.load_progress(self.working_directory)
+
+        assert_that(progress.get_processed(tasks.CANDS_TASK), has_length(0))
+        assert_that(progress.get_processed(tasks.REALS_TASK), has_length(0))
+
+        processed1 = "xxx2.reals.astrom"
+        progress.record_processed(processed1, tasks.REALS_TASK)
+
+        assert_that(progress.get_processed(tasks.CANDS_TASK), has_length(0))
+        assert_that(progress.get_processed(tasks.REALS_TASK),
+                    contains(processed1))
+
+        # Close the progress object and reload to make sure the changes made
+        # it to disk
+        progress.close()
+
+        reopened_progress = persistence.load_progress(self.working_directory)
+        assert_that(reopened_progress.get_processed(tasks.CANDS_TASK),
+                    has_length(0))
+        assert_that(reopened_progress.get_processed(tasks.REALS_TASK),
+                    contains(processed1))
+
+        processed2 = "xxx3.reals.astrom"
+        reopened_progress.record_processed(processed2, tasks.REALS_TASK)
+
+        assert_that(reopened_progress.get_processed(tasks.CANDS_TASK),
+                    has_length(0))
+        assert_that(reopened_progress.get_processed(tasks.REALS_TASK),
+                    contains_inanyorder(processed1, processed2))
+
+        # Close the progress object and reload to make sure the changes made
+        # it to disk
+        reopened_progress.close()
+
+        final_progress = persistence.load_progress(self.working_directory)
+
+        assert_that(final_progress.get_processed(tasks.CANDS_TASK), has_length(0))
+        assert_that(final_progress.get_processed(tasks.REALS_TASK),
+                    contains_inanyorder(processed1, processed2))
+
+    def test_flush_progress(self):
+        progress = persistence.load_progress(self.working_directory)
+
+        processed1 = "xxx2.reals.astrom"
+        progress.record_processed(processed1, tasks.REALS_TASK)
+        progress.flush()
+
+        test_progress1 = persistence.load_progress(self.working_directory)
+        assert_that(test_progress1.get_processed(tasks.CANDS_TASK), has_length(0))
+        assert_that(test_progress1.get_processed(tasks.REALS_TASK),
+                    contains(processed1))
+
+        processed2 = "xxx3.reals.astrom"
+        progress.record_processed(processed2, tasks.REALS_TASK)
+        progress.flush()
+
+        test_progress2 = persistence.load_progress(self.working_directory)
+        assert_that(test_progress2.get_processed(tasks.CANDS_TASK), has_length(0))
+        assert_that(test_progress2.get_processed(tasks.REALS_TASK),
+                    contains_inanyorder(processed1, processed2))
+
 
 if __name__ == '__main__':
     unittest.main()
