@@ -12,7 +12,7 @@ from wx.lib.pubsub import setupv1
 from wx.lib.pubsub import Publisher as pub
 
 from pymop.io.mpc import MPCWriter
-from pymop.io.astrom import AstromWriter
+from pymop.io.astrom import StreamingAstromWriter
 
 # Pub/Sub ids
 MSG_ROOT = ("astrodataroot", )
@@ -28,6 +28,7 @@ MSG_PREV_OBS = MSG_NAV_OBS + ("prev", )
 
 MSG_IMG_LOADED = MSG_ROOT + ("imgload", )
 
+MSG_FILE_PROC = MSG_ROOT + ("fileproc", )
 MSG_ALL_ITEMS_PROC = MSG_ROOT + ("allproc", )
 
 
@@ -81,6 +82,9 @@ class AbstractModel(object):
     def _get_current_astrom_data(self):
         return self.workload.get_astrom_data(self._current_astrom_data_number)
 
+    def get_current_filename(self):
+        return self.workload.get_filename(self._current_astrom_data_number)
+
     def _create_vettable_items(self):
         raise NotImplementedError()
 
@@ -97,6 +101,10 @@ class AbstractModel(object):
 
     def next_source(self):
         if self._current_src_number + 1 == self._get_current_astrom_data().get_source_count():
+            # Finished processing the current file
+            pub.sendMessage(MSG_FILE_PROC, self.get_current_filename())
+            self.workload.record_processed(self.get_current_filename())
+
             self._current_astrom_data_number = (self._current_astrom_data_number + 1) % self.workload.get_load_length()
             self._current_src_number = 0
         else:
@@ -258,7 +266,7 @@ class ProcessRealsModel(AbstractModel):
         self._source_discovery_asterisk = [False] * self.get_source_count()
 
         output_filename = os.path.join(self.workload.get_working_directory(), "reals.mpc")
-        self.output_file = open(output_filename, "wb")
+        self.output_file = open(output_filename, "ab")
         self.writer = MPCWriter(self.output_file)
 
     def _create_vettable_items(self):
@@ -314,8 +322,8 @@ class ProcessCandidatesModel(AbstractModel):
             output_filehandle = open(output_filename, "wb")
             self.outputfiles.append(output_filehandle)
 
-            writer = AstromWriter(output_filehandle)
-            writer.write_headers(astrom_data.observations, astrom_data.sys_header)
+            writer = StreamingAstromWriter(output_filehandle,
+                                           astrom_data.sys_header)
             self.writers.append(writer)
 
     def _create_vettable_items(self):

@@ -7,6 +7,9 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 import re
 
+from pymop import tasks
+
+
 HEADER_LINE_LENGTH = 80
 
 ## Observation header keys
@@ -185,7 +188,12 @@ class AstromParser(object):
         return AstromData(observations, sys_header, sources)
 
 
-class AstromWriter(object):
+class BaseAstromWriter(object):
+    """
+    Provides base functionality for AstromWriters.  Use the subclass for your
+    use case.
+    """
+
     def __init__(self, filehandle):
         self.output_file = filehandle
 
@@ -243,29 +251,23 @@ class AstromWriter(object):
         self._write_line("##     RMIN    RMAX   ANGLE   AWIDTH")
         self._write_line("# %8.1f%8.1f%8.1f%8.1f" % tuple(map(float, header_vals)))
 
-    def _write_source_data(self, sources, ignore_warn=True):
+    def _write_source_data(self, sources):
         """
         See src/jjk/measure3
         """
         for i, source in enumerate(sources):
-            self.write_source(source, ignore_warn=ignore_warn)
+            self._write_source(source)
 
-    def _write_source_header(self):
-        self._write_line("##   X        Y        X_0     Y_0          R.A.          DEC")
-
-    def write_source(self, source, ignore_warn=False):
-        """
-        Writes out data for a single source.  Must first call write_headers.
-        """
-        if not self._header_written and not ignore_warn:
-            raise AstromFormatError("Must write headers before data.")
-
+    def _write_source(self, source):
         self._write_blank_line()
 
         for reading in source:
             self._write_line(" %8.2f %8.2f %8.2f %8.2f %12.7f %12.7f" % (
                 reading.x, reading.y, reading.x0, reading.y0, reading.ra,
                 reading.dec), ljust=False)
+
+    def _write_source_header(self):
+        self._write_line("##   X        Y        X_0     Y_0          R.A.          DEC")
 
     def write_headers(self, observations, sys_header):
         """
@@ -282,6 +284,37 @@ class AstromWriter(object):
 
         self._header_written = True
 
+
+class StreamingAstromWriter(BaseAstromWriter):
+    """
+    Use if you want to write out sources one-by-one as they are validated.
+    See also BulkAstromWriter.
+    """
+
+    def __init__(self, filehandle, sys_header):
+        super(StreamingAstromWriter, self).__init__(filehandle)
+        self.sys_header = sys_header
+
+    def write_source(self, source):
+        """
+        Writes out data for a single source.
+        """
+        if not self._header_written:
+            observations = [reading.get_observation() for reading in source]
+            self.write_headers(observations, self.sys_header)
+
+        self._write_source(source)
+
+
+class BulkAstromWriter(BaseAstromWriter):
+    """
+    Use if you want to write out an entire AstromData structure at once.
+    See also StreamingAstromWriter.
+    """
+
+    def __init__(self, filehandle):
+        super(BulkAstromWriter, self).__init__(filehandle)
+
     def write_astrom_data(self, astrom_data):
         """
         Writes a full AstromData structure at once.
@@ -291,11 +324,17 @@ class AstromWriter(object):
 
 
 class AstromWorkload(object):
-    def __init__(self, working_directory, workload_filenames):
+    def __init__(self, working_directory, progress, task):
+        working_dir_files = tasks.listdir_for_task(working_directory, task)
+        workload_filenames = [filename for filename in working_dir_files
+                              if filename not in progress.get_processed(task)]
+
         if len(workload_filenames) == 0:
-            raise ValueError("No files in workload!")
+            raise ValueError("Empty workload!")
 
         self.working_directory = working_directory
+        self.progress = progress
+        self.task = task
         self.workload_filenames = workload_filenames
 
         self.full_paths = [os.path.join(working_directory, filename)
@@ -314,8 +353,8 @@ class AstromWorkload(object):
     def get_astrom_data(self, index):
         return self.astrom_data_list[index]
 
-    def get_full_path(self, index):
-        return self.full_paths[index]
+    def get_filename(self, index):
+        return self.workload_filenames[index]
 
     def get_load_length(self):
         return len(self.astrom_data_list)
@@ -336,6 +375,10 @@ class AstromWorkload(object):
             count += astrom_data.get_reading_count()
 
         return count
+
+    def record_processed(self, filename):
+        self.progress.record_processed(filename, self.task)
+        self.progress.flush()
 
 
 class AstromData(object):
@@ -463,6 +506,9 @@ class SourceReading(object):
 
     def get_exposure_number(self):
         return self.obs.expnum
+
+    def get_observation(self):
+        return self.obs
 
     def __repr__(self):
         return "<SourceReading x=%s, y=%s, x0=%s, y0=%s, ra=%s, dec=%s, obs=%s" % (
