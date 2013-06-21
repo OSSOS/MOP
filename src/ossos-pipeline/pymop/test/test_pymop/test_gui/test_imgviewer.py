@@ -12,7 +12,7 @@ from pymop.gui.imgviewer import (InteractionContext, MoveCircleState,
                                  CreateCircleState, AdjustColormapState)
 
 
-class MPLViewTest(unittest.TestCase):
+class MPLImageViewerTest(unittest.TestCase):
     def setUp(self):
         self.app = wx.App()
         self.rootframe = wx.Frame(None)
@@ -203,6 +203,36 @@ class InteractionTest(unittest.TestCase):
         self.fire_motion_event(x + 2, y + 2)
         assert_that(self.interaction_context.get_circle().center, equal_to((x, y)))
         assert_that(self.interaction_context.get_circle().radius, equal_to(radius))
+
+    def test_click_no_drag_inside_circle(self):
+        x = 10
+        y = 10
+        radius = 5
+
+        self.viewer.draw_circle(x, y, radius)
+
+        click_x = 12
+        click_y = 13
+        self.fire_press_event(click_x, click_y)
+        self.fire_release_event()
+
+        assert_that(self.interaction_context.get_circle().center,
+                    equal_to((click_x, click_y)))
+
+    def test_click_no_drag_outside_circle(self):
+        x = 10
+        y = 10
+        radius = 5
+
+        self.viewer.draw_circle(x, y, radius)
+
+        click_x = 20
+        click_y = 21
+        self.fire_press_event(click_x, click_y)
+        self.fire_release_event()
+
+        assert_that(self.interaction_context.get_circle().center,
+                    equal_to((click_x, click_y)))
 
 
 class UtilityTest(unittest.TestCase):
