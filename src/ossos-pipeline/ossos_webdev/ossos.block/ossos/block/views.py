@@ -54,7 +54,7 @@ class Block(object):
 		return retval
 
 
-	@view_config(route_name='block', renderer='block.pt')
+	@view_config(route_name='block', renderer='block.pt', permission='ossos')
 	def inspect_observations(self):
 		# uid = self.request.matchdict['uid']
 		# return dict(title='Triplet', uid=uid)

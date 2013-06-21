@@ -2,7 +2,6 @@
 
 """
 
-
 import cgi
 from OpenSSL import crypto
 import httplib
@@ -18,12 +17,10 @@ _SERVER = 'www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca'
 _GMS = '/gms/members/'
 _PROXY = '/cred/proxyCert'
 
-
 from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.security import forget
 from pyramid.view import view_config
-
 
 
 @view_config(context=HTTPForbidden)
@@ -31,6 +28,7 @@ def basic_challenge(request):
     response = HTTPUnauthorized()
     response.headers.update(forget(request))
     return response
+
 
 def login_view(request):
     next = request.params.get('next') or request.route_url('home')
@@ -102,6 +100,7 @@ def getCert(username,password,
 
     return  certfile
 
+
 def getGroupsURL(certfile):
     """given a certfile load a list of groups that user is a member of"""
 
@@ -124,6 +123,7 @@ def getGroupsURL(certfile):
 
     return GMS+urllib.quote(dn)
 
+
 def isMember(userid, password, group):
     """Test to see if the given userid/password combo is an authenticated member of group.
 
@@ -133,7 +133,7 @@ def isMember(userid, password, group):
     
     """
     try:
-        certfile  = getCert(userid,password)
+        certfile = getCert(userid,password)
 
         group_url = getGroupsURL(certfile)+"/"+group
         logging.debug("group url: %s" % ( group_url))
@@ -155,6 +155,7 @@ def isMember(userid, password, group):
     logging.debug(str(resp.status))
 
     return False
+
 
 def stub():
     """Just some left over code"""

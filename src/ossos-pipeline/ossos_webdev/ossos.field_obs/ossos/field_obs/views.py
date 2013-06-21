@@ -58,7 +58,7 @@ class Field(object):
 		return retval
 
 
-	@view_config(route_name='field_obs', renderer='field_obs.pt')
+	@view_config(route_name='field_obs', renderer='field_obs.pt', permission='ossos')
 	def inspect_observations(self):
 		# uid = self.request.matchdict['uid']
 		# return dict(title='Triplet', uid=uid)

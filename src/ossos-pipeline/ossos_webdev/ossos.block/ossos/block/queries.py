@@ -66,8 +66,6 @@ class BlockQuery(object):
 		else:  # it's an E or O field, less fancy!
 			retval = blockID.partition('-')[2]
 
-		print retval
-
 		return retval
 
 

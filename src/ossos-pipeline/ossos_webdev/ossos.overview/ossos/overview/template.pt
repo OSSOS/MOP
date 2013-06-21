@@ -22,7 +22,6 @@
         <h1>OSSOS <small>Outer Solar System Origins Survey</small></h1>
       </div><!--page-header-->
       <div class="well">
-        <div class=" row-fluid">
           <div class="span6" role="region" 
                 id="overview-overview" aria-labelledby="overview-overview-h">
           	<h2 id="overview-overview-h">Overview</h2>
@@ -34,9 +33,8 @@
               </dd>
               <dt>Observed:</dt>
               <dd> 
-            	 <abbr class = "val"
-                 		 title = "2/8 blocks observed for precovery, discovery triplet and follow-up tracking. Completed = at least one precovery, the discovery triplet, and two nailing recovery observations.">${surveyed}</abbr>
-            	 sq. deg.
+            	${'%.2f' % surveyed[0]} sq. deg. (${surveyed[1]} fields)
+              <!-- observed for precovery, discovery triplet and follow-up tracking. Completed = at least one precovery, the discovery triplet, and two nailing recovery observations. -->
               </dd>
               <dt>Fully processed<dt>
               <dd> 
@@ -78,9 +76,13 @@
               	<a href="http://www.canfar.phys.uvic.ca/vosui/#/OSSOS/ObservingStatus/obsList.pdf">(plots pdf)
               	</a>
               </p>
-          </div>
-        </div>
+          </div>  <!-- row-region -->
+
+      <div id="placeholder" style="width:600px;height:300px"></div>
+
       </div><!--well-->
+
+
 
       <table class="table table-striped table-condensed table-hover">
         <thead>

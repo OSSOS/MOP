@@ -1,11 +1,8 @@
 import urllib
 
-from pyramid.authentication import AuthTktAuthenticationPolicy
-from pyramid.authorization import ACLAuthorizationPolicy
-from pyramid.config import Configurator
+
 from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPFound
-from pyramid.httpexceptions import HTTPNotFound
 from pyramid.security import authenticated_userid
 from pyramid.security import forget
 from pyramid.security import remember
@@ -26,17 +23,22 @@ class User(object):
         USERS[login] = self
 
     def check_password(self, passwd, group):
+        # This provides authentication via CADC.
         """check that the passwd provided matches the required password."""
         return gms.isMember(self.login, passwd, group)
 
-@forbidden_view_config()
-def forbidden_view(request):
-    # do not allow a user to login if they are already logged in
-    if authenticated_userid(request):
-        return HTTPForbidden()
 
-    loc = request.route_url('login', _query=(('next', request.path),))
-    return HTTPFound(location=loc)
+
+# COMMENTED OUT FOR TESTING ONLY
+
+# @forbidden_view_config()
+# def forbidden_view(request):
+#     # do not allow a user to login if they are already logged in
+#     if authenticated_userid(request):
+#         return HTTPForbidden()
+
+#     loc = request.route_url('login', _query=(('next', request.path),))
+#     return HTTPFound(location=loc)
 
 
 @view_config(
@@ -50,7 +52,7 @@ def login_view(request):
     if 'submit' in request.POST:
         login = request.POST.get('login', '')
         passwd = request.POST.get('passwd', '')
-        user = USERS.get(login,User(login, groups=['OSSOS']))
+        user = USERS.get(login, User(login, groups=['OSSOS']))
         if user.check_password(passwd, 'OSSOS'):
             headers = remember(request, login)
             return HTTPFound(location=next, headers=headers)
