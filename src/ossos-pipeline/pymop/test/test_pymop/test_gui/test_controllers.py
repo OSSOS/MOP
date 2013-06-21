@@ -31,10 +31,11 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase):
         self.controller = ProcessRealsController(self.task, self.model, self.name_generator)
 
     def test_reject_disables_validation_controls(self):
+        comment = "test"
         view = self.controller.get_view()
 
         assert_that(view.is_source_validation_enabled(), equal_to(True))
-        self.controller.on_reject()
+        self.controller.on_do_reject(comment)
 
         # We have moved to the next item, so it should still be enabled
         assert_that(view.is_source_validation_enabled(), equal_to(True))
@@ -50,12 +51,13 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase):
         assert_that(view.is_source_validation_enabled(), equal_to(True))
 
     def test_reject_last_item_disables_validation_controls(self):
+        comment = "test"
         view = self.controller.get_view()
 
         self.controller.on_next_obs()
         self.controller.on_next_obs()
         assert_that(view.is_source_validation_enabled(), equal_to(True))
-        self.controller.on_reject()
+        self.controller.on_do_reject(comment)
 
         # We have moved to the next item (looped back to beginning), so it should still be enabled
         assert_that(view.is_source_validation_enabled(), equal_to(True))

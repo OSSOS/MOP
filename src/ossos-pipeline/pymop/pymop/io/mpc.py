@@ -153,6 +153,37 @@ class MPCWriter(object):
         self.filehandle.write(line)
         self.filehandle.flush()
 
+    def write_rejection_line(self, date_of_obs, ra, dec):
+        date_of_obs = date_of_obs.ljust(17)
+
+        if not self.date_regex.match(date_of_obs):
+            raise MPCFieldFormatError("Date of observation",
+                                      "must match regex: %s" % self.date_regex.pattern,
+                                      date_of_obs)
+
+        if not _is_numeric(ra):
+            raise MPCFieldFormatError("RA",
+                                      "must be numeric (can be in string form)",
+                                      ra)
+
+        if not _is_numeric(dec):
+            raise MPCFieldFormatError("DEC",
+                                      "must be numeric (can be in string form)",
+                                      dec)
+
+        formatted_ra, formatted_dec = format_ra_dec(ra, dec)
+
+        line = ("!" + " " * 14 + date_of_obs + formatted_ra +
+                formatted_dec + " " * 24 + "\n")
+
+        # subtract 1 because of newline character
+        line_len = len(line) - 1
+        if line_len != 80:
+            raise MPCFormatError("MPC line must be 80 characters but was: %d" % line_len)
+
+        self.filehandle.write(line)
+        self.filehandle.flush()
+
 
 class MPCFormatError(Exception):
     """Base class for errors in MPC formatting."""
