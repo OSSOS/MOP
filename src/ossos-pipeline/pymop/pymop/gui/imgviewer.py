@@ -27,6 +27,9 @@ class ColormappedFitsImage(object):
     def update_bias(self, bias_diff):
         self.colormap.update_bias(bias_diff)
 
+    def reset_colormap(self):
+        self.colormap.set_defaults()
+
     def get_image_data(self):
         return self.fits_image.as_hdulist()[0].data
 
@@ -110,6 +113,7 @@ class MPLImageViewer(object):
     def _refresh_displayed_colormap(self):
         self.axes_image.set_cmap(self.current_image.get_cmap())
         self.axes_image.changed()
+        self.redraw()
 
     def update_colormap(self, dx, dy):
         assert self.current_image is not None, "No image to update colormap for."
@@ -120,6 +124,10 @@ class MPLImageViewer(object):
         self.current_image.update_contrast(contrast_diff)
         self.current_image.update_bias(bias_diff)
 
+        self._refresh_displayed_colormap()
+
+    def reset_colormap(self):
+        self.current_image.reset_colormap()
         self._refresh_displayed_colormap()
 
     def has_had_interaction(self):
@@ -361,15 +369,7 @@ class GrayscaleColorMap(object):
     """
 
     def __init__(self):
-        self._contrast = 0.5
-        self._bias = 0.5
-
-        self.x_spread = 1.0
-        self.y_spread = 1.0
-
-        self.x_offset = 0.0
-
-        self._build_cdict()
+        self.set_defaults()
 
     def _build_cdict(self):
         lower_segment_x = self._clip(self.x_offset + 0.5 - self.x_spread / 2)
@@ -393,6 +393,16 @@ class GrayscaleColorMap(object):
         for color in ["red", "green", "blue"]:
             self.cdict[color] = [self.min_bounds, self.lower_segment_bounds,
                                  self.upper_segment_bounds, self.max_bounds]
+
+    def set_defaults(self):
+        self._contrast = 0.5
+        self._bias = 0.5
+
+        self.x_spread = 1.0
+        self.y_spread = 1.0
+        self.x_offset = 0.0
+
+        self._build_cdict()
 
     def set_bias(self, bias):
         """
