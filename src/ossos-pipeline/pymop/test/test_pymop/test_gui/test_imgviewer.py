@@ -12,7 +12,7 @@ from pymop.gui.imgviewer import (InteractionContext, MoveCircleState,
                                  CreateCircleState, AdjustColormapState)
 
 
-class MPLViewTest(unittest.TestCase):
+class MPLImageViewerTest(unittest.TestCase):
     def setUp(self):
         self.app = wx.App()
         self.rootframe = wx.Frame(None)
