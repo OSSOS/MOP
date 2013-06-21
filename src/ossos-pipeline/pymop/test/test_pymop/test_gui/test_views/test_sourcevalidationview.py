@@ -6,7 +6,8 @@ from mock import Mock, call
 from hamcrest import assert_that, equal_to, has_length, contains
 
 from test.base_tests import WxWidgetTestCase
-from pymop.gui.views import AcceptSourceDialog
+from pymop.gui.views import (SourceValidationDialog, AcceptSourceDialog,
+                             RejectSourceDialog)
 from pymop.gui.controllers import ProcessRealsController
 
 # Constants used for test data
@@ -100,15 +101,36 @@ class AcceptSourceDialogTest(WxWidgetTestCase):
         get(AcceptSourceDialog.COMMENT).SetValue(TEST_COMMENT)
 
         # Submit data
-        ok_button = self.get_child_by_name(undertest, AcceptSourceDialog.SUBMIT_BTN)
+        ok_button = self.get_child_by_name(
+            undertest, SourceValidationDialog.SUBMIT_BTN)
         self.fire_button_click_event(ok_button)
 
         # Check data
-        assert_that(not self.controller.on_cancel_accept.called)
+        assert_that(self.controller.on_cancel_accept.called, equal_to(False))
         self.controller.on_do_accept.assert_called_once_with(
             TEST_MINOR_PLANET_NUMBER, TEST_PROVISIONAL_NAME, TEST_DISCOVERY_AST,
             TEST_NOTE1, TEST_NOTE2, TEST_DATE, str(TEST_RA), str(TEST_DEC), TEST_MAG,
             TEST_BAND, TEST_OBS_CODE, TEST_COMMENT)
+
+
+class RejectSourceDialogTest(WxWidgetTestCase):
+    def setUp(self):
+        super(RejectSourceDialogTest, self).setUp()
+
+        self.controller = Mock(spec=ProcessRealsController)
+        self.undertest = RejectSourceDialog(self.rootframe, self.controller)
+
+    def test_submit_comment(self):
+        # Enter data
+        self.get_child_by_name(
+            self.undertest, RejectSourceDialog.COMMENT).SetValue(TEST_COMMENT)
+
+        # Submit data
+        ok_button = self.get_child_by_name(
+            self.undertest, SourceValidationDialog.SUBMIT_BTN)
+        self.fire_button_click_event(ok_button)
+
+        self.controller.on_do_reject.assert_called_once_with(TEST_COMMENT)
 
 
 if __name__ == '__main__':
