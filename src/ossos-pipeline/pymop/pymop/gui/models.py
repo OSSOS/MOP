@@ -266,7 +266,7 @@ class ProcessRealsModel(AbstractModel):
         self._source_discovery_asterisk = [False] * self.get_source_count()
 
         output_filename = os.path.join(self.workload.get_working_directory(), "reals.mpc")
-        self.output_file = open(output_filename, "wb")
+        self.output_file = open(output_filename, "ab")
         self.writer = MPCWriter(self.output_file)
 
     def _create_vettable_items(self):
