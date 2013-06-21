@@ -12,7 +12,7 @@ from wx.lib.pubsub import setupv1
 from wx.lib.pubsub import Publisher as pub
 
 from pymop.io.mpc import MPCWriter
-from pymop.io.astrom import AstromWriter
+from pymop.io.astrom import StreamingAstromWriter
 
 # Pub/Sub ids
 MSG_ROOT = ("astrodataroot", )
@@ -314,8 +314,8 @@ class ProcessCandidatesModel(AbstractModel):
             output_filehandle = open(output_filename, "wb")
             self.outputfiles.append(output_filehandle)
 
-            writer = AstromWriter(output_filehandle)
-            writer.write_headers(astrom_data.observations, astrom_data.sys_header)
+            writer = StreamingAstromWriter(output_filehandle,
+                                           astrom_data.sys_header)
             self.writers.append(writer)
 
     def _create_vettable_items(self):
