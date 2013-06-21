@@ -11,20 +11,35 @@ from hamcrest import assert_that, equal_to, has_length, contains, none, same_ins
 from mock import Mock, patch
 
 from test.base_tests import FileReadingTestCase
+from pymop import tasks
 from pymop.gui import models
 from pymop.gui.models import VettableItem
 from pymop.io.astrom import AstromWorkload
 from pymop.io.img import FitsImage
+
+MODEL_TEST_DIR_1 = "data/model_testdir_1"
+MODEL_TEST_DIR_2 = "data/model_testdir_2"
+MODEL_TEST_DIR_3 = "data/model_testdir_3"
+
+TEST_FILE_1 = "1584431p15.measure3.reals.astrom"
+TEST_FILE_2 = "1616681p10.measure3.reals.astrom"
 
 
 class GeneralModelTest(FileReadingTestCase):
     def setUp(self):
         pub.unsubAll()
 
-        testfile = self.get_abs_path("data/1584431p15.measure3.cands.astrom")
-        working_dir, filename = os.path.split(testfile)
-        self.workload = AstromWorkload(working_dir, [filename])
+        progress = Mock()
+        progress.get_processed.return_value = []
+        self.workload = AstromWorkload(self._get_working_dir(), progress,
+                                       self._get_task())
         self.download_manager = Mock()
+
+    def _get_task(self):
+        raise NotImplementedError()
+
+    def _get_working_dir(self):
+        raise NotImplementedError()
 
     def create_real_first_image(self, path="data/testimg.fits"):
         # Put a real fits image on the first source, first observation
@@ -35,6 +50,12 @@ class GeneralModelTest(FileReadingTestCase):
 
 
 class AbstractRealsModelTest(GeneralModelTest):
+    def _get_working_dir(self):
+        return self.get_abs_path(MODEL_TEST_DIR_1)
+
+    def _get_task(self):
+        return tasks.REALS_TASK
+
     def setUp(self):
         super(AbstractRealsModelTest, self).setUp()
 
@@ -319,6 +340,12 @@ class AbstractRealsModelTest(GeneralModelTest):
 
 
 class ProcessRealsModelTest(GeneralModelTest):
+    def _get_working_dir(self):
+        return self.get_abs_path(MODEL_TEST_DIR_1)
+
+    def _get_task(self):
+        return tasks.REALS_TASK
+
     def setUp(self):
         super(ProcessRealsModelTest, self).setUp()
 
@@ -509,6 +536,12 @@ class ProcessRealsModelTest(GeneralModelTest):
 
 
 class ProcessCandidatesModelTest(GeneralModelTest):
+    def _get_working_dir(self):
+        return self.get_abs_path(MODEL_TEST_DIR_3)
+
+    def _get_task(self):
+        return tasks.CANDS_TASK
+
     def setUp(self):
         super(ProcessCandidatesModelTest, self).setUp()
 
@@ -623,12 +656,10 @@ class MultipleAstromDataModelTest(FileReadingTestCase):
     def setUp(self):
         pub.unsubAll()
 
-        testfile1 = self.get_abs_path("data/1584431p15.measure3.cands.astrom")
-        testfile2 = self.get_abs_path("data/1616681p10.measure3.cands.astrom")
-        working_dir, filename1 = os.path.split(testfile1)
-        working_dir, filename2 = os.path.split(testfile2)
-
-        self.workload = AstromWorkload(working_dir, [filename1, filename2])
+        working_dir = self.get_abs_path(MODEL_TEST_DIR_2)
+        progress = Mock()
+        progress.get_processed.return_value = []
+        self.workload = AstromWorkload(working_dir, progress, tasks.REALS_TASK)
         self.download_manager = Mock()
 
         self.model = models.ProcessRealsModel(self.workload, self.download_manager)
@@ -681,6 +712,38 @@ class MultipleAstromDataModelTest(FileReadingTestCase):
         self.model.previous_source()
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_source(), equal_to(first_sources[0]))
+
+    def test_file_processed_event(self):
+        observer = Mock()
+        pub.subscribe(observer.on_file_processed, models.MSG_FILE_PROC)
+
+        # Order that the files are processed in is not guaranteed
+        filename = self.model.get_current_filename()
+        if filename == TEST_FILE_1:
+            accepts_before_next_file = 9
+        elif filename == TEST_FILE_2:
+            accepts_before_next_file = 6
+        else:
+            self.fail("Unexpected file.")
+
+        while accepts_before_next_file > 1:
+            self.model.accept_current_item()
+            self.model.next_item()
+            assert_that(observer.on_file_processed.call_count, equal_to(0))
+            accepts_before_next_file -= 1
+
+        self.model.accept_current_item()
+        assert_that(observer.on_file_processed.call_count, equal_to(0))
+        self.model.next_item()
+        assert_that(observer.on_file_processed.call_count, equal_to(1))
+
+        # Make sure it was triggered with the right data
+        args = observer.on_file_processed.call_args[0]
+        assert_that(args, has_length(1))
+
+        msg = args[0]
+        assert_that(msg.topic, equal_to(models.MSG_FILE_PROC))
+        assert_that(msg.data, equal_to(filename))
 
 
 if __name__ == '__main__':
