@@ -254,114 +254,95 @@ class InteractionContext(object):
         self.viewer.deregister_event_handler(self.cidmotion)
 
 
-class MoveCircleState(object):
+class BaseInteractionState(object):
     def __init__(self, context):
+        self.context = context
+        self._set_blank_state()
+
+    def _set_blank_state(self):
+        self.pressed = False
+        self.had_drag = False
+
+        self.start_x = None
+        self.start_y = None
+        self.last_x = None
+        self.last_y = None
+
+    def on_press(self, event):
+        self.pressed = True
+
+        self.start_x = event.xdata
+        self.start_y = event.ydata
+        self.last_x = self.start_x
+        self.last_y = self.start_y
+
+    def on_motion(self, event):
+        if not self.pressed:
+            return
+
+        self.had_drag = True
+        self.on_drag(event)
+
+        self.last_x = event.xdata
+        self.last_y = event.ydata
+
+    def on_drag(self, event):
+        """
+        Implement to provide state-specific behaviour on motion.
+        """
+        pass
+
+    def on_release(self, event):
+        self._set_blank_state()
+
+
+class RecenteringState(BaseInteractionState):
+    def on_release(self, event):
+        if (self.pressed and
+                not self.had_drag and
+                    self.context.get_circle() is not None):
+            self.context.update_circle(self.start_x, self.start_y)
+
+        super(RecenteringState, self).on_release(event)
+
+
+class MoveCircleState(RecenteringState):
+    def __init__(self, context):
+        super(MoveCircleState, self).__init__(context)
+
         if context.get_circle() is None:
             raise MPLImageViewer("Can not move a circle if it doesn't exist!")
 
-        self.context = context
+    def on_drag(self, event):
+        center_x, center_y = self.context.get_circle().center
 
-        self.pressed = False
-        self.center_x = None
-        self.center_y = None
-        self.mouse_x = None
-        self.mouse_y = None
+        dx = event.xdata - self.last_x
+        dy = event.ydata - self.last_y
 
-    def on_press(self, event):
-        self.pressed = True
-
-        self.center_x, self.center_y = self.context.get_circle().center
-        self.mouse_x = event.xdata
-        self.mouse_y = event.ydata
-
-    def on_motion(self, event):
-        if not self.pressed:
-            return
-
-        dx = event.xdata - self.mouse_x
-        dy = event.ydata - self.mouse_y
-
-        self.context.update_circle(self.center_x + dx, self.center_y + dy)
-
-    def on_release(self, event):
-        self.pressed = False
-        self.center_x = None
-        self.center_y = None
-        self.mouse_x = None
-        self.mouse_y = None
+        self.context.update_circle(center_x + dx, center_y + dy)
 
 
-class CreateCircleState(object):
+class CreateCircleState(RecenteringState):
     def __init__(self, context):
-        self.context = context
+        super(CreateCircleState, self).__init__(context)
 
-        self.pressed = False
-        self.startx = None
-        self.starty = None
-        self.endx = None
-        self.endy = None
+    def on_drag(self, event):
+        center_x = float(self.start_x + event.xdata) / 2
+        center_y = float(self.start_y + event.ydata) / 2
 
-    def on_press(self, event):
-        self.pressed = True
+        radius = max(abs(self.start_x - event.xdata) / 2,
+                     abs(self.start_y - event.ydata) / 2)
 
-        self.startx = event.xdata
-        self.starty = event.ydata
-
-    def on_motion(self, event):
-        if not self.pressed:
-            return
-
-        self.endx = event.xdata
-        self.endy = event.ydata
-
-        centerx = float(self.startx + self.endx) / 2
-        centery = float(self.starty + self.endy) / 2
-
-        radius = max(abs(self.startx - self.endx) / 2,
-                     abs(self.starty - self.endy) / 2)
-
-        self.context.update_circle(centerx, centery, radius)
-
-    def on_release(self, event):
-        self.pressed = False
-        self.startx = None
-        self.starty = None
-        self.endx = None
-        self.endy = None
+        self.context.update_circle(center_x, center_y, radius)
 
 
-class AdjustColormapState(object):
-    """
-    TODO: refactor out similarity of these states
-    """
-
+class AdjustColormapState(BaseInteractionState):
     def __init__(self, context):
-        self.context = context
+        super(AdjustColormapState, self).__init__(context)
 
-        self.pressed = False
-        self.lastx = None
-        self.lasty = None
-
-    def on_press(self, event):
-        self.pressed = True
-
-        self.lastx = event.xdata
-        self.lasty = event.ydata
-
-    def on_motion(self, event):
-        if not self.pressed:
-            return
-
-        self.context.update_colormap(event.xdata - self.lastx,
-                                     event.ydata - self.lasty)
-
-        self.lastx = event.xdata
-        self.lasty = event.ydata
-
-    def on_release(self, event):
-        self.pressed = False
-        self.lastx = None
-        self.lasty = None
+    def on_drag(self, event):
+        self.context.update_colormap(event.xdata - self.last_x,
+                                     event.ydata - self.last_y)
 
 
 class GrayscaleColorMap(object):
