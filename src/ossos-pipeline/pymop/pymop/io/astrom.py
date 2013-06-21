@@ -321,8 +321,8 @@ class AstromWorkload(object):
     def get_astrom_data(self, index):
         return self.astrom_data_list[index]
 
-    def get_full_path(self, index):
-        return self.full_paths[index]
+    def get_filename(self, index):
+        return self.workload_filenames[index]
 
     def get_load_length(self):
         return len(self.astrom_data_list)
