@@ -185,7 +185,12 @@ class AstromParser(object):
         return AstromData(observations, sys_header, sources)
 
 
-class AstromWriter(object):
+class BaseAstromWriter(object):
+    """
+    Provides base functionality for AstromWriters.  Use the subclass for your
+    use case.
+    """
+
     def __init__(self, filehandle):
         self.output_file = filehandle
 
@@ -243,29 +248,23 @@ class AstromWriter(object):
         self._write_line("##     RMIN    RMAX   ANGLE   AWIDTH")
         self._write_line("# %8.1f%8.1f%8.1f%8.1f" % tuple(map(float, header_vals)))
 
-    def _write_source_data(self, sources, ignore_warn=True):
+    def _write_source_data(self, sources):
         """
         See src/jjk/measure3
         """
         for i, source in enumerate(sources):
-            self.write_source(source, ignore_warn=ignore_warn)
+            self._write_source(source)
 
-    def _write_source_header(self):
-        self._write_line("##   X        Y        X_0     Y_0          R.A.          DEC")
-
-    def write_source(self, source, ignore_warn=False):
-        """
-        Writes out data for a single source.  Must first call write_headers.
-        """
-        if not self._header_written and not ignore_warn:
-            raise AstromFormatError("Must write headers before data.")
-
+    def _write_source(self, source):
         self._write_blank_line()
 
         for reading in source:
             self._write_line(" %8.2f %8.2f %8.2f %8.2f %12.7f %12.7f" % (
                 reading.x, reading.y, reading.x0, reading.y0, reading.ra,
                 reading.dec), ljust=False)
+
+    def _write_source_header(self):
+        self._write_line("##   X        Y        X_0     Y_0          R.A.          DEC")
 
     def write_headers(self, observations, sys_header):
         """
@@ -281,6 +280,37 @@ class AstromWriter(object):
         self._write_source_header()
 
         self._header_written = True
+
+
+class StreamingAstromWriter(BaseAstromWriter):
+    """
+    Use if you want to write out sources one-by-one as they are validated.
+    See also BulkAstromWriter.
+    """
+
+    def __init__(self, filehandle, sys_header):
+        super(StreamingAstromWriter, self).__init__(filehandle)
+        self.sys_header = sys_header
+
+    def write_source(self, source):
+        """
+        Writes out data for a single source.
+        """
+        if not self._header_written:
+            observations = [reading.get_observation() for reading in source]
+            self.write_headers(observations, self.sys_header)
+
+        self._write_source(source)
+
+
+class BulkAstromWriter(BaseAstromWriter):
+    """
+    Use if you want to write out an entire AstromData structure at once.
+    See also StreamingAstromWriter.
+    """
+
+    def __init__(self, filehandle):
+        super(BulkAstromWriter, self).__init__(filehandle)
 
     def write_astrom_data(self, astrom_data):
         """
@@ -463,6 +493,9 @@ class SourceReading(object):
 
     def get_exposure_number(self):
         return self.obs.expnum
+
+    def get_observation(self):
+        return self.obs
 
     def __repr__(self):
         return "<SourceReading x=%s, y=%s, x0=%s, y0=%s, ra=%s, dec=%s, obs=%s" % (
