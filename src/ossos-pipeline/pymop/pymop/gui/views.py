@@ -249,10 +249,12 @@ class KeybindManager(object):
         self.controller = controller
 
         next_obs_kb_id = wx.NewId()
+        prev_obs_kb_id = wx.NewId()
         accept_src_kb_id = wx.NewId()
         reject_src_kb_id = wx.NewId()
 
         view.Bind(wx.EVT_MENU, self.on_next_obs_keybind, id=next_obs_kb_id)
+        view.Bind(wx.EVT_MENU, self.on_prev_obs_keybind, id=prev_obs_kb_id)
         view.Bind(wx.EVT_MENU, self.on_accept_src_keybind, id=accept_src_kb_id)
         view.Bind(wx.EVT_MENU, self.on_reject_src_keybind, id=reject_src_kb_id)
 
@@ -262,6 +264,7 @@ class KeybindManager(object):
         accelerators = wx.AcceleratorTable(
             [
                 (wx.ACCEL_NORMAL, wx.WXK_TAB, next_obs_kb_id),
+                (wx.ACCEL_SHIFT, wx.WXK_TAB, prev_obs_kb_id),
                 (wx.ACCEL_NORMAL, ord(accept_key), accept_src_kb_id),
                 (wx.ACCEL_NORMAL, ord(reject_key), reject_src_kb_id),
             ]
@@ -274,6 +277,9 @@ class KeybindManager(object):
 
         # Note: event consumed (no call to event.Skip()) so that we don't
         # have tab iterating over the buttons like it does by default
+
+    def on_prev_obs_keybind(self, event):
+        self.controller.on_previous_obs()
 
     def on_accept_src_keybind(self, event):
         self.controller.on_accept()
