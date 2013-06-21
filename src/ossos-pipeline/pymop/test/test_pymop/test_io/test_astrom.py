@@ -7,7 +7,9 @@ from hamcrest import (assert_that, equal_to, has_length, has_entries,
                       same_instance, contains, close_to)
 
 from test.base_tests import FileReadingTestCase
-from pymop.io.astrom import (AstromParser, AstromWriter, Observation)
+from pymop.io import astrom
+from pymop.io.astrom import (AstromParser, StreamingAstromWriter, Observation,
+                             BaseAstromWriter, BulkAstromWriter)
 
 TEST_FILE_1 = "data/1584431p15.measure3.cands.astrom"
 TEST_FILE_2 = "data/1616681p22.measure3.cands.astrom"
@@ -206,7 +208,6 @@ class GeneralAstromWriterTest(FileReadingTestCase):
         self.parser = AstromParser()
         self.outputfile = tempfile.NamedTemporaryFile(suffix=".astrom",
                                                       mode="w+b")
-        self.writer = AstromWriter(self.outputfile)
 
     def tearDown(self):
         self.outputfile.close()
@@ -217,6 +218,12 @@ class GeneralAstromWriterTest(FileReadingTestCase):
 
     def parse(self, filename=TEST_FILE_1):
         return AstromParser().parse(self.get_abs_path(filename))
+
+
+class BaseAstromWriterTest(GeneralAstromWriterTest):
+    def setUp(self):
+        super(BaseAstromWriterTest, self).setUp()
+        self.writer = BaseAstromWriter(self.outputfile)
 
     def test_write_observation_list(self):
         expected = ("# 1584431p15                                                                    \n"
@@ -286,9 +293,15 @@ class GeneralAstromWriterTest(FileReadingTestCase):
 
         astrom_data = self.parse(TEST_FILE_1)
 
-        self.writer._write_source_data(astrom_data.sources, ignore_warn=True)
+        self.writer._write_source_data(astrom_data.sources)
 
         assert_that(self.read_output(), equal_to(expected))
+
+
+class BulkAstromWriterTest(GeneralAstromWriterTest):
+    def setUp(self):
+        super(BulkAstromWriterTest, self).setUp()
+        self.writer = BulkAstromWriter(self.outputfile)
 
     def test_parse_then_rewrite(self):
         """
@@ -305,7 +318,15 @@ class GeneralAstromWriterTest(FileReadingTestCase):
 
         assert_that(actual, equal_to(expected))
 
-    def test_write_line(self):
+
+class StreamingAstromWriterTest(GeneralAstromWriterTest):
+    def setUp(self):
+        super(StreamingAstromWriterTest, self).setUp()
+        sys_header = {astrom.RMIN: 0.5, astrom.RMAX: 10.3,
+                      astrom.ANGLE: -19.9, astrom.AWIDTH: 22.3}
+        self.writer = StreamingAstromWriter(self.outputfile, sys_header)
+
+    def test_write_source(self):
         with open(self.get_abs_path(TEST_FILE_1), "rb") as fh:
             expected_lines = fh.readlines()
 
@@ -319,8 +340,6 @@ class GeneralAstromWriterTest(FileReadingTestCase):
         source3 = astrom_data.sources[2]
 
         assert_that(self.read_output(), equal_to(""))
-        self.writer.write_headers(astrom_data.observations, astrom_data.sys_header)
-        assert_that(self.read_output(), equal_to(get_expected(24)))
         self.writer.write_source(source1)
         assert_that(self.read_output(), equal_to(get_expected(28)))
         self.writer.write_source(source2)
