@@ -303,6 +303,8 @@ class AstromWorkload(object):
             raise ValueError("Empty workload!")
 
         self.working_directory = working_directory
+        self.progress = progress
+        self.task = task
         self.workload_filenames = workload_filenames
 
         self.full_paths = [os.path.join(working_directory, filename)
@@ -343,6 +345,10 @@ class AstromWorkload(object):
             count += astrom_data.get_reading_count()
 
         return count
+
+    def record_processed(self, filename):
+        self.progress.record_processed(filename, self.task)
+        self.progress.flush()
 
 
 class AstromData(object):
