@@ -7,6 +7,9 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 import re
 
+from pymop import tasks
+
+
 HEADER_LINE_LENGTH = 80
 
 ## Observation header keys
@@ -321,11 +324,17 @@ class BulkAstromWriter(BaseAstromWriter):
 
 
 class AstromWorkload(object):
-    def __init__(self, working_directory, workload_filenames):
+    def __init__(self, working_directory, progress, task):
+        working_dir_files = tasks.listdir_for_task(working_directory, task)
+        workload_filenames = [filename for filename in working_dir_files
+                              if filename not in progress.get_processed(task)]
+
         if len(workload_filenames) == 0:
-            raise ValueError("No files in workload!")
+            raise ValueError("Empty workload!")
 
         self.working_directory = working_directory
+        self.progress = progress
+        self.task = task
         self.workload_filenames = workload_filenames
 
         self.full_paths = [os.path.join(working_directory, filename)
@@ -344,8 +353,8 @@ class AstromWorkload(object):
     def get_astrom_data(self, index):
         return self.astrom_data_list[index]
 
-    def get_full_path(self, index):
-        return self.full_paths[index]
+    def get_filename(self, index):
+        return self.workload_filenames[index]
 
     def get_load_length(self):
         return len(self.astrom_data_list)
@@ -366,6 +375,10 @@ class AstromWorkload(object):
             count += astrom_data.get_reading_count()
 
         return count
+
+    def record_processed(self, filename):
+        self.progress.record_processed(filename, self.task)
+        self.progress.flush()
 
 
 class AstromData(object):
