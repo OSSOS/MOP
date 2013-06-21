@@ -1,13 +1,12 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import os
-
 import wx
 import wx.lib.inspection
 
 from pymop import config
 from pymop import tasks
 from pymop.io.astrom import AstromParser, AstromWorkload
+from pymop.io import persistence
 from pymop.io.naming import ProvisionalNameGenerator
 from pymop.io.imgaccess import (AsynchronousImageDownloadManager,
                                 ImageSliceDownloader, VOSpaceResolver)
@@ -35,8 +34,7 @@ class AbstractTask(object):
         self.download_manager = AsynchronousImageDownloadManager(
             ImageSliceDownloader(VOSpaceResolver()))
 
-    def get_suffix(self):
-        """The suffix for files this task processes."""
+    def get_task(self):
         raise NotImplementedError()
 
     def _create_model(self, workload):
@@ -46,9 +44,8 @@ class AbstractTask(object):
         raise NotImplementedError()
 
     def start(self, working_directory):
-        workload_files = listdir_for_suffix(working_directory, self.get_suffix())
-        workload = AstromWorkload(working_directory, workload_files)
-
+        progress = persistence.load_progress(working_directory)
+        workload = AstromWorkload(working_directory, progress, self.get_task())
         model = self._create_model(workload)
         self._create_controller(model)
 
@@ -60,8 +57,8 @@ class ProcessCandidatesTask(AbstractTask):
     def __init__(self):
         super(ProcessCandidatesTask, self).__init__()
 
-    def get_suffix(self):
-        return ".cands.astrom"
+    def get_task(self):
+        return tasks.CANDS_TASK
 
     def _create_model(self, workload):
         return ProcessCandidatesModel(workload, self.download_manager)
@@ -76,8 +73,8 @@ class ProcessRealsTask(AbstractTask):
 
         self.name_generator = ProvisionalNameGenerator()
 
-    def get_suffix(self):
-        return ".reals.astrom"
+    def get_task(self):
+        return tasks.REALS_TASK
 
     def _create_model(self, workload):
         return ProcessRealsModel(workload, self.download_manager)
@@ -134,8 +131,3 @@ def acquire_lock(directory):
     # If it doesn't exist, create one containing our user name
     # If one does exist, throw exception
     pass
-
-
-def listdir_for_suffix(directory, suffix):
-    """Note this returns file names, not full paths."""
-    return filter(lambda name: name.endswith(suffix), os.listdir(directory))
