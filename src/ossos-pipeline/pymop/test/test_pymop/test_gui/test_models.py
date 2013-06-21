@@ -21,6 +21,9 @@ MODEL_TEST_DIR_1 = "data/model_testdir_1"
 MODEL_TEST_DIR_2 = "data/model_testdir_2"
 MODEL_TEST_DIR_3 = "data/model_testdir_3"
 
+TEST_FILE_1 = "1584431p15.measure3.reals.astrom"
+TEST_FILE_2 = "1616681p10.measure3.reals.astrom"
+
 
 class GeneralModelTest(FileReadingTestCase):
     def setUp(self):
@@ -709,6 +712,38 @@ class MultipleAstromDataModelTest(FileReadingTestCase):
         self.model.previous_source()
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_source(), equal_to(first_sources[0]))
+
+    def test_file_processed_event(self):
+        observer = Mock()
+        pub.subscribe(observer.on_file_processed, models.MSG_FILE_PROC)
+
+        # Order that the files are processed in is not guaranteed
+        filename = self.model.get_current_filename()
+        if filename == TEST_FILE_1:
+            accepts_before_next_file = 9
+        elif filename == TEST_FILE_2:
+            accepts_before_next_file = 6
+        else:
+            self.fail("Unexpected file.")
+
+        while accepts_before_next_file > 1:
+            self.model.accept_current_item()
+            self.model.next_item()
+            assert_that(observer.on_file_processed.call_count, equal_to(0))
+            accepts_before_next_file -= 1
+
+        self.model.accept_current_item()
+        assert_that(observer.on_file_processed.call_count, equal_to(0))
+        self.model.next_item()
+        assert_that(observer.on_file_processed.call_count, equal_to(1))
+
+        # Make sure it was triggered with the right data
+        args = observer.on_file_processed.call_args[0]
+        assert_that(args, has_length(1))
+
+        msg = args[0]
+        assert_that(msg.topic, equal_to(models.MSG_FILE_PROC))
+        assert_that(msg.data, equal_to(filename))
 
 
 if __name__ == '__main__':
