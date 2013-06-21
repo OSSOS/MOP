@@ -724,8 +724,8 @@ class RejectSourceDialog(SourceValidationDialog):
 
     def __init__(self, parent, controller):
         super(RejectSourceDialog, self).__init__(parent, title=self.TITLE)
-
         self.controller = controller
+        self.comment_text.SetFocus()
 
     def _init_ui(self):
         self.comment_label = wx.StaticText(self, label=RejectSourceDialog.COMMENT)
