@@ -296,7 +296,17 @@ class BaseInteractionState(object):
         self._set_blank_state()
 
 
-class MoveCircleState(BaseInteractionState):
+class RecenteringState(BaseInteractionState):
+    def on_release(self, event):
+        if (self.pressed and
+                not self.had_drag and
+                    self.context.get_circle() is not None):
+            self.context.update_circle(self.start_x, self.start_y)
+
+        super(RecenteringState, self).on_release(event)
+
+
+class MoveCircleState(RecenteringState):
     def __init__(self, context):
         super(MoveCircleState, self).__init__(context)
 
@@ -312,7 +322,7 @@ class MoveCircleState(BaseInteractionState):
         self.context.update_circle(center_x + dx, center_y + dy)
 
 
-class CreateCircleState(BaseInteractionState):
+class CreateCircleState(RecenteringState):
     def __init__(self, context):
         super(CreateCircleState, self).__init__(context)
 
