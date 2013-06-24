@@ -126,6 +126,10 @@ class ProgressManager(object):
     def unlock(self, filename):
         lockfile = self._get_full_path(filename + LOCK_SUFFIX)
 
+        if not os.path.exists(lockfile):
+            # The lock file was probably already cleaned up by record_done
+            return
+
         with open(lockfile, "rb") as filehandle:
             locker = filehandle.read()
             if locker == getpass.getuser():

@@ -69,8 +69,6 @@ class AbstractModel(object):
         self.workload = workload
         self.download_manager = download_manager
 
-        self._current_astrom_data_number = 0
-
         # These indices are within the current astrom data
         self._current_src_number = 0
         self._current_obs_number = 0
@@ -80,17 +78,17 @@ class AbstractModel(object):
         self._vettable_items = self._create_vettable_items()
 
     def _get_current_astrom_data(self):
-        return self.workload.get_astrom_data(self._current_astrom_data_number)
+        return self.workload.get_current_astrom_data()
 
     def get_current_filename(self):
-        return self.workload.get_filename(self._current_astrom_data_number)
+        return self.workload.get_current_filename()
 
     def _create_vettable_items(self):
         raise NotImplementedError()
 
     def get_current_source_number(self):
         already_processed = 0
-        for index in range(self._current_astrom_data_number):
+        for index in xrange(self.workload.current_astrom_data_index):
             processed_data = self.workload.get_astrom_data(index)
             already_processed += processed_data.get_source_count()
 
@@ -105,7 +103,7 @@ class AbstractModel(object):
             pub.sendMessage(MSG_FILE_PROC, self.get_current_filename())
             self.workload.record_done(self.get_current_filename())
 
-            self._current_astrom_data_number = (self._current_astrom_data_number + 1) % self.workload.get_load_length()
+            self.workload.next_file()
             self._current_src_number = 0
         else:
             self._current_src_number += 1
@@ -115,7 +113,7 @@ class AbstractModel(object):
 
     def previous_source(self):
         if self._current_src_number == 0:
-            self._current_astrom_data_number = (self._current_astrom_data_number - 1) % self.workload.get_load_length()
+            self.workload.previous_file()
             self._current_src_number = self._get_current_astrom_data().get_source_count() - 1
         else:
             self._current_src_number -= 1
@@ -344,4 +342,4 @@ class ProcessCandidatesModel(AbstractModel):
         return self._vettable_items[self.get_current_source()]
 
     def get_writer(self):
-        return self.writers[self._current_astrom_data_number]
+        return self.writers[self.workload.current_astrom_data_index]
