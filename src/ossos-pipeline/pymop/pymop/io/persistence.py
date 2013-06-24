@@ -12,7 +12,7 @@ REALS = "REALS"
 DONE_SUFFIX = ".DONE"
 
 
-class PersistenceManager(object):
+class ProgressManager(object):
     """
     Manages persistence of progress made processing files in a directory.
     """
@@ -20,12 +20,12 @@ class PersistenceManager(object):
     def __init__(self, directory):
         self.directory = directory
 
-    def get_processed(self, task):
+    def get_done(self, task):
         listing = tasks.listdir_for_suffix(self.directory,
                                            self._get_done_suffix(task))
         return [done_file[:-len(DONE_SUFFIX)] for done_file in listing]
 
-    def record_processed(self, filename):
+    def record_done(self, filename):
         open(self._get_full_path(filename) + DONE_SUFFIX, "wb").close()
 
     def clean(self):
