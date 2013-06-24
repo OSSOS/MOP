@@ -141,7 +141,7 @@ class MPLImageViewer(object):
         if self.circle is not None:
             self.circle.remove()
 
-        self.circle = plt.Circle((x, y), radius, color="y", fill=False)
+        self.circle = plt.Circle((x, y), radius, color="b", fill=False)
         self.axes.add_patch(self.circle)
 
         self.redraw()
