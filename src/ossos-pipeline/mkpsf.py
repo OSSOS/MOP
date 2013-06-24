@@ -93,14 +93,23 @@ if __name__ == '__main__':
     for expnum in args.expnum:
         for ccd in ccdlist:
             try:
-                #if ossos.storage.get_status(expnum, ccd, 'mkpsf'):
-                #    logging.info("Already did %s %s, skipping" %( str(expnum),
-                #    str(ccd)))
-                ## already succeeded
-                #    continue
+                if ossos.storage.get_status(expnum, ccd, 'mkpsf'):
+                    logging.info("Already did %s %s, skipping" %( str(expnum),
+                                                                  str(ccd)))
+                    coninue
                 message = 'success'
                 run_mkpsf(expnum, ccd)
-
+                ossos.storage.set_status(expnum,
+                                         ccd,
+                                         'fwhm',
+                                         str(ossos.storage.get_fwhm(
+                    expnum, ccd)))
+                ossos.storage.set_status(expnum,
+                                         ccd,
+                                         'zeropoint',
+                                         str(ossos.storage.get_zeropoint(
+                    expnum, ccd)))
+                                         
             except Exception as e:
                 message = str(e)
 
@@ -109,4 +118,4 @@ if __name__ == '__main__':
                                       ccd,
                                       'mkpsf',
                                       message)
-
+                       
