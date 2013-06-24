@@ -1,12 +1,15 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import getpass
 import unittest
 
-from hamcrest import assert_that, contains_inanyorder, has_length, contains
+from mock import patch
+from hamcrest import (assert_that, contains_inanyorder, has_length, contains,
+                      equal_to)
 
 from test.base_tests import FileReadingTestCase
 from pymop import tasks
-from pymop.io.persistence import ProgressManager
+from pymop.io.persistence import ProgressManager, FileLockedException
 from pymop.io.astrom import AstromWorkload
 
 WD_HAS_PROGRESS = "data/persistence_has_progress"
@@ -109,6 +112,37 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
                     has_length(0))
         assert_that(self.progress_manager.get_done(tasks.REALS_TASK),
                     contains_inanyorder(processed1, processed2))
+
+    def test_lock_file(self):
+        file1 = "xxx1.cands.astrom"
+        self.progress_manager.lock(file1)
+
+        # No-one else should be able to acquire the lock...
+        manager2 = ProgressManager(self.working_directory)
+        self.assertRaises(FileLockedException, manager2.lock, file1)
+
+        # ... until we unlock it
+        self.progress_manager.unlock(file1)
+        manager2.lock(file1)
+
+    @patch.object(getpass, "getuser")
+    def test_lock_has_locker_id(self, getuser_mock):
+        lock_holding_user = "lock_holding_user"
+        lock_requesting_user = "lock_requesting_user"
+
+        getuser_mock.return_value = lock_holding_user
+        file1 = "xxx1.cands.astrom"
+        self.progress_manager.lock(file1)
+
+        manager2 = ProgressManager(self.working_directory)
+
+        try:
+            getuser_mock.return_value = lock_requesting_user
+            manager2.lock(file1)
+            self.fail("Should have thrown FileLockedExcecption")
+        except FileLockedException as ex:
+            assert_that(ex.filename, equal_to(file1))
+            assert_that(ex.locker, equal_to(lock_holding_user))
 
 
 if __name__ == '__main__':
