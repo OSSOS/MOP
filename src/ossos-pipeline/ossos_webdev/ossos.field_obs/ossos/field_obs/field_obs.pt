@@ -7,7 +7,7 @@
   <title>OSSOS: Field Inspection</title>
   <link rel="stylesheet" type="text/css" href="/css/bootstrap.css" />
   <style type = "text/css">
-    .triplet-image {font-weight: bold;}
+    .normal-image {}
   </style>
   </head>
 
@@ -39,7 +39,7 @@
       </div> <!-- well -->
 
       <table class="table table-striped table-condensed table-hover">
-      	<caption colspan="10">
+      	<caption colspan="3">
       		Images forming the discovery triplet are <b>highlighted</b>
       	</caption>
       	<thead>
@@ -51,17 +51,17 @@
       	</thead>
       	<tbody>
       		<tal:block tal:repeat="obj observations['obs']">
-      			<tr tal:attributes = "class 'success' if obj[2] in discovery_triplet else 'normal-image'">
+        		<tr tal:condition="discovery_triplet" tal:attributes = "class 'success' if obj[2] in discovery_triplet[0] else 'normal-image'">
       				<tal:block tal:condition="obj">
       					<td>${obj[0].strftime('%Y-%m-%d %H:%M:%S')}</td> 
       					<td>${'%.2f' % obj[1]}</td>
                 <td>${obj[2]}</td>	
       				</tal:block>
-      				<td tal:condition="not(obj)" colspan="3">
+      				<td tal:condition="not(obj)" colspan="3">  <!-- NEED TO IMPROVE THIS! -->
       					&mdash;
       				</td>
       			</tr>
-      		</tal:block>
+      		</tal:block>  <!-- tal:repeat obj observations -->
       	</tbody>
       </table>
 
