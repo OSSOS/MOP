@@ -344,11 +344,30 @@ class AstromWorkload(object):
 
         self.astrom_data_list = [parser.parse(filename) for filename in self.full_paths]
 
+        self.current_astrom_data_index = 0
+        self._lock_current_file()
+
     def __iter__(self):
         return iter(zip(self.workload_filenames, self.astrom_data_list))
 
+    def next_file(self):
+        self._unlock_current_file()
+        self.current_astrom_data_index = (self.current_astrom_data_index + 1) % self.get_load_length()
+        self._lock_current_file()
+
+    def previous_file(self):
+        self._unlock_current_file()
+        self.current_astrom_data_index = (self.current_astrom_data_index - 1) % self.get_load_length()
+        self._lock_current_file()
+
     def get_working_directory(self):
         return self.working_directory
+
+    def get_current_astrom_data(self):
+        return self.get_astrom_data(self.current_astrom_data_index)
+
+    def get_current_filename(self):
+        return self.get_filename(self.current_astrom_data_index)
 
     def get_astrom_data(self, index):
         return self.astrom_data_list[index]
@@ -378,6 +397,12 @@ class AstromWorkload(object):
 
     def record_done(self, filename):
         self.progress_manager.record_done(filename)
+
+    def _lock_current_file(self):
+        self.progress_manager.lock(self.get_current_filename())
+
+    def _unlock_current_file(self):
+        self.progress_manager.unlock(self.get_current_filename())
 
 
 class AstromData(object):

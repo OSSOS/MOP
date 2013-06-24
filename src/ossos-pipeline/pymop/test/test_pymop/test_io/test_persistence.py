@@ -9,7 +9,8 @@ from hamcrest import (assert_that, contains_inanyorder, has_length, contains,
 
 from test.base_tests import FileReadingTestCase
 from pymop import tasks
-from pymop.io.persistence import ProgressManager, FileLockedException, RequiresLockException
+from pymop.io.persistence import (ProgressManager, FileLockedException,
+                                  RequiresLockException, LOCK_SUFFIX)
 from pymop.io.astrom import AstromWorkload
 
 WD_HAS_PROGRESS = "data/persistence_has_progress"
@@ -17,18 +18,21 @@ WD_NO_LOG = "data/persistence_no_log"
 
 
 class ProgressManagerLoadingTest(FileReadingTestCase):
-    def test_load_progress(self):
-        progress_manager = ProgressManager(self.get_abs_path(WD_HAS_PROGRESS))
+    def setUp(self):
+        self.working_directory = self.get_abs_path(WD_HAS_PROGRESS)
+        self.progress_manager = ProgressManager(self.working_directory)
 
-        assert_that(progress_manager.get_done(tasks.CANDS_TASK),
+    def tearDown(self):
+        self.progress_manager.clean(suffixes=[LOCK_SUFFIX])
+
+    def test_load_progress(self):
+        assert_that(self.progress_manager.get_done(tasks.CANDS_TASK),
                     contains_inanyorder("xxx1.cands.astrom", "xxx3.cands.astrom"))
-        assert_that(progress_manager.get_done(tasks.REALS_TASK),
+        assert_that(self.progress_manager.get_done(tasks.REALS_TASK),
                     contains_inanyorder("xxx3.reals.astrom"))
 
     def test_astrom_workload_filtered_reals(self):
-        working_directory = self.get_abs_path(WD_HAS_PROGRESS)
-        progress_manager = ProgressManager(working_directory)
-        workload = AstromWorkload(working_directory, progress_manager,
+        workload = AstromWorkload(self.working_directory, self.progress_manager,
                                   tasks.REALS_TASK)
 
         expected_filenames = ["xxx1.reals.astrom", "xxx2.reals.astrom"]
@@ -37,9 +41,7 @@ class ProgressManagerLoadingTest(FileReadingTestCase):
         assert_that(actual_filenames, contains_inanyorder(*expected_filenames))
 
     def test_astrom_workload_filtered_cands(self):
-        working_directory = self.get_abs_path(WD_HAS_PROGRESS)
-        progress_manager = ProgressManager(working_directory)
-        workload = AstromWorkload(working_directory, progress_manager,
+        workload = AstromWorkload(self.working_directory, self.progress_manager,
                                   tasks.CANDS_TASK)
 
         expected_filenames = ["xxx2.cands.astrom"]
@@ -176,6 +178,12 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
         manager2 = ProgressManager(self.working_directory)
         assert_that(manager2.get_processed_indices(file1),
                     contains_inanyorder(1, 3, 0))
+
+    def test_unlock_after_record_done_no_error(self):
+        file1 = "xxx1.cands.astrom"
+        self.progress_manager.lock(file1)
+        self.progress_manager.record_done(file1)
+        self.progress_manager.unlock(file1)
 
 
 if __name__ == '__main__':
