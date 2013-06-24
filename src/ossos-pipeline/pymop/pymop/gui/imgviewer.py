@@ -375,8 +375,8 @@ class GrayscaleColorMap(object):
         lower_segment_x = self._clip(self.x_offset + 0.5 - self.x_spread / 2)
         upper_segment_x = self._clip(self.x_offset + 0.5 + self.x_spread / 2)
 
-        min_y = self._clip(0.5 - (self.y_spread / 2))
         max_y = self._clip(0.5 + (self.y_spread / 2))
+        min_y = self._clip(0.5 - (self.y_spread / 2))
 
         if lower_segment_x > upper_segment_x:
             # If they try to go past maximum contrast, flip the colorbar
@@ -384,10 +384,12 @@ class GrayscaleColorMap(object):
             lower_segment_x, upper_segment_x = upper_segment_x, lower_segment_x
             min_y, max_y = max_y, min_y
 
-        self.min_bounds = (0.0, min_y, min_y)
-        self.lower_segment_bounds = (lower_segment_x, min_y, min_y)
-        self.upper_segment_bounds = (upper_segment_x, max_y, max_y)
-        self.max_bounds = (1.0, max_y, max_y)
+        # NOTE: max_y used at lower bounds and min_y used at upper bounds in
+        # order to invert the image's colourmap by default.
+        self.min_bounds = (0.0, max_y, max_y)
+        self.lower_segment_bounds = (lower_segment_x, max_y, max_y)
+        self.upper_segment_bounds = (upper_segment_x, min_y, min_y)
+        self.max_bounds = (1.0, min_y, min_y)
 
         self.cdict = {}
         for color in ["red", "green", "blue"]:
