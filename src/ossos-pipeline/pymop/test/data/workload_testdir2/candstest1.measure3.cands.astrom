@@ -1,0 +1,28 @@
+# 1616681p22                                                                    
+# 1616692p22                                                                    
+# 1616703p22                                                                    
+## MOPversion                                                                   
+#  1.20                                                                         
+## MJD-OBS-CENTER  EXPTIME THRES FWHM  MAXCOUNT CRVAL1     CRVAL2     EXPNUM    
+# 2013 04 09.36658  287.10  2.70  3.40  30000.0  213.87037  -12.54125  1616681  
+## SCALE CHIP CRPIX1    CRPIX2    NAX1  NAX2   DETECTOR           PHADU RDNOIS  
+#  0.185  23   1043.09   4524.90  2112  4644 MegaCam              1.65  3.00    
+## MOPversion                                                                   
+#  1.20                                                                         
+## MJD-OBS-CENTER  EXPTIME THRES FWHM  MAXCOUNT CRVAL1     CRVAL2     EXPNUM    
+# 2013 04 09.40970  287.08  2.70  3.80  30000.0  213.87037  -12.54128  1616692  
+## SCALE CHIP CRPIX1    CRPIX2    NAX1  NAX2   DETECTOR           PHADU RDNOIS  
+#  0.185  23   1047.17   4524.62  2112  4644 MegaCam              1.65  3.00    
+## MOPversion                                                                   
+#  1.20                                                                         
+## MJD-OBS-CENTER  EXPTIME THRES FWHM  MAXCOUNT CRVAL1     CRVAL2     EXPNUM    
+# 2013 04 09.45271  287.06  2.70  3.24  30000.0  213.87037  -12.54125  1616703  
+## SCALE CHIP CRPIX1    CRPIX2    NAX1  NAX2   DETECTOR           PHADU RDNOIS  
+#  0.185  23   1049.48   4524.53  2112  4644 MegaCam              1.65  3.00    
+##     RMIN    RMAX   ANGLE   AWIDTH                                            
+#      0.4    15.0    20.0    30.0                                              
+##   X        Y        X_0     Y_0          R.A.          DEC                   
+
+   560.06   406.51   560.06   406.51  213.8973240  -12.7549149
+   586.18   408.63   583.42   408.46  213.8960831  -12.7548161
+   612.86   406.69   608.48   407.17  213.8947465  -12.7548961
