@@ -67,6 +67,10 @@ class ApplicationView(object):
     def draw_circle(self, x, y, radius):
         self.mainframe.draw_circle(x, y, radius)
 
+    @guithread
+    def reset_colormap(self):
+        self.mainframe.reset_colormap()
+
     def close(self):
         self.model.stop_loading_images()
         self.mainframe.Destroy()
@@ -226,6 +230,9 @@ class MainFrame(wx.Frame):
     def draw_circle(self, x, y, radius):
         self.image_viewer.draw_circle(x, y, radius)
 
+    def reset_colormap(self):
+        self.image_viewer.reset_colormap()
+
     def show_image_loading_dialog(self):
         if not self.img_loading_dialog.IsShown():
             self.img_loading_dialog.CenterOnParent()
@@ -257,19 +264,23 @@ class MainFrame(wx.Frame):
 class KeybindManager(object):
     def __init__(self, view, controller):
         self.controller = controller
+        self.view = view
 
         next_obs_kb_id = wx.NewId()
         prev_obs_kb_id = wx.NewId()
         accept_src_kb_id = wx.NewId()
         reject_src_kb_id = wx.NewId()
+        reset_cmap_kb_id = wx.NewId()
 
         view.Bind(wx.EVT_MENU, self.on_next_obs_keybind, id=next_obs_kb_id)
         view.Bind(wx.EVT_MENU, self.on_prev_obs_keybind, id=prev_obs_kb_id)
         view.Bind(wx.EVT_MENU, self.on_accept_src_keybind, id=accept_src_kb_id)
         view.Bind(wx.EVT_MENU, self.on_reject_src_keybind, id=reject_src_kb_id)
+        view.Bind(wx.EVT_MENU, self.on_reset_cmap_keybind, id=reset_cmap_kb_id)
 
         accept_key = config.read("KEYBINDS.ACCEPT_SRC")
         reject_key = config.read("KEYBINDS.REJECT_SRC")
+        reset_cmap_key = config.read("KEYBINDS.RESET_CMAP")
 
         accelerators = wx.AcceleratorTable(
             [
@@ -277,6 +288,7 @@ class KeybindManager(object):
                 (wx.ACCEL_SHIFT, wx.WXK_TAB, prev_obs_kb_id),
                 (wx.ACCEL_NORMAL, ord(accept_key), accept_src_kb_id),
                 (wx.ACCEL_NORMAL, ord(reject_key), reject_src_kb_id),
+                (wx.ACCEL_NORMAL, ord(reset_cmap_key), reset_cmap_kb_id),
             ]
         )
 
@@ -296,6 +308,9 @@ class KeybindManager(object):
 
     def on_reject_src_keybind(self, event):
         self.controller.on_reject()
+
+    def on_reset_cmap_keybind(self, event):
+        self.view.reset_colormap()
 
 
 class NavPanel(wx.Panel):
