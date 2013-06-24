@@ -8,7 +8,7 @@ from hamcrest import assert_that, equal_to
 
 from test.base_tests import FileReadingTestCase, WxWidgetTestCase
 from pymop import tasks
-from pymop.io.persistence import ProgressRecord
+from pymop.io.persistence import PersistenceManager
 from pymop.io.astrom import AstromWorkload
 from pymop.gui.controllers import ProcessRealsController
 from pymop.gui.models import ProcessRealsModel
@@ -18,11 +18,11 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase):
     def setUp(self):
         super(ProcessRealsControllerTest, self).setUp()
 
-        progress = Mock(spec=ProgressRecord)
-        progress.get_processed.return_value = []
+        persistence_manager = Mock(spec=PersistenceManager)
+        persistence_manager.get_processed.return_value = []
 
         workload = AstromWorkload(self.get_abs_path("data/controller_testdir"),
-                                  progress, tasks.REALS_TASK)
+                                  persistence_manager, tasks.REALS_TASK)
         download_manager = Mock()
 
         self.model = ProcessRealsModel(workload, download_manager)

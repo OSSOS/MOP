@@ -15,6 +15,7 @@ from pymop import tasks
 from pymop.gui import models
 from pymop.gui.models import VettableItem
 from pymop.io.astrom import AstromWorkload
+from pymop.io.persistence import PersistenceManager
 from pymop.io.img import FitsImage
 
 MODEL_TEST_DIR_1 = "data/model_testdir_1"
@@ -29,9 +30,10 @@ class GeneralModelTest(FileReadingTestCase):
     def setUp(self):
         pub.unsubAll()
 
-        progress = Mock()
-        progress.get_processed.return_value = []
-        self.workload = AstromWorkload(self._get_working_dir(), progress,
+        persistence_manager = Mock(spec=PersistenceManager)
+        persistence_manager.get_processed.return_value = []
+        self.workload = AstromWorkload(self._get_working_dir(),
+                                       persistence_manager,
                                        self._get_task())
         self.download_manager = Mock()
 
@@ -657,9 +659,9 @@ class MultipleAstromDataModelTest(FileReadingTestCase):
         pub.unsubAll()
 
         working_dir = self.get_abs_path(MODEL_TEST_DIR_2)
-        progress = Mock()
-        progress.get_processed.return_value = []
-        self.workload = AstromWorkload(working_dir, progress, tasks.REALS_TASK)
+        persistence_manager = Mock(spec=PersistenceManager)
+        persistence_manager.get_processed.return_value = []
+        self.workload = AstromWorkload(working_dir, persistence_manager, tasks.REALS_TASK)
         self.download_manager = Mock()
 
         self.model = models.ProcessRealsModel(self.workload, self.download_manager)
