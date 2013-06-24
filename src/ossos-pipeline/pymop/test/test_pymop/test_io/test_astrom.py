@@ -4,12 +4,15 @@ import tempfile
 import unittest
 
 from hamcrest import (assert_that, equal_to, has_length, has_entries,
-                      same_instance, contains, close_to)
+                      same_instance, contains, close_to, contains_inanyorder)
+from mock import Mock
 
 from test.base_tests import FileReadingTestCase
+from pymop import tasks
 from pymop.io import astrom
+from pymop.io import persistence
 from pymop.io.astrom import (AstromParser, StreamingAstromWriter, Observation,
-                             BaseAstromWriter, BulkAstromWriter)
+                             BaseAstromWriter, BulkAstromWriter, AstromWorkload)
 
 TEST_FILE_1 = "data/1584431p15.measure3.cands.astrom"
 TEST_FILE_2 = "data/1616681p22.measure3.cands.astrom"
@@ -352,6 +355,42 @@ class AstromDataTest(FileReadingTestCase):
     def test_get_reading_count(self):
         astrom_data = AstromParser().parse(self.get_abs_path(TEST_FILE_1))
         assert_that(astrom_data.get_reading_count(), equal_to(9))
+
+
+class AstromWorkloadTest(FileReadingTestCase):
+    def test_create_workload(self):
+        working_directory = self.get_abs_path("data/workload_testdir1")
+        progress = Mock(spec=persistence.ProgressRecord)
+        progress.get_processed.return_value = []
+        task = tasks.REALS_TASK
+        undertest = AstromWorkload(working_directory, progress, task)
+
+        assert_that(undertest.get_working_directory(), equal_to(working_directory))
+        assert_that(undertest.get_load_length(), equal_to(2))
+        assert_that(undertest.get_source_count(), equal_to(4))
+        assert_that(undertest.get_reading_count(), equal_to(12))
+
+        workload_filenames = [filename for filename, astrom_data in undertest]
+        assert_that(workload_filenames,
+                    contains_inanyorder("realstest1.measure3.reals.astrom",
+                                        "realstest2.measure3.reals.astrom"))
+
+        file_processed = "realstest1.measure3.reals.astrom"
+        undertest.record_processed(file_processed)
+        progress.record_processed.assert_called_once_with(file_processed, task)
+
+    def test_create_workload_empty_files(self):
+        working_directory = self.get_abs_path("data/workload_testdir2")
+        progress = Mock(spec=persistence.ProgressRecord)
+        progress.get_processed.return_value = []
+        undertest = AstromWorkload(working_directory, progress, tasks.REALS_TASK)
+
+        assert_that(undertest.get_load_length(), equal_to(2))
+
+        workload_filenames = [filename for filename, astrom_data in undertest]
+        assert_that(workload_filenames,
+                    contains_inanyorder("realstest1.measure3.reals.astrom",
+                                        "realstest2.measure3.reals.astrom"))
 
 
 if __name__ == '__main__':

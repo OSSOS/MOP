@@ -326,8 +326,16 @@ class BulkAstromWriter(BaseAstromWriter):
 class AstromWorkload(object):
     def __init__(self, working_directory, progress, task):
         working_dir_files = tasks.listdir_for_task(working_directory, task)
-        workload_filenames = [filename for filename in working_dir_files
-                              if filename not in progress.get_processed(task)]
+
+        workload_filenames = []
+        workload_fullpaths = []
+        for filename in working_dir_files:
+            full_path = os.path.join(working_directory, filename)
+
+            if (filename not in progress.get_processed(task) and
+                        os.stat(full_path).st_size > 0):
+                workload_filenames.append(filename)
+                workload_fullpaths.append(full_path)
 
         if len(workload_filenames) == 0:
             raise ValueError("Empty workload!")
@@ -336,9 +344,7 @@ class AstromWorkload(object):
         self.progress = progress
         self.task = task
         self.workload_filenames = workload_filenames
-
-        self.full_paths = [os.path.join(working_directory, filename)
-                           for filename in workload_filenames]
+        self.full_paths = workload_fullpaths
 
         parser = AstromParser()
 
