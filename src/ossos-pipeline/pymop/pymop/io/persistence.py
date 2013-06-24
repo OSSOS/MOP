@@ -12,16 +12,41 @@ REALS = "REALS"
 
 DONE_SUFFIX = ".DONE"
 LOCK_SUFFIX = ".LOCK"
+PART_SUFFIX = ".PART"
+
+INDEX_SEP = "\n"
+
+
+def requires_lock(function):
+    """
+    Decorator to check if the user owns the required lock.
+    The first argument must be the filename.
+    """
+
+    def new_lock_requiring_function(self, filename, *args, **kwargs):
+        if self.owns_lock(filename):
+            return function(self, filename, *args, **kwargs)
+        else:
+            raise RequiresLockException()
+
+    return new_lock_requiring_function
 
 
 class FileLockedException(Exception):
     """Indicates someone already has a lock on the requested file."""
+
     def __init__(self, filename, locker):
         self.filename = filename
         self.locker = locker
 
         super(FileLockedException, self).__init__(
             "%s is locked by %s" % (filename, locker))
+
+
+class RequiresLockException(Exception):
+    def __init__(self):
+        super(RequiresLockException, self).__init__(
+            "Operation requires a lock on the file.")
 
 
 class ProgressManager(object):
@@ -37,11 +62,51 @@ class ProgressManager(object):
                                            self._get_done_suffix(task))
         return [done_file[:-len(DONE_SUFFIX)] for done_file in listing]
 
-    def record_done(self, filename):
-        open(self._get_full_path(filename) + DONE_SUFFIX, "wb").close()
+    def get_processed_indices(self, filename):
+        partfile = self._get_full_path(filename + PART_SUFFIX)
 
-    def record_source(self, index):
-        raise NotImplementedError()
+        with open(partfile, "rb") as filehandle:
+            indices = filehandle.read().rstrip(INDEX_SEP).split(INDEX_SEP)
+            return map(int, indices)
+
+    @requires_lock
+    def record_done(self, filename):
+        """
+        Records a file as being completely processed.
+
+        Args:
+          filename: str
+            A file in the working directory to mark as processed.
+            The caller MUST own the lock on this file.
+
+        Returns: void
+
+        NOTE: Removes the caller's lock on the file, and removes records of
+        partial results.
+        """
+        open(self._get_full_path(filename) + DONE_SUFFIX, "wb").close()
+        self.clean(suffixes=[PART_SUFFIX, LOCK_SUFFIX])
+
+    @requires_lock
+    def record_index(self, filename, index):
+        """
+        Records that an item at a specific index within a file has
+        been processed.
+
+        Args:
+          filename: str
+            The file in the working directory which contains the index
+            which is being marked as processed.
+            The caller MUST own the lock on this file.
+          index: int
+            The 0-based index of the item that has been processed.
+
+        Returns: void
+        """
+        partfile = self._get_full_path(filename + PART_SUFFIX)
+
+        with open(partfile, "ab") as filehandle:
+            filehandle.write(str(index) + INDEX_SEP)
 
     def lock(self, filename):
         lockfile = self._get_full_path(filename + LOCK_SUFFIX)
@@ -70,14 +135,27 @@ class ProgressManager(object):
                 # Can't remove someone else's lock!
                 raise FileLockedException(filename, locker)
 
-    def clean(self):
+    def clean(self, suffixes=None):
         """
         Remove all persistence-related files from the directory.
         """
-        for suffix in [DONE_SUFFIX, LOCK_SUFFIX]:
+        if suffixes is None:
+            suffixes = [DONE_SUFFIX, LOCK_SUFFIX, PART_SUFFIX]
+
+        for suffix in suffixes:
             listing = tasks.listdir_for_suffix(self.directory, suffix)
             for filename in listing:
                 os.remove(self._get_full_path(filename))
+
+    def owns_lock(self, filename):
+        lockfile = self._get_full_path(filename + LOCK_SUFFIX)
+
+        if os.path.exists(lockfile):
+            with open(lockfile, "rb") as filehandle:
+                return getpass.getuser() == filehandle.read()
+        else:
+            # No lock file, so we can't have a lock
+            return False
 
     def _get_done_suffix(self, task):
         return tasks.suffixes[task] + DONE_SUFFIX

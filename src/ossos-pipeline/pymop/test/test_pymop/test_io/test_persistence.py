@@ -9,7 +9,7 @@ from hamcrest import (assert_that, contains_inanyorder, has_length, contains,
 
 from test.base_tests import FileReadingTestCase
 from pymop import tasks
-from pymop.io.persistence import ProgressManager, FileLockedException
+from pymop.io.persistence import ProgressManager, FileLockedException, RequiresLockException
 from pymop.io.astrom import AstromWorkload
 
 WD_HAS_PROGRESS = "data/persistence_has_progress"
@@ -63,6 +63,11 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
         assert_that(self.progress_manager.get_done(tasks.REALS_TASK),
                     has_length(0))
 
+    def test_record_done_requires_lock(self):
+        self.assertRaises(
+            RequiresLockException,
+            self.progress_manager.record_done, "xxx2.reals.astrom")
+
     def test_write_progress(self):
         assert_that(self.progress_manager.get_done(tasks.CANDS_TASK),
                     has_length(0))
@@ -70,6 +75,7 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
                     has_length(0))
 
         processed1 = "xxx2.reals.astrom"
+        self.progress_manager.lock(processed1)
         self.progress_manager.record_done(processed1)
 
         assert_that(self.progress_manager.get_done(tasks.CANDS_TASK),
@@ -89,6 +95,7 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
                     has_length(0))
 
         processed1 = "xxx2.reals.astrom"
+        self.progress_manager.lock(processed1)
         self.progress_manager.record_done(processed1)
 
         assert_that(self.progress_manager.get_done(tasks.CANDS_TASK),
@@ -99,6 +106,7 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
         # Create a second simultaneous manager
         manager2 = ProgressManager(self.working_directory)
         processed2 = "xxx3.reals.astrom"
+        self.progress_manager.lock(processed2)
         manager2.record_done(processed2)
 
         # Make sure second manager sees both entries
@@ -143,6 +151,31 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
         except FileLockedException as ex:
             assert_that(ex.filename, equal_to(file1))
             assert_that(ex.locker, equal_to(lock_holding_user))
+
+    def test_record_index_requires_lock(self):
+        self.assertRaises(RequiresLockException,
+                          self.progress_manager.record_index,
+                          "xxx1.cands.astrom", 0)
+
+    def test_record_index(self):
+        file1 = "xxx1.cands.astrom"
+        self.progress_manager.lock(file1)
+        self.progress_manager.record_index(file1, 1)
+        self.progress_manager.record_index(file1, 3)
+        self.progress_manager.record_index(file1, 0)
+
+        assert_that(self.progress_manager.get_processed_indices(file1),
+                    contains_inanyorder(1, 3, 0))
+
+        # Check they are still recorded after we release lock
+        self.progress_manager.unlock(file1)
+        assert_that(self.progress_manager.get_processed_indices(file1),
+                    contains_inanyorder(1, 3, 0))
+
+        # Check other clients can read them
+        manager2 = ProgressManager(self.working_directory)
+        assert_that(manager2.get_processed_indices(file1),
+                    contains_inanyorder(1, 3, 0))
 
 
 if __name__ == '__main__':
