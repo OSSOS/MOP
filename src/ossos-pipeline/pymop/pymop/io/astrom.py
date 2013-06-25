@@ -401,8 +401,8 @@ class AstromWorkload(object):
 
         return count
 
-    def record_done(self, filename):
-        self.progress_manager.record_done(filename)
+    def record_current_file_done(self):
+        self.progress_manager.record_done(self.get_current_filename())
 
     def _lock_current_file(self):
         self.progress_manager.lock(self.get_current_filename())

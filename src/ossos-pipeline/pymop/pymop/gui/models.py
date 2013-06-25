@@ -129,7 +129,7 @@ class AbstractModel(object):
         if self._current_src_number + 1 == self._get_current_astrom_data().get_source_count():
             # Finished processing the current file
             pub.sendMessage(MSG_FILE_PROC, self.get_current_filename())
-            self.workload.record_done(self.get_current_filename())
+            self.workload.record_current_file_done()
 
             self.workload.next_file()
             self._current_src_number = 0

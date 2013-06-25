@@ -375,9 +375,9 @@ class AstromWorkloadTest(FileReadingTestCase):
                     contains_inanyorder("realstest1.measure3.reals.astrom",
                                         "realstest2.measure3.reals.astrom"))
 
-        file_processed = "realstest1.measure3.reals.astrom"
-        undertest.record_done(file_processed)
-        progress_manager.record_done.assert_called_once_with(file_processed)
+        undertest.record_current_file_done()
+        progress_manager.record_done.assert_called_once_with(
+            undertest.get_current_filename())
 
     def test_create_workload_empty_files(self):
         working_directory = self.get_abs_path("data/workload_testdir2")
