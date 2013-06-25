@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 import unittest
 
-from mock import Mock
+from mock import Mock, MagicMock
 from hamcrest import assert_that, equal_to
 
 from test.base_tests import FileReadingTestCase, WxWidgetTestCase
@@ -18,7 +18,7 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase):
     def setUp(self):
         super(ProcessRealsControllerTest, self).setUp()
 
-        progress_manager = Mock(spec=ProgressManager)
+        progress_manager = MagicMock(spec=ProgressManager)
         progress_manager.get_done.return_value = []
 
         workload = AstromWorkload(self.get_abs_path("data/controller_testdir"),

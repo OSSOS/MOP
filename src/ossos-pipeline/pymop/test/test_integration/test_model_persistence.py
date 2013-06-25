@@ -3,6 +3,10 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 import unittest
 
+# TODO: upgrade
+from wx.lib.pubsub import setupv1
+from wx.lib.pubsub import Publisher as pub
+
 from mock import Mock
 from hamcrest import (assert_that, equal_to, contains_inanyorder, is_not,
                       has_length)
@@ -11,6 +15,7 @@ from test.base_tests import FileReadingTestCase
 from pymop import tasks
 from pymop.io.astrom import AstromWorkload
 from pymop.io.persistence import ProgressManager
+from pymop.gui import models
 from pymop.gui.models import ProcessCandidatesModel, ProcessRealsModel
 from pymop.io.imgaccess import AsynchronousImageDownloadManager
 
@@ -114,6 +119,34 @@ class ModelPersistenceTest(FileReadingTestCase):
                     equal_to(False))
         assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
                     contains_inanyorder(0, 2, 1))
+
+    def test_file_processed_event(self):
+        self.workload = AstromWorkload(self.working_dir,
+                                       self.progress_manager, tasks.REALS_TASK)
+        self.model = ProcessRealsModel(self.workload, self.download_manager)
+
+        observer = Mock()
+        pub.subscribe(observer.on_file_processed, models.MSG_FILE_PROC)
+
+        filename = self.workload.get_current_filename()
+        accepts_before_next_file = 9
+
+        while accepts_before_next_file > 1:
+            self.model.accept_current_item()
+            self.model.next_item()
+            assert_that(observer.on_file_processed.call_count, equal_to(0))
+            accepts_before_next_file -= 1
+
+        self.model.accept_current_item()
+        assert_that(observer.on_file_processed.call_count, equal_to(1))
+
+        # Make sure it was triggered with the right data
+        args = observer.on_file_processed.call_args[0]
+        assert_that(args, has_length(1))
+
+        msg = args[0]
+        assert_that(msg.topic, equal_to(models.MSG_FILE_PROC))
+        assert_that(msg.data, equal_to(filename))
 
 
 if __name__ == '__main__':
