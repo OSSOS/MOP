@@ -243,7 +243,7 @@ class AbstractModel(object):
         self._num_images_loaded += 1
         pub.sendMessage(MSG_IMG_LOADED, (source_num, obs_num))
 
-    def _check_if_finished(self):
+    def _check_if_all_finished(self):
         if self.get_num_items_processed() == self.get_item_count():
             pub.sendMessage(MSG_ALL_ITEMS_PROC)
 
@@ -262,15 +262,9 @@ class AbstractModel(object):
     def accept_current_item(self):
         self.get_current_item().accept()
         self.workload.record_index(self.get_current_item_index())
-
-        if len(self.workload.get_current_processed_indices()) == self._vettable_items.count_items_in_group(
-                self.workload.current_astrom_data_index):
-            # Finished processing the current file
-            self.workload.record_current_file_done()
-            pub.sendMessage(MSG_FILE_PROC, self.get_current_filename())
-
+        self._check_if_file_finished()
         self._on_accept()
-        self._check_if_finished()
+        self._check_if_all_finished()
 
     def _on_accept(self):
         """Hook you can override to do extra processing when accepting an item."""
@@ -278,15 +272,16 @@ class AbstractModel(object):
 
     def reject_current_item(self):
         self.get_current_item().reject()
+        self.workload.record_index(self.get_current_item_index())
+        self._check_if_file_finished()
+        self._check_if_all_finished()
 
+    def _check_if_file_finished(self):
         if len(self.workload.get_current_processed_indices()) == self._vettable_items.count_items_in_group(
                 self.workload.current_astrom_data_index):
             # Finished processing the current file
             self.workload.record_current_file_done()
             pub.sendMessage(MSG_FILE_PROC, self.get_current_filename())
-
-        self.workload.record_index(self.get_current_item_index())
-        self._check_if_finished()
 
     def _get_current_original_item(self):
         raise NotImplementedError()
