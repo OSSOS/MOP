@@ -391,6 +391,12 @@ class AstromWorkload(object):
 
         return all_sources
 
+    def get_source_groups(self):
+        source_groups = []
+        for astrom_data in self.astrom_data_list:
+            source_groups.append(astrom_data.get_sources())
+        return source_groups
+
     def get_source_count(self):
         return len(self.get_sources())
 
@@ -403,6 +409,10 @@ class AstromWorkload(object):
 
     def record_current_file_done(self):
         self.progress_manager.record_done(self.get_current_filename())
+
+    def get_current_processed_indices(self):
+        return self.progress_manager.get_processed_indices(
+            self.get_current_filename())
 
     def record_index(self, index):
         self.progress_manager.record_index(self.get_current_filename(), index)
