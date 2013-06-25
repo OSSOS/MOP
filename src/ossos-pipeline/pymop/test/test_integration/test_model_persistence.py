@@ -148,6 +148,17 @@ class ModelPersistenceTest(FileReadingTestCase):
         assert_that(msg.topic, equal_to(models.MSG_FILE_PROC))
         assert_that(msg.data, equal_to(filename))
 
+    def test_unlock_on_exit(self):
+        self.workload = AstromWorkload(self.working_dir,
+                                       self.progress_manager, tasks.REALS_TASK)
+        self.model = ProcessRealsModel(self.workload, self.download_manager)
+
+        current_file = self.workload.get_current_filename()
+
+        assert_that(self.progress_manager.owns_lock(current_file), equal_to(True))
+        self.model.exit()
+        assert_that(self.progress_manager.owns_lock(current_file), equal_to(False))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -261,10 +261,8 @@ class AbstractModel(object):
 
     def accept_current_item(self):
         self.get_current_item().accept()
-        self.workload.record_index(self.get_current_item_index())
-        self._check_if_file_finished()
         self._on_accept()
-        self._check_if_all_finished()
+        self._process_current_item()
 
     def _on_accept(self):
         """Hook you can override to do extra processing when accepting an item."""
@@ -272,6 +270,9 @@ class AbstractModel(object):
 
     def reject_current_item(self):
         self.get_current_item().reject()
+        self._process_current_item()
+
+    def _process_current_item(self):
         self.workload.record_index(self.get_current_item_index())
         self._check_if_file_finished()
         self._check_if_all_finished()
@@ -298,7 +299,7 @@ class AbstractModel(object):
         raise NotImplementedError()
 
     def exit(self):
-        pass
+        self.workload._unlock_current_file()
 
 
 class ProcessRealsModel(AbstractModel):
@@ -330,6 +331,7 @@ class ProcessRealsModel(AbstractModel):
 
     def exit(self):
         self.output_file.close()
+        super(ProcessRealsModel, self).exit()
 
     def _is_source_all_processed(self, source):
         for reading in source:
@@ -383,6 +385,8 @@ class ProcessCandidatesModel(AbstractModel):
     def exit(self):
         for outputfile in self.outputfiles:
             outputfile.close()
+
+        super(ProcessCandidatesModel, self).exit()
 
     def next_item(self):
         self.next_source()
