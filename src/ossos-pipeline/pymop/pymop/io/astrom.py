@@ -404,6 +404,9 @@ class AstromWorkload(object):
     def record_current_file_done(self):
         self.progress_manager.record_done(self.get_current_filename())
 
+    def record_index(self, index):
+        self.progress_manager.record_index(self.get_current_filename(), index)
+
     def _lock_current_file(self):
         self.progress_manager.lock(self.get_current_filename())
 
