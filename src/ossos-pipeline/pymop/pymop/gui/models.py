@@ -32,6 +32,34 @@ MSG_FILE_PROC = MSG_ROOT + ("fileproc", )
 MSG_ALL_ITEMS_PROC = MSG_ROOT + ("allproc", )
 
 
+class VettableCollection(object):
+    def __init__(self, original_items):
+        self._vettable_item_by_original = {}
+        self._index_by_original = {}
+
+        for index, original_item in enumerate(original_items):
+            vettable_item = VettableItem(original_item)
+            self._vettable_item_by_original[original_item] = vettable_item
+            self._index_by_original[original_item] = index
+
+    def __len__(self):
+        return len(self._vettable_item_by_original)
+
+    def get_vettable_item(self, original_item):
+        return self._vettable_item_by_original[original_item]
+
+    def get_index(self, original_item):
+        return self._index_by_original[original_item]
+
+    def count_processed(self):
+        count = 0
+        for vettable_item in self._vettable_item_by_original.values():
+            if vettable_item.is_processed():
+                count += 1
+
+        return count
+
+
 class VettableItem(object):
     ACCEPTED = "accepted"
     REJECTED = "rejected"
@@ -216,14 +244,13 @@ class AbstractModel(object):
             pub.sendMessage(MSG_ALL_ITEMS_PROC)
 
     def get_num_items_processed(self):
-        processed = [item.is_processed() for item in self._vettable_items.values()]
-        return processed.count(True)
+        return self._vettable_items.count_processed()
 
     def is_item_processed(self, item):
-        return self._vettable_items[item].is_processed()
+        return self._vettable_items.get_vettable_item(item).is_processed()
 
     def get_item_status(self, item):
-        return self._vettable_items[item].get_status()
+        return self._vettable_items.get_vettable_item(item).get_status()
 
     def next_item(self):
         raise NotImplementedError()
@@ -268,19 +295,19 @@ class ProcessRealsModel(AbstractModel):
         self.writer = MPCWriter(self.output_file)
 
     def _create_vettable_items(self):
-        vettable_items = {}
+        original_items = []
         for source in self.workload.get_sources():
             for reading in source:
-                vettable_items[reading] = VettableItem(reading)
+                original_items.append(reading)
 
-        return vettable_items
+        return VettableCollection(original_items)
 
     def exit(self):
         self.output_file.close()
 
     def _is_source_all_processed(self, source):
         for reading in source:
-            if not self._vettable_items[reading].is_processed():
+            if not self._vettable_items.get_vettable_item(reading).is_processed():
                 return False
 
         return True
@@ -296,7 +323,7 @@ class ProcessRealsModel(AbstractModel):
             self.next_obs()
 
     def get_current_item(self):
-        return self._vettable_items[self.get_current_reading()]
+        return self._vettable_items.get_vettable_item(self.get_current_reading())
 
     def _on_accept(self):
         self._source_discovery_asterisk[self.get_current_source_number()] = True
@@ -325,11 +352,7 @@ class ProcessCandidatesModel(AbstractModel):
             self.writers.append(writer)
 
     def _create_vettable_items(self):
-        vettable_items = {}
-        for source in self.workload.get_sources():
-            vettable_items[source] = VettableItem(source)
-
-        return vettable_items
+        return VettableCollection(self.workload.get_sources())
 
     def exit(self):
         for outputfile in self.outputfiles:
@@ -339,7 +362,7 @@ class ProcessCandidatesModel(AbstractModel):
         self.next_source()
 
     def get_current_item(self):
-        return self._vettable_items[self.get_current_source()]
+        return self._vettable_items.get_vettable_item(self.get_current_source())
 
     def get_writer(self):
         return self.writers[self.workload.current_astrom_data_index]
