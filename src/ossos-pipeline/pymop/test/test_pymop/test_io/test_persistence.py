@@ -205,6 +205,28 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
         assert_that(self.progress_manager.get_processed_indices("xxx1.cands.astrom"),
                     has_length(0))
 
+    def test_get_processed_indices_after_done(self):
+        filename = "xxx1.cands.astrom"
+        self.progress_manager.lock(filename)
+        self.progress_manager.record_index(filename, 0)
+        self.progress_manager.record_index(filename, 1)
+        self.progress_manager.record_index(filename, 2)
+        self.progress_manager.unlock(filename)
+
+        assert_that(self.progress_manager.get_processed_indices(filename),
+                    contains_inanyorder(0, 1, 2))
+
+        self.progress_manager.lock(filename)
+        self.progress_manager.record_done(filename)
+        self.progress_manager.unlock(filename)
+
+        assert_that(self.progress_manager.get_processed_indices(filename),
+                    contains_inanyorder(0, 1, 2))
+
+        # Double check with a second manager
+        assert_that(ProgressManager(self.working_directory).get_processed_indices(filename),
+                    contains_inanyorder(0, 1, 2))
+
 
 if __name__ == '__main__':
     unittest.main()

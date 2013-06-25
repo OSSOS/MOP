@@ -94,11 +94,18 @@ class ProgressManager(object):
             been processed.
         """
         partfile = self._get_full_path(filename + PART_SUFFIX)
+        donefile = self._get_full_path(filename + DONE_SUFFIX)
 
-        if not os.path.exists(partfile):
+        file_with_records = None
+        if os.path.exists(donefile):
+            file_with_records = donefile
+        elif os.path.exists(partfile):
+            file_with_records = partfile
+
+        if file_with_records is None:
             return []
 
-        with open(partfile, "rb") as filehandle:
+        with open(file_with_records, "rb") as filehandle:
             indices = filehandle.read().rstrip(INDEX_SEP).split(INDEX_SEP)
             return map(int, indices)
 
@@ -116,11 +123,16 @@ class ProgressManager(object):
 
         NOTE: Does not remove the caller's lock on the file.
         """
-        open(self._get_full_path(filename) + DONE_SUFFIX, "wb").close()
-
         partfile = self._get_full_path(filename) + PART_SUFFIX
+        donefile = self._get_full_path(filename) + DONE_SUFFIX
+
         if os.path.exists(partfile):
-            os.remove(partfile)
+            # By just renaming we keep the history of processed indices
+            # available.
+            os.rename(partfile, donefile)
+        else:
+            # Create a new blank file
+            open(donefile, "wb").close()
 
     @requires_lock
     def record_index(self, filename, index):
