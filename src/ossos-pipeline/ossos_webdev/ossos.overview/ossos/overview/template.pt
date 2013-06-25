@@ -33,14 +33,14 @@
               </dd>
               <dt>Observed:</dt>
               <dd> 
-            	${'%.2f' % surveyed[0]} sq. deg. (${surveyed[1]} fields)
+            	${'%.2f' % surveyed[0]} deg&#xb2; (${surveyed[1]} fields)
               <!-- observed for precovery, discovery triplet and follow-up tracking. Completed = at least one precovery, the discovery triplet, and two nailing recovery observations. -->
               </dd>
               <dt>Fully processed<dt>
               <dd> 
             	 <abbr class = "val"
             		    title = "Blocks run entirely through the processing pipeline.">${processed_sqdeg}</abbr> 
-                sq. deg.
+                deg&#xb2;
               </dd>
               <!-- (ie. area awaiting processing: difference between those two) -->
               <dt>Objects <a href="discoveries">discovered</a>:</dt>

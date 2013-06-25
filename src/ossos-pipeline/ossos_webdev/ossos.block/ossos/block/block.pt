@@ -68,12 +68,12 @@
                 <a href="fields/${obj['fieldId']}">${obj['fieldId']}</a>
               </td> 
               <tal:block tal:condition="obj['triplet']">
-                <td>${obj['triplet'][0][0].strftime('%Y-%m-%d %H:%M:%S')}</td> 
-                <td>${'%.2f' % obj['triplet'][0][2]}</td>
-                <td>${obj['triplet'][1][0].strftime('%H:%M:%S')}</td>
-                <td>${'%.2f' % obj['triplet'][1][2]}</td>
-                <td>${obj['triplet'][2][0].strftime('%H:%M:%S')}</td>
-                <td>${'%.2f' % obj['triplet'][2][2]}</td>
+                <td>${obj['triplet'][0][4].strftime('%Y-%m-%d %H:%M:%S')}</td> 
+                <td>${'%.2f' % obj['triplet'][0][5]}</td>
+                <td>${obj['triplet'][1][4].strftime('%H:%M:%S')}</td>
+                <td>${'%.2f' % obj['triplet'][1][5]}</td>
+                <td>${obj['triplet'][2][4].strftime('%H:%M:%S')}</td>
+                <td>${'%.2f' % obj['triplet'][2][5]}</td>
                 <td align=center>${'%.2f' % obj['worstIQ']}</td>
               </tal:block>
               <td tal:condition="not(obj['triplet'])" colspan="7">
