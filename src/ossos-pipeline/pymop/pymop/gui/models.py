@@ -33,14 +33,19 @@ MSG_ALL_ITEMS_PROC = MSG_ROOT + ("allproc", )
 
 
 class VettableCollection(object):
-    def __init__(self, original_items):
+    def __init__(self, original_item_groups):
         self._vettable_item_by_original = {}
         self._index_by_original = {}
+        self._vettable_item_groups = []
 
-        for index, original_item in enumerate(original_items):
-            vettable_item = VettableItem(original_item)
-            self._vettable_item_by_original[original_item] = vettable_item
-            self._index_by_original[original_item] = index
+        for original_item_group in original_item_groups:
+            vettable_item_group = []
+            for index, original_item in enumerate(original_item_group):
+                vettable_item = VettableItem(original_item)
+                self._vettable_item_by_original[original_item] = vettable_item
+                self._index_by_original[original_item] = index
+                vettable_item_group.append(vettable_item)
+            self._vettable_item_groups.append(vettable_item_group)
 
     def __len__(self):
         return len(self._vettable_item_by_original)
@@ -58,6 +63,9 @@ class VettableCollection(object):
                 count += 1
 
         return count
+
+    def count_items_in_group(self, group_index):
+        return len(self._vettable_item_groups[group_index])
 
 
 class VettableItem(object):
@@ -127,10 +135,6 @@ class AbstractModel(object):
 
     def next_source(self):
         if self._current_src_number + 1 == self._get_current_astrom_data().get_source_count():
-            # Finished processing the current file
-            pub.sendMessage(MSG_FILE_PROC, self.get_current_filename())
-            self.workload.record_current_file_done()
-
             self.workload.next_file()
             self._current_src_number = 0
         else:
@@ -258,6 +262,13 @@ class AbstractModel(object):
     def accept_current_item(self):
         self.get_current_item().accept()
         self.workload.record_index(self.get_current_item_index())
+
+        if len(self.workload.get_current_processed_indices()) == self._vettable_items.count_items_in_group(
+                self.workload.current_astrom_data_index):
+            # Finished processing the current file
+            self.workload.record_current_file_done()
+            pub.sendMessage(MSG_FILE_PROC, self.get_current_filename())
+
         self._on_accept()
         self._check_if_finished()
 
@@ -267,6 +278,13 @@ class AbstractModel(object):
 
     def reject_current_item(self):
         self.get_current_item().reject()
+
+        if len(self.workload.get_current_processed_indices()) == self._vettable_items.count_items_in_group(
+                self.workload.current_astrom_data_index):
+            # Finished processing the current file
+            self.workload.record_current_file_done()
+            pub.sendMessage(MSG_FILE_PROC, self.get_current_filename())
+
         self.workload.record_index(self.get_current_item_index())
         self._check_if_finished()
 
@@ -305,12 +323,15 @@ class ProcessRealsModel(AbstractModel):
         self.writer = MPCWriter(self.output_file)
 
     def _create_vettable_items(self):
-        original_items = []
-        for source in self.workload.get_sources():
-            for reading in source:
-                original_items.append(reading)
+        original_item_groups = []
+        for source_group in self.workload.get_source_groups():
+            original_item_group = []
+            for source in source_group:
+                for reading in source:
+                    original_item_group.append(reading)
+            original_item_groups.append(original_item_group)
 
-        return VettableCollection(original_items)
+        return VettableCollection(original_item_groups)
 
     def exit(self):
         self.output_file.close()
@@ -362,7 +383,7 @@ class ProcessCandidatesModel(AbstractModel):
             self.writers.append(writer)
 
     def _create_vettable_items(self):
-        return VettableCollection(self.workload.get_sources())
+        return VettableCollection(self.workload.get_source_groups())
 
     def exit(self):
         for outputfile in self.outputfiles:
