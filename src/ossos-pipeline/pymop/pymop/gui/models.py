@@ -257,6 +257,7 @@ class AbstractModel(object):
 
     def accept_current_item(self):
         self.get_current_item().accept()
+        self.workload.record_index(self.get_current_item_index())
         self._on_accept()
         self._check_if_finished()
 
@@ -266,10 +267,19 @@ class AbstractModel(object):
 
     def reject_current_item(self):
         self.get_current_item().reject()
+        self.workload.record_index(self.get_current_item_index())
         self._check_if_finished()
 
-    def get_current_item(self):
+    def _get_current_original_item(self):
         raise NotImplementedError()
+
+    def get_current_item(self):
+        return self._vettable_items.get_vettable_item(
+            self._get_current_original_item())
+
+    def get_current_item_index(self):
+        return self._vettable_items.get_index(
+            self._get_current_original_item())
 
     def get_writer(self):
         raise NotImplementedError()
@@ -322,8 +332,8 @@ class ProcessRealsModel(AbstractModel):
         while self.get_current_item().is_processed():
             self.next_obs()
 
-    def get_current_item(self):
-        return self._vettable_items.get_vettable_item(self.get_current_reading())
+    def _get_current_original_item(self):
+        return self.get_current_reading()
 
     def _on_accept(self):
         self._source_discovery_asterisk[self.get_current_source_number()] = True
@@ -361,8 +371,8 @@ class ProcessCandidatesModel(AbstractModel):
     def next_item(self):
         self.next_source()
 
-    def get_current_item(self):
-        return self._vettable_items.get_vettable_item(self.get_current_source())
+    def _get_current_original_item(self):
+        return self.get_current_source()
 
     def get_writer(self):
         return self.writers[self.workload.current_astrom_data_index]
