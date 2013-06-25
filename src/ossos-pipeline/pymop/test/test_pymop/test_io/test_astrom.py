@@ -360,10 +360,10 @@ class AstromDataTest(FileReadingTestCase):
 class AstromWorkloadTest(FileReadingTestCase):
     def test_create_workload(self):
         working_directory = self.get_abs_path("data/workload_testdir1")
-        progress = Mock(spec=persistence.ProgressRecord)
-        progress.get_processed.return_value = []
+        progress_manager = Mock(spec=persistence.ProgressManager)
+        progress_manager.get_done.return_value = []
         task = tasks.REALS_TASK
-        undertest = AstromWorkload(working_directory, progress, task)
+        undertest = AstromWorkload(working_directory, progress_manager, task)
 
         assert_that(undertest.get_working_directory(), equal_to(working_directory))
         assert_that(undertest.get_load_length(), equal_to(2))
@@ -376,14 +376,15 @@ class AstromWorkloadTest(FileReadingTestCase):
                                         "realstest2.measure3.reals.astrom"))
 
         file_processed = "realstest1.measure3.reals.astrom"
-        undertest.record_processed(file_processed)
-        progress.record_processed.assert_called_once_with(file_processed, task)
+        undertest.record_done(file_processed)
+        progress_manager.record_done.assert_called_once_with(file_processed)
 
     def test_create_workload_empty_files(self):
         working_directory = self.get_abs_path("data/workload_testdir2")
-        progress = Mock(spec=persistence.ProgressRecord)
-        progress.get_processed.return_value = []
-        undertest = AstromWorkload(working_directory, progress, tasks.REALS_TASK)
+        progress_manager = Mock(spec=persistence.ProgressManager)
+        progress_manager.get_done.return_value = []
+        undertest = AstromWorkload(working_directory, progress_manager,
+                                   tasks.REALS_TASK)
 
         assert_that(undertest.get_load_length(), equal_to(2))
 
