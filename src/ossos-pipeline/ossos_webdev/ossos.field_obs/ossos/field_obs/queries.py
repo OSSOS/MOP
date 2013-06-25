@@ -11,13 +11,14 @@ class ImagesQuery(object):
 
 
 	def field_images(self, field):
-		if not(isinstance(field, str)):
-			msg = '"{0}" is not a string'.format(type(field))
-			raise ValueError(msg)
+		# print field
+		# if not(isinstance(field, str)):
+		# 	msg = '"{0}" is not a string'.format(type(field))
+		# 	raise ValueError(msg)
 
 		it = self.images
 		cols = [it.c.cfht_field, it.c.obs_end, it.c.iq_ossos, it.c.image_id]
-		ss = sa.select(cols)
+		ss = sa.select(cols, order_by=it.c.obs_end)
 		ss.append_whereclause(it.c.cfht_field == field)
 		ims_query = self.conn.execute(ss)
 		ret_images = self.format_imquery_return(ims_query)
@@ -43,6 +44,7 @@ class ImagesQuery(object):
 		ss.append_whereclause(it.c.cfht_field == field)
 		ims_query = self.conn.execute(ss)
 
+		retval = 0
 		for row in ims_query:
 			retval = row[1] 	# HACKED FOR QUICK RESULT (precision not needed)
 
@@ -55,6 +57,7 @@ class ImagesQuery(object):
 		ss.append_whereclause(it.c.cfht_field == field)
 		ims_query = self.conn.execute(ss)
 
+		retval = 0
 		for row in ims_query:
 			retval = row[1] 	# HACKED FOR QUICK RESULT (precision not needed)
 
@@ -75,39 +78,40 @@ class ImagesQuery(object):
 
 	# Process of getting the three best images that form a discovery triplet.
 	def discovery_triplet(self, field):
-		# The block one is going to want to know if there's even a valid triplet yet.
+		retval = None  # is set to a value if a valid triplet exists.
+		# Is there even a valid triplet observed yet?
+		if len(self.field_images(field)['obs']) > 2:
+			threeplus_nights = self.do_triples_exist(field)  # just the dates
+			if len(threeplus_nights) > 0:
+				# The images on the nights that have 3+ images, this field.
+				threeplus_night_images = {}
+				for date in threeplus_nights:
+					date_images = self.images_in_tripleplus_night(field, date)
+					threeplus_night_images[date] = date_images
 
-		# First: need the images on the nights that have 3+ images, this field.
-
-		# Then: parse those 3+ sets for the best triple.
-
-		# Return that triple. That's it. Nothing more fancy.
-
-		retval = [long('1607779'), long('1609158'), long('1612253')]  # TESTING
-
+				retval = self.parse_for_best_triple(threeplus_night_images)
+	
 		return retval
 
 
-	def do_triples_exist(self):
+	def do_triples_exist(self, field):
 
 		tplus = sa.text("""
 			select cfht_field, extract(year from obs_end) as year, 
 			extract(month from obs_end) as month, extract(day from obs_end) as day, 
 			count(image_id) from images 
+			where (cfht_field = :field)
 			group by cfht_field, year, month, day 
 			having count(image_id) > 2
 			order by cfht_field, year, month, day;""")
-		tplus_res = self.conn.execute(tplus)
+		pp = {'field': field}
+		tplus_res = self.conn.execute(tplus, pp)
 
-		threeplus_fields = {}
+		threeplus_nights = []
 		for row in tplus_res:  
-			field = row[0]  # preceding 'u' indicates unicode
-			night = row[1:4]
-			field_nights = threeplus_fields.get(field, [])
-			field_nights.append(night)
-			threeplus_fields[field] = field_nights
+			threeplus_nights.append(row[1:4])  # year, month, day
 
-		return threeplus_fields
+		return threeplus_nights
 
 
 	def images_in_tripleplus_night(self, field, date):
@@ -127,73 +131,35 @@ class ImagesQuery(object):
 
 		ret_images = []
 		for row in tplus_res:
-			ret_images.append([row[5], row[4], (row[6])])
+			ret_images.append(row[1:]) # keep year, month, day, image_id, obs_end, iq_ossos
 
 		return ret_images
 
 
-	def parse_night_for_best_triple(self):
+	def parse_for_best_triple(self, threeplus_night_images):
+		# input is a dict of {date: [rows of images]}
+		good_triples = []
+		for date, ims in threeplus_night_images.items():
+			# for each night, create the best possible triple that meets constraints.
 
-		retval = ''
+			print date, len(ims)
+			# HACK FOR TESTING PREVIOUS CODE
+			if len(ims) == 3:
+				# format as ([image_ids], [3 rows of remaining info], worst_iq)
+				good_triples.append(([im[3] for im in ims], 
+									ims,
+									max([im[5] for im in ims])
+									))
+
+		if len(good_triples) > 0:
+			# Return the set of 3 images that have the lowest value of 'worst iq'. 
+			lowest_worst_iq = min([g[2] for g in good_triples]) 
+			print lowest_worst_iq
+			retval = good_triples[[g[2] for g in good_triples].index(lowest_worst_iq)]  
+		else:
+			retval = None
+		
 		return retval
-
-
-
-	def num_precoveries(self, field):
-		# how many of the images in self.observations occur 
-		# before the first image of the discovery triplet?
-		precoveries = []
-
-		triples = self.discovery_triplet(field)
-
-
-		return precoveries
-
-
-	def num_nailings(self, field):
-		# nailings are single images that occur
-		# at least one night after the night of the discovery triplet?
-		nailings = []
-
-		return nailings
-
-
-	def num_doubles(self, field):
-		# double is a pair of images ~ an hour apart taken on the same night
-		# the night of the pair is at least a night after the discovery triplet night
-
-		doubles = []
-		return doubles
-
-
-
-	def export_discovery_triplet(field):
-		# write discovery_triplet to a file in VOSpace
-		return
-
-
-
-
-
-# then which are the three best in that night if there are more than three
-# but it has to be a little more complex than that, because they can't just be
-# the best three, it has to be the best widest-spaced three.
-
-# and if there are multiple sets of three...
-# which is the best overall set out of each field's threeplus_nights.
-# Define 'best' by dispersion of seeing from the mean, of those that meet the timing constraint.
-
-# if len(threeplus_fields.keys()) > 0:
-# 	for field, dates in threeplus_fields.items():  # TESTING 
-# 		print field 
-# 		for date in dates:
-# 			night_images = images_in_tripleplus_night(field, date)
-			# nt = night_images.keys()
-			# nt.sort()
-
-			# print nt[0].strftime('%Y-%m-%d')
-			# for n in nt:
-			# 	print n.strftime('%H:%M:%S'), night_images[n][1]
 
 			# # is their temporal span sufficiently wide for a triplet?
 			# if (nt[-1] - nt[0]) > datetime.timedelta(minutes=90):
@@ -211,57 +177,77 @@ class ImagesQuery(object):
 # 		for jj in times:
 # 			for kk in times:
 # 				if (ii < jj < kk) and (jj-ii > 20 minutes) and (kk-jj > 20 minutes):
+#
+#   # then pick the set with the 
 
-# accept triplet for searching if IQ of each image better than 0.8"?
-# or may have to relax that.
+
+	def num_precoveries(self, field):
+		# how many of the images in self.observations occur 
+		# before the first image of the discovery triplet?
+		triplet = self.discovery_triplet(field)
+		retval = 'no discovery triplet'
+		if triplet:
+			images = self.field_images(field)
+			precoveries = [im for im in images['obs'] if (im[0] < triplet[1][0][4])]
+			retval = len(precoveries)
+
+		return retval
 
 
-# cfht_field | year | month | day | count 
-# ------------+------+-------+-----+-------
-#  E+0+0      | 2013 |     3 |   7 |     3
-#  E+0+0      | 2013 |     4 |   7 |     7
-#  E+0+0      | 2013 |     4 |   8 |     4
-#  E+0+0      | 2013 |     4 |   9 |     3
-#  E+0+1      | 2013 |     3 |   7 |     3
-#  E+0+1      | 2013 |     4 |   9 |     3
-#  E+0-1      | 2013 |     2 |   8 |     6
-#  E+0-1      | 2013 |     4 |   4 |     3
-#  E+1+0      | 2013 |     4 |   9 |     3
-#  E+1+1      | 2013 |     4 |   9 |     3
-#  E+1-1      | 2013 |     3 |   7 |     3
-#  E+1-1      | 2013 |     4 |   9 |     3
-#  E+2+0      | 2013 |     4 |   9 |     3
-#  E+2+0      | 2013 |     4 |  19 |     3
-#  E+2+1      | 2013 |     4 |   9 |     3
-#  E+2-1      | 2013 |     4 |   9 |     3
-#  E+3+0      | 2013 |     4 |   7 |     4
-#  E+3+0      | 2013 |     4 |   8 |     4
-#  E+3+0      | 2013 |     4 |   9 |     6
-#  E+3+1      | 2013 |     3 |   7 |     3
-#  E+3+1      | 2013 |     4 |   7 |     3
-#  E+3+1      | 2013 |     4 |   8 |     5
-#  E+3+1      | 2013 |     4 |   9 |     5
-#  E+3-1      | 2013 |     3 |   7 |     3
-#  E+3-1      | 2013 |     4 |   7 |     5
-#  E+3-1      | 2013 |     4 |   9 |     3
-#  E-1+0      | 2013 |     4 |   4 |     3
-#  E-1+0      | 2013 |     4 |   5 |     4
-#  E-1+1      | 2013 |     4 |   4 |     3
-#  E-1-1      | 2013 |     2 |   8 |     3
-#  E-1-1      | 2013 |     4 |   4 |     3
-#  E-1-1      | 2013 |     4 |   5 |     6
-#  E-2+0      | 2013 |     2 |   8 |     4
-#  E-2+0      | 2013 |     4 |   4 |     3
-#  E-2+1      | 2013 |     4 |   4 |     3
-#  E-2-1      | 2013 |     4 |   4 |     3
-#  E-2-1      | 2013 |     4 |   5 |     3
-#  E-3+0      | 2013 |     2 |   8 |     3
-#  E-3+0      | 2013 |     4 |   4 |     3
-#  E-3+0      | 2013 |     4 |   5 |     4
-#  E-3+1      | 2013 |     4 |   4 |     3
-#  E-3-1      | 2013 |     4 |   4 |     3
-#  E-3-1      | 2013 |     4 |   5 |     5
-#  WP-E-5-2   | 2013 |     3 |  11 |     5
+	def num_nailings(self, field):
+		# nailings are single images that occur
+		# at least one night after the night of the discovery triplet?
+		triplet = self.discovery_triplet(field)
+		retval = 'no discovery triplet'
+		if triplet:
+			images = self.field_images(field)
+			# NEED TO FIX THIS TO ONLY COUNT SINGLE OBSERVATIONS WITHIN THE NIGHT
+			after = [im for im in images['obs'] if (im[0] > triplet[1][2][4])]
+			# ie. if there's a spare image left in the night after a triple or double, can it count?
+			retval = len(after)
 
+		return retval
+
+
+	def num_doubles(self, field):
+		# double is a pair of images ~ an hour apart taken on the same night
+		# the night of the pair is at least a night after the discovery triplet night
+		triplet = self.discovery_triplet(field)
+		retval = 'no discovery triplet'
+		if triplet:
+			images = self.field_images(field)
+			# NEED TO FIX THIS TO BE MORE SUBTLE ABOUT COLLECTING DOUBLES IN THE NIGHT (if multiple obs)
+			# nailings = [im for im in images['obs'] if (im[0] > triplet[1][2][4])]
+			double_nights = self.do_doubles_exist(field, triplet[1][2][4])
+			retval = len(double_nights)*2
+
+		return retval
+
+
+	def do_doubles_exist(self, field, last_triplet_image):
+
+		tplus = sa.text("""
+			select cfht_field, extract(year from obs_end) as year, 
+			extract(month from obs_end) as month, extract(day from obs_end) as day, 
+			count(image_id) from images 
+			where (cfht_field = :field
+				and obs_end > :date)
+			group by cfht_field, year, month, day 
+			having count(image_id) = 2
+			order by cfht_field, year, month, day;""")
+		pp = {'field': field, 'date':last_triplet_image}
+		tplus_res = self.conn.execute(tplus, pp)
+
+		double_nights = []
+		for row in tplus_res:  
+			double_nights.append(row[1:4])  # year, month, day
+
+		return double_nights
+
+
+
+	def export_discovery_triplet(field):
+		# write discovery_triplet to a file in VOSpace
+		return
 
 

@@ -83,21 +83,15 @@ class BlockQuery(object):
 		return retval
 		
 
-	def link_images_to_tripleplus_nights(self, blockID):
+	def block_discovery_triples(self, blockID):
 
 		retval, fieldIds = self.fields_in_block(blockID)
-
-		# now add in the triples info for those fields that have it
-		threeplus_fields = self.bk.do_triples_exist()
-
-		for field, nights in threeplus_fields.items():
-			retfs = [n for n in retval if n['fieldId'] == field]
-			if len(retfs) > 0:
-				retfield = retfs[0]
-				for night in nights[0:1]:  # TESTING
-					images_info = self.bk.images_in_tripleplus_night(field, night)
-					retfield['triplet'] = images_info
-					retfield['worstIQ'] = max([n[2] for n in images_info])
+		for field in fieldIds:
+			triplet = self.bk.discovery_triplet(field)
+			if triplet:  # yay we have enough observations to have a discovery triplet!
+				retfield = [n for n in retval if n['fieldId'] == field][0]
+				retfield['triplet'] = triplet[1]
+				retfield['worstIQ'] = triplet[2]
 
 		return retval
 
@@ -107,8 +101,9 @@ class BlockQuery(object):
 			empty_units, fields = self.fields_in_block(blockID)
 			retval = 0
 			for field in fields:
-				# CAN TAKE OUT LEN ONCE THIS IS FULLY IMPLEMENTED
-				retval += len(self.bk.num_precoveries(field))
+				pc = self.bk.num_precoveries(field)
+				if isinstance(pc, int):
+					retval += pc
 		else:
 			retval = '-'
 
@@ -120,8 +115,9 @@ class BlockQuery(object):
 			empty_units, fields = self.fields_in_block(blockID)
 			retval = 0
 			for field in fields:
-				# CAN TAKE OUT LEN ONCE THIS IS FULLY IMPLEMENTED
-				retval += len(self.bk.num_nailings(field))
+				nc = self.bk.num_nailings(field)
+				if isinstance(nc, int):
+					retval += nc
 		else:
 			retval = '-'
 
@@ -133,8 +129,9 @@ class BlockQuery(object):
 			empty_units, fields = self.fields_in_block(blockID)
 			retval = 0
 			for field in fields:
-				# CAN TAKE OUT LEN ONCE THIS IS FULLY IMPLEMENTED
-				retval += len(self.bk.num_doubles(field))
+				doub = self.bk.num_doubles(field)
+				if isinstance(doub, int):
+					retval += doub
 		else:
 			retval = '-'
 

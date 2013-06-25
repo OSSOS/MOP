@@ -20,7 +20,7 @@ class Block(object):
 
 	@property
 	def observed_fields(self):
-		retval = self.blockQuery.link_images_to_tripleplus_nights(self.blockID)
+		retval = self.blockQuery.block_discovery_triples(self.blockID)
 		return retval
 	
 	@property

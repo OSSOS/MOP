@@ -8,17 +8,21 @@ import logging
 import urllib
 import errno
 from astropy.io import fits
+import urlparse
 
 _CERTFILE=os.path.join(os.getenv('HOME'),
                        '.ssl',
                        'cadcproxy.pem')
 
 _dbimages='vos:OSSOS/dbimages'
+DATA_WEB_SERVICE='https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/'
 
 
+def populate(dataset_name,
+             data_web_service_url = DATA_WEB_SERVICE+"CFHT"):
 
-def populate(dataset_name, data_web_service_url = "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHT"):
-    """Given a dataset_name created the desired dbimages directories and links to the raw data files stored at CADC."""
+    """Given a dataset_name created the desired dbimages directories
+    and links to the raw data files stored at CADC."""
 
     data_dest = get_uri(dataset_name,version='o',ext='fits.fz')
     data_source = "%s/%so.fits.fz" % (data_web_service_url,dataset_name)
@@ -44,7 +48,8 @@ def populate(dataset_name, data_web_service_url = "https://www.cadc-ccda.hia-iha
             raise e
 
     header_dest = get_uri(dataset_name,version='o',ext='head')
-    header_source = "%s/%so.fits.fz?cutout=[0]" % (data_web_service_url, dataset_name) 
+    header_source = "%s/%so.fits.fz?cutout=[0]" % (
+        data_web_service_url, dataset_name) 
     try:
         c.link(header_source, header_dest)
     except IOError as e:
@@ -58,8 +63,11 @@ def populate(dataset_name, data_web_service_url = "https://www.cadc-ccda.hia-iha
         
 
 
-def get_uri(expnum, ccd=None, version='p', ext='fits', subdir=None, prefix=None):
-    '''build the uri for an OSSOS image stored in the dbimages containerNode.
+def get_uri(expnum, ccd=None,
+            version='p', ext='fits',
+            subdir=None, prefix=None):
+    '''build the uri for an OSSOS image stored in the dbimages
+    containerNode.
 
     expnum: CFHT exposure number
     ccd: CCD in the mosaic [0-35]
@@ -87,6 +95,7 @@ def get_uri(expnum, ccd=None, version='p', ext='fits', subdir=None, prefix=None)
                            '%s%s%s.%s' % (prefix, str(expnum),
                                         version,
                                         ext))
+    logging.info("got uri: "+uri)
     return uri
 
 dbimages_uri = get_uri
@@ -99,9 +108,15 @@ def set_tag(expnum, key, value):
     uri = os.path.join(_dbimages, str(expnum))
     vospace = vos.Client(certFile=_CERTFILE)
     node = vospace.getNode(uri)
-    node.changeProp(key, value)
+    if not urlparse.urlsplit(key).scheme :
+        key = 'ivo://canfar.uvic.ca/ossos#%s' % ( key)
+    # for now we delete and then set, some issue with the props
+    # updating on vospace (2013/06/23, JJK)
+    node.props[key] = None
     vospace.addProps(node)
-    return
+    node.props[key] = value
+    return vospace.addProps(node)
+
 
 def get_tag(expnum, key):
     '''given a key, return the vospace tag value.'''
@@ -109,6 +124,8 @@ def get_tag(expnum, key):
     uri = os.path.join(_dbimages, str(expnum))
     vospace = vos.Client(certFile=_CERTFILE)
     node = vospace.getNode(uri)
+    if not urlparse.urlsplit(key).scheme:
+        key = 'ivo://canfar.uvic.ca/ossos#%s' % ( key)
     return node.props.get(key, None)
 
 def get_status(expnum, ccd, program):
@@ -123,7 +140,8 @@ def set_status(expnum, ccd, program, status):
     key = "%s_%s" % ( program, str(ccd).zfill(2))
     return set_tag(expnum, key, status)
 
-def get_image(expnum, ccd=None, version='p', ext='fits', subdir=None, rescale=True, prefix=None):
+def get_image(expnum, ccd=None, version='p', ext='fits',
+              subdir=None, rescale=True, prefix=None):
     '''Get a FITS file for this expnum/ccd  from VOSpace.
     
     expnum:  CFHT exposure number (int)
@@ -144,8 +162,10 @@ def get_image(expnum, ccd=None, version='p', ext='fits', subdir=None, rescale=Tr
         return filename
 
     try:
+        logging.info("trying to get file %s" % ( uri))
         copy(uri, filename)
     except Exception as e:
+        logging.info(str(e))
         if e.errno != errno.ENOENT or ccd is None:
             raise e
         ## try doing a cutout from MEF in VOSpace
@@ -153,13 +173,14 @@ def get_image(expnum, ccd=None, version='p', ext='fits', subdir=None, rescale=Tr
                       version=version,
                       ext=ext,
                       subdir=subdir)
-        logging.debug("Using uri: %s" % ( uri))
+        logging.info("Using uri: %s" % ( uri))
         cutout="[%d]" % ( int(ccd)+1)
         if ccd < 18 :
             cutout += "[-*,-*]"
-        cutout = urllib.urlencode({'cutout': cutout})
         vospace=vos.Client(certFile=_CERTFILE)
-        url = vospace.getNodeURL(uri,view='cutout', limit=None)+'&'+cutout
+        logging.info(uri)
+        url = vospace.getNodeURL(uri,view='cutout', limit=None, cutout=cutout)
+        logging.info(url)
         fin = vospace.open(uri, URL=url)
         fout = open(filename, 'w')
         buff = fin.read(2**16)
@@ -185,6 +206,17 @@ def get_fwhm(expnum, ccd, prefix=None, version='p'):
     uri = get_uri(expnum, ccd, version, ext='fwhm', prefix=prefix)
     vospace=vos.Client(certFile=_CERTFILE)
     return float(vospace.open(uri,view='data').read().strip())
+
+def get_zeropoint(expnum, ccd, prefix=None, version='p'):
+    '''Get the zeropoint for this exposure'''
+
+    return float(vos.Client(certFile=_CERTFILE).
+                 open(
+        uri=get_uri(expnum, ccd, version, ext='zeropoint.used', prefix=prefix),
+        view='data').
+                 read().
+                 strip()
+                 )
 
 def mkdir(root):
     '''make directory tree in vospace.'''
