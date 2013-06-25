@@ -187,6 +187,20 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
         self.progress_manager.record_done(file1)
         self.progress_manager.unlock(file1)
 
+    def test_record_done_does_not_unlock_all(self):
+        file1 = "xxx1.cands.astrom"
+        file2 = "xxx2.cands.astrom"
+        manager2 = ProgressManager(self.working_directory)
+
+        self.progress_manager.lock(file1)
+        manager2.lock(file2)
+
+        self.progress_manager.record_done(file1)
+        assert_that(manager2.owns_lock(file2), equal_to(True))
+
+        manager2.unlock(file2)
+        assert_that(manager2.owns_lock(file2), equal_to(False))
+
     def test_get_processed_indices_empty_should_not_cause_error(self):
         assert_that(self.progress_manager.get_processed_indices("xxx1.cands.astrom"),
                     has_length(0))

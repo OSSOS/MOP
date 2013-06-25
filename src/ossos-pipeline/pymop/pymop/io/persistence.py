@@ -114,11 +114,13 @@ class ProgressManager(object):
 
         Returns: void
 
-        NOTE: Removes the caller's lock on the file, and removes records of
-        partial results.
+        NOTE: Does not remove the caller's lock on the file.
         """
         open(self._get_full_path(filename) + DONE_SUFFIX, "wb").close()
-        self.clean(suffixes=[PART_SUFFIX, LOCK_SUFFIX])
+
+        partfile = self._get_full_path(filename) + PART_SUFFIX
+        if os.path.exists(partfile):
+            os.remove(partfile)
 
     @requires_lock
     def record_index(self, filename, index):
