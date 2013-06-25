@@ -84,11 +84,13 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
                     has_length(0))
         assert_that(self.progress_manager.get_done(tasks.REALS_TASK),
                     contains(processed1))
+        assert_that(self.progress_manager.is_done(processed1), equal_to(True))
 
         # Create a second persistence manager and make sure it sees the changes
         manager2 = ProgressManager(self.working_directory)
         assert_that(manager2.get_done(tasks.CANDS_TASK), has_length(0))
         assert_that(manager2.get_done(tasks.REALS_TASK), contains(processed1))
+        assert_that(manager2.is_done(processed1), equal_to(True))
 
     def test_write_progress_two_simultaneous_managers(self):
         assert_that(self.progress_manager.get_done(tasks.CANDS_TASK),
@@ -184,6 +186,10 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
         self.progress_manager.lock(file1)
         self.progress_manager.record_done(file1)
         self.progress_manager.unlock(file1)
+
+    def test_get_processed_indices_empty_should_not_cause_error(self):
+        assert_that(self.progress_manager.get_processed_indices("xxx1.cands.astrom"),
+                    has_length(0))
 
 
 if __name__ == '__main__':

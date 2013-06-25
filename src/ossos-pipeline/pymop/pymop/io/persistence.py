@@ -62,8 +62,41 @@ class ProgressManager(object):
                                            self._get_done_suffix(task))
         return [done_file[:-len(DONE_SUFFIX)] for done_file in listing]
 
+    def is_done(self, filename):
+        """
+        Checks if a file has been completely processed.
+
+        Args:
+          filename: str
+            A file in the working directory to check for completion.
+            No lock is required for this operation.
+
+        Returns:
+          is_done: bool
+            True if all items in the file have been processed,
+            False otherwise.
+        """
+        return os.path.exists(self._get_full_path(filename) + DONE_SUFFIX)
+
     def get_processed_indices(self, filename):
+        """
+        Retrieve indices of items that have been processed in a file.
+
+        Args:
+          filename: str
+            A file in the working directory to check the progress on.
+            No lock is required for this operation.
+
+        Returns:
+          processed_indices: list(int)
+            The indices of items in the specified field that have been
+            processed already.  Returns an empty list if no items have
+            been processed.
+        """
         partfile = self._get_full_path(filename + PART_SUFFIX)
+
+        if not os.path.exists(partfile):
+            return []
 
         with open(partfile, "rb") as filehandle:
             indices = filehandle.read().rstrip(INDEX_SEP).split(INDEX_SEP)
