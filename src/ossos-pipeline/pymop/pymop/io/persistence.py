@@ -111,17 +111,18 @@ class ProgressManager(object):
     def lock(self, filename):
         lockfile = self._get_full_path(filename + LOCK_SUFFIX)
 
-        if os.path.exists(lockfile):
-            # The file is already locked
+        try:
+            filehandle = self._atomic_create(lockfile)
+        except OSError:
+            # File already exists, someone holds the lock
             with open(lockfile, "rb") as filehandle:
                 locker = filehandle.read()
 
             raise FileLockedException(filename, locker)
 
-        else:
-            # The file has not been locked, we can grab it
-            with open(lockfile, "wb") as filehandle:
-                filehandle.write(getpass.getuser())
+        # We got the lock, write our ID into the file
+        filehandle.write(getpass.getuser())
+        filehandle.close()
 
     def unlock(self, filename):
         lockfile = self._get_full_path(filename + LOCK_SUFFIX)
@@ -160,6 +161,14 @@ class ProgressManager(object):
         else:
             # No lock file, so we can't have a lock
             return False
+
+    def _atomic_create(self, full_path):
+        """
+        Tries to create the specified file.  Throws an OSError if it already
+        exists.
+        """
+        fd = os.open(full_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
+        return os.fdopen(fd, "wb")
 
     def _get_done_suffix(self, task):
         return tasks.suffixes[task] + DONE_SUFFIX
