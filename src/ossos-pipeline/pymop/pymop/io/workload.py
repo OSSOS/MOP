@@ -2,8 +2,6 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import os
 
-from pymop import tasks
-
 
 class NoAvailableWorkException(Exception):
     """"No more work is available."""
@@ -40,12 +38,16 @@ class WorkUnitFactory(object):
 
 
 class DirectoryManager(object):
-    def __init__(self, directory, suffix):
+    def __init__(self, directory):
         self.directory = directory
-        self.suffix = suffix
 
-    def get_listing(self):
-        return tasks.listdir_for_suffix(self.directory, self.suffix)
+    def get_listing(self, suffix):
+        return listdir_for_suffix(self.directory, suffix)
 
     def get_full_path(self, filename):
         return os.path.join(self.directory, filename)
+
+
+def listdir_for_suffix(directory, suffix):
+    """Note this returns file names, not full paths."""
+    return filter(lambda name: name.endswith(suffix), os.listdir(directory))

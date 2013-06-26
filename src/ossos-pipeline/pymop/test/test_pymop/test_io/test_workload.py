@@ -3,9 +3,12 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import copy
 import unittest
 
-from hamcrest import assert_that, is_in, is_not, equal_to
+from hamcrest import assert_that, is_in, is_not, equal_to, contains_inanyorder
 from mock import Mock
 
+from test.base_tests import FileReadingTestCase
+from pymop import tasks
+from pymop.io import workload
 from pymop.io.workload import (WorkUnitFactory, DirectoryManager,
                                NoAvailableWorkException)
 from pymop.io.astrom import AstromParser
@@ -56,6 +59,37 @@ class WorkUnitFactoryTest(unittest.TestCase):
         progress_manager.record_done(workunit2.get_filename())
 
         self.assertRaises(NoAvailableWorkException, undertest.create_workunit)
+
+
+class DirectoryManagerTest(FileReadingTestCase):
+    def test_listdir_for_suffix(self):
+        dir = self.get_abs_path("data/testdir")
+
+        listing1 = workload.listdir_for_suffix(dir, "cands.astrom")
+        assert_that(listing1, contains_inanyorder("xxx1.cands.astrom", "xxx2.cands.astrom"))
+
+        listing2 = workload.listdir_for_suffix(dir, "reals.astrom")
+        assert_that(listing2, contains_inanyorder("xxx1.reals.astrom", "xxx2.reals.astrom"))
+
+    def test_listdir_for_task(self):
+        dir = self.get_abs_path("data/testdir")
+
+        listing1 = workload.listdir_for_suffix(dir, tasks.get_suffix(tasks.CANDS_TASK))
+        assert_that(listing1, contains_inanyorder("xxx1.cands.astrom", "xxx2.cands.astrom"))
+
+        listing2 = workload.listdir_for_suffix(dir, tasks.get_suffix(tasks.REALS_TASK))
+        assert_that(listing2, contains_inanyorder("xxx1.reals.astrom", "xxx2.reals.astrom"))
+
+    def test_directory_manager_get_listing(self):
+        dir = self.get_abs_path("data/testdir")
+
+        directory_manager = DirectoryManager(dir)
+
+        listing1 = directory_manager.get_listing("cands.astrom")
+        assert_that(listing1, contains_inanyorder("xxx1.cands.astrom", "xxx2.cands.astrom"))
+
+        assert_that(directory_manager.get_full_path("xxx1.cands.astrom"),
+                    equal_to(self.get_abs_path("data/testdir/xxx1.cands.astrom")))
 
 
 if __name__ == '__main__':
