@@ -3,15 +3,16 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import getpass
 import unittest
 
-from mock import patch
+from mock import patch, Mock
 from hamcrest import (assert_that, contains_inanyorder, has_length, contains,
                       equal_to)
 
 from test.base_tests import FileReadingTestCase
 from pymop import tasks
 from pymop.io.workload import DirectoryManager
-from pymop.io.persistence import (ProgressManager, FileLockedException,
-                                  RequiresLockException, LOCK_SUFFIX)
+from pymop.io.persistence import (ProgressManager, InMemoryProgressManager,
+                                  FileLockedException, RequiresLockException,
+                                  LOCK_SUFFIX)
 from pymop.io.astrom import AstromWorkload
 
 WD_HAS_PROGRESS = "data/persistence_has_progress"
@@ -233,6 +234,60 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
         # Double check with a second manager
         assert_that(self.create_concurrent_progress_manager().get_processed_indices(filename),
                     contains_inanyorder(0, 1, 2))
+
+
+class InMemoryProgressManagerTest(unittest.TestCase):
+    def setUp(self):
+        self.file1 = "file1"
+        self.file2 = "file2"
+
+        directory_manager = Mock(spec=DirectoryManager)
+        self.undertest = InMemoryProgressManager(directory_manager)
+
+    def test_done(self):
+        assert_that(self.undertest.is_done(self.file1), equal_to(False))
+        assert_that(self.undertest.is_done(self.file2), equal_to(False))
+
+        self.undertest.lock(self.file2)
+        self.undertest.record_done(self.file2)
+        self.undertest.unlock(self.file2)
+
+        assert_that(self.undertest.is_done(self.file1), equal_to(False))
+        assert_that(self.undertest.is_done(self.file2), equal_to(True))
+
+        self.undertest.lock(self.file1)
+        self.undertest.record_done(self.file1)
+        self.undertest.unlock(self.file1)
+
+        assert_that(self.undertest.is_done(self.file1), equal_to(True))
+        assert_that(self.undertest.is_done(self.file2), equal_to(True))
+
+    def test_processed_indices(self):
+        assert_that(self.undertest.get_processed_indices(self.file1),
+                    has_length(0))
+        self.undertest.lock(self.file1)
+        self.undertest.record_index(self.file1, 1)
+        assert_that(self.undertest.get_processed_indices(self.file1),
+                    contains_inanyorder(1))
+
+        self.undertest.record_index(self.file1, 2)
+        assert_that(self.undertest.get_processed_indices(self.file1),
+                    contains_inanyorder(1, 2))
+
+        assert_that(self.undertest.get_processed_indices(self.file2),
+                    has_length(0))
+
+    def test_locking(self):
+        assert_that(self.undertest.owns_lock(self.file1), equal_to(False))
+        assert_that(self.undertest.owns_lock(self.file2), equal_to(False))
+
+        self.undertest.lock(self.file1)
+
+        assert_that(self.undertest.owns_lock(self.file1), equal_to(True))
+        assert_that(self.undertest.owns_lock(self.file2), equal_to(False))
+
+        self.assertRaises(RequiresLockException, self.undertest.record_done, self.file2)
+        self.assertRaises(RequiresLockException, self.undertest.record_index, self.file2, 1)
 
 
 if __name__ == '__main__':

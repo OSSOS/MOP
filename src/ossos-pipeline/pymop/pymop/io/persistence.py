@@ -1,5 +1,6 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import collections
 import getpass
 import os
 
@@ -49,7 +50,7 @@ class RequiresLockException(Exception):
             "Operation requires a lock on the file.")
 
 
-class ProgressManager(object):
+class AbstractProgressManager(object):
     """
     Manages persistence of progress made processing files in a directory.
     """
@@ -75,7 +76,7 @@ class ProgressManager(object):
             True if all items in the file have been processed,
             False otherwise.
         """
-        return os.path.exists(self._get_full_path(filename) + DONE_SUFFIX)
+        raise NotImplementedError()
 
     def get_processed_indices(self, filename):
         """
@@ -92,21 +93,7 @@ class ProgressManager(object):
             processed already.  Returns an empty list if no items have
             been processed.
         """
-        partfile = self._get_full_path(filename + PART_SUFFIX)
-        donefile = self._get_full_path(filename + DONE_SUFFIX)
-
-        file_with_records = None
-        if os.path.exists(donefile):
-            file_with_records = donefile
-        elif os.path.exists(partfile):
-            file_with_records = partfile
-
-        if file_with_records is None:
-            return []
-
-        with open(file_with_records, "rb") as filehandle:
-            indices = filehandle.read().rstrip(INDEX_SEP).split(INDEX_SEP)
-            return map(int, indices)
+        raise NotImplementedError()
 
     @requires_lock
     def record_done(self, filename):
@@ -122,16 +109,10 @@ class ProgressManager(object):
 
         NOTE: Does not remove the caller's lock on the file.
         """
-        partfile = self._get_full_path(filename) + PART_SUFFIX
-        donefile = self._get_full_path(filename) + DONE_SUFFIX
+        self._record_done(filename)
 
-        if os.path.exists(partfile):
-            # By just renaming we keep the history of processed indices
-            # available.
-            os.rename(partfile, donefile)
-        else:
-            # Create a new blank file
-            open(donefile, "wb").close()
+    def _record_done(self, filename):
+        raise NotImplementedError()
 
     @requires_lock
     def record_index(self, filename, index):
@@ -149,6 +130,71 @@ class ProgressManager(object):
 
         Returns: void
         """
+        self._record_index(filename, index)
+
+    def _record_index(self, filename, index):
+        raise NotImplementedError()
+
+    def lock(self, filename):
+        raise NotImplementedError()
+
+    def unlock(self, filename):
+        raise NotImplementedError()
+
+    def clean(self, suffixes=None):
+        raise NotImplementedError()
+
+    def owns_lock(self, filename):
+        raise NotImplementedError()
+
+    def _get_done_suffix(self, task):
+        return tasks.get_suffix(task) + DONE_SUFFIX
+
+    def _get_full_path(self, filename):
+        return self.directory_manager.get_full_path(filename)
+
+
+class ProgressManager(AbstractProgressManager):
+    """
+    Implements AbstractProgressManager by persisting progress to disk.
+    """
+
+    def __init__(self, directory_manager):
+        super(ProgressManager, self).__init__(directory_manager)
+
+    def is_done(self, filename):
+        return os.path.exists(self._get_full_path(filename) + DONE_SUFFIX)
+
+    def get_processed_indices(self, filename):
+        partfile = self._get_full_path(filename + PART_SUFFIX)
+        donefile = self._get_full_path(filename + DONE_SUFFIX)
+
+        file_with_records = None
+        if os.path.exists(donefile):
+            file_with_records = donefile
+        elif os.path.exists(partfile):
+            file_with_records = partfile
+
+        if file_with_records is None:
+            return []
+
+        with open(file_with_records, "rb") as filehandle:
+            indices = filehandle.read().rstrip(INDEX_SEP).split(INDEX_SEP)
+            return map(int, indices)
+
+    def _record_done(self, filename):
+        partfile = self._get_full_path(filename) + PART_SUFFIX
+        donefile = self._get_full_path(filename) + DONE_SUFFIX
+
+        if os.path.exists(partfile):
+            # By just renaming we keep the history of processed indices
+            # available.
+            os.rename(partfile, donefile)
+        else:
+            # Create a new blank file
+            open(donefile, "wb").close()
+
+    def _record_index(self, filename, index):
         partfile = self._get_full_path(filename + PART_SUFFIX)
 
         with open(partfile, "ab") as filehandle:
@@ -216,9 +262,38 @@ class ProgressManager(object):
         fd = os.open(full_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
         return os.fdopen(fd, "wb")
 
-    def _get_done_suffix(self, task):
-        return tasks.get_suffix(task) + DONE_SUFFIX
 
-    def _get_full_path(self, filename):
-        return self.directory_manager.get_full_path(filename)
+class InMemoryProgressManager(AbstractProgressManager):
+    """
+    An implementation of the ProgressManager interface which stores all
+    information in memory.  It is mainly intended for convenience in
+    testing.
+    """
 
+    def __init__(self, directory_manager):
+        super(InMemoryProgressManager, self).__init__(directory_manager)
+        self.done = []
+        self.owned_locks = []
+        self.processed_indices = collections.defaultdict(list)
+
+    def is_done(self, filename):
+        return filename in self.done
+
+    def get_processed_indices(self, filename):
+        return self.processed_indices[filename]
+
+    def _record_done(self, filename):
+        self.done.append(filename)
+
+    def _record_index(self, filename, index):
+        self.processed_indices[filename].append(index)
+
+    def lock(self, filename):
+        self.owned_locks.append(filename)
+
+    def unlock(self, filename):
+        if filename in self.owned_locks:
+            self.owned_locks.remove(filename)
+
+    def owns_lock(self, filename):
+        return filename in self.owned_locks
