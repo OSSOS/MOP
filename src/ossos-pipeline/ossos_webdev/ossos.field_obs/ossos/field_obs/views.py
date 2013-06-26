@@ -57,6 +57,10 @@ class Field(object):
 		retval = self.imagesQuery.num_doubles(self.fieldId)
 		return retval
 
+	# @property
+	# def export_triplet(self):
+	# 	retval = self.imagesQuery.export_discovery_triplet(self.fieldId)
+
 
 	@view_config(route_name='field_obs', renderer='field_obs.pt', permission='ossos')
 	def inspect_observations(self):
@@ -72,5 +76,6 @@ class Field(object):
 		'precoveries': self.num_precoveries,
 		'nailings': self.num_nailings,
 		'doubles': self.num_doubles
+		#'update_vospace': self.export_triplet
 		}
 		return retval
