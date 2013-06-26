@@ -23,7 +23,7 @@
         </ul>
       </div><!--page-header-->
 
-      <h2>field ${fieldId} <small>(${ra}, ${dec})</small></h2>
+      <h2>field ${fieldId} <small>(${ra}, ${dec}) <i>b</i>=${'%.1f' % ec_loc[0]}&deg;</small></h2>
 
       <div class="well well-small">
         <dl class="dl-horizontal">
@@ -36,7 +36,13 @@
           <dt>Doubles:</dt>
           <dd>${doubles}</dd>
         </dl>
-      </div> <!-- well -->
+
+<!--         $("#sparkline").sparkline([1,1,0,1,-1,-1,1,-1,0,0,1,1], {
+          type: 'tristate',
+          posBarColor: '#007fff',
+          negBarColor: '#f04040 ',
+          zeroAxis: false});
+ -->      </div> <!-- well -->
 
       <table class="table table-striped table-condensed table-hover">
       	<caption colspan="3">
