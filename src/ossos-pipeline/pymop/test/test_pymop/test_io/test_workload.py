@@ -10,7 +10,7 @@ from test.base_tests import FileReadingTestCase
 from pymop import tasks
 from pymop.io import workload
 from pymop.io.persistence import InMemoryProgressManager
-from pymop.io.workload import (WorkUnitFactory, DirectoryManager,
+from pymop.io.workload import (WorkUnitProvider, DirectoryManager,
                                WorkUnit,
                                NoAvailableWorkException)
 
@@ -48,7 +48,7 @@ class WorkUnitFactoryTest(unittest.TestCase):
         progress_manager = InMemoryProgressManager(directory_manager)
         builder = TestWorkUnitBuilder()
 
-        self.undertest = WorkUnitFactory(self.taskid, directory_manager,
+        self.undertest = WorkUnitProvider(self.taskid, directory_manager,
                                          progress_manager, builder)
         self.directory_manager = directory_manager
         self.progress_manager = progress_manager
@@ -56,40 +56,40 @@ class WorkUnitFactoryTest(unittest.TestCase):
 
     def test_create_workload_acquires_lock(self):
         self.directory_manager.set_listing(self.taskid, self.test_files)
-        workunit1 = self.undertest.create_workunit()
+        workunit1 = self.undertest.get_workunit()
         assert_that(self.progress_manager.owns_lock(workunit1.get_filename()),
                     equal_to(True))
 
     def test_create_workload_fresh_directory(self):
-        workunit1 = self.undertest.create_workunit()
+        workunit1 = self.undertest.get_workunit()
         assert_that(workunit1.get_filename(), is_in(self.test_files))
         self.progress_manager.record_done(workunit1.get_filename())
 
-        workunit2 = self.undertest.create_workunit()
+        workunit2 = self.undertest.get_workunit()
         assert_that(workunit2.get_filename(), is_in(self.test_files))
         assert_that(workunit2.get_filename(),
                     is_not(equal_to(workunit1.get_filename())))
         self.progress_manager.record_done(workunit2.get_filename())
 
-        self.assertRaises(NoAvailableWorkException, self.undertest.create_workunit)
+        self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
 
     def test_create_workload_one_file_already_done(self):
         self.progress_manager.done.append(self.file1)
 
-        workunit = self.undertest.create_workunit()
+        workunit = self.undertest.get_workunit()
         assert_that(workunit.get_filename(), equal_to(self.file2))
         self.progress_manager.record_done(self.file2)
 
-        self.assertRaises(NoAvailableWorkException, self.undertest.create_workunit)
+        self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
 
     def test_create_workload_locked_files(self):
         self.progress_manager.add_external_lock(self.file2)
 
-        workunit = self.undertest.create_workunit()
+        workunit = self.undertest.get_workunit()
         assert_that(workunit.get_filename(), equal_to(self.file1))
         self.progress_manager.record_done(self.file1)
 
-        self.assertRaises(NoAvailableWorkException, self.undertest.create_workunit)
+        self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
 
 
 class DirectoryManagerTest(FileReadingTestCase):
