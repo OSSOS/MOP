@@ -7,7 +7,7 @@ import logging
 from ossos import util
 from ossos import storage
 
-def run_step2(expnums, ccd, version, prefix=None):
+def step2(expnums, ccd, version, prefix=None):
     '''run the actual step2  on the given exp/ccd combo'''
 
     jmp_args = ['step2jmp']
@@ -79,6 +79,8 @@ if __name__ == '__main__':
                         action='store_true')
     parser.add_argument("--verbose","-v",
                         action="store_true")
+    parser.add_argument("--force", action="strore_true")
+
 
     args=parser.parse_args()
 
@@ -99,25 +101,24 @@ if __name__ == '__main__':
 
     for ccd in ccdlist:
         try:
-            message = 'success'
-            #if not storage.get_status(expnum, ccd, 'mkpsf'):
-            #    raise IOError(35, "missing mkpsf")
-            #if storage.get_status(expnum, ccd, 'step1'):
-            #    logging.info("Already did %s %s, skipping" %(str(expnum),
-            #                                                 str(ccd)))
-            #    continue
+            message = storage.SUCCESS
+            if not storage.get_status(expnum, ccd, 'step1'):
+                raise IOError(35, "missing step1?")
+            if storage.get_status(expnum, ccd, 'step2') and not args.force:
+                logging.info("Already did %s %s, skipping" %(str(expnum),
+                                                             str(ccd)))
+                continue
             logging.info("step2 on expnum :%s, ccd: %d" % (
-                str(args.expnums), ccd))
-            run_step2(args.expnums, ccd, version=args.type, prefix=prefix)
+                    str(args.expnums), ccd))
+            step2(args.expnums, ccd, version=args.type, prefix=prefix)
             logging.info(message)
         except Exception as e:
             message = str(e)
             logging.error(message)
-
-            #storage.set_status(expnum,
-            #                   ccd,
-            #                   'step2',
-            #                   message)
+            storage.set_status(expnum,
+                               ccd,
+                               'step2',
+                               message)
         
             
 

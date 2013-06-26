@@ -14,7 +14,7 @@ from ossos import storage
 from ossos import util
 from astropy.io import fits
 
-def run_step1(expnum,
+def step1(expnum,
               ccd,
               prefix='',
               version='p',
@@ -109,7 +109,8 @@ if __name__=='__main__':
                         action="store_true")
     parser.add_argument("--debug",'-d',
                         action='store_true')
-    
+    parser.add_argument("--force", action="strore_true")
+
     args=parser.parse_args()
 
     level = logging.CRITICAL
@@ -133,15 +134,15 @@ if __name__=='__main__':
     for expnum in args.expnum:
         for ccd in ccdlist:
             try:
-                message = 'success'
-                #if not storage.get_status(expnum, ccd, 'mkpsf'):
-                #    raise IOError(35, "missing mkpsf")
-                #if storage.get_status(expnum, ccd, 'step1'):
-                #    logging.info("Already did %s %s, skipping" %(str(expnum),
-                #                                                 str(ccd)))
-                #    continue
+                message = storage.SUCCESS
+                if not storage.get_status(expnum, ccd, 'mkpsf'):
+                    raise IOError(35, "mkpsf hasn't run?")
+                if storage.get_status(expnum, ccd, 'step1') and not args.force:
+                    logging.critical("Already did %s %s, skipping" %(str(expnum),
+                                                                     str(ccd)))
+                    continue
                 logging.info("step1 on expnum :%d, ccd: %d" % ( expnum, ccd))
-                run_step1(expnum, ccd, prefix=prefix, version=args.type)
+                step1(expnum, ccd, prefix=prefix, version=args.type)
                 logging.info(message)
             except Exception as e:
                 message = str(e)
