@@ -2,6 +2,8 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import os
 
+from pymop.io.persistence import FileLockedException
+
 
 class NoAvailableWorkException(Exception):
     """"No more work is available."""
@@ -30,6 +32,11 @@ class WorkUnitFactory(object):
             potential_file = potential_files.pop()
 
             if not self.progress_manager.is_done(potential_file):
+                try:
+                    self.progress_manager.lock(potential_file)
+                except FileLockedException:
+                    continue
+
                 return WorkUnit(
                     potential_file,
                     self.parser.parse(

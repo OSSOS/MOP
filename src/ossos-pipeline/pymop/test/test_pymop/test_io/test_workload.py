@@ -29,35 +29,58 @@ class TestDirectoryManager(object):
 
 
 class WorkUnitFactoryTest(unittest.TestCase):
-    def test_create_workload_fresh_directory(self):
-        taskid = "id"
-        test_files = ["file1", "file2"]
+    def setUp(self):
+        self.taskid = "id"
+        self.file1 = "file1"
+        self.file2 = "file2"
+        self.test_files = [self.file1, self.file2]
 
         directory_manager = TestDirectoryManager()
-        directory_manager.set_listing(taskid, test_files)
-
         progress_manager = InMemoryProgressManager(directory_manager)
         parser = Mock(spec=AstromParser)
 
-        undertest = WorkUnitFactory(taskid, directory_manager, progress_manager, parser)
+        self.undertest = WorkUnitFactory(self.taskid, directory_manager,
+                                         progress_manager, parser)
+        self.directory_manager = directory_manager
+        self.progress_manager = progress_manager
+        self.directory_manager.set_listing(self.taskid, self.test_files)
 
-        workunit1 = undertest.create_workunit()
-        assert_that(workunit1.get_filename(), is_in(test_files))
+    def test_create_workload_acquires_lock(self):
+        self.directory_manager.set_listing(self.taskid, self.test_files)
+        workunit1 = self.undertest.create_workunit()
+        assert_that(self.progress_manager.owns_lock(workunit1.get_filename()),
+                    equal_to(True))
 
-        progress_manager.lock(workunit1.get_filename())
-        progress_manager.record_done(workunit1.get_filename())
-        progress_manager.unlock(workunit1.get_filename())
+    def test_create_workload_fresh_directory(self):
+        workunit1 = self.undertest.create_workunit()
+        assert_that(workunit1.get_filename(), is_in(self.test_files))
+        self.progress_manager.record_done(workunit1.get_filename())
 
-        workunit2 = undertest.create_workunit()
-        assert_that(workunit2.get_filename(), is_in(test_files))
+        workunit2 = self.undertest.create_workunit()
+        assert_that(workunit2.get_filename(), is_in(self.test_files))
         assert_that(workunit2.get_filename(),
                     is_not(equal_to(workunit1.get_filename())))
+        self.progress_manager.record_done(workunit2.get_filename())
 
-        progress_manager.lock(workunit2.get_filename())
-        progress_manager.record_done(workunit2.get_filename())
-        progress_manager.unlock(workunit2.get_filename())
+        self.assertRaises(NoAvailableWorkException, self.undertest.create_workunit)
 
-        self.assertRaises(NoAvailableWorkException, undertest.create_workunit)
+    def test_create_workload_one_file_already_done(self):
+        self.progress_manager.done.append(self.file1)
+
+        workunit = self.undertest.create_workunit()
+        assert_that(workunit.get_filename(), equal_to(self.file2))
+        self.progress_manager.record_done(self.file2)
+
+        self.assertRaises(NoAvailableWorkException, self.undertest.create_workunit)
+
+    def test_create_workload_locked_files(self):
+        self.progress_manager.add_external_lock(self.file2)
+
+        workunit = self.undertest.create_workunit()
+        assert_that(workunit.get_filename(), equal_to(self.file1))
+        self.progress_manager.record_done(self.file1)
+
+        self.assertRaises(NoAvailableWorkException, self.undertest.create_workunit)
 
 
 class DirectoryManagerTest(FileReadingTestCase):
