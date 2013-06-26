@@ -9,21 +9,59 @@ class NoAvailableWorkException(Exception):
     """"No more work is available."""
 
 
+class VettableItem(object):
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    UNPROCESSED = "unprocessed"
+
+    def __init__(self, item):
+        self._status = VettableItem.UNPROCESSED
+        self.item = item
+
+    def __getattr__(self, attr):
+        return getattr(self.item, attr)
+
+    def is_processed(self):
+        return self._status != VettableItem.UNPROCESSED
+
+    def is_accepted(self):
+        return self._status == VettableItem.ACCEPTED
+
+    def is_rejected(self):
+        return self._status == VettableItem.REJECTED
+
+    def accept(self):
+        self._status = VettableItem.ACCEPTED
+
+    def reject(self):
+        self._status = VettableItem.REJECTED
+
+    def get_status(self):
+        return self._status
+
+
 class WorkUnit(object):
-    def __init__(self, filename, data):
+    def __init__(self, filename, work_items):
         self.filename = filename
-        self.data = data
+        self.work_items = work_items
 
     def get_filename(self):
         return self.filename
 
+    def get_work_items(self):
+        return self.work_items
+
 
 class WorkUnitFactory(object):
-    def __init__(self, taskid, directory_manager, progress_manager, parser):
+    def __init__(self,
+                 taskid,
+                 directory_manager,
+                 progress_manager,
+                 builder):
         self.taskid = taskid
         self.directory_manager = directory_manager
         self.progress_manager = progress_manager
-        self.parser = parser
+        self.builder = builder
 
     def create_workunit(self):
         potential_files = self.directory_manager.get_listing(self.taskid)
@@ -37,12 +75,63 @@ class WorkUnitFactory(object):
                 except FileLockedException:
                     continue
 
-                return WorkUnit(
-                    potential_file,
-                    self.parser.parse(
-                        self.directory_manager.get_full_path(potential_file)))
+                return self.builder.build_workunit(
+                    self.directory_manager.get_full_path(potential_file))
 
         raise NoAvailableWorkException()
+
+
+class WorkUnitBuilder(object):
+    def __init__(self, parser):
+        self.parser = parser
+
+    def build_workunit(self, full_path):
+        work_items = self._create_work_items(self.parser.parse(full_path))
+        _, filename = os.path.split(full_path)
+        return WorkUnit(filename, work_items)
+
+    def _create_work_items(self, parsed_data):
+        raise NotImplementedError()
+
+
+class CandidatesWorkUnitBuilder(WorkUnitBuilder):
+    def __init__(self, parser):
+        super(CandidatesWorkUnitBuilder, self).__init__(parser)
+
+    def _create_work_items(self, parsed_data):
+        return [VettableItem(source) for source in parsed_data.get_sources()]
+
+
+class RealsWorkUnitBuilder(WorkUnitBuilder):
+    def __init__(self, parser):
+        super(RealsWorkUnitBuilder, self).__init__(parser)
+
+    def _create_work_items(self, parsed_data):
+        return [VettableItem(reading) for source in parsed_data.get_sources()
+                for reading in source]
+
+
+class WorkloadManager(object):
+    """
+    Manages the workload's state.
+    """
+
+    def __init__(self, workunit_factory):
+        self.workunit_factory = workunit_factory
+        self.current_workunit = None
+        self.workunit_number = 0
+
+    def next_workunit(self):
+        pass
+
+    def previous_workunit(self):
+        pass
+
+    def get_current_filename(self):
+        pass
+
+    def get_current_data(self):
+        pass
 
 
 class DirectoryManager(object):
