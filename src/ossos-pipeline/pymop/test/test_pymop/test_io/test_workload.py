@@ -1,5 +1,6 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import os
 import unittest
 
 from hamcrest import assert_that, is_in, is_not, equal_to, contains_inanyorder
@@ -10,8 +11,8 @@ from pymop import tasks
 from pymop.io import workload
 from pymop.io.persistence import InMemoryProgressManager
 from pymop.io.workload import (WorkUnitFactory, DirectoryManager,
+                               WorkUnit,
                                NoAvailableWorkException)
-from pymop.io.astrom import AstromParser
 
 
 class TestDirectoryManager(object):
@@ -28,6 +29,14 @@ class TestDirectoryManager(object):
         return filename
 
 
+class TestWorkUnitBuilder(object):
+    def build_workunit(self, full_path):
+        _, filename = os.path.split(full_path)
+        workunit = Mock(spec=WorkUnit)
+        workunit.get_filename.return_value = filename
+        return workunit
+
+
 class WorkUnitFactoryTest(unittest.TestCase):
     def setUp(self):
         self.taskid = "id"
@@ -37,10 +46,10 @@ class WorkUnitFactoryTest(unittest.TestCase):
 
         directory_manager = TestDirectoryManager()
         progress_manager = InMemoryProgressManager(directory_manager)
-        parser = Mock(spec=AstromParser)
+        builder = TestWorkUnitBuilder()
 
         self.undertest = WorkUnitFactory(self.taskid, directory_manager,
-                                         progress_manager, parser)
+                                         progress_manager, builder)
         self.directory_manager = directory_manager
         self.progress_manager = progress_manager
         self.directory_manager.set_listing(self.taskid, self.test_files)
