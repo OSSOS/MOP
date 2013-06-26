@@ -1,6 +1,5 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import copy
 import unittest
 
 from hamcrest import assert_that, is_in, is_not, equal_to, contains_inanyorder
@@ -9,54 +8,54 @@ from mock import Mock
 from test.base_tests import FileReadingTestCase
 from pymop import tasks
 from pymop.io import workload
+from pymop.io.persistence import InMemoryProgressManager
 from pymop.io.workload import (WorkUnitFactory, DirectoryManager,
                                NoAvailableWorkException)
 from pymop.io.astrom import AstromParser
 
 
-class TestProgressManager(object):
-    """
-    A partial test implementation of the ProgressManager interface which
-    just remembers values set on it without persisting them to disk in
-    any way.
-    """
-
+class TestDirectoryManager(object):
     def __init__(self):
-        self.done = []
+        self.listings = {}
 
-    def is_done(self, filename):
-        return filename in self.done
+    def set_listing(self, suffix, listing):
+        self.listings[suffix] = listing[:]
 
-    def record_done(self, filename):
-        self.done.append(filename)
+    def get_listing(self, suffix):
+        return self.listings[suffix]
+
+    def get_full_path(self, filename):
+        return filename
 
 
 class WorkUnitFactoryTest(unittest.TestCase):
     def test_create_workload_fresh_directory(self):
-        file1 = "file1"
-        file2 = "file2"
-        test_files = [file1, file2]
+        taskid = "id"
+        test_files = ["file1", "file2"]
 
-        def _get_listing():
-            return copy.deepcopy(test_files)
+        directory_manager = TestDirectoryManager()
+        directory_manager.set_listing(taskid, test_files)
 
-        directory_manager = Mock(spec=DirectoryManager)
-        directory_manager.get_listing = _get_listing
-
-        progress_manager = TestProgressManager()
+        progress_manager = InMemoryProgressManager(directory_manager)
         parser = Mock(spec=AstromParser)
 
-        undertest = WorkUnitFactory(directory_manager, progress_manager, parser)
+        undertest = WorkUnitFactory(taskid, directory_manager, progress_manager, parser)
 
         workunit1 = undertest.create_workunit()
         assert_that(workunit1.get_filename(), is_in(test_files))
+
+        progress_manager.lock(workunit1.get_filename())
         progress_manager.record_done(workunit1.get_filename())
+        progress_manager.unlock(workunit1.get_filename())
 
         workunit2 = undertest.create_workunit()
         assert_that(workunit2.get_filename(), is_in(test_files))
         assert_that(workunit2.get_filename(),
                     is_not(equal_to(workunit1.get_filename())))
+
+        progress_manager.lock(workunit2.get_filename())
         progress_manager.record_done(workunit2.get_filename())
+        progress_manager.unlock(workunit2.get_filename())
 
         self.assertRaises(NoAvailableWorkException, undertest.create_workunit)
 

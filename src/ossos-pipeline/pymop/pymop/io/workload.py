@@ -17,13 +17,14 @@ class WorkUnit(object):
 
 
 class WorkUnitFactory(object):
-    def __init__(self, directory_manager, progress_manager, parser):
+    def __init__(self, taskid, directory_manager, progress_manager, parser):
+        self.taskid = taskid
         self.directory_manager = directory_manager
         self.progress_manager = progress_manager
         self.parser = parser
 
     def create_workunit(self):
-        potential_files = self.directory_manager.get_listing()
+        potential_files = self.directory_manager.get_listing(self.taskid)
 
         while len(potential_files) > 0:
             potential_file = potential_files.pop()
