@@ -289,6 +289,16 @@ class InMemoryProgressManagerTest(unittest.TestCase):
         self.assertRaises(RequiresLockException, self.undertest.record_done, self.file2)
         self.assertRaises(RequiresLockException, self.undertest.record_index, self.file2, 1)
 
+    def test_external_locks(self):
+        self.undertest.add_external_lock(self.file1)
+
+        assert_that(self.undertest.owns_lock(self.file1), equal_to(False))
+        self.assertRaises(FileLockedException, self.undertest.lock, self.file1)
+        self.assertRaises(FileLockedException, self.undertest.unlock, self.file1)
+
+        self.undertest.lock(self.file2)
+        assert_that(self.undertest.owns_lock(self.file2), equal_to(True))
+
 
 if __name__ == '__main__':
     unittest.main()
