@@ -1,6 +1,9 @@
 from pyramid.response import Response
 from pyramid.view import view_config
 from queries import ImagesQuery
+import ephem
+from math import degrees
+
 
 class Field(object):
 
@@ -30,6 +33,13 @@ class Field(object):
 	@property
 	def dec(self):
 		retval = self.imagesQuery.field_dec(self.fieldId)
+		return retval
+
+	@property
+	def ecliptic_loc(self):
+		rr = ephem.Equatorial(ephem.hours(self.ra), ephem.degrees(self.dec))
+		ec = ephem.Ecliptic(rr)
+		retval = (degrees(ec.lat), str(ec.lon))  # eclat is float (deg), eclon is str in deg
 		return retval
 
 	@property
@@ -71,6 +81,7 @@ class Field(object):
 		'observations': self.observations,
 		'ra': self.ra,
 		'dec': self.dec,
+		'ec_loc': self.ecliptic_loc,
 		'discovery_triplet': self.discovery_triplet,
 		'totalObs': self.numObs,
 		'precoveries': self.num_precoveries,
