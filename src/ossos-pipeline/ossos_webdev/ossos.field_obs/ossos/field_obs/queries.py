@@ -1,6 +1,6 @@
 import sqlalchemy as sa
 from ossos.overview.ossuary import OssuaryTable
-import os, vos
+import os, vos, ephem
 
 CERTFILE=os.path.join(os.getenv('HOME'),
                       '.ssl',
@@ -46,7 +46,7 @@ class ImagesQuery(object):
 
 		retval = 0
 		for row in ims_query:
-			retval = row[1] 	# HACKED FOR QUICK RESULT (precision not needed)
+			retval = str(ephem.hours(ephem.degrees(str(row[1])))) 	# HACKED FOR QUICK RESULT (precision not needed)
 
 		return retval
 
@@ -59,7 +59,7 @@ class ImagesQuery(object):
 
 		retval = 0
 		for row in ims_query:
-			retval = row[1] 	# HACKED FOR QUICK RESULT (precision not needed)
+			retval = str(ephem.degrees(str(row[1]))) 	# HACKED FOR QUICK RESULT (precision not needed)
 
 		return retval
 
@@ -203,11 +203,10 @@ class ImagesQuery(object):
 		retval = 'no discovery triplet'
 		if triplet:
 			images = self.field_images(field)
-			# NEED TO FIX THIS TO ONLY COUNT SINGLE OBSERVATIONS WITHIN THE NIGHT
 			after = [im for im in images['obs'] if 
 					((im[0] > triplet[1][2][4]) 
 						and im[0].strftime('%Y-%m-%d') != triplet[1][2][4].strftime('%Y-%m-%d'))]
-			# ie. if there's a spare image left in the night after a triple or double, can it count?
+
 			retval = len(after)
 
 		return retval
@@ -238,7 +237,7 @@ class ImagesQuery(object):
 			where (cfht_field = :field
 				and obs_end > :date)
 			group by cfht_field, year, month, day, obs_end 
-			having count(image_id) = 2
+			having count(image_id) > 1
 			order by cfht_field, year, month, day, obs_end;""")
 		pp = {'field':field, 'date':last_triplet_image}
 		tplus_res = self.conn.execute(tplus, pp)
