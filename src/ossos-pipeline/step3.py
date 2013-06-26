@@ -7,7 +7,7 @@ import logging
 from ossos import util
 from ossos import storage
 
-def run_step3(expnums, ccd, version, rate_min,
+def step3(expnums, ccd, version, rate_min,
               rate_max, angle, width, field=None, prefix=None):
     '''run the actual step2  on the given exp/ccd combo'''
 
@@ -112,6 +112,7 @@ if __name__ == '__main__':
     parser.add_argument('--width', default=30,
                         help='openning angle of search cone',
                         type=float)
+    parser.add_argument("--force", action="store_true")
 
     args=parser.parse_args()
 
@@ -132,31 +133,29 @@ if __name__ == '__main__':
 
     for ccd in ccdlist:
         try:
-            message = 'success'
-            #if not storage.get_status(expnum, ccd, 'mkpsf'):
-            #    raise IOError(35, "missing mkpsf")
-            #if storage.get_status(expnum, ccd, 'step1'):
-            #    logging.info("Already did %s %s, skipping" %(str(expnum),
-            #                                                 str(ccd)))
-            #    continue
-            logging.info("step2 on expnum :%s, ccd: %d" % (
-                str(args.expnums), ccd))
-            run_step3(args.expnums, ccd, version=args.type,
-                      rate_min=args.rate_min,
-                      rate_max=args.rate_max,
-                      angle=args.angle,
-                      width=args.width,
-                      field=args.field,
-                      prefix=prefix)
+            message = SUCCESS
+            if not storage.get_status(expnum, ccd, 'step2'):
+                raise IOError(35, "missing step2?")
+            if storage.get_status(expnum, ccd, 'step3') and not args.force:
+                logging.critical("step3 alread ran on expnum :%s, ccd: %d" % (
+                        str(args.expnums), ccd))
+                continue
+            step3(args.expnums, ccd, version=args.type,
+                  rate_min=args.rate_min,
+                  rate_max=args.rate_max,
+                  angle=args.angle,
+                  width=args.width,
+                  field=args.field,
+                  prefix=prefix)
             logging.info(message)
         except Exception as e:
             message = str(e)
             logging.error(message)
 
-            #storage.set_status(expnum,
-            #                   ccd,
-            #                   'step2',
-            #                   message)
+            storage.set_status(expnum,
+                               ccd,
+                               'step2',
+                               message)
         
             
 
