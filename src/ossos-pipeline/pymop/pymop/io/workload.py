@@ -52,7 +52,7 @@ class WorkUnit(object):
         return self.work_items
 
 
-class WorkUnitFactory(object):
+class WorkUnitProvider(object):
     def __init__(self,
                  taskid,
                  directory_manager,
@@ -63,7 +63,7 @@ class WorkUnitFactory(object):
         self.progress_manager = progress_manager
         self.builder = builder
 
-    def create_workunit(self):
+    def get_workunit(self):
         potential_files = self.directory_manager.get_listing(self.taskid)
 
         while len(potential_files) > 0:
