@@ -3,10 +3,15 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 
 from pymop.io.persistence import FileLockedException
+from pymop.io.astrom import Source
 
 
 class NoAvailableWorkException(Exception):
     """"No more work is available."""
+
+
+class WorkCompleteException(Exception):
+    """Everything in the WorkUnit has been processed."""
 
 
 class VettableItem(object):
@@ -40,16 +45,130 @@ class VettableItem(object):
         return self._status
 
 
+class StatefulCollection(object):
+    def __init__(self, items):
+        self.items = items
+        self.index = 0
+
+    def __len__(self):
+        return len(self.items)
+
+    def __iter__(self):
+        return iter(self.items)
+
+    def __getattr__(self, attr):
+        return getattr(self.items, attr)
+
+    def get_index(self):
+        return self.index
+
+    def get_current_item(self):
+        return self.items[self.index]
+
+    def next(self):
+        self._move(1)
+
+    def previous(self):
+        self._move(-1)
+
+    def reset(self):
+        self.index = 0
+
+    def _move(self, delta):
+        self.index = (self.index + delta) % len(self)
+
+    def get_items(self):
+        return self.items
+
+
 class WorkUnit(object):
-    def __init__(self, filename, work_items):
+    def __init__(self, filename, data_collection):
         self.filename = filename
-        self.work_items = work_items
+        self.data_collection = data_collection
 
     def get_filename(self):
         return self.filename
 
-    def get_work_items(self):
-        return self.work_items
+    def get_sources(self):
+        return self.data_collection.get_sources()
+
+    def get_source_count(self):
+        return len(self.get_sources())
+
+    def get_current_source(self):
+        return self.get_sources().get_current_item()
+
+    def get_current_source_number(self):
+        return self.get_sources().get_index()
+
+    def get_current_source_readings(self):
+        return self.get_current_source().get_readings()
+
+    def get_obs_count(self):
+        return len(self.get_current_source_readings())
+
+    def get_current_reading(self):
+        return self.get_current_source_readings().get_current_item()
+
+    def get_current_obs_number(self):
+        return self.get_current_source_readings().get_index()
+
+    def next_source(self):
+        self.get_sources().next()
+
+    def previous_source(self):
+        self.get_sources().previous()
+
+    def next_obs(self):
+        self.get_current_source_readings().next()
+
+    def previous_obs(self):
+        self.get_current_source_readings().previous()
+
+    def accept_current_item(self):
+        raise NotImplementedError()
+
+    def reject_current_item(self):
+        raise NotImplementedError()
+
+    def next_vettable_item(self):
+        raise NotImplementedError()
+
+
+class RealsWorkUnit(WorkUnit):
+    def __init__(self, filename, data_collection):
+        super(RealsWorkUnit, self).__init__(filename, data_collection)
+
+    def accept_current_item(self):
+        self.get_current_reading().accept()
+
+    def reject_current_item(self):
+        self.get_current_reading().accpet()
+
+    def next_vettable_item(self):
+        num_obs_to_check = len(self.get_current_source_readings())
+        while num_obs_to_check > 0:
+            self.next_obs()
+            if not self.get_current_reading().is_processed():
+                # This observation needs to be vetted, stop here
+                return
+
+        # All observations of this source have been processed
+        self.next_source()
+
+
+class CandidatesWorkUnit(WorkUnit):
+    def __init__(self, filename, data_collection):
+        super(CandidatesWorkUnit, self).__init__(filename, data_collection)
+
+    def accept_current_item(self):
+        self.get_current_source().accept()
+
+    def reject_current_item(self):
+        self.get_current_source().reject()
+
+    def next_vettable_item(self):
+        self.next_source()
 
 
 class WorkUnitProvider(object):
@@ -79,6 +198,23 @@ class WorkUnitProvider(object):
                     self.directory_manager.get_full_path(potential_file))
 
         raise NoAvailableWorkException()
+
+
+class DataCollection(object):
+    def __init__(self, parsed_data):
+        self.observations = parsed_data.observations
+        self.sys_header = parsed_data.sys_header
+
+        sources = []
+        for source in parsed_data.get_sources():
+            reading_collection = StatefulCollection(
+                map(VettableItem, source.get_readings()))
+            sources.append(VettableItem(Source(reading_collection)))
+
+        self.source_collection = StatefulCollection(sources)
+
+    def get_sources(self):
+        return self.source_collection
 
 
 class WorkUnitBuilder(object):
@@ -116,8 +252,8 @@ class WorkloadManager(object):
     Manages the workload's state.
     """
 
-    def __init__(self, workunit_factory):
-        self.workunit_factory = workunit_factory
+    def __init__(self, workunit_provider):
+        self.workunit_provider = workunit_provider
         self.current_workunit = None
         self.workunit_number = 0
 

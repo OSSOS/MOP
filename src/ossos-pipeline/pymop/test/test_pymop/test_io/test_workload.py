@@ -9,10 +9,11 @@ from mock import Mock
 from test.base_tests import FileReadingTestCase
 from pymop import tasks
 from pymop.io import workload
+from pymop.io.astrom import AstromParser
 from pymop.io.persistence import InMemoryProgressManager
 from pymop.io.workload import (WorkUnitProvider, DirectoryManager,
-                               WorkUnit,
-                               NoAvailableWorkException)
+                               WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
+                               DataCollection, NoAvailableWorkException)
 
 
 class TestDirectoryManager(object):
@@ -90,6 +91,109 @@ class WorkUnitFactoryTest(unittest.TestCase):
         self.progress_manager.record_done(self.file1)
 
         self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
+
+
+class AbstractWorkUnitTest(FileReadingTestCase):
+    def setUp(self):
+        self.testfile = "data/1584431p15.measure3.cands.astrom"
+        parser = AstromParser()
+        astrom_data = parser.parse(self.get_abs_path(self.testfile))
+
+        self.data_collection = DataCollection(astrom_data)
+
+
+class WorkUnitTest(AbstractWorkUnitTest):
+    def setUp(self):
+        super(WorkUnitTest, self).setUp()
+
+        self.workunit = WorkUnit(self.testfile, self.data_collection)
+
+    def test_initialization(self):
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+        assert_that(self.workunit.get_source_count(), equal_to(3))
+        assert_that(self.workunit.get_obs_count(), equal_to(3))
+
+    def test_next_source_previous_source(self):
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+        self.workunit.next_source()
+        assert_that(self.workunit.get_current_source_number(), equal_to(1))
+        self.workunit.previous_source()
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+
+    def test_next_source_wrap(self):
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+        self.workunit.next_source()
+        assert_that(self.workunit.get_current_source_number(), equal_to(1))
+        self.workunit.next_source()
+        assert_that(self.workunit.get_current_source_number(), equal_to(2))
+        self.workunit.next_source()
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+
+    def test_next_obs(self):
+        assert_that(self.workunit.get_current_obs_number(), equal_to(0))
+        self.workunit.next_obs()
+        assert_that(self.workunit.get_current_obs_number(), equal_to(1))
+        self.workunit.next_obs()
+        assert_that(self.workunit.get_current_obs_number(), equal_to(2))
+        self.workunit.next_obs()
+        assert_that(self.workunit.get_current_obs_number(), equal_to(0))
+
+    def test_previous_source_wrap(self):
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+        self.workunit.previous_source()
+        assert_that(self.workunit.get_current_source_number(), equal_to(2))
+        self.workunit.previous_source()
+        assert_that(self.workunit.get_current_source_number(), equal_to(1))
+        self.workunit.previous_source()
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+
+    def test_previous_obs(self):
+        assert_that(self.workunit.get_current_obs_number(), equal_to(0))
+        self.workunit.previous_obs()
+        assert_that(self.workunit.get_current_obs_number(), equal_to(2))
+        self.workunit.previous_obs()
+        assert_that(self.workunit.get_current_obs_number(), equal_to(1))
+        self.workunit.previous_obs()
+        assert_that(self.workunit.get_current_obs_number(), equal_to(0))
+
+    def test_next_source_resets_obs(self):
+        assert_that(self.workunit.get_current_obs_number(), equal_to(0))
+        self.workunit.next_obs()
+        assert_that(self.workunit.get_current_obs_number(), equal_to(1))
+        self.workunit.next_source()
+        assert_that(self.workunit.get_current_obs_number(), equal_to(0))
+        self.workunit.next_obs()
+        assert_that(self.workunit.get_current_obs_number(), equal_to(1))
+
+
+class RealsWorkUnitTest(AbstractWorkUnitTest):
+    def setUp(self):
+        super(RealsWorkUnitTest, self).setUp()
+
+        self.workunit = RealsWorkUnit(self.data_collection)
+
+    @unittest.skip("TODO")
+    def test_accept_current_item(self):
+        pass
+
+    @unittest.skip("TODO")
+    def test_reject_current_item(self):
+        pass
+
+
+class CandidatesWorkUnitTest(AbstractWorkUnitTest):
+    def setUp(self):
+        super(CandidatesWorkUnitTest, self).setUp()
+
+        self.workunit = CandidatesWorkUnit(self.data_collection)
+
+    @unittest.skip("TODO")
+    def test_accept_current_item(self):
+        pass
+
+    @unittest.skip("TODO")
+    def test_reject_current_item(self):
+        pass
 
 
 class DirectoryManagerTest(FileReadingTestCase):

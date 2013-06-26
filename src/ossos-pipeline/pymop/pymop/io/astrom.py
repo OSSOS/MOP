@@ -469,17 +469,20 @@ class Source(object):
     A collection of source readings.
     """
 
-    def __init__(self, source_list):
-        self.source_list = source_list
+    def __init__(self, readings):
+        self.readings = readings
 
     def __iter__(self):
-        return iter(self.source_list)
+        return iter(self.readings)
 
     def get_reading(self, index):
-        return self.source_list[index]
+        return self.readings[index]
+
+    def get_readings(self):
+        return self.readings
 
     def num_readings(self):
-        return len(self.source_list)
+        return len(self.readings)
 
 
 class SourceReading(object):
