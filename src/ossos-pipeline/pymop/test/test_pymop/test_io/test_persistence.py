@@ -9,6 +9,7 @@ from hamcrest import (assert_that, contains_inanyorder, has_length, contains,
 
 from test.base_tests import FileReadingTestCase
 from pymop import tasks
+from pymop.io.workload import DirectoryManager
 from pymop.io.persistence import (ProgressManager, FileLockedException,
                                   RequiresLockException, LOCK_SUFFIX)
 from pymop.io.astrom import AstromWorkload
@@ -20,7 +21,8 @@ WD_NO_LOG = "data/persistence_no_log"
 class ProgressManagerLoadingTest(FileReadingTestCase):
     def setUp(self):
         self.working_directory = self.get_abs_path(WD_HAS_PROGRESS)
-        self.progress_manager = ProgressManager(self.working_directory)
+        directory_manager = DirectoryManager(self.working_directory)
+        self.progress_manager = ProgressManager(directory_manager)
 
     def tearDown(self):
         self.progress_manager.clean(suffixes=[LOCK_SUFFIX])
@@ -53,7 +55,12 @@ class ProgressManagerLoadingTest(FileReadingTestCase):
 class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
     def setUp(self):
         self.working_directory = self.get_abs_path(WD_NO_LOG)
-        self.progress_manager = ProgressManager(self.working_directory)
+        directory_manager = DirectoryManager(self.working_directory)
+        self.progress_manager = ProgressManager(directory_manager)
+
+    def create_concurrent_progress_manager(self):
+        directory_manager = DirectoryManager(self.working_directory)
+        return ProgressManager(directory_manager)
 
     def tearDown(self):
         # Get rid of generated files so we don't interfere with other tests
@@ -87,7 +94,7 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
         assert_that(self.progress_manager.is_done(processed1), equal_to(True))
 
         # Create a second persistence manager and make sure it sees the changes
-        manager2 = ProgressManager(self.working_directory)
+        manager2 = self.create_concurrent_progress_manager()
         assert_that(manager2.get_done(tasks.CANDS_TASK), has_length(0))
         assert_that(manager2.get_done(tasks.REALS_TASK), contains(processed1))
         assert_that(manager2.is_done(processed1), equal_to(True))
@@ -108,7 +115,7 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
                     contains(processed1))
 
         # Create a second simultaneous manager
-        manager2 = ProgressManager(self.working_directory)
+        manager2 = self.create_concurrent_progress_manager()
         processed2 = "xxx3.reals.astrom"
         self.progress_manager.lock(processed2)
         manager2.record_done(processed2)
@@ -130,7 +137,7 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
         self.progress_manager.lock(file1)
 
         # No-one else should be able to acquire the lock...
-        manager2 = ProgressManager(self.working_directory)
+        manager2 = self.create_concurrent_progress_manager()
         self.assertRaises(FileLockedException, manager2.lock, file1)
 
         # ... until we unlock it
@@ -146,7 +153,7 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
         file1 = "xxx1.cands.astrom"
         self.progress_manager.lock(file1)
 
-        manager2 = ProgressManager(self.working_directory)
+        manager2 = self.create_concurrent_progress_manager()
 
         try:
             getuser_mock.return_value = lock_requesting_user
@@ -177,7 +184,7 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
                     contains_inanyorder(1, 3, 0))
 
         # Check other clients can read them
-        manager2 = ProgressManager(self.working_directory)
+        manager2 = self.create_concurrent_progress_manager()
         assert_that(manager2.get_processed_indices(file1),
                     contains_inanyorder(1, 3, 0))
 
@@ -190,7 +197,7 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
     def test_record_done_does_not_unlock_all(self):
         file1 = "xxx1.cands.astrom"
         file2 = "xxx2.cands.astrom"
-        manager2 = ProgressManager(self.working_directory)
+        manager2 = self.create_concurrent_progress_manager()
 
         self.progress_manager.lock(file1)
         manager2.lock(file2)
@@ -224,7 +231,7 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
                     contains_inanyorder(0, 1, 2))
 
         # Double check with a second manager
-        assert_that(ProgressManager(self.working_directory).get_processed_indices(filename),
+        assert_that(self.create_concurrent_progress_manager().get_processed_indices(filename),
                     contains_inanyorder(0, 1, 2))
 
 

@@ -54,12 +54,11 @@ class ProgressManager(object):
     Manages persistence of progress made processing files in a directory.
     """
 
-    def __init__(self, directory):
-        self.directory = directory
+    def __init__(self, directory_manager):
+        self.directory_manager = directory_manager
 
     def get_done(self, task):
-        listing = tasks.listdir_for_suffix(self.directory,
-                                           self._get_done_suffix(task))
+        listing = self.directory_manager.get_listing(self._get_done_suffix(task))
         return [done_file[:-len(DONE_SUFFIX)] for done_file in listing]
 
     def is_done(self, filename):
@@ -195,7 +194,7 @@ class ProgressManager(object):
             suffixes = [DONE_SUFFIX, LOCK_SUFFIX, PART_SUFFIX]
 
         for suffix in suffixes:
-            listing = tasks.listdir_for_suffix(self.directory, suffix)
+            listing = self.directory_manager.get_listing(suffix)
             for filename in listing:
                 os.remove(self._get_full_path(filename))
 
@@ -218,8 +217,8 @@ class ProgressManager(object):
         return os.fdopen(fd, "wb")
 
     def _get_done_suffix(self, task):
-        return tasks.suffixes[task] + DONE_SUFFIX
+        return tasks.get_suffix(task) + DONE_SUFFIX
 
     def _get_full_path(self, filename):
-        return os.path.join(self.directory, filename)
+        return self.directory_manager.get_full_path(filename)
 

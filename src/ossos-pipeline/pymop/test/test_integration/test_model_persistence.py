@@ -13,6 +13,7 @@ from hamcrest import (assert_that, equal_to, contains_inanyorder, is_not,
 
 from test.base_tests import FileReadingTestCase
 from pymop import tasks
+from pymop.io.workload import DirectoryManager
 from pymop.io.astrom import AstromWorkload
 from pymop.io.persistence import ProgressManager
 from pymop.gui import models
@@ -28,12 +29,14 @@ class ModelPersistenceTest(FileReadingTestCase):
         pub.unsubAll()
 
         self.working_dir = self.get_abs_path(FRESH_TEST_DIR)
-        self.progress_manager = ProgressManager(self.working_dir)
+        directory_manager = DirectoryManager(self.working_dir)
+        self.progress_manager = ProgressManager(directory_manager)
         self.download_manager = Mock(spec=AsynchronousImageDownloadManager)
         # Create the required model in each test case
         # Create the workload for the required task in each test case
 
-        self.concurrent_progress_manager = ProgressManager(self.working_dir)
+        concurrent_directory_manager = DirectoryManager(self.working_dir)
+        self.concurrent_progress_manager = ProgressManager(concurrent_directory_manager)
 
     def tearDown(self):
         for filename in os.listdir(self.working_dir):
