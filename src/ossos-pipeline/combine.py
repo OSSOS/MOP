@@ -7,7 +7,7 @@ from ossos import util
 import argparse
 import logging
 
-def combine(expnum, ccd, prefix=None, type='p'):
+def combine(expnum, ccd, prefix=None, type='p' ):
 
     for ext in ['moving.matt','moving.jmp']:
         fname = storage.get_image(expnum, ccd=ccd, prefix=prefix, version=type, ext=ext)
@@ -33,7 +33,7 @@ def combine(expnum, ccd, prefix=None, type='p'):
 
     for ext in['cands.comb', 'comb.found', 'comb.missed',
                'jmp.found', 'jmp.missed',
-               'matt.found', 'matt.missed']:
+               'matt.found', 'matt.missed' ]:
         uri = storage.get_uri(expnum,
                               ccd=ccd,
                               prefix=prefix,
@@ -41,24 +41,40 @@ def combine(expnum, ccd, prefix=None, type='p'):
                               ext=ext)
         filename = os.path.basename(uri)
         if not os.access(filename,os.R_OK):
-            logging.critical("No %s file created." % (filename))
+            logging.critical("No %s file" % (filename))
             continue
         storage.copy(filename, uri)
 
-    if os.access('no_candidates',os.R_OK):
-        uri = storage.get_uri(expnum,
-                              ccd=ccd,
-                              version=type,
-                              ext='no_candidates')
-        storage.copy('no_candidates', uri)
-        return 'no_candidates'
-    
+    cands_file = prefix+str(expnum)+type+str(ccd).zfill(2)+'.cands.comb'
+
+    if not os.access(cands_file,os.R_OK):
+        nocands_file = prefix+str(expnum)+type+str(ccd).zfill(2)+'.no_candidates'
+        t = open(nocands_file, 'w')
+        t.write(str(expnum))
+        t.close()
+        storage.copy(nocands_file,'vos:OSSOS/measure3/'+nocands_file)
+        return storage.SUCCESS
+
+
+    cands_file = prefix+str(expnum)+type+str(ccd).zfill(2)+'.cands.comb'
+    for line in open(cands_file):
+        if line[0] != '#':
+            raise IOError('bad file format: %s ' %(cands_file))
+        if line[0:2] == '##':
+            break
+        (c, filename) = line.split()
+        (this_expnum, this_ccd) = filename.split(type)
+        storage.get_image(expnum=int(this_expnum),
+                          ccd=int(this_ccd),
+                          version=type,
+                          ext='fits')
     
     cmd_args = ['measure3', prefix+str(expnum)+type+str(ccd).zfill(2)]
     util.exec_prog(cmd_args)
-    prefix+str(expnum)+type+str(ccd).zfill(2)+".measure3.cands.astrom"
+    filename=prefix+str(expnum)+type+str(ccd).zfill(2)+".measure3.cands.astrom"
+    
     storage.copy(filename, 'vos:OSSOS/measure3/'+filename)
-    return 'measure3'
+    return storage.SUCCESS
 
 
 
@@ -86,7 +102,7 @@ if __name__=='__main__':
                         action="store_true")
     parser.add_argument("--debug",'-d',
                         action='store_true')
-    
+    parser.add_argument("--force", '-f', action='store_true')
     args=parser.parse_args()
 
     level = logging.CRITICAL
@@ -105,6 +121,13 @@ if __name__=='__main__':
 
     for ccd in ccdlist:
         if not storage.get_status(args.expnum, ccd, 'step3'):
+            logging.error(storage.get_status(
+                args.expnum,
+                ccd,
+                'step3',
+                return_message=True))
             raise IOError(35, "need to run step3 first")
+        if storage.get_status(args.expnum, ccd, 'combine') and not args.force:
+            continue
         message = combine(args.expnum, ccd, prefix=prefix, type=args.type)
         storage.set_status(args.expnum, ccd, 'combine', message)
