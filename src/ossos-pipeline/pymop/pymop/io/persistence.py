@@ -272,9 +272,9 @@ class InMemoryProgressManager(AbstractProgressManager):
 
     def __init__(self, directory_manager):
         super(InMemoryProgressManager, self).__init__(directory_manager)
-        self.done = []
-        self.owned_locks = []
-        self.external_locks = []
+        self.done = set()
+        self.owned_locks = set()
+        self.external_locks = set()
         self.processed_indices = collections.defaultdict(list)
 
     def is_done(self, filename):
@@ -284,7 +284,7 @@ class InMemoryProgressManager(AbstractProgressManager):
         return self.processed_indices[filename]
 
     def _record_done(self, filename):
-        self.done.append(filename)
+        self.done.add(filename)
 
     def _record_index(self, filename, index):
         self.processed_indices[filename].append(index)
@@ -293,7 +293,7 @@ class InMemoryProgressManager(AbstractProgressManager):
         if filename in self.external_locks:
             raise FileLockedException(filename, "x")
 
-        self.owned_locks.append(filename)
+        self.owned_locks.add(filename)
 
     def unlock(self, filename):
         if filename in self.external_locks:
@@ -306,4 +306,4 @@ class InMemoryProgressManager(AbstractProgressManager):
         return filename in self.owned_locks
 
     def add_external_lock(self, filename):
-        self.external_locks.append(filename)
+        self.external_locks.add(filename)
