@@ -72,8 +72,9 @@ if __name__ == '__main__':
                         action='version',
                         version='%(prog)s '+_version 
                         )
-
     parser.add_argument("--verbose", "-v",
+                        action="store_true")
+    parser.add_argument("--debug", "-d",
                         action="store_true")
 
     args = parser.parse_args()
@@ -81,6 +82,9 @@ if __name__ == '__main__':
     if args.verbose:
         logging.basicConfig(level=logging.INFO,
                             format='%(message)s')
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
+
 
     storage.DBIMAGES = args.dbimages
 
