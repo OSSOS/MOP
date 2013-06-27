@@ -106,9 +106,10 @@ class StatefulCollection(object):
 
 
 class WorkUnit(object):
-    def __init__(self, filename, data_collection):
+    def __init__(self, filename, data_collection, results_writer):
         self.filename = filename
         self.data_collection = data_collection
+        self.results_writer = results_writer
 
     def get_filename(self):
         return self.filename
@@ -161,10 +162,14 @@ class WorkUnit(object):
     def next_vettable_item(self):
         raise NotImplementedError()
 
+    def get_writer(self):
+        return self.results_writer
+
 
 class RealsWorkUnit(WorkUnit):
-    def __init__(self, filename, data_collection):
-        super(RealsWorkUnit, self).__init__(filename, data_collection)
+    def __init__(self, filename, data_collection, results_writer):
+        super(RealsWorkUnit, self).__init__(
+            filename, data_collection, results_writer)
 
     def accept_current_item(self):
         self.get_current_reading().accept()
@@ -187,8 +192,9 @@ class RealsWorkUnit(WorkUnit):
 
 
 class CandidatesWorkUnit(WorkUnit):
-    def __init__(self, filename, data_collection):
-        super(CandidatesWorkUnit, self).__init__(filename, data_collection)
+    def __init__(self, filename, data_collection, results_writer):
+        super(CandidatesWorkUnit, self).__init__(
+            filename, data_collection, results_writer)
 
     def accept_current_item(self):
         self.get_current_source().accept()
@@ -247,33 +253,18 @@ class DataCollection(object):
 
 
 class WorkUnitBuilder(object):
-    def __init__(self, parser):
+    def __init__(self, parser, writer_factory):
         self.parser = parser
+        self.writer_factory = writer_factory
 
     def build_workunit(self, full_path):
-        work_items = self._create_work_items(self.parser.parse(full_path))
+        parsed_data = self.parser.parse(full_path)
+        data_collection = DataCollection(parsed_data)
+
         _, filename = os.path.split(full_path)
-        return WorkUnit(filename, work_items)
-
-    def _create_work_items(self, parsed_data):
-        raise NotImplementedError()
-
-
-class CandidatesWorkUnitBuilder(WorkUnitBuilder):
-    def __init__(self, parser):
-        super(CandidatesWorkUnitBuilder, self).__init__(parser)
-
-    def _create_work_items(self, parsed_data):
-        return [VettableItem(source) for source in parsed_data.get_sources()]
-
-
-class RealsWorkUnitBuilder(WorkUnitBuilder):
-    def __init__(self, parser):
-        super(RealsWorkUnitBuilder, self).__init__(parser)
-
-    def _create_work_items(self, parsed_data):
-        return [VettableItem(reading) for source in parsed_data.get_sources()
-                for reading in source]
+        return WorkUnit(filename, data_collection,
+                        self.writer_factory.create_writer(
+                            full_path, parsed_data))
 
 
 class WorkloadManager(object):

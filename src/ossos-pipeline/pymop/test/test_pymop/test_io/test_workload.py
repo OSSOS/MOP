@@ -101,6 +101,7 @@ class AbstractWorkUnitTest(FileReadingTestCase):
         self.testfile = "data/1584431p15.measure3.cands.astrom"
         parser = AstromParser()
         astrom_data = parser.parse(self.get_abs_path(self.testfile))
+        self.writer = Mock()
 
         self.data_collection = DataCollection(astrom_data)
 
@@ -109,7 +110,7 @@ class WorkUnitTest(AbstractWorkUnitTest):
     def setUp(self):
         super(WorkUnitTest, self).setUp()
 
-        self.workunit = WorkUnit(self.testfile, self.data_collection)
+        self.workunit = WorkUnit(self.testfile, self.data_collection, self.writer)
 
     def test_initialization(self):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
@@ -173,7 +174,7 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
     def setUp(self):
         super(RealsWorkUnitTest, self).setUp()
 
-        self.workunit = RealsWorkUnit(self.testfile, self.data_collection)
+        self.workunit = RealsWorkUnit(self.testfile, self.data_collection, self.writer)
 
     def test_next_vettable_item_no_validation(self):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
@@ -305,7 +306,7 @@ class CandidatesWorkUnitTest(AbstractWorkUnitTest):
     def setUp(self):
         super(CandidatesWorkUnitTest, self).setUp()
 
-        self.workunit = CandidatesWorkUnit(self.testfile, self.data_collection)
+        self.workunit = CandidatesWorkUnit(self.testfile, self.data_collection, self.writer)
 
     def test_next_vettable_item(self):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
