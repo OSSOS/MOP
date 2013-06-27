@@ -141,7 +141,8 @@ def get_tag(expnum, key):
     node = vospace.getNode(uri)
     if tag_uri(key) not in node.props.keys():
         node = vospace.getNode(uri, force=True)
-    logging.debug("%s # %s -> %s"  % ( uri, tag_uri(key), node.props.get(tag_uri(key), None)))
+    logging.debug("%s # %s -> %s"  % (
+        uri, tag_uri(key), node.props.get(tag_uri(key), None)))
     return node.props.get(tag_uri(key), None)
 
 def get_process_tag(program, ccd):
