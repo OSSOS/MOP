@@ -24,13 +24,17 @@ class Block(object):
 		return retval
 	
 	@property
-	def block_ra(self):
-		retval = 'TEST' #queries.field_ra(self.blockID)
-		return retval
+	def central_radec(self):
+		ret = self.blockQuery.central_radec(self.blockID)
+		# parse just the first bit for niceness
+		ra = ret[0].split(':')[0] + 'h' + ret[0].split(':')[1] + 'm'
+		dec = ret[1].split(':')[0]
+		dec2 = ret[1].split(':')[1] + "'"
+		return (ra, dec, dec2)
 
 	@property
-	def block_dec(self):
-		retval = 'TEST' #queries.field_dec(self.blockID)
+	def ecliptic_lat_span(self):
+		retval = self.blockQuery.ecliptic_lat_span(self.blockID)
 		return retval
 
 	@property
@@ -62,8 +66,8 @@ class Block(object):
 		retval = {'blockID': self.blockID,
 		'num_fields': self.num_fields,
 		'observedFields': self.observed_fields,
-		'ra': self.block_ra,
-		'dec': self.block_dec,
+		'radec': self.central_radec,
+		'ec_lat': self.ecliptic_lat_span,
 		'totalObs': self.numObs,
 		'precoveries': self.num_precoveries,
 		'nailings': self.num_nailings,
