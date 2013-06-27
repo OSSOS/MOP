@@ -10,13 +10,15 @@ import errno
 from astropy.io import fits
 import urlparse
 
-_CERTFILE=os.path.join(os.getenv('HOME'),
-                       '.ssl',
-                       'cadcproxy.pem')
+CERTFILE=os.path.join(os.getenv('HOME'),
+                      '.ssl',
+                      'cadcproxy.pem')
 
-_dbimages='vos:OSSOS/dbimages'
+DBIMAGES='vos:OSSOS/dbimages'
 DATA_WEB_SERVICE='https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/'
-
+OSSOS_TAG_URI_BASE='ivo://canfar.uvic.ca/ossos'
+vospace = vos.Client(certFile=CERTFILE)
+SUCCESS = 'success' 
 
 def populate(dataset_name,
              data_web_service_url = DATA_WEB_SERVICE+"CFHT"):
@@ -27,7 +29,7 @@ def populate(dataset_name,
     data_dest = get_uri(dataset_name,version='o',ext='fits.fz')
     data_source = "%s/%so.fits.fz" % (data_web_service_url,dataset_name)
 
-    c = vos.Client(certFile=_CERTFILE)
+    c = vospace
 
     try:
         c.mkdir(os.path.dirname(data_dest))
@@ -66,35 +68,40 @@ def populate(dataset_name,
 def get_uri(expnum, ccd=None,
             version='p', ext='fits',
             subdir=None, prefix=None):
-    '''build the uri for an OSSOS image stored in the dbimages
+    """
+    Build the uri for an OSSOS image stored in the dbimages
     containerNode.
 
     expnum: CFHT exposure number
     ccd: CCD in the mosaic [0-35]
     version: one of p,s,o etc.
-    dbimages: dbimages containerNode
-    '''
+    dbimages: dbimages containerNode.
+    """
     if subdir is None:
         subdir = str(expnum)
     if prefix is None:
         prefix = ''
-    uri = os.path.join(_dbimages, subdir)
+    uri = os.path.join(DBIMAGES, subdir)
 
+    if ext is None:
+        ext = ''
+    elif len(ext) > 0 and ext[0] != '.':
+        ext = '.'+ext
 
     # if ccd is None then we send uri for the MEF
     if ccd is not None:
         ccd = str(ccd).zfill(2)
         uri = os.path.join(uri,
                            'ccd%s' % (ccd),
-                           '%s%s%s%s.%s' % (prefix, str(expnum),
-                                          version,
-                                          ccd,
-                                          ext))
+                           '%s%s%s%s%s' % (prefix, str(expnum),
+                                            version,
+                                            ccd,
+                                            ext))
     else:
         uri = os.path.join(uri,
-                           '%s%s%s.%s' % (prefix, str(expnum),
-                                        version,
-                                        ext))
+                           '%s%s%s%s' % (prefix, str(expnum),
+                                          version,
+                                          ext))
     logging.info("got uri: "+uri)
     return uri
 
@@ -105,40 +112,56 @@ dbimages_uri = get_uri
 def set_tag(expnum, key, value):
     '''Assign a key/value pair tag to the given expnum containerNode'''
 
-    uri = os.path.join(_dbimages, str(expnum))
-    vospace = vos.Client(certFile=_CERTFILE)
+    uri = os.path.join(DBIMAGES, str(expnum))
     node = vospace.getNode(uri)
-    if not urlparse.urlsplit(key).scheme :
-        key = 'ivo://canfar.uvic.ca/ossos#%s' % ( key)
+    uri = tag_uri(key)
     # for now we delete and then set, some issue with the props
     # updating on vospace (2013/06/23, JJK)
-    node.props[key] = None
+    node.props[uri] = None
     vospace.addProps(node)
-    node.props[key] = value
+    node.props[uri] = value
     return vospace.addProps(node)
+
+def tag_uri(key):
+    """Build the uri for a given tag key. 
+
+    key: (str) eg 'mkpsf_00'
+
+    """
+    if OSSOS_TAG_URI_BASE in key:
+        return key
+    return OSSOS_TAG_URI_BASE+"#"+key.strip()
 
 
 def get_tag(expnum, key):
     '''given a key, return the vospace tag value.'''
 
-    uri = os.path.join(_dbimages, str(expnum))
-    vospace = vos.Client(certFile=_CERTFILE)
-    node = vospace.getNode(uri)
-    if not urlparse.urlsplit(key).scheme:
-        key = 'ivo://canfar.uvic.ca/ossos#%s' % ( key)
-    return node.props.get(key, None)
+    uri = os.path.join(DBIMAGES, str(expnum))
 
-def get_status(expnum, ccd, program):
+    node = vospace.getNode(uri)
+    if tag_uri(key) not in node.props.keys():
+        node = vospace.getNode(uri, force=True)
+    logging.debug("%s # %s -> %s"  % ( uri, tag_uri(key), node.props.get(tag_uri(key), None)))
+    return node.props.get(tag_uri(key), None)
+
+def get_process_tag(program, ccd):
+    """make a process tag have a suffix indicating which ccd its for"""
+    return "%s_%s" % ( program, str(ccd).zfill(2))
+
+def get_status(expnum, ccd, program, return_message=False):
     '''Report back status of the given program'''
-    key = "%s_%s" % ( program, str(ccd).zfill(2))
+    key = get_process_tag(program, ccd)
     status = get_tag(expnum, key)
     logging.info('%s: %s' %(key, status))
-    return status == 'success'
+    if return_message:
+        return status
+    else:
+        return status == SUCCESS
 
 def set_status(expnum, ccd, program, status):
     '''set the processing status of the given program'''
-    key = "%s_%s" % ( program, str(ccd).zfill(2))
-    return set_tag(expnum, key, status)
+    
+    return set_tag(expnum, get_process_tag(program,ccd), status)
 
 def get_image(expnum, ccd=None, version='p', ext='fits',
               subdir=None, rescale=True, prefix=None):
@@ -177,7 +200,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
         cutout="[%d]" % ( int(ccd)+1)
         if ccd < 18 :
             cutout += "[-*,-*]"
-        vospace=vos.Client(certFile=_CERTFILE)
+
         logging.info(uri)
         url = vospace.getNodeURL(uri,view='cutout', limit=None, cutout=cutout)
         logging.info(url)
@@ -204,13 +227,13 @@ def get_fwhm(expnum, ccd, prefix=None, version='p'):
     '''Get the FWHM computed for the given expnum/ccd combo.'''
 
     uri = get_uri(expnum, ccd, version, ext='fwhm', prefix=prefix)
-    vospace=vos.Client(certFile=_CERTFILE)
+
     return float(vospace.open(uri,view='data').read().strip())
 
 def get_zeropoint(expnum, ccd, prefix=None, version='p'):
     '''Get the zeropoint for this exposure'''
 
-    return float(vos.Client(certFile=_CERTFILE).
+    return float(vospace.
                  open(
         uri=get_uri(expnum, ccd, version, ext='zeropoint.used', prefix=prefix),
         view='data').
@@ -221,7 +244,7 @@ def get_zeropoint(expnum, ccd, prefix=None, version='p'):
 def mkdir(root):
     '''make directory tree in vospace.'''
     dir_list = []
-    vospace = vos.Client(certFile=_CERTFILE)
+
     while not vospace.isdir(root):
         dir_list.append(root)
         root = os.path.dirname(root)
@@ -235,7 +258,7 @@ def copy(source, dest):
 
     '''
 
-    vospace = vos.Client(certFile=_CERTFILE)
+
     logging.info("%s -> %s" % ( source, dest))
 
     return vospace.copy(source, dest)
@@ -245,16 +268,19 @@ def vlink(s_expnum, s_ccd, s_version, s_ext,
     '''make a link between two version of a file'''
     source_uri = get_uri(s_expnum, ccd=s_ccd, version=s_version, ext=s_ext, prefix=s_prefix)
     link_uri = get_uri(l_expnum, ccd=l_ccd, version=l_version, ext=s_ext, prefix=l_prefix)
-    vospace = vos.Client(certFile=_CERTFILE)
+
     return vospace.link(source_uri, link_uri)
 
 def delete(expnum, ccd, version, ext, prefix=None):
     '''delete a file, no error on does not exist'''
     uri = get_uri(expnum, ccd=ccd, version=version, ext=ext, prefix=prefix)
-    vospace = vos.Client(certFile=_CERTFILE)
+
     try:
         vospace.delete(uri)
     except IOError as e:
         if e.errno != errno.ENOENT:
             raise e
         
+
+def list_dbimages():
+    return vospace.listdir(DBIMAGES)
