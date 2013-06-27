@@ -574,7 +574,7 @@ class SourceValidationDialog(wx.Dialog):
     def _do_layout(self):
         vsizer = wx.BoxSizer(wx.VERTICAL)
         for widget in self._get_vertical_widget_list():
-            vsizer.Add(widget, proportion=0, flag=wx.ALL, border=5)
+            vsizer.Add(widget, proportion=0, flag=wx.ALL|wx.EXPAND, border=5)
 
         vsizer.Add(self._create_horizontal_pair(self.submit_button, self.cancel_button,
                                                 flag=wx.ALL, border=5),
@@ -689,9 +689,14 @@ class AcceptSourceDialog(SourceValidationDialog):
         self.observatory_code_text.SetValue(self.default_observatory_code)
 
         self.comment_label = wx.StaticText(self, label=AcceptSourceDialog.COMMENT)
-        self.comment_text = wx.TextCtrl(self, name=AcceptSourceDialog.COMMENT)
+        self.comment_text = wx.TextCtrl(self, name=AcceptSourceDialog.COMMENT,
+                                        style=wx.TE_MULTILINE)
 
     def _get_vertical_widget_list(self):
+        comment_sizer = wx.BoxSizer(wx.VERTICAL)
+        comment_sizer.Add(self.comment_label, flag=wx.ALIGN_CENTER)
+        comment_sizer.Add(self.comment_text, flag=wx.EXPAND)
+
         return [self._create_horizontal_pair(self.minor_planet_num_label, self.minor_planet_num_text),
                 self._create_horizontal_pair(self.provisional_name_label, self.provision_name_text),
                 self._create_horizontal_pair(self.discovery_asterisk_label, self.discovery_asterisk_text),
@@ -705,7 +710,7 @@ class AcceptSourceDialog(SourceValidationDialog):
                 self._create_horizontal_pair(self.obs_mag_label, self.obs_mag_text),
                 self._create_horizontal_pair(self.band_label, self.band_text),
                 self._create_horizontal_pair(self.observatory_code_label, self.observatory_code_text),
-                self._create_horizontal_pair(self.comment_label, self.comment_text),
+                comment_sizer,
                 (0, 0)  # blank space
         ]
 
@@ -750,10 +755,16 @@ class RejectSourceDialog(SourceValidationDialog):
 
     def _init_ui(self):
         self.comment_label = wx.StaticText(self, label=RejectSourceDialog.COMMENT)
-        self.comment_text = wx.TextCtrl(self, name=RejectSourceDialog.COMMENT)
+        self.comment_text = wx.TextCtrl(self, name=RejectSourceDialog.COMMENT,
+                                        style=wx.TE_MULTILINE)
 
     def _get_vertical_widget_list(self):
+        comment_sizer = wx.BoxSizer(wx.VERTICAL)
+        comment_sizer.Add(self.comment_label, flag=wx.ALIGN_CENTER)
+        comment_sizer.Add(self.comment_text, flag=wx.EXPAND)
+
         return [self._create_horizontal_pair(self.comment_label, self.comment_text),
+                comment_sizer,
                 (0, 0)  # blank space
                ]
 
