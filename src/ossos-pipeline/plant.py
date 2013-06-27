@@ -13,7 +13,7 @@ from ossos import util
 import logging
 
 
-def run_plant(expnums, ccd, rmin, rmax, ang, width, version='s'):
+def plant(expnums, ccd, rmin, rmax, ang, width, version='s'):
     '''run the plant script on this combination of exposures'''
 
     ptf = open('proc-these-files','w')
@@ -25,7 +25,12 @@ def run_plant(expnums, ccd, rmin, rmax, ang, width, version='s'):
         filename = storage.get_image(expnum, ccd=ccd, version=version)
         ptf.write("%s %3.1f YES\n" % ( filename[0:-5],
                                     fwhm ))
-        for ext in ['apcor', 'obj.jmp', 'trans.jmp', 'psf.fits', 'mopheader', 'phot',
+        for ext in ['apcor',
+                    'obj.jmp',
+                    'trans.jmp',
+                    'psf.fits',
+                    'mopheader',
+                    'phot',
                     'zeropoint.used']:
             apcor = storage.get_image(expnum, ccd=ccd, version='s',
                                       ext=ext)
@@ -38,16 +43,23 @@ def run_plant(expnums, ccd, rmin, rmax, ang, width, version='s'):
     util.exec_prog(cmd_args)
 
     uri = storage.get_uri('Object',ext='planted',version='',
-                          subdir=str(expnums[0])+"/ccd%s" % (str(ccd).zfill(2)))
+                          subdir=str(
+        expnums[0])+"/ccd%s" % (str(ccd).zfill(2)))
     storage.copy('Object.planted',uri)
     uri = os.path.join(os.path.dirname(uri), 'shifts')
     storage.copy('shifts', uri)
     for expnum in expnums:
-        uri = storage.get_uri(expnum, ccd=ccd, version=version, ext='fits', prefix='fk')
+        uri = storage.get_uri(expnum,
+                              ccd=ccd,
+                              version=version,
+                              ext='fits', prefix='fk')
         filename =  os.path.basename(uri)
         storage.copy(filename, uri)
 
-        for ext in ['mopheader', 'psf.fits', 'fwhm', 'apcor', 'zeropoint.used', 'trans.jmp']:
+        for ext in ['mopheader',
+                    'psf.fits',
+                    'fwhm',
+                    'apcor', 'zeropoint.used', 'trans.jmp']:
             storage.delete(expnum, ccd, 's', ext, prefix='fk')
             storage.vlink(expnum, ccd, 'p', ext,
                           expnum, ccd, 's', ext, l_prefix='fk')
@@ -92,7 +104,7 @@ if __name__=='__main__':
                         type=float, help="angle opening")
     parser.add_argument("--ang", default=20,
                         type=float, help="angle of motion, 0 is West")
-    
+    parser.add_argument("--force", action="store_true")
     args=parser.parse_args()
 
     ## setup logging
@@ -114,7 +126,25 @@ if __name__=='__main__':
         ccds = range(0,36)
     
     for ccd in ccds:
-        run_plant(args.expnums,
+        message = storage.SUCCESS
+        try:
+            if not storage.get_status(args.expnums[0], ccd,
+                                      'scramble'):
+                raise IOError("scramble not yet run for %s ccd%s" % ( 
+                    str(args.expnums), str(ccd).zfill(2)))
+            if storage.get_status(args.expnums[0], ccd,
+                                  'plant') and not args.force:
+                logging.info("plant done for %s[%s]" % ( args.expnums[0], ccd))
+                continue
+            plant(args.expnums,
                   ccd,
                   args.rmin, args.rmax, args.ang, args.width,
                   version=args.type)
+        except Exception as e:
+            message = str(e)
+            logging.error(str(e))
+
+        storage.set_status(args.expnums[0],
+                           ccd,
+                           'plant',
+                           message)
