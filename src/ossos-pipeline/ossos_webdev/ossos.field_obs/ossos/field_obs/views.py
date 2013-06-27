@@ -29,7 +29,7 @@ class Field(object):
 	def ra(self):
 		ret = self.imagesQuery.field_ra(self.fieldId)
 		# parse just the first bit for niceness
-		retval = ret.split(':')[0] + 'h' + ret.split(':')[1] + 'm'
+		retval = (ret.split(':')[0], ret.split(':')[1])
 		return retval
 
 	@property
