@@ -147,15 +147,14 @@ if __name__ == '__main__':
                   width=args.width,
                   field=args.field,
                   prefix=prefix)
-            logging.info(message)
         except Exception as e:
             message = str(e)
-            logging.error(message)
+        logging.error(message)
 
-            storage.set_status(args.expnums[0],
-                               ccd,
-                               'step3',
-                               message)
+        storage.set_status(args.expnums[0],
+                           ccd,
+                           'step3',
+                           message)
         
             
 
