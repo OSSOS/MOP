@@ -1,6 +1,9 @@
 from pyramid.response import Response
 from pyramid.view import view_config
 from queries import ImagesQuery
+import ephem
+from math import degrees
+
 
 class Field(object):
 
@@ -33,6 +36,13 @@ class Field(object):
 		return retval
 
 	@property
+	def ecliptic_loc(self):
+		rr = ephem.Equatorial(ephem.hours(self.ra), ephem.degrees(self.dec))
+		ec = ephem.Ecliptic(rr)
+		retval = (degrees(ec.lat), str(ec.lon))  # eclat is float (deg), eclon is str in deg
+		return retval
+
+	@property
 	def discovery_triplet(self):
 		retval = self.imagesQuery.discovery_triplet(self.fieldId)
 		return retval
@@ -57,6 +67,10 @@ class Field(object):
 		retval = self.imagesQuery.num_doubles(self.fieldId)
 		return retval
 
+	# @property
+	# def export_triplet(self):
+	# 	retval = self.imagesQuery.export_discovery_triplet(self.fieldId)
+
 
 	@view_config(route_name='field_obs', renderer='field_obs.pt', permission='ossos')
 	def inspect_observations(self):
@@ -67,10 +81,12 @@ class Field(object):
 		'observations': self.observations,
 		'ra': self.ra,
 		'dec': self.dec,
+		'ec_loc': self.ecliptic_loc,
 		'discovery_triplet': self.discovery_triplet,
 		'totalObs': self.numObs,
 		'precoveries': self.num_precoveries,
 		'nailings': self.num_nailings,
 		'doubles': self.num_doubles
+		#'update_vospace': self.export_triplet
 		}
 		return retval
