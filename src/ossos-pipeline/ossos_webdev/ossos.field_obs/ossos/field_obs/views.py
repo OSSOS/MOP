@@ -27,17 +27,22 @@ class Field(object):
 	
 	@property
 	def ra(self):
-		retval = self.imagesQuery.field_ra(self.fieldId)
+		ret = self.imagesQuery.field_ra(self.fieldId)
+		# parse just the first bit for niceness
+		retval = ret.split(':')[0] + 'h' + ret.split(':')[1] + 'm'
 		return retval
 
 	@property
 	def dec(self):
-		retval = self.imagesQuery.field_dec(self.fieldId)
+		ret = self.imagesQuery.field_dec(self.fieldId)
+		dec = ret.split(':')[0]
+		dec2 = ret.split(':')[1] + "'"
+		retval = (dec, dec2)
 		return retval
 
 	@property
 	def ecliptic_loc(self):
-		rr = ephem.Equatorial(ephem.hours(self.ra), ephem.degrees(self.dec))
+		rr = ephem.Equatorial(ephem.hours(self.imagesQuery.field_ra(self.fieldId)), ephem.degrees(self.imagesQuery.field_dec(self.fieldId)))
 		ec = ephem.Ecliptic(rr)
 		retval = (degrees(ec.lat), str(ec.lon))  # eclat is float (deg), eclon is str in deg
 		return retval

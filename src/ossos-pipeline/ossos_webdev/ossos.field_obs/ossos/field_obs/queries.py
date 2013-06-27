@@ -38,7 +38,6 @@ class ImagesQuery(object):
 
 
 	def field_ra(self, field):
-		assert isinstance(field, str), '{0} is not a str'.format(type(field))
 		it = self.images
 		ss = sa.select([it.c.cfht_field, it.c.crval_ra])
 		ss.append_whereclause(it.c.cfht_field == field)
