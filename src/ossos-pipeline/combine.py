@@ -104,7 +104,7 @@ if __name__=='__main__':
     ccdlist = ( args.ccd is None and range(0,36) ) or [args.ccd]
 
     for ccd in ccdlist:
-        if not storage.get_status(expnum, ccd, 'step3'):
+        if not storage.get_status(args.expnum, ccd, 'step3'):
             raise IOError(35, "need to run step3 first")
         message = combine(args.expnum, ccd, prefix=prefix, type=args.type)
-        storage.set_status(expnum, ccd, 'combine', message)
+        storage.set_status(args.expnum, ccd, 'combine', message)

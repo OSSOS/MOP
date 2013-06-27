@@ -109,7 +109,7 @@ if __name__=='__main__':
                         action="store_true")
     parser.add_argument("--debug",'-d',
                         action='store_true')
-    parser.add_argument("--force", action="strore_true")
+    parser.add_argument("--force", action="store_true")
 
     args=parser.parse_args()
 
@@ -138,8 +138,9 @@ if __name__=='__main__':
                 if not storage.get_status(expnum, ccd, 'mkpsf'):
                     raise IOError(35, "mkpsf hasn't run?")
                 if storage.get_status(expnum, ccd, 'step1') and not args.force:
-                    logging.critical("Already did %s %s, skipping" %(str(expnum),
-                                                                     str(ccd)))
+                    logging.critical(
+                        "Already did %s %s, skipping" %(str(expnum),
+                                                        str(ccd)))
                     continue
                 logging.info("step1 on expnum :%d, ccd: %d" % ( expnum, ccd))
                 step1(expnum, ccd, prefix=prefix, version=args.type)

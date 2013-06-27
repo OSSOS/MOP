@@ -133,10 +133,10 @@ if __name__ == '__main__':
 
     for ccd in ccdlist:
         try:
-            message = SUCCESS
-            if not storage.get_status(expnum, ccd, 'step2'):
-                raise IOError(35, "missing step2?")
-            if storage.get_status(expnum, ccd, 'step3') and not args.force:
+            message = storage.SUCCESS
+            if not storage.get_status(args.expnums[0], ccd, 'step2'):
+                raise IOError(35, "did step2 run on %s" % ( str(args.expnums)))
+            if storage.get_status(args.expnums[0], ccd, 'step3') and not args.force:
                 logging.critical("step3 alread ran on expnum :%s, ccd: %d" % (
                         str(args.expnums), ccd))
                 continue
@@ -152,9 +152,9 @@ if __name__ == '__main__':
             message = str(e)
             logging.error(message)
 
-            storage.set_status(expnum,
+            storage.set_status(args.expnums[0],
                                ccd,
-                               'step2',
+                               'step3',
                                message)
         
             
