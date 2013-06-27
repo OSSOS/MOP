@@ -134,9 +134,9 @@ if __name__ == '__main__':
     for ccd in ccdlist:
         try:
             message = storage.SUCCESS
-            if not storage.get_status(args.expnums[0], ccd, 'step2'):
+            if not storage.get_status(args.expnums[0], ccd, prefix+'step2'):
                 raise IOError(35, "did step2 run on %s" % ( str(args.expnums)))
-            if storage.get_status(args.expnums[0], ccd, 'step3') and not args.force:
+            if storage.get_status(args.expnums[0], ccd, prefix+'step3') and not args.force:
                 logging.critical("step3 alread ran on expnum :%s, ccd: %d" % (
                         str(args.expnums), ccd))
                 continue
@@ -153,7 +153,7 @@ if __name__ == '__main__':
 
         storage.set_status(args.expnums[0],
                            ccd,
-                           'step3',
+                           prefix+'step3',
                            message)
         
             

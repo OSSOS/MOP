@@ -137,7 +137,7 @@ if __name__=='__main__':
                 message = storage.SUCCESS
                 if not storage.get_status(expnum, ccd, 'mkpsf'):
                     raise IOError(35, "mkpsf hasn't run?")
-                if storage.get_status(expnum, ccd, 'step1') and not args.force:
+                if storage.get_status(expnum, ccd, prefix+'step1') and not args.force:
                     logging.critical(
                         "Already did %s %s, skipping" %(str(expnum),
                                                         str(ccd)))
@@ -151,7 +151,7 @@ if __name__=='__main__':
 
             storage.set_status(expnum,
                                ccd,
-                               'step1',
+                               prefix+'step1',
                                message)
         
             
