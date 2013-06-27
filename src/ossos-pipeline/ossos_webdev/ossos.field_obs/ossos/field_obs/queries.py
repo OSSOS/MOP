@@ -1,6 +1,6 @@
 import sqlalchemy as sa
 from ossos.overview.ossuary import OssuaryTable
-import os, vos, ephem
+import os, vos, ephem, datetime
 
 CERTFILE=os.path.join(os.getenv('HOME'),
                       '.ssl',
@@ -79,17 +79,16 @@ class ImagesQuery(object):
 	# Process of getting the three best images that form a discovery triplet.
 	def discovery_triplet(self, field):
 		retval = None  # is set to a value if a valid triplet exists.
-		# Is there even a valid triplet observed yet?
-		if len(self.field_images(field)['obs']) > 2:
-			threeplus_nights = self.do_triples_exist(field)  # just the dates
-			if len(threeplus_nights) > 0:
-				# The images on the nights that have 3+ images, this field.
-				threeplus_night_images = {}
-				for date in threeplus_nights:
-					date_images = self.images_in_tripleplus_night(field, date)
-					threeplus_night_images[date] = date_images
+		# Is there even a night with 3+ images observed yet?
+		threeplus_nights = self.do_triples_exist(field)  # just the dates
+		if len(threeplus_nights) > 0:
+			# Get details of the images on the nights that have 3+ images, this field.
+			threeplus_night_images = {}
+			for date in threeplus_nights:
+				date_images = self.images_in_tripleplus_night(field, date)
+				threeplus_night_images[date] = date_images
 
-				retval = self.parse_for_best_triple(threeplus_night_images)
+			retval = self.parse_for_best_triple(threeplus_night_images)
 	
 		return retval
 
@@ -137,20 +136,17 @@ class ImagesQuery(object):
 
 
 	def parse_for_best_triple(self, threeplus_night_images):
-		# input is a dict of {date: [rows of images]}
+		# input is a dict of {date: [rows of images]} where [rows] > 2
 		good_triples = []
 		for date, ims in threeplus_night_images.items():
 			# for each night, create the best possible triple that meets constraints.
-
 			print date, len(ims)
-			if len(ims) > 1:
-			# HACK FOR TESTING PREVIOUS CODE
-				if len(ims) == 3:
-					# format as ([image_ids], [3 rows of remaining info], worst_iq)
-					good_triples.append(([im[3] for im in ims], 
-										ims,
-										max([im[5] for im in ims])
-										))
+			# is their temporal span sufficiently wide for a triplet to exist?
+			if (ims[-1][4] - ims[0][4]) > datetime.timedelta(minutes=90):
+				# return is [im, im, im, worst_iq]
+				best_triple_of_night = self.suitable_triples(ims)
+				if best_triple_of_night is not None:
+					good_triples.append(best_triple_of_night)
 
 		if len(good_triples) > 0:
 			# Return the set of 3 images that have the lowest value of 'worst iq'. 
@@ -162,26 +158,36 @@ class ImagesQuery(object):
 		
 		return retval
 
-		# this should be a def something like 'best_pair' to obtain double or a triple
 
-			# # is their temporal span sufficiently wide for a triplet?
-			# if (nt[-1] - nt[0]) > datetime.timedelta(minutes=90):
-			# 	print 'can check for triple_sets'
-			# 	# what is the widest-spaced 
+	def suitable_triples(self, ims):
+		triple_sets = []
+	 	# construct all possible sets of three 
+	 	times = range(0, len(ims))
+	 	twenty = datetime.timedelta(minutes=20)
+	 	ninety = datetime.timedelta(minutes=90)
+		for ii in times:
+			for jj in times:
+				for kk in times:
+					imset = [ims[ii], ims[jj], ims[kk]]
+					imset.append(max([im[5] for im in imset]))
 
-			# else:
-			# 	print 'too close!'
+					j_minus_i = imset[1][4] - imset[0][4]
+					k_minus_j = imset[2][4] - imset[1][4]
+					span = imset[2][4] - imset[0][4]
+	 				if (ii < jj < kk) and (j_minus_i > twenty) and (k_minus_j > twenty) and span > ninety:
+						triple_sets.append(imset)
 
-# # def for best set of three
-# def find_best_intranight_triple():
-# 	triple_sets = [[],[],[]]
-# 	# construct all possible sets of three 
-# 	for ii in times:
-# 		for jj in times:
-# 			for kk in times:
-# 				if (ii < jj < kk) and (jj-ii > 20 minutes) and (kk-jj > 20 minutes):
-#
-#   # then pick the set with the 
+		# return the set with the lowest worst iq. All have adequate spacing.
+		triple_sets.sort(key=lambda x:x[3])
+		# if there's one available in triple_sets!
+		if len(triple_sets) > 0:
+			# format as ([image_ids], [3 rows of remaining info], worst_iq)
+			retval = ([t[3] for t in triple_sets[0][0:3]], triple_sets[0][0:3], triple_sets[0][3]) 
+		else:
+			retval = None
+
+		return retval
+
 
 
 	def num_precoveries(self, field):
