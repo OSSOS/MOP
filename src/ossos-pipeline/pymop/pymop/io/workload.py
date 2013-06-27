@@ -165,6 +165,9 @@ class WorkUnit(object):
     def get_writer(self):
         return self.results_writer
 
+    def is_finished(self):
+        raise NotImplementedError()
+
 
 class RealsWorkUnit(WorkUnit):
     def __init__(self, filename, data_collection, results_writer):
@@ -190,6 +193,18 @@ class RealsWorkUnit(WorkUnit):
         # All observations of this source have been processed
         self.next_source()
 
+    def get_current_item_index(self):
+        return (self.get_sources().get_index() +
+                self.get_current_source_readings().get_index())
+
+    def is_finished(self):
+        for source in self.get_sources():
+            for reading in source.get_readings():
+                if not reading.is_processed():
+                    return False
+
+        return True
+
 
 class CandidatesWorkUnit(WorkUnit):
     def __init__(self, filename, data_collection, results_writer):
@@ -204,6 +219,16 @@ class CandidatesWorkUnit(WorkUnit):
 
     def next_vettable_item(self):
         self.next_source()
+
+    def get_current_item_index(self):
+        return self.get_sources().get_index()
+
+    def is_finished(self):
+        for source in self.get_sources():
+            if not source.is_processed():
+                return False
+
+        return True
 
 
 class WorkUnitProvider(object):
@@ -262,9 +287,28 @@ class WorkUnitBuilder(object):
         data_collection = DataCollection(parsed_data)
 
         _, filename = os.path.split(full_path)
-        return WorkUnit(filename, data_collection,
-                        self.writer_factory.create_writer(
-                            full_path, parsed_data))
+        return self._build_workunit(filename, data_collection,
+                                    self.writer_factory.create_writer(
+                                        full_path, parsed_data))
+
+    def _build_workunit(self, filename, data, writer):
+        raise NotImplementedError()
+
+
+class RealsWorkUnitBuilder(WorkUnitBuilder):
+    def __init__(self, parser, writer_factory):
+        super(RealsWorkUnitBuilder, self).__init__(parser, writer_factory)
+
+    def _build_workunit(self, filename, data, writer):
+        return RealsWorkUnit(filename, data, writer)
+
+
+class CandidatesWorkUnitBuilder(WorkUnitBuilder):
+    def __init__(self, parser, writer_factory):
+        super(CandidatesWorkUnitBuilder, self).__init__(parser, writer_factory)
+
+    def _build_workunit(self, filename, data, writer):
+        return CandidatesWorkUnit(filename, data, writer)
 
 
 class WorkloadManager(object):
@@ -278,10 +322,24 @@ class WorkloadManager(object):
         self.work_units = StatefulCollection()
 
         def shift_locks(workunit1, workunit2):
-            self.progress_manager.unlock(workunit1.get_filename())
-            self.progress_manager.lock(workunit2.get_filename())
+            self._unlock(workunit1)
+            self._lock(workunit2)
 
         self.work_units.add_callback(shift_locks)
+
+        self.num_processed = 0
+
+    def _lock(self, workunit):
+        self.progress_manager.lock(workunit.get_filename())
+
+    def _unlock(self, workunit):
+        self.progress_manager.unlock(workunit.get_filename())
+
+    def __getattr__(self, attr):
+        return getattr(self.get_current_workunit(), attr)
+
+    def start_work(self):
+        self.next_workunit()
 
     def next_workunit(self):
         if not self.work_units.has_next():
@@ -295,11 +353,75 @@ class WorkloadManager(object):
     def get_current_workunit(self):
         return self.work_units.get_current_item()
 
+    def next_item(self):
+        self.get_current_workunit().next_vettable_item()
+
+    def previous_item(self):
+        self.get_current_workunit().previous_vettable_item()
+
+    def next_source(self):
+        self.get_current_workunit().next_source()
+
+    def next_obs(self):
+        self.get_current_workunit().next_obs()
+
+    def previous_source(self):
+        self.get_current_workunit().previous_source()
+
+    def previous_obs(self):
+        self.get_current_workunit().previous_obs()
+
     def get_current_data(self):
         return self.get_current_workunit().get_data()
 
     def get_current_filename(self):
         return self.get_current_workunit().get_filename()
+
+    def get_current_source(self):
+        return self.get_current_workunit().get_current_source()
+
+    def get_current_source_number(self):
+        return self.get_current_workunit().get_current_source_number()
+
+    def get_current_obs_number(self):
+        return self.get_current_workunit().get_current_obs_number()
+
+    def get_obs_count(self):
+        return self.get_current_workunit().get_obs_count()
+
+    def accept_current_item(self):
+        self.get_current_workunit().accept_current_item()
+        self._process_current_item()
+
+    def reject_current_item(self):
+        self.get_current_workunit().reject_current_item()
+        self._process_current_item()
+
+    def _process_current_item(self):
+        self.num_processed += 1
+        self.progress_manager.record_index(
+            self.get_current_filename(),
+            self.get_current_workunit().get_current_item_index())
+
+        if self.get_current_workunit().is_finished():
+            self.progress_manager.record_done(
+                self.get_current_workunit().get_filename())
+            self.next_workunit()
+
+    def get_num_items_processed(self):
+        return self.num_processed
+
+    def get_writer(self):
+        return self.get_current_workunit().get_writer()
+
+    def count_unclaimed_readings(self):
+        # TODO: a light-weight estimator
+        return -1
+
+    def exit(self):
+        self._unlock(self.get_current_workunit())
+        for workunit in self.work_units:
+            workunit.get_writer().close()
 
 
 class DirectoryManager(object):

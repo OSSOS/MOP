@@ -284,6 +284,9 @@ class BaseAstromWriter(object):
 
         self._header_written = True
 
+    def close(self):
+        self.output_file.close()
+
 
 class StreamingAstromWriter(BaseAstromWriter):
     """

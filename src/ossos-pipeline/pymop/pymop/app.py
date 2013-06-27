@@ -5,7 +5,8 @@ import wx.lib.inspection
 
 from pymop import config
 from pymop import tasks
-from pymop.io.workload import DirectoryManager
+from pymop.io.workload import DirectoryManager, WorkloadManager, WorkUnitProvider, WorkUnitBuilder
+from pymop.io.writers import WriterFactory
 from pymop.io.astrom import AstromParser, AstromWorkload
 from pymop.io.persistence import ProgressManager
 from pymop.io.naming import ProvisionalNameGenerator
@@ -38,7 +39,7 @@ class AbstractTask(object):
     def get_task(self):
         raise NotImplementedError()
 
-    def _create_model(self, workload):
+    def _create_model(self, workload_manager):
         raise NotImplementedError()
 
     def _create_controller(self, model):
@@ -47,9 +48,14 @@ class AbstractTask(object):
     def start(self, working_directory):
         directory_manager = DirectoryManager(working_directory)
         progress_manager = ProgressManager(directory_manager)
-        workload = AstromWorkload(working_directory, progress_manager,
-                                  self.get_task())
-        model = self._create_model(workload)
+        writer_factory = WriterFactory()
+        builder = WorkUnitBuilder(self.parser, writer_factory)
+        workunit_provider = WorkUnitProvider(self.get_task(), directory_manager,
+                                             progress_manager, builder)
+        workload_manager = WorkloadManager(workunit_provider, progress_manager)
+        # workload = AstromWorkload(working_directory, progress_manager,
+        #                           self.get_task())
+        model = self._create_model(workload_manager)
         self._create_controller(model)
 
     def finish(self):
@@ -63,8 +69,8 @@ class ProcessCandidatesTask(AbstractTask):
     def get_task(self):
         return tasks.CANDS_TASK
 
-    def _create_model(self, workload):
-        return ProcessCandidatesModel(workload, self.download_manager)
+    def _create_model(self, workload_manager):
+        return ProcessCandidatesModel(workload_manager, self.download_manager)
 
     def _create_controller(self, model):
         return ProcessCandidatesController(self, model)
@@ -79,8 +85,8 @@ class ProcessRealsTask(AbstractTask):
     def get_task(self):
         return tasks.REALS_TASK
 
-    def _create_model(self, workload):
-        return ProcessRealsModel(workload, self.download_manager)
+    def _create_model(self, workload_manager):
+        return ProcessRealsModel(workload_manager, self.download_manager)
 
     def _create_controller(self, model):
         return ProcessRealsController(self, model, self.name_generator)

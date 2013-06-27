@@ -201,6 +201,9 @@ class ProgressManager(AbstractProgressManager):
             filehandle.write(str(index) + INDEX_SEP)
 
     def lock(self, filename):
+        if self.owns_lock(filename):
+            return
+
         lockfile = self._get_full_path(filename + LOCK_SUFFIX)
 
         try:

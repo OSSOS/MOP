@@ -184,6 +184,9 @@ class MPCWriter(object):
         self.filehandle.write(line)
         self.filehandle.flush()
 
+    def close(self):
+        self.filehandle.close()
+
 
 class MPCFormatError(Exception):
     """Base class for errors in MPC formatting."""
