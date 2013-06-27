@@ -305,13 +305,63 @@ class CandidatesWorkUnitTest(AbstractWorkUnitTest):
 
         self.workunit = CandidatesWorkUnit(self.testfile, self.data_collection)
 
-    @unittest.skip("TODO")
-    def test_accept_current_item(self):
-        pass
+    def test_next_vettable_item(self):
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+        assert_that(self.workunit.get_current_obs_number(), equal_to(0))
 
-    @unittest.skip("TODO")
+        self.workunit.next_vettable_item()
+        assert_that(self.workunit.get_current_source_number(), equal_to(1))
+        assert_that(self.workunit.get_current_obs_number(), equal_to(0))
+
+        self.workunit.next_vettable_item()
+        assert_that(self.workunit.get_current_source_number(), equal_to(2))
+        assert_that(self.workunit.get_current_obs_number(), equal_to(0))
+
+        self.workunit.next_vettable_item()
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+        assert_that(self.workunit.get_current_obs_number(), equal_to(0))
+
+    def test_accept_current_item(self):
+        first_item = self.data_collection.get_sources()[0]
+        second_item = self.data_collection.get_sources()[1]
+
+        assert_that(first_item.is_processed(), equal_to(False))
+        assert_that(second_item.is_processed(), equal_to(False))
+
+        self.workunit.accept_current_item()
+
+        assert_that(first_item.is_processed(), equal_to(True))
+        assert_that(first_item.is_accepted(), equal_to(True))
+        assert_that(second_item.is_processed(), equal_to(False))
+
+        self.workunit.next_vettable_item()
+        self.workunit.accept_current_item()
+
+        assert_that(first_item.is_processed(), equal_to(True))
+        assert_that(first_item.is_accepted(), equal_to(True))
+        assert_that(second_item.is_processed(), equal_to(True))
+        assert_that(second_item.is_accepted(), equal_to(True))
+
     def test_reject_current_item(self):
-        pass
+        first_item = self.data_collection.get_sources()[0]
+        second_item = self.data_collection.get_sources()[1]
+
+        assert_that(first_item.is_processed(), equal_to(False))
+        assert_that(second_item.is_processed(), equal_to(False))
+
+        self.workunit.reject_current_item()
+
+        assert_that(first_item.is_processed(), equal_to(True))
+        assert_that(first_item.is_rejected(), equal_to(True))
+        assert_that(second_item.is_processed(), equal_to(False))
+
+        self.workunit.next_vettable_item()
+        self.workunit.reject_current_item()
+
+        assert_that(first_item.is_processed(), equal_to(True))
+        assert_that(first_item.is_rejected(), equal_to(True))
+        assert_that(second_item.is_processed(), equal_to(True))
+        assert_that(second_item.is_rejected(), equal_to(True))
 
 
 class DirectoryManagerTest(FileReadingTestCase):
