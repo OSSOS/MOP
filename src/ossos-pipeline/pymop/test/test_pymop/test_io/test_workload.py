@@ -3,7 +3,8 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 import unittest
 
-from hamcrest import assert_that, is_in, is_not, equal_to, contains_inanyorder
+from hamcrest import (assert_that, is_in, is_not, equal_to, is_, none,
+                      contains_inanyorder, has_length)
 from mock import Mock
 
 from test.base_tests import FileReadingTestCase
@@ -14,7 +15,8 @@ from pymop.io.persistence import InMemoryProgressManager
 from pymop.io.workload import (WorkUnitProvider, DirectoryManager,
                                WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
                                DataCollection, NoAvailableWorkException,
-                               VettableItem)
+                               VettableItem, StatefulCollection,
+                               WorkloadManager)
 
 
 class TestDirectoryManager(object):
@@ -76,7 +78,7 @@ class WorkUnitFactoryTest(unittest.TestCase):
         self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
 
     def test_create_workload_one_file_already_done(self):
-        self.progress_manager.done.append(self.file1)
+        self.progress_manager.done.add(self.file1)
 
         workunit = self.undertest.get_workunit()
         assert_that(workunit.get_filename(), equal_to(self.file2))
@@ -362,6 +364,124 @@ class CandidatesWorkUnitTest(AbstractWorkUnitTest):
         assert_that(first_item.is_rejected(), equal_to(True))
         assert_that(second_item.is_processed(), equal_to(True))
         assert_that(second_item.is_rejected(), equal_to(True))
+
+
+class StatefulCollectionTest(unittest.TestCase):
+    def test_basics(self):
+        items = [1, 2, 3]
+        undertest = StatefulCollection(items)
+
+        assert_that(undertest[0], equal_to(items[0]))
+        assert_that(undertest[1], equal_to(items[1]))
+        assert_that(undertest[2], equal_to(items[2]))
+
+        assert_that(undertest, has_length(3))
+
+        assert_that(undertest.get_index(), equal_to(0))
+        assert_that(undertest.get_current_item(), equal_to(items[0]))
+
+        undertest.next()
+        assert_that(undertest.get_index(), equal_to(1))
+        assert_that(undertest.get_current_item(), equal_to(items[1]))
+
+        undertest.previous()
+        assert_that(undertest.get_index(), equal_to(0))
+        assert_that(undertest.get_current_item(), equal_to(items[0]))
+
+    def test_callbacks(self):
+        first_callback = Mock()
+        second_callback = Mock()
+
+        items = [1, 2, 3]
+        undertest = StatefulCollection(items)
+        undertest.add_callback(first_callback)
+
+        undertest.next()
+        first_callback.assert_called_once_with(items[0], items[1])
+
+        undertest.add_callback(second_callback)
+        undertest.previous()
+        second_callback.assert_called_once_with(items[1], items[0])
+
+        assert_that(first_callback.call_count, equal_to(2))
+
+    def test_start_empty(self):
+        callback = Mock()
+        undertest = StatefulCollection()
+        undertest.add_callback(callback)
+
+        assert_that(undertest, has_length(0))
+
+        assert_that(undertest.get_current_item(), is_(none()))
+        assert_that(undertest.get_index(), equal_to(-1))
+
+        item1 = 1
+
+        undertest.append(item1)
+        assert_that(undertest.get_current_item(), equal_to(item1))
+        assert_that(undertest.get_index(), equal_to(0))
+
+        assert_that(callback.call_count, equal_to(0))
+
+        item2 = 2
+        undertest.append(item2)
+
+        undertest.next()
+        assert_that(undertest.get_index(), equal_to(1))
+        assert_that(undertest.get_current_item(), equal_to(item2))
+
+        callback.assert_called_once_with(item1, item2)
+
+
+class WorkloadManagerTest(unittest.TestCase):
+    def setUp(self):
+        self.progress_manager = InMemoryProgressManager(Mock(spec=DirectoryManager))
+        self.workunit_provider = Mock(spec=WorkUnitProvider)
+
+        self.workunit1 = Mock(spec=WorkUnit)
+        self.file1 = "file1"
+        self.workunit1.get_filename.return_value = self.file1
+
+        self.workunit2 = Mock(spec=WorkUnit)
+        self.file2 = "file2"
+        self.workunit2.get_filename.return_value = self.file2
+
+        workunits = [self.workunit1, self.workunit2]
+
+        def get_workunit(index):
+            workunit = workunits[index]
+            self.progress_manager.lock(workunit.get_filename())
+            return workunit
+
+        self.workunit_provider.get_workunit.side_effect = (get_workunit(index) for index in xrange(2))
+
+        self.undertest = WorkloadManager(self.workunit_provider, self.progress_manager)
+
+    def test_workunits_on_demand(self):
+        assert_that(self.undertest.get_current_workunit(), is_(none()))
+
+        self.undertest.next_workunit()
+        assert_that(self.undertest.get_current_workunit(), equal_to(self.workunit1))
+        assert_that(self.workunit_provider.get_workunit.call_count, equal_to(1))
+
+        self.undertest.next_workunit()
+        assert_that(self.undertest.get_current_workunit(), equal_to(self.workunit2))
+        assert_that(self.workunit_provider.get_workunit.call_count, equal_to(2))
+
+    def test_shift_locks(self):
+        self.undertest.next_workunit()
+        assert_that(self.undertest.get_current_workunit(), equal_to(self.workunit1))
+        assert_that(self.progress_manager.owns_lock(self.file1), equal_to(True))
+        assert_that(self.progress_manager.owns_lock(self.file2), equal_to(False))
+
+        self.undertest.next_workunit()
+        assert_that(self.undertest.get_current_workunit(), equal_to(self.workunit2))
+        assert_that(self.progress_manager.owns_lock(self.file1), equal_to(False))
+        assert_that(self.progress_manager.owns_lock(self.file2), equal_to(True))
+
+        self.undertest.previous_workunit()
+        assert_that(self.progress_manager.owns_lock(self.file1), equal_to(True))
+        assert_that(self.progress_manager.owns_lock(self.file2), equal_to(False))
 
 
 class DirectoryManagerTest(FileReadingTestCase):
