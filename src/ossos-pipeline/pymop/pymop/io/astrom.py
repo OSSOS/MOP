@@ -324,7 +324,7 @@ class BulkAstromWriter(BaseAstromWriter):
 
 
 class AstromWorkload(object):
-    def __init__(self, working_directory, progress, task):
+    def __init__(self, working_directory, progress_manager, task):
         working_dir_files = tasks.listdir_for_task(working_directory, task)
 
         workload_filenames = []
@@ -332,7 +332,7 @@ class AstromWorkload(object):
         for filename in working_dir_files:
             full_path = os.path.join(working_directory, filename)
 
-            if (filename not in progress.get_processed(task) and
+            if (filename not in progress_manager.get_done(task) and
                         os.stat(full_path).st_size > 0):
                 workload_filenames.append(filename)
                 workload_fullpaths.append(full_path)
@@ -341,7 +341,7 @@ class AstromWorkload(object):
             raise ValueError("Empty workload!")
 
         self.working_directory = working_directory
-        self.progress = progress
+        self.progress_manager = progress_manager
         self.task = task
         self.workload_filenames = workload_filenames
         self.full_paths = workload_fullpaths
@@ -350,11 +350,30 @@ class AstromWorkload(object):
 
         self.astrom_data_list = [parser.parse(filename) for filename in self.full_paths]
 
+        self.current_astrom_data_index = 0
+        self._lock_current_file()
+
     def __iter__(self):
         return iter(zip(self.workload_filenames, self.astrom_data_list))
 
+    def next_file(self):
+        self._unlock_current_file()
+        self.current_astrom_data_index = (self.current_astrom_data_index + 1) % self.get_load_length()
+        self._lock_current_file()
+
+    def previous_file(self):
+        self._unlock_current_file()
+        self.current_astrom_data_index = (self.current_astrom_data_index - 1) % self.get_load_length()
+        self._lock_current_file()
+
     def get_working_directory(self):
         return self.working_directory
+
+    def get_current_astrom_data(self):
+        return self.get_astrom_data(self.current_astrom_data_index)
+
+    def get_current_filename(self):
+        return self.get_filename(self.current_astrom_data_index)
 
     def get_astrom_data(self, index):
         return self.astrom_data_list[index]
@@ -372,6 +391,12 @@ class AstromWorkload(object):
 
         return all_sources
 
+    def get_source_groups(self):
+        source_groups = []
+        for astrom_data in self.astrom_data_list:
+            source_groups.append(astrom_data.get_sources())
+        return source_groups
+
     def get_source_count(self):
         return len(self.get_sources())
 
@@ -382,9 +407,21 @@ class AstromWorkload(object):
 
         return count
 
-    def record_processed(self, filename):
-        self.progress.record_processed(filename, self.task)
-        self.progress.flush()
+    def record_current_file_done(self):
+        self.progress_manager.record_done(self.get_current_filename())
+
+    def get_current_processed_indices(self):
+        return self.progress_manager.get_processed_indices(
+            self.get_current_filename())
+
+    def record_index(self, index):
+        self.progress_manager.record_index(self.get_current_filename(), index)
+
+    def _lock_current_file(self):
+        self.progress_manager.lock(self.get_current_filename())
+
+    def _unlock_current_file(self):
+        self.progress_manager.unlock(self.get_current_filename())
 
 
 class AstromData(object):

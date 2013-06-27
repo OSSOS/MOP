@@ -8,13 +8,14 @@ from wx.lib.pubsub import setupv1
 from wx.lib.pubsub import Publisher as pub
 
 from hamcrest import assert_that, equal_to, has_length, contains, none, same_instance
-from mock import Mock, patch
+from mock import Mock, MagicMock, patch
 
 from test.base_tests import FileReadingTestCase
 from pymop import tasks
 from pymop.gui import models
 from pymop.gui.models import VettableItem
 from pymop.io.astrom import AstromWorkload
+from pymop.io.persistence import ProgressManager
 from pymop.io.img import FitsImage
 
 MODEL_TEST_DIR_1 = "data/model_testdir_1"
@@ -29,9 +30,10 @@ class GeneralModelTest(FileReadingTestCase):
     def setUp(self):
         pub.unsubAll()
 
-        progress = Mock()
-        progress.get_processed.return_value = []
-        self.workload = AstromWorkload(self._get_working_dir(), progress,
+        progress_manager = MagicMock(spec=ProgressManager)
+        progress_manager.get_done.return_value = []
+        self.workload = AstromWorkload(self._get_working_dir(),
+                                       progress_manager,
                                        self._get_task())
         self.download_manager = Mock()
 
@@ -657,12 +659,13 @@ class MultipleAstromDataModelTest(FileReadingTestCase):
         pub.unsubAll()
 
         working_dir = self.get_abs_path(MODEL_TEST_DIR_2)
-        progress = Mock()
-        progress.get_processed.return_value = []
-        self.workload = AstromWorkload(working_dir, progress, tasks.REALS_TASK)
+        progress_manager = MagicMock(spec=ProgressManager)
+        progress_manager.get_done.return_value = []
+        self.workload = AstromWorkload(working_dir, progress_manager, tasks.REALS_TASK)
         self.download_manager = Mock()
 
         self.model = models.ProcessRealsModel(self.workload, self.download_manager)
+        self.progress_manager = progress_manager
 
     def test_meta_data(self):
         assert_that(self.model.get_current_source_number(), equal_to(0))
@@ -712,38 +715,6 @@ class MultipleAstromDataModelTest(FileReadingTestCase):
         self.model.previous_source()
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_source(), equal_to(first_sources[0]))
-
-    def test_file_processed_event(self):
-        observer = Mock()
-        pub.subscribe(observer.on_file_processed, models.MSG_FILE_PROC)
-
-        # Order that the files are processed in is not guaranteed
-        filename = self.model.get_current_filename()
-        if filename == TEST_FILE_1:
-            accepts_before_next_file = 9
-        elif filename == TEST_FILE_2:
-            accepts_before_next_file = 6
-        else:
-            self.fail("Unexpected file.")
-
-        while accepts_before_next_file > 1:
-            self.model.accept_current_item()
-            self.model.next_item()
-            assert_that(observer.on_file_processed.call_count, equal_to(0))
-            accepts_before_next_file -= 1
-
-        self.model.accept_current_item()
-        assert_that(observer.on_file_processed.call_count, equal_to(0))
-        self.model.next_item()
-        assert_that(observer.on_file_processed.call_count, equal_to(1))
-
-        # Make sure it was triggered with the right data
-        args = observer.on_file_processed.call_args[0]
-        assert_that(args, has_length(1))
-
-        msg = args[0]
-        assert_that(msg.topic, equal_to(models.MSG_FILE_PROC))
-        assert_that(msg.data, equal_to(filename))
 
 
 if __name__ == '__main__':

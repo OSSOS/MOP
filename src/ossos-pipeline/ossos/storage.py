@@ -18,6 +18,7 @@ DBIMAGES='vos:OSSOS/dbimages'
 DATA_WEB_SERVICE='https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/'
 OSSOS_TAG_URI_BASE='ivo://canfar.uvic.ca/ossos'
 vospace = vos.Client(certFile=CERTFILE)
+SUCCESS = 'success' 
 
 def populate(dataset_name,
              data_web_service_url = DATA_WEB_SERVICE+"CFHT"):
@@ -80,21 +81,25 @@ def get_uri(expnum, ccd=None,
         subdir = str(expnum)
     if prefix is None:
         prefix = ''
-    uri = os.path.join(_dbimages, subdir)
+    uri = os.path.join(DBIMAGES, subdir)
 
+    if ext is None:
+        ext = ''
+    elif len(ext) > 0 and ext[0] != '.':
+        ext = '.'+ext
 
     # if ccd is None then we send uri for the MEF
     if ccd is not None:
         ccd = str(ccd).zfill(2)
         uri = os.path.join(uri,
                            'ccd%s' % (ccd),
-                           '%s%s%s%s.%s' % (prefix, str(expnum),
+                           '%s%s%s%s%s' % (prefix, str(expnum),
                                             version,
                                             ccd,
                                             ext))
     else:
         uri = os.path.join(uri,
-                           '%s%s%s.%s' % (prefix, str(expnum),
+                           '%s%s%s%s' % (prefix, str(expnum),
                                           version,
                                           ext))
     logging.info("got uri: "+uri)
@@ -136,7 +141,8 @@ def get_tag(expnum, key):
     node = vospace.getNode(uri)
     if tag_uri(key) not in node.props.keys():
         node = vospace.getNode(uri, force=True)
-    logging.debug("%s # %s -> %s"  % ( uri, tag_uri(key), node.props.get(tag_uri(key), None)))
+    logging.debug("%s # %s -> %s"  % (
+        uri, tag_uri(key), node.props.get(tag_uri(key), None)))
     return node.props.get(tag_uri(key), None)
 
 def get_process_tag(program, ccd):
@@ -151,7 +157,7 @@ def get_status(expnum, ccd, program, return_message=False):
     if return_message:
         return status
     else:
-        return status == 'success'
+        return status == SUCCESS
 
 def set_status(expnum, ccd, program, status):
     '''set the processing status of the given program'''
