@@ -2,6 +2,8 @@ import sqlalchemy as sa
 from numpy import median
 from ossos.field_obs.queries import ImagesQuery
 from ossos.overview.ossuary import OssuaryTable
+import ephem
+from math import degrees
 
 
 class BlockQuery(object):
@@ -82,6 +84,37 @@ class BlockQuery(object):
 		retval = sum([r[1] for r in ims_query])
 		return retval
 		
+
+	def central_radec(self, blockID):
+		junk, fieldIds = self.fields_in_block(blockID)
+		ras = []
+		decs = []
+		for field in fieldIds:
+			ras.append(ephem.hours(self.bk.field_ra(field)))   # str in hours of RA
+			decs.append(ephem.degrees(self.bk.field_dec(field))) # str in deg of Dec
+
+		# mean ra, mean dec: APPROXIMATING
+		ra = ephem.hours((sum(ras)/len(ras)))
+		dec = ephem.degrees((sum(decs)/len(decs)))
+
+		retval = (str(ra), str(dec))
+		
+		return retval
+
+
+	def ecliptic_lat_span(self, blockID):
+		junk, fieldIds = self.fields_in_block(blockID)
+		ecs = []
+		for field in fieldIds:
+			rr = ephem.Equatorial(ephem.hours(self.bk.field_ra(field)), ephem.degrees(self.bk.field_dec(field)))
+			ec = ephem.Ecliptic(rr)
+			ecs.append(ec)
+		ecs.sort(key=lambda x:x.__getattribute__('lat'))
+
+		retval = (degrees(ecs[0].lat), degrees(ecs[-1].lat))  # eclat is float (deg), min-max
+
+		return retval
+
 
 	def block_discovery_triples(self, blockID):
 

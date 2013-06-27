@@ -23,7 +23,7 @@
         </ul>
       </div><!--page-header-->
 
-      <h2>field ${fieldId} <small>(${ra}, ${dec}) <i>b</i>=${'%.1f' % ec_loc[0]}&deg;</small></h2>
+      <h2>field ${fieldId} <small>(${ra}, ${dec[0]}&deg;${dec[1]}) <i>b</i>=${'%.1f' % ec_loc[0]}&deg;</small></h2>
 
       <div class="well well-small">
         <dl class="dl-horizontal">
