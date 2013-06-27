@@ -13,7 +13,8 @@ from pymop.io.astrom import AstromParser
 from pymop.io.persistence import InMemoryProgressManager
 from pymop.io.workload import (WorkUnitProvider, DirectoryManager,
                                WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
-                               DataCollection, NoAvailableWorkException)
+                               DataCollection, NoAvailableWorkException,
+                               VettableItem)
 
 
 class TestDirectoryManager(object):
@@ -170,22 +171,139 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
     def setUp(self):
         super(RealsWorkUnitTest, self).setUp()
 
-        self.workunit = RealsWorkUnit(self.data_collection)
+        self.workunit = RealsWorkUnit(self.testfile, self.data_collection)
 
-    @unittest.skip("TODO")
+    def test_next_vettable_item_no_validation(self):
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+        assert_that(self.workunit.get_current_obs_number(), equal_to(0))
+
+        self.workunit.next_vettable_item()
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+        assert_that(self.workunit.get_current_obs_number(), equal_to(1))
+
+        self.workunit.next_vettable_item()
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+        assert_that(self.workunit.get_current_obs_number(), equal_to(2))
+
+        self.workunit.next_vettable_item()
+        # Should have looped back to first observation of the same source
+        # because we haven't finished processing it.
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+        assert_that(self.workunit.get_current_obs_number(), equal_to(0))
+
+    def test_next_vettable_item_after_validate_last(self):
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+        assert_that(self.workunit.get_current_obs_number(), equal_to(0))
+
+        self.workunit.next_vettable_item()
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+        assert_that(self.workunit.get_current_obs_number(), equal_to(1))
+
+        self.workunit.next_vettable_item()
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+        assert_that(self.workunit.get_current_obs_number(), equal_to(2))
+
+        self.workunit.accept_current_item()
+        self.workunit.next_vettable_item()
+
+        # Should have looped back to first observation of the same source
+        # because we haven't finished processing it.
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+        assert_that(self.workunit.get_current_obs_number(), equal_to(0))
+
+        self.workunit.accept_current_item()
+        self.workunit.next_vettable_item()
+
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+        assert_that(self.workunit.get_current_obs_number(), equal_to(1))
+
+        self.workunit.accept_current_item()
+        self.workunit.next_vettable_item()
+
+        # We already validated the last reading, so we should be jumping
+        # straight to the second source now.
+
+        assert_that(self.workunit.get_current_source_number(), equal_to(1))
+        assert_that(self.workunit.get_current_obs_number(), equal_to(0))
+
+        self.workunit.next_vettable_item()
+
+        assert_that(self.workunit.get_current_source_number(), equal_to(1))
+        assert_that(self.workunit.get_current_obs_number(), equal_to(1))
+
+    def test_next_vettable_item_jump_over_processed(self):
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+        assert_that(self.workunit.get_current_obs_number(), equal_to(0))
+
+        self.workunit.next_vettable_item()
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+        assert_that(self.workunit.get_current_obs_number(), equal_to(1))
+
+        self.workunit.reject_current_item()
+        self.workunit.next_vettable_item()
+
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+        assert_that(self.workunit.get_current_obs_number(), equal_to(2))
+
+        self.workunit.next_vettable_item()
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+        assert_that(self.workunit.get_current_obs_number(), equal_to(0))
+
+        self.workunit.next_vettable_item()
+        assert_that(self.workunit.get_current_source_number(), equal_to(0))
+        assert_that(self.workunit.get_current_obs_number(), equal_to(2))
+
     def test_accept_current_item(self):
-        pass
+        first_source = self.data_collection.get_sources()[0]
+        first_item = first_source.get_reading(0)
+        second_item = first_source.get_reading(1)
 
-    @unittest.skip("TODO")
+        assert_that(first_item.is_processed(), equal_to(False))
+        assert_that(second_item.is_processed(), equal_to(False))
+
+        self.workunit.accept_current_item()
+
+        assert_that(first_item.is_processed(), equal_to(True))
+        assert_that(first_item.is_accepted(), equal_to(True))
+        assert_that(second_item.is_processed(), equal_to(False))
+
+        self.workunit.next_vettable_item()
+        self.workunit.accept_current_item()
+
+        assert_that(first_item.is_processed(), equal_to(True))
+        assert_that(first_item.is_accepted(), equal_to(True))
+        assert_that(second_item.is_processed(), equal_to(True))
+        assert_that(second_item.is_accepted(), equal_to(True))
+
     def test_reject_current_item(self):
-        pass
+        first_source = self.data_collection.get_sources()[0]
+        first_item = first_source.get_reading(0)
+        second_item = first_source.get_reading(1)
+
+        assert_that(first_item.is_processed(), equal_to(False))
+        assert_that(second_item.is_processed(), equal_to(False))
+
+        self.workunit.reject_current_item()
+
+        assert_that(first_item.is_processed(), equal_to(True))
+        assert_that(first_item.is_accepted(), equal_to(False))
+        assert_that(first_item.is_rejected(), equal_to(True))
+        assert_that(second_item.is_processed(), equal_to(False))
+
+        self.workunit.next_vettable_item()
+        self.workunit.reject_current_item()
+
+        assert_that(first_item.is_processed(), equal_to(True))
+        assert_that(first_item.is_rejected(), equal_to(True))
+        assert_that(second_item.is_processed(), equal_to(True))
+        assert_that(second_item.is_rejected(), equal_to(True))
 
 
 class CandidatesWorkUnitTest(AbstractWorkUnitTest):
     def setUp(self):
         super(CandidatesWorkUnitTest, self).setUp()
 
-        self.workunit = CandidatesWorkUnit(self.data_collection)
+        self.workunit = CandidatesWorkUnit(self.testfile, self.data_collection)
 
     @unittest.skip("TODO")
     def test_accept_current_item(self):

@@ -56,6 +56,9 @@ class StatefulCollection(object):
     def __iter__(self):
         return iter(self.items)
 
+    def __getitem__(self, index):
+        return self.items[index]
+
     def __getattr__(self, attr):
         return getattr(self.items, attr)
 
@@ -143,7 +146,7 @@ class RealsWorkUnit(WorkUnit):
         self.get_current_reading().accept()
 
     def reject_current_item(self):
-        self.get_current_reading().accpet()
+        self.get_current_reading().reject()
 
     def next_vettable_item(self):
         num_obs_to_check = len(self.get_current_source_readings())
@@ -152,6 +155,8 @@ class RealsWorkUnit(WorkUnit):
             if not self.get_current_reading().is_processed():
                 # This observation needs to be vetted, stop here
                 return
+
+            num_obs_to_check -= 1
 
         # All observations of this source have been processed
         self.next_source()
