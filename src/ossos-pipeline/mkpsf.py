@@ -6,21 +6,20 @@ _version = '1.0'
 import argparse
 import logging
 import os
-import ossos
 import os
 from ossos import storage
 from ossos import util 
 
-def run_mkpsf(expnum, ccd):
+def mkpsf(expnum, ccd):
     """Run the OSSOS makepsf script.
 
     """
 
     ## get image from the vospace storage area
-    filename = ossos.storage.get_image(expnum, ccd, version='p')
-
+    filename = storage.get_image(expnum, ccd, version='p')
+    logging.info("Running mkpsf on %s %d" % (expnum, ccd))
     ## launch the makepsf script
-    ossos.util.exec_prog(['jmpmakepsf.csh',
+    util.exec_prog(['jmpmakepsf.csh',
                           './',
                           filename,
                           'no'])
@@ -30,16 +29,16 @@ def run_mkpsf(expnum, ccd):
 
     ## confirm destination directory exists.
     destdir = os.path.dirname(
-        ossos.storage.dbimages_uri(expnum, ccd, version='p',ext='fits'))
+        storage.dbimages_uri(expnum, ccd, version='p',ext='fits'))
     logging.info("Checking that destination direcoties exist")
     storage.mkdir(destdir)
 
 
     for ext in ('mopheader', 'psf.fits',
                 'zeropoint.used', 'apcor', 'fwhm', 'phot'):
-        dest = ossos.storage.dbimages_uri(expnum, ccd, version='p', ext=ext)
+        dest = storage.dbimages_uri(expnum, ccd, version='p', ext=ext)
         source = basename + "." + ext
-        ossos.storage.copy(source, dest)
+        storage.copy(source, dest)
 
     return
 
@@ -73,8 +72,9 @@ if __name__ == '__main__':
                         action='version',
                         version='%(prog)s '+_version 
                         )
-
     parser.add_argument("--verbose", "-v",
+                        action="store_true")
+    parser.add_argument("--debug", "-d",
                         action="store_true")
 
     args = parser.parse_args()
@@ -82,8 +82,11 @@ if __name__ == '__main__':
     if args.verbose:
         logging.basicConfig(level=logging.INFO,
                             format='%(message)s')
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
 
-    ossos.storage._dbimages = args.dbimages
+
+    storage.DBIMAGES = args.dbimages
 
     if args.ccd is None:
         ccdlist = range(0,36)
@@ -92,29 +95,29 @@ if __name__ == '__main__':
 
     for expnum in args.expnum:
         for ccd in ccdlist:
-            try:
-                if ossos.storage.get_status(expnum, ccd, 'mkpsf'):
-                    logging.info("Already did %s %s, skipping" %( str(expnum),
+            if storage.get_status(expnum, ccd, 'mkpsf'):
+                logging.info("Already did %s %s, skipping" %( str(expnum),
                                                                   str(ccd)))
-                    coninue
+                continue
+            try:
                 message = 'success'
-                run_mkpsf(expnum, ccd)
-                ossos.storage.set_status(expnum,
+                mkpsf(expnum, ccd)
+                storage.set_status(expnum,
                                          ccd,
                                          'fwhm',
-                                         str(ossos.storage.get_fwhm(
+                                         str(storage.get_fwhm(
                     expnum, ccd)))
-                ossos.storage.set_status(expnum,
+                storage.set_status(expnum,
                                          ccd,
                                          'zeropoint',
-                                         str(ossos.storage.get_zeropoint(
+                                         str(storage.get_zeropoint(
                     expnum, ccd)))
                                          
             except Exception as e:
                 message = str(e)
 
             logging.error(message)
-            ossos.storage.set_status( expnum,
+            storage.set_status( expnum,
                                       ccd,
                                       'mkpsf',
                                       message)
