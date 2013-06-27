@@ -32,6 +32,42 @@ MSG_FILE_PROC = MSG_ROOT + ("fileproc", )
 MSG_ALL_ITEMS_PROC = MSG_ROOT + ("allproc", )
 
 
+class VettableCollection(object):
+    def __init__(self, original_item_groups):
+        self._vettable_item_by_original = {}
+        self._index_by_original = {}
+        self._vettable_item_groups = []
+
+        for original_item_group in original_item_groups:
+            vettable_item_group = []
+            for index, original_item in enumerate(original_item_group):
+                vettable_item = VettableItem(original_item)
+                self._vettable_item_by_original[original_item] = vettable_item
+                self._index_by_original[original_item] = index
+                vettable_item_group.append(vettable_item)
+            self._vettable_item_groups.append(vettable_item_group)
+
+    def __len__(self):
+        return len(self._vettable_item_by_original)
+
+    def get_vettable_item(self, original_item):
+        return self._vettable_item_by_original[original_item]
+
+    def get_index(self, original_item):
+        return self._index_by_original[original_item]
+
+    def count_processed(self):
+        count = 0
+        for vettable_item in self._vettable_item_by_original.values():
+            if vettable_item.is_processed():
+                count += 1
+
+        return count
+
+    def count_items_in_group(self, group_index):
+        return len(self._vettable_item_groups[group_index])
+
+
 class VettableItem(object):
     ACCEPTED = "accepted"
     REJECTED = "rejected"
@@ -69,8 +105,6 @@ class AbstractModel(object):
         self.workload = workload
         self.download_manager = download_manager
 
-        self._current_astrom_data_number = 0
-
         # These indices are within the current astrom data
         self._current_src_number = 0
         self._current_obs_number = 0
@@ -80,17 +114,17 @@ class AbstractModel(object):
         self._vettable_items = self._create_vettable_items()
 
     def _get_current_astrom_data(self):
-        return self.workload.get_astrom_data(self._current_astrom_data_number)
+        return self.workload.get_current_astrom_data()
 
     def get_current_filename(self):
-        return self.workload.get_filename(self._current_astrom_data_number)
+        return self.workload.get_current_filename()
 
     def _create_vettable_items(self):
         raise NotImplementedError()
 
     def get_current_source_number(self):
         already_processed = 0
-        for index in range(self._current_astrom_data_number):
+        for index in xrange(self.workload.current_astrom_data_index):
             processed_data = self.workload.get_astrom_data(index)
             already_processed += processed_data.get_source_count()
 
@@ -101,11 +135,7 @@ class AbstractModel(object):
 
     def next_source(self):
         if self._current_src_number + 1 == self._get_current_astrom_data().get_source_count():
-            # Finished processing the current file
-            pub.sendMessage(MSG_FILE_PROC, self.get_current_filename())
-            self.workload.record_processed(self.get_current_filename())
-
-            self._current_astrom_data_number = (self._current_astrom_data_number + 1) % self.workload.get_load_length()
+            self.workload.next_file()
             self._current_src_number = 0
         else:
             self._current_src_number += 1
@@ -115,7 +145,7 @@ class AbstractModel(object):
 
     def previous_source(self):
         if self._current_src_number == 0:
-            self._current_astrom_data_number = (self._current_astrom_data_number - 1) % self.workload.get_load_length()
+            self.workload.previous_file()
             self._current_src_number = self._get_current_astrom_data().get_source_count() - 1
         else:
             self._current_src_number -= 1
@@ -213,19 +243,18 @@ class AbstractModel(object):
         self._num_images_loaded += 1
         pub.sendMessage(MSG_IMG_LOADED, (source_num, obs_num))
 
-    def _check_if_finished(self):
+    def _check_if_all_finished(self):
         if self.get_num_items_processed() == self.get_item_count():
             pub.sendMessage(MSG_ALL_ITEMS_PROC)
 
     def get_num_items_processed(self):
-        processed = [item.is_processed() for item in self._vettable_items.values()]
-        return processed.count(True)
+        return self._vettable_items.count_processed()
 
     def is_item_processed(self, item):
-        return self._vettable_items[item].is_processed()
+        return self._vettable_items.get_vettable_item(item).is_processed()
 
     def get_item_status(self, item):
-        return self._vettable_items[item].get_status()
+        return self._vettable_items.get_vettable_item(item).get_status()
 
     def next_item(self):
         raise NotImplementedError()
@@ -233,7 +262,7 @@ class AbstractModel(object):
     def accept_current_item(self):
         self.get_current_item().accept()
         self._on_accept()
-        self._check_if_finished()
+        self._process_current_item()
 
     def _on_accept(self):
         """Hook you can override to do extra processing when accepting an item."""
@@ -241,16 +270,36 @@ class AbstractModel(object):
 
     def reject_current_item(self):
         self.get_current_item().reject()
-        self._check_if_finished()
+        self._process_current_item()
+
+    def _process_current_item(self):
+        self.workload.record_index(self.get_current_item_index())
+        self._check_if_file_finished()
+        self._check_if_all_finished()
+
+    def _check_if_file_finished(self):
+        if len(self.workload.get_current_processed_indices()) == self._vettable_items.count_items_in_group(
+                self.workload.current_astrom_data_index):
+            # Finished processing the current file
+            self.workload.record_current_file_done()
+            pub.sendMessage(MSG_FILE_PROC, self.get_current_filename())
+
+    def _get_current_original_item(self):
+        raise NotImplementedError()
 
     def get_current_item(self):
-        raise NotImplementedError()
+        return self._vettable_items.get_vettable_item(
+            self._get_current_original_item())
+
+    def get_current_item_index(self):
+        return self._vettable_items.get_index(
+            self._get_current_original_item())
 
     def get_writer(self):
         raise NotImplementedError()
 
     def exit(self):
-        pass
+        self.workload._unlock_current_file()
 
 
 class ProcessRealsModel(AbstractModel):
@@ -270,19 +319,23 @@ class ProcessRealsModel(AbstractModel):
         self.writer = MPCWriter(self.output_file)
 
     def _create_vettable_items(self):
-        vettable_items = {}
-        for source in self.workload.get_sources():
-            for reading in source:
-                vettable_items[reading] = VettableItem(reading)
+        original_item_groups = []
+        for source_group in self.workload.get_source_groups():
+            original_item_group = []
+            for source in source_group:
+                for reading in source:
+                    original_item_group.append(reading)
+            original_item_groups.append(original_item_group)
 
-        return vettable_items
+        return VettableCollection(original_item_groups)
 
     def exit(self):
         self.output_file.close()
+        super(ProcessRealsModel, self).exit()
 
     def _is_source_all_processed(self, source):
         for reading in source:
-            if not self._vettable_items[reading].is_processed():
+            if not self._vettable_items.get_vettable_item(reading).is_processed():
                 return False
 
         return True
@@ -297,8 +350,8 @@ class ProcessRealsModel(AbstractModel):
         while self.get_current_item().is_processed():
             self.next_obs()
 
-    def get_current_item(self):
-        return self._vettable_items[self.get_current_reading()]
+    def _get_current_original_item(self):
+        return self.get_current_reading()
 
     def _on_accept(self):
         self._source_discovery_asterisk[self.get_current_source_number()] = True
@@ -327,21 +380,19 @@ class ProcessCandidatesModel(AbstractModel):
             self.writers.append(writer)
 
     def _create_vettable_items(self):
-        vettable_items = {}
-        for source in self.workload.get_sources():
-            vettable_items[source] = VettableItem(source)
-
-        return vettable_items
+        return VettableCollection(self.workload.get_source_groups())
 
     def exit(self):
         for outputfile in self.outputfiles:
             outputfile.close()
 
+        super(ProcessCandidatesModel, self).exit()
+
     def next_item(self):
         self.next_source()
 
-    def get_current_item(self):
-        return self._vettable_items[self.get_current_source()]
+    def _get_current_original_item(self):
+        return self.get_current_source()
 
     def get_writer(self):
-        return self.writers[self._current_astrom_data_number]
+        return self.writers[self.workload.current_astrom_data_index]
