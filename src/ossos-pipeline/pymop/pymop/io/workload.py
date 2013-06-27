@@ -46,9 +46,15 @@ class VettableItem(object):
 
 
 class StatefulCollection(object):
-    def __init__(self, items):
-        self.items = items
-        self.index = 0
+    def __init__(self, items=None):
+        if items is None:
+            self.items = []
+            self.index = -1
+        else:
+            self.items = items
+            self.index = 0
+
+        self.callbacks = []
 
     def __len__(self):
         return len(self.items)
@@ -62,11 +68,24 @@ class StatefulCollection(object):
     def __getattr__(self, attr):
         return getattr(self.items, attr)
 
+    def add_callback(self, callback):
+        self.callbacks.append(callback)
+
+    def append(self, item):
+        if len(self) == 0:
+            # Special case, we make this the current item
+            self.index = 0
+
+        self.items.append(item)
+
     def get_index(self):
         return self.index
 
     def get_current_item(self):
-        return self.items[self.index]
+        if self.items:
+            return self.items[self.index]
+        else:
+            return None
 
     def next(self):
         self._move(1)
@@ -74,14 +93,16 @@ class StatefulCollection(object):
     def previous(self):
         self._move(-1)
 
-    def reset(self):
-        self.index = 0
+    def has_next(self):
+        return self.index < len(self) - 1
 
     def _move(self, delta):
+        first_item = self.get_current_item()
         self.index = (self.index + delta) % len(self)
+        second_item = self.get_current_item()
 
-    def get_items(self):
-        return self.items
+        for callback in self.callbacks:
+            callback(first_item, second_item)
 
 
 class WorkUnit(object):
@@ -91,6 +112,9 @@ class WorkUnit(object):
 
     def get_filename(self):
         return self.filename
+
+    def get_data(self):
+        return self.data_collection
 
     def get_sources(self):
         return self.data_collection.get_sources()
@@ -257,22 +281,34 @@ class WorkloadManager(object):
     Manages the workload's state.
     """
 
-    def __init__(self, workunit_provider):
+    def __init__(self, workunit_provider, progress_manager):
         self.workunit_provider = workunit_provider
-        self.current_workunit = None
-        self.workunit_number = 0
+        self.progress_manager = progress_manager
+        self.work_units = StatefulCollection()
+
+        def shift_locks(workunit1, workunit2):
+            self.progress_manager.unlock(workunit1.get_filename())
+            self.progress_manager.lock(workunit2.get_filename())
+
+        self.work_units.add_callback(shift_locks)
 
     def next_workunit(self):
-        pass
+        if not self.work_units.has_next():
+            self.work_units.append(self.workunit_provider.get_workunit())
+
+        self.work_units.next()
 
     def previous_workunit(self):
-        pass
+        self.work_units.previous()
 
-    def get_current_filename(self):
-        pass
+    def get_current_workunit(self):
+        return self.work_units.get_current_item()
 
     def get_current_data(self):
-        pass
+        return self.get_current_workunit().get_data()
+
+    def get_current_filename(self):
+        return self.get_current_workunit().get_filename()
 
 
 class DirectoryManager(object):
