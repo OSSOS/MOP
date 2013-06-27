@@ -27,10 +27,11 @@ class Block(object):
 	def central_radec(self):
 		ret = self.blockQuery.central_radec(self.blockID)
 		# parse just the first bit for niceness
-		ra = ret[0].split(':')[0] + 'h' + ret[0].split(':')[1] + 'm'
+		ra = ret[0].split(':')[0]
+		ra2 = ret[0].split(':')[1]
 		dec = ret[1].split(':')[0]
 		dec2 = ret[1].split(':')[1] + "'"
-		return (ra, dec, dec2)
+		return (ra, ra2, dec, dec2)
 
 	@property
 	def ecliptic_lat_span(self):
