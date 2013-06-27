@@ -3,12 +3,12 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 import unittest
 
-from mock import Mock
+from mock import Mock, MagicMock
 from hamcrest import assert_that, equal_to
 
 from test.base_tests import FileReadingTestCase, WxWidgetTestCase
 from pymop import tasks
-from pymop.io.persistence import ProgressRecord
+from pymop.io.persistence import ProgressManager
 from pymop.io.astrom import AstromWorkload
 from pymop.gui.controllers import ProcessRealsController
 from pymop.gui.models import ProcessRealsModel
@@ -18,11 +18,11 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase):
     def setUp(self):
         super(ProcessRealsControllerTest, self).setUp()
 
-        progress = Mock(spec=ProgressRecord)
-        progress.get_processed.return_value = []
+        progress_manager = MagicMock(spec=ProgressManager)
+        progress_manager.get_done.return_value = []
 
         workload = AstromWorkload(self.get_abs_path("data/controller_testdir"),
-                                  progress, tasks.REALS_TASK)
+                                  progress_manager, tasks.REALS_TASK)
         download_manager = Mock()
 
         self.model = ProcessRealsModel(workload, download_manager)

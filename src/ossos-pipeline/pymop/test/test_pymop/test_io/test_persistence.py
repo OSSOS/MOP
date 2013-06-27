@@ -1,32 +1,39 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import os
+import getpass
 import unittest
 
-from hamcrest import assert_that, contains_inanyorder, has_length, contains
+from mock import patch
+from hamcrest import (assert_that, contains_inanyorder, has_length, contains,
+                      equal_to)
 
 from test.base_tests import FileReadingTestCase
 from pymop import tasks
-from pymop.io import persistence
+from pymop.io.persistence import (ProgressManager, FileLockedException,
+                                  RequiresLockException, LOCK_SUFFIX)
 from pymop.io.astrom import AstromWorkload
 
-WD_HAS_LOG = "data/persistence_has_log"
+WD_HAS_PROGRESS = "data/persistence_has_progress"
 WD_NO_LOG = "data/persistence_no_log"
 
 
-class PersistenceTest(FileReadingTestCase):
-    def test_load_progress(self):
-        progress = persistence.load_progress(self.get_abs_path(WD_HAS_LOG))
+class ProgressManagerLoadingTest(FileReadingTestCase):
+    def setUp(self):
+        self.working_directory = self.get_abs_path(WD_HAS_PROGRESS)
+        self.progress_manager = ProgressManager(self.working_directory)
 
-        assert_that(progress.get_processed(tasks.CANDS_TASK),
+    def tearDown(self):
+        self.progress_manager.clean(suffixes=[LOCK_SUFFIX])
+
+    def test_load_progress(self):
+        assert_that(self.progress_manager.get_done(tasks.CANDS_TASK),
                     contains_inanyorder("xxx1.cands.astrom", "xxx3.cands.astrom"))
-        assert_that(progress.get_processed(tasks.REALS_TASK),
+        assert_that(self.progress_manager.get_done(tasks.REALS_TASK),
                     contains_inanyorder("xxx3.reals.astrom"))
 
     def test_astrom_workload_filtered_reals(self):
-        working_directory = self.get_abs_path(WD_HAS_LOG)
-        progress = persistence.load_progress(working_directory)
-        workload = AstromWorkload(working_directory, progress, tasks.REALS_TASK)
+        workload = AstromWorkload(self.working_directory, self.progress_manager,
+                                  tasks.REALS_TASK)
 
         expected_filenames = ["xxx1.reals.astrom", "xxx2.reals.astrom"]
         actual_filenames = [filename for filename, astromdata in workload]
@@ -34,9 +41,8 @@ class PersistenceTest(FileReadingTestCase):
         assert_that(actual_filenames, contains_inanyorder(*expected_filenames))
 
     def test_astrom_workload_filtered_cands(self):
-        working_directory = self.get_abs_path(WD_HAS_LOG)
-        progress = persistence.load_progress(working_directory)
-        workload = AstromWorkload(working_directory, progress, tasks.CANDS_TASK)
+        workload = AstromWorkload(self.working_directory, self.progress_manager,
+                                  tasks.CANDS_TASK)
 
         expected_filenames = ["xxx2.cands.astrom"]
         actual_filenames = [filename for filename, astromdata in workload]
@@ -44,104 +50,182 @@ class PersistenceTest(FileReadingTestCase):
         assert_that(actual_filenames, contains_inanyorder(*expected_filenames))
 
 
-class PersistenceStartsWithNoLogTest(FileReadingTestCase):
+class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
     def setUp(self):
         self.working_directory = self.get_abs_path(WD_NO_LOG)
+        self.progress_manager = ProgressManager(self.working_directory)
 
     def tearDown(self):
-        # Get rid of the log file so it doesn't interfere with other tests
-        os.remove(os.path.join(self.working_directory, persistence.LOGFILE))
+        # Get rid of generated files so we don't interfere with other tests
+        self.progress_manager.clean()
 
-    def test_load_progress_no_logfile(self):
-        progress = persistence.load_progress(self.working_directory)
+    def test_load_progress_no_logs(self):
+        assert_that(self.progress_manager.get_done(tasks.CANDS_TASK),
+                    has_length(0))
+        assert_that(self.progress_manager.get_done(tasks.REALS_TASK),
+                    has_length(0))
 
-        assert_that(progress.get_processed(tasks.CANDS_TASK), has_length(0))
-        assert_that(progress.get_processed(tasks.REALS_TASK), has_length(0))
+    def test_record_done_requires_lock(self):
+        self.assertRaises(
+            RequiresLockException,
+            self.progress_manager.record_done, "xxx2.reals.astrom")
 
-    def test_write_progress_new_logfile(self):
-        progress = persistence.load_progress(self.working_directory)
-
-        assert_that(progress.get_processed(tasks.CANDS_TASK), has_length(0))
-        assert_that(progress.get_processed(tasks.REALS_TASK), has_length(0))
+    def test_write_progress(self):
+        assert_that(self.progress_manager.get_done(tasks.CANDS_TASK),
+                    has_length(0))
+        assert_that(self.progress_manager.get_done(tasks.REALS_TASK),
+                    has_length(0))
 
         processed1 = "xxx2.reals.astrom"
-        progress.record_processed(processed1, tasks.REALS_TASK)
+        self.progress_manager.lock(processed1)
+        self.progress_manager.record_done(processed1)
 
-        assert_that(progress.get_processed(tasks.CANDS_TASK), has_length(0))
-        assert_that(progress.get_processed(tasks.REALS_TASK),
-                    contains(processed1))
-
-        # Close the progress object and reload to make sure the changes made
-        # it to disk
-        progress.close()
-
-        reopened_progress = persistence.load_progress(self.working_directory)
-        assert_that(reopened_progress.get_processed(tasks.CANDS_TASK),
+        assert_that(self.progress_manager.get_done(tasks.CANDS_TASK),
                     has_length(0))
-        assert_that(reopened_progress.get_processed(tasks.REALS_TASK),
+        assert_that(self.progress_manager.get_done(tasks.REALS_TASK),
                     contains(processed1))
+        assert_that(self.progress_manager.is_done(processed1), equal_to(True))
 
-    def test_write_progress_flush_twice_new_logfile(self):
-        progress = persistence.load_progress(self.working_directory)
+        # Create a second persistence manager and make sure it sees the changes
+        manager2 = ProgressManager(self.working_directory)
+        assert_that(manager2.get_done(tasks.CANDS_TASK), has_length(0))
+        assert_that(manager2.get_done(tasks.REALS_TASK), contains(processed1))
+        assert_that(manager2.is_done(processed1), equal_to(True))
 
-        assert_that(progress.get_processed(tasks.CANDS_TASK), has_length(0))
-        assert_that(progress.get_processed(tasks.REALS_TASK), has_length(0))
+    def test_write_progress_two_simultaneous_managers(self):
+        assert_that(self.progress_manager.get_done(tasks.CANDS_TASK),
+                    has_length(0))
+        assert_that(self.progress_manager.get_done(tasks.REALS_TASK),
+                    has_length(0))
 
         processed1 = "xxx2.reals.astrom"
-        progress.record_processed(processed1, tasks.REALS_TASK)
+        self.progress_manager.lock(processed1)
+        self.progress_manager.record_done(processed1)
 
-        assert_that(progress.get_processed(tasks.CANDS_TASK), has_length(0))
-        assert_that(progress.get_processed(tasks.REALS_TASK),
-                    contains(processed1))
-
-        # Close the progress object and reload to make sure the changes made
-        # it to disk
-        progress.close()
-
-        reopened_progress = persistence.load_progress(self.working_directory)
-        assert_that(reopened_progress.get_processed(tasks.CANDS_TASK),
+        assert_that(self.progress_manager.get_done(tasks.CANDS_TASK),
                     has_length(0))
-        assert_that(reopened_progress.get_processed(tasks.REALS_TASK),
+        assert_that(self.progress_manager.get_done(tasks.REALS_TASK),
                     contains(processed1))
 
+        # Create a second simultaneous manager
+        manager2 = ProgressManager(self.working_directory)
         processed2 = "xxx3.reals.astrom"
-        reopened_progress.record_processed(processed2, tasks.REALS_TASK)
+        self.progress_manager.lock(processed2)
+        manager2.record_done(processed2)
 
-        assert_that(reopened_progress.get_processed(tasks.CANDS_TASK),
+        # Make sure second manager sees both entries
+        assert_that(manager2.get_done(tasks.CANDS_TASK),
                     has_length(0))
-        assert_that(reopened_progress.get_processed(tasks.REALS_TASK),
+        assert_that(manager2.get_done(tasks.REALS_TASK),
                     contains_inanyorder(processed1, processed2))
 
-        # Close the progress object and reload to make sure the changes made
-        # it to disk
-        reopened_progress.close()
-
-        final_progress = persistence.load_progress(self.working_directory)
-
-        assert_that(final_progress.get_processed(tasks.CANDS_TASK), has_length(0))
-        assert_that(final_progress.get_processed(tasks.REALS_TASK),
+        # Make sure original manager sees both entries
+        assert_that(self.progress_manager.get_done(tasks.CANDS_TASK),
+                    has_length(0))
+        assert_that(self.progress_manager.get_done(tasks.REALS_TASK),
                     contains_inanyorder(processed1, processed2))
 
-    def test_flush_progress(self):
-        progress = persistence.load_progress(self.working_directory)
+    def test_lock_file(self):
+        file1 = "xxx1.cands.astrom"
+        self.progress_manager.lock(file1)
 
-        processed1 = "xxx2.reals.astrom"
-        progress.record_processed(processed1, tasks.REALS_TASK)
-        progress.flush()
+        # No-one else should be able to acquire the lock...
+        manager2 = ProgressManager(self.working_directory)
+        self.assertRaises(FileLockedException, manager2.lock, file1)
 
-        test_progress1 = persistence.load_progress(self.working_directory)
-        assert_that(test_progress1.get_processed(tasks.CANDS_TASK), has_length(0))
-        assert_that(test_progress1.get_processed(tasks.REALS_TASK),
-                    contains(processed1))
+        # ... until we unlock it
+        self.progress_manager.unlock(file1)
+        manager2.lock(file1)
 
-        processed2 = "xxx3.reals.astrom"
-        progress.record_processed(processed2, tasks.REALS_TASK)
-        progress.flush()
+    @patch.object(getpass, "getuser")
+    def test_lock_has_locker_id(self, getuser_mock):
+        lock_holding_user = "lock_holding_user"
+        lock_requesting_user = "lock_requesting_user"
 
-        test_progress2 = persistence.load_progress(self.working_directory)
-        assert_that(test_progress2.get_processed(tasks.CANDS_TASK), has_length(0))
-        assert_that(test_progress2.get_processed(tasks.REALS_TASK),
-                    contains_inanyorder(processed1, processed2))
+        getuser_mock.return_value = lock_holding_user
+        file1 = "xxx1.cands.astrom"
+        self.progress_manager.lock(file1)
+
+        manager2 = ProgressManager(self.working_directory)
+
+        try:
+            getuser_mock.return_value = lock_requesting_user
+            manager2.lock(file1)
+            self.fail("Should have thrown FileLockedExcecption")
+        except FileLockedException as ex:
+            assert_that(ex.filename, equal_to(file1))
+            assert_that(ex.locker, equal_to(lock_holding_user))
+
+    def test_record_index_requires_lock(self):
+        self.assertRaises(RequiresLockException,
+                          self.progress_manager.record_index,
+                          "xxx1.cands.astrom", 0)
+
+    def test_record_index(self):
+        file1 = "xxx1.cands.astrom"
+        self.progress_manager.lock(file1)
+        self.progress_manager.record_index(file1, 1)
+        self.progress_manager.record_index(file1, 3)
+        self.progress_manager.record_index(file1, 0)
+
+        assert_that(self.progress_manager.get_processed_indices(file1),
+                    contains_inanyorder(1, 3, 0))
+
+        # Check they are still recorded after we release lock
+        self.progress_manager.unlock(file1)
+        assert_that(self.progress_manager.get_processed_indices(file1),
+                    contains_inanyorder(1, 3, 0))
+
+        # Check other clients can read them
+        manager2 = ProgressManager(self.working_directory)
+        assert_that(manager2.get_processed_indices(file1),
+                    contains_inanyorder(1, 3, 0))
+
+    def test_unlock_after_record_done_no_error(self):
+        file1 = "xxx1.cands.astrom"
+        self.progress_manager.lock(file1)
+        self.progress_manager.record_done(file1)
+        self.progress_manager.unlock(file1)
+
+    def test_record_done_does_not_unlock_all(self):
+        file1 = "xxx1.cands.astrom"
+        file2 = "xxx2.cands.astrom"
+        manager2 = ProgressManager(self.working_directory)
+
+        self.progress_manager.lock(file1)
+        manager2.lock(file2)
+
+        self.progress_manager.record_done(file1)
+        assert_that(manager2.owns_lock(file2), equal_to(True))
+
+        manager2.unlock(file2)
+        assert_that(manager2.owns_lock(file2), equal_to(False))
+
+    def test_get_processed_indices_empty_should_not_cause_error(self):
+        assert_that(self.progress_manager.get_processed_indices("xxx1.cands.astrom"),
+                    has_length(0))
+
+    def test_get_processed_indices_after_done(self):
+        filename = "xxx1.cands.astrom"
+        self.progress_manager.lock(filename)
+        self.progress_manager.record_index(filename, 0)
+        self.progress_manager.record_index(filename, 1)
+        self.progress_manager.record_index(filename, 2)
+        self.progress_manager.unlock(filename)
+
+        assert_that(self.progress_manager.get_processed_indices(filename),
+                    contains_inanyorder(0, 1, 2))
+
+        self.progress_manager.lock(filename)
+        self.progress_manager.record_done(filename)
+        self.progress_manager.unlock(filename)
+
+        assert_that(self.progress_manager.get_processed_indices(filename),
+                    contains_inanyorder(0, 1, 2))
+
+        # Double check with a second manager
+        assert_that(ProgressManager(self.working_directory).get_processed_indices(filename),
+                    contains_inanyorder(0, 1, 2))
 
 
 if __name__ == '__main__':

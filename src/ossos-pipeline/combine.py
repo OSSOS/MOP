@@ -7,7 +7,7 @@ from ossos import util
 import argparse
 import logging
 
-def run_combine(expnum, ccd, prefix=None, type='p'):
+def combine(expnum, ccd, prefix=None, type='p'):
 
     for ext in ['moving.matt','moving.jmp']:
         fname = storage.get_image(expnum, ccd=ccd, prefix=prefix, version=type, ext=ext)
@@ -18,6 +18,16 @@ def run_combine(expnum, ccd, prefix=None, type='p'):
                                     ext='planted')
     else:
         prefix = ''
+
+    base_image = os.path.basename( 
+        storage.get_uri(expnum,
+                        ccd=ccd,
+                        prefix=prefix,
+                        version=type,
+                        ext=None))
+
+
+    
     cmd_args = ['comb-list', prefix+str(expnum)+type+str(ccd).zfill(2)]
     util.exec_prog(cmd_args)
 
@@ -37,11 +47,19 @@ def run_combine(expnum, ccd, prefix=None, type='p'):
 
     if os.access('no_candidates',os.R_OK):
         uri = storage.get_uri(expnum,
-                                  ccd=ccd,
-                                  version=type,
-                                  ext='no_candidates')
+                              ccd=ccd,
+                              version=type,
+                              ext='no_candidates')
         storage.copy('no_candidates', uri)
-    return
+        return 'no_candidates'
+    
+    
+    cmd_args = ['measure3', prefix+str(expnum)+type+str(ccd).zfill(2)]
+    util.exec_prog(cmd_args)
+    prefix+str(expnum)+type+str(ccd).zfill(2)+".measure3.cands.astrom"
+    storage.copy(filename, 'vos:OSSOS/measure3/'+filename)
+    return 'measure3'
+
 
 
 if __name__=='__main__':
@@ -86,4 +104,7 @@ if __name__=='__main__':
     ccdlist = ( args.ccd is None and range(0,36) ) or [args.ccd]
 
     for ccd in ccdlist:
-        run_combine(args.expnum, ccd, prefix=prefix, type=args.type)
+        if not storage.get_status(args.expnum, ccd, 'step3'):
+            raise IOError(35, "need to run step3 first")
+        message = combine(args.expnum, ccd, prefix=prefix, type=args.type)
+        storage.set_status(args.expnum, ccd, 'combine', message)
