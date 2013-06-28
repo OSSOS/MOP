@@ -133,16 +133,25 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
         assert_that(self.progress_manager.get_done(tasks.REALS_TASK),
                     contains_inanyorder(processed1, processed2))
 
-    def test_lock_file(self):
+    @patch.object(getpass, "getuser")
+    def test_lock_file(self, getuser_mock):
+        lock_holding_user = "lock_holding_user"
+        lock_requesting_user = "lock_requesting_user"
+
         file1 = "xxx1.cands.astrom"
+        getuser_mock.return_value = lock_holding_user
         self.progress_manager.lock(file1)
 
         # No-one else should be able to acquire the lock...
         manager2 = self.create_concurrent_progress_manager()
+        getuser_mock.return_value = lock_requesting_user
         self.assertRaises(FileLockedException, manager2.lock, file1)
 
         # ... until we unlock it
+        getuser_mock.return_value = lock_holding_user
         self.progress_manager.unlock(file1)
+
+        getuser_mock.return_value = lock_requesting_user
         manager2.lock(file1)
 
     @patch.object(getpass, "getuser")
