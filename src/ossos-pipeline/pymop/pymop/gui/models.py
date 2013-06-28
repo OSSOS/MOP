@@ -2,7 +2,6 @@
 Provides interfaces to the application data which can be manipulated by the
 user interface.
 """
-from pymop.io.workload import NoAvailableWorkException
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -13,6 +12,7 @@ from wx.lib.pubsub import setupv1
 from wx.lib.pubsub import Publisher as pub
 
 from pymop.gui import events
+from pymop.io.workload import NoAvailableWorkException
 
 
 class AbstractModel(object):
@@ -172,6 +172,7 @@ class AbstractModel(object):
 class ProcessRealsModel(AbstractModel):
     """
     Manages the application state for the process reals task.
+    TODO: refactor
     """
 
     def __init__(self, workload_manager, download_manager):
@@ -188,6 +189,7 @@ class ProcessRealsModel(AbstractModel):
 
 
 class ProcessCandidatesModel(AbstractModel):
+    """TODO: refactor"""
     def __init__(self, workload_manager, download_manager):
         super(ProcessCandidatesModel, self).__init__(
             workload_manager, download_manager)
