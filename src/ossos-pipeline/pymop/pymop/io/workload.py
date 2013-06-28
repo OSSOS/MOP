@@ -353,8 +353,10 @@ class WorkloadManager(object):
     def next_workunit(self):
         if not self.work_units.has_next():
             self.work_units.append(self.workunit_provider.get_workunit())
-
-        self.work_units.next()
+            self.work_units.next()
+            pub.sendMessage(events.MSG_NEW_WORK_UNIT)
+        else:
+            self.work_units.next()
 
     def previous_workunit(self):
         self.work_units.previous()

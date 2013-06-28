@@ -14,5 +14,6 @@ MSG_PREV_OBS = MSG_NAV_OBS + ("prev", )
 
 MSG_IMG_LOADED = MSG_ROOT + ("imgload", )
 
+MSG_NEW_WORK_UNIT = MSG_ROOT + ("newworkunit", )
 MSG_FILE_PROC = MSG_ROOT + ("fileproc", )
 MSG_ALL_ITEMS_PROC = MSG_ROOT + ("allproc", )

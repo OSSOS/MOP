@@ -118,6 +118,8 @@ class AbstractModel(object):
 
         # self._vettable_items = self._create_vettable_items()
 
+        pub.subscribe(self._start_loading_images, events.MSG_NEW_WORK_UNIT)
+
     # def _get_current_astrom_data(self):
     #     return self.workload_manager.get_current_data()
 
@@ -239,9 +241,13 @@ class AbstractModel(object):
     def get_current_exposure_number(self):
         return int(self.get_current_reading().obs.expnum)
 
+    def _start_loading_images(self, event):
+        self.start_loading_images()
+
     def start_loading_images(self):
         self.download_manager.start_download(
-            self.workload_manager, image_loaded_callback=self._on_image_loaded)
+            self.workload_manager.get_current_workunit(),
+            image_loaded_callback=self._on_image_loaded)
 
     def stop_loading_images(self):
         self.download_manager.stop_download()
