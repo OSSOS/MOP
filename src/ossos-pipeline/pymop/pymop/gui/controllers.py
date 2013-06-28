@@ -57,7 +57,7 @@ class AbstractController(object):
         #                                    self.model.get_total_image_count())
 
     def on_change_image(self, event):
-        if self.model.get_current_item().is_processed():
+        if self.model.is_current_item_processed():
             self.get_view().disable_source_validation()
         else:
             self.get_view().enable_source_validation()

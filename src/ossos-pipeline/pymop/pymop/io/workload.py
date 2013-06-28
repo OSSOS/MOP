@@ -162,11 +162,14 @@ class WorkUnit(object):
         self.get_current_source_readings().previous()
         pub.sendMessage(events.MSG_PREV_OBS, data=self.get_current_obs_number())
 
-    def accept_current_item(self):
+    def get_current_item(self):
         raise NotImplementedError()
 
+    def accept_current_item(self):
+        self.get_current_item().accept()
+
     def reject_current_item(self):
-        raise NotImplementedError()
+        self.get_current_item().reject()
 
     def next_vettable_item(self):
         raise NotImplementedError()
@@ -183,11 +186,8 @@ class RealsWorkUnit(WorkUnit):
         super(RealsWorkUnit, self).__init__(
             filename, data_collection, results_writer)
 
-    def accept_current_item(self):
-        self.get_current_reading().accept()
-
-    def reject_current_item(self):
-        self.get_current_reading().reject()
+    def get_current_item(self):
+        return self.get_current_reading()
 
     def next_vettable_item(self):
         num_obs_to_check = len(self.get_current_source_readings())
@@ -220,11 +220,8 @@ class CandidatesWorkUnit(WorkUnit):
         super(CandidatesWorkUnit, self).__init__(
             filename, data_collection, results_writer)
 
-    def accept_current_item(self):
-        self.get_current_source().accept()
-
-    def reject_current_item(self):
-        self.get_current_source().reject()
+    def get_current_item(self):
+        return self.get_current_source()
 
     def next_vettable_item(self):
         self.next_source()
@@ -420,6 +417,9 @@ class WorkloadManager(object):
 
     def get_num_items_processed(self):
         return self.num_processed
+
+    def is_current_item_processed(self):
+        return self.get_current_workunit().get_current_item().is_processed()
 
     def get_writer(self):
         return self.get_current_workunit().get_writer()
