@@ -59,7 +59,7 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
     def _get_working_dir(self):
         raise NotImplementedError()
 
-    def get_test_directory(self):
+    def get_directory_to_clean(self):
         return self._get_working_dir()
 
     def _get_workunit_builder(self, parser, writer_factory):
@@ -83,7 +83,7 @@ class AbstractRealsModelTest(GeneralModelTest):
     def _get_workunit_builder(self, parser, writer_factory):
         return RealsWorkUnitBuilder(parser, writer_factory)
 
-    def get_test_files(self):
+    def get_files_to_keep(self):
         return ["1584431p15.measure3.reals.astrom"]
 
     def setUp(self):
@@ -371,7 +371,7 @@ class ProcessRealsModelTest(GeneralModelTest):
     def _get_workunit_builder(self, parser, writer_factory):
         return RealsWorkUnitBuilder(parser, writer_factory)
 
-    def get_test_files(self):
+    def get_files_to_keep(self):
         return ["1584431p15.measure3.reals.astrom"]
 
     def setUp(self):
@@ -577,7 +577,7 @@ class ProcessCandidatesModelTest(GeneralModelTest):
     def _get_workunit_builder(self, parser, writer_factory):
         return CandidatesWorkUnitBuilder(parser, writer_factory)
 
-    def get_test_files(self):
+    def get_files_to_keep(self):
         return ["1584431p15.measure3.cands.astrom", "1584431p15.measure3.reals.astrom"]
 
     def setUp(self):
@@ -720,7 +720,7 @@ class MultipleAstromDataModelTest(GeneralModelTest):
     def _get_working_dir(self):
         return self.get_abs_path(MODEL_TEST_DIR_2)
 
-    def get_test_files(self):
+    def get_files_to_keep(self):
         return ["1584431p15.measure3.cands.astrom", "1616681p10.measure3.cands.astrom"]
 
     def test_meta_data(self):
@@ -826,10 +826,10 @@ class RealsModelPersistenceTest(GeneralModelTest):
     def _get_working_dir(self):
         return self.get_abs_path(FRESH_TEST_DIR)
 
-    def get_test_directory(self):
+    def get_directory_to_clean(self):
         return self._get_working_dir()
 
-    def get_test_files(self):
+    def get_files_to_keep(self):
         return TEST_FILES
 
     def test_record_progress_reals_skipping_item(self):
@@ -907,10 +907,10 @@ class CandidatesModelPersistenceTest(GeneralModelTest):
     def _get_working_dir(self):
         return self.get_abs_path(FRESH_TEST_DIR)
 
-    def get_test_directory(self):
+    def get_directory_to_clean(self):
         return self._get_working_dir()
 
-    def get_test_files(self):
+    def get_files_to_keep(self):
         return TEST_FILES
 
     def test_record_progress_cands_multiple_files(self):
