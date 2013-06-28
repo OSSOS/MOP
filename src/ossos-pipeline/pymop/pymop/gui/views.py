@@ -84,16 +84,8 @@ class ApplicationView(object):
         self.mainframe.hide_image_loading_dialog()
 
     @guithread
-    def set_source_status(self, current_source, total_sources):
-        self.mainframe.set_source_status(current_source, total_sources)
-
-    @guithread
     def set_observation_status(self, current_obs, total_obs):
         self.mainframe.set_observation_status(current_obs, total_obs)
-
-    @guithread
-    def set_loading_status(self, loaded, total):
-        self.mainframe.set_loading_status(loaded, total)
 
     @guithread
     def enable_source_validation(self):
@@ -171,9 +163,6 @@ class MainFrame(wx.Frame):
         self.viewer_panel = wx.Panel(self.main_panel, style=wx.RAISED_BORDER)
         self.image_viewer = MPLImageViewer(self.viewer_panel)
 
-        self.statusbar = AppStatusBar(self)
-        self.SetStatusBar(self.statusbar)
-
         self.img_loading_dialog = WaitingGaugeDialog(self, "Image loading...")
 
         self._do_layout()
@@ -241,12 +230,6 @@ class MainFrame(wx.Frame):
     def hide_image_loading_dialog(self):
         if self.img_loading_dialog.IsShown():
             self.img_loading_dialog.Hide()
-
-    def set_source_status(self, current_source, total_sources):
-        self.statusbar.set_source_status(current_source, total_sources)
-
-    def set_loading_status(self, loaded, total):
-        self.statusbar.set_loading_status(loaded, total)
 
     def set_observation_status(self, current_obs, total_obs):
         self.nav_view.set_status(current_obs, total_obs)
@@ -763,29 +746,6 @@ class RejectSourceDialog(SourceValidationDialog):
 
     def _on_cancel(self, event):
         self.controller.on_cancel_reject()
-
-
-class AppStatusBar(wx.StatusBar):
-    LOADING_MSG = "Loading..."
-
-    def __init__(self, parent):
-        super(AppStatusBar, self).__init__(parent)
-
-        self.SetFieldsCount(2)
-        self.SetStatusText(self.LOADING_MSG, 0)
-        self.SetStatusText(self.LOADING_MSG, 1)
-
-    def set_source_status(self, current_source, total_sources):
-        self.SetStatusText("Source %s of %s" % (current_source, total_sources), 0)
-
-    def get_source_status(self):
-        return self.GetStatusText(0)
-
-    def set_loading_status(self, loaded, total):
-        self.SetStatusText("Loaded %s of %s images" % (loaded, total), 1)
-
-    def get_loading_status(self):
-        return self.GetStatusText(1)
 
 
 class WaitingGaugeDialog(wx.Dialog):
