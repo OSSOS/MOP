@@ -1,7 +1,0 @@
-*.mpc
-*.astrom
-.pymop.log
-!candstest1.measure3.cands.astrom
-!candstest2.measure3.cands.astrom
-!realstest1.measure3.reals.astrom
-!realstest2.measure3.reals.astrom

@@ -37,11 +37,6 @@ class AbstractController(object):
             radius = 2 * round(self.model.get_current_image_FWHM())
             self.get_view().draw_circle(image_x, image_y, radius)
 
-        # Add 1 so displayed source numbers don't start at 0
-        # TODO remove
-        # self.get_view().set_source_status(
-        #     self.model.get_current_source_number() + 1,
-        #     self.model.get_source_count())
         self.get_view().set_observation_status(
             self.model.get_current_obs_number() + 1,
             self.model.get_obs_count())
@@ -52,9 +47,6 @@ class AbstractController(object):
                     self.model.get_current_obs_number() == obs_num):
             self.get_view().hide_image_loading_dialog()
             self.display_current_image()
-        # TODO: remove
-        # self.get_view().set_loading_status(self.model.get_loaded_image_count(),
-        #                                    self.model.get_total_image_count())
 
     def on_change_image(self, event):
         if self.model.is_current_item_processed():
@@ -183,9 +175,6 @@ class ProcessRealsController(AbstractController):
 class ProcessCandidatesController(AbstractController):
     def __init__(self, task, model):
         super(ProcessCandidatesController, self).__init__(task, model)
-
-        # self.output_writer.write_headers(
-        #     astrom_data.observations, astrom_data.sys_header)
 
     def on_accept(self):
         self.model.get_writer().write_source(self.model.get_current_source())
