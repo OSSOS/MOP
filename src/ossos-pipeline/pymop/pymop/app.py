@@ -7,7 +7,7 @@ from pymop import config
 from pymop import tasks
 from pymop.io.workload import DirectoryManager, WorkloadManager, WorkUnitProvider, WorkUnitBuilder
 from pymop.io.writers import WriterFactory
-from pymop.io.astrom import AstromParser, AstromWorkload
+from pymop.io.astrom import AstromParser
 from pymop.io.persistence import ProgressManager
 from pymop.io.naming import ProvisionalNameGenerator
 from pymop.io.imgaccess import (AsynchronousImageDownloadManager,
