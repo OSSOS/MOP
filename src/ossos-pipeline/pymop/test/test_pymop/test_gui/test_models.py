@@ -12,7 +12,7 @@ from mock import Mock, MagicMock, patch
 
 from test.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from pymop import tasks
-from pymop.gui import models
+from pymop.gui import models, events
 from pymop.io.astrom import AstromParser
 from pymop.io.persistence import ProgressManager
 from pymop.io.img import FitsImage
@@ -145,7 +145,7 @@ class AbstractRealsModelTest(GeneralModelTest):
     def test_receive_next_source_event(self):
         # Subscribe a mock
         observer = Mock()
-        pub.subscribe(observer.on_next_event, models.MSG_NEXT_SRC)
+        pub.subscribe(observer.on_next_event, events.MSG_NEXT_SRC)
 
         # Perform action
         self.model.next_source()
@@ -158,13 +158,13 @@ class AbstractRealsModelTest(GeneralModelTest):
         assert_that(args, has_length(1))
 
         msg = args[0]
-        assert_that(msg.topic, equal_to(models.MSG_NEXT_SRC))
+        assert_that(msg.topic, equal_to(events.MSG_NEXT_SRC))
         assert_that(msg.data, equal_to(1))
 
     def test_receive_next_obs_event(self):
         # Subscribe a mock
         observer = Mock()
-        pub.subscribe(observer.on_next_event, models.MSG_NEXT_OBS)
+        pub.subscribe(observer.on_next_event, events.MSG_NEXT_OBS)
 
         # Perform action
         self.model.next_obs()
@@ -177,13 +177,13 @@ class AbstractRealsModelTest(GeneralModelTest):
         assert_that(args, has_length(1))
 
         msg = args[0]
-        assert_that(msg.topic, equal_to(models.MSG_NEXT_OBS))
+        assert_that(msg.topic, equal_to(events.MSG_NEXT_OBS))
         assert_that(msg.data, equal_to(1))
 
     def test_receive_previous_source_event(self):
         # Subscribe a mock
         observer = Mock()
-        pub.subscribe(observer.on_previous_event, models.MSG_PREV_SRC)
+        pub.subscribe(observer.on_previous_event, events.MSG_PREV_SRC)
 
         # Perform actions
         self.model.next_source()
@@ -197,13 +197,13 @@ class AbstractRealsModelTest(GeneralModelTest):
         assert_that(args, has_length(1))
 
         msg = args[0]
-        assert_that(msg.topic, equal_to(models.MSG_PREV_SRC))
+        assert_that(msg.topic, equal_to(events.MSG_PREV_SRC))
         assert_that(msg.data, equal_to(0))
 
     def test_receive_previous_source_event(self):
         # Subscribe a mock
         observer = Mock()
-        pub.subscribe(observer.on_previous_event, models.MSG_PREV_OBS)
+        pub.subscribe(observer.on_previous_event, events.MSG_PREV_OBS)
 
         # Perform actions
         self.model.next_obs()
@@ -217,13 +217,13 @@ class AbstractRealsModelTest(GeneralModelTest):
         assert_that(args, has_length(1))
 
         msg = args[0]
-        assert_that(msg.topic, equal_to(models.MSG_PREV_OBS))
+        assert_that(msg.topic, equal_to(events.MSG_PREV_OBS))
         assert_that(msg.data, equal_to(0))
 
     def test_receive_nav_event_next_and_prev_source(self):
         # Subscribe a mock
         observer = Mock()
-        pub.subscribe(observer.on_nav, models.MSG_NAV)
+        pub.subscribe(observer.on_nav, events.MSG_NAV)
 
         # Perform actions
         self.model.next_obs()
@@ -240,7 +240,7 @@ class AbstractRealsModelTest(GeneralModelTest):
 
     def test_loading_images(self):
         observer = Mock()
-        pub.subscribe(observer.on_img_loaded, models.MSG_IMG_LOADED)
+        pub.subscribe(observer.on_img_loaded, events.MSG_IMG_LOADED)
 
         self.model.start_loading_images()
 
@@ -263,11 +263,11 @@ class AbstractRealsModelTest(GeneralModelTest):
         assert_that(call_args_list, has_length(2))
 
         msg0 = call_args_list[0][0][0]
-        assert_that(msg0.topic, equal_to(models.MSG_IMG_LOADED))
+        assert_that(msg0.topic, equal_to(events.MSG_IMG_LOADED))
         assert_that(msg0.data, equal_to((0, 1)))
 
         msg1 = call_args_list[1][0][0]
-        assert_that(msg1.topic, equal_to(models.MSG_IMG_LOADED))
+        assert_that(msg1.topic, equal_to(events.MSG_IMG_LOADED))
         assert_that(msg1.data, equal_to((1, 1)))
 
     def test_get_current_exposure_number(self):
@@ -375,8 +375,8 @@ class ProcessRealsModelTest(GeneralModelTest):
 
     def test_next_item_no_validation(self):
         observer = Mock()
-        pub.subscribe(observer.on_next_obs, models.MSG_NEXT_OBS)
-        pub.subscribe(observer.on_next_src, models.MSG_NEXT_SRC)
+        pub.subscribe(observer.on_next_obs, events.MSG_NEXT_OBS)
+        pub.subscribe(observer.on_next_src, events.MSG_NEXT_SRC)
 
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
@@ -530,30 +530,34 @@ class ProcessRealsModelTest(GeneralModelTest):
 
     def test_receive_all_sources_processed_event_on_final_accept(self):
         observer = Mock()
-        pub.subscribe(observer.on_all_processed, models.MSG_ALL_ITEMS_PROC)
+        pub.subscribe(observer.on_all_processed, events.MSG_ALL_ITEMS_PROC)
 
+        total_items = 9
         item = 0
-        while item < self.model.get_item_count() - 1:
+        while item < total_items - 1:
             self.model.accept_current_item()
             assert_that(observer.on_all_processed.call_count, equal_to(0))
             self.model.next_item()
             item += 1
 
         self.model.accept_current_item()
+        # We automatically try to get the next work unit, and find there is none
         assert_that(observer.on_all_processed.call_count, equal_to(1))
 
     def test_receive_all_sources_processed_event_on_final_reject(self):
         observer = Mock()
-        pub.subscribe(observer.on_all_processed, models.MSG_ALL_ITEMS_PROC)
+        pub.subscribe(observer.on_all_processed, events.MSG_ALL_ITEMS_PROC)
 
+        total_items = 9
         item = 0
-        while item < self.model.get_item_count() - 1:
+        while item < total_items - 1:
             self.model.accept_current_item()
             assert_that(observer.on_all_processed.call_count, equal_to(0))
             self.model.next_item()
             item += 1
 
         self.model.reject_current_item()
+        # We automatically try to get the next work unit, and find there is none
         assert_that(observer.on_all_processed.call_count, equal_to(1))
 
 
@@ -577,8 +581,8 @@ class ProcessCandidatesModelTest(GeneralModelTest):
 
     def test_next_item(self):
         observer = Mock()
-        pub.subscribe(observer.on_next_obs, models.MSG_NEXT_OBS)
-        pub.subscribe(observer.on_next_src, models.MSG_NEXT_SRC)
+        pub.subscribe(observer.on_next_obs, events.MSG_NEXT_OBS)
+        pub.subscribe(observer.on_next_src, events.MSG_NEXT_SRC)
 
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
@@ -653,30 +657,34 @@ class ProcessCandidatesModelTest(GeneralModelTest):
 
     def test_receive_all_sources_processed_event_on_final_accept(self):
         observer = Mock()
-        pub.subscribe(observer.on_all_processed, models.MSG_ALL_ITEMS_PROC)
+        pub.subscribe(observer.on_all_processed, events.MSG_ALL_ITEMS_PROC)
 
+        total_items = 3
         item = 0
-        while item < self.model.get_item_count() - 1:
+        while item < total_items - 1:
             self.model.accept_current_item()
             assert_that(observer.on_all_processed.call_count, equal_to(0))
             self.model.next_item()
             item += 1
 
         self.model.accept_current_item()
+        # We automatically try to get the next work unit, and find there is none
         assert_that(observer.on_all_processed.call_count, equal_to(1))
 
     def test_receive_all_sources_processed_event_on_final_reject(self):
         observer = Mock()
-        pub.subscribe(observer.on_all_processed, models.MSG_ALL_ITEMS_PROC)
+        pub.subscribe(observer.on_all_processed, events.MSG_ALL_ITEMS_PROC)
 
+        total_items = 3
         item = 0
-        while item < self.model.get_item_count() - 1:
+        while item < total_items - 1:
             self.model.accept_current_item()
             assert_that(observer.on_all_processed.call_count, equal_to(0))
             self.model.next_item()
             item += 1
 
         self.model.reject_current_item()
+        # we automatically try to get the next work unit, and find there is none
         assert_that(observer.on_all_processed.call_count, equal_to(1))
 
 

@@ -2,8 +2,13 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import os
 
+# TODO: upgrade
+from wx.lib.pubsub import setupv1
+from wx.lib.pubsub import Publisher as pub
+
 from pymop.io.persistence import FileLockedException
 from pymop.io.astrom import Source
+from pymop.gui import events
 
 
 class NoAvailableWorkException(Exception):
@@ -143,15 +148,19 @@ class WorkUnit(object):
 
     def next_source(self):
         self.get_sources().next()
+        pub.sendMessage(events.MSG_NEXT_SRC, data=self.get_current_source_number())
 
     def previous_source(self):
         self.get_sources().previous()
+        pub.sendMessage(events.MSG_PREV_SRC, data=self.get_current_source_number())
 
     def next_obs(self):
         self.get_current_source_readings().next()
+        pub.sendMessage(events.MSG_NEXT_OBS, data=self.get_current_obs_number())
 
     def previous_obs(self):
         self.get_current_source_readings().previous()
+        pub.sendMessage(events.MSG_PREV_OBS, data=self.get_current_obs_number())
 
     def accept_current_item(self):
         raise NotImplementedError()
@@ -413,10 +422,6 @@ class WorkloadManager(object):
 
     def get_writer(self):
         return self.get_current_workunit().get_writer()
-
-    def count_unclaimed_readings(self):
-        # TODO: a light-weight estimator
-        return -1
 
     def exit(self):
         self._unlock(self.get_current_workunit())

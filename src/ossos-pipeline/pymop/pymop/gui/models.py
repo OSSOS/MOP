@@ -6,31 +6,33 @@ from pymop.io.workload import NoAvailableWorkException
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import collections
 import os
 
 # TODO: upgrade
 from wx.lib.pubsub import setupv1
 from wx.lib.pubsub import Publisher as pub
 
+from pymop.gui import events
 from pymop.io.mpc import MPCWriter
 from pymop.io.astrom import StreamingAstromWriter
 
-# Pub/Sub ids
-MSG_ROOT = ("astrodataroot", )
-
-MSG_NAV = MSG_ROOT + ("nav", )
-MSG_NAV_SRC = MSG_NAV + ("src", )
-MSG_NAV_OBS = MSG_NAV + ("obs", )
-
-MSG_NEXT_SRC = MSG_NAV_SRC + ("next", )
-MSG_PREV_SRC = MSG_NAV_SRC + ("prev", )
-MSG_NEXT_OBS = MSG_NAV_OBS + ("next", )
-MSG_PREV_OBS = MSG_NAV_OBS + ("prev", )
-
-MSG_IMG_LOADED = MSG_ROOT + ("imgload", )
-
-MSG_FILE_PROC = MSG_ROOT + ("fileproc", )
-MSG_ALL_ITEMS_PROC = MSG_ROOT + ("allproc", )
+# # Pub/Sub ids
+# MSG_ROOT = ("astrodataroot", )
+#
+# MSG_NAV = MSG_ROOT + ("nav", )
+# MSG_NAV_SRC = MSG_NAV + ("src", )
+# MSG_NAV_OBS = MSG_NAV + ("obs", )
+#
+# MSG_NEXT_SRC = MSG_NAV_SRC + ("next", )
+# MSG_PREV_SRC = MSG_NAV_SRC + ("prev", )
+# MSG_NEXT_OBS = MSG_NAV_OBS + ("next", )
+# MSG_PREV_OBS = MSG_NAV_OBS + ("prev", )
+#
+# MSG_IMG_LOADED = MSG_ROOT + ("imgload", )
+#
+# MSG_FILE_PROC = MSG_ROOT + ("fileproc", )
+# MSG_ALL_ITEMS_PROC = MSG_ROOT + ("allproc", )
 
 
 # class VettableCollection(object):
@@ -141,7 +143,7 @@ class AbstractModel(object):
 
     def next_source(self):
         self.workload_manager.next_source()
-        pub.sendMessage(MSG_NEXT_SRC, data=self.get_current_source_number())
+        # pub.sendMessage(MSG_NEXT_SRC, data=self.get_current_source_number())
         # if self._current_src_number + 1 == self._get_current_astrom_data().get_source_count():
         #     self.workload_manager.next_file()
         #     self._current_src_number = 0
@@ -152,7 +154,7 @@ class AbstractModel(object):
 
     def previous_source(self):
         self.workload_manager.previous_source()
-        pub.sendMessage(MSG_PREV_SRC, data=self.get_current_source_number())
+        # pub.sendMessage(MSG_PREV_SRC, data=self.get_current_source_number())
 
         # if self._current_src_number == 0:
         #     self.workload_manager.previous_file()
@@ -170,12 +172,12 @@ class AbstractModel(object):
 
     def next_obs(self):
         self.workload_manager.next_obs()
-        pub.sendMessage(MSG_NEXT_OBS, data=self.get_current_obs_number())
+        # pub.sendMessage(MSG_NEXT_OBS, data=self.get_current_obs_number())
         # self._current_obs_number = (self._current_obs_number + 1) % self.get_obs_count()
 
     def previous_obs(self):
         self.workload_manager.previous_obs()
-        pub.sendMessage(MSG_PREV_OBS, data=self.get_current_obs_number())
+        # pub.sendMessage(MSG_PREV_OBS, data=self.get_current_obs_number())
         # self._current_obs_number = (self._current_obs_number - 1) % self.get_obs_count()
 
     def get_current_source(self):
@@ -247,9 +249,9 @@ class AbstractModel(object):
     def get_loaded_image_count(self):
         return self._num_images_loaded
 
-    def get_item_count(self):
-        # TODO: used for checking if all done -> not really needed anymore?
-        return self.workload_manager.count_unclaimed_readings()
+    # def get_item_count(self):
+    #     TODO: used for checking if all done -> not really needed anymore?
+        # return self.workload_manager.count_unclaimed_readings()
         # return len(self._vettable_items)
 
     def get_total_image_count(self):
@@ -259,7 +261,7 @@ class AbstractModel(object):
 
     def _on_image_loaded(self, source_num, obs_num):
         self._num_images_loaded += 1
-        pub.sendMessage(MSG_IMG_LOADED, (source_num, obs_num))
+        pub.sendMessage(events.MSG_IMG_LOADED, (source_num, obs_num))
 
     # def _check_if_all_finished(self):
     #     if self.get_num_items_processed() == self.get_item_count():
@@ -276,22 +278,33 @@ class AbstractModel(object):
     # def get_item_status(self, item):
     #     return self._vettable_items.get_vettable_item(item).get_status()
 
-    def next_item(self):
-        self.workload_manager.next_item()
+    # def next_item(self):
+    #     self.workload_manager.next_item()
         # raise NotImplementedError()
 
     def accept_current_item(self):
-        self.workload_manager.accept_current_item()
+        # TODO: refactor
+        try:
+            self.workload_manager.accept_current_item()
         # self.get_current_vettable_item().accept()
-        self._on_accept()
         # self._process_current_item()
+        except NoAvailableWorkException:
+            pub.sendMessage(events.MSG_ALL_ITEMS_PROC)
+            self.exit()
+        finally:
+            self._on_accept()
 
     def _on_accept(self):
         """Hook you can override to do extra processing when accepting an item."""
         pass
 
     def reject_current_item(self):
-        self.workload_manager.reject_current_item()
+        # TODO refactor
+        try:
+            self.workload_manager.reject_current_item()
+        except NoAvailableWorkException:
+            pub.sendMessage(events.MSG_ALL_ITEMS_PROC)
+            self.exit()
         # self.get_current_vettable_item().reject()
         # self._process_current_item()
 
@@ -323,10 +336,7 @@ class AbstractModel(object):
         # raise NotImplementedError()
 
     def next_item(self):
-        try:
-            self.workload_manager.next_item()
-        except NoAvailableWorkException():
-            self.exit()
+        self.workload_manager.next_item()
 
     def previous_item(self):
         self.workload_manager.previous_item()
@@ -347,7 +357,7 @@ class ProcessRealsModel(AbstractModel):
 
         # self._create_vettable_items()
 
-        self._source_discovery_asterisk = [False] * self.get_source_count()
+        self._source_discovery_asterisk = collections.defaultdict(lambda: False)
 
         # output_filename = os.path.join(self.workload_manager.get_working_directory(), "reals.mpc")
         # self.output_file = open(output_filename, "ab")
@@ -389,10 +399,10 @@ class ProcessRealsModel(AbstractModel):
     #     return self.get_current_reading()
 
     def _on_accept(self):
-        self._source_discovery_asterisk[self.get_current_source_number()] = True
+        self._source_discovery_asterisk[self.get_current_source()] = True
 
     def is_current_source_discovered(self):
-        return self._source_discovery_asterisk[self.get_current_source_number()]
+        return self._source_discovery_asterisk[self.get_current_source()]
 
     # def get_writer(self):
     #     return self.writer
