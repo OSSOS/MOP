@@ -5,7 +5,7 @@ from wx.lib.pubsub import setupv1
 from wx.lib.pubsub import Publisher as pub
 
 from pymop import config
-from pymop.gui import models
+from pymop.gui import events
 from pymop.gui.views import ApplicationView
 
 
@@ -14,9 +14,9 @@ class AbstractController(object):
         self.task = task
         self.model = model
 
-        pub.subscribe(self.on_change_image, models.MSG_NAV)
-        pub.subscribe(self.on_image_loaded, models.MSG_IMG_LOADED)
-        pub.subscribe(self.on_all_sources_processed, models.MSG_ALL_ITEMS_PROC)
+        pub.subscribe(self.on_change_image, events.MSG_NAV)
+        pub.subscribe(self.on_image_loaded, events.MSG_IMG_LOADED)
+        pub.subscribe(self.on_all_sources_processed, events.MSG_ALL_ITEMS_PROC)
 
         self.view = ApplicationView(self.model, self)
 

@@ -11,7 +11,7 @@ from wx.lib.pubsub import Publisher as pub
 from wx.lib.mixins import listctrl as listmix
 
 from pymop import config
-from pymop.gui import models
+from pymop.gui import events
 from pymop.gui.imgviewer import MPLImageViewer
 
 
@@ -211,10 +211,10 @@ class MainFrame(wx.Frame):
         notebook = wx.Notebook(self.control_panel)
 
         reading_data_panel = KeyValueListPanel(notebook, self.model.get_reading_data)
-        pub.subscribe(reading_data_panel.on_change_data, models.MSG_NAV)
+        pub.subscribe(reading_data_panel.on_change_data, events.MSG_NAV)
 
         obs_header_panel = KeyValueListPanel(notebook, self.model.get_header_data_list)
-        pub.subscribe(obs_header_panel.on_change_data, models.MSG_NAV)
+        pub.subscribe(obs_header_panel.on_change_data, events.MSG_NAV)
 
         notebook.AddPage(reading_data_panel, "Readings")
         notebook.AddPage(obs_header_panel, "Observation Header")

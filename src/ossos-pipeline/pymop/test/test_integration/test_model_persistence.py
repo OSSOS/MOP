@@ -16,7 +16,7 @@ from pymop import tasks
 from pymop.io.workload import DirectoryManager
 from pymop.io.astrom import AstromWorkload
 from pymop.io.persistence import ProgressManager
-from pymop.gui import models
+from pymop.gui import models, events
 from pymop.gui.models import ProcessCandidatesModel, ProcessRealsModel
 from pymop.io.imgaccess import AsynchronousImageDownloadManager
 
@@ -132,7 +132,7 @@ class ModelPersistenceTest(FileReadingTestCase, DirectoryCleaningTestCase):
         self.model = ProcessRealsModel(self.workload, self.download_manager)
 
         observer = Mock()
-        pub.subscribe(observer.on_file_processed, models.MSG_FILE_PROC)
+        pub.subscribe(observer.on_file_processed, events.MSG_FILE_PROC)
 
         filename = self.workload.get_current_filename()
         accepts_before_next_file = 9
@@ -151,7 +151,7 @@ class ModelPersistenceTest(FileReadingTestCase, DirectoryCleaningTestCase):
         assert_that(args, has_length(1))
 
         msg = args[0]
-        assert_that(msg.topic, equal_to(models.MSG_FILE_PROC))
+        assert_that(msg.topic, equal_to(events.MSG_FILE_PROC))
         assert_that(msg.data, equal_to(filename))
 
     def test_unlock_on_exit(self):
