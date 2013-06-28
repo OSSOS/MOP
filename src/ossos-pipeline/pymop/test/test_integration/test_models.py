@@ -15,7 +15,7 @@ from pymop import tasks
 from pymop.gui import models, events
 from pymop.gui.models import ProcessCandidatesModel, ProcessRealsModel
 from pymop.io.imgaccess import AsynchronousImageDownloadManager
-from pymop.io.astrom import AstromParser, AstromWorkload
+from pymop.io.astrom import AstromParser
 from pymop.io.persistence import ProgressManager
 from pymop.io.img import FitsImage
 from pymop.io.workload import (DirectoryManager, WorkloadManager,
