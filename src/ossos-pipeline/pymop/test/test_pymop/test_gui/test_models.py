@@ -21,13 +21,9 @@ from pymop.io.workload import (DirectoryManager, WorkloadManager,
                                RealsWorkUnitBuilder, CandidatesWorkUnitBuilder)
 from pymop.io.writers import WriterFactory
 
-
 MODEL_TEST_DIR_1 = "data/model_testdir_1"
 MODEL_TEST_DIR_2 = "data/model_testdir_2"
 MODEL_TEST_DIR_3 = "data/model_testdir_3"
-
-TEST_FILE_1 = "1584431p15.measure3.reals.astrom"
-TEST_FILE_2 = "1616681p10.measure3.reals.astrom"
 
 
 class GeneralModelTest(FileReadingTestCase):
@@ -84,10 +80,8 @@ class AbstractRealsModelTest(GeneralModelTest):
         # TODO: just use AbstractModel?
         self.model = models.ProcessRealsModel(self.workload, self.download_manager)
 
-    @unittest.skip("TODO: directory stats")
     def test_sources_initialized(self):
         assert_that(self.model.get_current_source_number(), equal_to(0))
-        assert_that(self.model.get_source_count(), equal_to(3))
         assert_that(self.model.get_obs_count(), equal_to(3))
 
     def test_next_source_previous_source(self):
@@ -299,27 +293,19 @@ class AbstractRealsModelTest(GeneralModelTest):
         assert_that(self.model.get_current_ra(), equal_to(26.6816808))
         assert_that(self.model.get_current_dec(), equal_to(29.2202748))
 
-    @unittest.skip("TODO: directory stats")
-    def test_get_total_image_count(self):
-        assert_that(self.model.get_total_image_count(), equal_to(9))
-
     def test_sources_processed(self):
         assert_that(self.model.get_num_items_processed(), equal_to(0))
         assert_that(self.model.get_current_source_number(), equal_to(0))
 
         self.model.accept_current_item()
 
-        astrom_data = self.workload.get_astrom_data(0)
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_num_items_processed(), equal_to(1))
-        assert_that(self.model.is_item_processed(astrom_data.sources[0].get_reading(0)))
-        assert_that(not self.model.is_item_processed(astrom_data.sources[0].get_reading(1)))
-        assert_that(not self.model.is_item_processed(astrom_data.sources[0].get_reading(2)))
 
-        self.model.reject_current_item()
-
-        assert_that(self.model.get_current_source_number(), equal_to(0))
-        assert_that(self.model.get_num_items_processed(), equal_to(1))
+        source1 = self.workload.get_current_data().get_sources()[0]
+        assert_that(source1.get_readings()[0].is_processed(), equal_to(True))
+        assert_that(source1.get_readings()[1].is_processed(), equal_to(False))
+        assert_that(source1.get_readings()[2].is_processed(), equal_to(False))
 
         self.model.next_item()
         self.model.reject_current_item()
@@ -684,12 +670,12 @@ class ProcessCandidatesModelTest(GeneralModelTest):
 
 class MultipleAstromDataModelTest(GeneralModelTest):
     def _get_workunit_builder(self, parser, writer_factory):
-        return RealsWorkUnitBuilder(parser, writer_factory)
+        return CandidatesWorkUnitBuilder(parser, writer_factory)
 
     def setUp(self):
         super(MultipleAstromDataModelTest, self).setUp()
 
-        self.model = models.ProcessRealsModel(self.workload, self.download_manager)
+        self.model = models.ProcessCandidatesModel(self.workload, self.download_manager)
     # def setUp(self):
     #     pub.unsubAll()
     #
@@ -703,15 +689,13 @@ class MultipleAstromDataModelTest(GeneralModelTest):
     #     self.progress_manager = progress_manager
 
     def _get_task(self):
-        return tasks.REALS_TASK
+        return tasks.CANDS_TASK
 
     def _get_working_dir(self):
         return self.get_abs_path(MODEL_TEST_DIR_2)
 
-    @unittest.skip("TODO: directory stats")
     def test_meta_data(self):
         assert_that(self.model.get_current_source_number(), equal_to(0))
-        assert_that(self.model.get_source_count(), equal_to(5))
         assert_that(self.model.get_obs_count(), equal_to(3)) # for the current data only
 
     def test_next_source(self):
@@ -727,18 +711,34 @@ class MultipleAstromDataModelTest(GeneralModelTest):
         assert_that(self.model.get_current_source(), equal_to(first_sources[2]))
         self.model.next_source()
 
+        # Note we don't move to next file.  It is not loaded yet since we
+        # have not processed the current one.
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+
+        self.model.accept_current_item()
+        self.model.next_item()
+        self.model.accept_current_item()
+        self.model.next_item()
+        self.model.accept_current_item()
+
+        # Note we now automatically move to the next work unit
         second_sources = self.workload.get_current_data().get_sources()
 
         assert_that(first_sources, is_not(same_instance(second_sources)))
 
-        assert_that(self.model.get_current_source_number(), equal_to(3))
+        assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_source(), equal_to(second_sources[0]))
         self.model.next_source()
-        assert_that(self.model.get_current_source_number(), equal_to(4))
+        assert_that(self.model.get_current_source_number(), equal_to(1))
         assert_that(self.model.get_current_source(), equal_to(second_sources[1]))
         self.model.next_source()
+        assert_that(self.model.get_current_source_number(), equal_to(2))
+        assert_that(self.model.get_current_source(), equal_to(second_sources[2]))
+        self.model.next_source()
+
+        # Note we only iterate within the active work unit
         assert_that(self.model.get_current_source_number(), equal_to(0))
-        assert_that(self.model.get_current_source(), equal_to(first_sources[0]))
+        assert_that(self.model.get_current_source(), equal_to(second_sources[0]))
 
     def test_previous_source(self):
         first_sources = self.workload.get_current_data().get_sources()
@@ -747,24 +747,36 @@ class MultipleAstromDataModelTest(GeneralModelTest):
         assert_that(self.model.get_current_source(), equal_to(first_sources[0]))
         self.model.previous_source()
 
+        # Note we don't move to next file.  It is not loaded yet since we
+        # have not processed the current one.
+        assert_that(self.model.get_current_source_number(), equal_to(2))
+        self.model.accept_current_item()
+        self.model.previous_source()
+        self.model.accept_current_item()
+        self.model.previous_source()
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        self.model.accept_current_item()
+
+        # Note we now automatically move to the next work unit
         second_sources = self.workload.get_current_data().get_sources()
         assert_that(first_sources, is_not(same_instance(second_sources)))
 
-        assert_that(self.model.get_current_source_number(), equal_to(4))
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_source(), equal_to(second_sources[0]))
+        self.model.previous_source()
+        assert_that(self.model.get_current_source_number(), equal_to(2))
+        assert_that(self.model.get_current_source(), equal_to(second_sources[2]))
+        self.model.previous_source()
+        assert_that(self.model.get_current_source_number(), equal_to(1))
         assert_that(self.model.get_current_source(), equal_to(second_sources[1]))
         self.model.previous_source()
-        assert_that(self.model.get_current_source_number(), equal_to(3))
+        assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_source(), equal_to(second_sources[0]))
         self.model.previous_source()
 
+        # Note we only iterate in the current work unit
         assert_that(self.model.get_current_source_number(), equal_to(2))
-        assert_that(self.model.get_current_source(), equal_to(first_sources[2]))
-        self.model.previous_source()
-        assert_that(self.model.get_current_source_number(), equal_to(1))
-        assert_that(self.model.get_current_source(), equal_to(first_sources[1]))
-        self.model.previous_source()
-        assert_that(self.model.get_current_source_number(), equal_to(0))
-        assert_that(self.model.get_current_source(), equal_to(first_sources[0]))
+        assert_that(self.model.get_current_source(), equal_to(second_sources[2]))
 
 
 if __name__ == '__main__':
