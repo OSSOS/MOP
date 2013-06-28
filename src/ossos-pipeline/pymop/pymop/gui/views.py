@@ -556,7 +556,9 @@ class SourceValidationDialog(wx.Dialog):
 
         self.comment_label = wx.StaticText(self, label=SourceValidationDialog.COMMENT)
         self.comment_text = wx.TextCtrl(self, name=SourceValidationDialog.COMMENT,
-                                        style=wx.TE_MULTILINE)
+                                        style=wx.TE_MULTILINE|wx.TE_PROCESS_ENTER,
+                                        size=(250, 50))
+        self.comment_text.Bind(wx.EVT_TEXT_ENTER, self._on_enter_comment)
 
         self.submit_button = wx.Button(
             self, label=self.SUBMIT_BTN, name=SourceValidationDialog.SUBMIT_BTN)
@@ -596,13 +598,18 @@ class SourceValidationDialog(wx.Dialog):
 
         self.SetSizerAndFit(bordersizer)
 
+    def _on_enter_comment(self, event):
+        # Don't want it to actually put a newline character, just submit
+        # the form.
+        self._on_submit(event)
+
     def _init_ui(self):
         raise NotImplementedError()
 
-    def _on_submit(self):
+    def _on_submit(self, event):
         raise NotImplementedError()
 
-    def _on_cancel(self):
+    def _on_cancel(self, event):
         raise NotImplementedError()
 
     def _get_vertical_widget_list(self):
