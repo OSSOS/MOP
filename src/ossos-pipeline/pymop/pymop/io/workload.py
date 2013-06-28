@@ -413,8 +413,9 @@ class WorkloadManager(object):
             self.get_current_workunit().get_current_item_index())
 
         if self.get_current_workunit().is_finished():
-            self.progress_manager.record_done(
-                self.get_current_workunit().get_filename())
+            filename = self.get_current_workunit().get_filename()
+            self.progress_manager.record_done(filename)
+            pub.sendMessage(events.MSG_FILE_PROC, filename)
             self.next_workunit()
 
     def get_num_items_processed(self):
