@@ -88,13 +88,13 @@ class WxWidgetTestCase(unittest.TestCase):
 
 class DirectoryCleaningTestCase(unittest.TestCase):
     def tearDown(self):
-        directory = self.get_test_directory()
+        directory = self.get_directory_to_clean()
         for filename in os.listdir(directory):
-            if filename not in self.get_test_files():
+            if filename not in self.get_files_to_keep():
                 os.remove(os.path.join(directory, filename))
 
-    def get_test_directory(self):
+    def get_directory_to_clean(self):
         raise NotImplementedError()
 
-    def get_test_files(self):
+    def get_files_to_keep(self):
         raise NotImplementedError()

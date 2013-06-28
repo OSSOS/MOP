@@ -42,10 +42,10 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
         WxWidgetTestCase.tearDown(self)
         DirectoryCleaningTestCase.tearDown(self)
 
-    def get_test_directory(self):
+    def get_directory_to_clean(self):
         return self.get_abs_path("data/controller_testdir")
 
-    def get_test_files(self):
+    def get_files_to_keep(self):
         return ["1584431p15.measure3.reals.astrom", "1616681p10.measure3.reals.astrom"]
 
     def test_reject_disables_validation_controls(self):

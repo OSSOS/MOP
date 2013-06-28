@@ -491,7 +491,7 @@ class WorkloadManagerTest(unittest.TestCase):
 
 class WorkUnitProviderTest(FileReadingTestCase, DirectoryCleaningTestCase):
     def setUp(self):
-        working_directory = self.get_test_directory()
+        working_directory = self.get_directory_to_clean()
         directory_manager = DirectoryManager(working_directory)
         progress_manager = InMemoryProgressManager(directory_manager)
         parser = AstromParser()
@@ -504,10 +504,10 @@ class WorkUnitProviderTest(FileReadingTestCase, DirectoryCleaningTestCase):
         self.progress_manager = progress_manager
         self.undertest = undertest
 
-    def get_test_directory(self):
+    def get_directory_to_clean(self):
         return self.get_abs_path("data/workload_testdir2")
 
-    def get_test_files(self):
+    def get_files_to_keep(self):
         return ["candstest1.measure3.cands.astrom", "candstest2.measure3.cands.astrom",
                 "candstest1.measure3.reals.astrom", "candstest2.measure3.reals.astrom",
                 "realstest1.measure3.reals.astrom", "realstest2.measure3.reals.astrom"]
