@@ -261,7 +261,7 @@ class BaseAstromWriter(object):
     def _write_source(self, source):
         self._write_blank_line()
 
-        for reading in source:
+        for reading in source.get_readings():
             self._write_line(" %8.2f %8.2f %8.2f %8.2f %12.7f %12.7f" % (
                 reading.x, reading.y, reading.x0, reading.y0, reading.ra,
                 reading.dec), ljust=False)
@@ -303,7 +303,7 @@ class StreamingAstromWriter(BaseAstromWriter):
         Writes out data for a single source.
         """
         if not self._header_written:
-            observations = [reading.get_observation() for reading in source]
+            observations = [reading.get_observation() for reading in source.get_readings()]
             self.write_headers(observations, self.sys_header)
 
         self._write_source(source)
@@ -373,9 +373,6 @@ class Source(object):
 
     def __init__(self, readings):
         self.readings = readings
-
-    def __iter__(self):
-        return iter(self.readings)
 
     def get_reading(self, index):
         return self.readings[index]
