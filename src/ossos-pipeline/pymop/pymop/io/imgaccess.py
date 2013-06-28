@@ -71,7 +71,7 @@ class SerialImageDownloadThread(threading.Thread):
 
     def run(self):
         for source_num, source in enumerate(self.workload.get_sources()):
-            for obs_num, reading in enumerate(source):
+            for obs_num, reading in enumerate(source.get_readings()):
                 if self._should_stop:
                     return
 
