@@ -323,13 +323,16 @@ class AbstractModel(object):
     # def _get_current_original_item(self):
     #     raise NotImplementedError()
 
-    def get_current_item(self):
-        return self._vettable_items.get_vettable_item(
-            self._get_current_original_item())
+    def is_current_item_processed(self):
+        return self.workload_manager.is_current_item_processed()
 
-    def get_current_item_index(self):
-        return self._vettable_items.get_index(
-            self._get_current_original_item())
+    # def get_current_item(self):
+    #     return self._vettable_items.get_vettable_item(
+    #         self._get_current_original_item())
+    #
+    # def get_current_item_index(self):
+    #     return self._vettable_items.get_index(
+    #         self._get_current_original_item())
 
     def get_writer(self):
         return self.workload_manager.get_writer()

@@ -1,35 +1,52 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import os
 import unittest
 
 from mock import Mock, MagicMock
 from hamcrest import assert_that, equal_to
 
-from test.base_tests import FileReadingTestCase, WxWidgetTestCase
+from test.base_tests import FileReadingTestCase, WxWidgetTestCase, DirectoryCleaningTestCase
 from pymop import tasks
 from pymop.io.persistence import ProgressManager
-from pymop.io.astrom import AstromWorkload
 from pymop.gui.controllers import ProcessRealsController
 from pymop.gui.models import ProcessRealsModel
+from pymop.io.astrom import AstromParser
+from pymop.io.imgaccess import AsynchronousImageDownloadManager
+from pymop.io.workload import DirectoryManager, WorkUnitProvider, WorkloadManager, RealsWorkUnitBuilder
+from pymop.io.writers import WriterFactory
 
 
-class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase):
+class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, DirectoryCleaningTestCase):
     def setUp(self):
-        super(ProcessRealsControllerTest, self).setUp()
+        WxWidgetTestCase.setUp(self)
 
-        progress_manager = MagicMock(spec=ProgressManager)
-        progress_manager.get_done.return_value = []
+        parser = AstromParser()
+        directory_manager = DirectoryManager(
+            self.get_abs_path("data/controller_testdir"))
+        progress_manager = ProgressManager(directory_manager)
+        writer_factory = WriterFactory()
+        workunit_provider = WorkUnitProvider(tasks.get_suffix(tasks.REALS_TASK),
+                                             directory_manager, progress_manager,
+                                             RealsWorkUnitBuilder(parser, writer_factory))
+        workload_manager = WorkloadManager(workunit_provider, progress_manager)
 
-        workload = AstromWorkload(self.get_abs_path("data/controller_testdir"),
-                                  progress_manager, tasks.REALS_TASK)
-        download_manager = Mock()
+        download_manager = Mock(spec=AsynchronousImageDownloadManager)
 
-        self.model = ProcessRealsModel(workload, download_manager)
+        self.model = ProcessRealsModel(workload_manager, download_manager)
 
         self.task = Mock()
         self.name_generator = Mock()
         self.controller = ProcessRealsController(self.task, self.model, self.name_generator)
+
+    def tearDown(self):
+        WxWidgetTestCase.tearDown(self)
+        DirectoryCleaningTestCase.tearDown(self)
+
+    def get_test_directory(self):
+        return self.get_abs_path("data/controller_testdir")
+
+    def get_test_files(self):
+        return ["1584431p15.measure3.reals.astrom", "1616681p10.measure3.reals.astrom"]
 
     def test_reject_disables_validation_controls(self):
         comment = "test"
