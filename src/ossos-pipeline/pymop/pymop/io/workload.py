@@ -254,6 +254,9 @@ class WorkUnitProvider(object):
         while len(potential_files) > 0:
             potential_file = potential_files.pop()
 
+            if self.directory_manager.get_file_size(potential_file) == 0:
+                continue
+
             if not self.progress_manager.is_done(potential_file):
                 try:
                     self.progress_manager.lock(potential_file)
@@ -439,6 +442,9 @@ class DirectoryManager(object):
 
     def get_full_path(self, filename):
         return os.path.join(self.directory, filename)
+
+    def get_file_size(self, filename):
+        return os.stat(self.get_full_path(filename)).st_size
 
 
 def listdir_for_suffix(directory, suffix):

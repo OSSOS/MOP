@@ -7,16 +7,17 @@ from hamcrest import (assert_that, is_in, is_not, equal_to, is_, none,
                       contains_inanyorder, has_length)
 from mock import Mock
 
-from test.base_tests import FileReadingTestCase
+from test.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from pymop import tasks
 from pymop.io import workload
 from pymop.io.astrom import AstromParser
+from pymop.io.writers import WriterFactory
 from pymop.io.persistence import InMemoryProgressManager
 from pymop.io.workload import (WorkUnitProvider, DirectoryManager,
                                WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
                                DataCollection, NoAvailableWorkException,
-                               VettableItem, StatefulCollection,
-                               WorkloadManager)
+                               StatefulCollection,
+                               WorkloadManager, RealsWorkUnitBuilder)
 
 
 class TestDirectoryManager(object):
@@ -31,6 +32,9 @@ class TestDirectoryManager(object):
 
     def get_full_path(self, filename):
         return filename
+
+    def get_file_size(self, filename):
+        return 1
 
 
 class TestWorkUnitBuilder(object):
@@ -53,7 +57,7 @@ class WorkUnitFactoryTest(unittest.TestCase):
         builder = TestWorkUnitBuilder()
 
         self.undertest = WorkUnitProvider(self.taskid, directory_manager,
-                                         progress_manager, builder)
+                                          progress_manager, builder)
         self.directory_manager = directory_manager
         self.progress_manager = progress_manager
         self.directory_manager.set_listing(self.taskid, self.test_files)
@@ -483,6 +487,47 @@ class WorkloadManagerTest(unittest.TestCase):
         self.undertest.previous_workunit()
         assert_that(self.progress_manager.owns_lock(self.file1), equal_to(True))
         assert_that(self.progress_manager.owns_lock(self.file2), equal_to(False))
+
+
+class WorkUnitProviderTest(FileReadingTestCase, DirectoryCleaningTestCase):
+    def setUp(self):
+        working_directory = self.get_test_directory()
+        directory_manager = DirectoryManager(working_directory)
+        progress_manager = InMemoryProgressManager(directory_manager)
+        parser = AstromParser()
+        writer_factory = WriterFactory()
+        builder = RealsWorkUnitBuilder(parser, writer_factory)
+        undertest = WorkUnitProvider(tasks.get_suffix(tasks.REALS_TASK),
+                                     directory_manager,
+                                     progress_manager,
+                                     builder)
+        self.progress_manager = progress_manager
+        self.undertest = undertest
+
+    def get_test_directory(self):
+        return self.get_abs_path("data/workload_testdir2")
+
+    def get_test_files(self):
+        return ["candstest1.measure3.cands.astrom", "candstest2.measure3.cands.astrom",
+                "candstest1.measure3.reals.astrom", "candstest2.measure3.reals.astrom",
+                "realstest1.measure3.reals.astrom", "realstest2.measure3.reals.astrom"]
+
+    def test_skip_empty_files(self):
+        expected_filenames = ["realstest1.measure3.reals.astrom",
+                              "realstest2.measure3.reals.astrom"]
+
+        actual_filenames = []
+        workunit1 = self.undertest.get_workunit()
+        actual_filenames.append(workunit1.get_filename())
+        self.progress_manager.record_done(workunit1.get_filename())
+
+        workunit2 = self.undertest.get_workunit()
+        actual_filenames.append(workunit2.get_filename())
+        self.progress_manager.record_done(workunit2.get_filename())
+
+        self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
+
+        assert_that(actual_filenames, contains_inanyorder(*expected_filenames))
 
 
 class DirectoryManagerTest(FileReadingTestCase):
