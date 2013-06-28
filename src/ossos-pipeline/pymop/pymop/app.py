@@ -5,7 +5,9 @@ import wx.lib.inspection
 
 from pymop import config
 from pymop import tasks
-from pymop.io.workload import DirectoryManager, WorkloadManager, WorkUnitProvider, WorkUnitBuilder
+from pymop.io.workload import (DirectoryManager, WorkloadManager,
+                               WorkUnitProvider, RealsWorkUnitBuilder,
+                               CandidatesWorkUnitBuilder)
 from pymop.io.writers import WriterFactory
 from pymop.io.astrom import AstromParser
 from pymop.io.persistence import ProgressManager
@@ -36,7 +38,7 @@ class AbstractTask(object):
         self.download_manager = AsynchronousImageDownloadManager(
             ImageSliceDownloader(VOSpaceResolver()))
 
-    def get_task(self):
+    def get_task_suffix(self):
         raise NotImplementedError()
 
     def _create_model(self, workload_manager):
@@ -45,16 +47,17 @@ class AbstractTask(object):
     def _create_controller(self, model):
         raise NotImplementedError()
 
+    def _get_workunit_builder(self, parser, writer_factory):
+        raise NotImplementedError()
+
     def start(self, working_directory):
         directory_manager = DirectoryManager(working_directory)
         progress_manager = ProgressManager(directory_manager)
         writer_factory = WriterFactory()
-        builder = WorkUnitBuilder(self.parser, writer_factory)
-        workunit_provider = WorkUnitProvider(self.get_task(), directory_manager,
+        builder = self._get_workunit_builder(self.parser, writer_factory)
+        workunit_provider = WorkUnitProvider(self.get_task_suffix(), directory_manager,
                                              progress_manager, builder)
         workload_manager = WorkloadManager(workunit_provider, progress_manager)
-        # workload = AstromWorkload(working_directory, progress_manager,
-        #                           self.get_task())
         model = self._create_model(workload_manager)
         self._create_controller(model)
 
@@ -66,8 +69,11 @@ class ProcessCandidatesTask(AbstractTask):
     def __init__(self):
         super(ProcessCandidatesTask, self).__init__()
 
-    def get_task(self):
-        return tasks.CANDS_TASK
+    def get_task_suffix(self):
+        return tasks.get_suffix(tasks.CANDS_TASK)
+
+    def _get_workunit_builder(self, parser, writer_factory):
+        return CandidatesWorkUnitBuilder(parser, writer_factory)
 
     def _create_model(self, workload_manager):
         return ProcessCandidatesModel(workload_manager, self.download_manager)
@@ -82,8 +88,11 @@ class ProcessRealsTask(AbstractTask):
 
         self.name_generator = ProvisionalNameGenerator()
 
-    def get_task(self):
-        return tasks.REALS_TASK
+    def get_task_suffix(self):
+        return tasks.get_suffix(tasks.REALS_TASK)
+
+    def _get_workunit_builder(self, parser, writer_factory):
+        return RealsWorkUnitBuilder(parser, writer_factory)
 
     def _create_model(self, workload_manager):
         return ProcessRealsModel(workload_manager, self.download_manager)
