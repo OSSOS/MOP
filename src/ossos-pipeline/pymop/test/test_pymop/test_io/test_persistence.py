@@ -13,7 +13,6 @@ from pymop.io.workload import DirectoryManager
 from pymop.io.persistence import (ProgressManager, InMemoryProgressManager,
                                   FileLockedException, RequiresLockException,
                                   LOCK_SUFFIX)
-from pymop.io.astrom import AstromWorkload
 
 WD_HAS_PROGRESS = "data/persistence_has_progress"
 WD_NO_LOG = "data/persistence_no_log"
@@ -33,24 +32,6 @@ class ProgressManagerLoadingTest(FileReadingTestCase):
                     contains_inanyorder("xxx1.cands.astrom", "xxx3.cands.astrom"))
         assert_that(self.progress_manager.get_done(tasks.REALS_TASK),
                     contains_inanyorder("xxx3.reals.astrom"))
-
-    def test_astrom_workload_filtered_reals(self):
-        workload = AstromWorkload(self.working_directory, self.progress_manager,
-                                  tasks.REALS_TASK)
-
-        expected_filenames = ["xxx1.reals.astrom", "xxx2.reals.astrom"]
-        actual_filenames = [filename for filename, astromdata in workload]
-
-        assert_that(actual_filenames, contains_inanyorder(*expected_filenames))
-
-    def test_astrom_workload_filtered_cands(self):
-        workload = AstromWorkload(self.working_directory, self.progress_manager,
-                                  tasks.CANDS_TASK)
-
-        expected_filenames = ["xxx2.cands.astrom"]
-        actual_filenames = [filename for filename, astromdata in workload]
-
-        assert_that(actual_filenames, contains_inanyorder(*expected_filenames))
 
 
 class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
