@@ -10,7 +10,7 @@ from wx.lib.pubsub import Publisher as pub
 from hamcrest import assert_that, equal_to, has_length, contains, none, same_instance, is_not
 from mock import Mock, MagicMock, patch
 
-from test.base_tests import FileReadingTestCase
+from test.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from pymop import tasks
 from pymop.gui import models
 from pymop.io.astrom import AstromParser
@@ -26,7 +26,7 @@ MODEL_TEST_DIR_2 = "data/model_testdir_2"
 MODEL_TEST_DIR_3 = "data/model_testdir_3"
 
 
-class GeneralModelTest(FileReadingTestCase):
+class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
     def setUp(self):
         pub.unsubAll()
 
@@ -53,6 +53,9 @@ class GeneralModelTest(FileReadingTestCase):
     def _get_working_dir(self):
         raise NotImplementedError()
 
+    def get_test_directory(self):
+        return self._get_working_dir()
+
     def _get_workunit_builder(self, parser, writer_factory):
         raise NotImplementedError()
 
@@ -73,6 +76,9 @@ class AbstractRealsModelTest(GeneralModelTest):
 
     def _get_workunit_builder(self, parser, writer_factory):
         return RealsWorkUnitBuilder(parser, writer_factory)
+
+    def get_test_files(self):
+        return ["1584431p15.measure3.reals.astrom"]
 
     def setUp(self):
         super(AbstractRealsModelTest, self).setUp()
@@ -359,6 +365,9 @@ class ProcessRealsModelTest(GeneralModelTest):
     def _get_workunit_builder(self, parser, writer_factory):
         return RealsWorkUnitBuilder(parser, writer_factory)
 
+    def get_test_files(self):
+        return ["1584431p15.measure3.reals.astrom"]
+
     def setUp(self):
         super(ProcessRealsModelTest, self).setUp()
 
@@ -558,6 +567,9 @@ class ProcessCandidatesModelTest(GeneralModelTest):
     def _get_workunit_builder(self, parser, writer_factory):
         return CandidatesWorkUnitBuilder(parser, writer_factory)
 
+    def get_test_files(self):
+        return ["1584431p15.measure3.cands.astrom", "1584431p15.measure3.reals.astrom"]
+
     def setUp(self):
         super(ProcessCandidatesModelTest, self).setUp()
 
@@ -693,6 +705,9 @@ class MultipleAstromDataModelTest(GeneralModelTest):
 
     def _get_working_dir(self):
         return self.get_abs_path(MODEL_TEST_DIR_2)
+
+    def get_test_files(self):
+        return ["1584431p15.measure3.cands.astrom", "1616681p10.measure3.cands.astrom"]
 
     def test_meta_data(self):
         assert_that(self.model.get_current_source_number(), equal_to(0))

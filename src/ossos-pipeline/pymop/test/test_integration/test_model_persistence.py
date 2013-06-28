@@ -11,7 +11,7 @@ from mock import Mock
 from hamcrest import (assert_that, equal_to, contains_inanyorder, is_not,
                       has_length)
 
-from test.base_tests import FileReadingTestCase
+from test.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from pymop import tasks
 from pymop.io.workload import DirectoryManager
 from pymop.io.astrom import AstromWorkload
@@ -24,7 +24,7 @@ FRESH_TEST_DIR = "data/model_persistence_fresh"
 TEST_FILES = ["xxx1.cands.astrom", "xxx2.cands.astrom", "xxx3.reals.astrom", "xxx4.reals.astrom"]
 
 
-class ModelPersistenceTest(FileReadingTestCase):
+class ModelPersistenceTest(FileReadingTestCase, DirectoryCleaningTestCase):
     def setUp(self):
         pub.unsubAll()
 
@@ -38,10 +38,11 @@ class ModelPersistenceTest(FileReadingTestCase):
         concurrent_directory_manager = DirectoryManager(self.working_dir)
         self.concurrent_progress_manager = ProgressManager(concurrent_directory_manager)
 
-    def tearDown(self):
-        for filename in os.listdir(self.working_dir):
-            if filename not in TEST_FILES:
-                os.remove(os.path.join(self.working_dir, filename))
+    def get_test_directory(self):
+        return self.working_dir
+
+    def get_test_files(self):
+        return TEST_FILES
 
     def test_record_progress_cands_multiple_files(self):
         self.workload = AstromWorkload(self.working_dir,
