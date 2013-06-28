@@ -15,21 +15,13 @@ from pymop.io.naming import ProvisionalNameGenerator
 from pymop.io.imgaccess import (AsynchronousImageDownloadManager,
                                 ImageSliceDownloader, VOSpaceResolver)
 from pymop.gui.models import ProcessRealsModel, ProcessCandidatesModel
-from pymop.gui.controllers import ProcessRealsController, ProcessCandidatesController
+from pymop.gui.controllers import (ProcessRealsController,
+                                   ProcessCandidatesController)
 from pymop.gui.taskselect import TaskSetupManager
 
 
 class PymopError(Exception):
     """Base class for errors in the pymop application."""
-
-
-class PymopLockError(Exception):
-    """Indicates working directory cannot be locked."""
-
-    def __init__(self, owner):
-        super(PymopLockError, self).__init__()
-
-        self.owner = owner
 
 
 class AbstractTask(object):
@@ -123,12 +115,6 @@ class PymopApplication(object):
 
     def launch(self, working_directory, task):
         try:
-            acquire_lock(working_directory)
-        except PymopLockError as err:
-            # TODO: GUI dialog
-            print "Working directory already locked by %s" % err.owner
-
-        try:
             self.start_task(working_directory, task)
         except PymopError as err:
             # TODO: GUI dialog
@@ -142,10 +128,3 @@ class PymopApplication(object):
 
         self.task.start(working_directory)
 
-
-def acquire_lock(directory):
-    # TODO
-    # Check for .pymop.lock file
-    # If it doesn't exist, create one containing our user name
-    # If one does exist, throw exception
-    pass
