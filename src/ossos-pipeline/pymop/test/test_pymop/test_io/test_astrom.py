@@ -16,6 +16,7 @@ from pymop.io.astrom import (AstromParser, StreamingAstromWriter, Observation,
 
 TEST_FILE_1 = "data/1584431p15.measure3.cands.astrom"
 TEST_FILE_2 = "data/1616681p22.measure3.cands.astrom"
+FK_FILE = "data/fk1616682s00.measure3.cands.astrom"
 
 
 class ParserTest(FileReadingTestCase):
@@ -46,14 +47,17 @@ class ParserTest(FileReadingTestCase):
         assert_that(obs0.expnum, equal_to("1584431"))
         assert_that(obs0.ftype, equal_to("p"))
         assert_that(obs0.ccdnum, equal_to("15"))
+        assert_that(obs0.is_fake(), equal_to(False))
 
         assert_that(obs1.expnum, equal_to("1584449"))
         assert_that(obs1.ftype, equal_to("p"))
         assert_that(obs1.ccdnum, equal_to("15"))
+        assert_that(obs1.is_fake(), equal_to(False))
 
         assert_that(obs2.expnum, equal_to("1584453"))
         assert_that(obs2.ftype, equal_to("p"))
         assert_that(obs2.ccdnum, equal_to("15"))
+        assert_that(obs2.is_fake(), equal_to(False))
 
     def test_parse_observation_headers(self):
         astrom_data = self.parse(TEST_FILE_1)
@@ -204,6 +208,20 @@ class ParserTest(FileReadingTestCase):
         assert_that(reading1.reference_source_point[1], close_to(406.68, delta))
         assert_that(reading2.reference_source_point[0], close_to(564.44, delta))
         assert_that(reading2.reference_source_point[1], close_to(406.03, delta))
+
+    def test_parse_fake_file(self):
+        astrom_data = self.parse(FK_FILE)
+
+        assert_that(astrom_data.observations, has_length(3))
+        assert_that(astrom_data.get_sources(), has_length(21))
+
+        obs0 = astrom_data.observations[0]
+
+        assert_that(obs0.rawname, equal_to("fk1616682s00"))
+        assert_that(obs0.expnum, equal_to("1616682"))
+        assert_that(obs0.ftype, equal_to("s"))
+        assert_that(obs0.ccdnum, equal_to("00"))
+        assert_that(obs0.is_fake(), equal_to(True))
 
 
 class GeneralAstromWriterTest(FileReadingTestCase):

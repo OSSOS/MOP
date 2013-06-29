@@ -25,6 +25,8 @@ TEST_FILES = ["xxx1.cands.astrom", "xxx2.cands.astrom", "xxx3.reals.astrom", "xx
 
 class ModelPersistenceTest(FileReadingTestCase):
     def setUp(self):
+        pub.unsubAll()
+
         self.working_dir = self.get_abs_path(FRESH_TEST_DIR)
         self.progress_manager = ProgressManager(self.working_dir)
         self.download_manager = Mock(spec=AsynchronousImageDownloadManager)
