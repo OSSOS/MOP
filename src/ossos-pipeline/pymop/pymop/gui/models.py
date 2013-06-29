@@ -26,7 +26,7 @@ class AbstractModel(object):
 
         self._num_images_loaded = 0
 
-        pub.subscribe(self._start_loading_images, events.MSG_NEW_WORK_UNIT)
+        pub.subscribe(self._download_current_workunit_images, events.MSG_NEW_WORK_UNIT)
         self.workload_manager.start_work()
 
     def get_current_filename(self):
@@ -110,10 +110,7 @@ class AbstractModel(object):
     def get_current_exposure_number(self):
         return int(self.get_current_reading().obs.expnum)
 
-    def _start_loading_images(self, event):
-        self.start_loading_images()
-
-    def start_loading_images(self):
+    def _download_current_workunit_images(self, event):
         self.download_manager.start_download(
             self.workload_manager.get_current_workunit(),
             image_loaded_callback=self._on_image_loaded)

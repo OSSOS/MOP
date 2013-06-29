@@ -54,7 +54,6 @@ class ApplicationView(object):
 
         self.mainframe.Show()
         self.mainframe.show_image_loading_dialog()
-        self.model.start_loading_images()
 
     def _on_close_window(self, event):
         self.close()

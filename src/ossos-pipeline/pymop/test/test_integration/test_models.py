@@ -44,11 +44,6 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
                                              self._get_workunit_builder(parser, writer_factory))
         workload_manager = WorkloadManager(workunit_provider, progress_manager)
 
-        # progress_manager = MagicMock(spec=ProgressManager)
-        # progress_manager.get_done.return_value = []
-        # self.workload = AstromWorkload(self._get_working_dir(),
-        #                                progress_manager,
-        #                                self._get_task())
         self.workload = workload_manager
         self.progress_manager = progress_manager
         self.download_manager = Mock(spec=AsynchronousImageDownloadManager)
@@ -248,10 +243,7 @@ class AbstractRealsModelTest(GeneralModelTest):
         observer = Mock()
         pub.subscribe(observer.on_img_loaded, events.MSG_IMG_LOADED)
 
-        self.model.start_loading_images()
-
         assert_that(self.download_manager.start_download.call_count, equal_to(1))
-
         assert_that(self.model.get_loaded_image_count(), equal_to(0))
 
         # Simulate receiving callback
