@@ -844,6 +844,37 @@ class RealsModelPersistenceTest(GeneralModelTest):
         assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
                     contains_inanyorder(0, 2, 1))
 
+    def test_record_progress_multiple_sources(self):
+        first_file = self.model.get_current_filename()
+
+        self.model.accept_current_item()
+        assert_that(self.concurrent_progress_manager.is_done(first_file),
+                    equal_to(False))
+        assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
+                    contains_inanyorder(0))
+
+        self.model.next_item()
+        self.model.accept_current_item()
+        assert_that(self.concurrent_progress_manager.is_done(first_file),
+                    equal_to(False))
+        assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
+                    contains_inanyorder(0, 1))
+
+        self.model.next_item()
+        self.model.accept_current_item()
+        assert_that(self.concurrent_progress_manager.is_done(first_file),
+                    equal_to(False))
+        assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
+                    contains_inanyorder(0, 1, 2))
+
+        self.model.next_item()
+        self.model.accept_current_item()
+        assert_that(self.concurrent_progress_manager.is_done(first_file),
+                    equal_to(False))
+        print self.concurrent_progress_manager.get_processed_indices(first_file)
+        assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
+                    contains_inanyorder(0, 1, 2, 3))
+
     def test_file_processed_event(self):
         observer = Mock()
         events.subscribe(events.FINISHED_WORKUNIT, observer.on_file_processed)

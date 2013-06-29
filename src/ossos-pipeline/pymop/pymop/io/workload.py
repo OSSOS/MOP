@@ -199,7 +199,7 @@ class RealsWorkUnit(WorkUnit):
         self.next_source()
 
     def get_current_item_index(self):
-        return (self.get_sources().get_index() +
+        return (self.get_sources().get_index() * self.get_obs_count() +
                 self.get_current_source_readings().get_index())
 
     def is_finished(self):
