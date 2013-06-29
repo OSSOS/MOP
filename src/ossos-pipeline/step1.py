@@ -45,7 +45,8 @@ def step1(expnum,
                               '-w', str(fwhm),
                               '-m', str(maxcount)])
     
-    obj_uri = storage.get_uri(expnum,ccd,version=version,ext='obj.jmp', prefix=prefix)
+    obj_uri = storage.get_uri(expnum,ccd,version=version,ext='obj.jmp',
+                              prefix=prefix)
     obj_filename = basename+".obj.jmp"
 
     storage.copy(obj_filename,obj_uri)
@@ -63,7 +64,8 @@ def step1(expnum,
                               '-w', str(fwhm),
                               '-m', str(maxcount)])
 
-    obj_uri = storage.get_uri(expnum,ccd,version=version,ext='obj.matt', prefix=prefix)
+    obj_uri = storage.get_uri(expnum,ccd,version=version,ext='obj.matt',
+                              prefix=prefix)
     obj_filename = basename+".obj.matt"
 
     storage.copy(obj_filename,obj_uri)
@@ -104,7 +106,8 @@ if __name__=='__main__':
     parser.add_argument("--version",
                         action='version',
                         version='%(prog)s 1.0')
-    parser.add_argument('--type', default='p', choices=['o','p','s'], help="which type of image")
+    parser.add_argument('--type', default='p',
+                        choices=['o','p','s'], help="which type of image")
     parser.add_argument("--verbose","-v",
                         action="store_true")
     parser.add_argument("--debug",'-d',
@@ -139,10 +142,11 @@ if __name__=='__main__':
                     raise IOError(35, "mkpsf hasn't run?")
                 if storage.get_status(expnum, ccd, prefix+'step1') and not args.force:
                     logging.critical(
-                        "Already did %s %s, skipping" %(str(expnum),
+                        "Already did %s %s, skipping" %(prefix+str(expnum),
                                                         str(ccd)))
                     continue
-                logging.info("step1 on expnum :%d, ccd: %d" % ( expnum, ccd))
+                logging.info("step1 on expnum :%d, ccd: %d" % (
+                    prefix+str(expnum), ccd))
                 step1(expnum, ccd, prefix=prefix, version=args.type)
                 logging.info(message)
             except Exception as e:
