@@ -1,16 +1,14 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import os
 import tempfile
 import unittest
 
 from hamcrest import (assert_that, equal_to, has_length, has_entries,
-                      same_instance, contains, close_to, contains_inanyorder)
-from mock import Mock
+                      same_instance, contains, close_to)
 
 from test.base_tests import FileReadingTestCase
-from pymop import tasks
 from pymop.io import astrom
-from pymop.io import persistence
 from pymop.io.astrom import (AstromParser, StreamingAstromWriter, Observation,
                              BaseAstromWriter, BulkAstromWriter)
 
@@ -228,7 +226,7 @@ class GeneralAstromWriterTest(FileReadingTestCase):
     def setUp(self):
         self.parser = AstromParser()
         self.outputfile = tempfile.NamedTemporaryFile(suffix=".astrom",
-                                                      mode="w+b")
+                                                      mode="a+b")
 
     def tearDown(self):
         self.outputfile.close()
@@ -343,9 +341,9 @@ class BulkAstromWriterTest(GeneralAstromWriterTest):
 class StreamingAstromWriterTest(GeneralAstromWriterTest):
     def setUp(self):
         super(StreamingAstromWriterTest, self).setUp()
-        sys_header = {astrom.RMIN: 0.5, astrom.RMAX: 10.3,
-                      astrom.ANGLE: -19.9, astrom.AWIDTH: 22.3}
-        self.writer = StreamingAstromWriter(self.outputfile, sys_header)
+        self.sys_header = {astrom.RMIN: 0.5, astrom.RMAX: 10.3,
+                           astrom.ANGLE: -19.9, astrom.AWIDTH: 22.3}
+        self.writer = StreamingAstromWriter(self.outputfile, self.sys_header)
 
     def test_write_source(self):
         with open(self.get_abs_path(TEST_FILE_1), "rb") as fh:
@@ -367,6 +365,25 @@ class StreamingAstromWriterTest(GeneralAstromWriterTest):
         assert_that(self.read_output(), equal_to(get_expected(32)))
         self.writer.write_source(source3)
         assert_that(self.read_output(), equal_to(get_expected(37)))
+
+    def test_continue_writing_to_existing_file(self):
+        with open(self.get_abs_path(TEST_FILE_1), "rb") as fh:
+            expected_lines = fh.readlines()
+
+        def get_expected(num_lines):
+            return "".join(expected_lines[:num_lines])
+
+        astrom_data = self.parse(TEST_FILE_1)
+        source1 = astrom_data.sources[0]
+        source2 = astrom_data.sources[1]
+
+        assert_that(self.read_output(), equal_to(""))
+        self.writer.write_source(source1)
+        assert_that(self.read_output(), equal_to(get_expected(28)))
+
+        writer2 = StreamingAstromWriter(self.outputfile, self.sys_header)
+        writer2.write_source(source2)
+        assert_that(self.read_output(), equal_to(get_expected(32)))
 
 
 class AstromDataTest(FileReadingTestCase):

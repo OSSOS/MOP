@@ -1,7 +1,6 @@
 """
 Reads and writes .astrom files.
 """
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import os
@@ -13,6 +12,8 @@ from pymop import tasks
 HEADER_LINE_LENGTH = 80
 
 FAKE_PREFIX = "fk"
+
+OBS_LIST_PATTERN = "#\s+(?P<rawname>(?P<fk>%s)?(?P<expnum>\d{7})(?P<ftype>[ops])(?P<ccdnum>\d+))" % FAKE_PREFIX
 
 ## Observation header keys
 MOPVERSION = "MOPversion"
@@ -60,9 +61,7 @@ class AstromParser(object):
 
         # Set up the regexes need to parse each section of the .astrom file
 
-        self.obs_list_regex = re.compile(
-            "#\s+(?P<rawname>(?P<fk>%s)?(?P<expnum>\d{7})(?P<ftype>[ops])(?P<ccdnum>\d+))" % FAKE_PREFIX
-        )
+        self.obs_list_regex = re.compile(OBS_LIST_PATTERN)
 
         self.obs_header_regex = re.compile(
             "##\s+MOPversion\s+#\s+"
@@ -299,6 +298,13 @@ class StreamingAstromWriter(BaseAstromWriter):
     def __init__(self, filehandle, sys_header):
         super(StreamingAstromWriter, self).__init__(filehandle)
         self.sys_header = sys_header
+
+        # Allow that the headers might have been written out in a previous
+        # session by a different writer object.  In this case we just want
+        # to be able to add more sources.
+        self.output_file.seek(0)
+        if re.match(OBS_LIST_PATTERN, self.output_file.read()):
+            self._header_written = True
 
     def write_source(self, source):
         """
