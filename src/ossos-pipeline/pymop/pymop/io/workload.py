@@ -144,19 +144,19 @@ class WorkUnit(object):
 
     def next_source(self):
         self.get_sources().next()
-        events.send(events.MSG_NEXT_SRC, data=self.get_current_source_number())
+        events.send(events.NEXT_SRC, data=self.get_current_source_number())
 
     def previous_source(self):
         self.get_sources().previous()
-        events.send(events.MSG_PREV_SRC, data=self.get_current_source_number())
+        events.send(events.PREV_SRC, data=self.get_current_source_number())
 
     def next_obs(self):
         self.get_current_source_readings().next()
-        events.send(events.MSG_NEXT_OBS, data=self.get_current_obs_number())
+        events.send(events.NEXT_OBS, data=self.get_current_obs_number())
 
     def previous_obs(self):
         self.get_current_source_readings().previous()
-        events.send(events.MSG_PREV_OBS, data=self.get_current_obs_number())
+        events.send(events.PREV_OBS, data=self.get_current_obs_number())
 
     def get_current_item(self):
         raise NotImplementedError()
@@ -350,7 +350,7 @@ class WorkloadManager(object):
         if not self.work_units.has_next():
             self.work_units.append(self.workunit_provider.get_workunit())
             self.work_units.next()
-            events.send(events.MSG_NEW_WORK_UNIT)
+            events.send(events.NEW_WORK_UNIT)
         else:
             self.work_units.next()
 
@@ -413,7 +413,7 @@ class WorkloadManager(object):
         if self.get_current_workunit().is_finished():
             filename = self.get_current_workunit().get_filename()
             self.progress_manager.record_done(filename)
-            events.send(events.MSG_FILE_PROC, filename)
+            events.send(events.FINISHED_WORKUNIT, filename)
             self.next_workunit()
 
     def get_num_items_processed(self):

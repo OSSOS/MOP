@@ -5,22 +5,22 @@ from wx.lib.pubsub import setupv1
 from wx.lib.pubsub import Publisher as pub
 
 # Event ids
-MSG_ROOT = ("astrodataroot", )
+ROOT = ("rootid", )
 
-MSG_NAV = MSG_ROOT + ("nav", )
-MSG_NAV_SRC = MSG_NAV + ("src", )
-MSG_NAV_OBS = MSG_NAV + ("obs", )
+NAV = ROOT + ("nav", )
+NAV_SRC = NAV + ("src", )
+NAV_OBS = NAV + ("obs", )
 
-MSG_NEXT_SRC = MSG_NAV_SRC + ("next", )
-MSG_PREV_SRC = MSG_NAV_SRC + ("prev", )
-MSG_NEXT_OBS = MSG_NAV_OBS + ("next", )
-MSG_PREV_OBS = MSG_NAV_OBS + ("prev", )
+NEXT_SRC = NAV_SRC + ("next", )
+PREV_SRC = NAV_SRC + ("prev", )
+NEXT_OBS = NAV_OBS + ("next", )
+PREV_OBS = NAV_OBS + ("prev", )
 
-MSG_IMG_LOADED = MSG_ROOT + ("imgload", )
+IMG_LOADED = ROOT + ("imgload", )
 
-MSG_NEW_WORK_UNIT = MSG_ROOT + ("newworkunit", )
-MSG_FILE_PROC = MSG_ROOT + ("fileproc", )
-MSG_ALL_ITEMS_PROC = MSG_ROOT + ("allproc", )
+NEW_WORK_UNIT = ROOT + ("new_workunit", )
+FINISHED_WORKUNIT = ROOT + ("finished_workunit", )
+NO_AVAILABLE_WORK = ROOT + ("no_available_work", )
 
 
 def send(event_id, data=None):

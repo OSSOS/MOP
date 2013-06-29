@@ -22,7 +22,7 @@ class AbstractModel(object):
 
         self._num_images_loaded = 0
 
-        events.subscribe(events.MSG_NEW_WORK_UNIT, self._download_current_workunit_images)
+        events.subscribe(events.NEW_WORK_UNIT, self._download_current_workunit_images)
         self.workload_manager.start_work()
 
     def get_current_filename(self):
@@ -119,7 +119,7 @@ class AbstractModel(object):
 
     def _on_image_loaded(self, source_num, obs_num):
         self._num_images_loaded += 1
-        events.send(events.MSG_IMG_LOADED, (source_num, obs_num))
+        events.send(events.IMG_LOADED, (source_num, obs_num))
 
     def get_num_items_processed(self):
         return self.workload_manager.get_num_items_processed()
@@ -129,7 +129,7 @@ class AbstractModel(object):
         try:
             self.workload_manager.accept_current_item()
         except NoAvailableWorkException:
-            events.send(events.MSG_ALL_ITEMS_PROC)
+            events.send(events.NO_AVAILABLE_WORK)
             self.exit()
         finally:
             self._on_accept()
@@ -143,7 +143,7 @@ class AbstractModel(object):
         try:
             self.workload_manager.reject_current_item()
         except NoAvailableWorkException:
-            events.send(events.MSG_ALL_ITEMS_PROC)
+            events.send(events.NO_AVAILABLE_WORK)
             self.exit()
 
     def is_current_item_processed(self):

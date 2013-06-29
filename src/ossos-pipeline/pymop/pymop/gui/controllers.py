@@ -10,9 +10,9 @@ class AbstractController(object):
         self.task = task
         self.model = model
 
-        events.subscribe(events.MSG_NAV, self.on_change_image)
-        events.subscribe(events.MSG_IMG_LOADED, self.on_image_loaded)
-        events.subscribe(events.MSG_ALL_ITEMS_PROC, self.on_all_sources_processed)
+        events.subscribe(events.NAV, self.on_change_image)
+        events.subscribe(events.IMG_LOADED, self.on_image_loaded)
+        events.subscribe(events.NO_AVAILABLE_WORK, self.on_no_available_work)
 
         self.view = ApplicationView(self.model, self)
 
@@ -52,7 +52,7 @@ class AbstractController(object):
 
         self.display_current_image()
 
-    def on_all_sources_processed(self, event):
+    def on_no_available_work(self, event):
         should_exit = self.get_view().all_processed_should_exit_prompt()
         if should_exit:
             self._do_exit()

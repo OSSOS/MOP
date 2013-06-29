@@ -141,7 +141,7 @@ class AbstractRealsModelTest(GeneralModelTest):
     def test_receive_next_source_event(self):
         # Subscribe a mock
         observer = Mock()
-        events.subscribe(events.MSG_NEXT_SRC, observer.on_next_event)
+        events.subscribe(events.NEXT_SRC, observer.on_next_event)
 
         # Perform action
         self.model.next_source()
@@ -154,13 +154,13 @@ class AbstractRealsModelTest(GeneralModelTest):
         assert_that(args, has_length(1))
 
         msg = args[0]
-        assert_that(msg.topic, equal_to(events.MSG_NEXT_SRC))
+        assert_that(msg.topic, equal_to(events.NEXT_SRC))
         assert_that(msg.data, equal_to(1))
 
     def test_receive_next_obs_event(self):
         # Subscribe a mock
         observer = Mock()
-        events.subscribe(events.MSG_NEXT_OBS, observer.on_next_event)
+        events.subscribe(events.NEXT_OBS, observer.on_next_event)
 
         # Perform action
         self.model.next_obs()
@@ -173,13 +173,13 @@ class AbstractRealsModelTest(GeneralModelTest):
         assert_that(args, has_length(1))
 
         msg = args[0]
-        assert_that(msg.topic, equal_to(events.MSG_NEXT_OBS))
+        assert_that(msg.topic, equal_to(events.NEXT_OBS))
         assert_that(msg.data, equal_to(1))
 
     def test_receive_previous_source_event(self):
         # Subscribe a mock
         observer = Mock()
-        events.subscribe(events.MSG_PREV_SRC, observer.on_previous_event)
+        events.subscribe(events.PREV_SRC, observer.on_previous_event)
 
         # Perform actions
         self.model.next_source()
@@ -193,13 +193,13 @@ class AbstractRealsModelTest(GeneralModelTest):
         assert_that(args, has_length(1))
 
         msg = args[0]
-        assert_that(msg.topic, equal_to(events.MSG_PREV_SRC))
+        assert_that(msg.topic, equal_to(events.PREV_SRC))
         assert_that(msg.data, equal_to(0))
 
     def test_receive_previous_source_event(self):
         # Subscribe a mock
         observer = Mock()
-        events.subscribe(events.MSG_PREV_OBS, observer.on_previous_event)
+        events.subscribe(events.PREV_OBS, observer.on_previous_event)
 
         # Perform actions
         self.model.next_obs()
@@ -213,13 +213,13 @@ class AbstractRealsModelTest(GeneralModelTest):
         assert_that(args, has_length(1))
 
         msg = args[0]
-        assert_that(msg.topic, equal_to(events.MSG_PREV_OBS))
+        assert_that(msg.topic, equal_to(events.PREV_OBS))
         assert_that(msg.data, equal_to(0))
 
     def test_receive_nav_event_next_and_prev_source(self):
         # Subscribe a mock
         observer = Mock()
-        events.subscribe(events.MSG_NAV, observer.on_nav)
+        events.subscribe(events.NAV, observer.on_nav)
 
         # Perform actions
         self.model.next_obs()
@@ -236,7 +236,7 @@ class AbstractRealsModelTest(GeneralModelTest):
 
     def test_loading_images(self):
         observer = Mock()
-        events.subscribe(events.MSG_IMG_LOADED, observer.on_img_loaded)
+        events.subscribe(events.IMG_LOADED, observer.on_img_loaded)
 
         assert_that(self.download_manager.start_download.call_count, equal_to(1))
         assert_that(self.model.get_loaded_image_count(), equal_to(0))
@@ -256,11 +256,11 @@ class AbstractRealsModelTest(GeneralModelTest):
         assert_that(call_args_list, has_length(2))
 
         msg0 = call_args_list[0][0][0]
-        assert_that(msg0.topic, equal_to(events.MSG_IMG_LOADED))
+        assert_that(msg0.topic, equal_to(events.IMG_LOADED))
         assert_that(msg0.data, equal_to((0, 1)))
 
         msg1 = call_args_list[1][0][0]
-        assert_that(msg1.topic, equal_to(events.MSG_IMG_LOADED))
+        assert_that(msg1.topic, equal_to(events.IMG_LOADED))
         assert_that(msg1.data, equal_to((1, 1)))
 
     def test_get_current_exposure_number(self):
@@ -368,8 +368,8 @@ class ProcessRealsModelTest(GeneralModelTest):
 
     def test_next_item_no_validation(self):
         observer = Mock()
-        events.subscribe(events.MSG_NEXT_OBS, observer.on_next_obs)
-        events.subscribe(events.MSG_NEXT_SRC, observer.on_next_src)
+        events.subscribe(events.NEXT_OBS, observer.on_next_obs)
+        events.subscribe(events.NEXT_SRC, observer.on_next_src)
 
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
@@ -523,7 +523,7 @@ class ProcessRealsModelTest(GeneralModelTest):
 
     def test_receive_all_sources_processed_event_on_final_accept(self):
         observer = Mock()
-        events.subscribe(events.MSG_ALL_ITEMS_PROC, observer.on_all_processed)
+        events.subscribe(events.NO_AVAILABLE_WORK, observer.on_all_processed)
 
         total_items = 9
         item = 0
@@ -539,7 +539,7 @@ class ProcessRealsModelTest(GeneralModelTest):
 
     def test_receive_all_sources_processed_event_on_final_reject(self):
         observer = Mock()
-        events.subscribe(events.MSG_ALL_ITEMS_PROC, observer.on_all_processed)
+        events.subscribe(events.NO_AVAILABLE_WORK, observer.on_all_processed)
 
         total_items = 9
         item = 0
@@ -574,8 +574,8 @@ class ProcessCandidatesModelTest(GeneralModelTest):
 
     def test_next_item(self):
         observer = Mock()
-        events.subscribe(events.MSG_NEXT_OBS, observer.on_next_obs)
-        events.subscribe(events.MSG_NEXT_SRC, observer.on_next_src)
+        events.subscribe(events.NEXT_OBS, observer.on_next_obs)
+        events.subscribe(events.NEXT_SRC, observer.on_next_src)
 
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
@@ -650,7 +650,7 @@ class ProcessCandidatesModelTest(GeneralModelTest):
 
     def test_receive_all_sources_processed_event_on_final_accept(self):
         observer = Mock()
-        events.subscribe(events.MSG_ALL_ITEMS_PROC, observer.on_all_processed)
+        events.subscribe(events.NO_AVAILABLE_WORK, observer.on_all_processed)
 
         total_items = 3
         item = 0
@@ -666,7 +666,7 @@ class ProcessCandidatesModelTest(GeneralModelTest):
 
     def test_receive_all_sources_processed_event_on_final_reject(self):
         observer = Mock()
-        events.subscribe(events.MSG_ALL_ITEMS_PROC, observer.on_all_processed)
+        events.subscribe(events.NO_AVAILABLE_WORK, observer.on_all_processed)
 
         total_items = 3
         item = 0
@@ -846,7 +846,7 @@ class RealsModelPersistenceTest(GeneralModelTest):
 
     def test_file_processed_event(self):
         observer = Mock()
-        events.subscribe(events.MSG_FILE_PROC, observer.on_file_processed)
+        events.subscribe(events.FINISHED_WORKUNIT, observer.on_file_processed)
 
         filename = self.workload.get_current_filename()
         accepts_before_next_file = 9
@@ -865,7 +865,7 @@ class RealsModelPersistenceTest(GeneralModelTest):
         assert_that(args, has_length(1))
 
         msg = args[0]
-        assert_that(msg.topic, equal_to(events.MSG_FILE_PROC))
+        assert_that(msg.topic, equal_to(events.FINISHED_WORKUNIT))
         assert_that(msg.data, equal_to(filename))
 
     def test_unlock_on_exit(self):
