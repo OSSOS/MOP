@@ -545,6 +545,7 @@ class KeyboardCompleteComboBox(wx.ComboBox):
 
 
 class SourceValidationDialog(wx.Dialog):
+    COMMENT = "Comment: "
     SUBMIT_BTN = "Submit"
     CANCEL_BTN = "Cancel"
 
@@ -552,6 +553,12 @@ class SourceValidationDialog(wx.Dialog):
         super(SourceValidationDialog, self).__init__(parent, title=title)
 
         self._init_ui()
+
+        self.comment_label = wx.StaticText(self, label=SourceValidationDialog.COMMENT)
+        self.comment_text = wx.TextCtrl(self, name=SourceValidationDialog.COMMENT,
+                                        style=wx.TE_MULTILINE|wx.TE_PROCESS_ENTER,
+                                        size=(250, 50))
+        self.comment_text.Bind(wx.EVT_TEXT_ENTER, self._on_enter_comment)
 
         self.submit_button = wx.Button(
             self, label=self.SUBMIT_BTN, name=SourceValidationDialog.SUBMIT_BTN)
@@ -574,8 +581,13 @@ class SourceValidationDialog(wx.Dialog):
     def _do_layout(self):
         vsizer = wx.BoxSizer(wx.VERTICAL)
         for widget in self._get_vertical_widget_list():
-            vsizer.Add(widget, proportion=0, flag=wx.ALL, border=5)
+            vsizer.Add(widget, proportion=0, flag=wx.ALL|wx.EXPAND, border=5)
 
+        comment_sizer = wx.BoxSizer(wx.VERTICAL)
+        comment_sizer.Add(self.comment_label, flag=wx.ALIGN_CENTER)
+        comment_sizer.Add(self.comment_text, flag=wx.EXPAND)
+
+        vsizer.Add(comment_sizer, flag=wx.ALL|wx.EXPAND, border=5)
         vsizer.Add(self._create_horizontal_pair(self.submit_button, self.cancel_button,
                                                 flag=wx.ALL, border=5),
                    flag=wx.ALIGN_CENTER)
@@ -586,13 +598,18 @@ class SourceValidationDialog(wx.Dialog):
 
         self.SetSizerAndFit(bordersizer)
 
+    def _on_enter_comment(self, event):
+        # Don't want it to actually put a newline character, just submit
+        # the form.
+        self._on_submit(event)
+
     def _init_ui(self):
         raise NotImplementedError()
 
-    def _on_submit(self):
+    def _on_submit(self, event):
         raise NotImplementedError()
 
-    def _on_cancel(self):
+    def _on_cancel(self, event):
         raise NotImplementedError()
 
     def _get_vertical_widget_list(self):
@@ -612,7 +629,6 @@ class AcceptSourceDialog(SourceValidationDialog):
     OBS_MAG = "Observed magnitude: "
     BAND = "Band: "
     OBSERVATORY_CODE = "Observatory code: "
-    COMMENT = "Comment: "
 
     def __init__(self, parent, controller, provisional_name, already_discovered, date_of_obs, ra, dec, obs_mag, band,
                  note1_choices=None, note2_choices=None, note2_default=None, default_observatory_code=""):
@@ -688,9 +704,6 @@ class AcceptSourceDialog(SourceValidationDialog):
             self, name=AcceptSourceDialog.OBSERVATORY_CODE)
         self.observatory_code_text.SetValue(self.default_observatory_code)
 
-        self.comment_label = wx.StaticText(self, label=AcceptSourceDialog.COMMENT)
-        self.comment_text = wx.TextCtrl(self, name=AcceptSourceDialog.COMMENT)
-
     def _get_vertical_widget_list(self):
         return [self._create_horizontal_pair(self.minor_planet_num_label, self.minor_planet_num_text),
                 self._create_horizontal_pair(self.provisional_name_label, self.provision_name_text),
@@ -705,7 +718,6 @@ class AcceptSourceDialog(SourceValidationDialog):
                 self._create_horizontal_pair(self.obs_mag_label, self.obs_mag_text),
                 self._create_horizontal_pair(self.band_label, self.band_text),
                 self._create_horizontal_pair(self.observatory_code_label, self.observatory_code_text),
-                self._create_horizontal_pair(self.comment_label, self.comment_text),
                 (0, 0)  # blank space
         ]
 
@@ -741,7 +753,6 @@ class AcceptSourceDialog(SourceValidationDialog):
 
 class RejectSourceDialog(SourceValidationDialog):
     TITLE = "Reject Source"
-    COMMENT = "Comment: "
 
     def __init__(self, parent, controller):
         super(RejectSourceDialog, self).__init__(parent, title=self.TITLE)
@@ -749,13 +760,10 @@ class RejectSourceDialog(SourceValidationDialog):
         self.comment_text.SetFocus()
 
     def _init_ui(self):
-        self.comment_label = wx.StaticText(self, label=RejectSourceDialog.COMMENT)
-        self.comment_text = wx.TextCtrl(self, name=RejectSourceDialog.COMMENT)
+        pass
 
     def _get_vertical_widget_list(self):
-        return [self._create_horizontal_pair(self.comment_label, self.comment_text),
-                (0, 0)  # blank space
-               ]
+        return []
 
     def _on_submit(self, event):
         comment = self.comment_text.GetValue()
