@@ -21,7 +21,7 @@
         </ul>
       </div><!--page-header-->
 
-      <h2>block ${blockID} <small>${num_fields} fields, centred (${ra}, ${dec})</small></h2>
+      <h2>block ${blockID} <small>${num_fields} fields, centred (${radec[0]}&#688;${radec[1]}&#x1D50;, ${radec[2]}&deg;${radec[3]}) <i>b</i>=${'%.1f' % ec_lat[0]}-${'%.1f' % ec_lat[1]}&deg;</small></h2>
 
       <div class="well well-small">
         <dl class="dl-horizontal">
