@@ -18,6 +18,7 @@ class WorkCompleteException(Exception):
 class VettableItem(object):
     ACCEPTED = "accepted"
     REJECTED = "rejected"
+    PREVIOUSLY_PROCESSED = "previously_processed"
     UNPROCESSED = "unprocessed"
 
     def __init__(self, item):
@@ -41,6 +42,9 @@ class VettableItem(object):
 
     def reject(self):
         self._status = VettableItem.REJECTED
+
+    def set_previously_processed(self):
+        self._status = VettableItem.PREVIOUSLY_PROCESSED
 
     def get_status(self):
         return self._status
@@ -170,6 +174,9 @@ class WorkUnit(object):
     def next_vettable_item(self):
         raise NotImplementedError()
 
+    def set_previously_processed(self, indices):
+        raise NotImplementedError()
+
     def get_writer(self):
         return self.results_writer
 
@@ -186,21 +193,47 @@ class RealsWorkUnit(WorkUnit):
         return self.get_current_reading()
 
     def next_vettable_item(self):
+        # TODO: refactor this to make less complicated...
+
+        # Make sure we are on the right source
+        sources_checked = 0
+        while (self.is_current_source_finished() and
+                       sources_checked < self.get_source_count()):
+            sources_checked += 1
+            self.next_source()
+
+        # Then proceed to the first unprocessed observation
+        if sources_checked == 0:
+            self.next_obs()
+
         num_obs_to_check = len(self.get_current_source_readings())
         while num_obs_to_check > 0:
-            self.next_obs()
             if not self.get_current_reading().is_processed():
                 # This observation needs to be vetted, stop here
                 return
 
+            self.next_obs()
             num_obs_to_check -= 1
-
-        # All observations of this source have been processed
-        self.next_source()
 
     def get_current_item_index(self):
         return (self.get_sources().get_index() * self.get_obs_count() +
                 self.get_current_source_readings().get_index())
+
+    def set_previously_processed(self, indices):
+        for index in indices:
+            source_num = int(index / self.get_obs_count())
+            reading_num = index % self.get_obs_count()
+            self.get_sources()[source_num].get_readings()[reading_num].set_previously_processed()
+
+        if self.get_current_item().is_processed():
+            self.next_vettable_item()
+
+    def is_current_source_finished(self):
+        for reading in self.get_current_source().get_readings():
+            if not reading.is_processed():
+                return False
+
+        return True
 
     def is_finished(self):
         for source in self.get_sources():
@@ -224,6 +257,13 @@ class CandidatesWorkUnit(WorkUnit):
 
     def get_current_item_index(self):
         return self.get_sources().get_index()
+
+    def set_previously_processed(self, indices):
+        for index in indices:
+            self.get_sources()[index].set_previously_processed()
+
+        if self.get_current_item().is_processed():
+            self.next_vettable_item()
 
     def is_finished(self):
         for source in self.get_sources():
@@ -348,7 +388,12 @@ class WorkloadManager(object):
 
     def next_workunit(self):
         if not self.work_units.has_next():
-            self.work_units.append(self.workunit_provider.get_workunit())
+            # TODO refactor.
+            new_workunit = self.workunit_provider.get_workunit()
+            processed_indices = self.progress_manager.get_processed_indices(new_workunit.get_filename())
+            new_workunit.set_previously_processed(processed_indices)
+            self.work_units.append(new_workunit)
+
             self.work_units.next()
             events.send(events.NEW_WORK_UNIT)
         else:

@@ -1,5 +1,6 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import os
 import unittest
 
 from hamcrest import assert_that, equal_to, has_length, contains, none, same_instance, is_not, contains_inanyorder
@@ -871,7 +872,6 @@ class RealsModelPersistenceTest(GeneralModelTest):
         self.model.accept_current_item()
         assert_that(self.concurrent_progress_manager.is_done(first_file),
                     equal_to(False))
-        print self.concurrent_progress_manager.get_processed_indices(first_file)
         assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
                     contains_inanyorder(0, 1, 2, 3))
 
@@ -905,6 +905,50 @@ class RealsModelPersistenceTest(GeneralModelTest):
         assert_that(self.progress_manager.owns_lock(current_file), equal_to(True))
         self.model.exit()
         assert_that(self.progress_manager.owns_lock(current_file), equal_to(False))
+
+
+class RealsModelPersistenceLoadingTest(GeneralModelTest):
+    def setUp(self):
+        super(RealsModelPersistenceLoadingTest, self).setUp()
+
+        # Have to set this up here because test cases may modify the .PART file
+        partfile = os.path.join(self.get_directory_to_clean(), "xxx3.reals.astrom.PART")
+        with open(partfile, "w+b") as filehandle:
+            filehandle.write("0\n1\n2\n5\n3\n")
+
+        self.model = ProcessRealsModel(self.workload, self.download_manager)
+
+    def _get_task(self):
+        return tasks.REALS_TASK
+
+    def _get_workunit_builder(self, parser, writer_factory):
+        return RealsWorkUnitBuilder(parser, writer_factory)
+
+    def _get_working_dir(self):
+        return self.get_abs_path("data/model_persistence_partial")
+
+    def get_directory_to_clean(self):
+        return self._get_working_dir()
+
+    def get_files_to_keep(self):
+        return ["xxx1.cands.astrom", "xxx3.reals.astrom"]
+
+    def test_load_partially_processed(self):
+        observer = Mock()
+        events.subscribe(events.FINISHED_WORKUNIT, observer)
+
+        assert_that(self.model.get_current_source_number(), equal_to(1))
+        assert_that(self.model.get_current_obs_number(), equal_to(1))
+        self.model.reject_current_item()
+
+        for i in range(3):
+            self.model.next_item()
+            self.model.accept_current_item()
+
+        assert_that(observer.call_count, equal_to(1))
+
+        msg = observer.call_args_list[0][0][0]
+        assert_that(msg.data, equal_to("xxx3.reals.astrom"))
 
 
 class CandidatesModelPersistenceTest(GeneralModelTest):
@@ -980,6 +1024,46 @@ class CandidatesModelPersistenceTest(GeneralModelTest):
                     equal_to(True))
         assert_that(self.concurrent_progress_manager.get_processed_indices(second_file),
                     contains_inanyorder(0, 1, 2))
+
+
+class CandidatesModelPersistenceLoadingTest(GeneralModelTest):
+    def setUp(self):
+        super(CandidatesModelPersistenceLoadingTest, self).setUp()
+
+        # Have to set this up here because test cases may modify the .PART file
+        partfile = os.path.join(self.get_directory_to_clean(), "xxx1.cands.astrom.PART")
+        with open(partfile, "w+b") as filehandle:
+            filehandle.write("0\n2\n")
+
+        self.model = ProcessCandidatesModel(self.workload, self.download_manager)
+
+    def _get_task(self):
+        return tasks.CANDS_TASK
+
+    def _get_workunit_builder(self, parser, writer_factory):
+        return CandidatesWorkUnitBuilder(parser, writer_factory)
+
+    def _get_working_dir(self):
+        return self.get_abs_path("data/model_persistence_partial")
+
+    def get_directory_to_clean(self):
+        return self._get_working_dir()
+
+    def get_files_to_keep(self):
+        return ["xxx1.cands.astrom", "xxx3.reals.astrom"]
+
+    def test_load_partially_processed(self):
+        observer = Mock()
+        events.subscribe(events.FINISHED_WORKUNIT, observer)
+
+        assert_that(self.model.get_current_source_number(), equal_to(1))
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
+
+        self.model.accept_current_item()
+        assert_that(observer.call_count, equal_to(1))
+
+        msg = observer.call_args_list[0][0][0]
+        assert_that(msg.data, equal_to("xxx1.cands.astrom"))
 
 
 if __name__ == '__main__':

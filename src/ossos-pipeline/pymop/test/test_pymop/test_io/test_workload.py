@@ -306,10 +306,12 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         assert_that(second_item.is_rejected(), equal_to(True))
 
     def test_get_current_item_index(self):
-        for index in range(9):
+        for index in range(8):
             assert_that(self.workunit.get_current_item_index(), equal_to(index))
             self.workunit.accept_current_item()
             self.workunit.next_vettable_item()
+
+        assert_that(self.workunit.get_current_item_index(), equal_to(8))
 
 
 class CandidatesWorkUnitTest(AbstractWorkUnitTest):
