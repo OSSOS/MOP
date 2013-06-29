@@ -3,11 +3,6 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 
 import wx
-
-# TODO: upgrade
-from wx.lib.pubsub import setupv1
-from wx.lib.pubsub import Publisher as pub
-
 from wx.lib.mixins import listctrl as listmix
 
 from pymop import config
@@ -199,10 +194,10 @@ class MainFrame(wx.Frame):
         notebook = wx.Notebook(self.control_panel)
 
         reading_data_panel = KeyValueListPanel(notebook, self.model.get_reading_data)
-        pub.subscribe(reading_data_panel.on_change_data, events.MSG_NAV)
+        events.subscribe(events.MSG_NAV, reading_data_panel.on_change_data)
 
         obs_header_panel = KeyValueListPanel(notebook, self.model.get_header_data_list)
-        pub.subscribe(obs_header_panel.on_change_data, events.MSG_NAV)
+        events.subscribe(events.MSG_NAV, obs_header_panel.on_change_data)
 
         notebook.AddPage(reading_data_panel, "Readings")
         notebook.AddPage(obs_header_panel, "Observation Header")
@@ -598,7 +593,6 @@ class AcceptSourceDialog(SourceValidationDialog):
 
     def __init__(self, parent, controller, provisional_name, already_discovered, date_of_obs, ra, dec, obs_mag, band,
                  note1_choices=None, note2_choices=None, note2_default=None, default_observatory_code=""):
-
         self.controller = controller
         self.provisional_name = provisional_name
         self.already_discovered = already_discovered
@@ -737,7 +731,7 @@ class RejectSourceDialog(SourceValidationDialog):
     def _get_vertical_widget_list(self):
         return [self._create_horizontal_pair(self.comment_label, self.comment_text),
                 (0, 0)  # blank space
-               ]
+        ]
 
     def _on_submit(self, event):
         comment = self.comment_text.GetValue()

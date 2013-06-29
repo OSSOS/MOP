@@ -1,9 +1,5 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-# TODO: upgrade
-from wx.lib.pubsub import setupv1
-from wx.lib.pubsub import Publisher as pub
-
 from pymop import config
 from pymop.gui import events
 from pymop.gui.views import ApplicationView
@@ -14,9 +10,9 @@ class AbstractController(object):
         self.task = task
         self.model = model
 
-        pub.subscribe(self.on_change_image, events.MSG_NAV)
-        pub.subscribe(self.on_image_loaded, events.MSG_IMG_LOADED)
-        pub.subscribe(self.on_all_sources_processed, events.MSG_ALL_ITEMS_PROC)
+        events.subscribe(events.MSG_NAV, self.on_change_image)
+        events.subscribe(events.MSG_IMG_LOADED, self.on_image_loaded)
+        events.subscribe(events.MSG_ALL_ITEMS_PROC, self.on_all_sources_processed)
 
         self.view = ApplicationView(self.model, self)
 

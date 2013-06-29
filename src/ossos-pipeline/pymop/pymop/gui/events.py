@@ -1,6 +1,10 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-# Pub/Sub ids
+# TODO: compatibility with both new and old versions
+from wx.lib.pubsub import setupv1
+from wx.lib.pubsub import Publisher as pub
+
+# Event ids
 MSG_ROOT = ("astrodataroot", )
 
 MSG_NAV = MSG_ROOT + ("nav", )
@@ -17,3 +21,15 @@ MSG_IMG_LOADED = MSG_ROOT + ("imgload", )
 MSG_NEW_WORK_UNIT = MSG_ROOT + ("newworkunit", )
 MSG_FILE_PROC = MSG_ROOT + ("fileproc", )
 MSG_ALL_ITEMS_PROC = MSG_ROOT + ("allproc", )
+
+
+def send(event_id, data=None):
+    pub.sendMessage(event_id, data=data)
+
+
+def subscribe(event_id, callback):
+    pub.subscribe(callback, event_id)
+
+
+def unsub_all():
+    pub.unsubAll()

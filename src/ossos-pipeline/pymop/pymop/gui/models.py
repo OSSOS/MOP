@@ -7,10 +7,6 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import collections
 
-# TODO: upgrade
-from wx.lib.pubsub import setupv1
-from wx.lib.pubsub import Publisher as pub
-
 from pymop.gui import events
 from pymop.io.workload import NoAvailableWorkException
 
@@ -26,7 +22,7 @@ class AbstractModel(object):
 
         self._num_images_loaded = 0
 
-        pub.subscribe(self._download_current_workunit_images, events.MSG_NEW_WORK_UNIT)
+        events.subscribe(events.MSG_NEW_WORK_UNIT, self._download_current_workunit_images)
         self.workload_manager.start_work()
 
     def get_current_filename(self):
@@ -123,7 +119,7 @@ class AbstractModel(object):
 
     def _on_image_loaded(self, source_num, obs_num):
         self._num_images_loaded += 1
-        pub.sendMessage(events.MSG_IMG_LOADED, (source_num, obs_num))
+        events.send(events.MSG_IMG_LOADED, (source_num, obs_num))
 
     def get_num_items_processed(self):
         return self.workload_manager.get_num_items_processed()
@@ -133,7 +129,7 @@ class AbstractModel(object):
         try:
             self.workload_manager.accept_current_item()
         except NoAvailableWorkException:
-            pub.sendMessage(events.MSG_ALL_ITEMS_PROC)
+            events.send(events.MSG_ALL_ITEMS_PROC)
             self.exit()
         finally:
             self._on_accept()
@@ -147,7 +143,7 @@ class AbstractModel(object):
         try:
             self.workload_manager.reject_current_item()
         except NoAvailableWorkException:
-            pub.sendMessage(events.MSG_ALL_ITEMS_PROC)
+            events.send(events.MSG_ALL_ITEMS_PROC)
             self.exit()
 
     def is_current_item_processed(self):
@@ -187,6 +183,7 @@ class ProcessRealsModel(AbstractModel):
 
 class ProcessCandidatesModel(AbstractModel):
     """TODO: refactor"""
+
     def __init__(self, workload_manager, download_manager):
         super(ProcessCandidatesModel, self).__init__(
             workload_manager, download_manager)
