@@ -194,10 +194,10 @@ class MainFrame(wx.Frame):
         notebook = wx.Notebook(self.control_panel)
 
         reading_data_panel = KeyValueListPanel(notebook, self.model.get_reading_data)
-        events.subscribe(events.MSG_NAV, reading_data_panel.on_change_data)
+        events.subscribe(events.NAV, reading_data_panel.on_change_data)
 
         obs_header_panel = KeyValueListPanel(notebook, self.model.get_header_data_list)
-        events.subscribe(events.MSG_NAV, obs_header_panel.on_change_data)
+        events.subscribe(events.NAV, obs_header_panel.on_change_data)
 
         notebook.AddPage(reading_data_panel, "Readings")
         notebook.AddPage(obs_header_panel, "Observation Header")
