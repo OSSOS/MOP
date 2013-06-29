@@ -10,10 +10,9 @@ from ossos import storage
 from astropy.io import fits
 import logging
 
-def run_scramble(expnums, ccd, version='p'):
+def scramble(expnums, ccd, version='p'):
     '''run the plant script on this combination of exposures'''
 
-    scramble = []
     mjds = []
     fobjs = []
     for expnum in expnums:
@@ -76,6 +75,8 @@ if __name__=='__main__':
                         action="store_true")
     parser.add_argument("--debug",'-d',
                         action='store_true')
+    parser.add_argument("--force", action='store_true')
+    
     args=parser.parse_args()
 
     storage._dbimages = args.dbimages
@@ -97,4 +98,17 @@ if __name__=='__main__':
         ccds = range(0,36)
     for ccd in ccds:
         expnums = args.expnums
-        run_scramble(expnums=expnums, ccd=ccd, version=args.type)
+        if storage.get_status(expnums[0], ccd,
+                              'scramble') and not args.force:
+            continue
+        message = storage.SUCCESS
+
+        try:
+            scramble(expnums=expnums, ccd=ccd, version=args.type)
+        except Exception as e:
+            logging.error(e)
+            message = str(e)
+
+        storage.set_status(expnums[0], ccd,
+                           'scramble',
+                           message)

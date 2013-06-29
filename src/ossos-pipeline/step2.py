@@ -103,11 +103,11 @@ if __name__ == '__main__':
         try:
             message = storage.SUCCESS
             for expnum in args.expnums:
-                if not storage.get_status(expnum, ccd, 'step1'):
+                if not storage.get_status(expnum, ccd, prefix+'step1'):
                     raise IOError(35, "missing step1 for %s" % ( expnum))
             if storage.get_status(args.expnums[0],
                                   ccd,
-                                  'step2') and not args.force:
+                                  prefix+'step2') and not args.force:
                 logging.info("Already did %s %s, skipping" %(str(expnum),
                                                              str(ccd)))
                 continue
@@ -120,7 +120,7 @@ if __name__ == '__main__':
         logging.error(message)
         storage.set_status(args.expnums[0],
                            ccd,
-                           'step2',
+                           prefix+'step2',
                            message)
         
             

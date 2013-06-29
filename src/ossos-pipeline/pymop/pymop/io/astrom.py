@@ -12,6 +12,8 @@ from pymop import tasks
 
 HEADER_LINE_LENGTH = 80
 
+FAKE_PREFIX = "fk"
+
 ## Observation header keys
 MOPVERSION = "MOPversion"
 
@@ -59,7 +61,7 @@ class AstromParser(object):
         # Set up the regexes need to parse each section of the .astrom file
 
         self.obs_list_regex = re.compile(
-            "#\s+(?P<rawname>(?P<expnum>\d{7})(?P<ftype>[ops])(?P<ccdnum>\d+))"
+            "#\s+(?P<rawname>(?P<fk>%s)?(?P<expnum>\d{7})(?P<ftype>[ops])(?P<ccdnum>\d+))" % FAKE_PREFIX
         )
 
         self.obs_header_regex = re.compile(
@@ -471,18 +473,22 @@ class Observation(object):
     HEADER_IMG_SIZE_Y = NAX2
 
     @staticmethod
-    def from_parse_data(rawname, expnum, ftype, ccdnum):
-        assert rawname == expnum + ftype + ccdnum
-        return Observation(expnum, ftype, ccdnum)
+    def from_parse_data(rawname, fk, expnum, ftype, ccdnum):
+        assert rawname == fk + expnum + ftype + ccdnum
+        return Observation(expnum, ftype, ccdnum, fk)
 
-    def __init__(self, expnum, ftype, ccdnum):
+    def __init__(self, expnum, ftype, ccdnum, fk=""):
         self.expnum = expnum
         self.ftype = ftype
         self.ccdnum = ccdnum
+        self.fk = fk
 
-        self.rawname = expnum + ftype + ccdnum
+        self.rawname = fk + expnum + ftype + ccdnum
 
         self.header = {}
+
+    def is_fake(self):
+        return self.fk == FAKE_PREFIX
 
     def __repr__(self):
         return "<Observation rawname=%s>" % self.rawname
