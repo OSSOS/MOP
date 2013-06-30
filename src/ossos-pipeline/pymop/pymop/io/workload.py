@@ -81,6 +81,10 @@ class WorkUnit(object):
             self.readings_by_source[source] = StatefulCollection(source.get_readings())
 
         self.processed_items = set()
+        self._mark_previously_processed_items()
+
+        if self.is_current_item_processed():
+            self.next_vettable_item()
 
     def get_filename(self):
         return self.filename
@@ -146,14 +150,14 @@ class WorkUnit(object):
     def is_current_item_processed(self):
         return self.is_item_processed(self.get_current_item())
 
-    def set_previously_processed(self, indices):
-        raise NotImplementedError()
-
     def get_writer(self):
         return self.results_writer
 
     def is_finished(self):
         raise NotImplementedError()
+
+    def _mark_previously_processed_items(self):
+        pass
 
 
 class RealsWorkUnit(WorkUnit):
@@ -191,15 +195,6 @@ class RealsWorkUnit(WorkUnit):
         return (self.get_sources().get_index() * self.get_obs_count() +
                 self.get_current_source_readings().get_index())
 
-    def set_previously_processed(self, indices):
-        for index in indices:
-            source_num = int(index / self.get_obs_count())
-            reading_num = index % self.get_obs_count()
-            self.processed_items.add(self.get_sources()[source_num].get_readings()[reading_num])
-
-        if self.is_current_item_processed():
-            self.next_vettable_item()
-
     def is_current_source_finished(self):
         for reading in self.get_current_source().get_readings():
             if not self.is_item_processed(reading):
@@ -214,6 +209,13 @@ class RealsWorkUnit(WorkUnit):
                     return False
 
         return True
+
+    def _mark_previously_processed_items(self):
+        processed_indices = self.progress_manager.get_processed_indices(self.get_filename())
+        for index in processed_indices:
+            source_num = int(index / self.get_obs_count())
+            reading_num = index % self.get_obs_count()
+            self.processed_items.add(self.get_sources()[source_num].get_readings()[reading_num])
 
 
 class CandidatesWorkUnit(WorkUnit):
@@ -230,19 +232,17 @@ class CandidatesWorkUnit(WorkUnit):
     def get_current_item_index(self):
         return self.get_sources().get_index()
 
-    def set_previously_processed(self, indices):
-        for index in indices:
-            self.processed_items.add(self.get_sources()[index])
-
-        if self.is_current_item_processed():
-            self.next_vettable_item()
-
     def is_finished(self):
         for source in self.get_sources():
             if not self.is_item_processed(source):
                 return False
 
         return True
+
+    def _mark_previously_processed_items(self):
+        processed_indices = self.progress_manager.get_processed_indices(self.get_filename())
+        for index in processed_indices:
+            self.processed_items.add(self.get_sources()[index])
 
 
 class WorkUnitProvider(object):
@@ -347,10 +347,7 @@ class WorkloadManager(object):
     def next_workunit(self):
         if not self.work_units.has_next():
             # TODO refactor.
-            new_workunit = self.workunit_provider.get_workunit()
-            processed_indices = self.progress_manager.get_processed_indices(new_workunit.get_filename())
-            new_workunit.set_previously_processed(processed_indices)
-            self.work_units.append(new_workunit)
+            self.work_units.append(self.workunit_provider.get_workunit())
 
             self.work_units.next()
             events.send(events.NEW_WORK_UNIT)
