@@ -86,6 +86,11 @@ class WorkUnit(object):
         if self.is_current_item_processed():
             self.next_vettable_item()
 
+        self.finished_callbacks = []
+
+    def register_finished_callback(self, callback):
+        self.finished_callbacks.append(callback)
+
     def get_filename(self):
         return self.filename
 
@@ -145,6 +150,11 @@ class WorkUnit(object):
         self.processed_items.add(self.get_current_item())
         self.progress_manager.record_index(self.get_filename(),
                                            self.get_current_item_index())
+
+        if self.is_finished():
+            self.progress_manager.record_done(self.get_filename())
+            for callback in self.finished_callbacks:
+                callback(self.get_filename())
 
     def next_vettable_item(self):
         raise NotImplementedError()
@@ -351,7 +361,9 @@ class WorkloadManager(object):
 
     def next_workunit(self):
         if not self.work_units.has_next():
-            self.work_units.append(self.workunit_provider.get_workunit())
+            new_workunit = self.workunit_provider.get_workunit()
+            new_workunit.register_finished_callback(self._on_finished_workunit)
+            self.work_units.append(new_workunit)
             events.send(events.NEW_WORK_UNIT)
 
         self.work_units.next()
@@ -409,12 +421,6 @@ class WorkloadManager(object):
     def _process_current_item(self):
         self.num_processed += 1
 
-        if self.get_current_workunit().is_finished():
-            filename = self.get_current_workunit().get_filename()
-            self.progress_manager.record_done(filename)
-            events.send(events.FINISHED_WORKUNIT, filename)
-            self.next_workunit()
-
     def get_num_items_processed(self):
         return self.num_processed
 
@@ -428,6 +434,10 @@ class WorkloadManager(object):
         self._unlock(self.get_current_workunit())
         for workunit in self.work_units:
             workunit.get_writer().close()
+
+    def _on_finished_workunit(self, filename):
+        events.send(events.FINISHED_WORKUNIT, filename)
+        self.next_workunit()
 
 
 class DirectoryManager(object):
