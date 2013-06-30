@@ -13,8 +13,6 @@ from pymop import tasks
 
 
 class TaskSetupFrame(wx.Frame):
-    # CANDS_LABEL = "Process candidate objects"
-    # REALS_LABEL = "Process real objects"
     OK_LABEL = "Ok"
 
     def __init__(self, setup_manager):

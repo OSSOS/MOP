@@ -3,6 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import threading
 
 import vos
+
 from pymop import config
 from pymop.io.img import FitsImage
 

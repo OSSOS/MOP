@@ -2,7 +2,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 
-from mock import Mock, MagicMock
+from mock import Mock
 from hamcrest import assert_that, equal_to
 
 from test.base_tests import FileReadingTestCase, WxWidgetTestCase, DirectoryCleaningTestCase
