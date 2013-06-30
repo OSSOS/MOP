@@ -15,7 +15,7 @@ from pymop.io.writers import WriterFactory
 from pymop.io.persistence import InMemoryProgressManager
 from pymop.io.workload import (WorkUnitProvider, DirectoryManager,
                                WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
-                               DataCollection, NoAvailableWorkException,
+                               NoAvailableWorkException,
                                StatefulCollection,
                                WorkloadManager, RealsWorkUnitBuilder)
 
@@ -104,17 +104,15 @@ class AbstractWorkUnitTest(FileReadingTestCase):
     def setUp(self):
         self.testfile = "data/1584431p15.measure3.cands.astrom"
         parser = AstromParser()
-        astrom_data = parser.parse(self.get_abs_path(self.testfile))
+        self.data = parser.parse(self.get_abs_path(self.testfile))
         self.writer = Mock()
-
-        self.data_collection = DataCollection(astrom_data)
 
 
 class WorkUnitTest(AbstractWorkUnitTest):
     def setUp(self):
         super(WorkUnitTest, self).setUp()
 
-        self.workunit = WorkUnit(self.testfile, self.data_collection, self.writer)
+        self.workunit = WorkUnit(self.testfile, self.data, self.writer)
 
     def test_initialization(self):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
@@ -178,7 +176,7 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
     def setUp(self):
         super(RealsWorkUnitTest, self).setUp()
 
-        self.workunit = RealsWorkUnit(self.testfile, self.data_collection, self.writer)
+        self.workunit = RealsWorkUnit(self.testfile, self.data, self.writer)
 
     def test_next_vettable_item_no_validation(self):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
@@ -261,7 +259,7 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         assert_that(self.workunit.get_current_obs_number(), equal_to(2))
 
     def test_accept_current_item(self):
-        first_source = self.data_collection.get_sources()[0]
+        first_source = self.data.get_sources()[0]
         first_item = first_source.get_reading(0)
         second_item = first_source.get_reading(1)
 
@@ -280,7 +278,7 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         assert_that(self.workunit.is_item_processed(second_item), equal_to(True))
 
     def test_reject_current_item(self):
-        first_source = self.data_collection.get_sources()[0]
+        first_source = self.data.get_sources()[0]
         first_item = first_source.get_reading(0)
         second_item = first_source.get_reading(1)
 
@@ -311,7 +309,7 @@ class CandidatesWorkUnitTest(AbstractWorkUnitTest):
     def setUp(self):
         super(CandidatesWorkUnitTest, self).setUp()
 
-        self.workunit = CandidatesWorkUnit(self.testfile, self.data_collection, self.writer)
+        self.workunit = CandidatesWorkUnit(self.testfile, self.data, self.writer)
 
     def test_next_vettable_item(self):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
@@ -330,8 +328,8 @@ class CandidatesWorkUnitTest(AbstractWorkUnitTest):
         assert_that(self.workunit.get_current_obs_number(), equal_to(0))
 
     def test_accept_current_item(self):
-        first_item = self.data_collection.get_sources()[0]
-        second_item = self.data_collection.get_sources()[1]
+        first_item = self.data.get_sources()[0]
+        second_item = self.data.get_sources()[1]
 
         assert_that(self.workunit.is_item_processed(first_item), equal_to(False))
         assert_that(self.workunit.is_item_processed(second_item), equal_to(False))
@@ -348,8 +346,8 @@ class CandidatesWorkUnitTest(AbstractWorkUnitTest):
         assert_that(self.workunit.is_item_processed(second_item), equal_to(True))
 
     def test_reject_current_item(self):
-        first_item = self.data_collection.get_sources()[0]
-        second_item = self.data_collection.get_sources()[1]
+        first_item = self.data.get_sources()[0]
+        second_item = self.data.get_sources()[1]
 
         assert_that(self.workunit.is_item_processed(first_item), equal_to(False))
         assert_that(self.workunit.is_item_processed(second_item), equal_to(False))

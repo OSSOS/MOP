@@ -3,7 +3,6 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 
 from pymop.io.persistence import FileLockedException
-from pymop.io.astrom import Source
 from pymop.gui import events
 
 
@@ -277,23 +276,6 @@ class WorkUnitProvider(object):
         raise NoAvailableWorkException()
 
 
-class DataCollection(object):
-    def __init__(self, parsed_data):
-        self.observations = parsed_data.observations
-        self.sys_header = parsed_data.sys_header
-
-        sources = []
-        for source in parsed_data.get_sources():
-            reading_collection = StatefulCollection(
-                source.get_readings())
-            sources.append(Source(reading_collection))
-
-        self.source_collection = StatefulCollection(sources)
-
-    def get_sources(self):
-        return self.source_collection
-
-
 class WorkUnitBuilder(object):
     def __init__(self, parser, writer_factory):
         self.parser = parser
@@ -301,7 +283,6 @@ class WorkUnitBuilder(object):
 
     def build_workunit(self, full_path):
         parsed_data = self.parser.parse(full_path)
-        # data_collection = DataCollection(parsed_data)
 
         _, filename = os.path.split(full_path)
         return self._build_workunit(filename, parsed_data,
