@@ -153,6 +153,8 @@ class WorkUnit(object):
 
         if self.is_finished():
             self.progress_manager.record_done(self.get_filename())
+            self.results_writer.close()
+
             for callback in self.finished_callbacks:
                 callback(self.get_filename())
 
@@ -432,8 +434,6 @@ class WorkloadManager(object):
 
     def exit(self):
         self._unlock(self.get_current_workunit())
-        for workunit in self.work_units:
-            workunit.get_writer().close()
 
     def _on_finished_workunit(self, filename):
         events.send(events.FINISHED_WORKUNIT, filename)
