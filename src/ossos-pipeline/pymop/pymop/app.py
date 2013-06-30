@@ -46,7 +46,7 @@ class AbstractTask(object):
         directory_manager = DirectoryManager(working_directory)
         progress_manager = ProgressManager(directory_manager)
         writer_factory = WriterFactory()
-        builder = self._get_workunit_builder(self.parser, writer_factory)
+        builder = self._get_workunit_builder(self.parser, progress_manager, writer_factory)
         workunit_provider = WorkUnitProvider(self.get_task_suffix(), directory_manager,
                                              progress_manager, builder)
         workload_manager = WorkloadManager(workunit_provider, progress_manager)
@@ -64,8 +64,8 @@ class ProcessCandidatesTask(AbstractTask):
     def get_task_suffix(self):
         return tasks.get_suffix(tasks.CANDS_TASK)
 
-    def _get_workunit_builder(self, parser, writer_factory):
-        return CandidatesWorkUnitBuilder(parser, writer_factory)
+    def _get_workunit_builder(self, parser, progress_manager, writer_factory):
+        return CandidatesWorkUnitBuilder(parser, progress_manager, writer_factory)
 
     def _create_model(self, workload_manager):
         return ProcessCandidatesModel(workload_manager, self.download_manager)
@@ -83,8 +83,8 @@ class ProcessRealsTask(AbstractTask):
     def get_task_suffix(self):
         return tasks.get_suffix(tasks.REALS_TASK)
 
-    def _get_workunit_builder(self, parser, writer_factory):
-        return RealsWorkUnitBuilder(parser, writer_factory)
+    def _get_workunit_builder(self, parser, progress_manager, writer_factory):
+        return RealsWorkUnitBuilder(parser, progress_manager, writer_factory)
 
     def _create_model(self, workload_manager):
         return ProcessRealsModel(workload_manager, self.download_manager)
