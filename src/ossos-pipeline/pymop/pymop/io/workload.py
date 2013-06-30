@@ -69,10 +69,16 @@ class StatefulCollection(object):
 
 
 class WorkUnit(object):
-    def __init__(self, filename, data_collection, results_writer):
+    def __init__(self, filename, parsed_data, results_writer):
         self.filename = filename
-        self.data_collection = data_collection
+        self.data = parsed_data
         self.results_writer = results_writer
+
+        self.sources = StatefulCollection(parsed_data.get_sources())
+
+        self.readings_by_source = {}
+        for source in self.sources:
+            self.readings_by_source[source] = StatefulCollection(source.get_readings())
 
         self.processed_items = set()
 
@@ -80,10 +86,10 @@ class WorkUnit(object):
         return self.filename
 
     def get_data(self):
-        return self.data_collection
+        return self.data
 
     def get_sources(self):
-        return self.data_collection.get_sources()
+        return self.sources
 
     def get_source_count(self):
         return len(self.get_sources())
@@ -95,7 +101,7 @@ class WorkUnit(object):
         return self.get_sources().get_index()
 
     def get_current_source_readings(self):
-        return self.get_current_source().get_readings()
+        return self.readings_by_source[self.get_current_source()]
 
     def get_obs_count(self):
         return len(self.get_current_source_readings())
@@ -151,9 +157,9 @@ class WorkUnit(object):
 
 
 class RealsWorkUnit(WorkUnit):
-    def __init__(self, filename, data_collection, results_writer):
+    def __init__(self, filename, parsed_data, results_writer):
         super(RealsWorkUnit, self).__init__(
-            filename, data_collection, results_writer)
+            filename, parsed_data, results_writer)
 
     def get_current_item(self):
         return self.get_current_reading()
@@ -211,9 +217,9 @@ class RealsWorkUnit(WorkUnit):
 
 
 class CandidatesWorkUnit(WorkUnit):
-    def __init__(self, filename, data_collection, results_writer):
+    def __init__(self, filename, parsed_data, results_writer):
         super(CandidatesWorkUnit, self).__init__(
-            filename, data_collection, results_writer)
+            filename, parsed_data, results_writer)
 
     def get_current_item(self):
         return self.get_current_source()
@@ -295,10 +301,10 @@ class WorkUnitBuilder(object):
 
     def build_workunit(self, full_path):
         parsed_data = self.parser.parse(full_path)
-        data_collection = DataCollection(parsed_data)
+        # data_collection = DataCollection(parsed_data)
 
         _, filename = os.path.split(full_path)
-        return self._build_workunit(filename, data_collection,
+        return self._build_workunit(filename, parsed_data,
                                     self.writer_factory.create_writer(
                                         full_path, parsed_data))
 
