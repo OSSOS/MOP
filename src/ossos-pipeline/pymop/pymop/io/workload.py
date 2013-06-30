@@ -11,10 +11,6 @@ class NoAvailableWorkException(Exception):
     """"No more work is available."""
 
 
-class WorkCompleteException(Exception):
-    """Everything in the WorkUnit has been processed."""
-
-
 class VettableItem(object):
     ACCEPTED = "accepted"
     REJECTED = "rejected"
