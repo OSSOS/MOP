@@ -15,7 +15,7 @@ from pymop.io.astrom import AstromParser
 from pymop.io.persistence import ProgressManager
 from pymop.io.img import FitsImage
 from pymop.io.workload import (DirectoryManager, WorkloadManager,
-                               WorkUnitProvider, WorkUnitBuilder, VettableItem,
+                               WorkUnitProvider, VettableItem,
                                RealsWorkUnitBuilder, CandidatesWorkUnitBuilder)
 from pymop.io.writers import WriterFactory
 

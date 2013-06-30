@@ -3,11 +3,7 @@ Reads and writes .astrom files.
 """
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import os
 import re
-
-from pymop import tasks
-
 
 HEADER_LINE_LENGTH = 80
 
