@@ -355,9 +355,6 @@ class WorkloadManager(object):
     def _unlock(self, workunit):
         self.progress_manager.unlock(workunit.get_filename())
 
-    def __getattr__(self, attr):
-        return getattr(self.get_current_workunit(), attr)
-
     def start_work(self):
         self.next_workunit()
 
@@ -402,6 +399,9 @@ class WorkloadManager(object):
 
     def get_current_source(self):
         return self.get_current_workunit().get_current_source()
+
+    def get_current_reading(self):
+        return self.get_current_workunit().get_current_reading()
 
     def get_current_source_number(self):
         return self.get_current_workunit().get_current_source_number()
