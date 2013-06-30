@@ -265,45 +265,38 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         first_item = first_source.get_reading(0)
         second_item = first_source.get_reading(1)
 
-        assert_that(first_item.is_processed(), equal_to(False))
-        assert_that(second_item.is_processed(), equal_to(False))
+        assert_that(self.workunit.is_item_processed(first_item), equal_to(False))
+        assert_that(self.workunit.is_item_processed(second_item), equal_to(False))
 
         self.workunit.accept_current_item()
 
-        assert_that(first_item.is_processed(), equal_to(True))
-        assert_that(first_item.is_accepted(), equal_to(True))
-        assert_that(second_item.is_processed(), equal_to(False))
+        assert_that(self.workunit.is_item_processed(first_item), equal_to(True))
+        assert_that(self.workunit.is_item_processed(second_item), equal_to(False))
 
         self.workunit.next_vettable_item()
         self.workunit.accept_current_item()
 
-        assert_that(first_item.is_processed(), equal_to(True))
-        assert_that(first_item.is_accepted(), equal_to(True))
-        assert_that(second_item.is_processed(), equal_to(True))
-        assert_that(second_item.is_accepted(), equal_to(True))
+        assert_that(self.workunit.is_item_processed(first_item), equal_to(True))
+        assert_that(self.workunit.is_item_processed(second_item), equal_to(True))
 
     def test_reject_current_item(self):
         first_source = self.data_collection.get_sources()[0]
         first_item = first_source.get_reading(0)
         second_item = first_source.get_reading(1)
 
-        assert_that(first_item.is_processed(), equal_to(False))
-        assert_that(second_item.is_processed(), equal_to(False))
+        assert_that(self.workunit.is_item_processed(first_item), equal_to(False))
+        assert_that(self.workunit.is_item_processed(second_item), equal_to(False))
 
         self.workunit.reject_current_item()
 
-        assert_that(first_item.is_processed(), equal_to(True))
-        assert_that(first_item.is_accepted(), equal_to(False))
-        assert_that(first_item.is_rejected(), equal_to(True))
-        assert_that(second_item.is_processed(), equal_to(False))
+        assert_that(self.workunit.is_item_processed(first_item), equal_to(True))
+        assert_that(self.workunit.is_item_processed(second_item), equal_to(False))
 
         self.workunit.next_vettable_item()
         self.workunit.reject_current_item()
 
-        assert_that(first_item.is_processed(), equal_to(True))
-        assert_that(first_item.is_rejected(), equal_to(True))
-        assert_that(second_item.is_processed(), equal_to(True))
-        assert_that(second_item.is_rejected(), equal_to(True))
+        assert_that(self.workunit.is_item_processed(first_item), equal_to(True))
+        assert_that(self.workunit.is_item_processed(second_item), equal_to(True))
 
     def test_get_current_item_index(self):
         for index in range(8):
@@ -340,43 +333,37 @@ class CandidatesWorkUnitTest(AbstractWorkUnitTest):
         first_item = self.data_collection.get_sources()[0]
         second_item = self.data_collection.get_sources()[1]
 
-        assert_that(first_item.is_processed(), equal_to(False))
-        assert_that(second_item.is_processed(), equal_to(False))
+        assert_that(self.workunit.is_item_processed(first_item), equal_to(False))
+        assert_that(self.workunit.is_item_processed(second_item), equal_to(False))
 
         self.workunit.accept_current_item()
 
-        assert_that(first_item.is_processed(), equal_to(True))
-        assert_that(first_item.is_accepted(), equal_to(True))
-        assert_that(second_item.is_processed(), equal_to(False))
+        assert_that(self.workunit.is_item_processed(first_item), equal_to(True))
+        assert_that(self.workunit.is_item_processed(second_item), equal_to(False))
 
         self.workunit.next_vettable_item()
         self.workunit.accept_current_item()
 
-        assert_that(first_item.is_processed(), equal_to(True))
-        assert_that(first_item.is_accepted(), equal_to(True))
-        assert_that(second_item.is_processed(), equal_to(True))
-        assert_that(second_item.is_accepted(), equal_to(True))
+        assert_that(self.workunit.is_item_processed(first_item), equal_to(True))
+        assert_that(self.workunit.is_item_processed(second_item), equal_to(True))
 
     def test_reject_current_item(self):
         first_item = self.data_collection.get_sources()[0]
         second_item = self.data_collection.get_sources()[1]
 
-        assert_that(first_item.is_processed(), equal_to(False))
-        assert_that(second_item.is_processed(), equal_to(False))
+        assert_that(self.workunit.is_item_processed(first_item), equal_to(False))
+        assert_that(self.workunit.is_item_processed(second_item), equal_to(False))
 
         self.workunit.reject_current_item()
 
-        assert_that(first_item.is_processed(), equal_to(True))
-        assert_that(first_item.is_rejected(), equal_to(True))
-        assert_that(second_item.is_processed(), equal_to(False))
+        assert_that(self.workunit.is_item_processed(first_item), equal_to(True))
+        assert_that(self.workunit.is_item_processed(second_item), equal_to(False))
 
         self.workunit.next_vettable_item()
         self.workunit.reject_current_item()
 
-        assert_that(first_item.is_processed(), equal_to(True))
-        assert_that(first_item.is_rejected(), equal_to(True))
-        assert_that(second_item.is_processed(), equal_to(True))
-        assert_that(second_item.is_rejected(), equal_to(True))
+        assert_that(self.workunit.is_item_processed(first_item), equal_to(True))
+        assert_that(self.workunit.is_item_processed(second_item), equal_to(True))
 
 
 class StatefulCollectionTest(unittest.TestCase):
