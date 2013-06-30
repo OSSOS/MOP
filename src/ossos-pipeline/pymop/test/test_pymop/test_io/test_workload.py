@@ -12,7 +12,7 @@ from pymop import tasks
 from pymop.io import workload
 from pymop.io.astrom import AstromParser
 from pymop.io.writers import WriterFactory
-from pymop.io.persistence import InMemoryProgressManager
+from pymop.io.persistence import ProgressManager, InMemoryProgressManager
 from pymop.io.workload import (WorkUnitProvider, DirectoryManager,
                                WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
                                NoAvailableWorkException,
@@ -105,6 +105,7 @@ class AbstractWorkUnitTest(FileReadingTestCase):
         self.testfile = "data/1584431p15.measure3.cands.astrom"
         parser = AstromParser()
         self.data = parser.parse(self.get_abs_path(self.testfile))
+        self.progress_manager = Mock(spec=ProgressManager)
         self.writer = Mock()
 
 
@@ -112,7 +113,8 @@ class WorkUnitTest(AbstractWorkUnitTest):
     def setUp(self):
         super(WorkUnitTest, self).setUp()
 
-        self.workunit = WorkUnit(self.testfile, self.data, self.writer)
+        self.workunit = WorkUnit(self.testfile, self.data,
+                                 self.progress_manager, self.writer)
 
     def test_initialization(self):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
@@ -176,7 +178,8 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
     def setUp(self):
         super(RealsWorkUnitTest, self).setUp()
 
-        self.workunit = RealsWorkUnit(self.testfile, self.data, self.writer)
+        self.workunit = RealsWorkUnit(self.testfile, self.data,
+                                      self.progress_manager, self.writer)
 
     def test_next_vettable_item_no_validation(self):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
@@ -309,7 +312,8 @@ class CandidatesWorkUnitTest(AbstractWorkUnitTest):
     def setUp(self):
         super(CandidatesWorkUnitTest, self).setUp()
 
-        self.workunit = CandidatesWorkUnit(self.testfile, self.data, self.writer)
+        self.workunit = CandidatesWorkUnit(self.testfile, self.data,
+                                           self.progress_manager, self.writer)
 
     def test_next_vettable_item(self):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
@@ -489,7 +493,7 @@ class WorkUnitProviderTest(FileReadingTestCase, DirectoryCleaningTestCase):
         progress_manager = InMemoryProgressManager(directory_manager)
         parser = AstromParser()
         writer_factory = WriterFactory()
-        builder = RealsWorkUnitBuilder(parser, writer_factory)
+        builder = RealsWorkUnitBuilder(parser, progress_manager, writer_factory)
         undertest = WorkUnitProvider(tasks.get_suffix(tasks.REALS_TASK),
                                      directory_manager,
                                      progress_manager,

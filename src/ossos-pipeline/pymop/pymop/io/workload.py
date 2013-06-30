@@ -68,9 +68,10 @@ class StatefulCollection(object):
 
 
 class WorkUnit(object):
-    def __init__(self, filename, parsed_data, results_writer):
+    def __init__(self, filename, parsed_data, progress_manager, results_writer):
         self.filename = filename
         self.data = parsed_data
+        self.progress_manager = progress_manager
         self.results_writer = results_writer
 
         self.sources = StatefulCollection(parsed_data.get_sources())
@@ -156,9 +157,9 @@ class WorkUnit(object):
 
 
 class RealsWorkUnit(WorkUnit):
-    def __init__(self, filename, parsed_data, results_writer):
+    def __init__(self, filename, parsed_data, progress_manager, results_writer):
         super(RealsWorkUnit, self).__init__(
-            filename, parsed_data, results_writer)
+            filename, parsed_data, progress_manager, results_writer)
 
     def get_current_item(self):
         return self.get_current_reading()
@@ -216,9 +217,9 @@ class RealsWorkUnit(WorkUnit):
 
 
 class CandidatesWorkUnit(WorkUnit):
-    def __init__(self, filename, parsed_data, results_writer):
+    def __init__(self, filename, parsed_data, progress_manager, results_writer):
         super(CandidatesWorkUnit, self).__init__(
-            filename, parsed_data, results_writer)
+            filename, parsed_data, progress_manager, results_writer)
 
     def get_current_item(self):
         return self.get_current_source()
@@ -277,8 +278,9 @@ class WorkUnitProvider(object):
 
 
 class WorkUnitBuilder(object):
-    def __init__(self, parser, writer_factory):
+    def __init__(self, parser, progress_manager, writer_factory):
         self.parser = parser
+        self.progress_manager = progress_manager
         self.writer_factory = writer_factory
 
     def build_workunit(self, full_path):
@@ -286,27 +288,30 @@ class WorkUnitBuilder(object):
 
         _, filename = os.path.split(full_path)
         return self._build_workunit(filename, parsed_data,
+                                    self.progress_manager,
                                     self.writer_factory.create_writer(
                                         full_path, parsed_data))
 
-    def _build_workunit(self, filename, data, writer):
+    def _build_workunit(self, filename, data, progress_manager, writer):
         raise NotImplementedError()
 
 
 class RealsWorkUnitBuilder(WorkUnitBuilder):
-    def __init__(self, parser, writer_factory):
-        super(RealsWorkUnitBuilder, self).__init__(parser, writer_factory)
+    def __init__(self, parser, progress_manager, writer_factory):
+        super(RealsWorkUnitBuilder, self).__init__(
+            parser, progress_manager, writer_factory)
 
-    def _build_workunit(self, filename, data, writer):
-        return RealsWorkUnit(filename, data, writer)
+    def _build_workunit(self, filename, data, progress_manager, writer):
+        return RealsWorkUnit(filename, data, progress_manager, writer)
 
 
 class CandidatesWorkUnitBuilder(WorkUnitBuilder):
-    def __init__(self, parser, writer_factory):
-        super(CandidatesWorkUnitBuilder, self).__init__(parser, writer_factory)
+    def __init__(self, parser, progress_manager, writer_factory):
+        super(CandidatesWorkUnitBuilder, self).__init__(
+            parser, progress_manager, writer_factory)
 
-    def _build_workunit(self, filename, data, writer):
-        return CandidatesWorkUnit(filename, data, writer)
+    def _build_workunit(self, filename, data, progress_manager, writer):
+        return CandidatesWorkUnit(filename, data, progress_manager, writer)
 
 
 class WorkloadManager(object):
