@@ -11,41 +11,6 @@ class NoAvailableWorkException(Exception):
     """"No more work is available."""
 
 
-class VettableItem(object):
-    ACCEPTED = "accepted"
-    REJECTED = "rejected"
-    PREVIOUSLY_PROCESSED = "previously_processed"
-    UNPROCESSED = "unprocessed"
-
-    def __init__(self, item):
-        self._status = VettableItem.UNPROCESSED
-        self.item = item
-
-    def __getattr__(self, attr):
-        return getattr(self.item, attr)
-
-    def is_processed(self):
-        return self._status != VettableItem.UNPROCESSED
-
-    def is_accepted(self):
-        return self._status == VettableItem.ACCEPTED
-
-    def is_rejected(self):
-        return self._status == VettableItem.REJECTED
-
-    def accept(self):
-        self._status = VettableItem.ACCEPTED
-
-    def reject(self):
-        self._status = VettableItem.REJECTED
-
-    def set_previously_processed(self):
-        self._status = VettableItem.PREVIOUSLY_PROCESSED
-
-    def get_status(self):
-        return self._status
-
-
 class StatefulCollection(object):
     def __init__(self, items=None):
         if items is None:
@@ -112,6 +77,8 @@ class WorkUnit(object):
         self.data_collection = data_collection
         self.results_writer = results_writer
 
+        self.processed_items = set()
+
     def get_filename(self):
         return self.filename
 
@@ -162,13 +129,19 @@ class WorkUnit(object):
         raise NotImplementedError()
 
     def accept_current_item(self):
-        self.get_current_item().accept()
+        self.processed_items.add(self.get_current_item())
 
     def reject_current_item(self):
-        self.get_current_item().reject()
+        self.processed_items.add(self.get_current_item())
 
     def next_vettable_item(self):
         raise NotImplementedError()
+
+    def is_item_processed(self, item):
+        return item in self.processed_items
+
+    def is_current_item_processed(self):
+        return self.is_item_processed(self.get_current_item())
 
     def set_previously_processed(self, indices):
         raise NotImplementedError()
@@ -204,7 +177,7 @@ class RealsWorkUnit(WorkUnit):
 
         num_obs_to_check = len(self.get_current_source_readings())
         while num_obs_to_check > 0:
-            if not self.get_current_reading().is_processed():
+            if not self.is_current_item_processed():
                 # This observation needs to be vetted, stop here
                 return
 
@@ -219,14 +192,14 @@ class RealsWorkUnit(WorkUnit):
         for index in indices:
             source_num = int(index / self.get_obs_count())
             reading_num = index % self.get_obs_count()
-            self.get_sources()[source_num].get_readings()[reading_num].set_previously_processed()
+            self.processed_items.add(self.get_sources()[source_num].get_readings()[reading_num])
 
-        if self.get_current_item().is_processed():
+        if self.is_current_item_processed():
             self.next_vettable_item()
 
     def is_current_source_finished(self):
         for reading in self.get_current_source().get_readings():
-            if not reading.is_processed():
+            if not self.is_item_processed(reading):
                 return False
 
         return True
@@ -234,7 +207,7 @@ class RealsWorkUnit(WorkUnit):
     def is_finished(self):
         for source in self.get_sources():
             for reading in source.get_readings():
-                if not reading.is_processed():
+                if not self.is_item_processed(reading):
                     return False
 
         return True
@@ -256,14 +229,14 @@ class CandidatesWorkUnit(WorkUnit):
 
     def set_previously_processed(self, indices):
         for index in indices:
-            self.get_sources()[index].set_previously_processed()
+            self.processed_items.add(self.get_sources()[index])
 
-        if self.get_current_item().is_processed():
+        if self.is_current_item_processed():
             self.next_vettable_item()
 
     def is_finished(self):
         for source in self.get_sources():
-            if not source.is_processed():
+            if not self.is_item_processed(source):
                 return False
 
         return True
@@ -309,8 +282,8 @@ class DataCollection(object):
         sources = []
         for source in parsed_data.get_sources():
             reading_collection = StatefulCollection(
-                map(VettableItem, source.get_readings()))
-            sources.append(VettableItem(Source(reading_collection)))
+                source.get_readings())
+            sources.append(Source(reading_collection))
 
         self.source_collection = StatefulCollection(sources)
 
@@ -461,7 +434,7 @@ class WorkloadManager(object):
         return self.num_processed
 
     def is_current_item_processed(self):
-        return self.get_current_workunit().get_current_item().is_processed()
+        return self.get_current_workunit().is_current_item_processed()
 
     def get_writer(self):
         return self.get_current_workunit().get_writer()

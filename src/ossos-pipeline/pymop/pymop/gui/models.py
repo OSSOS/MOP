@@ -158,6 +158,9 @@ class AbstractModel(object):
     def previous_item(self):
         self.workload_manager.previous_item()
 
+    def get_current_workunit(self):
+        return self.workload_manager.get_current_workunit()
+
     def exit(self):
         self.workload_manager.exit()
 

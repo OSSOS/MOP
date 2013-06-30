@@ -15,7 +15,7 @@ from pymop.io.astrom import AstromParser
 from pymop.io.persistence import ProgressManager
 from pymop.io.img import FitsImage
 from pymop.io.workload import (DirectoryManager, WorkloadManager,
-                               WorkUnitProvider, VettableItem,
+                               WorkUnitProvider,
                                RealsWorkUnitBuilder, CandidatesWorkUnitBuilder)
 from pymop.io.writers import WriterFactory
 
@@ -294,6 +294,8 @@ class AbstractRealsModelTest(GeneralModelTest):
         assert_that(self.model.get_current_dec(), equal_to(29.2202748))
 
     def test_sources_processed(self):
+        workunit = self.model.get_current_workunit()
+
         assert_that(self.model.get_num_items_processed(), equal_to(0))
         assert_that(self.model.get_current_source_number(), equal_to(0))
 
@@ -303,9 +305,9 @@ class AbstractRealsModelTest(GeneralModelTest):
         assert_that(self.model.get_num_items_processed(), equal_to(1))
 
         source1 = self.workload.get_current_data().get_sources()[0]
-        assert_that(source1.get_readings()[0].is_processed(), equal_to(True))
-        assert_that(source1.get_readings()[1].is_processed(), equal_to(False))
-        assert_that(source1.get_readings()[2].is_processed(), equal_to(False))
+        assert_that(workunit.is_item_processed(source1.get_reading(0)), equal_to(True))
+        assert_that(workunit.is_item_processed(source1.get_reading(1)), equal_to(False))
+        assert_that(workunit.is_item_processed(source1.get_reading(2)), equal_to(False))
 
         self.model.next_item()
         self.model.reject_current_item()
@@ -473,54 +475,46 @@ class ProcessRealsModelTest(GeneralModelTest):
         assert_that(self.model.is_current_source_discovered(), equal_to(False))
 
     def test_accept_current_item(self):
+        workunit = self.model.get_current_workunit()
+
         data = self.workload.get_current_data()
         first_item = data.get_sources()[0].get_readings()[0]
         second_item = data.get_sources()[0].get_readings()[1]
 
-        assert_that(first_item.is_processed(), equal_to(False))
-        assert_that(first_item.get_status(), equal_to(VettableItem.UNPROCESSED))
-        assert_that(second_item.is_processed(), equal_to(False))
-        assert_that(second_item.get_status(), equal_to(VettableItem.UNPROCESSED))
+        assert_that(workunit.is_item_processed(first_item), equal_to(False))
+        assert_that(workunit.is_item_processed(second_item), equal_to(False))
 
         self.model.accept_current_item()
 
-        assert_that(first_item.is_processed(), equal_to(True))
-        assert_that(first_item.get_status(), equal_to(VettableItem.ACCEPTED))
-        assert_that(second_item.is_processed(), equal_to(False))
-        assert_that(second_item.get_status(), equal_to(VettableItem.UNPROCESSED))
+        assert_that(workunit.is_item_processed(first_item), equal_to(True))
+        assert_that(workunit.is_item_processed(second_item), equal_to(False))
 
         self.model.next_item()
         self.model.accept_current_item()
 
-        assert_that(first_item.is_processed(), equal_to(True))
-        assert_that(first_item.get_status(), equal_to(VettableItem.ACCEPTED))
-        assert_that(second_item.is_processed(), equal_to(True))
-        assert_that(second_item.get_status(), equal_to(VettableItem.ACCEPTED))
+        assert_that(workunit.is_item_processed(first_item), equal_to(True))
+        assert_that(workunit.is_item_processed(second_item), equal_to(True))
 
     def test_reject_current_item(self):
+        workunit = self.model.get_current_workunit()
+
         data = self.workload.get_current_data()
         first_item = data.get_sources()[0].get_readings()[0]
         second_item = data.get_sources()[0].get_readings()[1]
 
-        assert_that(first_item.is_processed(), equal_to(False))
-        assert_that(first_item.get_status(), equal_to(VettableItem.UNPROCESSED))
-        assert_that(second_item.is_processed(), equal_to(False))
-        assert_that(second_item.get_status(), equal_to(VettableItem.UNPROCESSED))
+        assert_that(workunit.is_item_processed(first_item), equal_to(False))
+        assert_that(workunit.is_item_processed(second_item), equal_to(False))
 
         self.model.reject_current_item()
 
-        assert_that(first_item.is_processed(), equal_to(True))
-        assert_that(first_item.get_status(), equal_to(VettableItem.REJECTED))
-        assert_that(second_item.is_processed(), equal_to(False))
-        assert_that(second_item.get_status(), equal_to(VettableItem.UNPROCESSED))
+        assert_that(workunit.is_item_processed(first_item), equal_to(True))
+        assert_that(workunit.is_item_processed(second_item), equal_to(False))
 
         self.model.next_item()
         self.model.reject_current_item()
 
-        assert_that(first_item.is_processed(), equal_to(True))
-        assert_that(first_item.get_status(), equal_to(VettableItem.REJECTED))
-        assert_that(second_item.is_processed(), equal_to(True))
-        assert_that(second_item.get_status(), equal_to(VettableItem.REJECTED))
+        assert_that(workunit.is_item_processed(first_item), equal_to(True))
+        assert_that(workunit.is_item_processed(second_item), equal_to(True))
 
     def test_receive_all_sources_processed_event_on_final_accept(self):
         observer = Mock()
@@ -600,54 +594,46 @@ class ProcessCandidatesModelTest(GeneralModelTest):
         assert_that(observer.on_next_src.call_count, equal_to(3))
 
     def test_accept_current_item(self):
+        workunit = self.model.get_current_workunit()
+
         data = self.workload.get_current_data()
         first_item = data.get_sources()[0]
         second_item = data.get_sources()[1]
 
-        assert_that(first_item.is_processed(), equal_to(False))
-        assert_that(first_item.get_status(), equal_to(VettableItem.UNPROCESSED))
-        assert_that(second_item.is_processed(), equal_to(False))
-        assert_that(second_item.get_status(), equal_to(VettableItem.UNPROCESSED))
+        assert_that(workunit.is_item_processed(first_item), equal_to(False))
+        assert_that(workunit.is_item_processed(second_item), equal_to(False))
 
         self.model.accept_current_item()
 
-        assert_that(first_item.is_processed(), equal_to(True))
-        assert_that(first_item.get_status(), equal_to(VettableItem.ACCEPTED))
-        assert_that(second_item.is_processed(), equal_to(False))
-        assert_that(second_item.get_status(), equal_to(VettableItem.UNPROCESSED))
+        assert_that(workunit.is_item_processed(first_item), equal_to(True))
+        assert_that(workunit.is_item_processed(second_item), equal_to(False))
 
         self.model.next_item()
         self.model.accept_current_item()
 
-        assert_that(first_item.is_processed(), equal_to(True))
-        assert_that(first_item.get_status(), equal_to(VettableItem.ACCEPTED))
-        assert_that(second_item.is_processed(), equal_to(True))
-        assert_that(second_item.get_status(), equal_to(VettableItem.ACCEPTED))
+        assert_that(workunit.is_item_processed(first_item), equal_to(True))
+        assert_that(workunit.is_item_processed(second_item), equal_to(True))
 
     def test_reject_current_item(self):
+        workunit = self.model.get_current_workunit()
+
         data = self.workload.get_current_data()
         first_item = data.get_sources()[0]
         second_item = data.get_sources()[1]
 
-        assert_that(first_item.is_processed(), equal_to(False))
-        assert_that(first_item.get_status(), equal_to(VettableItem.UNPROCESSED))
-        assert_that(second_item.is_processed(), equal_to(False))
-        assert_that(second_item.get_status(), equal_to(VettableItem.UNPROCESSED))
+        assert_that(workunit.is_item_processed(first_item), equal_to(False))
+        assert_that(workunit.is_item_processed(second_item), equal_to(False))
 
         self.model.reject_current_item()
 
-        assert_that(first_item.is_processed(), equal_to(True))
-        assert_that(first_item.get_status(), equal_to(VettableItem.REJECTED))
-        assert_that(second_item.is_processed(), equal_to(False))
-        assert_that(second_item.get_status(), equal_to(VettableItem.UNPROCESSED))
+        assert_that(workunit.is_item_processed(first_item), equal_to(True))
+        assert_that(workunit.is_item_processed(second_item), equal_to(False))
 
         self.model.next_item()
         self.model.reject_current_item()
 
-        assert_that(first_item.is_processed(), equal_to(True))
-        assert_that(first_item.get_status(), equal_to(VettableItem.REJECTED))
-        assert_that(second_item.is_processed(), equal_to(True))
-        assert_that(second_item.get_status(), equal_to(VettableItem.REJECTED))
+        assert_that(workunit.is_item_processed(first_item), equal_to(True))
+        assert_that(workunit.is_item_processed(second_item), equal_to(True))
 
     def test_receive_all_sources_processed_event_on_final_accept(self):
         observer = Mock()
