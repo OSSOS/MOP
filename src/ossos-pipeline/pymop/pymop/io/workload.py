@@ -31,9 +31,6 @@ class StatefulCollection(object):
     def __getitem__(self, index):
         return self.items[index]
 
-    def __getattr__(self, attr):
-        return getattr(self.items, attr)
-
     def add_callback(self, callback):
         self.callbacks.append(callback)
 
