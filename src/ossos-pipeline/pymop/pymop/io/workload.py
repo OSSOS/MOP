@@ -136,10 +136,15 @@ class WorkUnit(object):
         raise NotImplementedError()
 
     def accept_current_item(self):
-        self.processed_items.add(self.get_current_item())
+        self.process_current_item()
 
     def reject_current_item(self):
+        self.process_current_item()
+
+    def process_current_item(self):
         self.processed_items.add(self.get_current_item())
+        self.progress_manager.record_index(self.get_filename(),
+                                           self.get_current_item_index())
 
     def next_vettable_item(self):
         raise NotImplementedError()
@@ -346,13 +351,10 @@ class WorkloadManager(object):
 
     def next_workunit(self):
         if not self.work_units.has_next():
-            # TODO refactor.
             self.work_units.append(self.workunit_provider.get_workunit())
-
-            self.work_units.next()
             events.send(events.NEW_WORK_UNIT)
-        else:
-            self.work_units.next()
+
+        self.work_units.next()
 
     def previous_workunit(self):
         self.work_units.previous()
@@ -406,9 +408,6 @@ class WorkloadManager(object):
 
     def _process_current_item(self):
         self.num_processed += 1
-        self.progress_manager.record_index(
-            self.get_current_filename(),
-            self.get_current_workunit().get_current_item_index())
 
         if self.get_current_workunit().is_finished():
             filename = self.get_current_workunit().get_filename()
