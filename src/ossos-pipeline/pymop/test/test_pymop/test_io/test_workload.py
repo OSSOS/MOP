@@ -106,6 +106,7 @@ class AbstractWorkUnitTest(FileReadingTestCase):
         parser = AstromParser()
         self.data = parser.parse(self.get_abs_path(self.testfile))
         self.progress_manager = Mock(spec=ProgressManager)
+        self.progress_manager.get_processed_indices.return_value = []
         self.writer = Mock()
 
 
@@ -113,8 +114,8 @@ class WorkUnitTest(AbstractWorkUnitTest):
     def setUp(self):
         super(WorkUnitTest, self).setUp()
 
-        self.workunit = WorkUnit(self.testfile, self.data,
-                                 self.progress_manager, self.writer)
+        self.workunit = RealsWorkUnit(self.testfile, self.data,
+                                      self.progress_manager, self.writer)
 
     def test_initialization(self):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
