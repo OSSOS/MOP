@@ -10,6 +10,8 @@ from mock import Mock
 from test.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from pymop import tasks
 from pymop.io import workload
+from pymop.io.imgaccess import AsynchronousImageDownloadManager
+from pymop.gui.models import ProcessRealsModel
 from pymop.io.astrom import AstromParser
 from pymop.io.writers import WriterFactory
 from pymop.io.persistence import ProgressManager, InMemoryProgressManager
@@ -17,7 +19,7 @@ from pymop.io.workload import (WorkUnitProvider, DirectoryManager,
                                WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
                                NoAvailableWorkException,
                                StatefulCollection,
-                               WorkloadManager, RealsWorkUnitBuilder)
+                               RealsWorkUnitBuilder)
 
 
 class TestDirectoryManager(object):
@@ -436,7 +438,7 @@ class StatefulCollectionTest(unittest.TestCase):
         callback.assert_called_once_with(item1, item2)
 
 
-class WorkloadManagerTest(unittest.TestCase):
+class WorkloadManagementTest(unittest.TestCase):
     def setUp(self):
         self.progress_manager = InMemoryProgressManager(Mock(spec=DirectoryManager))
         self.workunit_provider = Mock(spec=WorkUnitProvider)
@@ -457,13 +459,12 @@ class WorkloadManagerTest(unittest.TestCase):
             return workunit
 
         self.workunit_provider.get_workunit.side_effect = (get_workunit(index) for index in xrange(2))
+        download_manager = Mock(spec=AsynchronousImageDownloadManager)
 
-        self.undertest = WorkloadManager(self.workunit_provider, self.progress_manager)
+        self.undertest = ProcessRealsModel(self.workunit_provider, self.progress_manager,
+                                           download_manager)
 
     def test_workunits_on_demand(self):
-        assert_that(self.undertest.get_current_workunit(), is_(none()))
-
-        self.undertest.next_workunit()
         assert_that(self.undertest.get_current_workunit(), equal_to(self.workunit1))
         assert_that(self.workunit_provider.get_workunit.call_count, equal_to(1))
 
@@ -472,7 +473,6 @@ class WorkloadManagerTest(unittest.TestCase):
         assert_that(self.workunit_provider.get_workunit.call_count, equal_to(2))
 
     def test_shift_locks(self):
-        self.undertest.next_workunit()
         assert_that(self.undertest.get_current_workunit(), equal_to(self.workunit1))
         assert_that(self.progress_manager.owns_lock(self.file1), equal_to(True))
         assert_that(self.progress_manager.owns_lock(self.file2), equal_to(False))
