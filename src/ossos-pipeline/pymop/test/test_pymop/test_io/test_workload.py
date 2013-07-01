@@ -11,7 +11,7 @@ from test.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from pymop import tasks
 from pymop.io import workload
 from pymop.io.imgaccess import AsynchronousImageDownloadManager
-from pymop.gui.models import ProcessRealsModel
+from pymop.gui.models import AbstractModel
 from pymop.io.astrom import AstromParser
 from pymop.io.writers import WriterFactory
 from pymop.io.persistence import ProgressManager, InMemoryProgressManager
@@ -461,7 +461,7 @@ class WorkloadManagementTest(unittest.TestCase):
         self.workunit_provider.get_workunit.side_effect = (get_workunit(index) for index in xrange(2))
         download_manager = Mock(spec=AsynchronousImageDownloadManager)
 
-        self.undertest = ProcessRealsModel(self.workunit_provider, self.progress_manager,
+        self.undertest = AbstractModel(self.workunit_provider, self.progress_manager,
                                            download_manager)
 
     def test_workunits_on_demand(self):

@@ -5,8 +5,6 @@ user interface.
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import collections
-
 from pymop.gui import events
 from pymop.io.workload import NoAvailableWorkException, StatefulCollection
 
@@ -31,6 +29,8 @@ class AbstractModel(object):
 
         self.num_processed = 0
         self._num_images_loaded = 0
+
+        self.sources_discovered = set()
 
         events.subscribe(events.NEW_WORK_UNIT, self._download_current_workunit_images)
         self.start_work()
@@ -156,18 +156,13 @@ class AbstractModel(object):
         return self.num_processed
 
     def accept_current_item(self):
+        self.sources_discovered.add(self.get_current_source())
         # TODO: refactor
         try:
             self._do_accept_current_item()
         except NoAvailableWorkException:
             events.send(events.NO_AVAILABLE_WORK)
             self.exit()
-        finally:
-            self._on_accept()
-
-    def _on_accept(self):
-        """Hook you can override to do extra processing when accepting an item."""
-        pass
 
     def reject_current_item(self):
         # TODO refactor
@@ -203,6 +198,9 @@ class AbstractModel(object):
     def previous_item(self):
         self.get_current_workunit().previous_vettable_item()
 
+    def is_current_source_discovered(self):
+        return self.get_current_source() in self.sources_discovered
+
     def exit(self):
         self._unlock(self.get_current_workunit())
 
@@ -215,31 +213,4 @@ class AbstractModel(object):
     def _on_finished_workunit(self, filename):
         events.send(events.FINISHED_WORKUNIT, filename)
         self.next_workunit()
-
-
-class ProcessRealsModel(AbstractModel):
-    """
-    Manages the application state for the process reals task.
-    TODO: refactor
-    """
-
-    def __init__(self, workunit_provider, progress_manager, download_manager):
-        super(ProcessRealsModel, self).__init__(
-            workunit_provider, progress_manager, download_manager)
-
-        self._source_discovery_asterisk = collections.defaultdict(lambda: False)
-
-    def _on_accept(self):
-        self._source_discovery_asterisk[self.get_current_source()] = True
-
-    def is_current_source_discovered(self):
-        return self._source_discovery_asterisk[self.get_current_source()]
-
-
-class ProcessCandidatesModel(AbstractModel):
-    """TODO: refactor"""
-
-    def __init__(self, workunit_provider, progress_manager, download_manager):
-        super(ProcessCandidatesModel, self).__init__(
-            workunit_provider, progress_manager, download_manager)
 
