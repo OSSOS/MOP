@@ -206,17 +206,19 @@ class AbstractRealsModelTest(GeneralModelTest):
     def test_loading_images(self):
         observer = Mock()
         events.subscribe(events.IMG_LOADED, observer.on_img_loaded)
+        loaded_reading1 = Mock()
+        loaded_reading2 = Mock()
 
         assert_that(self.download_manager.start_download.call_count, equal_to(1))
         assert_that(self.model.get_loaded_image_count(), equal_to(0))
 
         # Simulate receiving callback
-        self.model._on_image_loaded(0, 1)
+        self.model._on_image_loaded(loaded_reading1)
         assert_that(self.model.get_loaded_image_count(), equal_to(1))
         assert_that(observer.on_img_loaded.call_count, equal_to(1))
 
         # Simulate receiving callback
-        self.model._on_image_loaded(1, 1)
+        self.model._on_image_loaded(loaded_reading2)
         assert_that(self.model.get_loaded_image_count(), equal_to(2))
         assert_that(observer.on_img_loaded.call_count, equal_to(2))
 
@@ -226,11 +228,11 @@ class AbstractRealsModelTest(GeneralModelTest):
 
         msg0 = call_args_list[0][0][0]
         assert_that(msg0.topic, equal_to(events.IMG_LOADED))
-        assert_that(msg0.data, equal_to((0, 1)))
+        assert_that(msg0.data, equal_to(loaded_reading1))
 
         msg1 = call_args_list[1][0][0]
         assert_that(msg1.topic, equal_to(events.IMG_LOADED))
-        assert_that(msg1.data, equal_to((1, 1)))
+        assert_that(msg1.data, equal_to(loaded_reading2))
 
     def test_get_current_exposure_number(self):
         assert_that(self.model.get_current_exposure_number(), equal_to(1584431))

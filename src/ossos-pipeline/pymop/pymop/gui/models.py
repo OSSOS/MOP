@@ -192,9 +192,9 @@ class UIModel(object):
         self.download_manager.start_download(
             workunit, image_loaded_callback=self._on_image_loaded)
 
-    def _on_image_loaded(self, source_num, obs_num):
+    def _on_image_loaded(self, reading):
         self._num_images_loaded += 1
-        events.send(events.IMG_LOADED, (source_num, obs_num))
+        events.send(events.IMG_LOADED, reading)
 
     def _on_finished_workunit(self, filename):
         events.send(events.FINISHED_WORKUNIT, filename)

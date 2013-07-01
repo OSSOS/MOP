@@ -37,9 +37,8 @@ class AbstractController(object):
             self.model.get_obs_count())
 
     def on_image_loaded(self, event):
-        source_num, obs_num = event.data
-        if (self.model.get_current_source_number() == source_num and
-                    self.model.get_current_obs_number() == obs_num):
+        source_reading = event.data
+        if source_reading == self.model.get_current_reading():
             self.get_view().hide_image_loading_dialog()
             self.display_current_image()
 

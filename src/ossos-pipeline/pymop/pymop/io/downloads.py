@@ -41,11 +41,11 @@ class AsynchronousImageDownloadManager(object):
             self, self.downloader, workload)
         self.download_thread.start()
 
-    def on_image_downloaded(self, downloaded_image, reading, source_num, obs_num):
+    def on_image_downloaded(self, downloaded_image, reading):
         reading.set_fits_image(downloaded_image)
 
         if self.image_loaded_callback is not None:
-            self.image_loaded_callback(source_num, obs_num)
+            self.image_loaded_callback(reading)
 
     def on_all_downloaded(self):
         if self.all_loaded_callback is not None:
@@ -68,8 +68,8 @@ class SerialImageDownloadThread(threading.Thread):
         self._should_stop = False
 
     def run(self):
-        for source_num, source in enumerate(self.workload.get_sources()):
-            for obs_num, reading in enumerate(source.get_readings()):
+        for source in self.workload.get_sources():
+            for reading in source.get_readings():
                 if self._should_stop:
                     return
 
@@ -79,8 +79,8 @@ class SerialImageDownloadThread(threading.Thread):
                     # Quit without calling callback
                     return
 
-                self.download_manager.on_image_downloaded(
-                    downloaded_image, reading, source_num, obs_num)
+                self.download_manager.on_image_downloaded(downloaded_image,
+                                                          reading)
 
         self.download_manager.on_all_downloaded()
 
