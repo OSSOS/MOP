@@ -77,8 +77,8 @@ class FitsImageTest(FileReadingTestCase):
         fitsimage.get_observed_magnitude(x, y)
 
         mock_phot_mag.assert_called_once_with(
-            fitsimage, x, y, aperture=4.0, sky=16.0, swidth=4.0, apcor=0.19,
-            maxcount=30000.0
+            fitsimage.as_file().name, x, y, aperture=4.0, sky=16.0, swidth=4.0,
+            apcor=0.19, maxcount=30000.0
         )
 
 

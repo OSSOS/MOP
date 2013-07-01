@@ -5,22 +5,38 @@ import re
 import tempfile
 
 from pyraf import iraf
+from astropy.io import fits
 
 
 class TaskError(Exception):
     """Base task error"""
 
 
-def phot(fitsimage, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
+def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
          maxcount=30000.0, exptime=1.0):
-    """Compute the centroids and magnitudes of a bunch sources detected on CFHT-MEGAPRIME images.
+    """
+    Compute the centroids and magnitudes of a bunch sources detected on
+    CFHT-MEGAPRIME images.
 
-    Returns a MOPfiles data structure."""
+    Args:
+      fits_filename: str
+        The name of the file containing the image to be processed.
 
-    hdulist_in = fitsimage.as_hdulist()
+    Returns a MOPfiles data structure.
+    """
+
+    if (not os.path.exists(fits_filename) and
+            not fits_filename.endswith(".fits")):
+        # For convenience, see if we just forgot to provide the extension
+        fits_filename += ".fits"
+
+    try:
+        input_hdulist = fits.open(fits_filename)
+    except Exception as err:
+        raise TaskError("Failed to open input image: %s" % err.message)
 
     ## get the filter for this image
-    filter = hdulist_in[0].header.get('FILTER', 'DEFAULT')
+    filter = input_hdulist[0].header.get('FILTER', 'DEFAULT')
 
     ### Some CFHT zeropoints that might be useful
     zeropoints = {"I": 25.77,
@@ -35,7 +51,7 @@ def phot(fitsimage, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
     if not filter in zeropoints:
         filter = "DEFAULT"
 
-    zmag = hdulist_in[0].header.get('PHOTZP', zeropoints[filter])
+    zmag = input_hdulist[0].header.get('PHOTZP', zeropoints[filter])
 
     ### setup IRAF to do the magnitude/centroid measurements
     iraf.set(uparm="./")
@@ -82,7 +98,7 @@ def phot(fitsimage, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
     coofile.close()
     magfile.close()
 
-    iraf.phot(fitsimage.as_file().name, coofile.name, magfile.name)
+    iraf.phot(fits_filename, coofile.name, magfile.name)
     pdump_out = iraf.pdump(magfile.name, "XCENTER,YCENTER,MAG,MERR,ID,XSHIFT,YSHIFT,LID",
                            "MERR < 0.4 && MERR != INDEF && MAG != INDEF && PIER==0", header='no', parameters='yes',
                            Stdout=1)
@@ -92,7 +108,7 @@ def phot(fitsimage, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
 
     ### setup the mop output file structure
     hdu = {}
-    hdu['header'] = {'image': hdulist_in,
+    hdu['header'] = {'image': input_hdulist,
                      'aper': aperture,
                      's_aper': sky,
                      'd_s_aper': swidth,
