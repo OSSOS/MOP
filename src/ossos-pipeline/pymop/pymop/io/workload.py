@@ -84,7 +84,7 @@ class WorkUnit(object):
         self._mark_previously_processed_items()
 
         if self.is_current_item_processed():
-            self.next_vettable_item()
+            self.next_item()
 
         self.finished_callbacks = []
 
@@ -140,6 +140,9 @@ class WorkUnit(object):
     def get_current_item(self):
         raise NotImplementedError()
 
+    def get_current_item_index(self):
+        raise NotImplementedError()
+
     def accept_current_item(self):
         self.process_current_item()
 
@@ -158,7 +161,7 @@ class WorkUnit(object):
             for callback in self.finished_callbacks:
                 callback(self.get_filename())
 
-    def next_vettable_item(self):
+    def next_item(self):
         raise NotImplementedError()
 
     def is_item_processed(self, item):
@@ -185,7 +188,11 @@ class RealsWorkUnit(WorkUnit):
     def get_current_item(self):
         return self.get_current_reading()
 
-    def next_vettable_item(self):
+    def get_current_item_index(self):
+        return (self.get_sources().get_index() * self.get_obs_count() +
+                self.get_current_source_readings().get_index())
+
+    def next_item(self):
         # TODO: refactor this to make less complicated...
 
         # Make sure we are on the right source
@@ -207,10 +214,6 @@ class RealsWorkUnit(WorkUnit):
 
             self.next_obs()
             num_obs_to_check -= 1
-
-    def get_current_item_index(self):
-        return (self.get_sources().get_index() * self.get_obs_count() +
-                self.get_current_source_readings().get_index())
 
     def is_current_source_finished(self):
         for reading in self.get_current_source().get_readings():
@@ -243,11 +246,11 @@ class CandidatesWorkUnit(WorkUnit):
     def get_current_item(self):
         return self.get_current_source()
 
-    def next_vettable_item(self):
-        self.next_source()
-
     def get_current_item_index(self):
         return self.get_sources().get_index()
+
+    def next_item(self):
+        self.next_source()
 
     def is_finished(self):
         for source in self.get_sources():

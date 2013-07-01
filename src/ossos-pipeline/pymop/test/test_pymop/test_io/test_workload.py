@@ -188,15 +188,15 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
         assert_that(self.workunit.get_current_obs_number(), equal_to(0))
 
-        self.workunit.next_vettable_item()
+        self.workunit.next_item()
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
         assert_that(self.workunit.get_current_obs_number(), equal_to(1))
 
-        self.workunit.next_vettable_item()
+        self.workunit.next_item()
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
         assert_that(self.workunit.get_current_obs_number(), equal_to(2))
 
-        self.workunit.next_vettable_item()
+        self.workunit.next_item()
         # Should have looped back to first observation of the same source
         # because we haven't finished processing it.
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
@@ -206,16 +206,16 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
         assert_that(self.workunit.get_current_obs_number(), equal_to(0))
 
-        self.workunit.next_vettable_item()
+        self.workunit.next_item()
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
         assert_that(self.workunit.get_current_obs_number(), equal_to(1))
 
-        self.workunit.next_vettable_item()
+        self.workunit.next_item()
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
         assert_that(self.workunit.get_current_obs_number(), equal_to(2))
 
         self.workunit.accept_current_item()
-        self.workunit.next_vettable_item()
+        self.workunit.next_item()
 
         # Should have looped back to first observation of the same source
         # because we haven't finished processing it.
@@ -223,13 +223,13 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         assert_that(self.workunit.get_current_obs_number(), equal_to(0))
 
         self.workunit.accept_current_item()
-        self.workunit.next_vettable_item()
+        self.workunit.next_item()
 
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
         assert_that(self.workunit.get_current_obs_number(), equal_to(1))
 
         self.workunit.accept_current_item()
-        self.workunit.next_vettable_item()
+        self.workunit.next_item()
 
         # We already validated the last reading, so we should be jumping
         # straight to the second source now.
@@ -237,7 +237,7 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         assert_that(self.workunit.get_current_source_number(), equal_to(1))
         assert_that(self.workunit.get_current_obs_number(), equal_to(0))
 
-        self.workunit.next_vettable_item()
+        self.workunit.next_item()
 
         assert_that(self.workunit.get_current_source_number(), equal_to(1))
         assert_that(self.workunit.get_current_obs_number(), equal_to(1))
@@ -246,21 +246,21 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
         assert_that(self.workunit.get_current_obs_number(), equal_to(0))
 
-        self.workunit.next_vettable_item()
+        self.workunit.next_item()
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
         assert_that(self.workunit.get_current_obs_number(), equal_to(1))
 
         self.workunit.reject_current_item()
-        self.workunit.next_vettable_item()
+        self.workunit.next_item()
 
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
         assert_that(self.workunit.get_current_obs_number(), equal_to(2))
 
-        self.workunit.next_vettable_item()
+        self.workunit.next_item()
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
         assert_that(self.workunit.get_current_obs_number(), equal_to(0))
 
-        self.workunit.next_vettable_item()
+        self.workunit.next_item()
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
         assert_that(self.workunit.get_current_obs_number(), equal_to(2))
 
@@ -277,7 +277,7 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         assert_that(self.workunit.is_item_processed(first_item), equal_to(True))
         assert_that(self.workunit.is_item_processed(second_item), equal_to(False))
 
-        self.workunit.next_vettable_item()
+        self.workunit.next_item()
         self.workunit.accept_current_item()
 
         assert_that(self.workunit.is_item_processed(first_item), equal_to(True))
@@ -296,7 +296,7 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         assert_that(self.workunit.is_item_processed(first_item), equal_to(True))
         assert_that(self.workunit.is_item_processed(second_item), equal_to(False))
 
-        self.workunit.next_vettable_item()
+        self.workunit.next_item()
         self.workunit.reject_current_item()
 
         assert_that(self.workunit.is_item_processed(first_item), equal_to(True))
@@ -306,7 +306,7 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         for index in range(8):
             assert_that(self.workunit.get_current_item_index(), equal_to(index))
             self.workunit.accept_current_item()
-            self.workunit.next_vettable_item()
+            self.workunit.next_item()
 
         assert_that(self.workunit.get_current_item_index(), equal_to(8))
 
@@ -322,15 +322,15 @@ class CandidatesWorkUnitTest(AbstractWorkUnitTest):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
         assert_that(self.workunit.get_current_obs_number(), equal_to(0))
 
-        self.workunit.next_vettable_item()
+        self.workunit.next_item()
         assert_that(self.workunit.get_current_source_number(), equal_to(1))
         assert_that(self.workunit.get_current_obs_number(), equal_to(0))
 
-        self.workunit.next_vettable_item()
+        self.workunit.next_item()
         assert_that(self.workunit.get_current_source_number(), equal_to(2))
         assert_that(self.workunit.get_current_obs_number(), equal_to(0))
 
-        self.workunit.next_vettable_item()
+        self.workunit.next_item()
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
         assert_that(self.workunit.get_current_obs_number(), equal_to(0))
 
@@ -346,7 +346,7 @@ class CandidatesWorkUnitTest(AbstractWorkUnitTest):
         assert_that(self.workunit.is_item_processed(first_item), equal_to(True))
         assert_that(self.workunit.is_item_processed(second_item), equal_to(False))
 
-        self.workunit.next_vettable_item()
+        self.workunit.next_item()
         self.workunit.accept_current_item()
 
         assert_that(self.workunit.is_item_processed(first_item), equal_to(True))
@@ -364,7 +364,7 @@ class CandidatesWorkUnitTest(AbstractWorkUnitTest):
         assert_that(self.workunit.is_item_processed(first_item), equal_to(True))
         assert_that(self.workunit.is_item_processed(second_item), equal_to(False))
 
-        self.workunit.next_vettable_item()
+        self.workunit.next_item()
         self.workunit.reject_current_item()
 
         assert_that(self.workunit.is_item_processed(first_item), equal_to(True))
