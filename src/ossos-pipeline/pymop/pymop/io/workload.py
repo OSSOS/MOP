@@ -14,6 +14,11 @@ class NoAvailableWorkException(Exception):
 
 
 class StatefulCollection(object):
+    """
+    An ordered collection of objects which have the notion of one of them
+    being the 'current' object.
+    """
+
     def __init__(self, items=None):
         if items is None:
             self.items = []
@@ -33,10 +38,16 @@ class StatefulCollection(object):
     def __getitem__(self, index):
         return self.items[index]
 
-    def add_callback(self, callback):
+    def register_change_item_callback(self, callback):
+        """
+        Registers a function to be called when the current item is changed.
+        The function will be called with two arguments: the item that was
+        current, and the new current item.
+        """
         self.callbacks.append(callback)
 
     def append(self, item):
+        """Adds a new item to the end of the collection."""
         if len(self) == 0:
             # Special case, we make this the current item
             self.index = 0
@@ -44,6 +55,7 @@ class StatefulCollection(object):
         self.items.append(item)
 
     def get_index(self):
+        """Returns the index of the current item."""
         return self.index
 
     def get_current_item(self):
@@ -53,12 +65,23 @@ class StatefulCollection(object):
             return None
 
     def next(self):
+        """
+        Make the next item in the collection the current item.  Wraps around
+        to the beginning after reaching the end.
+        """
         self._move(1)
 
     def previous(self):
+        """
+        Make the previous item in the collection the current item.  Wraps
+        around to the end after reaching the beginning.
+        """
         self._move(-1)
 
     def is_on_last_item(self):
+        """
+        Returns True if the current item is the last item in the collection.
+        """
         return self.index == len(self) - 1
 
     def _move(self, delta):
@@ -71,6 +94,11 @@ class StatefulCollection(object):
 
 
 class WorkUnit(object):
+    """
+    A unit of work to be processed, associated with the data from a single
+    input file.
+    """
+
     def __init__(self, filename, parsed_data, progress_manager, results_writer):
         self.filename = filename
         self.data = parsed_data
@@ -187,6 +215,10 @@ class WorkUnit(object):
 
 
 class RealsWorkUnit(WorkUnit):
+    """
+    A unit of work when performing the process reals task.
+    """
+
     def __init__(self, filename, parsed_data, progress_manager, results_writer):
         super(RealsWorkUnit, self).__init__(
             filename, parsed_data, progress_manager, results_writer)
@@ -227,6 +259,10 @@ class RealsWorkUnit(WorkUnit):
 
 
 class CandidatesWorkUnit(WorkUnit):
+    """
+    A unit of work when performing the process candidates task.
+    """
+
     def __init__(self, filename, parsed_data, progress_manager, results_writer):
         super(CandidatesWorkUnit, self).__init__(
             filename, parsed_data, progress_manager, results_writer)
@@ -250,6 +286,10 @@ class CandidatesWorkUnit(WorkUnit):
 
 
 class WorkUnitProvider(object):
+    """
+    Obtains new units of work for the application.
+    """
+
     def __init__(self,
                  taskid,
                  directory_context,
@@ -261,6 +301,17 @@ class WorkUnitProvider(object):
         self.builder = builder
 
     def get_workunit(self):
+        """
+        Gets a new unit of work.
+
+        Returns:
+          new_workunit: WorkUnit
+            A new unit of work that has not yet been processed.
+
+        Raises:
+          NoAvailableWorkException
+            There is no more work available.
+        """
         potential_files = self.directory_context.get_listing(self.taskid)
 
         while len(potential_files) > 0:
@@ -282,6 +333,10 @@ class WorkUnitProvider(object):
 
 
 class WorkUnitBuilder(object):
+    """
+    Used to construct a WorkUnit with its necessary components.
+    """
+
     def __init__(self, parser, progress_manager):
         self.parser = parser
         self.progress_manager = progress_manager
@@ -303,6 +358,11 @@ class WorkUnitBuilder(object):
 
 
 class RealsWorkUnitBuilder(WorkUnitBuilder):
+    """
+    Used to construct a WorkUnit with its necessary components.
+    Constructs RealsWorkUnits for the process reals task.
+    """
+
     def __init__(self, parser, progress_manager):
         super(RealsWorkUnitBuilder, self).__init__(parser, progress_manager)
 
@@ -317,6 +377,11 @@ class RealsWorkUnitBuilder(WorkUnitBuilder):
 
 
 class CandidatesWorkUnitBuilder(WorkUnitBuilder):
+    """
+    Used to construct a WorkUnit with its necessary components.
+    Constructs CandidatesWorkUnits for the process candidates task.
+    """
+
     def __init__(self, parser, progress_manager):
         super(CandidatesWorkUnitBuilder, self).__init__(parser, progress_manager)
 

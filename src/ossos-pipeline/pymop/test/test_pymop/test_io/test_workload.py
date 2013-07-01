@@ -398,12 +398,12 @@ class StatefulCollectionTest(unittest.TestCase):
 
         items = [1, 2, 3]
         undertest = StatefulCollection(items)
-        undertest.add_callback(first_callback)
+        undertest.register_change_item_callback(first_callback)
 
         undertest.next()
         first_callback.assert_called_once_with(items[0], items[1])
 
-        undertest.add_callback(second_callback)
+        undertest.register_change_item_callback(second_callback)
         undertest.previous()
         second_callback.assert_called_once_with(items[1], items[0])
 
@@ -412,7 +412,7 @@ class StatefulCollectionTest(unittest.TestCase):
     def test_start_empty(self):
         callback = Mock()
         undertest = StatefulCollection()
-        undertest.add_callback(callback)
+        undertest.register_change_item_callback(callback)
 
         assert_that(undertest, has_length(0))
 
