@@ -94,6 +94,55 @@ class WorkUnit(object):
     def register_finished_callback(self, callback):
         self.finished_callbacks.append(callback)
 
+    def next_source(self):
+        self.get_sources().next()
+        events.send(events.NEXT_SRC, data=self.get_current_source_number())
+
+    def previous_source(self):
+        self.get_sources().previous()
+        events.send(events.PREV_SRC, data=self.get_current_source_number())
+
+    def next_obs(self):
+        self.get_current_source_readings().next()
+        events.send(events.NEXT_OBS, data=self.get_current_obs_number())
+
+    def previous_obs(self):
+        self.get_current_source_readings().previous()
+        events.send(events.PREV_OBS, data=self.get_current_obs_number())
+
+    def next_item(self):
+        raise NotImplementedError()
+
+    def accept_current_item(self):
+        self.process_current_item()
+
+    def reject_current_item(self):
+        self.process_current_item()
+
+    def process_current_item(self):
+        self.processed_items.add(self.get_current_item())
+        self.progress_manager.record_index(self.get_filename(),
+                                           self.get_current_item_index())
+
+        if self.is_finished():
+            self.progress_manager.record_done(self.get_filename())
+            self.results_writer.close()
+
+            for callback in self.finished_callbacks:
+                callback(self.get_filename())
+
+    def get_current_item(self):
+        raise NotImplementedError()
+
+    def get_current_item_index(self):
+        raise NotImplementedError()
+
+    def is_item_processed(self, item):
+        return item in self.processed_items
+
+    def is_current_item_processed(self):
+        return self.is_item_processed(self.get_current_item())
+
     def get_filename(self):
         return self.filename
 
@@ -124,55 +173,6 @@ class WorkUnit(object):
     def get_current_obs_number(self):
         return self.get_current_source_readings().get_index()
 
-    def next_source(self):
-        self.get_sources().next()
-        events.send(events.NEXT_SRC, data=self.get_current_source_number())
-
-    def previous_source(self):
-        self.get_sources().previous()
-        events.send(events.PREV_SRC, data=self.get_current_source_number())
-
-    def next_obs(self):
-        self.get_current_source_readings().next()
-        events.send(events.NEXT_OBS, data=self.get_current_obs_number())
-
-    def previous_obs(self):
-        self.get_current_source_readings().previous()
-        events.send(events.PREV_OBS, data=self.get_current_obs_number())
-
-    def get_current_item(self):
-        raise NotImplementedError()
-
-    def get_current_item_index(self):
-        raise NotImplementedError()
-
-    def accept_current_item(self):
-        self.process_current_item()
-
-    def reject_current_item(self):
-        self.process_current_item()
-
-    def process_current_item(self):
-        self.processed_items.add(self.get_current_item())
-        self.progress_manager.record_index(self.get_filename(),
-                                           self.get_current_item_index())
-
-        if self.is_finished():
-            self.progress_manager.record_done(self.get_filename())
-            self.results_writer.close()
-
-            for callback in self.finished_callbacks:
-                callback(self.get_filename())
-
-    def next_item(self):
-        raise NotImplementedError()
-
-    def is_item_processed(self, item):
-        return item in self.processed_items
-
-    def is_current_item_processed(self):
-        return self.is_item_processed(self.get_current_item())
-
     def get_writer(self):
         return self.results_writer
 
@@ -187,13 +187,6 @@ class RealsWorkUnit(WorkUnit):
     def __init__(self, filename, parsed_data, progress_manager, results_writer):
         super(RealsWorkUnit, self).__init__(
             filename, parsed_data, progress_manager, results_writer)
-
-    def get_current_item(self):
-        return self.get_current_reading()
-
-    def get_current_item_index(self):
-        return (self.get_sources().get_index() * self.get_obs_count() +
-                self.get_current_source_readings().get_index())
 
     def next_item(self):
         # TODO: refactor this to make less complicated...
@@ -217,6 +210,13 @@ class RealsWorkUnit(WorkUnit):
 
             self.next_obs()
             num_obs_to_check -= 1
+
+    def get_current_item(self):
+        return self.get_current_reading()
+
+    def get_current_item_index(self):
+        return (self.get_sources().get_index() * self.get_obs_count() +
+                self.get_current_source_readings().get_index())
 
     def is_current_source_finished(self):
         for reading in self.get_current_source().get_readings():
@@ -246,14 +246,14 @@ class CandidatesWorkUnit(WorkUnit):
         super(CandidatesWorkUnit, self).__init__(
             filename, parsed_data, progress_manager, results_writer)
 
+    def next_item(self):
+        self.next_source()
+
     def get_current_item(self):
         return self.get_current_source()
 
     def get_current_item_index(self):
         return self.get_sources().get_index()
-
-    def next_item(self):
-        self.next_source()
 
     def is_finished(self):
         for source in self.get_sources():
@@ -271,21 +271,21 @@ class CandidatesWorkUnit(WorkUnit):
 class WorkUnitProvider(object):
     def __init__(self,
                  taskid,
-                 directory_manager,
+                 directory_context,
                  progress_manager,
                  builder):
         self.taskid = taskid
-        self.directory_manager = directory_manager
+        self.directory_context = directory_context
         self.progress_manager = progress_manager
         self.builder = builder
 
     def get_workunit(self):
-        potential_files = self.directory_manager.get_listing(self.taskid)
+        potential_files = self.directory_context.get_listing(self.taskid)
 
         while len(potential_files) > 0:
             potential_file = potential_files.pop()
 
-            if self.directory_manager.get_file_size(potential_file) == 0:
+            if self.directory_context.get_file_size(potential_file) == 0:
                 continue
 
             if not self.progress_manager.is_done(potential_file):
@@ -295,7 +295,7 @@ class WorkUnitProvider(object):
                     continue
 
                 return self.builder.build_workunit(
-                    self.directory_manager.get_full_path(potential_file))
+                    self.directory_context.get_full_path(potential_file))
 
         raise NoAvailableWorkException()
 
@@ -309,15 +309,15 @@ class WorkUnitBuilder(object):
         parsed_data = self.parser.parse(full_path)
 
         _, filename = os.path.split(full_path)
-        return self._build_workunit(filename, parsed_data,
-                                    self.progress_manager,
-                                    self._create_results_writer(full_path,
-                                                                parsed_data))
+        return self._do_build_workunit(filename, parsed_data,
+                                       self.progress_manager,
+                                       self._create_results_writer(full_path,
+                                                                   parsed_data))
 
     def _create_results_writer(self, full_path, parsed_data):
         raise NotImplementedError()
 
-    def _build_workunit(self, filename, data, progress_manager, writer):
+    def _do_build_workunit(self, filename, data, progress_manager, writer):
         raise NotImplementedError()
 
 
@@ -331,7 +331,7 @@ class RealsWorkUnitBuilder(WorkUnitBuilder):
         output_filehandle = open(output_filename, "a+b")
         return MPCWriter(output_filehandle)
 
-    def _build_workunit(self, filename, data, progress_manager, writer):
+    def _do_build_workunit(self, filename, data, progress_manager, writer):
         return RealsWorkUnit(filename, data, progress_manager, writer)
 
 
@@ -340,10 +340,10 @@ class CandidatesWorkUnitBuilder(WorkUnitBuilder):
         super(CandidatesWorkUnitBuilder, self).__init__(parser, progress_manager)
 
     def _create_results_writer(self, full_path, parsed_data):
-            output_filename = full_path.replace(tasks.get_suffix(tasks.CANDS_TASK),
-                                        tasks.get_suffix(tasks.REALS_TASK))
-            output_filehandle = open(output_filename, "a+b")
-            return StreamingAstromWriter(output_filehandle, parsed_data.sys_header)
+        output_filename = full_path.replace(tasks.get_suffix(tasks.CANDS_TASK),
+                                            tasks.get_suffix(tasks.REALS_TASK))
+        output_filehandle = open(output_filename, "a+b")
+        return StreamingAstromWriter(output_filehandle, parsed_data.sys_header)
 
-    def _build_workunit(self, filename, data, progress_manager, writer):
+    def _do_build_workunit(self, filename, data, progress_manager, writer):
         return CandidatesWorkUnit(filename, data, progress_manager, writer)
