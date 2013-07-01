@@ -61,6 +61,9 @@ class StatefulCollection(object):
     def has_next(self):
         return self.index < len(self) - 1
 
+    def is_on_last_item(self):
+        return self.index == len(self) - 1
+
     def _move(self, delta):
         first_item = self.get_current_item()
         self.index = (self.index + delta) % len(self)
@@ -189,27 +192,18 @@ class RealsWorkUnit(WorkUnit):
             filename, parsed_data, progress_manager, results_writer)
 
     def next_item(self):
-        # TODO: refactor this to make less complicated...
+        self.next_obs()
+        while self.is_current_item_processed():
+            self._next_sequential_item()
 
-        # Make sure we are on the right source
-        sources_checked = 0
-        while (self.is_current_source_finished() and
-                       sources_checked < self.get_source_count()):
-            sources_checked += 1
+    def _next_sequential_item(self):
+        """
+        Go to the next item in the 'ideal' processing sequence.
+        """
+        if self.get_current_source_readings().is_on_last_item():
             self.next_source()
-
-        # Then proceed to the first unprocessed observation
-        if sources_checked == 0:
+        else:
             self.next_obs()
-
-        num_obs_to_check = len(self.get_current_source_readings())
-        while num_obs_to_check > 0:
-            if not self.is_current_item_processed():
-                # This observation needs to be vetted, stop here
-                return
-
-            self.next_obs()
-            num_obs_to_check -= 1
 
     def get_current_item(self):
         return self.get_current_reading()
@@ -217,13 +211,6 @@ class RealsWorkUnit(WorkUnit):
     def get_current_item_index(self):
         return (self.get_sources().get_index() * self.get_obs_count() +
                 self.get_current_source_readings().get_index())
-
-    def is_current_source_finished(self):
-        for reading in self.get_current_source().get_readings():
-            if not self.is_item_processed(reading):
-                return False
-
-        return True
 
     def is_finished(self):
         for source in self.get_sources():
