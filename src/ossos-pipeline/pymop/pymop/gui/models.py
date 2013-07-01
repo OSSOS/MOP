@@ -41,7 +41,6 @@ class UIModel(object):
                 self._get_new_workunit()
             except NoAvailableWorkException:
                 events.send(events.NO_AVAILABLE_WORK)
-                self.exit()
                 return
 
         self.work_units.next()
