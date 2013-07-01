@@ -1,3 +1,5 @@
+from pymop.app import DirectoryManager
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
@@ -12,7 +14,7 @@ from pymop.gui.controllers import ProcessRealsController
 from pymop.gui.models import UIModel
 from pymop.io.astrom import AstromParser
 from pymop.io.imgaccess import AsynchronousImageDownloadManager
-from pymop.io.workload import DirectoryManager, WorkUnitProvider, RealsWorkUnitBuilder
+from pymop.io.workload import WorkUnitProvider, RealsWorkUnitBuilder
 from pymop.io.writers import WriterFactory
 
 

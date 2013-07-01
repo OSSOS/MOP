@@ -1,11 +1,13 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import os
+
 import wx
 import wx.lib.inspection
 
 from pymop import config
 from pymop import tasks
-from pymop.io.workload import (DirectoryManager, WorkUnitProvider,
+from pymop.io.workload import (WorkUnitProvider,
                                RealsWorkUnitBuilder,
                                CandidatesWorkUnitBuilder)
 from pymop.io.writers import WriterFactory
@@ -83,3 +85,22 @@ class PymopApplication(object):
                                              progress_manager, builder)
         model = UIModel(workunit_provider, progress_manager, download_manager)
         factory.create_controller(model)
+
+
+class DirectoryManager(object):
+    def __init__(self, directory):
+        self.directory = directory
+
+    def get_listing(self, suffix):
+        return listdir_for_suffix(self.directory, suffix)
+
+    def get_full_path(self, filename):
+        return os.path.join(self.directory, filename)
+
+    def get_file_size(self, filename):
+        return os.stat(self.get_full_path(filename)).st_size
+
+
+def listdir_for_suffix(directory, suffix):
+    """Note this returns file names, not full paths."""
+    return filter(lambda name: name.endswith(suffix), os.listdir(directory))
