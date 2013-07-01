@@ -33,9 +33,8 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
 
         self.model = UIModel(workunit_provider, progress_manager, download_manager)
 
-        self.task = Mock()
         self.name_generator = Mock()
-        self.controller = ProcessRealsController(self.task, self.model, self.name_generator)
+        self.controller = ProcessRealsController(self.model, self.name_generator)
 
     def tearDown(self):
         WxWidgetTestCase.tearDown(self)

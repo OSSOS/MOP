@@ -24,78 +24,34 @@ class PymopError(Exception):
     """Base class for errors in the pymop application."""
 
 
-class AbstractTask(object):
-    def __init__(self):
-        self.parser = AstromParser()
-        self.download_manager = AsynchronousImageDownloadManager(
-            ImageSliceDownloader(VOSpaceResolver()))
+class AbstractTaskFactory(object):
+    def create_workunit_builder(self, parser, progress_manager, writer_factory):
+        pass
 
-    def get_task_suffix(self):
-        raise NotImplementedError()
-
-    def _create_model(self, workunit_provider, progress_manager):
-        raise NotImplementedError()
-
-    def _create_controller(self, model):
-        raise NotImplementedError()
-
-    def _get_workunit_builder(self, parser, progress_manager, writer_factory):
-        raise NotImplementedError()
-
-    def start(self, working_directory):
-        directory_manager = DirectoryManager(working_directory)
-        progress_manager = ProgressManager(directory_manager)
-        writer_factory = WriterFactory()
-        builder = self._get_workunit_builder(self.parser, progress_manager, writer_factory)
-        workunit_provider = WorkUnitProvider(self.get_task_suffix(), directory_manager,
-                                             progress_manager, builder)
-        model = self._create_model(workunit_provider, progress_manager)
-        self._create_controller(model)
-
-    def finish(self):
+    def create_controller(self, model):
         pass
 
 
-class ProcessCandidatesTask(AbstractTask):
-    def __init__(self):
-        super(ProcessCandidatesTask, self).__init__()
-
-    def get_task_suffix(self):
-        return tasks.get_suffix(tasks.CANDS_TASK)
-
-    def _get_workunit_builder(self, parser, progress_manager, writer_factory):
-        return CandidatesWorkUnitBuilder(parser, progress_manager, writer_factory)
-
-    def _create_model(self, workunit_provider, progress_manager):
-        return UIModel(workunit_provider, progress_manager, self.download_manager)
-
-    def _create_controller(self, model):
-        return ProcessCandidatesController(self, model)
-
-
-class ProcessRealsTask(AbstractTask):
-    def __init__(self):
-        super(ProcessRealsTask, self).__init__()
-
-        self.name_generator = ProvisionalNameGenerator()
-
-    def get_task_suffix(self):
-        return tasks.get_suffix(tasks.REALS_TASK)
-
-    def _get_workunit_builder(self, parser, progress_manager, writer_factory):
+class ProcessRealsTaskFactory(AbstractTaskFactory):
+    def create_workunit_builder(self, parser, progress_manager, writer_factory):
         return RealsWorkUnitBuilder(parser, progress_manager, writer_factory)
 
-    def _create_model(self, workunit_provider, progress_manager):
-        return UIModel(workunit_provider, progress_manager, self.download_manager)
+    def create_controller(self, model):
+        return ProcessRealsController(model, ProvisionalNameGenerator())
 
-    def _create_controller(self, model):
-        return ProcessRealsController(self, model, self.name_generator)
+
+class ProcessCandidatesTaskFactory(AbstractTaskFactory):
+    def create_workunit_builder(self, parser, progress_manager, writer_factory):
+        return CandidatesWorkUnitBuilder(parser, progress_manager, writer_factory)
+
+    def create_controller(self, model):
+        return ProcessCandidatesController(model)
 
 
 class PymopApplication(object):
     task_name_mapping = {
-        tasks.CANDS_TASK: ProcessCandidatesTask,
-        tasks.REALS_TASK: ProcessRealsTask
+        tasks.CANDS_TASK: ProcessCandidatesTaskFactory,
+        tasks.REALS_TASK: ProcessRealsTaskFactory
     }
 
     def __init__(self):
@@ -111,9 +67,19 @@ class PymopApplication(object):
 
     def start_task(self, working_directory, taskname):
         try:
-            self.task = self.task_name_mapping[taskname]()
+            factory = self.task_name_mapping[taskname]()
         except KeyError:
             raise PymopError("Unknown task: %s" % taskname)
 
-        self.task.start(working_directory)
+        parser = AstromParser()
+        download_manager = AsynchronousImageDownloadManager(
+            ImageSliceDownloader(VOSpaceResolver()))
 
+        directory_manager = DirectoryManager(working_directory)
+        progress_manager = ProgressManager(directory_manager)
+        writer_factory = WriterFactory()
+        builder = factory.create_workunit_builder(parser, progress_manager, writer_factory)
+        workunit_provider = WorkUnitProvider(tasks.get_suffix(taskname), directory_manager,
+                                             progress_manager, builder)
+        model = UIModel(workunit_provider, progress_manager, download_manager)
+        factory.create_controller(model)
