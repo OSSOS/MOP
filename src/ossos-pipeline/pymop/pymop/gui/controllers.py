@@ -6,8 +6,7 @@ from pymop.gui.views import ApplicationView
 
 
 class AbstractController(object):
-    def __init__(self, task, model):
-        self.task = task
+    def __init__(self, model):
         self.model = model
 
         events.subscribe(events.NAV, self.on_change_image)
@@ -63,7 +62,6 @@ class AbstractController(object):
     def _do_exit(self):
         self.view.close()
         self.model.exit()
-        self.task.finish()
 
     def on_next_obs(self):
         self.model.next_obs()
@@ -84,8 +82,8 @@ class ProcessRealsController(AbstractController):
     handles user interactions.
     """
 
-    def __init__(self, task, model, name_generator):
-        super(ProcessRealsController, self).__init__(task, model)
+    def __init__(self, model, name_generator):
+        super(ProcessRealsController, self).__init__(model)
 
         self.name_generator = name_generator
 
@@ -169,8 +167,8 @@ class ProcessRealsController(AbstractController):
 
 
 class ProcessCandidatesController(AbstractController):
-    def __init__(self, task, model):
-        super(ProcessCandidatesController, self).__init__(task, model)
+    def __init__(self, model):
+        super(ProcessCandidatesController, self).__init__(model)
 
     def on_accept(self):
         self.model.get_writer().write_source(self.model.get_current_source())
