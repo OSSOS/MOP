@@ -7,10 +7,10 @@ from mock import Mock, patch
 from hamcrest import assert_that, not_none, none, equal_to
 
 from test.base_tests import FileReadingTestCase
-from pymop.io.img import FitsImage, ApcorData
+from pymop.io.image import DownloadedFitsImage, ApcorData
 
 
-class FitsImageTest(FileReadingTestCase):
+class DownloadedFitsImageTest(FileReadingTestCase):
     def setUp(self):
         with open(self.get_abs_path("data/testimg.fits"), "rb") as fh:
             self.strdata = fh.read()
@@ -19,29 +19,29 @@ class FitsImageTest(FileReadingTestCase):
         self.coord_converter = Mock()
 
     def test_create_in_memory_image(self):
-        fitsimage = FitsImage(self.strdata, self.apcor_str, self.coord_converter,
-                              in_memory=True)
+        fitsimage = DownloadedFitsImage(self.strdata, self.apcor_str, self.coord_converter,
+                                        in_memory=True)
 
         # Breaking interface for testing purposes
         assert_that(fitsimage._hdulist, not_none())
         assert_that(fitsimage._tempfile, none())
 
     def test_create_on_disk_image(self):
-        fitsimage = FitsImage(self.strdata, self.apcor_str, self.coord_converter,
-                              in_memory=False)
+        fitsimage = DownloadedFitsImage(self.strdata, self.apcor_str, self.coord_converter,
+                                        in_memory=False)
 
         # Breaking interface for testing purposes
         assert_that(fitsimage._hdulist, none())
         assert_that(fitsimage._tempfile, not_none())
 
     def test_in_memory_as_file(self):
-        fitsimage = FitsImage(self.strdata, self.apcor_str, self.coord_converter,
-                              in_memory=True)
+        fitsimage = DownloadedFitsImage(self.strdata, self.apcor_str, self.coord_converter,
+                                        in_memory=True)
         assert_that(os.path.exists(fitsimage.as_file().name))
 
     def test_on_disk_as_hdulist(self):
-        fitsimage = FitsImage(self.strdata, self.apcor_str, self.coord_converter,
-                              in_memory=False)
+        fitsimage = DownloadedFitsImage(self.strdata, self.apcor_str, self.coord_converter,
+                                        in_memory=False)
 
         assert_that(fitsimage._hdulist, none())
         assert_that(fitsimage.as_hdulist()[0].header["FILENAME"],
@@ -49,19 +49,19 @@ class FitsImageTest(FileReadingTestCase):
         assert_that(fitsimage._hdulist, not_none())
 
     def test_in_memory_as_hdulist(self):
-        fitsimage = FitsImage(self.strdata, self.apcor_str, self.coord_converter,
-                              in_memory=True)
+        fitsimage = DownloadedFitsImage(self.strdata, self.apcor_str, self.coord_converter,
+                                        in_memory=True)
         assert_that(fitsimage.as_hdulist()[0].header["FILENAME"],
                     equal_to("u5780205r_cvt.c0h"))
 
     def test_on_disk_as_file(self):
-        fitsimage = FitsImage(self.strdata, self.apcor_str, self.coord_converter,
-                              in_memory=False)
+        fitsimage = DownloadedFitsImage(self.strdata, self.apcor_str, self.coord_converter,
+                                        in_memory=False)
         assert_that(os.path.exists(fitsimage.as_file().name))
 
     def test_close(self):
-        fitsimage = FitsImage(self.strdata, self.apcor_str, self.coord_converter,
-                              in_memory=True)
+        fitsimage = DownloadedFitsImage(self.strdata, self.apcor_str, self.coord_converter,
+                                        in_memory=True)
         as_file = fitsimage.as_file()
 
         fitsimage.close()
@@ -70,8 +70,8 @@ class FitsImageTest(FileReadingTestCase):
 
     @patch("pymop.astrometry.daophot.phot_mag")
     def test_get_observed_magnitude(self, mock_phot_mag):
-        fitsimage = FitsImage(self.strdata, self.apcor_str, self.coord_converter,
-                              in_memory=True)
+        fitsimage = DownloadedFitsImage(self.strdata, self.apcor_str, self.coord_converter,
+                                        in_memory=True)
         x = 1500
         y = 2500
         fitsimage.get_observed_magnitude(x, y)
