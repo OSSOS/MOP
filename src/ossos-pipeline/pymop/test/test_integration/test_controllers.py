@@ -15,7 +15,6 @@ from pymop.gui.models import UIModel
 from pymop.io.astrom import AstromParser
 from pymop.io.imgaccess import AsynchronousImageDownloadManager
 from pymop.io.workload import WorkUnitProvider, RealsWorkUnitBuilder
-from pymop.io.writers import WriterFactory
 
 
 class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, DirectoryCleaningTestCase):
@@ -26,10 +25,9 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
         directory_manager = DirectoryContext(
             self.get_abs_path("data/controller_testdir"))
         progress_manager = ProgressManager(directory_manager)
-        writer_factory = WriterFactory()
         workunit_provider = WorkUnitProvider(tasks.get_suffix(tasks.REALS_TASK),
                                              directory_manager, progress_manager,
-                                             RealsWorkUnitBuilder(parser, progress_manager, writer_factory))
+                                             RealsWorkUnitBuilder(parser, progress_manager))
 
         download_manager = Mock(spec=AsynchronousImageDownloadManager)
 

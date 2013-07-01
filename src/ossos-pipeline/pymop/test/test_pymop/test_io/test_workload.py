@@ -14,7 +14,6 @@ from pymop import tasks
 from pymop.io.imgaccess import AsynchronousImageDownloadManager
 from pymop.gui.models import UIModel
 from pymop.io.astrom import AstromParser
-from pymop.io.writers import WriterFactory
 from pymop.io.persistence import ProgressManager, InMemoryProgressManager
 from pymop.io.workload import (WorkUnitProvider, WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
                                NoAvailableWorkException,
@@ -493,8 +492,7 @@ class WorkUnitProviderTest(FileReadingTestCase, DirectoryCleaningTestCase):
         directory_manager = DirectoryContext(working_directory)
         progress_manager = InMemoryProgressManager(directory_manager)
         parser = AstromParser()
-        writer_factory = WriterFactory()
-        builder = RealsWorkUnitBuilder(parser, progress_manager, writer_factory)
+        builder = RealsWorkUnitBuilder(parser, progress_manager)
         undertest = WorkUnitProvider(tasks.get_suffix(tasks.REALS_TASK),
                                      directory_manager,
                                      progress_manager,

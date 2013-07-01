@@ -17,7 +17,6 @@ from pymop.io.persistence import ProgressManager
 from pymop.io.img import FitsImage
 from pymop.io.workload import ( WorkUnitProvider,
                                RealsWorkUnitBuilder, CandidatesWorkUnitBuilder)
-from pymop.io.writers import WriterFactory
 
 MODEL_TEST_DIR_1 = "data/model_testdir_1"
 MODEL_TEST_DIR_2 = "data/model_testdir_2"
@@ -34,11 +33,9 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
         parser = AstromParser()
         directory_manager = DirectoryContext(self._get_working_dir())
         progress_manager = ProgressManager(directory_manager)
-        writer_factory = WriterFactory()
         workunit_provider = WorkUnitProvider(tasks.get_suffix(self._get_task()),
                                              directory_manager, progress_manager,
-                                             self._get_workunit_builder(
-                                                 parser, progress_manager, writer_factory))
+                                             self._get_workunit_builder(parser, progress_manager))
 
         self.workunit_provider = workunit_provider
         self.progress_manager = progress_manager
@@ -58,7 +55,7 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
     def get_directory_to_clean(self):
         return self._get_working_dir()
 
-    def _get_workunit_builder(self, parser, progress_manager, writer_factory):
+    def _get_workunit_builder(self, parser, progress_manager):
         raise NotImplementedError()
 
     def create_real_first_image(self, path="data/testimg.fits"):
@@ -76,8 +73,8 @@ class AbstractRealsModelTest(GeneralModelTest):
     def _get_task(self):
         return tasks.REALS_TASK
 
-    def _get_workunit_builder(self, parser, progress_manager, writer_factory):
-        return RealsWorkUnitBuilder(parser, progress_manager, writer_factory)
+    def _get_workunit_builder(self, parser, progress_manager):
+        return RealsWorkUnitBuilder(parser, progress_manager)
 
     def get_files_to_keep(self):
         return ["1584431p15.measure3.reals.astrom"]
@@ -361,8 +358,8 @@ class ProcessRealsModelTest(GeneralModelTest):
     def _get_task(self):
         return tasks.REALS_TASK
 
-    def _get_workunit_builder(self, parser, progress_manager, writer_factory):
-        return RealsWorkUnitBuilder(parser, progress_manager, writer_factory)
+    def _get_workunit_builder(self, parser, progress_manager):
+        return RealsWorkUnitBuilder(parser, progress_manager)
 
     def get_files_to_keep(self):
         return ["1584431p15.measure3.reals.astrom"]
@@ -558,8 +555,8 @@ class ProcessCandidatesModelTest(GeneralModelTest):
     def _get_task(self):
         return tasks.CANDS_TASK
 
-    def _get_workunit_builder(self, parser, progress_manager, writer_factory):
-        return CandidatesWorkUnitBuilder(parser, progress_manager, writer_factory)
+    def _get_workunit_builder(self, parser, progress_manager):
+        return CandidatesWorkUnitBuilder(parser, progress_manager)
 
     def get_files_to_keep(self):
         return ["1584431p15.measure3.cands.astrom", "1584431p15.measure3.reals.astrom"]
@@ -670,8 +667,8 @@ class ProcessCandidatesModelTest(GeneralModelTest):
 
 
 class MultipleAstromDataModelTest(GeneralModelTest):
-    def _get_workunit_builder(self, parser, progress_manager, writer_factory):
-        return CandidatesWorkUnitBuilder(parser, progress_manager, writer_factory)
+    def _get_workunit_builder(self, parser, progress_manager):
+        return CandidatesWorkUnitBuilder(parser, progress_manager)
 
     def get_model(self):
         return models.UIModel(
@@ -785,8 +782,8 @@ class RealsModelPersistenceTest(GeneralModelTest):
     def _get_task(self):
         return tasks.REALS_TASK
 
-    def _get_workunit_builder(self, parser, progress_manager, writer_factory):
-        return RealsWorkUnitBuilder(parser, progress_manager, writer_factory)
+    def _get_workunit_builder(self, parser, progress_manager):
+        return RealsWorkUnitBuilder(parser, progress_manager)
 
     def _get_working_dir(self):
         return self.get_abs_path(FRESH_TEST_DIR)
@@ -900,8 +897,8 @@ class RealsModelPersistenceLoadingTest(GeneralModelTest):
     def _get_task(self):
         return tasks.REALS_TASK
 
-    def _get_workunit_builder(self, parser, progress_manager, writer_factory):
-        return RealsWorkUnitBuilder(parser, progress_manager, writer_factory)
+    def _get_workunit_builder(self, parser, progress_manager):
+        return RealsWorkUnitBuilder(parser, progress_manager)
 
     def _get_working_dir(self):
         return self.get_abs_path("data/model_persistence_partial")
@@ -944,8 +941,8 @@ class CandidatesModelPersistenceTest(GeneralModelTest):
     def _get_task(self):
         return tasks.CANDS_TASK
 
-    def _get_workunit_builder(self, parser, progress_manager, writer_factory):
-        return CandidatesWorkUnitBuilder(parser, progress_manager, writer_factory)
+    def _get_workunit_builder(self, parser, progress_manager):
+        return CandidatesWorkUnitBuilder(parser, progress_manager)
 
     def _get_working_dir(self):
         return self.get_abs_path(FRESH_TEST_DIR)
@@ -1023,8 +1020,8 @@ class CandidatesModelPersistenceLoadingTest(GeneralModelTest):
     def _get_task(self):
         return tasks.CANDS_TASK
 
-    def _get_workunit_builder(self, parser, progress_manager, writer_factory):
-        return CandidatesWorkUnitBuilder(parser, progress_manager, writer_factory)
+    def _get_workunit_builder(self, parser, progress_manager):
+        return CandidatesWorkUnitBuilder(parser, progress_manager)
 
     def _get_working_dir(self):
         return self.get_abs_path("data/model_persistence_partial")

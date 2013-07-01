@@ -2,8 +2,11 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import os
 
-from pymop.io.persistence import FileLockedException
+from pymop import tasks
 from pymop.gui import events
+from pymop.io.mpc import MPCWriter
+from pymop.io.astrom import StreamingAstromWriter
+from pymop.io.persistence import FileLockedException
 
 
 class NoAvailableWorkException(Exception):
@@ -298,10 +301,9 @@ class WorkUnitProvider(object):
 
 
 class WorkUnitBuilder(object):
-    def __init__(self, parser, progress_manager, writer_factory):
+    def __init__(self, parser, progress_manager):
         self.parser = parser
         self.progress_manager = progress_manager
-        self.writer_factory = writer_factory
 
     def build_workunit(self, full_path):
         parsed_data = self.parser.parse(full_path)
@@ -309,26 +311,39 @@ class WorkUnitBuilder(object):
         _, filename = os.path.split(full_path)
         return self._build_workunit(filename, parsed_data,
                                     self.progress_manager,
-                                    self.writer_factory.create_writer(
-                                        full_path, parsed_data))
+                                    self._create_results_writer(full_path,
+                                                                parsed_data))
+
+    def _create_results_writer(self, full_path, parsed_data):
+        raise NotImplementedError()
 
     def _build_workunit(self, filename, data, progress_manager, writer):
         raise NotImplementedError()
 
 
 class RealsWorkUnitBuilder(WorkUnitBuilder):
-    def __init__(self, parser, progress_manager, writer_factory):
-        super(RealsWorkUnitBuilder, self).__init__(
-            parser, progress_manager, writer_factory)
+    def __init__(self, parser, progress_manager):
+        super(RealsWorkUnitBuilder, self).__init__(parser, progress_manager)
+
+    def _create_results_writer(self, full_path, parsed_data):
+        output_filename = full_path.replace(tasks.get_suffix(tasks.REALS_TASK),
+                                            ".mpc")
+        output_filehandle = open(output_filename, "a+b")
+        return MPCWriter(output_filehandle)
 
     def _build_workunit(self, filename, data, progress_manager, writer):
         return RealsWorkUnit(filename, data, progress_manager, writer)
 
 
 class CandidatesWorkUnitBuilder(WorkUnitBuilder):
-    def __init__(self, parser, progress_manager, writer_factory):
-        super(CandidatesWorkUnitBuilder, self).__init__(
-            parser, progress_manager, writer_factory)
+    def __init__(self, parser, progress_manager):
+        super(CandidatesWorkUnitBuilder, self).__init__(parser, progress_manager)
+
+    def _create_results_writer(self, full_path, parsed_data):
+            output_filename = full_path.replace(tasks.get_suffix(tasks.CANDS_TASK),
+                                        tasks.get_suffix(tasks.REALS_TASK))
+            output_filehandle = open(output_filename, "a+b")
+            return StreamingAstromWriter(output_filehandle, parsed_data.sys_header)
 
     def _build_workunit(self, filename, data, progress_manager, writer):
         return CandidatesWorkUnit(filename, data, progress_manager, writer)
