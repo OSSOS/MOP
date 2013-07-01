@@ -12,10 +12,6 @@ from pymop.io.img import FitsImage
 MAX_INVERTED_CCD = 17
 
 
-class ImageRetrievalError(Exception):
-    """Base class for errors in image retrieval."""
-
-
 class AsynchronousImageDownloadManager(object):
     """
     Coordinates the downloading of images asynchronously from the rest of
