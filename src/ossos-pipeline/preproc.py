@@ -33,7 +33,6 @@ import numpy as np
 from astropy.io import fits
 import logging
 import errno
-pyfits = fits
 
 version=__Version__
 
@@ -327,8 +326,8 @@ if __name__=='__main__':
                 ### write out the image now (don't overwrite
                 ### files that exist at the start of this process
                 if opt.split:
-		    hdu_list=pyfits.HDUList()
-                    phdu=pyfits.ImageHDU()
+		    hdu_list=fits.HDUList()
+                    phdu=fits.ImageHDU()
                     phdu.header=hdu.header
                     phdu.data=hdu.data
                     del phdu.header['XTENSION']
@@ -354,7 +353,7 @@ if __name__=='__main__':
                         proc_hdu_list.close()
                     except IOError as e:
                         if e.errno == 2:
-                            pyfits.PrimaryHDU(header=hdu.header,
+                            fits.PrimaryHDU(header=hdu.header,
                                               data=hdu.data).writeto(outfile)
             else:
                 mstack.append(hdu.data.astype('float16'))
@@ -376,7 +375,7 @@ if __name__=='__main__':
             else:
                 data = hdu.data
             del(mstack)
-            stack = pyfits.ImageHDU(data)
+            stack = fits.ImageHDU(data)
             if stack.data is not None:
                 stack.data = stack.data.astype('float32')
             stack.header[args.extname_kw] = (hdu.header.get(args.extname_kw,args.extname_kw), 'Extension Name')
@@ -396,7 +395,7 @@ if __name__=='__main__':
                 stack.writeto(outfile)
             else:
                 try:
-                    fitsobj = pyfits.open(outfile, 'append')
+                    fitsobj = fits.open(outfile, 'append')
                     fitsobj.append(stack)
                     fitsobj.close()
                 except IOError as e:

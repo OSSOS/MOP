@@ -20,6 +20,7 @@ setup(name='ossos',
                'scramble.py',
                'plant.py',
                'preproc.py',
+               'ObsStatus.py',
                'combine.py'],
       classifiers=[
         'Development Status :: 4 - Beta',
