@@ -29,11 +29,37 @@ class UIModel(object):
 
         self.start_work()
 
-    def get_current_data(self):
-        return self.get_current_workunit().get_data()
-
     def start_work(self):
         self.next_workunit()
+
+    def next_source(self):
+        self.get_current_workunit().next_source()
+
+    def previous_source(self):
+        self.get_current_workunit().previous_source()
+
+    def next_obs(self):
+        self.get_current_workunit().next_obs()
+
+    def previous_obs(self):
+        self.get_current_workunit().previous_obs()
+
+    def next_item(self):
+        self.get_current_workunit().next_item()
+
+    def previous_item(self):
+        self.get_current_workunit().previous_vettable_item()
+
+    def accept_current_item(self):
+        self.sources_discovered.add(self.get_current_source())
+        self._process_current_item()
+
+    def reject_current_item(self):
+        self._process_current_item()
+
+    def _process_current_item(self):
+        self.get_current_workunit().process_current_item()
+        self.num_processed += 1
 
     def next_workunit(self):
         if not self.work_units.has_next():
@@ -54,8 +80,23 @@ class UIModel(object):
     def previous_workunit(self):
         self.work_units.previous()
 
+    def is_current_source_discovered(self):
+        return self.get_current_source() in self.sources_discovered
+
+    def is_current_item_processed(self):
+        return self.get_current_workunit().is_current_item_processed()
+
+    def get_num_items_processed(self):
+        return self.num_processed
+
+    def get_current_data(self):
+        return self.get_current_workunit().get_data()
+
     def get_current_workunit(self):
         return self.work_units.get_current_item()
+
+    def get_writer(self):
+        return self.get_current_workunit().get_writer()
 
     def get_current_filename(self):
         return self.get_current_workunit().get_filename()
@@ -63,29 +104,20 @@ class UIModel(object):
     def get_current_source_number(self):
         return self.get_current_workunit().get_current_source_number()
 
-    def next_source(self):
-        self.get_current_workunit().next_source()
-
-    def previous_source(self):
-        self.get_current_workunit().previous_source()
-
     def get_current_obs_number(self):
         return self.get_current_workunit().get_current_obs_number()
 
     def get_obs_count(self):
         return self.get_current_workunit().get_obs_count()
 
-    def next_obs(self):
-        self.get_current_workunit().next_obs()
-
-    def previous_obs(self):
-        self.get_current_workunit().previous_obs()
-
     def get_current_source(self):
         return self.get_current_workunit().get_current_source()
 
     def get_current_reading(self):
         return self.get_current_workunit().get_current_reading()
+
+    def get_current_exposure_number(self):
+        return int(self.get_current_reading().obs.expnum)
 
     def get_reading_data(self):
         reading = self.get_current_reading()
@@ -135,51 +167,11 @@ class UIModel(object):
     def get_current_image_maxcount(self):
         return float(self.get_current_reading().obs.header["MAXCOUNT"])
 
-    def get_current_exposure_number(self):
-        return int(self.get_current_reading().obs.expnum)
-
-    def _download_workunit_images(self, workunit):
-        self.download_manager.start_download(
-            workunit, image_loaded_callback=self._on_image_loaded)
-
-    def stop_loading_images(self):
-        self.download_manager.stop_download()
-
     def get_loaded_image_count(self):
         return self._num_images_loaded
 
-    def _on_image_loaded(self, source_num, obs_num):
-        self._num_images_loaded += 1
-        events.send(events.IMG_LOADED, (source_num, obs_num))
-
-    def get_num_items_processed(self):
-        return self.num_processed
-
-    def accept_current_item(self):
-        self.sources_discovered.add(self.get_current_source())
-        self._process_current_item()
-
-    def reject_current_item(self):
-        self._process_current_item()
-
-    def _process_current_item(self):
-        self.get_current_workunit().process_current_item()
-        self.num_processed += 1
-
-    def is_current_item_processed(self):
-        return self.get_current_workunit().is_current_item_processed()
-
-    def get_writer(self):
-        return self.get_current_workunit().get_writer()
-
-    def next_item(self):
-        self.get_current_workunit().next_vettable_item()
-
-    def previous_item(self):
-        self.get_current_workunit().previous_vettable_item()
-
-    def is_current_source_discovered(self):
-        return self.get_current_source() in self.sources_discovered
+    def stop_loading_images(self):
+        self.download_manager.stop_download()
 
     def exit(self):
         self._unlock(self.get_current_workunit())
@@ -189,6 +181,14 @@ class UIModel(object):
 
     def _unlock(self, workunit):
         self.progress_manager.unlock(workunit.get_filename())
+
+    def _download_workunit_images(self, workunit):
+        self.download_manager.start_download(
+            workunit, image_loaded_callback=self._on_image_loaded)
+
+    def _on_image_loaded(self, source_num, obs_num):
+        self._num_images_loaded += 1
+        events.send(events.IMG_LOADED, (source_num, obs_num))
 
     def _on_finished_workunit(self, filename):
         events.send(events.FINISHED_WORKUNIT, filename)
