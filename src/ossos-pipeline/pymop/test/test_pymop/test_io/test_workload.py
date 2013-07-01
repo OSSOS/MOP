@@ -11,7 +11,7 @@ from mock import Mock
 
 from test.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from pymop import tasks
-from pymop.io.imgaccess import AsynchronousImageDownloadManager
+from pymop.io.downloads import AsynchronousImageDownloadManager
 from pymop.gui.models import UIModel
 from pymop.io.astrom import AstromParser
 from pymop.io.persistence import ProgressManager, InMemoryProgressManager

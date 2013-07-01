@@ -13,7 +13,7 @@ from pymop.io.persistence import ProgressManager
 from pymop.gui.controllers import ProcessRealsController
 from pymop.gui.models import UIModel
 from pymop.io.astrom import AstromParser
-from pymop.io.imgaccess import AsynchronousImageDownloadManager
+from pymop.io.downloads import AsynchronousImageDownloadManager
 from pymop.io.workload import WorkUnitProvider, RealsWorkUnitBuilder
 
 
