@@ -1,3 +1,5 @@
+from pymop.app import DirectoryManager
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import os
@@ -9,14 +11,12 @@ from mock import Mock
 
 from test.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from pymop import tasks
-from pymop.io import workload
 from pymop.io.imgaccess import AsynchronousImageDownloadManager
 from pymop.gui.models import UIModel
 from pymop.io.astrom import AstromParser
 from pymop.io.writers import WriterFactory
 from pymop.io.persistence import ProgressManager, InMemoryProgressManager
-from pymop.io.workload import (WorkUnitProvider, DirectoryManager,
-                               WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
+from pymop.io.workload import (WorkUnitProvider, WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
                                NoAvailableWorkException,
                                StatefulCollection,
                                RealsWorkUnitBuilder)
@@ -462,7 +462,7 @@ class WorkloadManagementTest(unittest.TestCase):
         download_manager = Mock(spec=AsynchronousImageDownloadManager)
 
         self.undertest = UIModel(self.workunit_provider, self.progress_manager,
-                                           download_manager)
+                                 download_manager)
 
     def test_workunits_on_demand(self):
         assert_that(self.undertest.get_current_workunit(), equal_to(self.workunit1))
@@ -526,37 +526,6 @@ class WorkUnitProviderTest(FileReadingTestCase, DirectoryCleaningTestCase):
         self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
 
         assert_that(actual_filenames, contains_inanyorder(*expected_filenames))
-
-
-class DirectoryManagerTest(FileReadingTestCase):
-    def test_listdir_for_suffix(self):
-        directory = self.get_abs_path("data/testdir")
-
-        listing1 = workload.listdir_for_suffix(directory, "cands.astrom")
-        assert_that(listing1, contains_inanyorder("xxx1.cands.astrom", "xxx2.cands.astrom"))
-
-        listing2 = workload.listdir_for_suffix(directory, "reals.astrom")
-        assert_that(listing2, contains_inanyorder("xxx1.reals.astrom", "xxx2.reals.astrom"))
-
-    def test_listdir_for_task(self):
-        directory = self.get_abs_path("data/testdir")
-
-        listing1 = workload.listdir_for_suffix(directory, tasks.get_suffix(tasks.CANDS_TASK))
-        assert_that(listing1, contains_inanyorder("xxx1.cands.astrom", "xxx2.cands.astrom"))
-
-        listing2 = workload.listdir_for_suffix(directory, tasks.get_suffix(tasks.REALS_TASK))
-        assert_that(listing2, contains_inanyorder("xxx1.reals.astrom", "xxx2.reals.astrom"))
-
-    def test_directory_manager_get_listing(self):
-        directory = self.get_abs_path("data/testdir")
-
-        directory_manager = DirectoryManager(directory)
-
-        listing1 = directory_manager.get_listing("cands.astrom")
-        assert_that(listing1, contains_inanyorder("xxx1.cands.astrom", "xxx2.cands.astrom"))
-
-        assert_that(directory_manager.get_full_path("xxx1.cands.astrom"),
-                    equal_to(self.get_abs_path("data/testdir/xxx1.cands.astrom")))
 
 
 if __name__ == '__main__':

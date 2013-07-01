@@ -1,3 +1,5 @@
+from pymop.app import DirectoryManager
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import os
@@ -13,7 +15,7 @@ from pymop.io.imgaccess import AsynchronousImageDownloadManager
 from pymop.io.astrom import AstromParser
 from pymop.io.persistence import ProgressManager
 from pymop.io.img import FitsImage
-from pymop.io.workload import (DirectoryManager, WorkUnitProvider,
+from pymop.io.workload import ( WorkUnitProvider,
                                RealsWorkUnitBuilder, CandidatesWorkUnitBuilder)
 from pymop.io.writers import WriterFactory
 
