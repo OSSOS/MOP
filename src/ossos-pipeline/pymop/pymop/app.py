@@ -14,7 +14,7 @@ from pymop.io.persistence import ProgressManager
 from pymop.io.naming import ProvisionalNameGenerator
 from pymop.io.imgaccess import (AsynchronousImageDownloadManager,
                                 ImageSliceDownloader, VOSpaceResolver)
-from pymop.gui.models import AbstractModel
+from pymop.gui.models import UIModel
 from pymop.gui.controllers import (ProcessRealsController,
                                    ProcessCandidatesController)
 from pymop.gui.taskselect import TaskSetupManager
@@ -67,7 +67,7 @@ class ProcessCandidatesTask(AbstractTask):
         return CandidatesWorkUnitBuilder(parser, progress_manager, writer_factory)
 
     def _create_model(self, workunit_provider, progress_manager):
-        return AbstractModel(workunit_provider, progress_manager, self.download_manager)
+        return UIModel(workunit_provider, progress_manager, self.download_manager)
 
     def _create_controller(self, model):
         return ProcessCandidatesController(self, model)
@@ -86,7 +86,7 @@ class ProcessRealsTask(AbstractTask):
         return RealsWorkUnitBuilder(parser, progress_manager, writer_factory)
 
     def _create_model(self, workunit_provider, progress_manager):
-        return AbstractModel(workunit_provider, progress_manager, self.download_manager)
+        return UIModel(workunit_provider, progress_manager, self.download_manager)
 
     def _create_controller(self, model):
         return ProcessRealsController(self, model, self.name_generator)

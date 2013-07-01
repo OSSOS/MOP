@@ -81,7 +81,7 @@ class AbstractRealsModelTest(GeneralModelTest):
         return ["1584431p15.measure3.reals.astrom"]
 
     def get_model(self):
-        return models.AbstractModel(
+        return models.UIModel(
             self.workunit_provider, self.progress_manager, self.download_manager)
 
     def test_sources_initialized(self):
@@ -366,7 +366,7 @@ class ProcessRealsModelTest(GeneralModelTest):
         return ["1584431p15.measure3.reals.astrom"]
 
     def get_model(self):
-        return models.AbstractModel(
+        return models.UIModel(
             self.workunit_provider, self.progress_manager, self.download_manager)
 
     def test_next_item_no_validation(self):
@@ -563,7 +563,7 @@ class ProcessCandidatesModelTest(GeneralModelTest):
         return ["1584431p15.measure3.cands.astrom", "1584431p15.measure3.reals.astrom"]
 
     def get_model(self):
-        return models.AbstractModel(
+        return models.UIModel(
             self.workunit_provider, self.progress_manager, self.download_manager)
 
     def test_next_item(self):
@@ -672,7 +672,7 @@ class MultipleAstromDataModelTest(GeneralModelTest):
         return CandidatesWorkUnitBuilder(parser, progress_manager, writer_factory)
 
     def get_model(self):
-        return models.AbstractModel(
+        return models.UIModel(
             self.workunit_provider, self.progress_manager, self.download_manager)
 
     def _get_task(self):
@@ -771,7 +771,7 @@ class MultipleAstromDataModelTest(GeneralModelTest):
 
 class RealsModelPersistenceTest(GeneralModelTest):
     def get_model(self):
-        return models.AbstractModel(
+        return models.UIModel(
             self.workunit_provider, self.progress_manager, self.download_manager)
 
     def setUp(self):
@@ -884,7 +884,7 @@ class RealsModelPersistenceTest(GeneralModelTest):
 
 class RealsModelPersistenceLoadingTest(GeneralModelTest):
     def get_model(self):
-        return models.AbstractModel(
+        return models.UIModel(
             self.workunit_provider, self.progress_manager, self.download_manager)
 
     def setUp(self):
@@ -930,7 +930,7 @@ class RealsModelPersistenceLoadingTest(GeneralModelTest):
 
 class CandidatesModelPersistenceTest(GeneralModelTest):
     def get_model(self):
-        return models.AbstractModel(
+        return models.UIModel(
             self.workunit_provider, self.progress_manager, self.download_manager)
 
     def setUp(self):
@@ -1007,7 +1007,7 @@ class CandidatesModelPersistenceTest(GeneralModelTest):
 
 class CandidatesModelPersistenceLoadingTest(GeneralModelTest):
     def get_model(self):
-        return models.AbstractModel(
+        return models.UIModel(
             self.workunit_provider, self.progress_manager, self.download_manager)
 
     def setUp(self):
