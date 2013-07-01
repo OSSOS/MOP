@@ -60,7 +60,7 @@ class TaskSetupFrame(wx.Frame):
 
     def _on_ok(self, event):
         task = self.radiobox.GetStringSelection()
-        self.setup_manager.set_task_info(self.browser.GetValue(), task)
+        self.setup_manager.start_task(self.browser.GetValue(), task)
 
 
 class TaskSetupManager(object):
@@ -79,6 +79,6 @@ class TaskSetupManager(object):
         self.selection_frame = TaskSetupFrame(self)
         self.selection_frame.Show()
 
-    def set_task_info(self, working_directory, task):
+    def start_task(self, working_directory, taskname):
         self.selection_frame.Close()
-        self.app.set_task_info(working_directory, task)
+        self.app.start_task(working_directory, taskname)

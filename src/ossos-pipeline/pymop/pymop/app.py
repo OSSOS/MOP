@@ -109,16 +109,6 @@ class PymopApplication(object):
 
         self.wx_app.MainLoop()
 
-    def set_task_info(self, working_directory, task):
-        self.launch(working_directory, task)
-
-    def launch(self, working_directory, task):
-        try:
-            self.start_task(working_directory, task)
-        except PymopError as err:
-            # TODO: GUI dialog
-            print "Cannot start task: %s" % err.message
-
     def start_task(self, working_directory, taskname):
         try:
             self.task = self.task_name_mapping[taskname]()
