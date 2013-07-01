@@ -1,17 +1,12 @@
-"""
-Provides interfaces to the application data which can be manipulated by the
-user interface.
-"""
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 from pymop.gui import events
 from pymop.io.workload import NoAvailableWorkException, StatefulCollection
 
 
-class AbstractModel(object):
+class UIModel(object):
     """
-    Functionality common to the models of all tasks.
+    Contains the data and associated operations available to the user interface.
     """
 
     def __init__(self, workunit_provider, progress_manager, download_manager):
