@@ -1,4 +1,4 @@
-from pymop.app import DirectoryManager
+from pymop.app import DirectoryContext
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -23,7 +23,7 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
         WxWidgetTestCase.setUp(self)
 
         parser = AstromParser()
-        directory_manager = DirectoryManager(
+        directory_manager = DirectoryContext(
             self.get_abs_path("data/controller_testdir"))
         progress_manager = ProgressManager(directory_manager)
         writer_factory = WriterFactory()

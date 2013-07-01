@@ -77,17 +77,17 @@ class PymopApplication(object):
         download_manager = AsynchronousImageDownloadManager(
             ImageSliceDownloader(VOSpaceResolver()))
 
-        directory_manager = DirectoryManager(working_directory)
-        progress_manager = ProgressManager(directory_manager)
+        directory_context = DirectoryContext(working_directory)
+        progress_manager = ProgressManager(directory_context)
         writer_factory = WriterFactory()
         builder = factory.create_workunit_builder(parser, progress_manager, writer_factory)
-        workunit_provider = WorkUnitProvider(tasks.get_suffix(taskname), directory_manager,
+        workunit_provider = WorkUnitProvider(tasks.get_suffix(taskname), directory_context,
                                              progress_manager, builder)
         model = UIModel(workunit_provider, progress_manager, download_manager)
         factory.create_controller(model)
 
 
-class DirectoryManager(object):
+class DirectoryContext(object):
     def __init__(self, directory):
         self.directory = directory
 

@@ -1,4 +1,4 @@
-from pymop.app import DirectoryManager
+from pymop.app import DirectoryContext
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -22,7 +22,7 @@ WD_NO_LOG = "data/persistence_no_log"
 class ProgressManagerLoadingTest(FileReadingTestCase):
     def setUp(self):
         self.working_directory = self.get_abs_path(WD_HAS_PROGRESS)
-        directory_manager = DirectoryManager(self.working_directory)
+        directory_manager = DirectoryContext(self.working_directory)
         self.progress_manager = ProgressManager(directory_manager)
 
     def tearDown(self):
@@ -38,11 +38,11 @@ class ProgressManagerLoadingTest(FileReadingTestCase):
 class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
     def setUp(self):
         self.working_directory = self.get_abs_path(WD_NO_LOG)
-        directory_manager = DirectoryManager(self.working_directory)
+        directory_manager = DirectoryContext(self.working_directory)
         self.progress_manager = ProgressManager(directory_manager)
 
     def create_concurrent_progress_manager(self):
-        directory_manager = DirectoryManager(self.working_directory)
+        directory_manager = DirectoryContext(self.working_directory)
         return ProgressManager(directory_manager)
 
     def tearDown(self):
@@ -232,7 +232,7 @@ class InMemoryProgressManagerTest(unittest.TestCase):
         self.file1 = "file1"
         self.file2 = "file2"
 
-        directory_manager = Mock(spec=DirectoryManager)
+        directory_manager = Mock(spec=DirectoryContext)
         self.undertest = InMemoryProgressManager(directory_manager)
 
     def test_done(self):
