@@ -124,19 +124,15 @@ class WorkUnit(object):
 
     def next_source(self):
         self.get_sources().next()
-        events.send(events.NEXT_SRC, data=self.get_current_source_number())
 
     def previous_source(self):
         self.get_sources().previous()
-        events.send(events.PREV_SRC, data=self.get_current_source_number())
 
     def next_obs(self):
         self.get_current_source_readings().next()
-        events.send(events.NEXT_OBS, data=self.get_current_obs_number())
 
     def previous_obs(self):
         self.get_current_source_readings().previous()
-        events.send(events.PREV_OBS, data=self.get_current_obs_number())
 
     def next_item(self):
         raise NotImplementedError()

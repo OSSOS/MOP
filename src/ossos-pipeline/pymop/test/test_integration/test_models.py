@@ -1,22 +1,22 @@
-from pymop.app import DirectoryContext
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import os
 import unittest
 
-from hamcrest import assert_that, equal_to, has_length, contains, none, same_instance, is_not, contains_inanyorder
+from hamcrest import (assert_that, equal_to, has_length, contains, none,
+                      same_instance, is_not, contains_inanyorder)
 from mock import Mock, patch
 
 from test.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from pymop import tasks
+from pymop.app import DirectoryContext
 from pymop.gui import models, events
 from pymop.io.downloads import AsynchronousImageDownloadManager
 from pymop.io.astrom import AstromParser
 from pymop.io.persistence import ProgressManager
 from pymop.io.image import DownloadedFitsImage
-from pymop.io.workload import ( WorkUnitProvider,
-                               RealsWorkUnitBuilder, CandidatesWorkUnitBuilder)
+from pymop.io.workload import (WorkUnitProvider, RealsWorkUnitBuilder,
+                               CandidatesWorkUnitBuilder)
 
 MODEL_TEST_DIR_1 = "data/model_testdir_1"
 MODEL_TEST_DIR_2 = "data/model_testdir_2"
@@ -142,7 +142,7 @@ class AbstractRealsModelTest(GeneralModelTest):
     def test_receive_next_source_event(self):
         # Subscribe a mock
         observer = Mock()
-        events.subscribe(events.NEXT_SRC, observer.on_next_event)
+        events.subscribe(events.CHANGE_IMAGE, observer.on_next_event)
 
         # Perform action
         self.model.next_source()
@@ -150,77 +150,45 @@ class AbstractRealsModelTest(GeneralModelTest):
         # Make sure event triggered
         observer.on_next_event.assert_called_once()
 
-        # Make sure it was triggered with the right data
-        args = observer.on_next_event.call_args[0]
-        assert_that(args, has_length(1))
-
-        msg = args[0]
-        assert_that(msg.topic, equal_to(events.NEXT_SRC))
-        assert_that(msg.data, equal_to(1))
-
     def test_receive_next_obs_event(self):
         # Subscribe a mock
         observer = Mock()
-        events.subscribe(events.NEXT_OBS, observer.on_next_event)
+        events.subscribe(events.CHANGE_IMAGE, observer.on_change_img)
 
         # Perform action
         self.model.next_obs()
 
         # Make sure event triggered
-        observer.on_next_event.assert_called_once()
-
-        # Make sure it was triggered with the right data
-        args = observer.on_next_event.call_args[0]
-        assert_that(args, has_length(1))
-
-        msg = args[0]
-        assert_that(msg.topic, equal_to(events.NEXT_OBS))
-        assert_that(msg.data, equal_to(1))
+        observer.on_change_img.assert_called_once()
 
     def test_receive_previous_source_event(self):
         # Subscribe a mock
         observer = Mock()
-        events.subscribe(events.PREV_SRC, observer.on_previous_event)
+        events.subscribe(events.CHANGE_IMAGE, observer.on_change_img)
 
         # Perform actions
         self.model.next_source()
         self.model.previous_source()
 
         # Make sure event triggered
-        observer.on_previous_event.assert_called_once()
-
-        # Make sure it was triggered with the right data
-        args = observer.on_previous_event.call_args[0]
-        assert_that(args, has_length(1))
-
-        msg = args[0]
-        assert_that(msg.topic, equal_to(events.PREV_SRC))
-        assert_that(msg.data, equal_to(0))
+        observer.on_change_img.assert_called_once()
 
     def test_receive_previous_source_event(self):
         # Subscribe a mock
         observer = Mock()
-        events.subscribe(events.PREV_OBS, observer.on_previous_event)
+        events.subscribe(events.CHANGE_IMAGE, observer.on_change_img)
 
         # Perform actions
         self.model.next_obs()
         self.model.previous_obs()
 
         # Make sure event triggered
-        observer.on_previous_event.assert_called_once()
-
-        # Make sure it was triggered with the right data
-        args = observer.on_previous_event.call_args[0]
-        assert_that(args, has_length(1))
-
-        msg = args[0]
-        assert_that(msg.topic, equal_to(events.PREV_OBS))
-        assert_that(msg.data, equal_to(0))
+        observer.on_change_img.assert_called_once()
 
     def test_receive_nav_event_next_and_prev_source(self):
         # Subscribe a mock
         observer = Mock()
-        events.subscribe(events.NAV, observer.on_nav)
+        events.subscribe(events.CHANGE_IMAGE, observer.on_nav)
 
         # Perform actions
         self.model.next_obs()
@@ -370,8 +338,7 @@ class ProcessRealsModelTest(GeneralModelTest):
 
     def test_next_item_no_validation(self):
         observer = Mock()
-        events.subscribe(events.NEXT_OBS, observer.on_next_obs)
-        events.subscribe(events.NEXT_SRC, observer.on_next_src)
+        events.subscribe(events.CHANGE_IMAGE, observer.on_change_img)
 
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
@@ -379,22 +346,19 @@ class ProcessRealsModelTest(GeneralModelTest):
         self.model.next_item()
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_obs_number(), equal_to(1))
-        assert_that(observer.on_next_obs.call_count, equal_to(1))
-        assert_that(observer.on_next_src.call_count, equal_to(0))
+        assert_that(observer.on_change_img.call_count, equal_to(1))
 
         self.model.next_item()
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_obs_number(), equal_to(2))
-        assert_that(observer.on_next_obs.call_count, equal_to(2))
-        assert_that(observer.on_next_src.call_count, equal_to(0))
+        assert_that(observer.on_change_img.call_count, equal_to(2))
 
         self.model.next_item()
         # Should have looped back to first observation of the same source
         # because we haven't finished processing it.
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
-        assert_that(observer.on_next_obs.call_count, equal_to(3))
-        assert_that(observer.on_next_src.call_count, equal_to(0))
+        assert_that(observer.on_change_img.call_count, equal_to(3))
 
     def test_next_item_after_validate_last(self):
         assert_that(self.model.get_current_source_number(), equal_to(0))
@@ -567,8 +531,7 @@ class ProcessCandidatesModelTest(GeneralModelTest):
 
     def test_next_item(self):
         observer = Mock()
-        events.subscribe(events.NEXT_OBS, observer.on_next_obs)
-        events.subscribe(events.NEXT_SRC, observer.on_next_src)
+        events.subscribe(events.CHANGE_IMAGE, observer.on_change_img)
 
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
@@ -576,20 +539,17 @@ class ProcessCandidatesModelTest(GeneralModelTest):
         self.model.next_item()
         assert_that(self.model.get_current_source_number(), equal_to(1))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
-        assert_that(observer.on_next_obs.call_count, equal_to(0))
-        assert_that(observer.on_next_src.call_count, equal_to(1))
+        assert_that(observer.on_change_img.call_count, equal_to(1))
 
         self.model.next_item()
         assert_that(self.model.get_current_source_number(), equal_to(2))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
-        assert_that(observer.on_next_obs.call_count, equal_to(0))
-        assert_that(observer.on_next_src.call_count, equal_to(2))
+        assert_that(observer.on_change_img.call_count, equal_to(2))
 
         self.model.next_item()
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
-        assert_that(observer.on_next_obs.call_count, equal_to(0))
-        assert_that(observer.on_next_src.call_count, equal_to(3))
+        assert_that(observer.on_change_img.call_count, equal_to(3))
 
     def test_accept_current_item(self):
         workunit = self.model.get_current_workunit()

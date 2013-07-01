@@ -9,7 +9,7 @@ class AbstractController(object):
     def __init__(self, model):
         self.model = model
 
-        events.subscribe(events.NAV, self.on_change_image)
+        events.subscribe(events.CHANGE_IMAGE, self.on_change_image)
         events.subscribe(events.IMG_LOADED, self.on_image_loaded)
         events.subscribe(events.NO_AVAILABLE_WORK, self.on_no_available_work)
 
