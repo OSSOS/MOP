@@ -58,9 +58,6 @@ class StatefulCollection(object):
     def previous(self):
         self._move(-1)
 
-    def has_next(self):
-        return self.index < len(self) - 1
-
     def is_on_last_item(self):
         return self.index == len(self) - 1
 

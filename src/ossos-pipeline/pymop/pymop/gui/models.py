@@ -62,7 +62,7 @@ class UIModel(object):
         self.num_processed += 1
 
     def next_workunit(self):
-        if not self.work_units.has_next():
+        if self.work_units.is_on_last_item():
             try:
                 self._get_new_workunit()
             except NoAvailableWorkException:
