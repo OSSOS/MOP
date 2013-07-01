@@ -6,18 +6,8 @@ from wx.lib.pubsub import Publisher as pub
 
 # Event ids
 ROOT = ("rootid", )
-
-NAV = ROOT + ("nav", )
-NAV_SRC = NAV + ("src", )
-NAV_OBS = NAV + ("obs", )
-
-NEXT_SRC = NAV_SRC + ("next", )
-PREV_SRC = NAV_SRC + ("prev", )
-NEXT_OBS = NAV_OBS + ("next", )
-PREV_OBS = NAV_OBS + ("prev", )
-
+CHANGE_IMAGE = ROOT + ("change_image", )
 IMG_LOADED = ROOT + ("imgload", )
-
 FINISHED_WORKUNIT = ROOT + ("finished_workunit", )
 NO_AVAILABLE_WORK = ROOT + ("no_available_work", )
 

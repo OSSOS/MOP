@@ -34,21 +34,27 @@ class UIModel(object):
 
     def next_source(self):
         self.get_current_workunit().next_source()
+        events.send(events.CHANGE_IMAGE)
 
     def previous_source(self):
         self.get_current_workunit().previous_source()
+        events.send(events.CHANGE_IMAGE)
 
     def next_obs(self):
         self.get_current_workunit().next_obs()
+        events.send(events.CHANGE_IMAGE)
 
     def previous_obs(self):
         self.get_current_workunit().previous_obs()
+        events.send(events.CHANGE_IMAGE)
 
     def next_item(self):
         self.get_current_workunit().next_item()
+        events.send(events.CHANGE_IMAGE)
 
     def previous_item(self):
         self.get_current_workunit().previous_vettable_item()
+        events.send(events.CHANGE_IMAGE)
 
     def accept_current_item(self):
         self.sources_discovered.add(self.get_current_source())
@@ -193,4 +199,3 @@ class UIModel(object):
     def _on_finished_workunit(self, filename):
         events.send(events.FINISHED_WORKUNIT, filename)
         self.next_workunit()
-

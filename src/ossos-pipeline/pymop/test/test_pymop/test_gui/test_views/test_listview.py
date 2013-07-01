@@ -22,7 +22,7 @@ class ListViewTest(WxWidgetTestCase):
 
         # Cause event to be fired when calling next source
         def pub_next_source():
-            events.send(events.NEXT_SRC, data=1)
+            events.send(events.CHANGE_IMAGE, data=1)
 
         self.model.next_source = pub_next_source
 
@@ -39,7 +39,7 @@ class ListViewTest(WxWidgetTestCase):
                             equal_to(self.dataset1[item_ind][col_ind]))
 
     def test_kvlist_display_data_on_change_reading(self):
-        events.subscribe(events.NAV, self.view.on_change_data)
+        events.subscribe(events.CHANGE_IMAGE, self.view.on_change_data)
 
         # XXX have to manually update model return value here
         self.model.get_reading_data.return_value = self.dataset2
