@@ -5,7 +5,7 @@ import threading
 import vos
 
 from pymop import config
-from pymop.io.img import FitsImage
+from pymop.io.image import DownloadedFitsImage
 from pymop.io.cutouts import CutoutCalculator
 
 
@@ -41,8 +41,8 @@ class AsynchronousImageDownloadManager(object):
             self, self.downloader, workload)
         self.download_thread.start()
 
-    def on_image_downloaded(self, fitsimage, reading, source_num, obs_num):
-        reading.set_fits_image(fitsimage)
+    def on_image_downloaded(self, downloaded_image, reading, source_num, obs_num):
+        reading.set_fits_image(downloaded_image)
 
         if self.image_loaded_callback is not None:
             self.image_loaded_callback(source_num, obs_num)
@@ -73,14 +73,14 @@ class SerialImageDownloadThread(threading.Thread):
                 if self._should_stop:
                     return
 
-                fitsimage = self.downloader.download(reading)
+                downloaded_image = self.downloader.download(reading)
 
                 if self._should_stop:
                     # Quit without calling callback
                     return
 
                 self.download_manager.on_image_downloaded(
-                        fitsimage, reading, source_num, obs_num)
+                    downloaded_image, reading, source_num, obs_num)
 
         self.download_manager.on_all_downloaded()
 
@@ -183,4 +183,5 @@ class ImageSliceDownloader(object):
         fits_str, converter = self._download_fits_file(image_uri, source_reading)
         apcor_str = self._download_apcor_file(apcor_uri)
 
-        return FitsImage(fits_str, apcor_str, converter, in_memory=in_memory)
+        return DownloadedFitsImage(fits_str, apcor_str, converter,
+                                   in_memory=in_memory)

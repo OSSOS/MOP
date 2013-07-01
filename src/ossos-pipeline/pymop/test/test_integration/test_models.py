@@ -14,7 +14,7 @@ from pymop.gui import models, events
 from pymop.io.downloads import AsynchronousImageDownloadManager
 from pymop.io.astrom import AstromParser
 from pymop.io.persistence import ProgressManager
-from pymop.io.img import FitsImage
+from pymop.io.image import DownloadedFitsImage
 from pymop.io.workload import ( WorkUnitProvider,
                                RealsWorkUnitBuilder, CandidatesWorkUnitBuilder)
 
@@ -62,7 +62,7 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
         # Put a real fits image on the first source, first observation
         apcor_str = "4 15   0.19   0.01"
         with open(self.get_abs_path(path), "rb") as fh:
-            self.first_image = FitsImage(fh.read(), apcor_str, Mock(), in_memory=True)
+            self.first_image = DownloadedFitsImage(fh.read(), apcor_str, Mock(), in_memory=True)
             self.model.get_current_workunit().get_sources()[0].get_readings()[0].set_fits_image(self.first_image)
 
 

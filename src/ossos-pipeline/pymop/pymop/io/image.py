@@ -8,9 +8,9 @@ from astropy.io import fits
 from pymop.astrometry import daophot
 
 
-class FitsImage(object):
+class DownloadedFitsImage(object):
     """
-    Provides the MOP's abstraction of a FITS file image.
+    A FITS file image which has been downloaded along with its apcor file.
     """
 
     def __init__(self, fits_str, apcor_str, coord_converter, in_memory=True):
