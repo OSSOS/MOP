@@ -5,12 +5,14 @@ import os
 import tempfile
 
 from hamcrest import assert_that, equal_to, contains
-from mock import Mock, call
+from mock import Mock, call, patch
 
 import vos
+
 from test.base_tests import FileReadingTestCase
 from pymop.io.astrom import SourceReading, Observation
-from pymop.io.imgaccess import (ImageSliceDownloader )
+from pymop.io.downloads import (ImageSliceDownloader, AsynchronousImageDownloadManager,
+                                SerialImageDownloadThread, VOSpaceResolver)
 
 
 class ImageSliceDownloaderTest(FileReadingTestCase):
@@ -93,6 +95,68 @@ class ImageSliceDownloaderTest(FileReadingTestCase):
 
         fitsfile.close()
         assert_that(not os.path.exists(fitsfile._tempfile.name))
+
+
+class AsynchronousImageDownloadManagerTest(unittest.TestCase):
+    def setUp(self):
+        self.downloader = Mock()
+        self.downloader.retrieve_image.return_value = (Mock(), Mock())
+
+        self.undertest = AsynchronousImageDownloadManager(self.downloader)
+
+    def mock_astrom_data(self, sources, observations):
+        astrom_data = Mock()
+
+        reading = Mock()
+        reading.obs = Mock()
+        source = [reading] * observations
+        astrom_data.sources = [source] * sources
+
+        return astrom_data
+
+    @patch.object(SerialImageDownloadThread, "start")
+    def test_do_load(self, mock_start_method):
+        sources = 3
+        observations = 2
+        astrom_data = self.mock_astrom_data(sources, observations)
+
+        self.undertest.start_download(astrom_data)
+
+        mock_start_method.assert_called_once_with()
+
+    @patch.object(SerialImageDownloadThread, "stop")
+    @patch.object(SerialImageDownloadThread, "start")
+    def test_stop_loading(self, mock_start_method, mock_stop_method):
+        astrom_data = self.mock_astrom_data(3, 2)
+
+        self.undertest.start_download(astrom_data)
+
+        self.undertest.stop_download()
+        mock_stop_method.assert_called_once_with()
+
+
+class ResolverTest(unittest.TestCase):
+    def setUp(self):
+        self.resolver = VOSpaceResolver()
+
+    def test_resolve_image_uri(self):
+        observation = Observation("1584431", "p", "15")
+        expected_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/1584431p.fits"
+        assert_that(self.resolver.resolve_image_uri(observation),
+                    equal_to(expected_uri))
+
+    def test_resolve_apcor_uri(self):
+        observation = Observation("1616681", "p", "22")
+        expected_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1616681/ccd22/1616681p22.apcor"
+        assert_that(self.resolver.resolve_apcor_uri(observation),
+                    equal_to(expected_uri))
+
+    def test_resolve_apcor_uri_single_digit_ccd(self):
+        """Just double checking we don't run into trouble with leading zeros"""
+        observation = Observation("1616681", "p", "05")
+        expected_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1616681/ccd05/1616681p05.apcor"
+        assert_that(self.resolver.resolve_apcor_uri(observation),
+                    equal_to(expected_uri))
 
 
 if __name__ == '__main__':

@@ -13,7 +13,7 @@ from pymop.io.workload import (WorkUnitProvider,
 from pymop.io.astrom import AstromParser
 from pymop.io.persistence import ProgressManager
 from pymop.io.naming import ProvisionalNameGenerator
-from pymop.io.imgaccess import (AsynchronousImageDownloadManager,
+from pymop.io.downloads import (AsynchronousImageDownloadManager,
                                 ImageSliceDownloader, VOSpaceResolver)
 from pymop.gui.models import UIModel
 from pymop.gui.controllers import (ProcessRealsController,
