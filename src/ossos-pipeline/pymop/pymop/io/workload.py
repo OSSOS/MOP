@@ -177,6 +177,9 @@ class WorkUnit(object):
         return self.results_writer
 
     def is_finished(self):
+        return len(self._get_item_set() - self.processed_items) == 0
+
+    def _get_item_set(self):
         raise NotImplementedError()
 
     def _mark_previously_processed_items(self):
@@ -209,13 +212,11 @@ class RealsWorkUnit(WorkUnit):
         return (self.get_sources().get_index() * self.get_obs_count() +
                 self.get_current_source_readings().get_index())
 
-    def is_finished(self):
-        for source in self.get_sources():
-            for reading in source.get_readings():
-                if not self.is_item_processed(reading):
-                    return False
-
-        return True
+    def _get_item_set(self):
+        all_readings = set()
+        for readings in self.readings_by_source.itervalues():
+            all_readings.update(readings)
+        return all_readings
 
     def _mark_previously_processed_items(self):
         processed_indices = self.progress_manager.get_processed_indices(self.get_filename())
@@ -239,12 +240,8 @@ class CandidatesWorkUnit(WorkUnit):
     def get_current_item_index(self):
         return self.get_sources().get_index()
 
-    def is_finished(self):
-        for source in self.get_sources():
-            if not self.is_item_processed(source):
-                return False
-
-        return True
+    def _get_item_set(self):
+        return set(self.sources)
 
     def _mark_previously_processed_items(self):
         processed_indices = self.progress_manager.get_processed_indices(self.get_filename())
