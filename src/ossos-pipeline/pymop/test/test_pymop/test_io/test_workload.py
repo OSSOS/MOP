@@ -1,4 +1,4 @@
-from pymop.app import DirectoryManager
+from pymop.app import DirectoryContext
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -440,7 +440,7 @@ class StatefulCollectionTest(unittest.TestCase):
 
 class WorkloadManagementTest(unittest.TestCase):
     def setUp(self):
-        self.progress_manager = InMemoryProgressManager(Mock(spec=DirectoryManager))
+        self.progress_manager = InMemoryProgressManager(Mock(spec=DirectoryContext))
         self.workunit_provider = Mock(spec=WorkUnitProvider)
 
         self.workunit1 = Mock(spec=WorkUnit)
@@ -490,7 +490,7 @@ class WorkloadManagementTest(unittest.TestCase):
 class WorkUnitProviderTest(FileReadingTestCase, DirectoryCleaningTestCase):
     def setUp(self):
         working_directory = self.get_directory_to_clean()
-        directory_manager = DirectoryManager(working_directory)
+        directory_manager = DirectoryContext(working_directory)
         progress_manager = InMemoryProgressManager(directory_manager)
         parser = AstromParser()
         writer_factory = WriterFactory()

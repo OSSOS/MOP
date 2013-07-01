@@ -1,4 +1,4 @@
-from pymop.app import DirectoryManager
+from pymop.app import DirectoryContext
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -32,7 +32,7 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
         events.unsub_all()
 
         parser = AstromParser()
-        directory_manager = DirectoryManager(self._get_working_dir())
+        directory_manager = DirectoryContext(self._get_working_dir())
         progress_manager = ProgressManager(directory_manager)
         writer_factory = WriterFactory()
         workunit_provider = WorkUnitProvider(tasks.get_suffix(self._get_task()),
@@ -779,7 +779,7 @@ class RealsModelPersistenceTest(GeneralModelTest):
     def setUp(self):
         super(RealsModelPersistenceTest, self).setUp()
 
-        concurrent_directory_manager = DirectoryManager(self._get_working_dir())
+        concurrent_directory_manager = DirectoryContext(self._get_working_dir())
         self.concurrent_progress_manager = ProgressManager(concurrent_directory_manager)
 
     def _get_task(self):
@@ -938,7 +938,7 @@ class CandidatesModelPersistenceTest(GeneralModelTest):
     def setUp(self):
         super(CandidatesModelPersistenceTest, self).setUp()
 
-        concurrent_directory_manager = DirectoryManager(self._get_working_dir())
+        concurrent_directory_manager = DirectoryContext(self._get_working_dir())
         self.concurrent_progress_manager = ProgressManager(concurrent_directory_manager)
 
     def _get_task(self):

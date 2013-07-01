@@ -4,11 +4,11 @@ import unittest
 
 from hamcrest import assert_that, contains_inanyorder, equal_to
 from pymop import tasks
-from pymop.app import listdir_for_suffix, DirectoryManager
+from pymop.app import listdir_for_suffix, DirectoryContext
 from test.base_tests import FileReadingTestCase
 
 
-class DirectoryManagerTest(FileReadingTestCase):
+class DirectoryContextTest(FileReadingTestCase):
     def test_listdir_for_suffix(self):
         directory = self.get_abs_path("data/testdir")
 
@@ -30,7 +30,7 @@ class DirectoryManagerTest(FileReadingTestCase):
     def test_directory_manager_get_listing(self):
         directory = self.get_abs_path("data/testdir")
 
-        directory_manager = DirectoryManager(directory)
+        directory_manager = DirectoryContext(directory)
 
         listing1 = directory_manager.get_listing("cands.astrom")
         assert_that(listing1, contains_inanyorder("xxx1.cands.astrom", "xxx2.cands.astrom"))
