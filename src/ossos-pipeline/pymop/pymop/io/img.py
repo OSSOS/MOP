@@ -108,7 +108,7 @@ class FitsImage(object):
     def get_observed_magnitude(self, x, y, maxcount=30000.0):
         # TODO refactor: associate SourceReadings here?  Don't want to pass
         # in maxcount like this...
-        return daophot.phot_mag(self, x, y,
+        return daophot.phot_mag(self.as_file().name, x, y,
                                 aperture=self._apcordata.aperture,
                                 sky=self._apcordata.sky,
                                 swidth=self._apcordata.swidth,
