@@ -20,7 +20,7 @@ class UIModel(object):
             self._unlock(workunit1)
             self._lock(workunit2)
 
-        self.work_units.add_callback(shift_locks)
+        self.work_units.register_change_item_callback(shift_locks)
 
         self.num_processed = 0
         self._num_images_loaded = 0
