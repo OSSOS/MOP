@@ -10,7 +10,6 @@ from pymop import tasks
 from pymop.io.workload import (WorkUnitProvider,
                                RealsWorkUnitBuilder,
                                CandidatesWorkUnitBuilder)
-from pymop.io.writers import WriterFactory
 from pymop.io.astrom import AstromParser
 from pymop.io.persistence import ProgressManager
 from pymop.io.naming import ProvisionalNameGenerator
@@ -27,7 +26,7 @@ class PymopError(Exception):
 
 
 class AbstractTaskFactory(object):
-    def create_workunit_builder(self, parser, progress_manager, writer_factory):
+    def create_workunit_builder(self, parser, progress_manager):
         pass
 
     def create_controller(self, model):
@@ -35,16 +34,16 @@ class AbstractTaskFactory(object):
 
 
 class ProcessRealsTaskFactory(AbstractTaskFactory):
-    def create_workunit_builder(self, parser, progress_manager, writer_factory):
-        return RealsWorkUnitBuilder(parser, progress_manager, writer_factory)
+    def create_workunit_builder(self, parser, progress_manager):
+        return RealsWorkUnitBuilder(parser, progress_manager)
 
     def create_controller(self, model):
         return ProcessRealsController(model, ProvisionalNameGenerator())
 
 
 class ProcessCandidatesTaskFactory(AbstractTaskFactory):
-    def create_workunit_builder(self, parser, progress_manager, writer_factory):
-        return CandidatesWorkUnitBuilder(parser, progress_manager, writer_factory)
+    def create_workunit_builder(self, parser, progress_manager):
+        return CandidatesWorkUnitBuilder(parser, progress_manager)
 
     def create_controller(self, model):
         return ProcessCandidatesController(model)
@@ -79,8 +78,7 @@ class PymopApplication(object):
 
         directory_context = DirectoryContext(working_directory)
         progress_manager = ProgressManager(directory_context)
-        writer_factory = WriterFactory()
-        builder = factory.create_workunit_builder(parser, progress_manager, writer_factory)
+        builder = factory.create_workunit_builder(parser, progress_manager)
         workunit_provider = WorkUnitProvider(tasks.get_suffix(taskname), directory_context,
                                              progress_manager, builder)
         model = UIModel(workunit_provider, progress_manager, download_manager)
