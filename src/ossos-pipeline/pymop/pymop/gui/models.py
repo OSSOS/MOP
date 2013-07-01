@@ -8,7 +8,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import collections
 
 from pymop.gui import events
-from pymop.io.workload import NoAvailableWorkException
+from pymop.io.workload import NoAvailableWorkException, StatefulCollection
 
 
 class AbstractModel(object):
@@ -16,44 +16,75 @@ class AbstractModel(object):
     Functionality common to the models of all tasks.
     """
 
-    def __init__(self, workload_manager, download_manager):
-        self.workload_manager = workload_manager
+    def __init__(self, workunit_provider, progress_manager, download_manager):
+        self.workunit_provider = workunit_provider
+        self.progress_manager = progress_manager
         self.download_manager = download_manager
 
+        self.work_units = StatefulCollection()
+
+        def shift_locks(workunit1, workunit2):
+            self._unlock(workunit1)
+            self._lock(workunit2)
+
+        self.work_units.add_callback(shift_locks)
+
+        self.num_processed = 0
         self._num_images_loaded = 0
 
         events.subscribe(events.NEW_WORK_UNIT, self._download_current_workunit_images)
-        self.workload_manager.start_work()
+        self.start_work()
+
+    def get_current_data(self):
+        return self.get_current_workunit().get_data()
+
+    def start_work(self):
+        self.next_workunit()
+
+    def next_workunit(self):
+        if not self.work_units.has_next():
+            new_workunit = self.workunit_provider.get_workunit()
+            new_workunit.register_finished_callback(self._on_finished_workunit)
+            self.work_units.append(new_workunit)
+            events.send(events.NEW_WORK_UNIT)
+
+        self.work_units.next()
+
+    def previous_workunit(self):
+        self.work_units.previous()
+
+    def get_current_workunit(self):
+        return self.work_units.get_current_item()
 
     def get_current_filename(self):
-        return self.workload_manager.get_current_filename()
+        return self.get_current_workunit().get_filename()
 
     def get_current_source_number(self):
-        return self.workload_manager.get_current_source_number()
+        return self.get_current_workunit().get_current_source_number()
 
     def next_source(self):
-        self.workload_manager.next_source()
+        self.get_current_workunit().next_source()
 
     def previous_source(self):
-        self.workload_manager.previous_source()
+        self.get_current_workunit().previous_source()
 
     def get_current_obs_number(self):
-        return self.workload_manager.get_current_obs_number()
+        return self.get_current_workunit().get_current_obs_number()
 
     def get_obs_count(self):
-        return self.workload_manager.get_obs_count()
+        return self.get_current_workunit().get_obs_count()
 
     def next_obs(self):
-        self.workload_manager.next_obs()
+        self.get_current_workunit().next_obs()
 
     def previous_obs(self):
-        self.workload_manager.previous_obs()
+        self.get_current_workunit().previous_obs()
 
     def get_current_source(self):
-        return self.workload_manager.get_current_source()
+        return self.get_current_workunit().get_current_source()
 
     def get_current_reading(self):
-        return self.workload_manager.get_current_reading()
+        return self.get_current_workunit().get_current_reading()
 
     def get_reading_data(self):
         reading = self.get_current_reading()
@@ -108,7 +139,7 @@ class AbstractModel(object):
 
     def _download_current_workunit_images(self, event):
         self.download_manager.start_download(
-            self.workload_manager.get_current_workunit(),
+            self.get_current_workunit(),
             image_loaded_callback=self._on_image_loaded)
 
     def stop_loading_images(self):
@@ -122,12 +153,12 @@ class AbstractModel(object):
         events.send(events.IMG_LOADED, (source_num, obs_num))
 
     def get_num_items_processed(self):
-        return self.workload_manager.get_num_items_processed()
+        return self.num_processed
 
     def accept_current_item(self):
         # TODO: refactor
         try:
-            self.workload_manager.accept_current_item()
+            self._do_accept_current_item()
         except NoAvailableWorkException:
             events.send(events.NO_AVAILABLE_WORK)
             self.exit()
@@ -141,28 +172,49 @@ class AbstractModel(object):
     def reject_current_item(self):
         # TODO refactor
         try:
-            self.workload_manager.reject_current_item()
+            self._do_reject_current_item()
         except NoAvailableWorkException:
             events.send(events.NO_AVAILABLE_WORK)
             self.exit()
 
+    def _do_accept_current_item(self):
+        # TODO refactor
+        self.get_current_workunit().accept_current_item()
+        self._process_current_item()
+
+    def _do_reject_current_item(self):
+        # TODO refactor
+        self.get_current_workunit().reject_current_item()
+        self._process_current_item()
+
+    def _process_current_item(self):
+        # TODO refactor
+        self.num_processed += 1
+
     def is_current_item_processed(self):
-        return self.workload_manager.is_current_item_processed()
+        return self.get_current_workunit().is_current_item_processed()
 
     def get_writer(self):
-        return self.workload_manager.get_writer()
+        return self.get_current_workunit().get_writer()
 
     def next_item(self):
-        self.workload_manager.next_item()
+        self.get_current_workunit().next_vettable_item()
 
     def previous_item(self):
-        self.workload_manager.previous_item()
-
-    def get_current_workunit(self):
-        return self.workload_manager.get_current_workunit()
+        self.get_current_workunit().previous_vettable_item()
 
     def exit(self):
-        self.workload_manager.exit()
+        self._unlock(self.get_current_workunit())
+
+    def _lock(self, workunit):
+        self.progress_manager.lock(workunit.get_filename())
+
+    def _unlock(self, workunit):
+        self.progress_manager.unlock(workunit.get_filename())
+
+    def _on_finished_workunit(self, filename):
+        events.send(events.FINISHED_WORKUNIT, filename)
+        self.next_workunit()
 
 
 class ProcessRealsModel(AbstractModel):
@@ -171,9 +223,9 @@ class ProcessRealsModel(AbstractModel):
     TODO: refactor
     """
 
-    def __init__(self, workload_manager, download_manager):
+    def __init__(self, workunit_provider, progress_manager, download_manager):
         super(ProcessRealsModel, self).__init__(
-            workload_manager, download_manager)
+            workunit_provider, progress_manager, download_manager)
 
         self._source_discovery_asterisk = collections.defaultdict(lambda: False)
 
@@ -187,7 +239,7 @@ class ProcessRealsModel(AbstractModel):
 class ProcessCandidatesModel(AbstractModel):
     """TODO: refactor"""
 
-    def __init__(self, workload_manager, download_manager):
+    def __init__(self, workunit_provider, progress_manager, download_manager):
         super(ProcessCandidatesModel, self).__init__(
-            workload_manager, download_manager)
+            workunit_provider, progress_manager, download_manager)
 

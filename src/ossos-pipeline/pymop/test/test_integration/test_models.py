@@ -9,13 +9,11 @@ from mock import Mock, patch
 from test.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from pymop import tasks
 from pymop.gui import models, events
-from pymop.gui.models import ProcessCandidatesModel, ProcessRealsModel
 from pymop.io.imgaccess import AsynchronousImageDownloadManager
 from pymop.io.astrom import AstromParser
 from pymop.io.persistence import ProgressManager
 from pymop.io.img import FitsImage
-from pymop.io.workload import (DirectoryManager, WorkloadManager,
-                               WorkUnitProvider,
+from pymop.io.workload import (DirectoryManager, WorkUnitProvider,
                                RealsWorkUnitBuilder, CandidatesWorkUnitBuilder)
 from pymop.io.writers import WriterFactory
 
@@ -39,11 +37,15 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
                                              directory_manager, progress_manager,
                                              self._get_workunit_builder(
                                                  parser, progress_manager, writer_factory))
-        workload_manager = WorkloadManager(workunit_provider, progress_manager)
 
-        self.workload = workload_manager
+        self.workunit_provider = workunit_provider
         self.progress_manager = progress_manager
         self.download_manager = Mock(spec=AsynchronousImageDownloadManager)
+
+        self.model = self.get_model()
+
+    def get_model(self):
+        raise NotImplementedError()
 
     def _get_task(self):
         raise NotImplementedError()
@@ -54,7 +56,7 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
     def get_directory_to_clean(self):
         return self._get_working_dir()
 
-    def _get_workunit_builder(self, parser, writer_factory):
+    def _get_workunit_builder(self, parser, progress_manager, writer_factory):
         raise NotImplementedError()
 
     def create_real_first_image(self, path="data/testimg.fits"):
@@ -62,7 +64,7 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
         apcor_str = "4 15   0.19   0.01"
         with open(self.get_abs_path(path), "rb") as fh:
             self.first_image = FitsImage(fh.read(), apcor_str, Mock(), in_memory=True)
-            self.workload.get_current_workunit().get_sources()[0].get_readings()[0].set_fits_image(self.first_image)
+            self.model.get_current_workunit().get_sources()[0].get_readings()[0].set_fits_image(self.first_image)
 
 
 class AbstractRealsModelTest(GeneralModelTest):
@@ -78,11 +80,9 @@ class AbstractRealsModelTest(GeneralModelTest):
     def get_files_to_keep(self):
         return ["1584431p15.measure3.reals.astrom"]
 
-    def setUp(self):
-        super(AbstractRealsModelTest, self).setUp()
-
-        # TODO: just use AbstractModel?
-        self.model = models.ProcessRealsModel(self.workload, self.download_manager)
+    def get_model(self):
+        return models.ProcessRealsModel(
+            self.workunit_provider, self.progress_manager, self.download_manager)
 
     def test_sources_initialized(self):
         assert_that(self.model.get_current_source_number(), equal_to(0))
@@ -305,7 +305,7 @@ class AbstractRealsModelTest(GeneralModelTest):
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_num_items_processed(), equal_to(1))
 
-        source1 = self.workload.get_current_data().get_sources()[0]
+        source1 = self.model.get_current_data().get_sources()[0]
         assert_that(workunit.is_item_processed(source1.get_reading(0)), equal_to(True))
         assert_that(workunit.is_item_processed(source1.get_reading(1)), equal_to(False))
         assert_that(workunit.is_item_processed(source1.get_reading(2)), equal_to(False))
@@ -328,7 +328,7 @@ class AbstractRealsModelTest(GeneralModelTest):
     @patch("pymop.astrometry.daophot.phot_mag")
     def test_get_current_source_observed_magnitude(self, mock_phot_mag):
         first_image = Mock()
-        self.workload.get_current_data().get_sources()[0].get_readings()[0].set_fits_image(first_image)
+        self.model.get_current_data().get_sources()[0].get_readings()[0].set_fits_image(first_image)
 
         x, y = (1500, 2500)
         self.model.get_current_image_source_point = Mock(return_value=(x, y))
@@ -365,10 +365,9 @@ class ProcessRealsModelTest(GeneralModelTest):
     def get_files_to_keep(self):
         return ["1584431p15.measure3.reals.astrom"]
 
-    def setUp(self):
-        super(ProcessRealsModelTest, self).setUp()
-
-        self.model = models.ProcessRealsModel(self.workload, self.download_manager)
+    def get_model(self):
+        return models.ProcessRealsModel(
+            self.workunit_provider, self.progress_manager, self.download_manager)
 
     def test_next_item_no_validation(self):
         observer = Mock()
@@ -478,7 +477,7 @@ class ProcessRealsModelTest(GeneralModelTest):
     def test_accept_current_item(self):
         workunit = self.model.get_current_workunit()
 
-        data = self.workload.get_current_data()
+        data = self.model.get_current_data()
         first_item = data.get_sources()[0].get_readings()[0]
         second_item = data.get_sources()[0].get_readings()[1]
 
@@ -499,7 +498,7 @@ class ProcessRealsModelTest(GeneralModelTest):
     def test_reject_current_item(self):
         workunit = self.model.get_current_workunit()
 
-        data = self.workload.get_current_data()
+        data = self.model.get_current_data()
         first_item = data.get_sources()[0].get_readings()[0]
         second_item = data.get_sources()[0].get_readings()[1]
 
@@ -563,10 +562,9 @@ class ProcessCandidatesModelTest(GeneralModelTest):
     def get_files_to_keep(self):
         return ["1584431p15.measure3.cands.astrom", "1584431p15.measure3.reals.astrom"]
 
-    def setUp(self):
-        super(ProcessCandidatesModelTest, self).setUp()
-
-        self.model = models.ProcessCandidatesModel(self.workload, self.download_manager)
+    def get_model(self):
+        return models.ProcessCandidatesModel(
+            self.workunit_provider, self.progress_manager, self.download_manager)
 
     def test_next_item(self):
         observer = Mock()
@@ -597,7 +595,7 @@ class ProcessCandidatesModelTest(GeneralModelTest):
     def test_accept_current_item(self):
         workunit = self.model.get_current_workunit()
 
-        data = self.workload.get_current_data()
+        data = self.model.get_current_data()
         first_item = data.get_sources()[0]
         second_item = data.get_sources()[1]
 
@@ -618,7 +616,7 @@ class ProcessCandidatesModelTest(GeneralModelTest):
     def test_reject_current_item(self):
         workunit = self.model.get_current_workunit()
 
-        data = self.workload.get_current_data()
+        data = self.model.get_current_data()
         first_item = data.get_sources()[0]
         second_item = data.get_sources()[1]
 
@@ -673,10 +671,9 @@ class MultipleAstromDataModelTest(GeneralModelTest):
     def _get_workunit_builder(self, parser, progress_manager, writer_factory):
         return CandidatesWorkUnitBuilder(parser, progress_manager, writer_factory)
 
-    def setUp(self):
-        super(MultipleAstromDataModelTest, self).setUp()
-
-        self.model = models.ProcessCandidatesModel(self.workload, self.download_manager)
+    def get_model(self):
+        return models.ProcessCandidatesModel(
+            self.workunit_provider, self.progress_manager, self.download_manager)
 
     def _get_task(self):
         return tasks.CANDS_TASK
@@ -692,7 +689,7 @@ class MultipleAstromDataModelTest(GeneralModelTest):
         assert_that(self.model.get_obs_count(), equal_to(3)) # for the current data only
 
     def test_next_source(self):
-        first_sources = self.workload.get_current_data().get_sources()
+        first_sources = self.model.get_current_data().get_sources()
 
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_source(), equal_to(first_sources[0]))
@@ -715,7 +712,7 @@ class MultipleAstromDataModelTest(GeneralModelTest):
         self.model.accept_current_item()
 
         # Note we now automatically move to the next work unit
-        second_sources = self.workload.get_current_data().get_sources()
+        second_sources = self.model.get_current_data().get_sources()
 
         assert_that(first_sources, is_not(same_instance(second_sources)))
 
@@ -734,7 +731,7 @@ class MultipleAstromDataModelTest(GeneralModelTest):
         assert_that(self.model.get_current_source(), equal_to(second_sources[0]))
 
     def test_previous_source(self):
-        first_sources = self.workload.get_current_data().get_sources()
+        first_sources = self.model.get_current_data().get_sources()
 
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_source(), equal_to(first_sources[0]))
@@ -751,7 +748,7 @@ class MultipleAstromDataModelTest(GeneralModelTest):
         self.model.accept_current_item()
 
         # Note we now automatically move to the next work unit
-        second_sources = self.workload.get_current_data().get_sources()
+        second_sources = self.model.get_current_data().get_sources()
         assert_that(first_sources, is_not(same_instance(second_sources)))
 
         assert_that(self.model.get_current_source_number(), equal_to(0))
@@ -773,10 +770,12 @@ class MultipleAstromDataModelTest(GeneralModelTest):
 
 
 class RealsModelPersistenceTest(GeneralModelTest):
+    def get_model(self):
+        return models.ProcessRealsModel(
+            self.workunit_provider, self.progress_manager, self.download_manager)
+
     def setUp(self):
         super(RealsModelPersistenceTest, self).setUp()
-
-        self.model = ProcessRealsModel(self.workload, self.download_manager)
 
         concurrent_directory_manager = DirectoryManager(self._get_working_dir())
         self.concurrent_progress_manager = ProgressManager(concurrent_directory_manager)
@@ -855,7 +854,7 @@ class RealsModelPersistenceTest(GeneralModelTest):
         observer = Mock()
         events.subscribe(events.FINISHED_WORKUNIT, observer.on_file_processed)
 
-        filename = self.workload.get_current_filename()
+        filename = self.model.get_current_filename()
         accepts_before_next_file = 9
 
         while accepts_before_next_file > 1:
@@ -876,7 +875,7 @@ class RealsModelPersistenceTest(GeneralModelTest):
         assert_that(msg.data, equal_to(filename))
 
     def test_unlock_on_exit(self):
-        current_file = self.workload.get_current_filename()
+        current_file = self.model.get_current_filename()
 
         assert_that(self.progress_manager.owns_lock(current_file), equal_to(True))
         self.model.exit()
@@ -884,15 +883,17 @@ class RealsModelPersistenceTest(GeneralModelTest):
 
 
 class RealsModelPersistenceLoadingTest(GeneralModelTest):
-    def setUp(self):
-        super(RealsModelPersistenceLoadingTest, self).setUp()
+    def get_model(self):
+        return models.ProcessRealsModel(
+            self.workunit_provider, self.progress_manager, self.download_manager)
 
+    def setUp(self):
         # Have to set this up here because test cases may modify the .PART file
         partfile = os.path.join(self.get_directory_to_clean(), "xxx3.reals.astrom.PART")
         with open(partfile, "w+b") as filehandle:
             filehandle.write("0\n1\n2\n5\n3\n")
 
-        self.model = ProcessRealsModel(self.workload, self.download_manager)
+        super(RealsModelPersistenceLoadingTest, self).setUp()
 
     def _get_task(self):
         return tasks.REALS_TASK
@@ -928,10 +929,12 @@ class RealsModelPersistenceLoadingTest(GeneralModelTest):
 
 
 class CandidatesModelPersistenceTest(GeneralModelTest):
+    def get_model(self):
+        return models.ProcessCandidatesModel(
+            self.workunit_provider, self.progress_manager, self.download_manager)
+
     def setUp(self):
         super(CandidatesModelPersistenceTest, self).setUp()
-
-        self.model = ProcessCandidatesModel(self.workload, self.download_manager)
 
         concurrent_directory_manager = DirectoryManager(self._get_working_dir())
         self.concurrent_progress_manager = ProgressManager(concurrent_directory_manager)
@@ -1003,15 +1006,17 @@ class CandidatesModelPersistenceTest(GeneralModelTest):
 
 
 class CandidatesModelPersistenceLoadingTest(GeneralModelTest):
-    def setUp(self):
-        super(CandidatesModelPersistenceLoadingTest, self).setUp()
+    def get_model(self):
+        return models.ProcessCandidatesModel(
+            self.workunit_provider, self.progress_manager, self.download_manager)
 
+    def setUp(self):
         # Have to set this up here because test cases may modify the .PART file
         partfile = os.path.join(self.get_directory_to_clean(), "xxx1.cands.astrom.PART")
         with open(partfile, "w+b") as filehandle:
             filehandle.write("0\n2\n")
 
-        self.model = ProcessCandidatesModel(self.workload, self.download_manager)
+        super(CandidatesModelPersistenceLoadingTest, self).setUp()
 
     def _get_task(self):
         return tasks.CANDS_TASK

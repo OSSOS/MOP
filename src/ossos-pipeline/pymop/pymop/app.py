@@ -5,8 +5,8 @@ import wx.lib.inspection
 
 from pymop import config
 from pymop import tasks
-from pymop.io.workload import (DirectoryManager, WorkloadManager,
-                               WorkUnitProvider, RealsWorkUnitBuilder,
+from pymop.io.workload import (DirectoryManager, WorkUnitProvider,
+                               RealsWorkUnitBuilder,
                                CandidatesWorkUnitBuilder)
 from pymop.io.writers import WriterFactory
 from pymop.io.astrom import AstromParser
@@ -33,7 +33,7 @@ class AbstractTask(object):
     def get_task_suffix(self):
         raise NotImplementedError()
 
-    def _create_model(self, workload_manager):
+    def _create_model(self, workunit_provider, progress_manager):
         raise NotImplementedError()
 
     def _create_controller(self, model):
@@ -49,8 +49,7 @@ class AbstractTask(object):
         builder = self._get_workunit_builder(self.parser, progress_manager, writer_factory)
         workunit_provider = WorkUnitProvider(self.get_task_suffix(), directory_manager,
                                              progress_manager, builder)
-        workload_manager = WorkloadManager(workunit_provider, progress_manager)
-        model = self._create_model(workload_manager)
+        model = self._create_model(workunit_provider, progress_manager)
         self._create_controller(model)
 
     def finish(self):
@@ -67,8 +66,8 @@ class ProcessCandidatesTask(AbstractTask):
     def _get_workunit_builder(self, parser, progress_manager, writer_factory):
         return CandidatesWorkUnitBuilder(parser, progress_manager, writer_factory)
 
-    def _create_model(self, workload_manager):
-        return ProcessCandidatesModel(workload_manager, self.download_manager)
+    def _create_model(self, workunit_provider, progress_manager):
+        return ProcessCandidatesModel(workunit_provider, progress_manager, self.download_manager)
 
     def _create_controller(self, model):
         return ProcessCandidatesController(self, model)
@@ -86,8 +85,8 @@ class ProcessRealsTask(AbstractTask):
     def _get_workunit_builder(self, parser, progress_manager, writer_factory):
         return RealsWorkUnitBuilder(parser, progress_manager, writer_factory)
 
-    def _create_model(self, workload_manager):
-        return ProcessRealsModel(workload_manager, self.download_manager)
+    def _create_model(self, workunit_provider, progress_manager):
+        return ProcessRealsModel(workunit_provider, progress_manager, self.download_manager)
 
     def _create_controller(self, model):
         return ProcessRealsController(self, model, self.name_generator)
