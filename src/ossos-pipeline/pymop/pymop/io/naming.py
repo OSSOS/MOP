@@ -42,7 +42,8 @@ class ProvisionalNameGenerator(object):
         if source in self._processed_sources:
             return self._processed_sources[source]
 
-        exposure_numbers = [int(reading.get_exposure_number()) for reading in source.get_readings()]
+        exposure_numbers = [int(reading.get_exposure_number())
+                            for reading in source.get_readings()]
         min_expnum = min(exposure_numbers)
 
         base = self.compress_exposure_number(min_expnum)
