@@ -27,7 +27,6 @@ class UIModel(object):
 
         self.sources_discovered = set()
 
-        events.subscribe(events.NEW_WORK_UNIT, self._download_current_workunit_images)
         self.start_work()
 
     def get_current_data(self):
@@ -39,17 +38,19 @@ class UIModel(object):
     def next_workunit(self):
         if not self.work_units.has_next():
             try:
-                new_workunit = self.workunit_provider.get_workunit()
+                self._get_new_workunit()
             except NoAvailableWorkException:
                 events.send(events.NO_AVAILABLE_WORK)
                 self.exit()
                 return
 
-            new_workunit.register_finished_callback(self._on_finished_workunit)
-            self.work_units.append(new_workunit)
-            events.send(events.NEW_WORK_UNIT)
-
         self.work_units.next()
+
+    def _get_new_workunit(self):
+        new_workunit = self.workunit_provider.get_workunit()
+        new_workunit.register_finished_callback(self._on_finished_workunit)
+        self.work_units.append(new_workunit)
+        self._download_workunit_images(new_workunit)
 
     def previous_workunit(self):
         self.work_units.previous()
@@ -138,10 +139,9 @@ class UIModel(object):
     def get_current_exposure_number(self):
         return int(self.get_current_reading().obs.expnum)
 
-    def _download_current_workunit_images(self, event):
+    def _download_workunit_images(self, workunit):
         self.download_manager.start_download(
-            self.get_current_workunit(),
-            image_loaded_callback=self._on_image_loaded)
+            workunit, image_loaded_callback=self._on_image_loaded)
 
     def stop_loading_images(self):
         self.download_manager.stop_download()

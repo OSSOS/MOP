@@ -18,7 +18,6 @@ PREV_OBS = NAV_OBS + ("prev", )
 
 IMG_LOADED = ROOT + ("imgload", )
 
-NEW_WORK_UNIT = ROOT + ("new_workunit", )
 FINISHED_WORKUNIT = ROOT + ("finished_workunit", )
 NO_AVAILABLE_WORK = ROOT + ("no_available_work", )
 
