@@ -38,7 +38,13 @@ class UIModel(object):
 
     def next_workunit(self):
         if not self.work_units.has_next():
-            new_workunit = self.workunit_provider.get_workunit()
+            try:
+                new_workunit = self.workunit_provider.get_workunit()
+            except NoAvailableWorkException:
+                events.send(events.NO_AVAILABLE_WORK)
+                self.exit()
+                return
+
             new_workunit.register_finished_callback(self._on_finished_workunit)
             self.work_units.append(new_workunit)
             events.send(events.NEW_WORK_UNIT)
@@ -152,33 +158,13 @@ class UIModel(object):
 
     def accept_current_item(self):
         self.sources_discovered.add(self.get_current_source())
-        # TODO: refactor
-        try:
-            self._do_accept_current_item()
-        except NoAvailableWorkException:
-            events.send(events.NO_AVAILABLE_WORK)
-            self.exit()
-
-    def reject_current_item(self):
-        # TODO refactor
-        try:
-            self._do_reject_current_item()
-        except NoAvailableWorkException:
-            events.send(events.NO_AVAILABLE_WORK)
-            self.exit()
-
-    def _do_accept_current_item(self):
-        # TODO refactor
-        self.get_current_workunit().accept_current_item()
         self._process_current_item()
 
-    def _do_reject_current_item(self):
-        # TODO refactor
-        self.get_current_workunit().reject_current_item()
+    def reject_current_item(self):
         self._process_current_item()
 
     def _process_current_item(self):
-        # TODO refactor
+        self.get_current_workunit().process_current_item()
         self.num_processed += 1
 
     def is_current_item_processed(self):
