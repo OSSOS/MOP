@@ -84,3 +84,17 @@ class WxWidgetTestCase(unittest.TestCase):
         self.model.get_source_count.return_value = 2
         self.model.get_current_obs_number.return_value = 0
         self.model.get_obs_count.return_value = 3
+
+
+class DirectoryCleaningTestCase(unittest.TestCase):
+    def tearDown(self):
+        directory = self.get_directory_to_clean()
+        for filename in os.listdir(directory):
+            if filename not in self.get_files_to_keep():
+                os.remove(os.path.join(directory, filename))
+
+    def get_directory_to_clean(self):
+        raise NotImplementedError()
+
+    def get_files_to_keep(self):
+        raise NotImplementedError()

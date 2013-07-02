@@ -1,8 +1,8 @@
-from hamcrest import assert_that, equal_to
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
+
+from hamcrest import assert_that, equal_to
 
 from test.matchers import round_sigfigs, almost_equal
 

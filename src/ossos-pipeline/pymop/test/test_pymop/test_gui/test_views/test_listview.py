@@ -2,14 +2,10 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 
-# TODO: upgrade
-from wx.lib.pubsub import setupv1
-from wx.lib.pubsub import Publisher as pub
-
 from hamcrest import assert_that, equal_to
 
 from test.base_tests import WxWidgetTestCase
-from pymop.gui import models
+from pymop.gui import events
 from pymop.gui.views import KeyValueListPanel
 
 
@@ -26,7 +22,7 @@ class ListViewTest(WxWidgetTestCase):
 
         # Cause event to be fired when calling next source
         def pub_next_source():
-            pub.sendMessage(models.MSG_NEXT_SRC, data=1)
+            events.send(events.CHANGE_IMAGE, data=1)
 
         self.model.next_source = pub_next_source
 
@@ -43,7 +39,7 @@ class ListViewTest(WxWidgetTestCase):
                             equal_to(self.dataset1[item_ind][col_ind]))
 
     def test_kvlist_display_data_on_change_reading(self):
-        pub.subscribe(self.view.on_change_data, models.MSG_NAV)
+        events.subscribe(events.CHANGE_IMAGE, self.view.on_change_data)
 
         # XXX have to manually update model return value here
         self.model.get_reading_data.return_value = self.dataset2

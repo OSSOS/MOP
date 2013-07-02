@@ -3,16 +3,10 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 
 import wx
-
-# TODO: upgrade
-from wx.lib.pubsub import setupv1
-from wx.lib.pubsub import Publisher as pub
-
 from wx.lib.mixins import listctrl as listmix
 
-from pymop import config
-from pymop.gui import models
-from pymop.gui.imgviewer import MPLImageViewer
+from pymop.gui import events, config
+from pymop.gui.fitsviewer import MPLFitsImageViewer
 
 
 def guithread(function):
@@ -54,7 +48,6 @@ class ApplicationView(object):
 
         self.mainframe.Show()
         self.mainframe.show_image_loading_dialog()
-        self.model.start_loading_images()
 
     def _on_close_window(self, event):
         self.close()
@@ -72,7 +65,6 @@ class ApplicationView(object):
         self.mainframe.reset_colormap()
 
     def close(self):
-        self.model.stop_loading_images()
         self.mainframe.Destroy()
 
     @guithread
@@ -84,16 +76,8 @@ class ApplicationView(object):
         self.mainframe.hide_image_loading_dialog()
 
     @guithread
-    def set_source_status(self, current_source, total_sources):
-        self.mainframe.set_source_status(current_source, total_sources)
-
-    @guithread
     def set_observation_status(self, current_obs, total_obs):
         self.mainframe.set_observation_status(current_obs, total_obs)
-
-    @guithread
-    def set_loading_status(self, loaded, total):
-        self.mainframe.set_loading_status(loaded, total)
 
     @guithread
     def enable_source_validation(self):
@@ -169,10 +153,7 @@ class MainFrame(wx.Frame):
         self.validation_view = SourceValidationPanel(self.control_panel, self.controller)
 
         self.viewer_panel = wx.Panel(self.main_panel, style=wx.RAISED_BORDER)
-        self.image_viewer = MPLImageViewer(self.viewer_panel)
-
-        self.statusbar = AppStatusBar(self)
-        self.SetStatusBar(self.statusbar)
+        self.image_viewer = MPLFitsImageViewer(self.viewer_panel)
 
         self.img_loading_dialog = WaitingGaugeDialog(self, "Image loading...")
 
@@ -211,10 +192,10 @@ class MainFrame(wx.Frame):
         notebook = wx.Notebook(self.control_panel)
 
         reading_data_panel = KeyValueListPanel(notebook, self.model.get_reading_data)
-        pub.subscribe(reading_data_panel.on_change_data, models.MSG_NAV)
+        events.subscribe(events.CHANGE_IMAGE, reading_data_panel.on_change_data)
 
         obs_header_panel = KeyValueListPanel(notebook, self.model.get_header_data_list)
-        pub.subscribe(obs_header_panel.on_change_data, models.MSG_NAV)
+        events.subscribe(events.CHANGE_IMAGE, obs_header_panel.on_change_data)
 
         notebook.AddPage(reading_data_panel, "Readings")
         notebook.AddPage(obs_header_panel, "Observation Header")
@@ -241,12 +222,6 @@ class MainFrame(wx.Frame):
     def hide_image_loading_dialog(self):
         if self.img_loading_dialog.IsShown():
             self.img_loading_dialog.Hide()
-
-    def set_source_status(self, current_source, total_sources):
-        self.statusbar.set_source_status(current_source, total_sources)
-
-    def set_loading_status(self, loaded, total):
-        self.statusbar.set_loading_status(loaded, total)
 
     def set_observation_status(self, current_obs, total_obs):
         self.nav_view.set_status(current_obs, total_obs)
@@ -556,7 +531,7 @@ class SourceValidationDialog(wx.Dialog):
 
         self.comment_label = wx.StaticText(self, label=SourceValidationDialog.COMMENT)
         self.comment_text = wx.TextCtrl(self, name=SourceValidationDialog.COMMENT,
-                                        style=wx.TE_MULTILINE|wx.TE_PROCESS_ENTER,
+                                        style=wx.TE_MULTILINE | wx.TE_PROCESS_ENTER,
                                         size=(250, 50))
         self.comment_text.Bind(wx.EVT_TEXT_ENTER, self._on_enter_comment)
 
@@ -581,13 +556,13 @@ class SourceValidationDialog(wx.Dialog):
     def _do_layout(self):
         vsizer = wx.BoxSizer(wx.VERTICAL)
         for widget in self._get_vertical_widget_list():
-            vsizer.Add(widget, proportion=0, flag=wx.ALL|wx.EXPAND, border=5)
+            vsizer.Add(widget, proportion=0, flag=wx.ALL | wx.EXPAND, border=5)
 
         comment_sizer = wx.BoxSizer(wx.VERTICAL)
         comment_sizer.Add(self.comment_label, flag=wx.ALIGN_CENTER)
         comment_sizer.Add(self.comment_text, flag=wx.EXPAND)
 
-        vsizer.Add(comment_sizer, flag=wx.ALL|wx.EXPAND, border=5)
+        vsizer.Add(comment_sizer, flag=wx.ALL | wx.EXPAND, border=5)
         vsizer.Add(self._create_horizontal_pair(self.submit_button, self.cancel_button,
                                                 flag=wx.ALL, border=5),
                    flag=wx.ALIGN_CENTER)
@@ -632,7 +607,6 @@ class AcceptSourceDialog(SourceValidationDialog):
 
     def __init__(self, parent, controller, provisional_name, already_discovered, date_of_obs, ra, dec, obs_mag, band,
                  note1_choices=None, note2_choices=None, note2_default=None, default_observatory_code=""):
-
         self.controller = controller
         self.provisional_name = provisional_name
         self.already_discovered = already_discovered
@@ -771,29 +745,6 @@ class RejectSourceDialog(SourceValidationDialog):
 
     def _on_cancel(self, event):
         self.controller.on_cancel_reject()
-
-
-class AppStatusBar(wx.StatusBar):
-    LOADING_MSG = "Loading..."
-
-    def __init__(self, parent):
-        super(AppStatusBar, self).__init__(parent)
-
-        self.SetFieldsCount(2)
-        self.SetStatusText(self.LOADING_MSG, 0)
-        self.SetStatusText(self.LOADING_MSG, 1)
-
-    def set_source_status(self, current_source, total_sources):
-        self.SetStatusText("Source %s of %s" % (current_source, total_sources), 0)
-
-    def get_source_status(self):
-        return self.GetStatusText(0)
-
-    def set_loading_status(self, loaded, total):
-        self.SetStatusText("Loaded %s of %s images" % (loaded, total), 1)
-
-    def get_loading_status(self):
-        return self.GetStatusText(1)
 
 
 class WaitingGaugeDialog(wx.Dialog):
