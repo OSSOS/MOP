@@ -35,8 +35,8 @@ import vos
 import numpy as np
 from scipy import stats
 from cStringIO import StringIO
-#from astropy.io import fits as pyfits
-import pyfits
+from astropy.io import fits 
+
 version=__Version__
 
 elixir_header={ 'PHOT_C' : (30.0000 , "Fake Elixir zero point"),
@@ -208,7 +208,7 @@ if __name__=='__main__':
         t={}
         for file_id in file_ids:
             filename = os.path.join(opt.dbimages,"%s/%so.head" % ( file_id, file_id))
-            f = pyfits.open(StringIO(vos_client.open(filename,view='data').read()))
+            f = fits.open(StringIO(vos_client.open(filename,view='data').read()))
             t[f[0].header['OBJECT']]=file_id
             f.close()
             f = None
@@ -232,7 +232,6 @@ if __name__=='__main__':
         if not os.access(filename,os.F_OK):
             sys.exit("Failed to get access to "+filename)
         file_names.append(filename)
-        #images[file_id]=pyfits.open(filename,"readonly")
 
     ### zero is a zero field array of the required output size.
     ### get the required output size by looking a the first input
@@ -246,7 +245,7 @@ if __name__=='__main__':
                             opt.bias])
             uri = os.path.normpath(uri)
             vos_client.copy(uri, opt.bias)
-        bias=pyfits.open(opt.bias,"readonly")
+        bias=fits.open(opt.bias,"readonly")
     else:
         opt.bias=None
     if opt.flat:
@@ -256,7 +255,7 @@ if __name__=='__main__':
                             opt.flat])
             uri = os.path.normpath(uri)
             vos_client.copy(uri, opt.flat)
-        flat=pyfits.open(opt.flat,"readonly")
+        flat=fits.open(opt.flat,"readonly")
     else:
         opt.flat=None
 
@@ -275,7 +274,7 @@ if __name__=='__main__':
         nim=0
         for filename in file_names:
             nim+=1
-            hdu = pyfits.open(filename,mode='readonly',memmap=True)[int(ccd)+1]
+            hdu = fits.open(filename,mode='readonly',memmap=True)[int(ccd)+1]
 
             ### reopen the output file for each extension.
             ### Create an output MEF file based on extension name if
@@ -358,43 +357,37 @@ if __name__=='__main__':
                     hdu.header.update(keyword,hdu.header.get(keyword,default=elixir_header[keyword][0]), elixir_header[keyword][1])
 
             if not opt.combine or len(file_names)==1:
-                if opt.short:
-                    if opt.verbose:
-                        print "Scaling data to ushort"
-                    hdu.scale(type='int16',bscale=1,bzero=32768)
-                    hdu.header.update('BSCALE',1, comment="manually set bscale")
-                    hdu.header.update('BZERO',32768, comment="manually set bzero")
-
                 if opt.verbose:
                     print "writing data to "+outfile
                 ### write out the image now (don't overwrite
                 ### files that exist at the start of this process
                 if opt.split:
 		    hdu_list=fits.HDUList()
-                    phdu=fits.ImageHDU()
-                    phdu.header=hdu.header
-                    phdu.data=hdu.data
+                    phdu=fits.ImageHDU(header=hdu.header,
+                                       data=hdu.data)
+                    
                     del phdu.header['XTENSION']
                     del phdu.header['PCOUNT']
                     del phdu.header['GCOUNT']
                     phdu.verify(option='fix')
 		    fitsobj.append(phdu)
                     fitsobj.writeto(outfile)
-                    #phdu.close()
                 else:
 		    if not os.access(outfile,os.R_OK):
-                       pdu = pyfits.open(filename,
+                       pdu = fits.open(filename,
                                          mode='readonly',
                                          memmap=True)[0]
                        
-                       fitsobj = pyfits.HDUList(pyfits.PrimaryHDU(header=pdu.header))
-                       fitsobj.writeto(outfile)
-                       fitsobj.close()
-                    fitsobj = pyfits.open(outfile, 'append')
-		    fitsobj.append(hdu)
-                    fitsobj.close()
-		hdu = None
-                fitsobj = None
+                       hdul = fits.HDUList(fits.PrimaryHDU(header=pdu.header))
+                       hdul.writeto(outfile)
+                       hdul.close()
+                    hdul = fits.open(outfile, 'append')
+                    dtype = ( opt.short and np.int16 ) or  np.float32 
+		    hdul.append(fits.ImageHDU(data=hdu.data.astype(dtype),
+                                              header=hdu.header))
+                    hdul.close()
+                hdu = None
+                hdul = None
                 nim=0
             else:
                 ### stack em up
@@ -439,18 +432,19 @@ if __name__=='__main__':
             if opt.verbose:
                 print "writing median combined stack to file "+outfile
             if opt.split:
-                fitsobj=pyfits.open(outfile,'update')
+                fitsobj=fits.open(outfile,'update')
                 fitsobj[0]=hdu
 		fitsobj.close()
             else:
                 if not os.access(outfile,os.W_OK) :
                     if opt.verbose:
                         print "Creating output image "+outfile
-                    fitsobj = pyfits.HDUList()
-                    fitsobj.append(pyfits.ImageHDU())
+                    fitsobj = fits.HDUList()
+                    pdu = fits.PrimaryHDU()
+                    fitsobj.append(fits.PrimaryHDU())
                     fitsobj.writeto(outfile)
                     fitsobj.close()
-                fitsobj=pyfits.open(outfile,'append')
+                fitsobj=fits.open(outfile,'append')
                 fitsobj.append(stack)
                 fitsobj.close()
             del(stack)
