@@ -42,10 +42,8 @@ class AsynchronousImageDownloadManager(object):
         self.download_thread.start()
 
     def on_image_downloaded(self, downloaded_image, reading):
-        reading.set_fits_image(downloaded_image)
-
         if self.image_loaded_callback is not None:
-            self.image_loaded_callback(reading)
+            self.image_loaded_callback(reading, downloaded_image)
 
     def on_all_downloaded(self):
         if self.all_loaded_callback is not None:

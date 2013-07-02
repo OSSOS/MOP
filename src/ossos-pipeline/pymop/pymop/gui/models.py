@@ -4,6 +4,10 @@ from pymop.gui import events
 from pymop.io.workload import NoAvailableWorkException, StatefulCollection
 
 
+class ImageNotLoadedException(Exception):
+    """The requested image hasn't been loaded yet."""
+
+
 class UIModel(object):
     """
     Contains the data and associated operations available to the user interface.
@@ -23,7 +27,9 @@ class UIModel(object):
         self.work_units.register_change_item_callback(shift_locks)
 
         self.num_processed = 0
-        self._num_images_loaded = 0
+
+        # Maps each reading to its image (once downloaded)
+        self._images_by_reading = {}
 
         self.sources_discovered = set()
 
@@ -145,22 +151,21 @@ class UIModel(object):
         return self.get_current_reading().dec
 
     def get_current_image(self):
-        return self.get_current_reading().get_fits_image()
+        try:
+            return self._images_by_reading[self.get_current_reading()]
+        except KeyError:
+            raise ImageNotLoadedException()
 
     def get_current_hdulist(self):
-        fitsimage = self.get_current_image()
-
-        if fitsimage is None:
-            return None
-
-        return fitsimage.as_hdulist()
+        return self.get_current_image().as_hdulist()
 
     def get_current_band(self):
         hdu0 = self.get_current_hdulist()[0]
         return hdu0.header["FILTER"][0]
 
     def get_current_image_source_point(self):
-        return self.get_current_reading().image_source_point
+        return self.get_current_image().get_pixel_coordinates(
+            self.get_current_reading().source_point)
 
     def get_current_source_observed_magnitude(self):
         x, y = self.get_current_image_source_point()
@@ -174,7 +179,7 @@ class UIModel(object):
         return float(self.get_current_reading().obs.header["MAXCOUNT"])
 
     def get_loaded_image_count(self):
-        return self._num_images_loaded
+        return len(self._images_by_reading)
 
     def stop_loading_images(self):
         self.download_manager.stop_download()
@@ -192,8 +197,8 @@ class UIModel(object):
         self.download_manager.start_download(
             workunit, image_loaded_callback=self._on_image_loaded)
 
-    def _on_image_loaded(self, reading):
-        self._num_images_loaded += 1
+    def _on_image_loaded(self, reading, image):
+        self._images_by_reading[reading] = image
         events.send(events.IMG_LOADED, reading)
 
     def _on_finished_workunit(self, filename):

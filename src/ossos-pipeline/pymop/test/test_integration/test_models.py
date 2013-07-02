@@ -11,6 +11,7 @@ from test.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from pymop import tasks
 from pymop.app import DirectoryContext
 from pymop.gui import models, events
+from pymop.gui.models import ImageNotLoadedException
 from pymop.io.downloads import AsynchronousImageDownloadManager
 from pymop.io.astrom import AstromParser
 from pymop.io.persistence import ProgressManager
@@ -63,7 +64,8 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
         apcor_str = "4 15   0.19   0.01"
         with open(self.get_abs_path(path), "rb") as fh:
             self.first_image = DownloadedFitsImage(fh.read(), apcor_str, Mock(), in_memory=True)
-            self.model.get_current_workunit().get_sources()[0].get_readings()[0].set_fits_image(self.first_image)
+            first_reading = self.model.get_current_workunit().get_sources()[0].get_readings()[0]
+            self.model._on_image_loaded(first_reading, self.first_image)
 
 
 class AbstractRealsModelTest(GeneralModelTest):
@@ -207,18 +209,20 @@ class AbstractRealsModelTest(GeneralModelTest):
         observer = Mock()
         events.subscribe(events.IMG_LOADED, observer.on_img_loaded)
         loaded_reading1 = Mock()
+        image1 = Mock()
         loaded_reading2 = Mock()
+        image2 = Mock()
 
         assert_that(self.download_manager.start_download.call_count, equal_to(1))
         assert_that(self.model.get_loaded_image_count(), equal_to(0))
 
         # Simulate receiving callback
-        self.model._on_image_loaded(loaded_reading1)
+        self.model._on_image_loaded(loaded_reading1, image1)
         assert_that(self.model.get_loaded_image_count(), equal_to(1))
         assert_that(observer.on_img_loaded.call_count, equal_to(1))
 
         # Simulate receiving callback
-        self.model._on_image_loaded(loaded_reading2)
+        self.model._on_image_loaded(loaded_reading2, image2)
         assert_that(self.model.get_loaded_image_count(), equal_to(2))
         assert_that(observer.on_img_loaded.call_count, equal_to(2))
 
@@ -297,7 +301,8 @@ class AbstractRealsModelTest(GeneralModelTest):
     @patch("pymop.astrometry.daophot.phot_mag")
     def test_get_current_source_observed_magnitude(self, mock_phot_mag):
         first_image = Mock()
-        self.model.get_current_data().get_sources()[0].get_readings()[0].set_fits_image(first_image)
+        first_reading = self.model.get_current_data().get_sources()[0].get_readings()[0]
+        self.model._on_image_loaded(first_reading, first_image)
 
         x, y = (1500, 2500)
         self.model.get_current_image_source_point = Mock(return_value=(x, y))
@@ -307,9 +312,9 @@ class AbstractRealsModelTest(GeneralModelTest):
         first_image.get_observed_magnitude.assert_called_once_with(x, y,
                                                                    maxcount=30000.0)
 
-    def test_get_current_hdulist_is_none(self):
+    def test_get_current_hdulist_image_not_loaded(self):
         self.model.next_source()
-        assert_that(self.model.get_current_hdulist(), none())
+        self.assertRaises(ImageNotLoadedException, self.model.get_current_hdulist)
 
     def test_get_current_reading_data(self):
         self.model.next_source()

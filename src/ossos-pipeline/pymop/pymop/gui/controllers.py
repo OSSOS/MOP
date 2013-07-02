@@ -3,6 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 from pymop import config
 from pymop.gui import events
 from pymop.gui.views import ApplicationView
+from pymop.gui.models import ImageNotLoadedException
 
 
 class AbstractController(object):
@@ -22,15 +23,15 @@ class AbstractController(object):
         return self.model
 
     def display_current_image(self):
-        current_image = self.model.get_current_image()
-
-        if current_image is None:
+        try:
+            self.get_view().view_image(self.get_model().get_current_image())
+        except ImageNotLoadedException:
             self.get_view().show_image_loading_dialog()
-        else:
-            self.get_view().view_image(current_image)
-            image_x, image_y = self.model.get_current_image_source_point()
-            radius = 2 * round(self.model.get_current_image_FWHM())
-            self.get_view().draw_circle(image_x, image_y, radius)
+            return
+
+        image_x, image_y = self.model.get_current_image_source_point()
+        radius = 2 * round(self.model.get_current_image_FWHM())
+        self.get_view().draw_circle(image_x, image_y, radius)
 
         self.get_view().set_observation_status(
             self.model.get_current_obs_number() + 1,
