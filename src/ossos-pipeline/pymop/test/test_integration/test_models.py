@@ -806,60 +806,93 @@ class RealsModelPersistenceTest(GeneralModelTest):
     def get_files_to_keep(self):
         return TEST_FILES
 
-    def test_record_progress_reals_skipping_item(self):
+    def test_record_progress_only_after_source_finished(self):
         first_file = self.model.get_current_filename()
 
+        assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
+                    has_length(0))
+
+        self.model.accept_current_item()
+        assert_that(self.concurrent_progress_manager.is_done(first_file),
+                    equal_to(False))
+        assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
+                    has_length(0))
+
+        self.model.next_item()
+        self.model.accept_current_item()
+        assert_that(self.concurrent_progress_manager.is_done(first_file),
+                    equal_to(False))
+        assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
+                    has_length(0))
+
+        self.model.next_item()
         self.model.accept_current_item()
         assert_that(self.concurrent_progress_manager.is_done(first_file),
                     equal_to(False))
         assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
                     contains_inanyorder(0))
-
-        # Try skipping forward over an item and coming back to it
-        self.model.next_item()
-        self.model.next_item()
-        self.model.accept_current_item()
-        assert_that(self.concurrent_progress_manager.is_done(first_file),
-                    equal_to(False))
-        assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
-                    contains_inanyorder(0, 2))
-
-        self.model.next_item()
-        self.model.accept_current_item()
-        assert_that(self.concurrent_progress_manager.is_done(first_file),
-                    equal_to(False))
-        assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
-                    contains_inanyorder(0, 2, 1))
 
     def test_record_progress_multiple_sources(self):
         first_file = self.model.get_current_filename()
 
+        assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
+                    has_length(0))
+
+        # source 1 of 3, reading 1 of 3
         self.model.accept_current_item()
+        self.model.next_item()
+
+        # source 1 of 3 reading 2 of 3
+        self.model.accept_current_item()
+        self.model.next_item()
+
+        # source 1 of 3 reading 3 of 3
+        self.model.accept_current_item()
+        self.model.next_item()
         assert_that(self.concurrent_progress_manager.is_done(first_file),
                     equal_to(False))
         assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
                     contains_inanyorder(0))
 
-        self.model.next_item()
+        # source 2 of 3 reading 1 of 3
         self.model.accept_current_item()
+        self.model.next_item()
+        assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
+                    contains_inanyorder(0))
+
+        # source 2 of 3 reading 2 of 3
+        self.model.accept_current_item()
+        self.model.next_item()
+        assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
+                    contains_inanyorder(0))
+
+        # source 2 of 3 reading 3 of 3
+        self.model.accept_current_item()
+        self.model.next_item()
         assert_that(self.concurrent_progress_manager.is_done(first_file),
                     equal_to(False))
         assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
                     contains_inanyorder(0, 1))
 
+        # source 3 of 3 reading 1 of 3
+        self.model.next_item()
+        self.model.accept_current_item()
+        assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
+                    contains_inanyorder(0, 1))
+
+        # source 3 of 3 reading 2 of 3
+        self.model.next_item()
+        self.model.accept_current_item()
+        assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
+                    contains_inanyorder(0, 1))
+
+        # source 3 of 3 reading 3 of 3
         self.model.next_item()
         self.model.accept_current_item()
         assert_that(self.concurrent_progress_manager.is_done(first_file),
-                    equal_to(False))
+                    equal_to(True))
         assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
                     contains_inanyorder(0, 1, 2))
-
-        self.model.next_item()
-        self.model.accept_current_item()
-        assert_that(self.concurrent_progress_manager.is_done(first_file),
-                    equal_to(False))
-        assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
-                    contains_inanyorder(0, 1, 2, 3))
 
     def test_file_processed_event(self):
         observer = Mock()
@@ -902,7 +935,7 @@ class RealsModelPersistenceLoadingTest(GeneralModelTest):
         # Have to set this up here because test cases may modify the .PART file
         partfile = os.path.join(self.get_directory_to_clean(), "xxx3.reals.astrom.PART")
         with open(partfile, "w+b") as filehandle:
-            filehandle.write("0\n1\n2\n5\n3\n")
+            filehandle.write("0\n1\n")
 
         super(RealsModelPersistenceLoadingTest, self).setUp()
 
@@ -925,13 +958,15 @@ class RealsModelPersistenceLoadingTest(GeneralModelTest):
         observer = Mock()
         events.subscribe(events.FINISHED_WORKUNIT, observer)
 
-        assert_that(self.model.get_current_source_number(), equal_to(1))
-        assert_that(self.model.get_current_obs_number(), equal_to(1))
+        assert_that(self.model.get_current_source_number(), equal_to(2))
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
         self.model.reject_current_item()
 
-        for i in range(3):
-            self.model.next_item()
-            self.model.accept_current_item()
+        self.model.next_item()
+        self.model.accept_current_item()
+
+        self.model.next_item()
+        self.model.accept_current_item()
 
         assert_that(observer.call_count, equal_to(1))
 
