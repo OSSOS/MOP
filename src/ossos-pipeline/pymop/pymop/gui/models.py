@@ -181,10 +181,8 @@ class UIModel(object):
     def get_loaded_image_count(self):
         return len(self._images_by_reading)
 
-    def stop_loading_images(self):
-        self.download_manager.stop_download()
-
     def exit(self):
+        self.download_manager.stop_download()
         self._unlock(self.get_current_workunit())
 
     def _lock(self, workunit):

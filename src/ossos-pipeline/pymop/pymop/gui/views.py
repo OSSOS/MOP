@@ -65,7 +65,6 @@ class ApplicationView(object):
         self.mainframe.reset_colormap()
 
     def close(self):
-        self.model.stop_loading_images()
         self.mainframe.Destroy()
 
     @guithread
