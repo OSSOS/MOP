@@ -23,11 +23,11 @@ from pyramid.security import forget
 from pyramid.view import view_config
 
 
-@view_config(context=HTTPForbidden)
-def basic_challenge(request):
-    response = HTTPUnauthorized()
-    response.headers.update(forget(request))
-    return response
+# @view_config(context=HTTPForbidden)
+# def basic_challenge(request):
+#     response = HTTPUnauthorized()
+#     response.headers.update(forget(request))
+#     return response
 
 
 def login_view(request):
@@ -152,7 +152,7 @@ def isMember(userid, password, group):
     except Exception as e:
         logging.error(str(e))
 
-    logging.debug(str(resp.status))
+    # logging.debug(str(resp.status))
 
     return False
 

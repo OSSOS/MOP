@@ -1,7 +1,8 @@
 # package
 
 from pyramid.config import Configurator
-from pyramid.security import authenticated_userid, Allow, Authenticated
+from pyramid.security import Allow, Authenticated
+from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 
 
@@ -16,17 +17,20 @@ class Root(object):
 
 def main(global_config, **settings):
 
-    #  authz_policy = ACLAuthorizationPolicy()
-
-
     config = Configurator(settings=settings,
-#		authentication_policy=authn_policy,
-#        authorization_policy=authz_policy,
-        root_factory=Root
+        root_factory=Root  # then it knows what __acl__ it can have
     	)
 
-#    config.set_authorization_policy(authenticated_userid(login_view(request)))
+    authn_policy = AuthTktAuthenticationPolicy('ossos is wonderful', hashalg='sha512')
+    config.set_authentication_policy(authn_policy)
+    config.set_authorization_policy(ACLAuthorizationPolicy())
 
+    # then continue as normal
     config.add_route(name='overview', path='/')
     config.scan(package='ossos')
+
+    # the first place it will go is ossos.auth.model.py's @view_config 'login' 
+    # which has a def login_view(request) which we want to set first.
+
     return config.make_wsgi_app()
+    

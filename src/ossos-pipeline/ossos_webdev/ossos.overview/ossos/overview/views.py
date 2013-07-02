@@ -2,8 +2,6 @@ from pyramid.response import Response
 from pyramid.view import view_config
 from queries import SurveyQuery
 
-# won't need this soon
-import ossos.block.queries as bq
 
 class Overview(object):
 
