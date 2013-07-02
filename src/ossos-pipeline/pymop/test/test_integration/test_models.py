@@ -497,7 +497,9 @@ class ProcessRealsModelTest(GeneralModelTest):
             item += 1
 
         self.model.accept_current_item()
-        # We automatically try to get the next work unit, and find there is none
+        # We try to get the next work unit, and find there is none
+        self.model.next_item()
+
         assert_that(observer.on_all_processed.call_count, equal_to(1))
 
     def test_receive_all_sources_processed_event_on_final_reject(self):
@@ -513,7 +515,9 @@ class ProcessRealsModelTest(GeneralModelTest):
             item += 1
 
         self.model.reject_current_item()
-        # We automatically try to get the next work unit, and find there is none
+
+        # We try to get the next work unit, and find there is none
+        self.model.next_item()
         assert_that(observer.on_all_processed.call_count, equal_to(1))
 
 
@@ -611,7 +615,9 @@ class ProcessCandidatesModelTest(GeneralModelTest):
             item += 1
 
         self.model.accept_current_item()
-        # We automatically try to get the next work unit, and find there is none
+
+        # We try to get the next work unit, and find there is none
+        self.model.next_item()
         assert_that(observer.on_all_processed.call_count, equal_to(1))
 
     def test_receive_all_sources_processed_event_on_final_reject(self):
@@ -627,7 +633,9 @@ class ProcessCandidatesModelTest(GeneralModelTest):
             item += 1
 
         self.model.reject_current_item()
-        # we automatically try to get the next work unit, and find there is none
+
+        # we try to get the next work unit, and find there is none
+        self.model.next_item()
         assert_that(observer.on_all_processed.call_count, equal_to(1))
 
 
@@ -675,7 +683,9 @@ class MultipleAstromDataModelTest(GeneralModelTest):
         self.model.next_item()
         self.model.accept_current_item()
 
-        # Note we now automatically move to the next work unit
+        # Moving to next work unit
+        self.model.next_item()
+
         second_sources = self.model.get_current_data().get_sources()
 
         assert_that(first_sources, is_not(same_instance(second_sources)))
@@ -711,7 +721,9 @@ class MultipleAstromDataModelTest(GeneralModelTest):
         assert_that(self.model.get_current_source_number(), equal_to(0))
         self.model.accept_current_item()
 
-        # Note we now automatically move to the next work unit
+        # Moving to next work unit
+        self.model.next_item()
+
         second_sources = self.model.get_current_data().get_sources()
         assert_that(first_sources, is_not(same_instance(second_sources)))
 
@@ -731,6 +743,41 @@ class MultipleAstromDataModelTest(GeneralModelTest):
         # Note we only iterate in the current work unit
         assert_that(self.model.get_current_source_number(), equal_to(2))
         assert_that(self.model.get_current_source(), equal_to(second_sources[2]))
+
+    def test_move_to_first_observation_of_new_workunit(self):
+        workunit1 = self.model.get_current_workunit()
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
+
+        self.model.next_workunit()
+
+        workunit2 = self.model.get_current_workunit()
+        assert_that(workunit2, is_not(same_instance(workunit1)))
+
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
+
+    def test_accept_moves_to_first_observation_of_new_workunit(self):
+        workunit1 = self.model.get_current_workunit()
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
+
+        self.model.accept_current_item()
+        self.model.next_item()
+        assert_that(self.model.get_current_source_number(), equal_to(1))
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
+
+        self.model.accept_current_item()
+        self.model.next_item()
+        assert_that(self.model.get_current_source_number(), equal_to(2))
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
+
+        self.model.accept_current_item()
+        self.model.next_item()
+
+        workunit2 = self.model.get_current_workunit()
+        assert_that(workunit2, is_not(same_instance(workunit1)))
+
+        assert_that(self.model.get_current_source_number(), equal_to(0))
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
 
 
 class RealsModelPersistenceTest(GeneralModelTest):
@@ -941,8 +988,8 @@ class CandidatesModelPersistenceTest(GeneralModelTest):
         assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
                     contains_inanyorder(0, 1, 2))
 
-        # Note here we are automatically moved to the next item when
-        # finishing the work unit
+        self.model.next_item()
+
         second_file = self.model.get_current_filename()
         assert_that(second_file, is_not(equal_to(first_file)))
         assert_that(self.concurrent_progress_manager.get_processed_indices(second_file),
