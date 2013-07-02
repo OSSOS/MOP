@@ -1,5 +1,4 @@
 #!/usr/bin/env python2.7
-"""do the standard pre-processing steps associated with CCD imaging"""
 #/*+
 #************************************************************************
 #*
@@ -14,6 +13,8 @@
 #*	
 #*
 #*
+#*   CVS data:
+#*	$Header: /home/observe/cvsroot/MOP/src/jjk/preproc/preproc.py,v 1.7 2007/01/26 20:20:24 observe Exp $
 #*
 #*   Initiated by       : JJ Kavelaars
 #*   Date		: <Nov 30 2004>
@@ -26,22 +27,17 @@
 #-*/
 
 
+"""Create a MEGAPRIME bias frame given a list of input bias exposure numbers"""
 
-__Version__ = "2.0"
+__Version__ = "1.8"
 import re, os, string, sys
+import vos
 import numpy as np
-from astropy.io import fits
-import logging
-import errno
-
+from scipy import stats
+from cStringIO import StringIO
+#from astropy.io import fits as pyfits
+import pyfits
 version=__Version__
-
-file_type_flags={'FLAT': 'f',
-                 'BIAS': 'b',
-                 'OBJECT': 'p',
-                 'ZERO': 'b'
-                 }
-
 
 elixir_header={ 'PHOT_C' : (30.0000 , "Fake Elixir zero point"),
                 'PHOT_CS': (1.0000 , "Fake Elixir zero point - scatter" ) ,
@@ -82,8 +78,6 @@ def overscan(hdu,
     Default for megapipe. The BIAS section keywords are expected to be BSEC[A|B] (for amps
     A and B) and the AMP sectoin is ASEC[A|B].
     """
-    if len(biassecs) != len(ampssec):
-        raise ValueError("different number of bias and amp sections provided")
 
     for indx in range(len(biassecs)):
         AMPKW= ampsecs[idx]
@@ -95,9 +89,6 @@ def overscan(hdu,
                                                                 hdu.header.get(AMPKW)))
         bias=re.findall(r'(\d+)',
                         hdu.header.get(BIASKW))
-        if len(bias) != 4 :
-            raise ValueError("Failed to parse BIASSEC: %s %s" % (BIASKW,
-                                                                hdu.header.get(BIASKW)))
         
         ## the X-boundaries set the amp section off from the bias section
         ## (ie. this is a column orriented device)
@@ -111,16 +102,17 @@ def overscan(hdu,
         b=max(int(bias[2]),int(dsec[2]))-1
         t=min(int(bias[3]),int(dsec[3]))
 
-        ## we set the bias level to the mean value in each row
         bias = np.add.reduce(hdu.data[b:t,bl:bh],axis=1)/float(len(hdu.data[b:t,bl:bh][0]))
         mean = bias.mean()
         hdu.data[b:t,al:ah] -= bias[:,np.newaxis]
-
-        hdu.header.update("BIAS%d" % ( idx),
-                          mean,comment="amp %d biase level" % ( idx))
+	hdu.data = hdu.data.astype('int16')
+        hdu.header.update("BIAS%d" % (idx ),mean,comment="Mean bias level")
 	del(bias)
 
+    ### send back the mean bias level subtracted
     return mean
+
+
 
 
 
@@ -158,7 +150,6 @@ if __name__=='__main__':
                       default=None,
                       action="store",
                       help="Flat field [leave out if you don't want to flatten your inputs]")
-
     parser.add_argument("--normal",
                       action="store_true",
                       help="Normallize before averaging?")
@@ -209,120 +200,189 @@ if __name__=='__main__':
     ### get the bias frames from the archive.
     (args)=parser.parse_args()
     opt=args
+    file_ids = args.images
 
-    if args.verbose:
-        logging.basicConfig(level=logging.INFO)
 
-    file_names = args.images
-    if len(args.images) == 0:
-        parser.error("You must provide a list of images to process")
+    if opt.combine and opt.normal and False:
+        ## only take one image from each pointing
+        t={}
+        for file_id in file_ids:
+            filename = os.path.join(opt.dbimages,"%s/%so.head" % ( file_id, file_id))
+            f = pyfits.open(StringIO(vos_client.open(filename,view='data').read()))
+            t[f[0].header['OBJECT']]=file_id
+            f.close()
+            f = None
+        file_ids=[]
+        for object in t:
+            file_ids.append(t[object])
 
-    ccds = args.ccd
     images={}
+    file_names=[]
+    for file_id in file_ids:
+        if opt.verbose:
+            print "Attempting to get and open file assocaiated with  "+str(file_id)
+	if not re.match(r'.*.fits.*',file_id):
+            filename=file_id+"o.fits.fz"
+	else :
+            filename=file_id
+	if not os.access(filename,os.F_OK):
+            vo_filename = os.path.join(opt.dbimages,
+                                       "%s/%s" % ( file_id, filename))
+            vos_client.copy(vo_filename, filename)
+        if not os.access(filename,os.F_OK):
+            sys.exit("Failed to get access to "+filename)
+        file_names.append(filename)
+    images={}
+    file_names=[]
+    for file_id in file_ids:
+        if opt.verbose:
+            print "Attempting to get and open file assocaiated with  "+str(file_id)
+	if not re.match(r'.*.fits.*',file_id):
+            filename=file_id+"o.fits.fz"
+	else :
+            filename=file_id
+	if not os.access(filename,os.F_OK):
+            vo_filename = os.path.join(opt.dbimages,
+                                       "%s/%s" % ( file_id, filename))
+            vos_client.copy(vo_filename, filename)
+        if not os.access(filename,os.F_OK):
+            sys.exit("Failed to get access to "+filename)
+        file_names.append(filename)
+        #images[file_id]=pyfits.open(filename,"readonly")
 
     ### zero is a zero field array of the required output size.
     ### get the required output size by looking a the first input
     ### array?
     ##
 
+    if opt.bias:
+        if not os.access(opt.bias,os.F_OK):
+            uri = "/".join([opt.dbimages,
+                            "calibrators",
+                            opt.bias])
+            uri = os.path.normpath(uri)
+            vos_client.copy(uri, opt.bias)
+        bias=pyfits.open(opt.bias,"readonly")
+    else:
+        opt.bias=None
+    if opt.flat:
+        if not os.access(opt.flat,os.F_OK):
+            uri = "/".join([opt.dbimages,
+                            "calibrators",
+                            opt.flat])
+            uri = os.path.normpath(uri)
+            vos_client.copy(uri, opt.flat)
+        flat=pyfits.open(opt.flat,"readonly")
+    else:
+        opt.flat=None
 
-    bias=(args.bias is not None and fits.open(opt.bias,"readonly")) or False
-    flat=(opt.flat is not None and fits.open(opt.flat,"readonly")) or False
+    flag={'FLAT': 'f',
+          'BIAS': 'b',
+          'OBJECT': 'p',
+          'ZERO': 'b'
+          }
+        
+    ccds=args.ccds
 
-    if bias and flat and len(bias) != len(flat):
-        raise ValueError(
-            "BIAS (%s) and FLAT (%s) have different number of extensions" % ( args.bias, args.flat))
-
-    num_ext = None
-    for filename in file_names:
-        images[filename] = fits.open(filename, mode='readonly')
-        if num_ext is None:
-            num_ext = len(images[filename])
-        logging.info("Expecting %d extensions" % ( num_ext))
-        if num_ext != len(images[filename]):
-            raise ValueError("Lengths of input MEFs are not all the same.")
-
-    if bias and num_ext != len(bias):
-        raise ValueError("Length of bias MEF does not match input images.")
-
-    if flat and num_ext != len(flat):
-        raise ValueError("Length of flat MEF does not match input images.")
-
-
-    for extno in range(num_ext):
-        print "Working on extxension "+str(extno)
+    for ccd in ccds:
+        print "Working on ccd "+str(ccd)
 	stack=[]
 	mstack=[]
-        for filename in images:
-            hdu = images[filename][extno]
-            
+        nim=0
+        for filename in file_names:
+            nim+=1
+            hdu = pyfits.open(filename,mode='readonly',memmap=True)[int(ccd)+1]
+
             ### reopen the output file for each extension.
             ### Create an output MEF file based on extension name if
             ### opt.split is set.
             if not opt.outfile and not opt.combine:
-                ## No output file name provide and we're not combining into a single output so
-                ## try and guess an output filename
-                imtype=hdu.header.get(args.obstype_kw,args.obstype_kw)
-                outfile=str(hdu.header.get(args.obs_id_kw,args.obs_id_kw))+file_type_flags(imtype,imtype)
-            elif ( opt.combine or len(file_names)==1 ) and opt.outfile:
-                ## we can push to a single output
+                imtype=hdu.header.get('OBSTYPE')
+                outfile=str(hdu.header.get('EXPNUM'))+flag[imtype]
+            elif ( opt.combine or len(file_names)<2 ) and opt.outfile:
+                re.match(r'(^.*)\.fits.fz',opt.outfile)
                 outfile=opt.outfile
             else:
-                parser.error("Multiple inputs with combine but no output fileanem")
-
-            if args.split:
-                outfile += str(hdu.header.get(args.extname_kw, args.extname_kw))
-            
-            outfile = outfile+".fits"
+                print "\nMulitple input images with only one output"
+                print "but --output option not set? [Logic Error]"
+                sys.exit(-1)
+            subs="."
+            if opt.dist:
+                subs=opt.dist
+                object=hdu.header.get('OBJECT')
+                nccd=hdu.header.get('EXTNAME')
+                for dirs in [nccd, object]:
+                    subs = subs+"/"+dirs
+                    if not os.access(subs,os.F_OK):
+                        os.makedirs(subs)
+            subs=subs+"/"
+            if opt.split:
+                nccd=hdu.header.get('EXTVER')
+                outfile=outfile+string.zfill(str(nccd),2)
+            outfile=subs+outfile+".fits"
             ### exit if the file exist and this is the ccd or
             ### were splitting so every file should only have one
             ### extension
-            if os.access(outfile,os.W_OK) and ( opt.split or extno == 0):
-                raise IOError(errno.EEXIST,"Output file "+outfile+" already exists")
+            if os.access(outfile,os.W_OK) and (ccd==0 or opt.split) and not opt.combine:
+                sys.exit("Output file "+outfile+" already exists")
                 
             ### do the overscan for each file
             print "Processing "+filename
 
             if opt.overscan:
-                logging.info("Applying overscan correction.")
+                if opt.verbose:
+                    print "Overscan subtracting"
                 overscan(hdu)
-
+            if opt.bias:
+                if opt.verbose:
+                    print "Subtracting bias frame "+opt.bias
+                hdu.data -= bias[ccd+1].data
             if opt.trim:
-                logging.info("Trimming images, may not work as megapipe input now")
+                if opt.verbose:
+                    print "Triming image"
                 trim(hdu)
-                
-            if bias:
-                logging.info("Applying the bias correction.")
-                hdu.data -= bias[extno].data
-                hdu.header.update("BIAS",args.bias,comment="BIAS Image")
-
-            if flat:
-                logging.info("Applying flat field.")
-                hdu.data /= flat[extno].data
-                hdu.header.update("FLAT",args.flat,comment="Flat Image")
-
+            if opt.flat:
+                if opt.verbose:
+                    print "Dividing by flat field "+opt.flat
+                hdu.data /= flat[ccd+1].data
+		hdu.data = hdu.data.astype('float16')
+                hdu.header.update("Flat",opt.flat,comment="Flat Image")
             if opt.normal:
-                if hdu.data is None:
-                    continue
-                logging.info("Normallizing input frame.")
-                (h, b) = np.histogram(hdu.data,bins=10000)
+                if opt.verbose:
+                    print "Normalizing the frame"
+                (h, b) = np.histogram(hdu.data,bins=1000)
                 idx = h.argsort()
                 mode = float((b[idx[-1]]+b[idx[-2]])/2.0)
                 hdu.data = hdu.data/mode
 		hdu.data = hdu.data.astype('float16')
 
+            if opt.flip:
+	        if ccd < 18 :
+                    if opt.verbose:
+                        print "Flipping the x and y axis"
+                    hdu.data = hdu.data[::-1,::-1]
+                    hdu.header['CRPIX2']= hdu.data.shape[0] - hdu.header['CRPIX2'] 
+                    hdu.header['CRPIX1'] = hdu.data.shape[1] - hdu.header['CRPIX1']
+                    hdu.header['CD1_1']=-1.0*hdu.header['CD1_1']
+                    hdu.header['CD2_2']=-1.0*hdu.header['CD2_2']
+                                                                 
             hdu.header.update('CADCPROC',float(version),
                               comment='Version of cadcproc')
-
-            ### add 'ELIXIR' keywords, so megapipe works on these images
+            ### write out this image if not combining
             if args.megapipe:
                 for keyword in elixir_header:
-                    hdu.header.update(keyword,
-                                      hdu.header.get(keyword,default=elixir_header[keyword][0]),
-                                      elixir_header[keyword][1])
+                    hdu.header.update(keyword,hdu.header.get(keyword,default=elixir_header[keyword][0]), elixir_header[keyword][1])
 
             if not opt.combine or len(file_names)==1:
+                if opt.short:
+                    if opt.verbose:
+                        print "Scaling data to ushort"
+                    hdu.scale(type='int16',bscale=1,bzero=32768)
+                    hdu.header.update('BSCALE',1, comment="manually set bscale")
+                    hdu.header.update('BZERO',32768, comment="manually set bzero")
 
+                if opt.verbose:
+                    print "writing data to "+outfile
                 ### write out the image now (don't overwrite
                 ### files that exist at the start of this process
                 if opt.split:
@@ -334,46 +394,48 @@ if __name__=='__main__':
                     del phdu.header['PCOUNT']
                     del phdu.header['GCOUNT']
                     phdu.verify(option='fix')
-                    if opt.short:
-                        logging.info("ushort'n the pixel values")
-                        phdu.scale(type='int16',bscale=1,bzero=32768)
 		    fitsobj.append(phdu)
-                    logging.info("Writing extension %s to %s" % ( str(extno), outfile))
                     fitsobj.writeto(outfile)
+                    #phdu.close()
                 else:
-                    if opt.short:
-                        logging.info("short'n the data")
-                        hdu.scale(type='int16',
-                                  bscale=1,
-                                  bzero=32768)
-                    try:
-                        proc_hdu_list = fits.open(outfile,'append')
-                        proc_hdu_list.append(hdu)
-                        proc_hdu_list.flush()
-                        proc_hdu_list.close()
-                    except IOError as e:
-                        if e.errno == 2:
-                            fits.PrimaryHDU(header=hdu.header,
-                                              data=hdu.data).writeto(outfile)
+		    if not os.access(outfile,os.R_OK):
+                       pdu = pyfits.open(filename,
+                                         mode='readonly',
+                                         memmap=True)[0]
+                       
+                       fitsobj = pyfits.HDUList(pyfits.PrimaryHDU(header=pdu.header))
+                       fitsobj.writeto(outfile)
+                       fitsobj.close()
+                    fitsobj = pyfits.open(outfile, 'append')
+		    fitsobj.append(hdu)
+                    fitsobj.close()
+		hdu = None
+                fitsobj = None
+                nim=0
             else:
-                mstack.append(hdu.data.astype('float16'))
-                naxis1 = mstack[-1].shape[0]
-                naxis2 = mstack[-1].shape[1]
-                
+                ### stack em up
+                if opt.verbose:
+                    print "Saving the data for later"
+		data = hdu.data.astype('float16')
+	        naxis1 = hdu.data.shape[0]
+	        naxis2 = hdu.data.shape[1]
+                mstack.append(data)
+
+        ### free up the memory being used by the bias and flat
+        if opt.bias:
+            bias[ccd+1].data=None
+        if opt.flat:
+            flat[ccd+1].data=None
+        
         ### last image has been processed so combine the stack
         ### if this is a combine and we have more than on hdu
-        if bias:
-            bias[extno]=None
-        if flat:
-            flat[extno]=None
             
         if opt.combine and len(file_names)>1:
-            if len(mstack) > 0:
-                mstack = np.vstack(mstack)
-                mstack.shape = [len(file_names),naxis1,naxis2]
-                data = np.percentile(mstack, 40, axis=0)
-            else:
-                data = hdu.data
+            if opt.verbose:
+                print "Median combining "+str(nim)+" images"
+            mstack = np.vstack(mstack)
+            mstack.shape = [len(file_names),naxis1,naxis2]
+            data = np.percentile(mstack, 40, axis=0)
             del(mstack)
             stack = fits.ImageHDU(data)
             if stack.data is not None:
@@ -384,25 +446,29 @@ if __name__=='__main__':
             stack.header['DETSIZE'] = hdu.header.get('DETSIZE','')
             stack.header['DETSEC'] = hdu.header.get('DETSEC','')
             
-            for filename in images:
-                stack.header['comment'] = str(filename)+" used to make this flat"
+            for im in file_names:
+                hdu.header['comment'] = str(im)+" used to make this flat"
             if opt.short:
-                logging.info("ushort'n data")
-                stack.scale(type='int16',bscale=1,bzero=32768)
-            logging.info("Writing 40th percentile image to %s" % ( outfile))
+                if opt.verbose:
+                    print "Scaling data to ushort"
+                hdu.scale(type='int16',bscale=1,bzero=32768)
+            if opt.verbose:
+                print "writing median combined stack to file "+outfile
             if opt.split:
-                logging.info("writing to %s" % ( outfile))
-                stack.writeto(outfile)
+                fitsobj=pyfits.open(outfile,'update')
+                fitsobj[0]=hdu
+		fitsobj.close()
             else:
-                try:
-                    fitsobj = fits.open(outfile, 'append')
-                    fitsobj.append(stack)
+                if not os.access(outfile,os.W_OK) :
+                    if opt.verbose:
+                        print "Creating output image "+outfile
+                    fitsobj = pyfits.HDUList()
+                    fitsobj.append(pyfits.ImageHDU())
+                    fitsobj.writeto(outfile)
                     fitsobj.close()
-                except IOError as e:
-                    if e.errno != 2 :
-                        raise e
-                    logging.info("Creating output image %s" % ( outfile))
-                    fits.PrimaryHDU(stack).writeto(outfile)
+                fitsobj=pyfits.open(outfile,'append')
+                fitsobj.append(stack)
+                fitsobj.close()
             del(stack)
             del(hdu)
     
