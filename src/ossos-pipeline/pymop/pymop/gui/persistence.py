@@ -4,8 +4,7 @@ import collections
 import getpass
 import os
 
-from pymop import tasks
-
+from pymop.gui import tasks
 
 LOGFILE = ".pymop.log"
 CANDS = "CANDS"

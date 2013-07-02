@@ -4,9 +4,8 @@ import unittest
 
 from hamcrest import assert_that
 
-from pymop.astrometry import wcs
-
 from test.matchers import almost_equal
+from pymop.tools import wcs
 
 SIGFIGS = 16
 

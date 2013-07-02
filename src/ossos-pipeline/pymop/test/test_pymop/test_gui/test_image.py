@@ -7,7 +7,7 @@ from mock import Mock, patch
 from hamcrest import assert_that, not_none, none, equal_to
 
 from test.base_tests import FileReadingTestCase
-from pymop.io.image import DownloadedFitsImage, ApcorData
+from pymop.gui.image import DownloadedFitsImage, ApcorData
 
 
 class DownloadedFitsImageTest(FileReadingTestCase):
@@ -68,7 +68,7 @@ class DownloadedFitsImageTest(FileReadingTestCase):
 
         assert_that(not os.path.exists(as_file.name))
 
-    @patch("pymop.astrometry.daophot.phot_mag")
+    @patch("pymop.tools.daophot.phot_mag")
     def test_get_observed_magnitude(self, mock_phot_mag):
         fitsimage = DownloadedFitsImage(self.strdata, self.apcor_str, self.coord_converter,
                                         in_memory=True)

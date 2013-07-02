@@ -1,5 +1,3 @@
-from pymop.app import DirectoryContext
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
@@ -8,13 +6,14 @@ from mock import Mock
 from hamcrest import assert_that, equal_to
 
 from test.base_tests import FileReadingTestCase, WxWidgetTestCase, DirectoryCleaningTestCase
-from pymop import tasks
-from pymop.io.persistence import ProgressManager
+from pymop.gui import tasks
+from pymop.gui.app import DirectoryContext
+from pymop.gui.persistence import ProgressManager
 from pymop.gui.controllers import ProcessRealsController
 from pymop.gui.models import UIModel
-from pymop.io.astrom import AstromParser
-from pymop.io.downloads import AsynchronousImageDownloadManager
-from pymop.io.workload import WorkUnitProvider, RealsWorkUnitBuilder
+from pymop.tools.astrom import AstromParser
+from pymop.gui.downloads import AsynchronousImageDownloadManager
+from pymop.gui.workload import WorkUnitProvider, RealsWorkUnitBuilder
 
 
 class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, DirectoryCleaningTestCase):

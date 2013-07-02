@@ -2,11 +2,10 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import os
 
-from pymop import tasks
-from pymop.gui import events
-from pymop.io.mpc import MPCWriter
-from pymop.io.astrom import StreamingAstromWriter
-from pymop.io.persistence import FileLockedException
+from pymop.gui import tasks
+from pymop.tools.mpc import MPCWriter
+from pymop.tools.astrom import StreamingAstromWriter
+from pymop.gui.persistence import FileLockedException
 
 
 class NoAvailableWorkException(Exception):

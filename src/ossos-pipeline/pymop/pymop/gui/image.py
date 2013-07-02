@@ -5,7 +5,7 @@ import tempfile
 
 from astropy.io import fits
 
-from pymop.astrometry import daophot
+from pymop.tools import daophot
 
 
 class DownloadedFitsImage(object):

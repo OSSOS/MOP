@@ -9,7 +9,7 @@ from matplotlib.backends.backend_wxagg import \
     FigureCanvasWxAgg as FigureCanvas
 from stsci import numdisplay
 
-from pymop import config
+from pymop.gui import config
 
 
 class MPLViewerError(object):

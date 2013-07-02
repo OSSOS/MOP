@@ -3,9 +3,10 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import unittest
 
 from hamcrest import assert_that, contains_inanyorder, equal_to
-from pymop import tasks
-from pymop.app import listdir_for_suffix, DirectoryContext
+
 from test.base_tests import FileReadingTestCase
+from pymop.gui import tasks
+from pymop.gui.app import listdir_for_suffix, DirectoryContext
 
 
 class DirectoryContextTest(FileReadingTestCase):

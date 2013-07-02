@@ -5,8 +5,7 @@ import os
 import wx
 from wx.lib.mixins import listctrl as listmix
 
-from pymop import config
-from pymop.gui import events
+from pymop.gui import events, config
 from pymop.gui.imgviewer import MPLImageViewer
 
 
@@ -533,7 +532,7 @@ class SourceValidationDialog(wx.Dialog):
 
         self.comment_label = wx.StaticText(self, label=SourceValidationDialog.COMMENT)
         self.comment_text = wx.TextCtrl(self, name=SourceValidationDialog.COMMENT,
-                                        style=wx.TE_MULTILINE|wx.TE_PROCESS_ENTER,
+                                        style=wx.TE_MULTILINE | wx.TE_PROCESS_ENTER,
                                         size=(250, 50))
         self.comment_text.Bind(wx.EVT_TEXT_ENTER, self._on_enter_comment)
 
@@ -558,13 +557,13 @@ class SourceValidationDialog(wx.Dialog):
     def _do_layout(self):
         vsizer = wx.BoxSizer(wx.VERTICAL)
         for widget in self._get_vertical_widget_list():
-            vsizer.Add(widget, proportion=0, flag=wx.ALL|wx.EXPAND, border=5)
+            vsizer.Add(widget, proportion=0, flag=wx.ALL | wx.EXPAND, border=5)
 
         comment_sizer = wx.BoxSizer(wx.VERTICAL)
         comment_sizer.Add(self.comment_label, flag=wx.ALIGN_CENTER)
         comment_sizer.Add(self.comment_text, flag=wx.EXPAND)
 
-        vsizer.Add(comment_sizer, flag=wx.ALL|wx.EXPAND, border=5)
+        vsizer.Add(comment_sizer, flag=wx.ALL | wx.EXPAND, border=5)
         vsizer.Add(self._create_horizontal_pair(self.submit_button, self.cancel_button,
                                                 flag=wx.ALL, border=5),
                    flag=wx.ALIGN_CENTER)

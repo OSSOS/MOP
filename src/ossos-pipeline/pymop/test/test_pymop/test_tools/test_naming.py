@@ -4,8 +4,8 @@ import unittest
 
 from hamcrest import assert_that, equal_to
 
-from pymop.io.naming import ProvisionalNameGenerator, to_base26
-from pymop.io.astrom import Observation, Source, SourceReading
+from pymop.tools.naming import ProvisionalNameGenerator, to_base26
+from pymop.tools.astrom import Observation, Source, SourceReading
 
 
 class ProvisionalNameGeneratorTest(unittest.TestCase):

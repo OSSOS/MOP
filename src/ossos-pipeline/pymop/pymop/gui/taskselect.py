@@ -2,14 +2,12 @@
 Self-contained graphical utility for gathering task setup information from
 the user.
 """
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
 import wx.lib.filebrowsebutton as filebrowse
 
-from pymop import config
-from pymop import tasks
+from pymop.gui import config, tasks
 
 
 class TaskSetupFrame(wx.Frame):

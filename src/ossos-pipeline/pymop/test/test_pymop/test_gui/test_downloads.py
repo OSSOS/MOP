@@ -10,8 +10,8 @@ from mock import Mock, call, patch
 import vos
 
 from test.base_tests import FileReadingTestCase
-from pymop.io.astrom import SourceReading, Observation
-from pymop.io.downloads import (ImageSliceDownloader, AsynchronousImageDownloadManager,
+from pymop.tools.astrom import SourceReading, Observation
+from pymop.gui.downloads import (ImageSliceDownloader, AsynchronousImageDownloadManager,
                                 SerialImageDownloadThread, VOSpaceResolver)
 
 

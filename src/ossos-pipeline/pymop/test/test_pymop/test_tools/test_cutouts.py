@@ -4,7 +4,7 @@ import unittest
 
 from hamcrest import assert_that, equal_to
 
-from pymop.io.cutouts import CutoutCalculator
+from pymop.tools.cutouts import CutoutCalculator
 
 
 class CutoutCalculatorTest(unittest.TestCase):
