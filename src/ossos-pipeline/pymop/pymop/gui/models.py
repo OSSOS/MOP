@@ -55,8 +55,11 @@ class UIModel(object):
         events.send(events.CHANGE_IMAGE)
 
     def next_item(self):
-        self.get_current_workunit().next_item()
-        events.send(events.CHANGE_IMAGE)
+        if self.get_current_workunit().is_finished():
+            self.next_workunit()
+        else:
+            self.get_current_workunit().next_item()
+            events.send(events.CHANGE_IMAGE)
 
     def previous_item(self):
         self.get_current_workunit().previous_vettable_item()
@@ -201,4 +204,3 @@ class UIModel(object):
 
     def _on_finished_workunit(self, filename):
         events.send(events.FINISHED_WORKUNIT, filename)
-        self.next_workunit()
