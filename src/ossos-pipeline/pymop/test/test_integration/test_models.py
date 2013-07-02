@@ -3,20 +3,18 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 import unittest
 
-from hamcrest import (assert_that, equal_to, has_length, contains, none,
-                      same_instance, is_not, contains_inanyorder)
+from hamcrest import (assert_that, equal_to, has_length, contains, same_instance, is_not, contains_inanyorder)
 from mock import Mock, patch
 
 from test.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
-from pymop import tasks
-from pymop.app import DirectoryContext
-from pymop.gui import models, events
+from pymop.gui.app import DirectoryContext
+from pymop.gui import models, events, tasks
 from pymop.gui.models import ImageNotLoadedException
-from pymop.io.downloads import AsynchronousImageDownloadManager
-from pymop.io.astrom import AstromParser
-from pymop.io.persistence import ProgressManager
-from pymop.io.image import DownloadedFitsImage
-from pymop.io.workload import (WorkUnitProvider, RealsWorkUnitBuilder,
+from pymop.gui.downloads import AsynchronousImageDownloadManager
+from pymop.tools.astrom import AstromParser
+from pymop.gui.persistence import ProgressManager
+from pymop.gui.image import DownloadedFitsImage
+from pymop.gui.workload import (WorkUnitProvider, RealsWorkUnitBuilder,
                                CandidatesWorkUnitBuilder)
 
 MODEL_TEST_DIR_1 = "data/model_testdir_1"
@@ -298,7 +296,7 @@ class AbstractRealsModelTest(GeneralModelTest):
         assert_that(self.model.get_current_image(),
                     same_instance(self.first_image))
 
-    @patch("pymop.astrometry.daophot.phot_mag")
+    @patch("pymop.tools.daophot.phot_mag")
     def test_get_current_source_observed_magnitude(self, mock_phot_mag):
         first_image = Mock()
         first_reading = self.model.get_current_data().get_sources()[0].get_readings()[0]

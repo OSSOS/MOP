@@ -5,8 +5,8 @@ import tempfile
 
 from hamcrest import assert_that, equal_to, has_length
 
-from pymop.io import mpc
-from pymop.io.astrom import SourceReading, Observation
+from pymop.tools.astrom import SourceReading, Observation
+from pymop.tools import mpc
 
 
 class MPCWriterTest(unittest.TestCase):

@@ -5,7 +5,7 @@ import unittest
 from hamcrest import assert_that, equal_to, contains, has_length
 
 from test.base_tests import FileReadingTestCase
-from pymop import config
+from pymop.gui import config
 
 
 class AppConfigTest(FileReadingTestCase):

@@ -5,16 +5,15 @@ import os
 import wx
 import wx.lib.inspection
 
-from pymop import config
-from pymop import tasks
-from pymop.io.workload import (WorkUnitProvider,
-                               RealsWorkUnitBuilder,
-                               CandidatesWorkUnitBuilder)
-from pymop.io.astrom import AstromParser
-from pymop.io.persistence import ProgressManager
-from pymop.io.naming import ProvisionalNameGenerator
-from pymop.io.downloads import (AsynchronousImageDownloadManager,
-                                ImageSliceDownloader, VOSpaceResolver)
+from pymop.gui import config, tasks
+from pymop.gui.workload import (WorkUnitProvider,
+                                RealsWorkUnitBuilder,
+                                CandidatesWorkUnitBuilder)
+from pymop.tools.astrom import AstromParser
+from pymop.gui.persistence import ProgressManager
+from pymop.tools.naming import ProvisionalNameGenerator
+from pymop.gui.downloads import (AsynchronousImageDownloadManager,
+                                 ImageSliceDownloader, VOSpaceResolver)
 from pymop.gui.models import UIModel
 from pymop.gui.controllers import (ProcessRealsController,
                                    ProcessCandidatesController)

@@ -1,7 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 from pymop.gui import events
-from pymop.io.workload import NoAvailableWorkException, StatefulCollection
+from pymop.gui.workload import NoAvailableWorkException, StatefulCollection
 
 
 class ImageNotLoadedException(Exception):

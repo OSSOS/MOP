@@ -7,8 +7,8 @@ from hamcrest import (assert_that, equal_to, has_length, has_entries,
                       same_instance, contains, close_to)
 
 from test.base_tests import FileReadingTestCase
-from pymop.io import astrom
-from pymop.io.astrom import (AstromParser, StreamingAstromWriter, Observation,
+from pymop.tools import astrom
+from pymop.tools.astrom import (AstromParser, StreamingAstromWriter, Observation,
                              BaseAstromWriter, BulkAstromWriter)
 
 TEST_FILE_1 = "data/1584431p15.measure3.cands.astrom"

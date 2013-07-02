@@ -1,5 +1,3 @@
-from pymop.app import DirectoryContext
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import getpass
@@ -10,8 +8,9 @@ from hamcrest import (assert_that, contains_inanyorder, has_length, contains,
                       equal_to)
 
 from test.base_tests import FileReadingTestCase
-from pymop import tasks
-from pymop.io.persistence import (ProgressManager, InMemoryProgressManager,
+from pymop.gui import tasks
+from pymop.gui.app import DirectoryContext
+from pymop.gui.persistence import (ProgressManager, InMemoryProgressManager,
                                   FileLockedException, RequiresLockException,
                                   LOCK_SUFFIX)
 

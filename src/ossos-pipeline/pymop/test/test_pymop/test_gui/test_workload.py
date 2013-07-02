@@ -1,5 +1,3 @@
-from pymop.app import DirectoryContext
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import os
@@ -10,12 +8,13 @@ from hamcrest import (assert_that, is_in, is_not, equal_to, is_, none,
 from mock import Mock
 
 from test.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
-from pymop import tasks
-from pymop.io.downloads import AsynchronousImageDownloadManager
+from pymop.gui import tasks
+from pymop.gui.app import DirectoryContext
+from pymop.gui.downloads import AsynchronousImageDownloadManager
 from pymop.gui.models import UIModel
-from pymop.io.astrom import AstromParser
-from pymop.io.persistence import ProgressManager, InMemoryProgressManager
-from pymop.io.workload import (WorkUnitProvider, WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
+from pymop.tools.astrom import AstromParser
+from pymop.gui.persistence import ProgressManager, InMemoryProgressManager
+from pymop.gui.workload import (WorkUnitProvider, WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
                                NoAvailableWorkException,
                                StatefulCollection,
                                RealsWorkUnitBuilder)

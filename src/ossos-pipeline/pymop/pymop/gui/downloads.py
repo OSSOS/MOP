@@ -4,9 +4,9 @@ import threading
 
 import vos
 
-from pymop import config
-from pymop.io.image import DownloadedFitsImage
-from pymop.io.cutouts import CutoutCalculator
+from pymop.gui import config
+from pymop.gui.image import DownloadedFitsImage
+from pymop.tools.cutouts import CutoutCalculator
 
 
 # Images from CCDs < 18 have their coordinates flipped

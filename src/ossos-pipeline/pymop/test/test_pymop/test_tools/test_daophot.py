@@ -5,7 +5,7 @@ import unittest
 from hamcrest import assert_that, close_to, has_length
 
 from test.base_tests import FileReadingTestCase
-from pymop.astrometry import daophot
+from pymop.tools import daophot
 
 DELTA = 0.0001
 

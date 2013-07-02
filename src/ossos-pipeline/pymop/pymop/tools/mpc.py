@@ -47,17 +47,17 @@ class MPCWriter(object):
             reading.obs.rawname, reading.x, reading.y, comment))
 
     def write_mpc_line(self,
-                   minor_planet_number,
-                   provisional_name,
-                   discovery_asterisk,
-                   note1,
-                   note2,
-                   date_of_obs,
-                   ra,
-                   dec,
-                   obs_mag,
-                   band,
-                   observatory_code="568"):
+                       minor_planet_number,
+                       provisional_name,
+                       discovery_asterisk,
+                       note1,
+                       note2,
+                       date_of_obs,
+                       ra,
+                       dec,
+                       obs_mag,
+                       band,
+                       observatory_code="568"):
         """
         Writes a single entry in the Minor Planet Center's format.
 

@@ -1,7 +1,6 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from pymop import config
-from pymop.gui import events
+from pymop.gui import events, config
 from pymop.gui.views import ApplicationView
 from pymop.gui.models import ImageNotLoadedException
 
