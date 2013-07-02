@@ -2,7 +2,7 @@
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from pymop.app import PymopApplication
+from pymop.gui.app import PymopApplication
 
 
 def main():

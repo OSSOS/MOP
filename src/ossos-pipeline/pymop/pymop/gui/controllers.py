@@ -1,22 +1,17 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-# TODO: upgrade
-from wx.lib.pubsub import setupv1
-from wx.lib.pubsub import Publisher as pub
-
-from pymop import config
-from pymop.gui import models
+from pymop.gui import events, config
 from pymop.gui.views import ApplicationView
+from pymop.gui.models import ImageNotLoadedException
 
 
 class AbstractController(object):
-    def __init__(self, task, model):
-        self.task = task
+    def __init__(self, model):
         self.model = model
 
-        pub.subscribe(self.on_change_image, models.MSG_NAV)
-        pub.subscribe(self.on_image_loaded, models.MSG_IMG_LOADED)
-        pub.subscribe(self.on_all_sources_processed, models.MSG_ALL_ITEMS_PROC)
+        events.subscribe(events.CHANGE_IMAGE, self.on_change_image)
+        events.subscribe(events.IMG_LOADED, self.on_image_loaded)
+        events.subscribe(events.NO_AVAILABLE_WORK, self.on_no_available_work)
 
         self.view = ApplicationView(self.model, self)
 
@@ -27,42 +22,35 @@ class AbstractController(object):
         return self.model
 
     def display_current_image(self):
-        current_image = self.model.get_current_image()
-
-        if current_image is None:
+        try:
+            self.get_view().view_image(self.get_model().get_current_image())
+        except ImageNotLoadedException:
             self.get_view().show_image_loading_dialog()
-        else:
-            self.get_view().view_image(current_image)
-            image_x, image_y = self.model.get_current_image_source_point()
-            radius = 2 * round(self.model.get_current_image_FWHM())
-            self.get_view().draw_circle(image_x, image_y, radius)
+            return
 
-        # Add 1 so displayed source numbers don't start at 0
-        self.get_view().set_source_status(
-            self.model.get_current_source_number() + 1,
-            self.model.get_source_count())
+        image_x, image_y = self.model.get_current_image_source_point()
+        radius = 2 * round(self.model.get_current_image_FWHM())
+        self.get_view().draw_circle(image_x, image_y, radius)
+
         self.get_view().set_observation_status(
             self.model.get_current_obs_number() + 1,
             self.model.get_obs_count())
 
     def on_image_loaded(self, event):
-        source_num, obs_num = event.data
-        if (self.model.get_current_source_number() == source_num and
-                    self.model.get_current_obs_number() == obs_num):
+        source_reading = event.data
+        if source_reading == self.model.get_current_reading():
             self.get_view().hide_image_loading_dialog()
             self.display_current_image()
-        self.get_view().set_loading_status(self.model.get_loaded_image_count(),
-                                           self.model.get_total_image_count())
 
     def on_change_image(self, event):
-        if self.model.get_current_item().is_processed():
+        if self.model.is_current_item_processed():
             self.get_view().disable_source_validation()
         else:
             self.get_view().enable_source_validation()
 
         self.display_current_image()
 
-    def on_all_sources_processed(self, event):
+    def on_no_available_work(self, event):
         should_exit = self.get_view().all_processed_should_exit_prompt()
         if should_exit:
             self._do_exit()
@@ -73,7 +61,6 @@ class AbstractController(object):
     def _do_exit(self):
         self.view.close()
         self.model.exit()
-        self.task.finish()
 
     def on_next_obs(self):
         self.model.next_obs()
@@ -94,8 +81,8 @@ class ProcessRealsController(AbstractController):
     handles user interactions.
     """
 
-    def __init__(self, task, model, name_generator):
-        super(ProcessRealsController, self).__init__(task, model)
+    def __init__(self, model, name_generator):
+        super(ProcessRealsController, self).__init__(model)
 
         self.name_generator = name_generator
 
@@ -179,11 +166,8 @@ class ProcessRealsController(AbstractController):
 
 
 class ProcessCandidatesController(AbstractController):
-    def __init__(self, task, model):
-        super(ProcessCandidatesController, self).__init__(task, model)
-
-        # self.output_writer.write_headers(
-        #     astrom_data.observations, astrom_data.sys_header)
+    def __init__(self, model):
+        super(ProcessCandidatesController, self).__init__(model)
 
     def on_accept(self):
         self.model.get_writer().write_source(self.model.get_current_source())
