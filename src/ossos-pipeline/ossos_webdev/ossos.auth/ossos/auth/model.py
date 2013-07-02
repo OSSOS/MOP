@@ -1,6 +1,5 @@
 import urllib
 
-
 from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPFound
 from pyramid.security import authenticated_userid
@@ -29,30 +28,34 @@ class User(object):
 
 
 
-# COMMENTED OUT FOR TESTING ONLY
+@forbidden_view_config()
+def forbidden_view(request):
+    # do not allow a user to login if they are already logged in
+    if authenticated_userid(request):
+        return HTTPForbidden()
 
-# @forbidden_view_config()
-# def forbidden_view(request):
-#     # do not allow a user to login if they are already logged in
-#     if authenticated_userid(request):
-#         return HTTPForbidden()
-
-#     loc = request.route_url('login', _query=(('next', request.path),))
-#     return HTTPFound(location=loc)
+    loc = request.route_url('login', _query=(('next', request.path),))
+    return HTTPFound(location=loc)
 
 
 @view_config(
     route_name='login',
-    renderer='login.mako',
+    renderer='ossos:auth/login.mako',
     )
 def login_view(request):
-    next = request.params.get('next') or request.route_url('home')
+
+    # NEED TO SET THESE PROPERLY
+    # next = request.params.get('next') or request.route_url('home')
+#    print request.params
+#    next = request.params.get('overview')
+    next = '/'  # TESTING ONLY but it does seem to work.
+
     login = ''
     did_fail = False
     if 'submit' in request.POST:
         login = request.POST.get('login', '')
         passwd = request.POST.get('passwd', '')
-        user = USERS.get(login, User(login, groups=['OSSOS']))
+        user = USERS.get(login, User(login, passwd, groups=['OSSOS']))
         if user.check_password(passwd, 'OSSOS'):
             headers = remember(request, login)
             return HTTPFound(location=next, headers=headers)
@@ -71,6 +74,6 @@ def login_view(request):
 )
 def logout_view(request):
     headers = forget(request)
-    loc = request.route_url('home')
+    loc = request.route_url('login')
     return HTTPFound(location=loc, headers=headers)
 
