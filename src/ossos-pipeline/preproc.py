@@ -79,7 +79,7 @@ def overscan(hdu,
     A and B) and the AMP sectoin is ASEC[A|B].
     """
 
-    for indx in range(len(biassecs)):
+    for idx in range(len(biassecs)):
         AMPKW= ampsecs[idx]
         BIASKW= biassecs[idx]
         dsec=re.findall(r'(\d+)',
@@ -171,7 +171,7 @@ if __name__=='__main__':
                       action="store",
 		      default=None,
                       help="Distribution the output by header/chip?")
-    parser.add_argument("--ccd",
+    parser.add_argument("--ccds",
                       action="store",
 		      default=range(36),
                       type=int,
@@ -202,7 +202,7 @@ if __name__=='__main__':
     opt=args
     file_ids = args.images
 
-
+    vos_client = vos.Client()
     if opt.combine and opt.normal and False:
         ## only take one image from each pointing
         t={}
@@ -216,22 +216,6 @@ if __name__=='__main__':
         for object in t:
             file_ids.append(t[object])
 
-    images={}
-    file_names=[]
-    for file_id in file_ids:
-        if opt.verbose:
-            print "Attempting to get and open file assocaiated with  "+str(file_id)
-	if not re.match(r'.*.fits.*',file_id):
-            filename=file_id+"o.fits.fz"
-	else :
-            filename=file_id
-	if not os.access(filename,os.F_OK):
-            vo_filename = os.path.join(opt.dbimages,
-                                       "%s/%s" % ( file_id, filename))
-            vos_client.copy(vo_filename, filename)
-        if not os.access(filename,os.F_OK):
-            sys.exit("Failed to get access to "+filename)
-        file_names.append(filename)
     images={}
     file_names=[]
     for file_id in file_ids:
