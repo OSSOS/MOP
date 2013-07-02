@@ -110,10 +110,11 @@ if __name__ == '__main__':
             dest = storage.dbimages_uri(expnum)
             storage.copy(image, dest)
         storage.set_status(args.expnum, ccd="", 'update_header', 'success')
-
+        sys.exit(0)
     except Exception as e:
         logging.error("Error replacing header for %s" % ( args.expnum))
         logging.error(str(e))
         storage.set_status(args.expnum, ccd="", 'update_header', str(e))
+        sys.exit(2)
     
         
