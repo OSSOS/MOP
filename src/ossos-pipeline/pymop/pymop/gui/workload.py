@@ -144,12 +144,13 @@ class WorkUnit(object):
 
     def process_current_item(self):
         self.processed_items.add(self.get_current_item())
-        self.progress_manager.record_index(self.get_filename(),
-                                           self.get_current_item_index())
+
+        if self.is_current_source_finished():
+            self.progress_manager.record_index(self.get_filename(),
+                                               self.get_current_source_number())
 
         if self.is_finished():
             self.progress_manager.record_done(self.get_filename())
-            self.results_writer.close()
 
             for callback in self.finished_callbacks:
                 callback(self.get_filename())
@@ -165,6 +166,9 @@ class WorkUnit(object):
 
     def is_current_item_processed(self):
         return self.is_item_processed(self.get_current_item())
+
+    def is_current_source_finished(self):
+        raise NotImplementedError()
 
     def get_filename(self):
         return self.filename
@@ -239,6 +243,13 @@ class RealsWorkUnit(WorkUnit):
         return (self.get_sources().get_index() * self.get_obs_count() +
                 self.get_current_source_readings().get_index())
 
+    def is_current_source_finished(self):
+        for reading in self.get_current_source_readings():
+            if reading not in self.processed_items:
+                return False
+
+        return True
+
     def _get_item_set(self):
         all_readings = set()
         for readings in self.readings_by_source.itervalues():
@@ -248,9 +259,8 @@ class RealsWorkUnit(WorkUnit):
     def _mark_previously_processed_items(self):
         processed_indices = self.progress_manager.get_processed_indices(self.get_filename())
         for index in processed_indices:
-            source_num = int(index / self.get_obs_count())
-            reading_num = index % self.get_obs_count()
-            self.processed_items.add(self.get_sources()[source_num].get_readings()[reading_num])
+            for reading in self.get_sources()[index].get_readings():
+                self.processed_items.add(reading)
 
 
 class CandidatesWorkUnit(WorkUnit):
@@ -270,6 +280,9 @@ class CandidatesWorkUnit(WorkUnit):
 
     def get_current_item_index(self):
         return self.get_sources().get_index()
+
+    def is_current_source_finished(self):
+        return self.get_current_source() in self.processed_items
 
     def _get_item_set(self):
         return set(self.sources)
@@ -365,7 +378,7 @@ class RealsWorkUnitBuilder(WorkUnitBuilder):
         output_filename = full_path.replace(tasks.get_suffix(tasks.REALS_TASK),
                                             ".mpc")
         output_filehandle = open(output_filename, "a+b")
-        return MPCWriter(output_filehandle)
+        return MPCWriter(output_filehandle, auto_flush=False)
 
     def _do_build_workunit(self, filename, data, progress_manager, writer):
         return RealsWorkUnit(filename, data, progress_manager, writer)
