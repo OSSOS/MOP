@@ -101,6 +101,9 @@ class UIModel(object):
     def is_current_item_processed(self):
         return self.get_current_workunit().is_current_item_processed()
 
+    def is_current_source_finished(self):
+        return self.get_current_workunit().is_current_source_finished()
+
     def get_num_items_processed(self):
         return self.num_processed
 
@@ -187,6 +190,8 @@ class UIModel(object):
     def exit(self):
         self.download_manager.stop_download()
         self._unlock(self.get_current_workunit())
+        for workunit in self.work_units:
+            workunit.get_writer().close()
 
     def _lock(self, workunit):
         self.progress_manager.lock(workunit.get_filename())

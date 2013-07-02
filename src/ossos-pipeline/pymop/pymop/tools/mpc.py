@@ -32,8 +32,10 @@ class MPCWriter(object):
         78 - 80       A3     Observatory code
     """
 
-    def __init__(self, filehandle):
+    def __init__(self, filehandle, auto_flush=True):
         self.filehandle = filehandle
+        self.buffer = ""
+        self.auto_flush = auto_flush
         self.date_regex = re.compile("\d{4} \d{2} \d{2}\.\d{5,6}")
 
     def write_comment(self, reading, comment):
@@ -43,8 +45,11 @@ class MPCWriter(object):
         Has format:
         # expnum_ccd xcen ycen <comment text>
         """
-        self.filehandle.write("# %s %s %s %s\n" % (
-            reading.obs.rawname, reading.x, reading.y, comment))
+        self.buffer += "# %s %s %s %s\n" % (
+            reading.obs.rawname, reading.x, reading.y, comment)
+
+        if self.auto_flush:
+            self.flush()
 
     def write_mpc_line(self,
                        minor_planet_number,
@@ -150,8 +155,10 @@ class MPCWriter(object):
         if line_len != 80:
             raise MPCFormatError("MPC line must be 80 characters but was: %d" % line_len)
 
-        self.filehandle.write(line)
-        self.filehandle.flush()
+        self.buffer += line
+
+        if self.auto_flush:
+            self.flush()
 
     def write_rejection_line(self, date_of_obs, ra, dec):
         date_of_obs = date_of_obs.ljust(17)
@@ -181,8 +188,15 @@ class MPCWriter(object):
         if line_len != 80:
             raise MPCFormatError("MPC line must be 80 characters but was: %d" % line_len)
 
-        self.filehandle.write(line)
+        self.buffer += line
+
+        if self.auto_flush:
+            self.flush()
+
+    def flush(self):
+        self.filehandle.write(self.buffer)
         self.filehandle.flush()
+        self.buffer = ""
 
     def close(self):
         self.filehandle.close()
