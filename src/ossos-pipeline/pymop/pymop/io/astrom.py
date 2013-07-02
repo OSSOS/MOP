@@ -419,14 +419,6 @@ class SourceReading(object):
 
         self.obs = obs
 
-        self._fitsimage = None
-
-    def get_fits_image(self):
-        return self._fitsimage
-
-    def set_fits_image(self, fitsimage):
-        self._fitsimage = fitsimage
-
     @property
     def source_point(self):
         return self.x, self.y
@@ -438,15 +430,6 @@ class SourceReading(object):
         current image coordinates.
         """
         return self.xref + self.x_ref_offset, self.yref + self.y_ref_offset
-
-    @property
-    def image_source_point(self):
-        """
-        The location of the source point in the image, taking into account
-        that the image may be a cutout.
-        """
-        assert self.get_fits_image() is not None, "No FITS image loaded"
-        return self.get_fits_image().get_pixel_coordinates(self.source_point)
 
     def get_original_image_size(self):
         header = self.obs.header
