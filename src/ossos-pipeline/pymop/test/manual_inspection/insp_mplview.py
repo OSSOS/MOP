@@ -6,7 +6,7 @@ from mock import Mock
 from astropy.io import fits
 
 import context
-from pymop.gui.imgviewer import MPLImageViewer
+from pymop.gui.fitsviewer import MPLFitsImageViewer
 
 
 TEST_FILE = "cutout_1200_2400_1350_2300-1616681p.fits"
@@ -16,7 +16,7 @@ def main():
     app = wx.App()
     rootframe = wx.Frame(None)
 
-    viewer = MPLImageViewer(rootframe)
+    viewer = MPLFitsImageViewer(rootframe)
 
     hdulist = fits.open(context.get_test_data_path(TEST_FILE))
     fits_image = Mock()

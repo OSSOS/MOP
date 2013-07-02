@@ -6,7 +6,7 @@ import wx
 from wx.lib.mixins import listctrl as listmix
 
 from pymop.gui import events, config
-from pymop.gui.imgviewer import MPLImageViewer
+from pymop.gui.fitsviewer import MPLFitsImageViewer
 
 
 def guithread(function):
@@ -154,7 +154,7 @@ class MainFrame(wx.Frame):
         self.validation_view = SourceValidationPanel(self.control_panel, self.controller)
 
         self.viewer_panel = wx.Panel(self.main_panel, style=wx.RAISED_BORDER)
-        self.image_viewer = MPLImageViewer(self.viewer_panel)
+        self.image_viewer = MPLFitsImageViewer(self.viewer_panel)
 
         self.img_loading_dialog = WaitingGaugeDialog(self, "Image loading...")
 

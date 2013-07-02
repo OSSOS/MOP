@@ -7,17 +7,17 @@ from matplotlib.backend_bases import MouseEvent as MPLMouseEvent
 from mock import Mock
 from hamcrest import assert_that, equal_to, has_length, instance_of, none
 
-from pymop.gui import imgviewer
-from pymop.gui.imgviewer import (InteractionContext, MoveCircleState,
+from pymop.gui import fitsviewer
+from pymop.gui.fitsviewer import (InteractionContext, MoveCircleState,
                                  CreateCircleState, AdjustColormapState)
 
 
-class MPLImageViewerTest(unittest.TestCase):
+class MPLFitsImageViewerTest(unittest.TestCase):
     def setUp(self):
         self.app = wx.App()
         self.rootframe = wx.Frame(None)
 
-        self.viewer = imgviewer.MPLImageViewer(self.rootframe)
+        self.viewer = fitsviewer.MPLFitsImageViewer(self.rootframe)
 
     def test_draw_one_circle(self):
         axes = self.viewer.axes
@@ -61,7 +61,7 @@ class InteractionTest(unittest.TestCase):
     def setUp(self):
         self.app = wx.App()
         self.rootframe = wx.Frame(None)
-        self.viewer = imgviewer.MPLImageViewer(self.rootframe)
+        self.viewer = fitsviewer.MPLFitsImageViewer(self.rootframe)
         self.viewer.figure = Mock()
         self.viewer.axes = Mock()
 
@@ -237,13 +237,13 @@ class InteractionTest(unittest.TestCase):
 
 class UtilityTest(unittest.TestCase):
     def test_clip_in_range(self):
-        assert_that(imgviewer.clip(0.5, 0, 1), equal_to(0.5))
+        assert_that(fitsviewer.clip(0.5, 0, 1), equal_to(0.5))
 
     def test_clip_below_range(self):
-        assert_that(imgviewer.clip(-0.5, 0, 1), equal_to(0.0))
+        assert_that(fitsviewer.clip(-0.5, 0, 1), equal_to(0.0))
 
     def test_clip_above_range(self):
-        assert_that(imgviewer.clip(1.5, 0, 1), equal_to(1.0))
+        assert_that(fitsviewer.clip(1.5, 0, 1), equal_to(1.0))
 
 
 if __name__ == '__main__':

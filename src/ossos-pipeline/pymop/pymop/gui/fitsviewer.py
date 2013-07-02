@@ -37,9 +37,9 @@ class ColormappedFitsImage(object):
         return self.colormap.as_mpl_cmap()
 
 
-class MPLImageViewer(object):
+class MPLFitsImageViewer(object):
     """
-    Display images using matplotlib.
+    Display FITS images using matplotlib.
     """
 
     def __init__(self, parent):
@@ -319,7 +319,7 @@ class MoveCircleState(RecenteringState):
         super(MoveCircleState, self).__init__(context)
 
         if context.get_circle() is None:
-            raise MPLImageViewer("Can not move a circle if it doesn't exist!")
+            raise MPLFitsImageViewer("Can not move a circle if it doesn't exist!")
 
     def on_drag(self, event):
         center_x, center_y = self.context.get_circle().center

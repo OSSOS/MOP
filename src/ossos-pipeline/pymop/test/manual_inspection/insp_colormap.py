@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 
-from pymop.gui import imgviewer
+from pymop.gui import fitsviewer
 
 
 def create_test_image():
@@ -15,7 +15,7 @@ def create_test_image():
 
 def main():
     img = create_test_image()
-    colormap = imgviewer.GrayscaleColorMap()
+    colormap = fitsviewer.GrayscaleColorMap()
 
     plt.subplot(1, 1, 1)
     plt.subplots_adjust(left=0.15, bottom=0.25)
