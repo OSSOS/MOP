@@ -151,7 +151,6 @@ class WorkUnit(object):
 
         if self.is_finished():
             self.progress_manager.record_done(self.get_filename())
-            self.results_writer.close()
 
             for callback in self.finished_callbacks:
                 callback(self.get_filename())
@@ -379,7 +378,7 @@ class RealsWorkUnitBuilder(WorkUnitBuilder):
         output_filename = full_path.replace(tasks.get_suffix(tasks.REALS_TASK),
                                             ".mpc")
         output_filehandle = open(output_filename, "a+b")
-        return MPCWriter(output_filehandle)
+        return MPCWriter(output_filehandle, auto_flush=False)
 
     def _do_build_workunit(self, filename, data, progress_manager, writer):
         return RealsWorkUnit(filename, data, progress_manager, writer)

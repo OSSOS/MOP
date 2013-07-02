@@ -119,11 +119,16 @@ class ProcessRealsController(AbstractController):
                      band,
                      observatory_code,
                      comment):
-        """Final acceptance with collected data."""
+        """
+        Final acceptance with collected data.
+        """
         # Just extract the character code from the notes, not the
         # full description
         note1_code = note1.split(" ")[0]
         note2_code = note2.split(" ")[0]
+
+        self.get_view().close_accept_source_dialog()
+        self.model.accept_current_item()
 
         writer = self.model.get_writer()
         writer.write_comment(self.model.get_current_reading(), comment)
@@ -140,8 +145,9 @@ class ProcessRealsController(AbstractController):
             band,
             observatory_code)
 
-        self.get_view().close_accept_source_dialog()
-        self.model.accept_current_item()
+        if self.model.is_current_source_finished():
+            writer.flush()
+
         self.model.next_item()
 
     def on_cancel_accept(self):
