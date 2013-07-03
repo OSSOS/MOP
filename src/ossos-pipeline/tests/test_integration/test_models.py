@@ -7,8 +7,8 @@ from hamcrest import (assert_that, equal_to, has_length, contains, same_instance
 from mock import Mock, patch
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
-from ossos.gui.app import DirectoryContext
 from ossos.gui import models, events, tasks
+from ossos.gui.context import LocalDirectoryContext
 from ossos.gui.models import ImageNotLoadedException
 from ossos.gui.downloads import AsynchronousImageDownloadManager
 from ossos.astrom import AstromParser
@@ -30,7 +30,7 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
         events.unsub_all()
 
         parser = AstromParser()
-        directory_manager = DirectoryContext(self._get_working_dir())
+        directory_manager = LocalDirectoryContext(self._get_working_dir())
         progress_manager = ProgressManager(directory_manager)
         workunit_provider = WorkUnitProvider(tasks.get_suffix(self._get_task()),
                                              directory_manager, progress_manager,
@@ -788,7 +788,7 @@ class RealsModelPersistenceTest(GeneralModelTest):
     def setUp(self):
         super(RealsModelPersistenceTest, self).setUp()
 
-        concurrent_directory_manager = DirectoryContext(self._get_working_dir())
+        concurrent_directory_manager = LocalDirectoryContext(self._get_working_dir())
         self.concurrent_progress_manager = ProgressManager(concurrent_directory_manager)
 
     def _get_task(self):
@@ -982,7 +982,7 @@ class CandidatesModelPersistenceTest(GeneralModelTest):
     def setUp(self):
         super(CandidatesModelPersistenceTest, self).setUp()
 
-        concurrent_directory_manager = DirectoryContext(self._get_working_dir())
+        concurrent_directory_manager = LocalDirectoryContext(self._get_working_dir())
         self.concurrent_progress_manager = ProgressManager(concurrent_directory_manager)
 
     def _get_task(self):

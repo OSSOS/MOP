@@ -6,10 +6,10 @@ from hamcrest import assert_that, contains_inanyorder, equal_to
 
 from tests.base_tests import FileReadingTestCase
 from ossos.gui import tasks
-from ossos.gui.app import listdir_for_suffix, DirectoryContext
+from ossos.gui.context import LocalDirectoryContext, listdir_for_suffix
 
 
-class DirectoryContextTest(FileReadingTestCase):
+class LocalDirectoryContextTest(FileReadingTestCase):
     def test_listdir_for_suffix(self):
         directory = self.get_abs_path("data/testdir")
 
@@ -31,7 +31,7 @@ class DirectoryContextTest(FileReadingTestCase):
     def test_directory_manager_get_listing(self):
         directory = self.get_abs_path("data/testdir")
 
-        directory_manager = DirectoryContext(directory)
+        directory_manager = LocalDirectoryContext(directory)
 
         listing1 = directory_manager.get_listing("cands.astrom")
         assert_that(listing1, contains_inanyorder("xxx1.cands.astrom", "xxx2.cands.astrom"))

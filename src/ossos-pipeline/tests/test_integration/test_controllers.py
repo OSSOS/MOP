@@ -7,7 +7,7 @@ from hamcrest import assert_that, equal_to, is_not, same_instance
 
 from tests.base_tests import FileReadingTestCase, WxWidgetTestCase, DirectoryCleaningTestCase
 from ossos.gui import tasks
-from ossos.gui.app import DirectoryContext
+from ossos.gui.context import LocalDirectoryContext
 from ossos.gui.persistence import ProgressManager
 from ossos.gui.controllers import ProcessRealsController
 from ossos.gui.models import UIModel
@@ -34,7 +34,7 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
         WxWidgetTestCase.setUp(self)
 
         parser = AstromParser()
-        directory_manager = DirectoryContext(
+        directory_manager = LocalDirectoryContext(
             self.get_abs_path("data/controller_testdir"))
         progress_manager = ProgressManager(directory_manager)
         workunit_provider = WorkUnitProvider(tasks.get_suffix(tasks.REALS_TASK),
