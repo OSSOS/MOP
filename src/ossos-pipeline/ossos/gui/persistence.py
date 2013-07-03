@@ -6,7 +6,6 @@ import os
 
 from ossos.gui import tasks
 
-LOGFILE = ".pymop.log"
 CANDS = "CANDS"
 REALS = "REALS"
 
