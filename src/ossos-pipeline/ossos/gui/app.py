@@ -4,7 +4,7 @@ import wx
 import wx.lib.inspection
 
 from ossos.gui import config, tasks
-from ossos.gui.context import LocalDirectoryContext
+from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui.workload import (WorkUnitProvider,
                                 RealsWorkUnitBuilder,
                                 CandidatesWorkUnitBuilder)
@@ -70,7 +70,7 @@ class ValidationApplication(object):
         download_manager = AsynchronousImageDownloadManager(
             ImageSliceDownloader(VOSpaceResolver()))
 
-        directory_context = LocalDirectoryContext(working_directory)
+        directory_context = LocalDirectoryWorkingContext(working_directory)
         progress_manager = ProgressManager(directory_context)
         builder = factory.create_workunit_builder(parser, progress_manager)
         workunit_provider = WorkUnitProvider(tasks.get_suffix(taskname), directory_context,

@@ -53,11 +53,11 @@ class AbstractProgressManager(object):
     Manages persistence of progress made processing files in a directory.
     """
 
-    def __init__(self, directory_manager):
-        self.directory_manager = directory_manager
+    def __init__(self, working_context):
+        self.working_context = working_context
 
     def get_done(self, task):
-        listing = self.directory_manager.get_listing(self._get_done_suffix(task))
+        listing = self.working_context.get_listing(self._get_done_suffix(task))
         return [done_file[:-len(DONE_SUFFIX)] for done_file in listing]
 
     def is_done(self, filename):
@@ -149,7 +149,7 @@ class AbstractProgressManager(object):
         return tasks.get_suffix(task) + DONE_SUFFIX
 
     def _get_full_path(self, filename):
-        return self.directory_manager.get_full_path(filename)
+        return self.working_context.get_full_path(filename)
 
 
 class ProgressManager(AbstractProgressManager):
@@ -157,20 +157,20 @@ class ProgressManager(AbstractProgressManager):
     Implements AbstractProgressManager by persisting progress to disk.
     """
 
-    def __init__(self, directory_manager):
-        super(ProgressManager, self).__init__(directory_manager)
+    def __init__(self, working_context):
+        super(ProgressManager, self).__init__(working_context)
 
     def is_done(self, filename):
-        return os.path.exists(self._get_full_path(filename) + DONE_SUFFIX)
+        return self.working_context.exists(self._get_full_path(filename) + DONE_SUFFIX)
 
     def get_processed_indices(self, filename):
         partfile = self._get_full_path(filename + PART_SUFFIX)
         donefile = self._get_full_path(filename + DONE_SUFFIX)
 
         file_with_records = None
-        if os.path.exists(donefile):
+        if self.working_context.exists(donefile):
             file_with_records = donefile
-        elif os.path.exists(partfile):
+        elif self.working_context.exists(partfile):
             file_with_records = partfile
 
         if file_with_records is None:
@@ -184,7 +184,7 @@ class ProgressManager(AbstractProgressManager):
         partfile = self._get_full_path(filename) + PART_SUFFIX
         donefile = self._get_full_path(filename) + DONE_SUFFIX
 
-        if os.path.exists(partfile):
+        if self.working_context.exists(partfile):
             # By just renaming we keep the history of processed indices
             # available.
             os.rename(partfile, donefile)
@@ -220,7 +220,7 @@ class ProgressManager(AbstractProgressManager):
     def unlock(self, filename):
         lockfile = self._get_full_path(filename + LOCK_SUFFIX)
 
-        if not os.path.exists(lockfile):
+        if not self.working_context.exists(lockfile):
             # The lock file was probably already cleaned up by record_done
             return
 
@@ -241,14 +241,14 @@ class ProgressManager(AbstractProgressManager):
             suffixes = [DONE_SUFFIX, LOCK_SUFFIX, PART_SUFFIX]
 
         for suffix in suffixes:
-            listing = self.directory_manager.get_listing(suffix)
+            listing = self.working_context.get_listing(suffix)
             for filename in listing:
                 os.remove(self._get_full_path(filename))
 
     def owns_lock(self, filename):
         lockfile = self._get_full_path(filename + LOCK_SUFFIX)
 
-        if os.path.exists(lockfile):
+        if self.working_context.exists(lockfile):
             with open(lockfile, "rb") as filehandle:
                 return getpass.getuser() == filehandle.read()
         else:
@@ -271,8 +271,8 @@ class InMemoryProgressManager(AbstractProgressManager):
     testing.
     """
 
-    def __init__(self, directory_manager):
-        super(InMemoryProgressManager, self).__init__(directory_manager)
+    def __init__(self, working_context):
+        super(InMemoryProgressManager, self).__init__(working_context)
         self.done = set()
         self.owned_locks = set()
         self.external_locks = set()

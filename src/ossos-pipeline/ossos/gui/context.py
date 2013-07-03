@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 
 
-class LocalDirectoryContext(object):
+class LocalDirectoryWorkingContext(object):
     def __init__(self, directory):
         self.directory = directory
 
@@ -15,6 +15,9 @@ class LocalDirectoryContext(object):
 
     def get_file_size(self, filename):
         return os.stat(self.get_full_path(filename)).st_size
+
+    def exists(self, filename):
+        return os.path.exists(self.get_full_path(filename))
 
 
 def listdir_for_suffix(directory, suffix):
