@@ -5,6 +5,8 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import re
 
+from ossos import storage
+
 HEADER_LINE_LENGTH = 80
 
 FAKE_PREFIX = "fk"
@@ -169,7 +171,7 @@ class AstromParser(object):
             The file contents extracted into a data structure for programmatic
             access.
         """
-        with open(filename, "rb") as filehandle:
+        with storage.open_vos_or_local(filename, "rb") as filehandle:
             filestr = filehandle.read()
 
         assert filestr is not None, "File contents are None"
