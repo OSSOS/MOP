@@ -12,7 +12,7 @@ import vos
 from tests.base_tests import FileReadingTestCase
 from ossos.astrom import SourceReading, Observation
 from ossos.gui.downloads import (ImageSliceDownloader, AsynchronousImageDownloadManager,
-                                SerialImageDownloadThread, VOSpaceResolver)
+                                 SerialImageDownloadThread, VOSpaceResolver)
 
 
 class ImageSliceDownloaderTest(FileReadingTestCase):
@@ -155,6 +155,18 @@ class ResolverTest(unittest.TestCase):
         """Just double checking we don't run into trouble with leading zeros"""
         observation = Observation("1616681", "p", "05")
         expected_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1616681/ccd05/1616681p05.apcor"
+        assert_that(self.resolver.resolve_apcor_uri(observation),
+                    equal_to(expected_uri))
+
+    def test_resolve_fake_image_uri(self):
+        observation = Observation("1616682", "s", "24", fk="fk")
+        expected_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1616682/ccd24/fk1616682s24.fits"
+        assert_that(self.resolver.resolve_image_uri(observation),
+                    equal_to(expected_uri))
+
+    def test_resolve_fake_apcor_uri(self):
+        observation = Observation("1616682", "s", "24", fk="fk")
+        expected_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1616682/ccd24/fk1616682s24.apcor"
         assert_that(self.resolver.resolve_apcor_uri(observation),
                     equal_to(expected_uri))
 
