@@ -96,10 +96,15 @@ class VOSpaceResolver(object):
         self.dataset_root = config.read("IMG_RETRIEVAL.DATASET_ROOT")
 
     def resolve_image_uri(self, observation):
-        # XXX can there be other file extensions?  For example, fits.fz?
-        # Do we need to search the vospace directory and choose based on that?
-        return "%s/%s/%s%s.fits" % (self.dataset_root, observation.expnum,
-                                    observation.expnum, observation.ftype)
+        # TODO: make more general - have logic for trying alternative locations
+        uri = "%s/%s/" % (self.dataset_root, observation.expnum)
+
+        if observation.is_fake():
+            uri += "ccd%s/%s.fits" % (observation.ccdnum, observation.rawname)
+        else:
+            uri += "%s%s.fits" % (observation.expnum, observation.ftype)
+
+        return uri
 
     def resolve_apcor_uri(self, observation):
         return "%s/%s/ccd%s/%s.apcor" % (self.dataset_root, observation.expnum,
@@ -146,7 +151,15 @@ class ImageSliceDownloader(object):
 
         imgsize = source_reading.get_original_image_size()
 
-        inverted = True if ccdnum <= MAX_INVERTED_CCD else False
+        # TODO: clean this up.  Shouldn't have to handle this issue in
+        # multiple places in the code.
+        if source_reading.get_observation().is_fake():
+            # We get the image from the CCD directory, it is not multi-extension,
+            # and has already been corrected for inversion
+            extension = 0
+            inverted = False
+        else:
+            inverted = True if ccdnum <= MAX_INVERTED_CCD else False
 
         cutout_str, converter = self.cutout_calculator.build_cutout_str(
             extension, source_reading.reference_source_point, imgsize,
