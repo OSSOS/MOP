@@ -2,6 +2,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import os
 
+from ossos import storage
 from ossos.gui import tasks
 from ossos.mpc import MPCWriter
 from ossos.astrom import StreamingAstromWriter
@@ -377,7 +378,7 @@ class RealsWorkUnitBuilder(WorkUnitBuilder):
     def _create_results_writer(self, full_path, parsed_data):
         output_filename = full_path.replace(tasks.get_suffix(tasks.REALS_TASK),
                                             ".mpc")
-        output_filehandle = open(output_filename, "a+b")
+        output_filehandle = storage.open_vos_or_local(output_filename, "a+b")
         return MPCWriter(output_filehandle, auto_flush=False)
 
     def _do_build_workunit(self, filename, data, progress_manager, writer):
@@ -396,7 +397,7 @@ class CandidatesWorkUnitBuilder(WorkUnitBuilder):
     def _create_results_writer(self, full_path, parsed_data):
         output_filename = full_path.replace(tasks.get_suffix(tasks.CANDS_TASK),
                                             tasks.get_suffix(tasks.REALS_TASK))
-        output_filehandle = open(output_filename, "a+b")
+        output_filehandle = storage.open_vos_or_local(output_filename, "a+b")
         return StreamingAstromWriter(output_filehandle, parsed_data.sys_header)
 
     def _do_build_workunit(self, filename, data, progress_manager, writer):

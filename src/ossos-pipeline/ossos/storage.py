@@ -1,7 +1,6 @@
 """OSSOS VOSpace storage convenience package"""
 
 
-import contextlib
 import subprocess
 import os
 import vos
@@ -262,19 +261,14 @@ def vofile(filename, mode):
     return vospace.open(filename, view='data', mode=mode)
 
 
-@contextlib.contextmanager
 def open_vos_or_local(path, mode="rb"):
     """
     Opens a file which can either be in VOSpace or the local filesystem.
     """
     if path.startswith("vos"):
-        filehandle = vofile(path, mode)
+        return vofile(path, mode)
     else:
-        filehandle = open(path, mode)
-
-    yield filehandle
-
-    filehandle.close()
+        return open(path, mode)
 
 
 def copy(source, dest):
