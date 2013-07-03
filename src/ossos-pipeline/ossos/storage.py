@@ -298,7 +298,22 @@ def delete(expnum, ccd, version, ext, prefix=None):
     except IOError as e:
         if e.errno != errno.ENOENT:
             raise e
-        
+
+
+def listdir(directory):
+    return vospace.listdir(directory)
+
 
 def list_dbimages():
-    return vospace.listdir(DBIMAGES)
+    return listdir(DBIMAGES)
+
+
+def exists(uri):
+    return vospace.access(uri)
+
+
+def move(old_uri, new_uri):
+    vospace.move(old_uri, new_uri)
+
+def delete_uri(uri):
+    vospace.delete(uri)
