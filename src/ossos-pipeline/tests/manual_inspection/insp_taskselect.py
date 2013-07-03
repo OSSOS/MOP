@@ -9,7 +9,7 @@ from ossos.gui.taskselect import TaskSetupManager
 def main():
     wxapp = wx.App()
 
-    app = testutil.Dummy("PymopApplication")
+    app = testutil.Dummy("ValidationApplication")
     selector = TaskSetupManager(app)
     selector.run()
 

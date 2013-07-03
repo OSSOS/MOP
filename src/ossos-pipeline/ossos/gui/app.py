@@ -20,10 +20,6 @@ from ossos.gui.controllers import (ProcessRealsController,
 from ossos.gui.taskselect import TaskSetupManager
 
 
-class PymopError(Exception):
-    """Base class for errors in the pymop application."""
-
-
 class AbstractTaskFactory(object):
     def create_workunit_builder(self, parser, progress_manager):
         pass
@@ -48,7 +44,7 @@ class ProcessCandidatesTaskFactory(AbstractTaskFactory):
         return ProcessCandidatesController(model)
 
 
-class PymopApplication(object):
+class ValidationApplication(object):
     task_name_mapping = {
         tasks.CANDS_TASK: ProcessCandidatesTaskFactory,
         tasks.REALS_TASK: ProcessRealsTaskFactory
@@ -69,7 +65,7 @@ class PymopApplication(object):
         try:
             factory = self.task_name_mapping[taskname]()
         except KeyError:
-            raise PymopError("Unknown task: %s" % taskname)
+            raise ValueError("Unknown task: %s" % taskname)
 
         parser = AstromParser()
         download_manager = AsynchronousImageDownloadManager(

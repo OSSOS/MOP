@@ -2,11 +2,11 @@
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from ossos.gui.app import PymopApplication
+from ossos.gui.app import ValidationApplication
 
 
 def main():
-    PymopApplication()
+    ValidationApplication()
 
 
 if __name__ == "__main__":
