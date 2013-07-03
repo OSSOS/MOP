@@ -13,7 +13,10 @@
         	<h1>OSSOS <small>Outer Solar System Origins Survey</small></h1>
       	</div><!--page-header-->
           <tal:block tal:condition="failed_attempt">
-            <p><font color="red">Invalid credentials, please try again.</font></p>
+            <div class="alert alert-error">
+              <button type="button" class="close" data-dismiss="alert">&times;</button>
+                Invalid credentials, please try again.
+            </div>
           </tal:block>
 
           <form class="form-horizontal" method="post" action="${ request.path }">
