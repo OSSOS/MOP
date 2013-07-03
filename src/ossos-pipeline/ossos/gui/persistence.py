@@ -2,7 +2,6 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import collections
 import getpass
-import os
 
 from ossos.gui import tasks
 
@@ -161,11 +160,11 @@ class ProgressManager(AbstractProgressManager):
         super(ProgressManager, self).__init__(working_context)
 
     def is_done(self, filename):
-        return self.working_context.exists(self._get_full_path(filename) + DONE_SUFFIX)
+        return self.working_context.exists(filename + DONE_SUFFIX)
 
     def get_processed_indices(self, filename):
-        partfile = self._get_full_path(filename + PART_SUFFIX)
-        donefile = self._get_full_path(filename + DONE_SUFFIX)
+        partfile = filename + PART_SUFFIX
+        donefile = filename + DONE_SUFFIX
 
         file_with_records = None
         if self.working_context.exists(donefile):
@@ -176,62 +175,61 @@ class ProgressManager(AbstractProgressManager):
         if file_with_records is None:
             return []
 
-        with open(file_with_records, "rb") as filehandle:
-            indices = filehandle.read().rstrip(INDEX_SEP).split(INDEX_SEP)
-            return map(int, indices)
+        filehandle = self.working_context.open(file_with_records, "rb")
+        indices = filehandle.read().rstrip(INDEX_SEP).split(INDEX_SEP)
+        filehandle.close()
+
+        return map(int, indices)
 
     def _record_done(self, filename):
-        partfile = self._get_full_path(filename) + PART_SUFFIX
-        donefile = self._get_full_path(filename) + DONE_SUFFIX
+        partfile = filename + PART_SUFFIX
+        donefile = filename + DONE_SUFFIX
 
         if self.working_context.exists(partfile):
             # By just renaming we keep the history of processed indices
             # available.
-            os.rename(partfile, donefile)
+            self.working_context.rename(partfile, donefile)
         else:
             # Create a new blank file
-            open(donefile, "wb").close()
+            self.working_context.open(donefile, "wb").close()
 
     def _record_index(self, filename, index):
-        partfile = self._get_full_path(filename + PART_SUFFIX)
-
-        with open(partfile, "ab") as filehandle:
-            filehandle.write(str(index) + INDEX_SEP)
+        filehandle = self.working_context.open(filename + PART_SUFFIX, "ab")
+        filehandle.write(str(index) + INDEX_SEP)
+        filehandle.close()
 
     def lock(self, filename):
         if self.owns_lock(filename):
             return
 
-        lockfile = self._get_full_path(filename + LOCK_SUFFIX)
+        lockfile = filename + LOCK_SUFFIX
 
-        try:
-            filehandle = self._atomic_create(lockfile)
-        except OSError:
-            # File already exists, someone holds the lock
-            with open(lockfile, "rb") as filehandle:
-                locker = filehandle.read()
-
+        # TODO rework for VOSpace
+        if self.working_context.exists(lockfile):
+            locker = self.working_context.open(lockfile, "rb").read()
             raise FileLockedException(filename, locker)
-
-        # We got the lock, write our ID into the file
-        filehandle.write(getpass.getuser())
-        filehandle.close()
+        else:
+            filehandle = self.working_context.open(lockfile, "wb")
+            filehandle.write(getpass.getuser())
+            filehandle.close()
 
     def unlock(self, filename):
-        lockfile = self._get_full_path(filename + LOCK_SUFFIX)
+        lockfile = filename + LOCK_SUFFIX
 
         if not self.working_context.exists(lockfile):
             # The lock file was probably already cleaned up by record_done
             return
 
-        with open(lockfile, "rb") as filehandle:
-            locker = filehandle.read()
-            if locker == getpass.getuser():
-                # It was us who locked it
-                os.remove(lockfile)
-            else:
-                # Can't remove someone else's lock!
-                raise FileLockedException(filename, locker)
+        filehandle = self.working_context.open(lockfile, "rb")
+        locker = filehandle.read()
+        filehandle.close()
+
+        if locker == getpass.getuser():
+            # It was us who locked it
+            self.working_context.remove(lockfile)
+        else:
+            # Can't remove someone else's lock!
+            raise FileLockedException(filename, locker)
 
     def clean(self, suffixes=None):
         """
@@ -243,25 +241,31 @@ class ProgressManager(AbstractProgressManager):
         for suffix in suffixes:
             listing = self.working_context.get_listing(suffix)
             for filename in listing:
-                os.remove(self._get_full_path(filename))
+                self.working_context.remove(filename)
 
     def owns_lock(self, filename):
-        lockfile = self._get_full_path(filename + LOCK_SUFFIX)
+        lockfile = filename + LOCK_SUFFIX
 
         if self.working_context.exists(lockfile):
-            with open(lockfile, "rb") as filehandle:
-                return getpass.getuser() == filehandle.read()
+            filehandle = self.working_context.open(lockfile, "rb")
+            lock_holder = filehandle.read()
+            filehandle.close()
+            return getpass.getuser() == lock_holder
         else:
             # No lock file, so we can't have a lock
             return False
 
-    def _atomic_create(self, full_path):
+    def _atomic_create(self, filename):
         """
+        TODO: this will have to be reworked for VOSpace.  Probably switch
+        to using tags for locking.
+
         Tries to create the specified file.  Throws an OSError if it already
         exists.
         """
-        fd = os.open(full_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
-        return os.fdopen(fd, "wb")
+        # fd = os.open(full_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
+        # return os.fdopen(fd, "wb")
+        return self.working_context.open(filename, "wb")
 
 
 class InMemoryProgressManager(AbstractProgressManager):
