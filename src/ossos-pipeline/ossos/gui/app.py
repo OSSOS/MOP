@@ -1,11 +1,10 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import os
-
 import wx
 import wx.lib.inspection
 
 from ossos.gui import config, tasks
+from ossos.gui.context import LocalDirectoryContext
 from ossos.gui.workload import (WorkUnitProvider,
                                 RealsWorkUnitBuilder,
                                 CandidatesWorkUnitBuilder)
@@ -71,7 +70,7 @@ class ValidationApplication(object):
         download_manager = AsynchronousImageDownloadManager(
             ImageSliceDownloader(VOSpaceResolver()))
 
-        directory_context = DirectoryContext(working_directory)
+        directory_context = LocalDirectoryContext(working_directory)
         progress_manager = ProgressManager(directory_context)
         builder = factory.create_workunit_builder(parser, progress_manager)
         workunit_provider = WorkUnitProvider(tasks.get_suffix(taskname), directory_context,
@@ -79,21 +78,3 @@ class ValidationApplication(object):
         model = UIModel(workunit_provider, progress_manager, download_manager)
         factory.create_controller(model)
 
-
-class DirectoryContext(object):
-    def __init__(self, directory):
-        self.directory = directory
-
-    def get_listing(self, suffix):
-        return listdir_for_suffix(self.directory, suffix)
-
-    def get_full_path(self, filename):
-        return os.path.join(self.directory, filename)
-
-    def get_file_size(self, filename):
-        return os.stat(self.get_full_path(filename)).st_size
-
-
-def listdir_for_suffix(directory, suffix):
-    """Note this returns file names, not full paths."""
-    return filter(lambda name: name.endswith(suffix), os.listdir(directory))
