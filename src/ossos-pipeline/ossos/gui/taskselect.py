@@ -68,7 +68,7 @@ class TaskSetupManager(object):
         a task.
 
         Args:
-          pymopapp: PymopApplication
+          app: ossos.gui.ValidationApplication
             The application this selection is being made for.
         """
         self.app = app
