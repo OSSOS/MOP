@@ -165,14 +165,14 @@ class ImageSliceDownloader(object):
         Retrieves a remote image.
 
         Args:
-          source_reading: pymop.io.parser.SourceReading
+          source_reading: ossos.astrom.SourceReading
             The reading to take a cutout around.
           in_memory: bool
             If True, the image is stored in memory without being written to
             disk.  If False, the image will be written to a temporary file.
 
         Returns:
-          fitsimage: pymop.io.img.FitsImage
+          fitsimage: ossos.gui.image.DownloadedFitsImage
             The downloaded image, either in-memory or on disk as specified.
         """
         image_uri = self.resolver.resolve_image_uri(source_reading.obs)

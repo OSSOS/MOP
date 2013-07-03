@@ -22,7 +22,7 @@ class DownloadedFitsImage(object):
             Raw data read from a FITS file in string format.
           apcor_str: str:
             Raw data from from the .apcor file associated with this image.
-          coord_converter: pymop.io.imgaccess.CoordinateConverter
+          coord_converter: ossos.cutouts.CoordinateConverter
             Converts coordinates from the original FITS file into pixel
             locations.  Takes into account cutouts.
           in_memory: bool
