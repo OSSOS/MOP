@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import unittest
 
 from mock import Mock
-from hamcrest import assert_that, equal_to, is_not, same_instance
+from hamcrest import assert_that, equal_to, is_not, same_instance, has_length
 
 from tests.base_tests import FileReadingTestCase, WxWidgetTestCase, DirectoryCleaningTestCase
 from ossos.gui import tasks
@@ -100,7 +100,7 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
         self.controller.on_next_obs()
         assert_that(view.is_source_validation_enabled(), equal_to(True))
 
-    def accept_source(self):
+    def accept_source_reading(self):
         self.controller.on_do_accept(TEST_MINOR_PLANET_NUMBER,
                                      TEST_PROVISIONAL_NAME,
                                      TEST_DISCOVERY_AST,
@@ -115,53 +115,56 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
                                      TEST_COMMENT
         )
 
+    def reject_source_reading(self):
+        self.controller.on_do_reject(TEST_COMMENT)
+
     def test_accept_moves_to_first_observation_of_new_workunit(self):
         workunit1 = self.model.get_current_workunit()
 
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
 
-        self.accept_source()
+        self.accept_source_reading()
 
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_obs_number(), equal_to(1))
 
-        self.accept_source()
+        self.accept_source_reading()
 
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_obs_number(), equal_to(2))
 
-        self.accept_source()
+        self.accept_source_reading()
 
         assert_that(self.model.get_current_source_number(), equal_to(1))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
 
-        self.accept_source()
+        self.accept_source_reading()
 
         assert_that(self.model.get_current_source_number(), equal_to(1))
         assert_that(self.model.get_current_obs_number(), equal_to(1))
 
-        self.accept_source()
+        self.accept_source_reading()
 
         assert_that(self.model.get_current_source_number(), equal_to(1))
         assert_that(self.model.get_current_obs_number(), equal_to(2))
 
-        self.accept_source()
+        self.accept_source_reading()
 
         assert_that(self.model.get_current_source_number(), equal_to(2))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
 
-        self.accept_source()
+        self.accept_source_reading()
 
         assert_that(self.model.get_current_source_number(), equal_to(2))
         assert_that(self.model.get_current_obs_number(), equal_to(1))
 
-        self.accept_source()
+        self.accept_source_reading()
 
         assert_that(self.model.get_current_source_number(), equal_to(2))
         assert_that(self.model.get_current_obs_number(), equal_to(2))
 
-        self.accept_source()
+        self.accept_source_reading()
 
         workunit2 = self.model.get_current_workunit()
 
@@ -169,6 +172,38 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
 
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
+
+    def read_written_results(self):
+        writer = self.model.get_current_workunit().get_writer()
+        filehandle = writer.filehandle
+        filehandle.seek(0)
+        return filehandle.read()
+
+    def test_writer_flushing(self):
+        def assert_sources_written_equals(num_sources):
+            if num_sources == 0:
+                assert_that(self.read_written_results(), equal_to(""))
+            else:
+                # Each source has 3 readings, and each reading has a comment
+                # line and MPC line
+                assert_that(self.read_written_results().rstrip().split("\n"),
+                            has_length(6 * num_sources))
+
+        # Should flush only after accepting all readings for a source
+        assert_sources_written_equals(0)
+        self.accept_source_reading()
+        assert_sources_written_equals(0)
+        self.accept_source_reading()
+        assert_sources_written_equals(0)
+        self.accept_source_reading()
+        assert_sources_written_equals(1)
+
+        self.reject_source_reading()
+        assert_sources_written_equals(1)
+        self.reject_source_reading()
+        assert_sources_written_equals(1)
+        self.reject_source_reading()
+        assert_sources_written_equals(2)
 
 
 if __name__ == '__main__':
