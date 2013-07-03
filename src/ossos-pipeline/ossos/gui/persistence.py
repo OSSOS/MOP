@@ -147,9 +147,6 @@ class AbstractProgressManager(object):
     def _get_done_suffix(self, task):
         return tasks.get_suffix(task) + DONE_SUFFIX
 
-    def _get_full_path(self, filename):
-        return self.working_context.get_full_path(filename)
-
 
 class ProgressManager(AbstractProgressManager):
     """
