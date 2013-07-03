@@ -1,1 +1,0 @@
-A GUI for pipeline processing involving an operator.
