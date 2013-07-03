@@ -1,6 +1,7 @@
 """OSSOS VOSpace storage convenience package"""
 
 
+import contextlib
 import subprocess
 import os
 import vos
@@ -18,7 +19,8 @@ DBIMAGES='vos:OSSOS/dbimages'
 DATA_WEB_SERVICE='https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/'
 OSSOS_TAG_URI_BASE='ivo://canfar.uvic.ca/ossos'
 vospace = vos.Client(certFile=CERTFILE)
-SUCCESS = 'success' 
+SUCCESS = 'success'
+
 
 def populate(dataset_name,
              data_web_service_url = DATA_WEB_SERVICE+"CFHT"):
@@ -252,7 +254,28 @@ def mkdir(root):
     while len(dir_list)>0:
         logging.info("Creating directory: %s" % (dir_list[-1]))
         vospace.mkdir(dir_list.pop())
-    return 
+    return
+
+
+def vofile(filename, mode):
+    """Open and return a handle on a VOSpace data connection"""
+    return vospace.open(filename, view='data', mode=mode)
+
+
+@contextlib.contextmanager
+def open_vos_or_local(path, mode="rb"):
+    """
+    Opens a file which can either be in VOSpace or the local filesystem.
+    """
+    if path.startswith("vos"):
+        filehandle = vofile(path, mode)
+    else:
+        filehandle = open(path, mode)
+
+    yield filehandle
+
+    filehandle.close()
+
 
 def copy(source, dest):
     '''use the vospace service to get a file.
