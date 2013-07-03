@@ -40,7 +40,7 @@ def forbidden_view(request):
 
 @view_config(
     route_name='login',
-    renderer='ossos:auth/login.mako',
+    renderer='login.pt',
     )
 def login_view(request):
 

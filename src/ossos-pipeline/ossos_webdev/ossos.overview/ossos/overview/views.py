@@ -66,7 +66,7 @@ class Overview(object):
 		return retval
 
 
-	@view_config(route_name='overview', renderer='template.pt', permission='ossos')
+	@view_config(route_name='overview', renderer='overview.pt', permission='ossos')
 	def general_overview(self):
 		retval = {'propor_complete': self.percentComplete,
 					'surveyed': self.fractionSurveyed,

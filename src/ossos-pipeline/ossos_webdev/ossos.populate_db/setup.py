@@ -4,7 +4,7 @@ requires = [
     'sqlalchemy',
 ]
 namespace_packages=['ossos', ]
-setup(name='ossos.overview',
+setup(name='ossos.populate_db',
       entry_points="""
       """,
 )
