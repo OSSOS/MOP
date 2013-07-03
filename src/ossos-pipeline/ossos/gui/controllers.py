@@ -157,14 +157,18 @@ class ProcessRealsController(AbstractController):
         self.get_view().show_reject_source_dialog()
 
     def on_do_reject(self, comment):
+        self.get_view().close_reject_source_dialog()
+        self.model.reject_current_item()
+
         writer = self.model.get_writer()
         writer.write_comment(self.model.get_current_reading(), comment)
         writer.write_rejection_line(self.model.get_current_observation_date(),
                                     self.model.get_current_ra(),
                                     self.model.get_current_dec())
 
-        self.get_view().close_reject_source_dialog()
-        self.model.reject_current_item()
+        if self.model.is_current_source_finished():
+            writer.flush()
+
         self.model.next_item()
 
     def on_cancel_reject(self):
