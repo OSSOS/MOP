@@ -9,7 +9,7 @@ from mock import Mock
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from ossos.gui import tasks
-from ossos.gui.context import LocalDirectoryContext
+from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui.downloads import AsynchronousImageDownloadManager
 from ossos.gui.models import UIModel
 from ossos.astrom import AstromParser
@@ -438,7 +438,7 @@ class StatefulCollectionTest(unittest.TestCase):
 
 class WorkloadManagementTest(unittest.TestCase):
     def setUp(self):
-        self.progress_manager = InMemoryProgressManager(Mock(spec=LocalDirectoryContext))
+        self.progress_manager = InMemoryProgressManager(Mock(spec=LocalDirectoryWorkingContext))
         self.workunit_provider = Mock(spec=WorkUnitProvider)
 
         self.workunit1 = Mock(spec=WorkUnit)
@@ -488,7 +488,7 @@ class WorkloadManagementTest(unittest.TestCase):
 class WorkUnitProviderTest(FileReadingTestCase, DirectoryCleaningTestCase):
     def setUp(self):
         working_directory = self.get_directory_to_clean()
-        directory_manager = LocalDirectoryContext(working_directory)
+        directory_manager = LocalDirectoryWorkingContext(working_directory)
         progress_manager = InMemoryProgressManager(directory_manager)
         parser = AstromParser()
         builder = RealsWorkUnitBuilder(parser, progress_manager)
