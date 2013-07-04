@@ -167,8 +167,11 @@ class WorkUnit(object):
     def is_current_item_processed(self):
         return self.is_item_processed(self.get_current_item())
 
-    def is_current_source_finished(self):
+    def is_source_finished(self, source):
         raise NotImplementedError()
+
+    def is_current_source_finished(self):
+        return self.is_source_finished(self.get_current_source())
 
     def get_filename(self):
         return self.filename
@@ -178,6 +181,14 @@ class WorkUnit(object):
 
     def get_sources(self):
         return self.sources
+
+    def get_unprocessed_sources(self):
+        unprocessed_sources = []
+        for source in self.get_sources():
+            if not self.is_source_finished(source):
+                unprocessed_sources.append(source)
+
+        return unprocessed_sources
 
     def get_source_count(self):
         return len(self.get_sources())
@@ -243,8 +254,8 @@ class RealsWorkUnit(WorkUnit):
         return (self.get_sources().get_index() * self.get_obs_count() +
                 self.get_current_source_readings().get_index())
 
-    def is_current_source_finished(self):
-        for reading in self.get_current_source_readings():
+    def is_source_finished(self, source):
+        for reading in source.get_readings():
             if reading not in self.processed_items:
                 return False
 
@@ -281,8 +292,8 @@ class CandidatesWorkUnit(WorkUnit):
     def get_current_item_index(self):
         return self.get_sources().get_index()
 
-    def is_current_source_finished(self):
-        return self.get_current_source() in self.processed_items
+    def is_source_finished(self, source):
+        return source in self.processed_items
 
     def _get_item_set(self):
         return set(self.sources)
