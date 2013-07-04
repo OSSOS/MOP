@@ -1,7 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-CANDS_TASK = "Process candidate objects"
-REALS_TASK = "Process real objects"
+CANDS_TASK = "cands"
+REALS_TASK = "reals"
 
 task_list = [CANDS_TASK, REALS_TASK]
 

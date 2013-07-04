@@ -36,7 +36,6 @@ class ApplicationView(object):
 
     def __init__(self, model, controller):
         self.model = model
-
         self.controller = controller
 
         self.mainframe = MainFrame(model, controller)
