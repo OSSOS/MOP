@@ -144,5 +144,4 @@ class ApcorData(object):
 
     @property
     def swidth(self):
-        # TODO verify this with JJ, seems suspicious
         return self.ap_in
