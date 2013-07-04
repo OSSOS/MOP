@@ -66,7 +66,7 @@ class SerialImageDownloadThread(threading.Thread):
         self._should_stop = False
 
     def run(self):
-        for source in self.workload.get_sources():
+        for source in self.workload.get_unprocessed_sources():
             for reading in source.get_readings():
                 if self._should_stop:
                     return

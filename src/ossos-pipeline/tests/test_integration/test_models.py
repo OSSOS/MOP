@@ -958,6 +958,9 @@ class RealsModelPersistenceLoadingTest(GeneralModelTest):
         observer = Mock()
         events.subscribe(events.FINISHED_WORKUNIT, observer)
 
+        assert_that(self.model.get_current_workunit().get_unprocessed_sources(),
+                    has_length(1))
+
         assert_that(self.model.get_current_source_number(), equal_to(2))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
         self.model.reject_current_item()
@@ -1082,6 +1085,9 @@ class CandidatesModelPersistenceLoadingTest(GeneralModelTest):
     def test_load_partially_processed(self):
         observer = Mock()
         events.subscribe(events.FINISHED_WORKUNIT, observer)
+
+        assert_that(self.model.get_current_workunit().get_unprocessed_sources(),
+                    has_length(1))
 
         assert_that(self.model.get_current_source_number(), equal_to(1))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
