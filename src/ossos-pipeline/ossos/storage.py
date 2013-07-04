@@ -17,7 +17,7 @@ CERTFILE=os.path.join(os.getenv('HOME'),
 DBIMAGES='vos:OSSOS/dbimages'
 DATA_WEB_SERVICE='https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/'
 OSSOS_TAG_URI_BASE='ivo://canfar.uvic.ca/ossos'
-vospace = vos.Client(certFile=CERTFILE)
+vospace = vos.Client(cadc_short_cut=True, certFile=CERTFILE)
 SUCCESS = 'success' 
 
 def populate(dataset_name,
