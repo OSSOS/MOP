@@ -105,7 +105,6 @@ class ApcorDataTest(unittest.TestCase):
     def test_generated_properties(self):
         assert_that(self.undertest.aperture, equal_to(self.ap_in))
         assert_that(self.undertest.sky, equal_to(self.ap_out + 1))
-        # TODO verify this with JJ, seems suspicious
         assert_that(self.undertest.swidth, equal_to(self.ap_in))
 
     def test_from_raw_string(self):
