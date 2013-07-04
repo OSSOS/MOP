@@ -265,8 +265,18 @@ def open_vos_or_local(path, mode="rb"):
     """
     Opens a file which can either be in VOSpace or the local filesystem.
     """
-    if path.startswith("vos"):
-        return vofile(path, mode)
+    if path.startswith("vos:"):
+        primary_mode = mode[0]
+        if primary_mode == "r":
+            vofile_mode = os.O_RDONLY
+        elif primary_mode == "w":
+            vofile_mode = os.O_WRONLY
+        elif primary_mode == "a":
+            vofile_mode = os.O_APPEND
+        else:
+            raise ValueError("Can't open with mode %s" % mode)
+
+        return vofile(path, vofile_mode)
     else:
         return open(path, mode)
 
@@ -312,8 +322,13 @@ def exists(uri):
     return vospace.access(uri)
 
 
+def create(uri):
+    vospace.create(uri)
+
+
 def move(old_uri, new_uri):
     vospace.move(old_uri, new_uri)
+
 
 def delete_uri(uri):
     vospace.delete(uri)
