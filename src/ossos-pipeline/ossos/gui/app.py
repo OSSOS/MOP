@@ -17,7 +17,6 @@ from ossos.gui.downloads import (AsynchronousImageDownloadManager,
 from ossos.gui.models import UIModel
 from ossos.gui.controllers import (ProcessRealsController,
                                    ProcessCandidatesController)
-from ossos.gui.taskselect import TaskSetupManager
 
 
 class AbstractTaskFactory(object):
@@ -50,18 +49,13 @@ class ValidationApplication(object):
         tasks.REALS_TASK: ProcessRealsTaskFactory
     }
 
-    def __init__(self):
-        self.wx_app = wx.App(False)
+    def __init__(self, taskname, working_directory):
+        wx_app = wx.App(False)
 
         debug_mode = config.read("DEBUG")
         if debug_mode:
             wx.lib.inspection.InspectionTool().Show()
 
-        TaskSetupManager(self).run()
-
-        self.wx_app.MainLoop()
-
-    def start_task(self, working_directory, taskname):
         try:
             factory = self.task_name_mapping[taskname]()
         except KeyError:
@@ -78,6 +72,8 @@ class ValidationApplication(object):
                                              progress_manager, builder)
         model = UIModel(workunit_provider, progress_manager, download_manager)
         factory.create_controller(model)
+
+        wx_app.MainLoop()
 
 
 class DirectoryContext(object):
