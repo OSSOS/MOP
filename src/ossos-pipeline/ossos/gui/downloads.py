@@ -139,7 +139,10 @@ class ImageSliceDownloader(object):
         self.slice_rows = slice_rows
         self.slice_cols = slice_cols
 
-        self.vosclient = vos.Client() if vosclient is None else vosclient
+        if vosclient is None:
+            self.vosclient = vos.Client(cadc_short_cut=True)
+        else:
+            self.vosclient = vosclient
 
         self.cutout_calculator = CutoutCalculator(slice_rows, slice_cols)
 
