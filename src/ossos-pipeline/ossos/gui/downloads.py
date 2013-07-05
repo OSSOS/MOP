@@ -12,7 +12,7 @@ from ossos.cutouts import CutoutCalculator
 # Images from CCDs < 18 have their coordinates flipped
 MAX_INVERTED_CCD = 17
 
-MAX_THREADS = 6
+MAX_THREADS = 3
 
 
 class AsynchronousImageDownloadManager(object):
