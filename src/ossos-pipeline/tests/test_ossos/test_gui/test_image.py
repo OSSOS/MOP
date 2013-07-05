@@ -19,29 +19,29 @@ class DownloadedFitsImageTest(FileReadingTestCase):
         self.coord_converter = Mock()
 
     def test_create_in_memory_image(self):
-        fitsimage = DownloadedFitsImage(self.strdata, self.apcor_str, self.coord_converter,
-                                        in_memory=True)
+        fitsimage = DownloadedFitsImage(self.strdata, self.coord_converter,
+                                        self.apcor_str, in_memory=True)
 
         # Breaking interface for testing purposes
         assert_that(fitsimage._hdulist, not_none())
         assert_that(fitsimage._tempfile, none())
 
     def test_create_on_disk_image(self):
-        fitsimage = DownloadedFitsImage(self.strdata, self.apcor_str, self.coord_converter,
-                                        in_memory=False)
+        fitsimage = DownloadedFitsImage(self.strdata, self.coord_converter,
+                                        self.apcor_str, in_memory=False)
 
         # Breaking interface for testing purposes
         assert_that(fitsimage._hdulist, none())
         assert_that(fitsimage._tempfile, not_none())
 
     def test_in_memory_as_file(self):
-        fitsimage = DownloadedFitsImage(self.strdata, self.apcor_str, self.coord_converter,
-                                        in_memory=True)
+        fitsimage = DownloadedFitsImage(self.strdata, self.coord_converter,
+                                        self.apcor_str, in_memory=True)
         assert_that(os.path.exists(fitsimage.as_file().name))
 
     def test_on_disk_as_hdulist(self):
-        fitsimage = DownloadedFitsImage(self.strdata, self.apcor_str, self.coord_converter,
-                                        in_memory=False)
+        fitsimage = DownloadedFitsImage(self.strdata, self.coord_converter,
+                                        self.apcor_str, in_memory=False)
 
         assert_that(fitsimage._hdulist, none())
         assert_that(fitsimage.as_hdulist()[0].header["FILENAME"],
@@ -49,19 +49,19 @@ class DownloadedFitsImageTest(FileReadingTestCase):
         assert_that(fitsimage._hdulist, not_none())
 
     def test_in_memory_as_hdulist(self):
-        fitsimage = DownloadedFitsImage(self.strdata, self.apcor_str, self.coord_converter,
-                                        in_memory=True)
+        fitsimage = DownloadedFitsImage(self.strdata, self.coord_converter,
+                                        self.apcor_str, in_memory=True)
         assert_that(fitsimage.as_hdulist()[0].header["FILENAME"],
                     equal_to("u5780205r_cvt.c0h"))
 
     def test_on_disk_as_file(self):
-        fitsimage = DownloadedFitsImage(self.strdata, self.apcor_str, self.coord_converter,
-                                        in_memory=False)
+        fitsimage = DownloadedFitsImage(self.strdata, self.coord_converter,
+                                        self.apcor_str, in_memory=False)
         assert_that(os.path.exists(fitsimage.as_file().name))
 
     def test_close(self):
-        fitsimage = DownloadedFitsImage(self.strdata, self.apcor_str, self.coord_converter,
-                                        in_memory=True)
+        fitsimage = DownloadedFitsImage(self.strdata, self.coord_converter,
+                                        self.apcor_str, in_memory=True)
         as_file = fitsimage.as_file()
 
         fitsimage.close()
@@ -70,8 +70,8 @@ class DownloadedFitsImageTest(FileReadingTestCase):
 
     @patch("ossos.daophot.phot_mag")
     def test_get_observed_magnitude(self, mock_phot_mag):
-        fitsimage = DownloadedFitsImage(self.strdata, self.apcor_str, self.coord_converter,
-                                        in_memory=True)
+        fitsimage = DownloadedFitsImage(self.strdata, self.coord_converter,
+                                        self.apcor_str, in_memory=True)
         x = 1500
         y = 2500
         fitsimage.get_observed_magnitude(x, y)
@@ -80,6 +80,13 @@ class DownloadedFitsImageTest(FileReadingTestCase):
             fitsimage.as_file().name, x, y, aperture=4.0, sky=16.0, swidth=4.0,
             apcor=0.19, maxcount=30000.0
         )
+
+    def test_no_apcord_data(self):
+        fitsimage = DownloadedFitsImage(self.strdata, self.coord_converter)
+
+        assert_that(fitsimage.has_apcord_data(), equal_to(False))
+
+        self.assertRaises(ValueError, fitsimage.get_observed_magnitude, 1500, 2500)
 
 
 class ApcorDataTest(unittest.TestCase):
