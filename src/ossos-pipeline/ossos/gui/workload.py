@@ -234,6 +234,8 @@ class RealsWorkUnit(WorkUnit):
             filename, parsed_data, progress_manager, results_writer)
 
     def next_item(self):
+        assert not self.is_finished()
+
         self.next_obs()
         while self.is_current_item_processed():
             self._next_sequential_item()
@@ -284,7 +286,11 @@ class CandidatesWorkUnit(WorkUnit):
             filename, parsed_data, progress_manager, results_writer)
 
     def next_item(self):
+        assert not self.is_finished()
+
         self.next_source()
+        while self.is_current_item_processed():
+            self.next_source()
 
     def get_current_item(self):
         return self.get_current_source()
