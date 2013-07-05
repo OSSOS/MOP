@@ -12,7 +12,7 @@ from ossos.cutouts import CutoutCalculator
 # Images from CCDs < 18 have their coordinates flipped
 MAX_INVERTED_CCD = 17
 
-MAX_THREADS = 6
+MAX_THREADS = 3
 
 
 class AsynchronousImageDownloadManager(object):
@@ -26,7 +26,7 @@ class AsynchronousImageDownloadManager(object):
 
         self._should_stop = False
 
-    def start_download(self, workload,
+    def start_download(self, workunit,
                        image_loaded_callback=None,
                        all_loaded_callback=None):
         """
@@ -38,27 +38,28 @@ class AsynchronousImageDownloadManager(object):
         the application can still respond to callbacks and update the
         model as each downloader thread finishes.
         """
-        args = (workload, image_loaded_callback, all_loaded_callback)
-        workload_thread = threading.Thread(target=self._download_workload,
+        args = (workunit, image_loaded_callback, all_loaded_callback)
+        workunit_thread = threading.Thread(target=self._download_workunit,
                                            args=args)
-        workload_thread.start()
+        workunit_thread.start()
 
-    def _download_workload(self, workload,
+    def _download_workunit(self, workunit,
                            image_loaded_callback,
                            all_loaded_callback):
         items_to_download = []
-        for source in workload.get_unprocessed_sources():
+        for source in workunit.get_unprocessed_sources():
             for reading in source.get_readings():
                 items_to_download.append(reading)
 
         index = 0
         threads = []
 
+        needs_apcor = workunit.is_apcor_needed()
         while index < len(items_to_download) and not self._should_stop:
             threads = filter(lambda thread: thread.is_alive(), threads)
 
             if len(threads) < MAX_THREADS:
-                args = (items_to_download[index], image_loaded_callback)
+                args = (items_to_download[index], needs_apcor, image_loaded_callback)
                 new_thread = threading.Thread(target=self._do_download, args=args)
                 new_thread.start()
 
@@ -68,8 +69,8 @@ class AsynchronousImageDownloadManager(object):
         if not self.should_stop() and all_loaded_callback is not None:
             all_loaded_callback()
 
-    def _do_download(self, item, on_finished):
-        on_finished(item, self.downloader.download(item))
+    def _do_download(self, item, needs_apcor, on_finished):
+        on_finished(item, self.downloader.download(item, needs_apcor=needs_apcor))
 
     def stop_download(self):
         self._should_stop = True
@@ -167,7 +168,7 @@ class ImageSliceDownloader(object):
         vofile = self.vosclient.open(uri, view="data")
         return vofile.read()
 
-    def download(self, source_reading, in_memory=True):
+    def download(self, source_reading, needs_apcor=True, in_memory=True):
         """
         Retrieves a remote image.
 
@@ -186,7 +187,10 @@ class ImageSliceDownloader(object):
         apcor_uri = self.resolver.resolve_apcor_uri(source_reading.obs)
 
         fits_str, converter = self._download_fits_file(image_uri, source_reading)
-        apcor_str = self._download_apcor_file(apcor_uri)
 
-        return DownloadedFitsImage(fits_str, apcor_str, converter,
-                                   in_memory=in_memory)
+        if needs_apcor:
+            apcor_str = self._download_apcor_file(apcor_uri)
+        else:
+            apcor_str = None
+
+        return DownloadedFitsImage(fits_str, converter, apcor_str, in_memory=in_memory)
