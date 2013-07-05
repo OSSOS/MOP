@@ -188,5 +188,4 @@ class ImageSliceDownloader(object):
         fits_str, converter = self._download_fits_file(image_uri, source_reading)
         apcor_str = self._download_apcor_file(apcor_uri)
 
-        return DownloadedFitsImage(fits_str, apcor_str, converter,
-                                   in_memory=in_memory)
+        return DownloadedFitsImage(fits_str, converter, apcor_str, in_memory=in_memory)
