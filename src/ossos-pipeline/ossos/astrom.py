@@ -442,6 +442,11 @@ class SourceReading(object):
     def get_observation(self):
         return self.obs
 
+    def get_coordinate_offset(self, other_reading):
+        my_x, my_y = self.reference_source_point
+        other_x, other_y = other_reading.reference_source_point
+        return my_x - other_x, my_y - other_y
+
     def __repr__(self):
         return "<SourceReading x=%s, y=%s, x0=%s, y0=%s, ra=%s, dec=%s, obs=%s" % (
             self.x, self.y, self.x0, self.y0, self.ra, self.dec, self.obs)
