@@ -162,7 +162,7 @@ def create_sky_plot(obstable, outfile, night_count=1, stack=True):
             fig = figure(figsize=(7,2))
             ax = fig.add_subplot(111,aspect='equal')
             ax.set_title("Data taken on %s-%s-%s" % ( t1.tm_year, t1.tm_mon, t1.tm_mday), fontdict={'fontsize': 8} )
-            ax.axis((ra_min,ra_max,dec_min,dec_max))
+            ax.axis((245,200,-20,0))
             ax.grid()
             ax.set_xlabel("RA (deg)", fontdict={'fontsize': 8} )
             ax.set_ylabel("DEC (deg)", fontdict={'fontsize': 8} )
@@ -180,8 +180,8 @@ def create_sky_plot(obstable, outfile, night_count=1, stack=True):
                                 facecolor='r',
                                 lw=0.5, fill='k', alpha=0.33))
 
-
     if ax is not None:
+        ax.axis((270,215,-20,0))
         pdf.savefig()
         close()
     pdf.close()
