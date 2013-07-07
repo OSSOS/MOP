@@ -12,7 +12,7 @@ import vos
 from tests.base_tests import FileReadingTestCase
 from ossos.astrom import SourceReading, Observation
 from ossos.gui.downloads import (ImageSliceDownloader, AsynchronousImageDownloadManager,
-                                 SerialImageDownloadThread, VOSpaceResolver)
+                                 VOSpaceResolver)
 
 
 class ImageSliceDownloaderTest(FileReadingTestCase):
@@ -113,26 +113,6 @@ class AsynchronousImageDownloadManagerTest(unittest.TestCase):
         astrom_data.sources = [source] * sources
 
         return astrom_data
-
-    @patch.object(SerialImageDownloadThread, "start")
-    def test_do_load(self, mock_start_method):
-        sources = 3
-        observations = 2
-        astrom_data = self.mock_astrom_data(sources, observations)
-
-        self.undertest.start_download(astrom_data)
-
-        mock_start_method.assert_called_once_with()
-
-    @patch.object(SerialImageDownloadThread, "stop")
-    @patch.object(SerialImageDownloadThread, "start")
-    def test_stop_loading(self, mock_start_method, mock_stop_method):
-        astrom_data = self.mock_astrom_data(3, 2)
-
-        self.undertest.start_download(astrom_data)
-
-        self.undertest.stop_download()
-        mock_stop_method.assert_called_once_with()
 
 
 class ResolverTest(unittest.TestCase):

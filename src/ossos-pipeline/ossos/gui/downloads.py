@@ -12,6 +12,8 @@ from ossos.cutouts import CutoutCalculator
 # Images from CCDs < 18 have their coordinates flipped
 MAX_INVERTED_CCD = 17
 
+MAX_THREADS = 6
+
 
 class AsynchronousImageDownloadManager(object):
     """
@@ -21,70 +23,59 @@ class AsynchronousImageDownloadManager(object):
 
     def __init__(self, downloader):
         self.downloader = downloader
-        self.download_thread = None
+
+        self._should_stop = False
 
     def start_download(self, workload,
                        image_loaded_callback=None,
                        all_loaded_callback=None):
+        """
+        Creates a thread to download the specified workload.  That thread
+        will in turn spawn other threads to download the images, using up
+        to MAX_THREADS concurrently.
 
-        self.image_loaded_callback = image_loaded_callback
-        self.all_loaded_callback = all_loaded_callback
+        The outer thread spawning the downloader threads is needed so that
+        the application can still respond to callbacks and update the
+        model as each downloader thread finishes.
+        """
+        args = (workload, image_loaded_callback, all_loaded_callback)
+        workload_thread = threading.Thread(target=self._download_workload,
+                                           args=args)
+        workload_thread.start()
 
-        self.do_download(workload)
+    def _download_workload(self, workload,
+                           image_loaded_callback,
+                           all_loaded_callback):
+        items_to_download = []
+        for source in workload.get_unprocessed_sources():
+            for reading in source.get_readings():
+                items_to_download.append(reading)
+
+        index = 0
+        threads = []
+
+        while index < len(items_to_download) and not self._should_stop:
+            threads = filter(lambda thread: thread.is_alive(), threads)
+
+            if len(threads) < MAX_THREADS:
+                args = (items_to_download[index], image_loaded_callback)
+                new_thread = threading.Thread(target=self._do_download, args=args)
+                new_thread.start()
+
+                threads.append(new_thread)
+                index += 1
+
+        if not self.should_stop() and all_loaded_callback is not None:
+            all_loaded_callback()
+
+    def _do_download(self, item, on_finished):
+        on_finished(item, self.downloader.download(item))
 
     def stop_download(self):
-        assert self.download_thread is not None, "No download to stop."
-        self.download_thread.stop()
-
-    def do_download(self, workload):
-        self.download_thread = SerialImageDownloadThread(
-            self, self.downloader, workload)
-        self.download_thread.start()
-
-    def on_image_downloaded(self, downloaded_image, reading):
-        if self.image_loaded_callback is not None:
-            self.image_loaded_callback(reading, downloaded_image)
-
-    def on_all_downloaded(self):
-        if self.all_loaded_callback is not None:
-            self.all_loaded_callback()
-
-
-class SerialImageDownloadThread(threading.Thread):
-    """
-    Retrieve each image serially, but in this separate thread so it can
-    happen in the background.
-    """
-
-    def __init__(self, loader, downloader, workload):
-        super(SerialImageDownloadThread, self).__init__()
-
-        self.download_manager = loader
-        self.downloader = downloader
-        self.workload = workload
-
-        self._should_stop = False
-
-    def run(self):
-        for source in self.workload.get_unprocessed_sources():
-            for reading in source.get_readings():
-                if self._should_stop:
-                    return
-
-                downloaded_image = self.downloader.download(reading)
-
-                if self._should_stop:
-                    # Quit without calling callback
-                    return
-
-                self.download_manager.on_image_downloaded(downloaded_image,
-                                                          reading)
-
-        self.download_manager.on_all_downloaded()
-
-    def stop(self):
-        """Finish current download, but don't start any more."""
         self._should_stop = True
+
+    def should_stop(self):
+        return self._should_stop
 
 
 class VOSpaceResolver(object):
