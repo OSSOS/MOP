@@ -1,5 +1,8 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import os
+
+import requests
 import wx
 
 
@@ -34,6 +37,8 @@ class CertificateDialog(wx.Dialog):
 
         self.accept_button = wx.Button(self, label="Get certificate")
         self.cancel_button = wx.Button(self, label="Cancel")
+        self.accept_button.Bind(wx.EVT_BUTTON, self.on_accept)
+        self.cancel_button.Bind(wx.EVT_BUTTON, self.on_cancel)
 
     def _do_layout(self):
         vsizer = wx.BoxSizer(wx.VERTICAL)
@@ -70,3 +75,21 @@ class CertificateDialog(wx.Dialog):
 
         self.SetSizerAndFit(padding_sizer)
 
+    def on_cancel(self, event):
+        self.Destroy()
+
+    def on_accept(self, event):
+        username = self.username_field.GetValue()
+        password = self.password_field.GetValue()
+
+        download_certificate(username, password)
+        self.Destroy()
+
+
+def download_certificate(username, password):
+    url = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cred/proxyCert?daysValid=7"
+    response = requests.get(url, auth=(username, password))
+
+    certfile = os.path.join(os.getenv("HOME"), ".ssl/cadcproxy.pem")
+    with open(certfile, "wb") as filehandle:
+        filehandle.write(response.content)
