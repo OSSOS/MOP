@@ -13,18 +13,21 @@ class DownloadedFitsImage(object):
     A FITS file image which has been downloaded along with its apcor file.
     """
 
-    def __init__(self, fits_str, apcor_str, coord_converter, in_memory=True):
+    def __init__(self, fits_str, coord_converter, apcor_str=None,
+                 in_memory=True):
         """
         Constructs a new FitsImage object.
 
         Args:
           fits_str: str
             Raw data read from a FITS file in string format.
-          apcor_str: str:
-            Raw data from from the .apcor file associated with this image.
           coord_converter: ossos.cutouts.CoordinateConverter
             Converts coordinates from the original FITS file into pixel
             locations.  Takes into account cutouts.
+          apcor_str: str:
+            Raw data from from the .apcor file associated with this image.
+            Defaults to None, in which case attempting to perform
+            astrometric calculations will raise a ValueError.
           in_memory: bool
             If True, the FITS file will only be held in memory without
             writing to disk.  If False, the data will be written to a
@@ -36,11 +39,14 @@ class DownloadedFitsImage(object):
             the data, not the only way in which it may be stored.
         """
         assert fits_str is not None, "No fits data"
-        assert apcor_str is not None, "No apcor data"
         assert coord_converter is not None, "Must have a coordinate converter"
 
         self._coord_converter = coord_converter
-        self._apcordata = ApcorData.from_raw_string(apcor_str)
+
+        if apcor_str is not None:
+            self._apcordata = ApcorData.from_raw_string(apcor_str)
+        else:
+            self._apcordata = None
 
         self._hdulist = None
         self._tempfile = None
@@ -62,6 +68,9 @@ class DownloadedFitsImage(object):
             tf.seek(0)
 
         return tf
+
+    def has_apcord_data(self):
+        return self._apcordata is not None
 
     def get_pixel_coordinates(self, point):
         """
@@ -106,6 +115,10 @@ class DownloadedFitsImage(object):
             self._tempfile.close()
 
     def get_observed_magnitude(self, x, y, maxcount=30000.0):
+        if not self.has_apcord_data():
+            raise ValueError("Apcor data is required in order to calculate "
+                             "observed magnitude.")
+
         # TODO refactor: associate SourceReadings here?  Don't want to pass
         # in maxcount like this...
         return daophot.phot_mag(self.as_file().name, x, y,

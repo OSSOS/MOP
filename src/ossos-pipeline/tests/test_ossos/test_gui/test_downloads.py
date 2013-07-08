@@ -152,7 +152,7 @@ class AsynchronousImageDownloadManagerTest(FileReadingTestCase):
 
         callback = Mock()
 
-        self.undertest.do_download((reading, source), callback)
+        self.undertest.do_download((reading, source), False, callback)
 
         callback.assert_called_once_with(reading, self.downloaded_image)
 
