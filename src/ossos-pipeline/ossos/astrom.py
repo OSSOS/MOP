@@ -443,6 +443,18 @@ class SourceReading(object):
         return self.obs
 
     def get_coordinate_offset(self, other_reading):
+        """
+        Calculates the offsets between readings' coordinate systems.
+
+        Args:
+          other_reading: ossos.astrom.SourceReading
+            The reading to compare coordinate systems with.
+
+        Returns:
+          (offset_x, offset_y):
+            The x and y offsets between this reading and the other reading's
+            coordinate systems.
+        """
         my_x, my_y = self.reference_source_point
         other_x, other_y = other_reading.reference_source_point
         return my_x - other_x, my_y - other_y
