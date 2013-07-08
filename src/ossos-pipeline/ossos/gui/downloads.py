@@ -1,5 +1,6 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import math
 import threading
 
 import vos
@@ -49,7 +50,7 @@ class AsynchronousImageDownloadManager(object):
         items_to_download = []
         for source in workload.get_unprocessed_sources():
             for reading in source.get_readings():
-                items_to_download.append(reading)
+                items_to_download.append((reading, source))
 
         index = 0
         threads = []
@@ -59,7 +60,7 @@ class AsynchronousImageDownloadManager(object):
 
             if len(threads) < MAX_THREADS:
                 args = (items_to_download[index], image_loaded_callback)
-                new_thread = threading.Thread(target=self._do_download, args=args)
+                new_thread = threading.Thread(target=self.do_download, args=args)
                 new_thread.start()
 
                 threads.append(new_thread)
@@ -68,8 +69,9 @@ class AsynchronousImageDownloadManager(object):
         if not self.should_stop() and all_loaded_callback is not None:
             all_loaded_callback()
 
-    def _do_download(self, item, on_finished):
-        on_finished(item, self.downloader.download(item))
+    def do_download(self, item, on_finished):
+        reading, source = item
+        on_finished(reading, self.downloader.download(reading, source))
 
     def stop_download(self):
         self._should_stop = True
@@ -137,7 +139,7 @@ class ImageSliceDownloader(object):
 
         self.cutout_calculator = CutoutCalculator(slice_rows, slice_cols)
 
-    def _download_fits_file(self, uri, source_reading):
+    def _download_fits_file(self, uri, source_reading, cutout_center):
         # NOTE: ccd number is the extension, BUT Fits file extensions start at 1
         # Therefore ccd n = extension n + 1
         ccdnum = int(source_reading.obs.ccdnum)
@@ -156,8 +158,7 @@ class ImageSliceDownloader(object):
             inverted = True if ccdnum <= MAX_INVERTED_CCD else False
 
         cutout_str, converter = self.cutout_calculator.build_cutout_str(
-            extension, source_reading.reference_source_point, imgsize,
-            inverted=inverted)
+            extension, cutout_center, imgsize, inverted=inverted)
 
         vofile = self.vosclient.open(uri, view="cutout", cutout=cutout_str)
 
@@ -167,13 +168,38 @@ class ImageSliceDownloader(object):
         vofile = self.vosclient.open(uri, view="data")
         return vofile.read()
 
-    def download(self, source_reading, in_memory=True):
+    def calculate_cutout_center(self, current_reading, source):
+        """
+        Determines the point at which the cutout for a reading should be
+        centered.
+
+        Args:
+          current_reading: ossos.astrom.SourceReading
+            The reading for which the cutout is to be performed.
+          source: ossos.astrom.Source
+            The source to which the reading belongs.
+
+        Returns:
+          cutout_center: (x, y)
+            The location of the source in the middle observation, in the
+            coordinate system of the current source reading.
+        """
+        middle_index = int(math.ceil((len(source.get_readings()) / 2)))
+        middle_reading = source.get_reading(middle_index)
+
+        offset_x, offset_y = current_reading.get_coordinate_offset(middle_reading)
+
+        return middle_reading.x + offset_x, middle_reading.y + offset_y
+
+    def download(self, source_reading, source, in_memory=True):
         """
         Retrieves a remote image.
 
         Args:
           source_reading: ossos.astrom.SourceReading
             The reading to take a cutout around.
+          source: ossos.astrom.Source
+            The source for which the reading was taken.
           in_memory: bool
             If True, the image is stored in memory without being written to
             disk.  If False, the image will be written to a temporary file.
@@ -185,7 +211,10 @@ class ImageSliceDownloader(object):
         image_uri = self.resolver.resolve_image_uri(source_reading.obs)
         apcor_uri = self.resolver.resolve_apcor_uri(source_reading.obs)
 
-        fits_str, converter = self._download_fits_file(image_uri, source_reading)
+        cutout_center = self.calculate_cutout_center(source_reading, source)
+
+        fits_str, converter = self._download_fits_file(
+            image_uri, source_reading, cutout_center)
         apcor_str = self._download_apcor_file(apcor_uri)
 
         return DownloadedFitsImage(fits_str, apcor_str, converter,
