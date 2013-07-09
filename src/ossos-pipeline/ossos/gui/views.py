@@ -52,12 +52,12 @@ class ApplicationView(object):
         self.close()
 
     @guithread
-    def view_image(self, fits_image):
-        self.mainframe.view_image(fits_image)
+    def view_image(self, fits_image, redraw=True):
+        self.mainframe.view_image(fits_image, redraw=redraw)
 
     @guithread
-    def draw_circle(self, x, y, radius):
-        self.mainframe.draw_circle(x, y, radius)
+    def draw_circle(self, x, y, radius, redraw=True):
+        self.mainframe.draw_circle(x, y, radius, redraw=redraw)
 
     @guithread
     def reset_colormap(self):
@@ -204,11 +204,11 @@ class MainFrame(wx.Frame):
     def _on_select_exit(self, event):
         self.controller.on_exit()
 
-    def view_image(self, fits_image):
-        self.image_viewer.view_image(fits_image)
+    def view_image(self, fits_image, redraw=True):
+        self.image_viewer.view_image(fits_image, redraw=redraw)
 
-    def draw_circle(self, x, y, radius):
-        self.image_viewer.draw_circle(x, y, radius)
+    def draw_circle(self, x, y, radius, redraw=True):
+        self.image_viewer.draw_circle(x, y, radius, redraw=redraw)
 
     def reset_colormap(self):
         self.image_viewer.reset_colormap()
