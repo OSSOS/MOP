@@ -5,8 +5,6 @@ import tempfile
 
 from astropy.io import fits
 
-from ossos import daophot
-
 
 class DownloadedFitsImage(object):
     """
@@ -118,6 +116,10 @@ class DownloadedFitsImage(object):
         if not self.has_apcord_data():
             raise ValueError("Apcor data is required in order to calculate "
                              "observed magnitude.")
+
+        # NOTE: this import is only here so that we don't load up IRAF
+        # unnecessarily (ex: for candidates processing).
+        from ossos import daophot
 
         # TODO refactor: associate SourceReadings here?  Don't want to pass
         # in maxcount like this...

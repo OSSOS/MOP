@@ -3,7 +3,6 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 
 from ossos.gui import tasks
-from ossos.mpc import MPCWriter
 from ossos.astrom import StreamingAstromWriter
 from ossos.gui.persistence import FileLockedException
 
@@ -401,6 +400,12 @@ class RealsWorkUnitBuilder(WorkUnitBuilder):
         super(RealsWorkUnitBuilder, self).__init__(parser, progress_manager)
 
     def _create_results_writer(self, full_path, parsed_data):
+        # NOTE: this import is only here so that we don't load up secondary
+        # dependencies (like astropy) used in MPCWriter when they are not
+        # needed (i.e. cands task).  This is to help reduce the application
+        # startup time.
+        from ossos.mpc import MPCWriter
+
         output_filename = full_path.replace(tasks.get_suffix(tasks.REALS_TASK),
                                             ".mpc")
         output_filehandle = open(output_filename, "a+b")

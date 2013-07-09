@@ -12,6 +12,7 @@ from ossos.gui.workload import (WorkUnitProvider,
 from ossos.astrom import AstromParser
 from ossos.gui.persistence import ProgressManager
 from ossos.naming import ProvisionalNameGenerator
+from ossos.gui.errorhandling import VOSpaceErrorHandler
 from ossos.gui.downloads import (AsynchronousImageDownloadManager,
                                  ImageSliceDownloader, VOSpaceResolver)
 from ossos.gui.models import UIModel
@@ -28,6 +29,15 @@ class AbstractTaskFactory(object):
 
 
 class ProcessRealsTaskFactory(AbstractTaskFactory):
+    def __init__(self):
+        # NOTE: Force expensive loading of libraries up front.  These are
+        # libraries that the reals task needs but the candidates task
+        # doesn't.  To make sure the candidates task doesn't load them, we
+        # import them directly in the functions/methods where they are used.
+        # TODO: find out what the best practice is for handling this sort of
+        # situation and refactor.
+        from pyraf import iraf
+
     def create_workunit_builder(self, parser, progress_manager):
         return RealsWorkUnitBuilder(parser, progress_manager)
 
@@ -62,8 +72,11 @@ class ValidationApplication(object):
             raise ValueError("Unknown task: %s" % taskname)
 
         parser = AstromParser()
-        download_manager = AsynchronousImageDownloadManager(
-            ImageSliceDownloader(VOSpaceResolver()))
+        resolver = VOSpaceResolver()
+        error_handler = VOSpaceErrorHandler(self)
+        downloader = ImageSliceDownloader(resolver)
+        download_manager = AsynchronousImageDownloadManager(downloader,
+                                                            error_handler)
 
         directory_context = DirectoryContext(working_directory)
         progress_manager = ProgressManager(directory_context)
@@ -71,9 +84,18 @@ class ValidationApplication(object):
         workunit_provider = WorkUnitProvider(tasks.get_suffix(taskname), directory_context,
                                              progress_manager, builder)
         model = UIModel(workunit_provider, progress_manager, download_manager)
-        factory.create_controller(model)
+        controller = factory.create_controller(model)
+
+        self.model = model
+        self.view = controller.get_view()
 
         wx_app.MainLoop()
+
+    def get_model(self):
+        return self.model
+
+    def get_view(self):
+        return self.view
 
 
 class DirectoryContext(object):
