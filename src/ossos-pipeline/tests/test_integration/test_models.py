@@ -61,7 +61,7 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
         # Put a real fits image on the first source, first observation
         apcor_str = "4 15   0.19   0.01"
         with open(self.get_abs_path(path), "rb") as fh:
-            self.first_image = DownloadedFitsImage(fh.read(), apcor_str, Mock(), in_memory=True)
+            self.first_image = DownloadedFitsImage(fh.read(), Mock(), apcor_str, in_memory=True)
             first_reading = self.model.get_current_workunit().get_sources()[0].get_readings()[0]
             self.model._on_image_loaded(first_reading, self.first_image)
 

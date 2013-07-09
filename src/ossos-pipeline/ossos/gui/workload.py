@@ -217,6 +217,9 @@ class WorkUnit(object):
     def is_finished(self):
         return len(self._get_item_set() - self.processed_items) == 0
 
+    def is_apcor_needed(self):
+        raise NotImplementedError()
+
     def _get_item_set(self):
         raise NotImplementedError()
 
@@ -263,6 +266,9 @@ class RealsWorkUnit(WorkUnit):
 
         return True
 
+    def is_apcor_needed(self):
+        return True
+
     def _get_item_set(self):
         all_readings = set()
         for readings in self.readings_by_source.itervalues():
@@ -300,6 +306,9 @@ class CandidatesWorkUnit(WorkUnit):
 
     def is_source_finished(self, source):
         return source in self.processed_items
+
+    def is_apcor_needed(self):
+        return False
 
     def _get_item_set(self):
         return set(self.sources)

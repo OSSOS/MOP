@@ -1,5 +1,6 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import math
 import threading
 
 import vos
@@ -12,7 +13,7 @@ from ossos.cutouts import CutoutCalculator
 # Images from CCDs < 18 have their coordinates flipped
 MAX_INVERTED_CCD = 17
 
-MAX_THREADS = 6
+MAX_THREADS = 3
 
 
 class AsynchronousImageDownloadManager(object):
@@ -26,7 +27,7 @@ class AsynchronousImageDownloadManager(object):
 
         self._should_stop = False
 
-    def start_download(self, workload,
+    def start_download(self, workunit,
                        image_loaded_callback=None,
                        all_loaded_callback=None):
         """
@@ -38,28 +39,29 @@ class AsynchronousImageDownloadManager(object):
         the application can still respond to callbacks and update the
         model as each downloader thread finishes.
         """
-        args = (workload, image_loaded_callback, all_loaded_callback)
-        workload_thread = threading.Thread(target=self._download_workload,
+        args = (workunit, image_loaded_callback, all_loaded_callback)
+        workunit_thread = threading.Thread(target=self._download_workunit,
                                            args=args)
-        workload_thread.start()
+        workunit_thread.start()
 
-    def _download_workload(self, workload,
+    def _download_workunit(self, workunit,
                            image_loaded_callback,
                            all_loaded_callback):
         items_to_download = []
-        for source in workload.get_unprocessed_sources():
+        for source in workunit.get_unprocessed_sources():
             for reading in source.get_readings():
-                items_to_download.append(reading)
+                items_to_download.append((reading, source))
 
         index = 0
         threads = []
 
+        needs_apcor = workunit.is_apcor_needed()
         while index < len(items_to_download) and not self._should_stop:
             threads = filter(lambda thread: thread.is_alive(), threads)
 
             if len(threads) < MAX_THREADS:
-                args = (items_to_download[index], image_loaded_callback)
-                new_thread = threading.Thread(target=self._do_download, args=args)
+                args = (items_to_download[index], needs_apcor, image_loaded_callback)
+                new_thread = threading.Thread(target=self.do_download, args=args)
                 new_thread.start()
 
                 threads.append(new_thread)
@@ -68,8 +70,10 @@ class AsynchronousImageDownloadManager(object):
         if not self.should_stop() and all_loaded_callback is not None:
             all_loaded_callback()
 
-    def _do_download(self, item, on_finished):
-        on_finished(item, self.downloader.download(item))
+    def do_download(self, item, needs_apcor, on_finished):
+        reading, source = item
+        on_finished(reading, self.downloader.download(reading, source,
+                                                      needs_apcor=needs_apcor))
 
     def stop_download(self):
         self._should_stop = True
@@ -137,7 +141,7 @@ class ImageSliceDownloader(object):
 
         self.cutout_calculator = CutoutCalculator(slice_rows, slice_cols)
 
-    def _download_fits_file(self, uri, source_reading):
+    def _download_fits_file(self, uri, source_reading, cutout_center):
         # NOTE: ccd number is the extension, BUT Fits file extensions start at 1
         # Therefore ccd n = extension n + 1
         ccdnum = int(source_reading.obs.ccdnum)
@@ -156,8 +160,7 @@ class ImageSliceDownloader(object):
             inverted = True if ccdnum <= MAX_INVERTED_CCD else False
 
         cutout_str, converter = self.cutout_calculator.build_cutout_str(
-            extension, source_reading.reference_source_point, imgsize,
-            inverted=inverted)
+            extension, cutout_center, imgsize, inverted=inverted)
 
         vofile = self.vosclient.open(uri, view="cutout", cutout=cutout_str)
 
@@ -167,13 +170,38 @@ class ImageSliceDownloader(object):
         vofile = self.vosclient.open(uri, view="data")
         return vofile.read()
 
-    def download(self, source_reading, in_memory=True):
+    def calculate_cutout_center(self, current_reading, source):
+        """
+        Determines the point at which the cutout for a reading should be
+        centered.
+
+        Args:
+          current_reading: ossos.astrom.SourceReading
+            The reading for which the cutout is to be performed.
+          source: ossos.astrom.Source
+            The source to which the reading belongs.
+
+        Returns:
+          cutout_center: (x, y)
+            The location of the source in the middle observation, in the
+            coordinate system of the current source reading.
+        """
+        middle_index = int(math.ceil((len(source.get_readings()) / 2)))
+        middle_reading = source.get_reading(middle_index)
+
+        offset_x, offset_y = current_reading.get_coordinate_offset(middle_reading)
+
+        return middle_reading.x + offset_x, middle_reading.y + offset_y
+
+    def download(self, source_reading, source, needs_apcor=True, in_memory=True):
         """
         Retrieves a remote image.
 
         Args:
           source_reading: ossos.astrom.SourceReading
             The reading to take a cutout around.
+          source: ossos.astrom.Source
+            The source for which the reading was taken.
           in_memory: bool
             If True, the image is stored in memory without being written to
             disk.  If False, the image will be written to a temporary file.
@@ -185,8 +213,14 @@ class ImageSliceDownloader(object):
         image_uri = self.resolver.resolve_image_uri(source_reading.obs)
         apcor_uri = self.resolver.resolve_apcor_uri(source_reading.obs)
 
-        fits_str, converter = self._download_fits_file(image_uri, source_reading)
-        apcor_str = self._download_apcor_file(apcor_uri)
+        cutout_center = self.calculate_cutout_center(source_reading, source)
 
-        return DownloadedFitsImage(fits_str, apcor_str, converter,
-                                   in_memory=in_memory)
+        fits_str, converter = self._download_fits_file(
+            image_uri, source_reading, cutout_center)
+
+        if needs_apcor:
+            apcor_str = self._download_apcor_file(apcor_uri)
+        else:
+            apcor_str = None
+
+        return DownloadedFitsImage(fits_str, converter, apcor_str, in_memory=in_memory)
