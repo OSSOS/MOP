@@ -23,14 +23,15 @@ class AbstractController(object):
 
     def display_current_image(self):
         try:
-            self.get_view().view_image(self.get_model().get_current_image())
+            self.get_view().view_image(self.get_model().get_current_image(),
+                                       redraw=False)
         except ImageNotLoadedException:
             self.get_view().show_image_loading_dialog()
             return
 
         image_x, image_y = self.model.get_current_image_source_point()
         radius = 2 * round(self.model.get_current_image_FWHM())
-        self.get_view().draw_circle(image_x, image_y, radius)
+        self.get_view().draw_circle(image_x, image_y, radius, redraw=True)
 
         self.get_view().set_observation_status(
             self.model.get_current_obs_number() + 1,
