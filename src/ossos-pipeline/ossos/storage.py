@@ -102,7 +102,7 @@ def get_uri(expnum, ccd=None,
                            '%s%s%s%s' % (prefix, str(expnum),
                                           version,
                                           ext))
-    logging.info("got uri: "+uri)
+    logging.debug("got uri: "+uri)
     return uri
 
 dbimages_uri = get_uri
@@ -153,7 +153,7 @@ def get_status(expnum, ccd, program, return_message=False):
     '''Report back status of the given program'''
     key = get_process_tag(program, ccd)
     status = get_tag(expnum, key)
-    logging.info('%s: %s' %(key, status))
+    logging.debug('%s: %s' %(key, status))
     if return_message:
         return status
     else:
@@ -182,14 +182,14 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     filename = os.path.basename(uri)
     
     if os.access(filename, os.F_OK):
-        logging.info("File already on disk: %s" % ( filename))
+        logging.debug("File already on disk: %s" % ( filename))
         return filename
 
     try:
-        logging.info("trying to get file %s" % ( uri))
+        logging.debug("trying to get file %s" % ( uri))
         copy(uri, filename)
     except Exception as e:
-        logging.info(str(e))
+        logging.debug(str(e))
         if e.errno != errno.ENOENT or ccd is None:
             raise e
         ## try doing a cutout from MEF in VOSpace
@@ -197,14 +197,14 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
                       version=version,
                       ext=ext,
                       subdir=subdir)
-        logging.info("Using uri: %s" % ( uri))
+        logging.debug("Using uri: %s" % ( uri))
         cutout="[%d]" % ( int(ccd)+1)
         if ccd < 18 :
             cutout += "[-*,-*]"
 
-        logging.info(uri)
+        logging.debug(uri)
         url = vospace.getNodeURL(uri,view='cutout', limit=None, cutout=cutout)
-        logging.info(url)
+        logging.debug(url)
         fin = vospace.open(uri, URL=url)
         fout = open(filename, 'w')
         buff = fin.read(2**16)
@@ -250,7 +250,7 @@ def mkdir(root):
         dir_list.append(root)
         root = os.path.dirname(root)
     while len(dir_list)>0:
-        logging.info("Creating directory: %s" % (dir_list[-1]))
+        logging.debug("Creating directory: %s" % (dir_list[-1]))
         vospace.mkdir(dir_list.pop())
     return 
 
@@ -260,7 +260,7 @@ def copy(source, dest):
     '''
 
 
-    logging.info("%s -> %s" % ( source, dest))
+    logging.debug("%s -> %s" % ( source, dest))
 
     return vospace.copy(source, dest)
 
