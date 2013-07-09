@@ -79,8 +79,7 @@ class MPLFitsImageViewer(object):
 
         self._viewed_images = {}
 
-    def view_image(self, fits_image):
-        # TODO: defaultdict?
+    def view_image(self, fits_image, redraw=True):
         if fits_image not in self._viewed_images:
             colormapped_image = ColormappedFitsImage(fits_image)
             self._viewed_images[fits_image] = colormapped_image
@@ -100,7 +99,6 @@ class MPLFitsImageViewer(object):
             self.axes_image.set_clim(vmin=np.min(processed_image_data),
                                      vmax=np.max(processed_image_data))
             self._refresh_displayed_colormap()
-            plt.draw()
 
         if self.colorbar is None:
             # Create axes for colorbar.  Make it tightly fit the image.
@@ -109,6 +107,9 @@ class MPLFitsImageViewer(object):
             self.cax = divider.append_axes("bottom", size=size, pad=0.05)
             self.colorbar = self.figure.colorbar(
                 self.axes_image, orientation="horizontal", cax=self.cax)
+
+        if redraw:
+            self.redraw()
 
     def _refresh_displayed_colormap(self):
         self.axes_image.set_cmap(self.current_image.get_cmap())
@@ -132,7 +133,7 @@ class MPLFitsImageViewer(object):
     def has_had_interaction(self):
         return self._has_had_interaction
 
-    def draw_circle(self, x, y, radius):
+    def draw_circle(self, x, y, radius, redraw=True):
         """
         Draws a circle with the specified dimensions.  Only one circle can
         be on the image at a time, so any existing circle will be replaced.
@@ -143,7 +144,8 @@ class MPLFitsImageViewer(object):
         self.circle = plt.Circle((x, y), radius, color="b", fill=False)
         self.axes.add_patch(self.circle)
 
-        self.redraw()
+        if redraw:
+            self.redraw()
 
     def update_circle(self, x, y, radius=None):
         if self.circle is None:
