@@ -1,13 +1,15 @@
 #!/bin/bash
+outfile=payload.bsx
 cd payload
+cp ${HOME}/.ssl/cadcproxy.pem ./
 tar czf ../payload.tgz ./*
 cd ..
 if [ -e "payload.tgz" ]; then
-    cat decompress.sh payload.tar.gz > selfextract.bsx
+    cat decompress.sh payload.tgz > ${outfile}
 else
-    echo "payload.tar.gz does not exist"
+    echo "payload.tgz does not exist"
     exit 1
 fi
 
-echo "selfextract.bsx created"
+echo ${outfile}
 exit 0
