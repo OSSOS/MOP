@@ -206,6 +206,23 @@ class ParserTest(FileReadingTestCase):
         assert_that(reading2.reference_source_point[0], close_to(564.44, delta))
         assert_that(reading2.reference_source_point[1], close_to(406.03, delta))
 
+    def test_reading_coordinate_offsets(self):
+        astrom_data = self.parse(TEST_FILE_2)
+
+        source = astrom_data.get_sources()[0]
+
+        reading0 = source.get_reading(0)
+        reading1 = source.get_reading(1)
+        reading2 = source.get_reading(2)
+
+        delta = 0.00000001
+        assert_that(reading0.get_coordinate_offset(reading0)[0], close_to(0, delta))
+        assert_that(reading0.get_coordinate_offset(reading0)[1], close_to(0, delta))
+        assert_that(reading0.get_coordinate_offset(reading1)[0], close_to(-2.76, delta))
+        assert_that(reading0.get_coordinate_offset(reading1)[1], close_to(-0.17, delta))
+        assert_that(reading0.get_coordinate_offset(reading2)[0], close_to(-4.38, delta))
+        assert_that(reading0.get_coordinate_offset(reading2)[1], close_to(0.48, delta))
+
     def test_parse_fake_file(self):
         astrom_data = self.parse(FK_FILE)
 
