@@ -2,17 +2,18 @@
 # Run the Moving Object Pipeline on the given exposure numbers
 
 ccd=$4
+force=
 ## First do the search images
-mkpsf.py $1 $2 $3 --ccd $ccd -v 
-step1.py $1 $2 $3 --ccd $ccd -v 
-step2.py $1 $2 $3 --ccd $ccd -v 
-step3.py $1 $2 $3 --ccd $ccd -v 
-combine.py $3 -v 
+mkpsf.py $1 $2 $3 --ccd $ccd -v  ${force}
+step1.py $1 $2 $3 --ccd $ccd -v  ${force}
+step2.py $1 $2 $3 --ccd $ccd -v  ${force}
+step3.py $1 $2 $3 --ccd $ccd -v  ${force}
+combine.py $3 -v  --ccd $ccd ${force}
 
 ## Now build a scramble set and search
-scramble.py $1 $2 $3 --ccd $ccd -v 
-plant.py $1 $2 $3 --ccd $ccd -v
-step1.py $1 $2 $3 --ccd $ccd --fk --type s -v 
-step2.py $1 $2 $3 --ccd $ccd --fk --type s -v 
-step3.py $1 $2 $3 --ccd $ccd --fk --type s -v 
-combine.py $3 --ccd $ccd --fk --type s -v 
+scramble.py $1 $2 $3 --ccd $ccd -v  ${force}
+plant.py $1 $2 $3 --ccd $ccd -v ${force}
+step1.py $1 $2 $3 --ccd $ccd --fk --type s -v  ${force}
+step2.py $1 $2 $3 --ccd $ccd --fk --type s -v  ${force}
+step3.py $1 $2 $3 --ccd $ccd --fk --type s -v ${force}
+combine.py $3 --ccd $ccd --fk --type s -v  ${force}

@@ -1,10 +1,10 @@
 ## where is the file that contains a list of triples?
-proc_service="https://www.canfar.physiuvic.ca/proc/pub"
-proxy_pem=${HOME}/.ssl/cadcproxy.pem
-triples="vos:OSSOS/triplets/E_13A_discovery_expnums.txt"
-task="mop.sh"
-condor_subimt="condor_submit.in"
-condor_header="condor_header.txt"
+export proc_service="https://www.canfar.phys.uvic.ca/proc/pub"
+export proxy_pem=${HOME}/.ssl/cadcproxy.pem
+export triples=vos:OSSOS/triplets/E_13A_discovery_expnums.txt
+export task=mop.sh
+export condor_submit=condor_submit.in
+export condor_header=condor_header.txt
 
 # create a fresh payload
 payload=`./create_payload.sh` || exit 1
@@ -20,7 +20,7 @@ do
     echo "QUEUE" >> ${condor_submit}
     echo "" >> ${condor_submit}
     echo "submitting ${job_id} $task ${job_id}_${ccd}"
-    curl -k -E ${proxy_pem} \
+    curl -v -k -E ${proxy_pem} \
             -X POST \
             -F "condor_submit=<${condor_submit}" \
             -F "payload=<${payload}" \
