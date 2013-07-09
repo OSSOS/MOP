@@ -132,8 +132,9 @@ if __name__ == '__main__':
     prefix = ( args.fk and 'fk') or ''
 
     for ccd in ccdlist:
+        message = storage.SUCCESS
+
         try:
-            message = storage.SUCCESS
             if not storage.get_status(args.expnums[0], ccd, prefix+'step2'):
                 raise IOError(35, "did step2 run on %s" % ( str(args.expnums)))
             if storage.get_status(args.expnums[0], ccd, prefix+'step3') and not args.force:
@@ -149,6 +150,7 @@ if __name__ == '__main__':
                   prefix=prefix)
         except Exception as e:
             message = str(e)
+
         logging.error(message)
 
         storage.set_status(args.expnums[0],
