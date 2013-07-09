@@ -3,6 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import wx
 import wx.lib.inspection
 
+from tests.manual_inspection.context import testutil
 from ossos.gui.errorhandling import CertificateDialog
 
 
@@ -15,7 +16,8 @@ def main():
     panel = wx.Panel(rootframe, wx.ID_ANY)
 
     def onclick_launch(event):
-        CertificateDialog(panel, "This is an error message!").Show()
+        CertificateDialog(panel, testutil.Dummy("Handler"),
+                          "This is an error message!").Show()
 
     button = wx.Button(panel, id=wx.ID_ANY, label="Launch dialog")
     button.Bind(wx.EVT_BUTTON, onclick_launch)

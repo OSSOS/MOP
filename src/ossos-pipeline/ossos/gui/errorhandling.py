@@ -76,6 +76,9 @@ class CertificateDialog(wx.Dialog):
         self.accept_button.Bind(wx.EVT_BUTTON, self.on_accept)
         self.cancel_button.Bind(wx.EVT_BUTTON, self.on_cancel)
 
+        self.username_field.SetFocus()
+        self.accept_button.SetDefault()
+
     def _do_layout(self):
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
