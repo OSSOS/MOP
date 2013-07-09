@@ -12,6 +12,7 @@ import vos
 from tests.base_tests import FileReadingTestCase
 from ossos.gui.image import DownloadedFitsImage
 from ossos.astrom import SourceReading, Observation, AstromParser, Source
+from ossos.gui.errorhandling import VOSpaceErrorHandler
 from ossos.gui.downloads import (ImageSliceDownloader, AsynchronousImageDownloadManager,
                                  VOSpaceResolver)
 
@@ -140,8 +141,10 @@ class AsynchronousImageDownloadManagerTest(FileReadingTestCase):
         self.downloader = Mock(spec=ImageSliceDownloader)
         self.downloaded_image = Mock(spec=DownloadedFitsImage)
         self.downloader.download.return_value = self.downloaded_image
+        self.error_handler = Mock(spec=VOSpaceErrorHandler)
 
-        self.undertest = AsynchronousImageDownloadManager(self.downloader)
+        self.undertest = AsynchronousImageDownloadManager(self.downloader,
+                                                          self.error_handler)
 
     def test_download_callback(self):
         astrom_data = AstromParser().parse(
