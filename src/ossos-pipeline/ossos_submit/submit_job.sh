@@ -25,6 +25,5 @@ do
             -F "condor_submit=<${condor_submit}" \
             -F "payload=<${payload}" \
             "${proc_service}?job=${condor_submit},param:condor_submit&exec=${payload},param:payload"
-    exit 0
   done
 done
