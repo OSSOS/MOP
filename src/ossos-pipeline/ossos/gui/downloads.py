@@ -22,8 +22,18 @@ class AsynchronousImageDownloadManager(object):
     the application.
     """
 
-    def __init__(self, downloader):
+    def __init__(self, downloader, error_handler):
+        """
+        Constructor.
+
+        Args:
+          downloader:
+            Downloads images.
+          error_handler:
+            Handles errors that occur when trying to download resources.
+        """
         self.downloader = downloader
+        self.error_handler = error_handler
 
         self._should_stop = False
 
@@ -39,6 +49,8 @@ class AsynchronousImageDownloadManager(object):
         the application can still respond to callbacks and update the
         model as each downloader thread finishes.
         """
+        self._should_stop = False
+
         args = (workunit, image_loaded_callback, all_loaded_callback)
         workunit_thread = threading.Thread(target=self._download_workunit,
                                            args=args)
@@ -60,8 +72,11 @@ class AsynchronousImageDownloadManager(object):
             threads = filter(lambda thread: thread.is_alive(), threads)
 
             if len(threads) < MAX_THREADS:
-                args = (items_to_download[index], needs_apcor, image_loaded_callback)
-                new_thread = threading.Thread(target=self.do_download, args=args)
+                args = (items_to_download[index], needs_apcor,
+                        image_loaded_callback)
+                new_thread = ErrorHandlingThread(self.error_handler,
+                                                 target=self.do_download,
+                                                 args=args)
                 new_thread.start()
 
                 threads.append(new_thread)
@@ -80,6 +95,24 @@ class AsynchronousImageDownloadManager(object):
 
     def should_stop(self):
         return self._should_stop
+
+    def refresh_vos_client(self):
+        self.downloader.refresh_vos_client()
+
+
+class ErrorHandlingThread(threading.Thread):
+    def __init__(self, error_handler, group=None, target=None, name=None,
+                 args=(), kwargs={}):
+        super(ErrorHandlingThread, self).__init__(
+            group=group, target=target, name=name, args=args, kwargs=kwargs)
+
+        self.error_handler = error_handler
+
+    def run(self):
+        try:
+            super(ErrorHandlingThread, self).run()
+        except Exception as error:
+            self.error_handler.handle_error(error)
 
 
 class VOSpaceResolver(object):
@@ -224,3 +257,10 @@ class ImageSliceDownloader(object):
             apcor_str = None
 
         return DownloadedFitsImage(fits_str, converter, apcor_str, in_memory=in_memory)
+
+    def refresh_vos_client(self):
+        """
+        If we have gotten a new certfile we have to create a new Client
+        object before it will get used.
+        """
+        self.vosclient = vos.Client(cadc_short_cut=True)
