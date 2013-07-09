@@ -125,6 +125,62 @@ class CertificateDialog(wx.Dialog):
         self.Destroy()
 
 
+class RetryDownloadDialog(wx.Dialog):
+    def __init__(self, parent, handler, error_message):
+        super(RetryDownloadDialog, self).__init__(parent, title="Download Error")
+
+        self.handler = handler
+        self.error_message = error_message
+
+        self._init_ui()
+        self._do_layout()
+
+    def _init_ui(self):
+        self.header_text = wx.StaticText(self, label="An image failed to "
+                                                     "download:")
+        self.error_text = wx.StaticText(self, label=self.error_message)
+        error_font = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_ITALIC,
+                             wx.FONTWEIGHT_NORMAL)
+        self.error_text.SetFont(error_font)
+
+        self.retry_button = wx.Button(self, label="Retry")
+        self.cancel_button = wx.Button(self, label="Cancel")
+        self.retry_button.Bind(wx.EVT_BUTTON, self.on_accept)
+        self.cancel_button.Bind(wx.EVT_BUTTON, self.on_cancel)
+
+        self.retry_button.SetDefault()
+
+    def _do_layout(self):
+        vsizer = wx.BoxSizer(wx.VERTICAL)
+
+        flag = wx.ALIGN_CENTER | wx.ALL
+        border = 10
+
+        vsizer.Add(self.header_text, flag=flag, border=border)
+        vsizer.Add(self.error_text, flag=flag, border=border)
+
+        line = wx.StaticLine(self, -1, size=(20, -1), style=wx.LI_HORIZONTAL)
+        vsizer.Add(line, flag=wx.GROW | wx.ALIGN_CENTER_VERTICAL | wx.RIGHT | wx.TOP, border=5)
+
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(self.retry_button, flag=wx.RIGHT, border=5)
+        button_sizer.Add(self.cancel_button, flag=wx.LEFT, border=5)
+
+        vsizer.Add(button_sizer, flag=flag, border=border)
+
+        padding_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        padding_sizer.Add(vsizer, flag=wx.ALL, border=20)
+
+        self.SetSizerAndFit(padding_sizer)
+
+    def on_cancel(self, event):
+        self.Destroy()
+
+    def on_accept(self, event):
+        self.handler.retry_download()
+        self.Destroy()
+
+
 def download_certificate(username, password):
     url = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cred/proxyCert?daysValid=7"
     response = requests.get(url, auth=(username, password))
