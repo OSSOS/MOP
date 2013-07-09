@@ -2,7 +2,7 @@
 # Run the Moving Object Pipeline on the given exposure numbers
 
 ccd=$4
-force=
+force=$5
 ## First do the search images
 mkpsf.py $1 $2 $3 --ccd $ccd -v  ${force}
 step1.py $1 $2 $3 --ccd $ccd -v  ${force}
