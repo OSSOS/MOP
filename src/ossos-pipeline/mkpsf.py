@@ -74,6 +74,8 @@ if __name__ == '__main__':
                         )
     parser.add_argument("--verbose", "-v",
                         action="store_true")
+    parser.add_argument("--force", default=False,
+                        action="store_true")
     parser.add_argument("--debug", "-d",
                         action="store_true")
 
@@ -95,7 +97,7 @@ if __name__ == '__main__':
 
     for expnum in args.expnum:
         for ccd in ccdlist:
-            if storage.get_status(expnum, ccd, 'mkpsf'):
+            if storage.get_status(expnum, ccd, 'mkpsf') and not args.force:
                 logging.info("Already did %s %s, skipping" %( str(expnum),
                                                                   str(ccd)))
                 continue
