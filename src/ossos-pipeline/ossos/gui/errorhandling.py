@@ -1,15 +1,51 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import errno
 import os
 
 import requests
 import wx
 
 
+class VOSpaceErrorHandler(object):
+    def __init__(self, app):
+        self.app = app
+
+    def handle_error(self, error):
+        """
+        Checks what error occured and looks for an appropriate solution.
+
+        Args:
+          error: Exception
+            The error that has occured.
+        """
+        if isinstance(error, OSError) and error.errno == errno.EACCES:
+            self.handle_certificate_problem(str(error))
+        else:
+            raise error
+
+    def handle_certificate_problem(self, error_message):
+        self.app.get_model().stop_loading_images()
+
+        view = self.app.get_view()
+        view.hide_image_loading_dialog()
+        view.show_certificate_dialog(self, error_message)
+
+    def refresh_certificate(self, username, password):
+        download_certificate(username, password)
+
+        model = self.app.get_model()
+        model.refresh_vos_client()
+
+        self.app.get_view().show_image_loading_dialog()
+        model.start_loading_images()
+
+
 class CertificateDialog(wx.Dialog):
-    def __init__(self, parent, error_message):
+    def __init__(self, parent, handler, error_message):
         super(CertificateDialog, self).__init__(parent, title="Certificate Error")
 
+        self.handler = handler
         self.error_message = error_message
 
         self._init_ui()
@@ -82,7 +118,7 @@ class CertificateDialog(wx.Dialog):
         username = self.username_field.GetValue()
         password = self.password_field.GetValue()
 
-        download_certificate(username, password)
+        self.handler.refresh_certificate(username, password)
         self.Destroy()
 
 
