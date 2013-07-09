@@ -7,6 +7,7 @@ from wx.lib.mixins import listctrl as listmix
 
 from ossos.gui import events, config
 from ossos.gui.fitsviewer import MPLFitsImageViewer
+from ossos.gui.errorhandling import CertificateDialog
 
 
 def guithread(function):
@@ -44,6 +45,7 @@ class ApplicationView(object):
 
         self.accept_source_dialog = None
         self.reject_source_dialog = None
+        self.certificate_dialog = None
 
         self.mainframe.Show()
         self.mainframe.show_image_loading_dialog()
@@ -52,12 +54,12 @@ class ApplicationView(object):
         self.close()
 
     @guithread
-    def view_image(self, fits_image):
-        self.mainframe.view_image(fits_image)
+    def view_image(self, fits_image, redraw=True):
+        self.mainframe.view_image(fits_image, redraw=redraw)
 
     @guithread
-    def draw_circle(self, x, y, radius):
-        self.mainframe.draw_circle(x, y, radius)
+    def draw_circle(self, x, y, radius, redraw=True):
+        self.mainframe.draw_circle(x, y, radius, redraw=redraw)
 
     @guithread
     def reset_colormap(self):
@@ -88,6 +90,13 @@ class ApplicationView(object):
 
     def is_source_validation_enabled(self):
         return self.mainframe.is_source_validation_enabled()
+
+    @guithread
+    def show_certificate_dialog(self, handler, error_message):
+        if not self.certificate_dialog:
+            self.certificate_dialog = CertificateDialog(self.mainframe,
+                                                        handler, error_message)
+            self.certificate_dialog.ShowModal()
 
     def show_accept_source_dialog(self, preset_vals):
         self.accept_source_dialog = AcceptSourceDialog(
@@ -204,11 +213,11 @@ class MainFrame(wx.Frame):
     def _on_select_exit(self, event):
         self.controller.on_exit()
 
-    def view_image(self, fits_image):
-        self.image_viewer.view_image(fits_image)
+    def view_image(self, fits_image, redraw=True):
+        self.image_viewer.view_image(fits_image, redraw=redraw)
 
-    def draw_circle(self, x, y, radius):
-        self.image_viewer.draw_circle(x, y, radius)
+    def draw_circle(self, x, y, radius, redraw=True):
+        self.image_viewer.draw_circle(x, y, radius, redraw=redraw)
 
     def reset_colormap(self):
         self.image_viewer.reset_colormap()
