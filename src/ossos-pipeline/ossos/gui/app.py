@@ -28,6 +28,15 @@ class AbstractTaskFactory(object):
 
 
 class ProcessRealsTaskFactory(AbstractTaskFactory):
+    def __init__(self):
+        # NOTE: Force expensive loading of libraries up front.  These are
+        # libraries that the reals task needs but the candidates task
+        # doesn't.  To make sure the candidates task doesn't load them, we
+        # import them directly in the functions/methods where they are used.
+        # TODO: find out what the best practice is for handling this sort of
+        # situation and refactor.
+        from pyraf import iraf
+
     def create_workunit_builder(self, parser, progress_manager):
         return RealsWorkUnitBuilder(parser, progress_manager)
 
