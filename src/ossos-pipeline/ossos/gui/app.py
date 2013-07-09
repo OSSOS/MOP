@@ -12,6 +12,7 @@ from ossos.gui.workload import (WorkUnitProvider,
 from ossos.astrom import AstromParser
 from ossos.gui.persistence import ProgressManager
 from ossos.naming import ProvisionalNameGenerator
+from ossos.gui.errorhandling import VOSpaceErrorHandler
 from ossos.gui.downloads import (AsynchronousImageDownloadManager,
                                  ImageSliceDownloader, VOSpaceResolver)
 from ossos.gui.models import UIModel
@@ -62,8 +63,11 @@ class ValidationApplication(object):
             raise ValueError("Unknown task: %s" % taskname)
 
         parser = AstromParser()
-        download_manager = AsynchronousImageDownloadManager(
-            ImageSliceDownloader(VOSpaceResolver()))
+        resolver = VOSpaceResolver()
+        error_handler = VOSpaceErrorHandler(self)
+        downloader = ImageSliceDownloader(resolver)
+        download_manager = AsynchronousImageDownloadManager(downloader,
+                                                            error_handler)
 
         directory_context = DirectoryContext(working_directory)
         progress_manager = ProgressManager(directory_context)
@@ -71,9 +75,18 @@ class ValidationApplication(object):
         workunit_provider = WorkUnitProvider(tasks.get_suffix(taskname), directory_context,
                                              progress_manager, builder)
         model = UIModel(workunit_provider, progress_manager, download_manager)
-        factory.create_controller(model)
+        controller = factory.create_controller(model)
+
+        self.model = model
+        self.view = controller.get_view()
 
         wx_app.MainLoop()
+
+    def get_model(self):
+        return self.model
+
+    def get_view(self):
+        return self.view
 
 
 class DirectoryContext(object):

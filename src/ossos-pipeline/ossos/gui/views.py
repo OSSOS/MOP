@@ -7,6 +7,7 @@ from wx.lib.mixins import listctrl as listmix
 
 from ossos.gui import events, config
 from ossos.gui.fitsviewer import MPLFitsImageViewer
+from ossos.gui.errorhandling import CertificateDialog
 
 
 def guithread(function):
@@ -44,6 +45,7 @@ class ApplicationView(object):
 
         self.accept_source_dialog = None
         self.reject_source_dialog = None
+        self.certificate_dialog = None
 
         self.mainframe.Show()
         self.mainframe.show_image_loading_dialog()
@@ -88,6 +90,13 @@ class ApplicationView(object):
 
     def is_source_validation_enabled(self):
         return self.mainframe.is_source_validation_enabled()
+
+    @guithread
+    def show_certificate_dialog(self, handler, error_message):
+        if not self.certificate_dialog:
+            self.certificate_dialog = CertificateDialog(self.mainframe,
+                                                        handler, error_message)
+            self.certificate_dialog.ShowModal()
 
     def show_accept_source_dialog(self, preset_vals):
         self.accept_source_dialog = AcceptSourceDialog(
