@@ -113,7 +113,6 @@ class MPLFitsImageViewer(object):
     def _refresh_displayed_colormap(self):
         self.axes_image.set_cmap(self.current_image.get_cmap())
         self.axes_image.changed()
-        self.redraw()
 
     def update_colormap(self, dx, dy):
         assert self.current_image is not None, "No image to update colormap for."
