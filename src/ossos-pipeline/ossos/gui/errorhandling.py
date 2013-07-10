@@ -11,18 +11,20 @@ class DownloadErrorHandler(object):
     def __init__(self, app):
         self.app = app
 
-    def handle_error(self, error, item):
+    def handle_error(self, error, downloadable_item):
         """
         Checks what error occured and looks for an appropriate solution.
 
         Args:
           error: Exception
             The error that has occured.
+          downloadable_item: ossos.downloads.DownloadableItem
+            The item that was being downloaded when the error occurred.
         """
         if error.errno == errno.EACCES:
             self.handle_certificate_problem(str(error))
         elif error.errno == errno.ECONNREFUSED:
-            self.handle_connection_refused(str(error))
+            self.handle_connection_refused(str(error), downloadable_item)
         else:
             raise error
 
@@ -42,8 +44,12 @@ class DownloadErrorHandler(object):
         self.app.get_view().show_image_loading_dialog()
         model.start_loading_images()
 
-    def handle_connection_refused(self, error_message):
-        self.app.get_view().show_retry_download_dialog(self, error_message)
+    def handle_connection_refused(self, error_message, downloadable_item):
+        self.app.get_view().show_retry_download_dialog(self, error_message,
+                                                       downloadable_item)
+
+    def retry_download(self, downloadable_item):
+        self.app.get_model().retry_download(downloadable_item)
 
 
 class CertificateDialog(wx.Dialog):
@@ -131,11 +137,12 @@ class CertificateDialog(wx.Dialog):
 
 
 class RetryDownloadDialog(wx.Dialog):
-    def __init__(self, parent, handler, error_message):
+    def __init__(self, parent, handler, error_message, downloadable_item):
         super(RetryDownloadDialog, self).__init__(parent, title="Download Error")
 
         self.handler = handler
         self.error_message = error_message
+        self.downloadable_item = downloadable_item
 
         self._init_ui()
         self._do_layout()
@@ -182,7 +189,7 @@ class RetryDownloadDialog(wx.Dialog):
         self.Destroy()
 
     def on_accept(self, event):
-        # TODO: requeue download
+        self.handler.retry_download(self.downloadable_item)
         self.Destroy()
 
 

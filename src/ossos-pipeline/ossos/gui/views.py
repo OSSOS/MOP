@@ -46,7 +46,6 @@ class ApplicationView(object):
         self.accept_source_dialog = None
         self.reject_source_dialog = None
         self.certificate_dialog = None
-        self.retry_download_dialog = None
 
         self.mainframe.Show()
         self.mainframe.show_image_loading_dialog()
@@ -100,10 +99,10 @@ class ApplicationView(object):
             self.certificate_dialog.ShowModal()
 
     @guithread
-    def show_retry_download_dialog(self, handler, error_message):
-        self.retry_download_dialog = RetryDownloadDialog(self.mainframe,
-                                                         handler, error_message)
-        self.retry_download_dialog.Show()
+    def show_retry_download_dialog(self, handler, error_message,
+                                   downloadable_item):
+        RetryDownloadDialog(self.mainframe, handler, error_message,
+                            downloadable_item).Show()
 
     def show_accept_source_dialog(self, preset_vals):
         self.accept_source_dialog = AcceptSourceDialog(
