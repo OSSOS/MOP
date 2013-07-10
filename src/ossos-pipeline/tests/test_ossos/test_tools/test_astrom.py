@@ -9,7 +9,7 @@ from hamcrest import (assert_that, equal_to, has_length, has_entries,
 from tests.base_tests import FileReadingTestCase
 from ossos import astrom
 from ossos.astrom import (AstromParser, StreamingAstromWriter, Observation,
-                             BaseAstromWriter, BulkAstromWriter)
+                             BaseAstromWriter, BulkAstromWriter, SourceReading)
 
 TEST_FILE_1 = "data/1584431p15.measure3.cands.astrom"
 TEST_FILE_2 = "data/1616681p22.measure3.cands.astrom"
@@ -406,6 +406,45 @@ class AstromDataTest(FileReadingTestCase):
     def test_get_reading_count(self):
         astrom_data = AstromParser().parse(self.get_abs_path(TEST_FILE_1))
         assert_that(astrom_data.get_reading_count(), equal_to(9))
+
+
+class URIResolvingTest(unittest.TestCase):
+    def test_resolve_image_uri(self):
+        observation = Observation("1584431", "p", "15")
+        expected_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/1584431p.fits"
+        assert_that(observation.get_image_uri(), equal_to(expected_uri))
+
+    def test_resolve_apcor_uri(self):
+        observation = Observation("1616681", "p", "22")
+        expected_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1616681/ccd22/1616681p22.apcor"
+        assert_that(observation.get_apcor_uri(), equal_to(expected_uri))
+
+    def test_resolve_apcor_uri_single_digit_ccd(self):
+        """Just double checking we don't run into trouble with leading zeros"""
+        observation = Observation("1616681", "p", "05")
+        expected_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1616681/ccd05/1616681p05.apcor"
+        assert_that(observation.get_apcor_uri(), equal_to(expected_uri))
+
+    def test_resolve_fake_image_uri(self):
+        observation = Observation("1616682", "s", "24", fk="fk")
+        expected_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1616682/ccd24/fk1616682s24.fits"
+        assert_that(observation.get_image_uri(), equal_to(expected_uri))
+
+    def test_resolve_fake_apcor_uri(self):
+        observation = Observation("1616682", "s", "24", fk="fk")
+        expected_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1616682/ccd24/fk1616682s24.apcor"
+        assert_that(observation.get_apcor_uri(), equal_to(expected_uri))
+
+    def test_resolve_uris_from_reading(self):
+        observation = Observation("1584431", "p", "15")
+        # 0's for don't cares
+        reading = SourceReading(0, 0, 0, 0, 0, 0, 0, 0, observation)
+
+        expected_image_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/1584431p.fits"
+        expected_apcor_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/ccd15/1584431p15.apcor"
+
+        assert_that(reading.get_image_uri(), equal_to(expected_image_uri))
+        assert_that(reading.get_apcor_uri(), equal_to(expected_apcor_uri))
 
 
 if __name__ == '__main__':
