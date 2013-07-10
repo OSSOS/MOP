@@ -14,7 +14,7 @@ from ossos.gui.image import DownloadedFitsImage
 from ossos.astrom import SourceReading, Observation, AstromParser
 from ossos.gui.errorhandling import VOSpaceErrorHandler
 from ossos.gui.downloads import (ImageSliceDownloader, AsynchronousImageDownloadManager,
-                                 VOSpaceResolver, DownloadableItem)
+                                 DownloadableItem)
 
 
 class ImageSliceDownloaderTest(FileReadingTestCase):
@@ -22,16 +22,9 @@ class ImageSliceDownloaderTest(FileReadingTestCase):
         self.image_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/1584431p15.fits"
         self.apcor_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/ccd15/1584431p15.apcor"
 
-        self.resolver = Mock()
-        self.resolver.resolve_image_uri.return_value = self.image_uri
-        self.resolver.resolve_apcor_uri.return_value = self.apcor_uri
-
         self.downloadable_item = Mock(spec=DownloadableItem)
-        # TODO: remove after refactoring
-        obs = Mock(spec=Observation)
-        reading = Mock(spec=SourceReading)
-        reading.obs = obs
-        self.downloadable_item.reading = reading
+        self.downloadable_item.get_image_uri.return_value = self.image_uri
+        self.downloadable_item.get_apcor_uri.return_value = self.apcor_uri
         self.downloadable_item.needs_apcor = True
         self.downloadable_item.get_focal_point.return_value = (75, 80)
         self.downloadable_item.get_extension.return_value = 19
@@ -39,8 +32,7 @@ class ImageSliceDownloaderTest(FileReadingTestCase):
         self.downloadable_item.is_inverted.return_value = False
 
         self.vosclient = Mock(spec=vos.Client)
-        self.undertest = ImageSliceDownloader(self.resolver,
-                                              slice_rows=100, slice_cols=50,
+        self.undertest = ImageSliceDownloader(slice_rows=100, slice_cols=50,
                                               vosclient=self.vosclient)
 
         # Mock vosclient to open a local file instead of one from vospace
@@ -160,42 +152,6 @@ class AsynchronousImageDownloadManagerTest(FileReadingTestCase):
         self.undertest.do_download(downloadable_item)
 
         callback.assert_called_once_with(reading, self.downloaded_image)
-
-
-class ResolverTest(unittest.TestCase):
-    def setUp(self):
-        self.resolver = VOSpaceResolver()
-
-    def test_resolve_image_uri(self):
-        observation = Observation("1584431", "p", "15")
-        expected_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/1584431p.fits"
-        assert_that(self.resolver.resolve_image_uri(observation),
-                    equal_to(expected_uri))
-
-    def test_resolve_apcor_uri(self):
-        observation = Observation("1616681", "p", "22")
-        expected_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1616681/ccd22/1616681p22.apcor"
-        assert_that(self.resolver.resolve_apcor_uri(observation),
-                    equal_to(expected_uri))
-
-    def test_resolve_apcor_uri_single_digit_ccd(self):
-        """Just double checking we don't run into trouble with leading zeros"""
-        observation = Observation("1616681", "p", "05")
-        expected_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1616681/ccd05/1616681p05.apcor"
-        assert_that(self.resolver.resolve_apcor_uri(observation),
-                    equal_to(expected_uri))
-
-    def test_resolve_fake_image_uri(self):
-        observation = Observation("1616682", "s", "24", fk="fk")
-        expected_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1616682/ccd24/fk1616682s24.fits"
-        assert_that(self.resolver.resolve_image_uri(observation),
-                    equal_to(expected_uri))
-
-    def test_resolve_fake_apcor_uri(self):
-        observation = Observation("1616682", "s", "24", fk="fk")
-        expected_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1616682/ccd24/fk1616682s24.apcor"
-        assert_that(self.resolver.resolve_apcor_uri(observation),
-                    equal_to(expected_uri))
 
 
 if __name__ == '__main__':

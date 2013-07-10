@@ -129,6 +129,12 @@ class DownloadableItem(object):
         self.on_finished_callback = on_finished_callback
         self.in_memory = in_memory
 
+    def get_image_uri(self):
+        return self.reading.get_image_uri()
+
+    def get_apcor_uri(self):
+        return self.reading.get_apcor_uri()
+
     def get_focal_point(self):
         """
         Determines what the focal point of the downloaded image should be.
@@ -160,7 +166,8 @@ class DownloadableItem(object):
             The FITS file extension to be downloaded.
         """
         if self._is_observation_fake():
-            # We get the image from the CCD directory and it is not multi-extension.
+            # We get the image from the CCD directory and it is not
+            # multi-extension.
             return 0
 
         # NOTE: ccd number is the extension, BUT Fits file extensions start at 1
@@ -173,8 +180,6 @@ class DownloadableItem(object):
           inverted: bool
             True if the stored image is inverted.
         """
-        # TODO: clean this up.  Shouldn't have to handle this issue in
-        # multiple places in the code.
         if self._is_observation_fake():
             # We get the image from the CCD directory and it has already
             # been corrected for inversion.
@@ -215,36 +220,12 @@ class ErrorHandlingThread(threading.Thread):
             self.error_handler.handle_error(error)
 
 
-class VOSpaceResolver(object):
-    """
-    Resolves resources in VOSpace.
-    """
-
-    def __init__(self):
-        self.dataset_root = config.read("IMG_RETRIEVAL.DATASET_ROOT")
-
-    def resolve_image_uri(self, observation):
-        # TODO: make more general - have logic for trying alternative locations
-        uri = "%s/%s/" % (self.dataset_root, observation.expnum)
-
-        if observation.is_fake():
-            uri += "ccd%s/%s.fits" % (observation.ccdnum, observation.rawname)
-        else:
-            uri += "%s%s.fits" % (observation.expnum, observation.ftype)
-
-        return uri
-
-    def resolve_apcor_uri(self, observation):
-        return "%s/%s/ccd%s/%s.apcor" % (self.dataset_root, observation.expnum,
-                                         observation.ccdnum, observation.rawname)
-
-
 class ImageSliceDownloader(object):
     """
     Downloads a slice of an image relevant to examining a (potential) source.
     """
 
-    def __init__(self, resolver, slice_rows=None, slice_cols=None, vosclient=None):
+    def __init__(self, slice_rows=None, slice_cols=None, vosclient=None):
         """
         Constructor.
 
@@ -256,8 +237,6 @@ class ImageSliceDownloader(object):
             The number of rows and columns (pixels) to slice out around the
             source.  Leave as None to use default configuration values.
         """
-        self.resolver = resolver
-
         # If not provided, read defaults from application config file
         if slice_rows is None:
             slice_rows = config.read("IMG_RETRIEVAL.DEFAULT_SLICE_ROWS")
@@ -281,16 +260,14 @@ class ImageSliceDownloader(object):
             downloadable_item.get_full_image_size(),
             inverted=downloadable_item.is_inverted())
 
-        # TODO refactor
-        image_uri = self.resolver.resolve_image_uri(downloadable_item.reading.obs)
-        vofile = self.vosclient.open(image_uri, view="cutout", cutout=cutout_str)
+        vofile = self.vosclient.open(downloadable_item.get_image_uri(),
+                                     view="cutout", cutout=cutout_str)
 
         return vofile.read(), converter
 
     def _download_apcor_file(self, downloadable_item):
-        # TODO refactor
-        apcor_uri = self.resolver.resolve_apcor_uri(downloadable_item.reading.obs)
-        vofile = self.vosclient.open(apcor_uri, view="data")
+        vofile = self.vosclient.open(downloadable_item.get_apcor_uri(),
+                                     view="data")
         return vofile.read()
 
     def download(self, downloadable_item):

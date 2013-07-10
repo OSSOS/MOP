@@ -8,7 +8,6 @@
     },
 
     "IMG_RETRIEVAL": {
-        "DATASET_ROOT": "vos://cadc.nrc.ca~vospace/OSSOS/dbimages",
         "DEFAULT_SLICE_ROWS": 250,
         "DEFAULT_SLICE_COLS": 250
     },
