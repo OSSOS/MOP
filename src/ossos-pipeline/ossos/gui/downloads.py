@@ -1,6 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import math
+import Queue
 import threading
 
 import vos
@@ -35,70 +36,76 @@ class AsynchronousImageDownloadManager(object):
         self.downloader = downloader
         self.error_handler = error_handler
 
-        self._should_stop = False
+        self._work_queue = Queue.Queue()
 
-    def start_download(self, workunit,
-                       image_loaded_callback=None,
-                       all_loaded_callback=None):
-        """
-        Creates a thread to download the specified workload.  That thread
-        will in turn spawn other threads to download the images, using up
-        to MAX_THREADS concurrently.
+        self._workers = []
+        self._maximize_workers()
 
-        The outer thread spawning the downloader threads is needed so that
-        the application can still respond to callbacks and update the
-        model as each downloader thread finishes.
-        """
-        self._should_stop = False
+    def start_download(self, workunit, image_loaded_callback=None):
+        self._maximize_workers()
 
-        args = (workunit, image_loaded_callback, all_loaded_callback)
-        workunit_thread = threading.Thread(target=self._download_workunit,
-                                           args=args)
-        workunit_thread.start()
-
-    def _download_workunit(self, workunit,
-                           image_loaded_callback,
-                           all_loaded_callback):
+        # Load up queue with downloadable items
         needs_apcor = workunit.is_apcor_needed()
-
-        items_to_download = []
         for source in workunit.get_unprocessed_sources():
             for reading in source.get_readings():
-                items_to_download.append(
+                self._work_queue.put(
                     DownloadableItem(reading, source, needs_apcor,
                                      image_loaded_callback))
 
-        index = 0
-        threads = []
-
-        while index < len(items_to_download) and not self._should_stop:
-            threads = filter(lambda thread: thread.is_alive(), threads)
-
-            if len(threads) < MAX_THREADS:
-                args = (items_to_download[index], )
-                new_thread = ErrorHandlingThread(self.error_handler,
-                                                 target=self.do_download,
-                                                 args=args)
-                new_thread.start()
-
-                threads.append(new_thread)
-                index += 1
-
-        if not self.should_stop() and all_loaded_callback is not None:
-            all_loaded_callback()
-
-    def do_download(self, downloadable_item):
-        downloaded_item = self.downloader.download(downloadable_item)
-        downloadable_item.finished_download(downloaded_item)
-
     def stop_download(self):
-        self._should_stop = True
-
-    def should_stop(self):
-        return self._should_stop
+        for worker in self._workers:
+            worker.stop()
 
     def refresh_vos_client(self):
         self.downloader.refresh_vos_client()
+
+    def _maximize_workers(self):
+        self._prune_dead_workers()
+
+        while len(self._workers) < MAX_THREADS:
+            worker = DownloadThread(self._work_queue, self.downloader,
+                                    self.error_handler)
+            worker.daemon = True  # stop right away when exiting app
+            self._workers.append(worker)
+            worker.start()
+
+    def _prune_dead_workers(self):
+        self._workers = filter(lambda thread: thread.is_alive(), self._workers)
+
+
+class DownloadThread(threading.Thread):
+    def __init__(self, work_queue, downloader, error_handler):
+        super(DownloadThread, self).__init__()
+
+        self.work_queue = work_queue
+        self.downloader = downloader
+        self.error_handler = error_handler
+
+        self._should_stop = False
+
+    def run(self):
+        while True:
+            downloadable_item = self.work_queue.get()
+
+            try:
+                self.do_download(downloadable_item)
+            except Exception as error:
+                self.error_handler.handle_error(error, downloadable_item)
+            finally:
+                # It is up to the error handler to requeue the downloadable
+                # item if needed.
+                self.work_queue.task_done()
+
+    def do_download(self, downloadable_item):
+        downloaded_item = self.downloader.download(downloadable_item)
+
+        if self._should_stop:
+            return
+
+        downloadable_item.finished_download(downloaded_item)
+
+    def stop(self):
+        self._should_stop = True
 
 
 class DownloadableItem(object):
@@ -193,7 +200,7 @@ class DownloadableItem(object):
           ccdnum: int
             The number of the CCD that the image is on.
         """
-        return int(self.reading.obs.ccdnum)
+        return int(self.reading.get_observation().ccdnum)
 
     def finished_download(self, downloaded_item):
         """
@@ -203,21 +210,6 @@ class DownloadableItem(object):
 
     def _is_observation_fake(self):
         return self.reading.get_observation().is_fake()
-
-
-class ErrorHandlingThread(threading.Thread):
-    def __init__(self, error_handler, group=None, target=None, name=None,
-                 args=(), kwargs={}):
-        super(ErrorHandlingThread, self).__init__(
-            group=group, target=target, name=name, args=args, kwargs=kwargs)
-
-        self.error_handler = error_handler
-
-    def run(self):
-        try:
-            super(ErrorHandlingThread, self).run()
-        except Exception as error:
-            self.error_handler.handle_error(error)
 
 
 class ImageSliceDownloader(object):

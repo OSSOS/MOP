@@ -11,7 +11,7 @@ class VOSpaceErrorHandler(object):
     def __init__(self, app):
         self.app = app
 
-    def handle_error(self, error):
+    def handle_error(self, error, item):
         """
         Checks what error occured and looks for an appropriate solution.
 
