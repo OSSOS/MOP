@@ -11,21 +11,33 @@ from ossos.gui.views import ApplicationView
 
 
 class VOSpaceErrorHandlerTest(unittest.TestCase):
-    def test_handle_certificate_problem(self):
+    def setUp(self):
         app = Mock(spec=ValidationApplication)
         view = Mock(spec=ApplicationView)
         app.get_view.return_value = view
 
-        error_handler = VOSpaceErrorHandler(app)
+        self.error_handler = VOSpaceErrorHandler(app)
+        self.view = view
 
+    def test_handle_certificate_problem(self):
         message = "Your certificate is expired."
         error = OSError(message)
         error.errno = errno.EACCES
 
-        error_handler.handle_error(error)
+        self.error_handler.handle_error(error)
 
-        view.show_certificate_dialog.assert_called_once_with(error_handler,
-                                                             message)
+        self.view.show_certificate_dialog.assert_called_once_with(
+            self.error_handler, message)
+
+    def test_handle_connection_timeout(self):
+        message = "Connection timed out."
+        error = IOError(message)
+        error.errno = errno.ECONNREFUSED
+
+        self.error_handler.handle_error(error)
+
+        self.view.show_retry_download_dialog.assert_called_once_with(
+            self.error_handler, message)
 
 
 if __name__ == '__main__':

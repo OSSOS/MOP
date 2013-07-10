@@ -19,8 +19,10 @@ class VOSpaceErrorHandler(object):
           error: Exception
             The error that has occured.
         """
-        if isinstance(error, OSError) and error.errno == errno.EACCES:
+        if error.errno == errno.EACCES:
             self.handle_certificate_problem(str(error))
+        elif error.errno == errno.ECONNREFUSED:
+            self.handle_connection_refused(str(error))
         else:
             raise error
 
@@ -39,6 +41,9 @@ class VOSpaceErrorHandler(object):
 
         self.app.get_view().show_image_loading_dialog()
         model.start_loading_images()
+
+    def handle_connection_refused(self, error_message):
+        self.app.get_view().show_retry_download_dialog(self, error_message)
 
 
 class CertificateDialog(wx.Dialog):
@@ -177,7 +182,7 @@ class RetryDownloadDialog(wx.Dialog):
         self.Destroy()
 
     def on_accept(self, event):
-        self.handler.retry_download()
+        # TODO: requeue download
         self.Destroy()
 
 
