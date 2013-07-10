@@ -52,6 +52,9 @@ class AsynchronousImageDownloadManager(object):
                     DownloadableItem(reading, source, needs_apcor,
                                      image_loaded_callback))
 
+    def retry_download(self, downloadable_item):
+        self._work_queue.put(downloadable_item)
+
     def stop_download(self):
         for worker in self._workers:
             worker.stop()

@@ -193,6 +193,9 @@ class UIModel(object):
     def start_loading_images(self):
         self._download_workunit_images(self.get_current_workunit())
 
+    def retry_download(self, downloadable_item):
+        self.download_manager.retry_download(downloadable_item)
+
     def refresh_vos_client(self):
         self.download_manager.refresh_vos_client()
 
