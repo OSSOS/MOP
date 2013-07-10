@@ -1,8 +1,13 @@
 #!/bin/bash
 # Run the Moving Object Pipeline on the given exposure numbers
+source ${HOME}/.bash_profile
 
 ccd=$4
-force=$5
+
+if [ $# -eq 5 ] ; then 
+ force=$5 
+fi
+
 ## First do the search images
 mkpsf.py $1 $2 $3 --ccd $ccd -v  ${force}
 step1.py $1 $2 $3 --ccd $ccd -v  ${force}
