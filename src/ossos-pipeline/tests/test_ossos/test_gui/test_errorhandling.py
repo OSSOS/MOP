@@ -6,7 +6,7 @@ import unittest
 from mock import Mock
 
 from ossos.gui.app import ValidationApplication
-from ossos.gui.errorhandling import VOSpaceErrorHandler
+from ossos.gui.errorhandling import DownloadErrorHandler
 from ossos.gui.views import ApplicationView
 from ossos.gui.downloads import DownloadableItem
 
@@ -19,7 +19,7 @@ class VOSpaceErrorHandlerTest(unittest.TestCase):
 
         self.downloadable_item = Mock(spec=DownloadableItem)
 
-        self.error_handler = VOSpaceErrorHandler(app)
+        self.error_handler = DownloadErrorHandler(app)
         self.view = view
 
     def test_handle_certificate_problem(self):

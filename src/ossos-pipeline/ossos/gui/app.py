@@ -12,7 +12,7 @@ from ossos.gui.workload import (WorkUnitProvider,
 from ossos.astrom import AstromParser
 from ossos.gui.persistence import ProgressManager
 from ossos.naming import ProvisionalNameGenerator
-from ossos.gui.errorhandling import VOSpaceErrorHandler
+from ossos.gui.errorhandling import DownloadErrorHandler
 from ossos.gui.downloads import (AsynchronousImageDownloadManager,
                                  ImageSliceDownloader)
 from ossos.gui.models import UIModel
@@ -72,7 +72,7 @@ class ValidationApplication(object):
             raise ValueError("Unknown task: %s" % taskname)
 
         parser = AstromParser()
-        error_handler = VOSpaceErrorHandler(self)
+        error_handler = DownloadErrorHandler(self)
         downloader = ImageSliceDownloader()
         download_manager = AsynchronousImageDownloadManager(downloader,
                                                             error_handler)
