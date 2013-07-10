@@ -40,7 +40,7 @@ class VOSpaceErrorHandlerTest(unittest.TestCase):
         self.error_handler.handle_error(error, self.downloadable_item)
 
         self.view.show_retry_download_dialog.assert_called_once_with(
-            self.error_handler, message, self.downloadable_item)
+            self.error_handler, message)
 
 
 if __name__ == '__main__':
