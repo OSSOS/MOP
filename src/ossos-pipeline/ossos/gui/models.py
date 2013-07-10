@@ -212,7 +212,7 @@ class UIModel(object):
         self.progress_manager.unlock(workunit.get_filename())
 
     def _download_workunit_images(self, workunit):
-        self.download_manager.start_download(
+        self.download_manager.start_downloading_workunit(
             workunit, image_loaded_callback=self._on_image_loaded)
 
     def _on_image_loaded(self, reading, image):

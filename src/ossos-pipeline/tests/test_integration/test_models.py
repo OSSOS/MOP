@@ -211,7 +211,8 @@ class AbstractRealsModelTest(GeneralModelTest):
         loaded_reading2 = Mock()
         image2 = Mock()
 
-        assert_that(self.download_manager.start_download.call_count, equal_to(1))
+        assert_that(self.download_manager.start_downloading_workunit.call_count,
+                    equal_to(1))
         assert_that(self.model.get_loaded_image_count(), equal_to(0))
 
         # Simulate receiving callback
