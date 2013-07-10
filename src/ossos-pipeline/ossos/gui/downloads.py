@@ -41,7 +41,7 @@ class AsynchronousImageDownloadManager(object):
         self._workers = []
         self._maximize_workers()
 
-    def start_download(self, workunit, image_loaded_callback=None):
+    def start_downloading_workunit(self, workunit, image_loaded_callback=None):
         self._maximize_workers()
 
         # Load up queue with downloadable items
@@ -68,7 +68,6 @@ class AsynchronousImageDownloadManager(object):
         while len(self._workers) < MAX_THREADS:
             worker = DownloadThread(self._work_queue, self.downloader,
                                     self.error_handler)
-            worker.daemon = True  # stop right away when exiting app
             self._workers.append(worker)
             worker.start()
 
@@ -87,7 +86,7 @@ class DownloadThread(threading.Thread):
         self._should_stop = False
 
     def run(self):
-        while True:
+        while not self._should_stop:
             downloadable_item = self.work_queue.get()
 
             try:
