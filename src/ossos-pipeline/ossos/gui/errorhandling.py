@@ -11,6 +11,8 @@ class DownloadErrorHandler(object):
     def __init__(self, app):
         self.app = app
 
+        self._failed_downloads = []
+
     def handle_error(self, error, downloadable_item):
         """
         Checks what error occured and looks for an appropriate solution.
@@ -45,11 +47,13 @@ class DownloadErrorHandler(object):
         model.start_loading_images()
 
     def handle_connection_refused(self, error_message, downloadable_item):
-        self.app.get_view().show_retry_download_dialog(self, error_message,
-                                                       downloadable_item)
+        self._failed_downloads.append(downloadable_item)
+        self.app.get_view().show_retry_download_dialog(self, error_message)
 
-    def retry_download(self, downloadable_item):
-        self.app.get_model().retry_download(downloadable_item)
+    def retry_downloads(self):
+        model = self.app.get_model()
+        for downloadable_item in self._failed_downloads:
+            model.retry_download(downloadable_item)
 
 
 class CertificateDialog(wx.Dialog):
@@ -137,19 +141,18 @@ class CertificateDialog(wx.Dialog):
 
 
 class RetryDownloadDialog(wx.Dialog):
-    def __init__(self, parent, handler, error_message, downloadable_item):
+    def __init__(self, parent, handler, error_message):
         super(RetryDownloadDialog, self).__init__(parent, title="Download Error")
 
         self.handler = handler
         self.error_message = error_message
-        self.downloadable_item = downloadable_item
 
         self._init_ui()
         self._do_layout()
 
     def _init_ui(self):
-        self.header_text = wx.StaticText(self, label="An image failed to "
-                                                     "download:")
+        self.header_text = wx.StaticText(self, label="One or more downloads "
+                                                     "failed:")
         self.error_text = wx.StaticText(self, label=self.error_message)
         error_font = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_ITALIC,
                              wx.FONTWEIGHT_NORMAL)
@@ -189,7 +192,7 @@ class RetryDownloadDialog(wx.Dialog):
         self.Destroy()
 
     def on_accept(self, event):
-        self.handler.retry_download(self.downloadable_item)
+        self.handler.retry_downloads()
         self.Destroy()
 
 
