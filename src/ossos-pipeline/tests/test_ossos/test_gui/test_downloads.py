@@ -11,10 +11,10 @@ import vos
 
 from tests.base_tests import FileReadingTestCase
 from ossos.gui.image import DownloadedFitsImage
-from ossos.astrom import SourceReading, Observation, AstromParser, Source
+from ossos.astrom import SourceReading, Observation, AstromParser
 from ossos.gui.errorhandling import VOSpaceErrorHandler
 from ossos.gui.downloads import (ImageSliceDownloader, AsynchronousImageDownloadManager,
-                                 VOSpaceResolver)
+                                 VOSpaceResolver, DownloadableItem)
 
 
 class ImageSliceDownloaderTest(FileReadingTestCase):
@@ -26,28 +26,22 @@ class ImageSliceDownloaderTest(FileReadingTestCase):
         self.resolver.resolve_image_uri.return_value = self.image_uri
         self.resolver.resolve_apcor_uri.return_value = self.apcor_uri
 
-        obs = Observation("1584431", "p", "18")
-        obs.header = {"NAX1": "2000", "NAX2": "3000"}
-
-        reading_x = 55
-        reading_y = 60
-        reading_x0 = 75
-        reading_y0 = 80
-        ref_x = 95
-        ref_y = 100
-
-        # Putting in 0's for don't cares
-        self.source_reading = SourceReading(reading_x, reading_y, reading_x0,
-                                            reading_y0, 0, 0, ref_x, ref_y, obs)
-
-        self.source = Mock(spec=Source)
+        self.downloadable_item = Mock(spec=DownloadableItem)
+        # TODO: remove after refactoring
+        obs = Mock(spec=Observation)
+        reading = Mock(spec=SourceReading)
+        reading.obs = obs
+        self.downloadable_item.reading = reading
+        self.downloadable_item.needs_apcor = True
+        self.downloadable_item.get_focal_point.return_value = (75, 80)
+        self.downloadable_item.get_extension.return_value = 19
+        self.downloadable_item.get_full_image_size.return_value = (2000, 3000)
+        self.downloadable_item.is_inverted.return_value = False
 
         self.vosclient = Mock(spec=vos.Client)
         self.undertest = ImageSliceDownloader(self.resolver,
                                               slice_rows=100, slice_cols=50,
                                               vosclient=self.vosclient)
-
-        self.undertest.calculate_cutout_center = Mock(return_value=(75, 80))
 
         # Mock vosclient to open a local file instead of one from vospace
         self.localfile = open(self.get_abs_path("data/testimg.fits"), "rb")
@@ -76,8 +70,9 @@ class ImageSliceDownloaderTest(FileReadingTestCase):
         self.apcorfile.close()
 
     def test_retrieve_sliced_image_in_memory(self):
-        fitsfile = self.undertest.download(self.source_reading, self.source,
-                                           in_memory=True)
+        self.downloadable_item.in_memory = True
+
+        fitsfile = self.undertest.download(self.downloadable_item)
 
         assert_that(self.vosclient.open.call_args_list, contains(
             call(self.image_uri, view="cutout", cutout="[19][50:100,30:130]"),
@@ -90,15 +85,15 @@ class ImageSliceDownloaderTest(FileReadingTestCase):
                     equal_to("u5780205r_cvt.c0h"))
 
     def test_download_image_slice_in_file(self):
-        fitsfile = self.undertest.download(self.source_reading, self.source,
-                                           in_memory=False)
+        self.downloadable_item.in_memory = False
+        fitsfile = self.undertest.download(self.downloadable_item)
 
         assert_that(fitsfile.as_hdulist()[0].header["FILENAME"],
                     equal_to("u5780205r_cvt.c0h"))
 
     def test_download_image_in_file_removed_when_file_closed(self):
-        fitsfile = self.undertest.download(self.source_reading, self.source,
-                                           in_memory=False)
+        self.downloadable_item.in_memory = False
+        fitsfile = self.undertest.download(self.downloadable_item)
 
         assert_that(os.path.exists(fitsfile._tempfile.name))
 
@@ -106,34 +101,39 @@ class ImageSliceDownloaderTest(FileReadingTestCase):
         assert_that(not os.path.exists(fitsfile._tempfile.name))
 
 
-class ImageSliceDownloaderCalculationTest(FileReadingTestCase):
+class DownloadableItemTest(FileReadingTestCase):
     def setUp(self):
-        resolver = Mock(spec=VOSpaceResolver)
-        vosclient = Mock(spec=vos.Client)
-
-        self.undertest = ImageSliceDownloader(resolver, vosclient=vosclient)
-
-    def test_calculate_center_point(self):
         astrom_data = AstromParser().parse(
             self.get_abs_path("data/1616681p22.measure3.cands.astrom"))
+        self.source = astrom_data.get_sources()[0]
+        self.reading0 = self.source.get_reading(0)
+        self.reading1 = self.source.get_reading(1)
+        self.reading2 = self.source.get_reading(2)
 
-        source = astrom_data.get_sources()[0]
-        delta = 0.0000001
+        self.needs_apcor = False
+        self.callback = Mock()
 
-        reading0 = source.get_reading(0)
-        center0 = self.undertest.calculate_cutout_center(reading0, source)
-        assert_that(center0[0], close_to(583.42, delta))
-        assert_that(center0[1], close_to(408.46, delta))
+    def create_downloadable_item(self, reading, source):
+        return DownloadableItem(reading, source, self.needs_apcor, self.callback)
 
-        reading1 = source.get_reading(1)
-        center1 = self.undertest.calculate_cutout_center(reading1, source)
-        assert_that(center1[0], close_to(586.18, delta))
-        assert_that(center1[1], close_to(408.63, delta))
+    def assert_tuples_almost_equal(self, actual, expected, delta=0.0000001):
+        assert_that(actual[0], close_to(expected[0], delta))
+        assert_that(actual[1], close_to(expected[1], delta))
 
-        reading2 = source.get_reading(2)
-        center2 = self.undertest.calculate_cutout_center(reading2, source)
-        assert_that(center2[0], close_to(587.80, delta))
-        assert_that(center2[1], close_to(407.98, delta))
+    def test_get_focal_point_first_reading(self):
+        downloadable_item = self.create_downloadable_item(self.reading0, self.source)
+        self.assert_tuples_almost_equal(downloadable_item.get_focal_point(),
+                                        (583.42, 408.46))
+
+    def test_get_focal_point_second_reading(self):
+        downloadable_item = self.create_downloadable_item(self.reading1, self.source)
+        self.assert_tuples_almost_equal(downloadable_item.get_focal_point(),
+                                        (586.18, 408.63))
+
+    def test_get_focal_point_third_reading(self):
+        downloadable_item = self.create_downloadable_item(self.reading2, self.source)
+        self.assert_tuples_almost_equal(downloadable_item.get_focal_point(),
+                                        (587.80, 407.98))
 
 
 class AsynchronousImageDownloadManagerTest(FileReadingTestCase):
@@ -155,7 +155,9 @@ class AsynchronousImageDownloadManagerTest(FileReadingTestCase):
 
         callback = Mock()
 
-        self.undertest.do_download((reading, source), False, callback)
+        downloadable_item = DownloadableItem(reading, source, True, callback)
+
+        self.undertest.do_download(downloadable_item)
 
         callback.assert_called_once_with(reading, self.downloaded_image)
 
