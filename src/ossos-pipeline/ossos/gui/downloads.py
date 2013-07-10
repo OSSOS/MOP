@@ -59,6 +59,10 @@ class AsynchronousImageDownloadManager(object):
         for worker in self._workers:
             worker.stop()
 
+    def wait_for_downloads_to_stop(self):
+        while not self._all_workers_stopped():
+            pass
+
     def refresh_vos_client(self):
         self.downloader.refresh_vos_client()
 
@@ -68,12 +72,19 @@ class AsynchronousImageDownloadManager(object):
         while len(self._workers) < MAX_THREADS:
             worker = DownloadThread(self._work_queue, self.downloader,
                                     self.error_handler)
+            worker.daemon = True  # Thread quits when application does
             self._workers.append(worker)
             worker.start()
 
     def _prune_dead_workers(self):
         self._workers = filter(lambda thread: thread.is_alive(), self._workers)
 
+    def _all_workers_stopped(self):
+        for worker in self._workers:
+            if not worker.is_stopped():
+                return False
+
+        return True
 
 class DownloadThread(threading.Thread):
     def __init__(self, work_queue, downloader, error_handler):
@@ -84,10 +95,12 @@ class DownloadThread(threading.Thread):
         self.error_handler = error_handler
 
         self._should_stop = False
+        self._idle = True
 
     def run(self):
         while not self._should_stop:
             downloadable_item = self.work_queue.get()
+            self._idle = False
 
             try:
                 self.do_download(downloadable_item)
@@ -97,6 +110,7 @@ class DownloadThread(threading.Thread):
                 # It is up to the error handler to requeue the downloadable
                 # item if needed.
                 self.work_queue.task_done()
+                self._idle = True
 
     def do_download(self, downloadable_item):
         downloaded_item = self.downloader.download(downloadable_item)
@@ -108,6 +122,9 @@ class DownloadThread(threading.Thread):
 
     def stop(self):
         self._should_stop = True
+
+    def is_stopped(self):
+        return self._should_stop and self._idle
 
 
 class DownloadableItem(object):

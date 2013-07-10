@@ -200,10 +200,11 @@ class UIModel(object):
         self.download_manager.refresh_vos_client()
 
     def exit(self):
-        self.download_manager.stop_download()
         self._unlock(self.get_current_workunit())
         for workunit in self.work_units:
             workunit.get_writer().close()
+        self.download_manager.stop_download()
+        self.download_manager.wait_for_downloads_to_stop()
 
     def _lock(self, workunit):
         self.progress_manager.lock(workunit.get_filename())
