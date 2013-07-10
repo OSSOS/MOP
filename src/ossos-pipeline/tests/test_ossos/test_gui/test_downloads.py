@@ -1,8 +1,9 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import unittest
 import os
+import Queue
 import tempfile
+import unittest
 
 from hamcrest import assert_that, equal_to, contains, close_to
 from mock import Mock, call
@@ -14,7 +15,7 @@ from ossos.gui.image import DownloadedFitsImage
 from ossos.astrom import SourceReading, Observation, AstromParser
 from ossos.gui.errorhandling import VOSpaceErrorHandler
 from ossos.gui.downloads import (ImageSliceDownloader, AsynchronousImageDownloadManager,
-                                 DownloadableItem)
+                                 DownloadableItem, DownloadThread)
 
 
 class ImageSliceDownloaderTest(FileReadingTestCase):
@@ -128,15 +129,16 @@ class DownloadableItemTest(FileReadingTestCase):
                                         (587.80, 407.98))
 
 
-class AsynchronousImageDownloadManagerTest(FileReadingTestCase):
+class DownloadThreadTest(FileReadingTestCase):
     def setUp(self):
         self.downloader = Mock(spec=ImageSliceDownloader)
         self.downloaded_image = Mock(spec=DownloadedFitsImage)
         self.downloader.download.return_value = self.downloaded_image
         self.error_handler = Mock(spec=VOSpaceErrorHandler)
+        self.work_queue = Mock(spec=Queue.Queue)
 
-        self.undertest = AsynchronousImageDownloadManager(self.downloader,
-                                                          self.error_handler)
+        self.undertest = DownloadThread(self.work_queue, self.downloader,
+                                        self.error_handler)
 
     def test_download_callback(self):
         astrom_data = AstromParser().parse(
