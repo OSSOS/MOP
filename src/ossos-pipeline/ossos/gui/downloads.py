@@ -235,6 +235,9 @@ class ImageSliceDownloader(object):
             The reading to take a cutout around.
           source: ossos.astrom.Source
             The source for which the reading was taken.
+          needs_apcor: bool
+            If True, the apcor file with data needed for photometry
+            calculations is downloaded in addition to the image.
           in_memory: bool
             If True, the image is stored in memory without being written to
             disk.  If False, the image will be written to a temporary file.
