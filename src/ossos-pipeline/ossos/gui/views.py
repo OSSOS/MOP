@@ -7,7 +7,7 @@ from wx.lib.mixins import listctrl as listmix
 
 from ossos.gui import events, config
 from ossos.gui.fitsviewer import MPLFitsImageViewer
-from ossos.gui.errorhandling import CertificateDialog
+from ossos.gui.errorhandling import CertificateDialog, RetryDownloadDialog
 
 
 def guithread(function):
@@ -46,6 +46,7 @@ class ApplicationView(object):
         self.accept_source_dialog = None
         self.reject_source_dialog = None
         self.certificate_dialog = None
+        self.retry_downloads_dialog = None
 
         self.mainframe.Show()
         self.mainframe.show_image_loading_dialog()
@@ -97,6 +98,14 @@ class ApplicationView(object):
             self.certificate_dialog = CertificateDialog(self.mainframe,
                                                         handler, error_message)
             self.certificate_dialog.ShowModal()
+
+    @guithread
+    def show_retry_download_dialog(self, handler, error_message):
+        # Only allow one dialog to be shown at a time
+        if not self.retry_downloads_dialog:
+            self.retry_downloads_dialog = RetryDownloadDialog(
+                self.mainframe, handler, error_message)
+            self.retry_downloads_dialog.Show()
 
     def show_accept_source_dialog(self, preset_vals):
         self.accept_source_dialog = AcceptSourceDialog(
