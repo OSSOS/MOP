@@ -7,7 +7,7 @@ import requests
 import wx
 
 
-class VOSpaceErrorHandler(object):
+class DownloadErrorHandler(object):
     def __init__(self, app):
         self.app = app
 
