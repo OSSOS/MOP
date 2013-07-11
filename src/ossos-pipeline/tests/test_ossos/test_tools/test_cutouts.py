@@ -2,7 +2,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 
-from hamcrest import assert_that, equal_to
+from hamcrest import assert_that, equal_to, close_to
 
 from ossos.cutouts import CutoutCalculator
 
@@ -161,6 +161,41 @@ class CutoutCalculatorTest(unittest.TestCase):
         cutout_str, _ = self.calculator.build_cutout_str("10", (20, 20), (200, 200),
                                                          inverted=True)
         assert_that(cutout_str, equal_to("[10][190:170,190:170]"))
+
+    def test_cutout_near_edge(self):
+        calculator = CutoutCalculator(250, 250)
+
+        (x0, x1, y0, y1), _ = calculator.calc_cutout(
+            (1970.17, 4611.65), (2112, 4644), inverted=False)
+
+        assert_that(x0, equal_to(1845.17))
+        assert_that(x1, equal_to(2095.17))
+        assert_that(y0, equal_to(4394))
+        assert_that(y1, equal_to(4644))
+
+    def test_converter_near_edge(self):
+        calculator = CutoutCalculator(250, 250)
+
+        _, converter = calculator.calc_cutout(
+            (1970.17, 4611.65), (2112, 4644), inverted=False)
+
+        x, y = converter.convert((1970.17, 4611.65))
+
+        delta = 0.01
+        assert_that(x, close_to(125, delta))
+        assert_that(y, close_to(217.65, delta))
+
+    def test_cutout_over_two_edges(self):
+        calculator = CutoutCalculator(250, 250)
+
+        (x0, x1, y0, y1), _ = calculator.calc_cutout(
+            (1997.68, 4618.31), (2112, 4644), inverted=False)
+
+        delta = 0.01
+        assert_that(x0, close_to(1862, delta))
+        assert_that(x1, close_to(2112, delta))
+        assert_that(y0, close_to(4394, delta))
+        assert_that(y1, close_to(4644, delta))
 
 
 if __name__ == '__main__':
