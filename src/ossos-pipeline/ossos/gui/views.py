@@ -420,7 +420,8 @@ class ListCtrlAutoWidth(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
 
 
 class KeyValueListPanel(ListCtrlPanel):
-    def __init__(self, parent, get_data):
+    def __init__(self, parent, get_data,
+                 key_header="Key", value_header="Value"):
         """
         Constructor.
 
@@ -432,7 +433,8 @@ class KeyValueListPanel(ListCtrlPanel):
             the key-value list. The returned data should be a list of
             (key, value) tuples.
         """
-        super(KeyValueListPanel, self).__init__(parent, ("Key", "Value"))
+        super(KeyValueListPanel, self).__init__(parent,
+                                                (key_header, value_header))
 
         self.get_data = get_data
 
