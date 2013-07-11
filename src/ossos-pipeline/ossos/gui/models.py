@@ -187,11 +187,24 @@ class UIModel(object):
     def get_loaded_image_count(self):
         return len(self._images_by_reading)
 
-    def exit(self):
+    def stop_loading_images(self):
         self.download_manager.stop_download()
+
+    def start_loading_images(self):
+        self._download_workunit_images(self.get_current_workunit())
+
+    def retry_download(self, downloadable_item):
+        self.download_manager.retry_download(downloadable_item)
+
+    def refresh_vos_client(self):
+        self.download_manager.refresh_vos_client()
+
+    def exit(self):
         self._unlock(self.get_current_workunit())
         for workunit in self.work_units:
             workunit.get_writer().close()
+        self.download_manager.stop_download()
+        self.download_manager.wait_for_downloads_to_stop()
 
     def _lock(self, workunit):
         self.progress_manager.lock(workunit.get_filename())
@@ -200,7 +213,7 @@ class UIModel(object):
         self.progress_manager.unlock(workunit.get_filename())
 
     def _download_workunit_images(self, workunit):
-        self.download_manager.start_download(
+        self.download_manager.start_downloading_workunit(
             workunit, image_loaded_callback=self._on_image_loaded)
 
     def _on_image_loaded(self, reading, image):

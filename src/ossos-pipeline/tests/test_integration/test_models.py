@@ -61,7 +61,7 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
         # Put a real fits image on the first source, first observation
         apcor_str = "4 15   0.19   0.01"
         with open(self.get_abs_path(path), "rb") as fh:
-            self.first_image = DownloadedFitsImage(fh.read(), apcor_str, Mock(), in_memory=True)
+            self.first_image = DownloadedFitsImage(fh.read(), Mock(), apcor_str, in_memory=True)
             first_reading = self.model.get_current_workunit().get_sources()[0].get_readings()[0]
             self.model._on_image_loaded(first_reading, self.first_image)
 
@@ -211,7 +211,8 @@ class AbstractRealsModelTest(GeneralModelTest):
         loaded_reading2 = Mock()
         image2 = Mock()
 
-        assert_that(self.download_manager.start_download.call_count, equal_to(1))
+        assert_that(self.download_manager.start_downloading_workunit.call_count,
+                    equal_to(1))
         assert_that(self.model.get_loaded_image_count(), equal_to(0))
 
         # Simulate receiving callback
@@ -958,6 +959,9 @@ class RealsModelPersistenceLoadingTest(GeneralModelTest):
         observer = Mock()
         events.subscribe(events.FINISHED_WORKUNIT, observer)
 
+        assert_that(self.model.get_current_workunit().get_unprocessed_sources(),
+                    has_length(1))
+
         assert_that(self.model.get_current_source_number(), equal_to(2))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
         self.model.reject_current_item()
@@ -1056,13 +1060,15 @@ class CandidatesModelPersistenceLoadingTest(GeneralModelTest):
         return models.UIModel(
             self.workunit_provider, self.progress_manager, self.download_manager)
 
-    def setUp(self):
+    def create_part_file_with_indices(self, indices):
+        str_indices = ""
+        for index in indices:
+            str_indices += str(index) + "\n"
+
         # Have to set this up here because test cases may modify the .PART file
         partfile = os.path.join(self.get_directory_to_clean(), "xxx1.cands.astrom.PART")
         with open(partfile, "w+b") as filehandle:
-            filehandle.write("0\n2\n")
-
-        super(CandidatesModelPersistenceLoadingTest, self).setUp()
+            filehandle.write(str_indices)
 
     def _get_task(self):
         return tasks.CANDS_TASK
@@ -1080,8 +1086,14 @@ class CandidatesModelPersistenceLoadingTest(GeneralModelTest):
         return ["xxx1.cands.astrom", "xxx3.reals.astrom"]
 
     def test_load_partially_processed(self):
+        self.create_part_file_with_indices([0, 2])
+        super(CandidatesModelPersistenceLoadingTest, self).setUp()
+
         observer = Mock()
         events.subscribe(events.FINISHED_WORKUNIT, observer)
+
+        assert_that(self.model.get_current_workunit().get_unprocessed_sources(),
+                    has_length(1))
 
         assert_that(self.model.get_current_source_number(), equal_to(1))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
@@ -1091,6 +1103,16 @@ class CandidatesModelPersistenceLoadingTest(GeneralModelTest):
 
         msg = observer.call_args_list[0][0][0]
         assert_that(msg.data, equal_to("xxx1.cands.astrom"))
+
+    def test_load_fast_forward_through_sources(self):
+        self.create_part_file_with_indices([0, 1])
+        super(CandidatesModelPersistenceLoadingTest, self).setUp()
+
+        assert_that(self.model.get_current_workunit().get_unprocessed_sources(),
+                    has_length(1))
+
+        assert_that(self.model.get_current_source_number(), equal_to(2))
+        assert_that(self.model.get_current_obs_number(), equal_to(0))
 
 
 if __name__ == '__main__':

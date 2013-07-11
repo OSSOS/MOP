@@ -308,6 +308,44 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
 
         assert_that(self.workunit.get_current_item_index(), equal_to(8))
 
+    def test_get_unprocessed_sources(self):
+        sources = self.data.get_sources()
+
+        assert_that(self.workunit.get_unprocessed_sources(),
+                    contains_inanyorder(*sources))
+
+        self.workunit.accept_current_item()
+        assert_that(self.workunit.get_unprocessed_sources(),
+                    contains_inanyorder(*sources))
+
+        self.workunit.next_item()
+        self.workunit.accept_current_item()
+        self.workunit.next_item()
+        self.workunit.accept_current_item()
+
+        assert_that(self.workunit.get_unprocessed_sources(),
+                    contains_inanyorder(sources[1], sources[2]))
+
+        self.workunit.next_item()
+        self.workunit.reject_current_item()
+        self.workunit.next_item()
+        self.workunit.accept_current_item()
+        self.workunit.next_item()
+        self.workunit.accept_current_item()
+
+        assert_that(self.workunit.get_unprocessed_sources(),
+                    contains_inanyorder(sources[2]))
+
+        self.workunit.next_item()
+        self.workunit.accept_current_item()
+        self.workunit.next_item()
+        self.workunit.accept_current_item()
+        self.workunit.next_item()
+        self.workunit.accept_current_item()
+
+        assert_that(self.workunit.get_unprocessed_sources(),
+                    has_length(0))
+
 
 class CandidatesWorkUnitTest(AbstractWorkUnitTest):
     def setUp(self):
@@ -367,6 +405,29 @@ class CandidatesWorkUnitTest(AbstractWorkUnitTest):
 
         assert_that(self.workunit.is_item_processed(first_item), equal_to(True))
         assert_that(self.workunit.is_item_processed(second_item), equal_to(True))
+
+    def test_get_unprocessed_sources(self):
+        sources = self.data.get_sources()
+
+        assert_that(self.workunit.get_unprocessed_sources(),
+                    contains_inanyorder(*sources))
+
+        self.workunit.accept_current_item()
+
+        assert_that(self.workunit.get_unprocessed_sources(),
+                    contains_inanyorder(sources[1], sources[2]))
+
+        self.workunit.next_item()
+        self.workunit.reject_current_item()
+
+        assert_that(self.workunit.get_unprocessed_sources(),
+                    contains_inanyorder(sources[2]))
+
+        self.workunit.next_item()
+        self.workunit.accept_current_item()
+
+        assert_that(self.workunit.get_unprocessed_sources(),
+                    has_length(0))
 
 
 class StatefulCollectionTest(unittest.TestCase):

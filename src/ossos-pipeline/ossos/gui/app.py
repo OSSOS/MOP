@@ -11,12 +11,12 @@ from ossos.gui.workload import (WorkUnitProvider,
 from ossos.astrom import AstromParser
 from ossos.gui.persistence import ProgressManager
 from ossos.naming import ProvisionalNameGenerator
+from ossos.gui.errorhandling import DownloadErrorHandler
 from ossos.gui.downloads import (AsynchronousImageDownloadManager,
-                                 ImageSliceDownloader, VOSpaceResolver)
+                                 ImageSliceDownloader)
 from ossos.gui.models import UIModel
 from ossos.gui.controllers import (ProcessRealsController,
                                    ProcessCandidatesController)
-from ossos.gui.taskselect import TaskSetupManager
 
 
 class AbstractTaskFactory(object):
@@ -28,6 +28,15 @@ class AbstractTaskFactory(object):
 
 
 class ProcessRealsTaskFactory(AbstractTaskFactory):
+    def __init__(self):
+        # NOTE: Force expensive loading of libraries up front.  These are
+        # libraries that the reals task needs but the candidates task
+        # doesn't.  To make sure the candidates task doesn't load them, we
+        # import them directly in the functions/methods where they are used.
+        # TODO: find out what the best practice is for handling this sort of
+        # situation and refactor.
+        from pyraf import iraf
+
     def create_workunit_builder(self, parser, progress_manager):
         return RealsWorkUnitBuilder(parser, progress_manager)
 
@@ -49,26 +58,23 @@ class ValidationApplication(object):
         tasks.REALS_TASK: ProcessRealsTaskFactory
     }
 
-    def __init__(self):
-        self.wx_app = wx.App(False)
+    def __init__(self, taskname, working_directory):
+        wx_app = wx.App(False)
 
         debug_mode = config.read("DEBUG")
         if debug_mode:
             wx.lib.inspection.InspectionTool().Show()
 
-        TaskSetupManager(self).run()
-
-        self.wx_app.MainLoop()
-
-    def start_task(self, working_directory, taskname):
         try:
             factory = self.task_name_mapping[taskname]()
         except KeyError:
             raise ValueError("Unknown task: %s" % taskname)
 
         parser = AstromParser()
-        download_manager = AsynchronousImageDownloadManager(
-            ImageSliceDownloader(VOSpaceResolver()))
+        error_handler = DownloadErrorHandler(self)
+        downloader = ImageSliceDownloader()
+        download_manager = AsynchronousImageDownloadManager(downloader,
+                                                            error_handler)
 
         directory_context = context.get_context(working_directory)
         progress_manager = ProgressManager(directory_context)
@@ -76,5 +82,16 @@ class ValidationApplication(object):
         workunit_provider = WorkUnitProvider(tasks.get_suffix(taskname), directory_context,
                                              progress_manager, builder)
         model = UIModel(workunit_provider, progress_manager, download_manager)
-        factory.create_controller(model)
+        controller = factory.create_controller(model)
+
+        self.model = model
+        self.view = controller.get_view()
+
+        wx_app.MainLoop()
+
+    def get_model(self):
+        return self.model
+
+    def get_view(self):
+        return self.view
 

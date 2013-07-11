@@ -41,6 +41,10 @@ def plant(expnums, ccd, rmin, rmax, ang, width, version='s'):
              str(rmin), str(rmax), str(ang), str(width)]
 
     util.exec_prog(cmd_args)
+    
+    if args.dryrun:
+        # Don't push back to VOSpace
+        return 
 
     uri = storage.get_uri('Object',ext='planted',version='',
                           subdir=str(
@@ -79,6 +83,9 @@ if __name__=='__main__':
                         action="store",
                         default="vos:OSSOS/dbimages",
                         help='vospace dbimages containerNode')
+    parser.add_argument("--dryrun", action="store_true",
+                        default=False,
+                        help="do a dry-run, no push to VOSpace")
     parser.add_argument("expnums",
                         type=int,
                         nargs=3,
