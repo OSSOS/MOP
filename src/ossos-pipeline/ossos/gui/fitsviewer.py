@@ -46,12 +46,13 @@ class MPLFitsImageViewer(object):
         # Create the actual mpl figure we will draw on
         self.figure = plt.figure()
 
-        # Don't draw extra whitespace around image
         self.colorbar_height_portion = 0.05
-        self.axes = plt.Axes(self.figure, [0.0, self.colorbar_height_portion,
-                                           1., 1.])
 
-        self.axes.set_aspect("equal", adjustable="datalim")
+        self.axes = plt.Axes(self.figure, [0.0, 0.0,
+                                           1.0, 1.0])
+
+        # self.axes.set_aspect("equal", adjustable="datalim")
+        # self.axes.set_aspect("equal", adjustable="box")
 
         # Make the axes fit the image tightly
         self.imgwidth = config.read("IMG_RETRIEVAL.DEFAULT_SLICE_COLS")
@@ -181,6 +182,9 @@ class MPLFitsImageViewer(object):
 
     def deregister_event_handler(self, id):
         self.figure.canvas.mpl_disconnect(id)
+
+    def as_widget(self):
+        return self.canvas
 
 
 class InteractionContext(object):
