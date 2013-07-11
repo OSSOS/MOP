@@ -1,6 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import os
+import sys
 
 import wx
 import wx.lib.inspection
@@ -8,7 +9,8 @@ import wx.lib.inspection
 from ossos.gui import config, tasks
 from ossos.gui.workload import (WorkUnitProvider,
                                 RealsWorkUnitBuilder,
-                                CandidatesWorkUnitBuilder)
+                                CandidatesWorkUnitBuilder,
+                                NoAvailableWorkException)
 from ossos.astrom import AstromParser
 from ossos.gui.persistence import ProgressManager
 from ossos.naming import ProvisionalNameGenerator
@@ -82,7 +84,17 @@ class ValidationApplication(object):
         builder = factory.create_workunit_builder(parser, progress_manager)
         workunit_provider = WorkUnitProvider(tasks.get_suffix(taskname), directory_context,
                                              progress_manager, builder)
+
         model = UIModel(workunit_provider, progress_manager, download_manager)
+
+        try:
+            model.start_work()
+        except NoAvailableWorkException:
+            sys.stdout.write("No work to be done in %s\n" % working_directory)
+            sys.stdout.write("Either it has already been processed or there "
+                             "are no input files for the selected task.\n")
+            sys.exit(0)
+
         controller = factory.create_controller(model)
 
         self.model = model

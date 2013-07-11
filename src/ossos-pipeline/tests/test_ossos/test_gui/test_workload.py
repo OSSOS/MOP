@@ -522,6 +522,7 @@ class WorkloadManagementTest(unittest.TestCase):
 
         self.undertest = UIModel(self.workunit_provider, self.progress_manager,
                                  download_manager)
+        self.undertest.start_work()
 
     def test_workunits_on_demand(self):
         assert_that(self.undertest.get_current_workunit(), equal_to(self.workunit1))
