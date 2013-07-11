@@ -48,11 +48,9 @@ class MPLFitsImageViewer(object):
 
         self.colorbar_height_portion = 0.05
 
-        self.axes = plt.Axes(self.figure, [0.0, 0.0,
-                                           1.0, 1.0])
-
-        # self.axes.set_aspect("equal", adjustable="datalim")
-        # self.axes.set_aspect("equal", adjustable="box")
+        # limits specified as [left, bottom, width, height]
+        # leave 2.5% border on left and right
+        self.axes = plt.Axes(self.figure, [0.025, 0.0, 0.95, 1.0])
 
         # Make the axes fit the image tightly
         self.imgwidth = config.read("IMG_RETRIEVAL.DEFAULT_SLICE_COLS")
