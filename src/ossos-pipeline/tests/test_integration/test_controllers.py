@@ -44,6 +44,7 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
         download_manager = Mock(spec=AsynchronousImageDownloadManager)
 
         self.model = UIModel(workunit_provider, progress_manager, download_manager)
+        self.model.start_work()
 
         self.name_generator = Mock()
         self.controller = ProcessRealsController(self.model, self.name_generator)
