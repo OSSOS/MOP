@@ -168,6 +168,29 @@ class MPCWriterTest(unittest.TestCase):
         assert_that(actual, has_length(81))
         assert_that(actual, equal_to(expected))
 
+    def test_write_phot_failure(self):
+        self.undertest.write_mpc_line("12345",
+                                      "A234567",
+                                      "*",
+                                      "M",
+                                      "N",
+                                      "2012 10 21.405160",
+                                      "26.683336700", # 01 46 44.001
+                                      "29.220353200", # +29 13 13.27
+                                      "",
+                                      "",
+                                      "523",
+                                      phot_failure=True)
+
+        expected = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27                     523\n"
+
+        actual = self.read_outputfile()
+
+        assert_that(actual.endswith("\n"))
+        assert_that(actual, has_length(81))
+        assert_that(actual, equal_to(expected))
+
+
     def test_MPCFormatException_message(self):
         ex = mpc.MPCFieldFormatError("Note1", "must be 1 character", "AB")
         assert_that(ex.message,
