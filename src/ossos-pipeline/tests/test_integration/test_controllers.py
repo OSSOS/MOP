@@ -2,15 +2,17 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 
-from mock import Mock
+from mock import Mock, ANY
 from hamcrest import assert_that, equal_to, is_not, same_instance, has_length
 
 from tests.base_tests import FileReadingTestCase, WxWidgetTestCase, DirectoryCleaningTestCase
+from ossos.daophot import TaskError
 from ossos.gui import tasks
 from ossos.gui.app import DirectoryContext
 from ossos.gui.persistence import ProgressManager
 from ossos.gui.controllers import ProcessRealsController
 from ossos.gui.models import UIModel
+from ossos.gui.views import ApplicationView
 from ossos.astrom import AstromParser
 from ossos.gui.downloads import AsynchronousImageDownloadManager
 from ossos.gui.workload import WorkUnitProvider, RealsWorkUnitBuilder
@@ -112,7 +114,8 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
                                      TEST_MAG,
                                      TEST_BAND,
                                      TEST_OBS_CODE,
-                                     TEST_COMMENT
+                                     TEST_COMMENT,
+                                     False
         )
 
     def reject_source_reading(self):
@@ -204,6 +207,33 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
         assert_sources_written_equals(1)
         self.reject_source_reading()
         assert_sources_written_equals(2)
+
+    def test_phot_error_handling(self):
+        view_mock = Mock(spec=ApplicationView)
+        self.controller.view = view_mock
+
+        error_message = "Photometry failed"
+        self.model.get_current_source_observed_magnitude = Mock(
+            side_effect=TaskError(error_message))
+        self.model.get_current_band = Mock(return_value="B")
+
+        self.controller.on_accept()
+
+        view_mock.show_accept_source_dialog.assert_called_once_with(
+            (ANY,
+             ANY,
+             ANY,
+             ANY,
+             ANY,
+             "", # obs_mag
+             "", # band
+             ANY,
+             ANY,
+             ANY,
+             ANY,
+             error_message, # default_comment
+             True)  # phot_failed
+        )
 
 
 if __name__ == '__main__':
