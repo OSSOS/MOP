@@ -7,6 +7,8 @@ import re
 
 from ossos import storage
 
+DATASET_ROOT = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages"
+
 HEADER_LINE_LENGTH = 80
 
 FAKE_PREFIX = "fk"
@@ -422,6 +424,10 @@ class SourceReading(object):
 
         self.obs = obs
 
+    def __repr__(self):
+        return "<SourceReading x=%s, y=%s, x0=%s, y0=%s, ra=%s, dec=%s, obs=%s" % (
+            self.x, self.y, self.x0, self.y0, self.ra, self.dec, self.obs)
+
     @property
     def source_point(self):
         return self.x, self.y
@@ -445,9 +451,28 @@ class SourceReading(object):
     def get_observation(self):
         return self.obs
 
-    def __repr__(self):
-        return "<SourceReading x=%s, y=%s, x0=%s, y0=%s, ra=%s, dec=%s, obs=%s" % (
-            self.x, self.y, self.x0, self.y0, self.ra, self.dec, self.obs)
+    def get_coordinate_offset(self, other_reading):
+        """
+        Calculates the offsets between readings' coordinate systems.
+
+        Args:
+          other_reading: ossos.astrom.SourceReading
+            The reading to compare coordinate systems with.
+
+        Returns:
+          (offset_x, offset_y):
+            The x and y offsets between this reading and the other reading's
+            coordinate systems.
+        """
+        my_x, my_y = self.reference_source_point
+        other_x, other_y = other_reading.reference_source_point
+        return my_x - other_x, my_y - other_y
+
+    def get_image_uri(self):
+        return self.obs.get_image_uri()
+
+    def get_apcor_uri(self):
+        return self.obs.get_apcor_uri()
 
 
 class Observation(object):
@@ -475,8 +500,23 @@ class Observation(object):
 
         self.header = {}
 
+    def __repr__(self):
+        return "<Observation rawname=%s>" % self.rawname
+
     def is_fake(self):
         return self.fk == FAKE_PREFIX
 
-    def __repr__(self):
-        return "<Observation rawname=%s>" % self.rawname
+    def get_image_uri(self):
+        # TODO: make more general - have logic for trying alternative locations
+        uri = "%s/%s/" % (DATASET_ROOT, self.expnum)
+
+        if self.is_fake():
+            uri += "ccd%s/%s.fits" % (self.ccdnum, self.rawname)
+        else:
+            uri += "%s%s.fits" % (self.expnum, self.ftype)
+
+        return uri
+
+    def get_apcor_uri(self):
+        return "%s/%s/ccd%s/%s.apcor" % (DATASET_ROOT, self.expnum,
+                                         self.ccdnum, self.rawname)

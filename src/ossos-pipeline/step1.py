@@ -145,13 +145,12 @@ if __name__=='__main__':
                         "Already did %s %s, skipping" %(prefix+str(expnum),
                                                         str(ccd)))
                     continue
-                logging.info("step1 on expnum :%d, ccd: %d" % (
-                    prefix+str(expnum), ccd))
+                logging.info("step1 on expnum: %s, ccd: %s" % (
+                    prefix+str(expnum), str(ccd)))
                 step1(expnum, ccd, prefix=prefix, version=args.type)
-                logging.info(message)
             except Exception as e:
                 message = str(e)
-                logging.error(message)
+                logging.error("Error running step1: %s " %(message))
 
             storage.set_status(expnum,
                                ccd,

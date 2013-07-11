@@ -4,7 +4,6 @@ import os
 
 from ossos import storage
 from ossos.gui import tasks
-from ossos.mpc import MPCWriter
 from ossos.astrom import StreamingAstromWriter
 from ossos.gui.persistence import FileLockedException
 
@@ -168,8 +167,11 @@ class WorkUnit(object):
     def is_current_item_processed(self):
         return self.is_item_processed(self.get_current_item())
 
-    def is_current_source_finished(self):
+    def is_source_finished(self, source):
         raise NotImplementedError()
+
+    def is_current_source_finished(self):
+        return self.is_source_finished(self.get_current_source())
 
     def get_filename(self):
         return self.filename
@@ -179,6 +181,14 @@ class WorkUnit(object):
 
     def get_sources(self):
         return self.sources
+
+    def get_unprocessed_sources(self):
+        unprocessed_sources = []
+        for source in self.get_sources():
+            if not self.is_source_finished(source):
+                unprocessed_sources.append(source)
+
+        return unprocessed_sources
 
     def get_source_count(self):
         return len(self.get_sources())
@@ -207,6 +217,9 @@ class WorkUnit(object):
     def is_finished(self):
         return len(self._get_item_set() - self.processed_items) == 0
 
+    def is_apcor_needed(self):
+        raise NotImplementedError()
+
     def _get_item_set(self):
         raise NotImplementedError()
 
@@ -224,6 +237,8 @@ class RealsWorkUnit(WorkUnit):
             filename, parsed_data, progress_manager, results_writer)
 
     def next_item(self):
+        assert not self.is_finished()
+
         self.next_obs()
         while self.is_current_item_processed():
             self._next_sequential_item()
@@ -244,11 +259,14 @@ class RealsWorkUnit(WorkUnit):
         return (self.get_sources().get_index() * self.get_obs_count() +
                 self.get_current_source_readings().get_index())
 
-    def is_current_source_finished(self):
-        for reading in self.get_current_source_readings():
+    def is_source_finished(self, source):
+        for reading in source.get_readings():
             if reading not in self.processed_items:
                 return False
 
+        return True
+
+    def is_apcor_needed(self):
         return True
 
     def _get_item_set(self):
@@ -274,7 +292,11 @@ class CandidatesWorkUnit(WorkUnit):
             filename, parsed_data, progress_manager, results_writer)
 
     def next_item(self):
+        assert not self.is_finished()
+
         self.next_source()
+        while self.is_current_item_processed():
+            self.next_source()
 
     def get_current_item(self):
         return self.get_current_source()
@@ -282,8 +304,11 @@ class CandidatesWorkUnit(WorkUnit):
     def get_current_item_index(self):
         return self.get_sources().get_index()
 
-    def is_current_source_finished(self):
-        return self.get_current_source() in self.processed_items
+    def is_source_finished(self, source):
+        return source in self.processed_items
+
+    def is_apcor_needed(self):
+        return False
 
     def _get_item_set(self):
         return set(self.sources)
@@ -376,6 +401,12 @@ class RealsWorkUnitBuilder(WorkUnitBuilder):
         super(RealsWorkUnitBuilder, self).__init__(parser, progress_manager)
 
     def _create_results_writer(self, full_path, parsed_data):
+        # NOTE: this import is only here so that we don't load up secondary
+        # dependencies (like astropy) used in MPCWriter when they are not
+        # needed (i.e. cands task).  This is to help reduce the application
+        # startup time.
+        from ossos.mpc import MPCWriter
+
         output_filename = full_path.replace(tasks.get_suffix(tasks.REALS_TASK),
                                             ".mpc")
         output_filehandle = storage.open_vos_or_local(output_filename, "a+b")

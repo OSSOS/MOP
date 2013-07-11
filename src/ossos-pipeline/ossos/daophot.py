@@ -97,6 +97,7 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
     # the named temporary file is still open, varies across platforms"
     coofile.close()
     magfile.close()
+    os.remove(magfile.name)
 
     iraf.phot(fits_filename, coofile.name, magfile.name)
     pdump_out = iraf.pdump(magfile.name, "XCENTER,YCENTER,MAG,MERR,ID,XSHIFT,YSHIFT,LID",
