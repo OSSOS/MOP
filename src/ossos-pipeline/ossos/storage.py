@@ -342,11 +342,10 @@ def has_property(node_uri, property_name):
     """
     Checks if a node in VOSpace has the specified property.
     """
-    try:
-        get_property(node_uri, property_name)
-        return True
-    except PropertyError:
+    if get_property(node_uri, property_name) is None:
         return False
+    else:
+        return True
 
 
 def get_property(node_uri, property_name):
@@ -359,8 +358,7 @@ def get_property(node_uri, property_name):
     property_uri = tag_uri(property_name)
 
     if property_uri not in node.props:
-        raise PropertyError("%s is not a property of %s" % (
-            property_uri, node_uri))
+        return None
 
     return node.props[property_uri]
 
