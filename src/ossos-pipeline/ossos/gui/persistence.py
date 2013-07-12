@@ -3,16 +3,26 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import collections
 import getpass
 
+from ossos import storage
 from ossos.gui import tasks
 
 CANDS = "CANDS"
 REALS = "REALS"
 
+# Constants for local progress manager
 DONE_SUFFIX = ".DONE"
 LOCK_SUFFIX = ".LOCK"
 PART_SUFFIX = ".PART"
 
+# Constants for VOSpace progress manager
+DONE_PROPERTY = "done"
+DONE_FLAG = "TRUE"
+PROCESSED_INDICES_PROPERTY = "processed_indices"
+LOCK_PROPERTY = "lock_holder"
+
+# TODO: just make them both "," for consistency
 INDEX_SEP = "\n"
+VO_INDEX_SEP = ","
 
 
 def requires_lock(function):
@@ -56,8 +66,19 @@ class AbstractProgressManager(object):
         self.working_context = working_context
 
     def get_done(self, task):
-        listing = self.working_context.get_listing(self._get_done_suffix(task))
-        return [done_file[:-len(DONE_SUFFIX)] for done_file in listing]
+        """
+        Gets a list of the files which have already been completely
+        processed for a task.
+
+        Args:
+          task: str
+            The task to find files for.
+
+        Returns:
+          done_list: list(str)
+            The list of filenames that have been completely processed.
+        """
+        raise NotImplementedError()
 
     def is_done(self, filename):
         """
@@ -144,8 +165,70 @@ class AbstractProgressManager(object):
     def owns_lock(self, filename):
         raise NotImplementedError()
 
-    def _get_done_suffix(self, task):
-        return tasks.get_suffix(task) + DONE_SUFFIX
+
+class VOSpaceProgressManager(AbstractProgressManager):
+    def __init__(self, working_context):
+        super(VOSpaceProgressManager, self).__init__(working_context)
+
+    def get_done(self, task):
+        return [filename for filename in self.working_context.listdir()
+                if self.is_done(filename)]
+
+    def is_done(self, filename):
+        return (storage.get_property(self._get_uri(filename), DONE_PROPERTY)
+                == DONE_FLAG)
+
+    def get_processed_indices(self, filename):
+        uri = self._get_uri(filename)
+        if not storage.has_property(uri, PROCESSED_INDICES_PROPERTY):
+            return []
+
+        raw_property = storage.get_property(uri, PROCESSED_INDICES_PROPERTY)
+        return map(int, raw_property.split(VO_INDEX_SEP))
+
+    def _record_done(self, filename):
+        storage.set_property(self._get_uri(filename), DONE_PROPERTY, DONE_FLAG)
+
+    def _record_index(self, filename, index):
+        processed_indices = self.get_processed_indices(filename)
+        processed_indices.append(index)
+        storage.set_property(self._get_uri(filename),
+                             PROCESSED_INDICES_PROPERTY,
+                             VO_INDEX_SEP.join(processed_indices))
+
+    def lock(self, filename):
+        uri = self._get_uri(filename)
+
+        lock_holder = storage.get_property(uri, LOCK_PROPERTY)
+        if lock_holder is None:
+            storage.set_property(uri, LOCK_PROPERTY, getpass.getuser())
+        else:
+            raise FileLockedException(filename, lock_holder)
+
+    def unlock(self, filename):
+        uri = self._get_uri(filename)
+
+        lock_holder = storage.get_property(uri, LOCK_PROPERTY)
+        if lock_holder is None:
+            # The file isn't actually locked.  Probably already cleaned up.
+            pass
+        elif lock_holder == getpass.getuser():
+            # It was us who locked it
+            storage.set_property(uri, LOCK_PROPERTY, None)
+        else:
+            # Can't remove someone else's lock!
+            raise FileLockedException(filename, lock_holder)
+
+    def clean(self, suffixes=None):
+        pass
+
+    def owns_lock(self, filename):
+        lock_holder = storage.get_property(self._get_uri(filename),
+                                           LOCK_PROPERTY)
+        return lock_holder == getpass.getuser()
+
+    def _get_uri(self, filename):
+        return self.working_context.get_full_path(filename)
 
 
 class LocalProgressManager(AbstractProgressManager):
@@ -155,6 +238,10 @@ class LocalProgressManager(AbstractProgressManager):
 
     def __init__(self, working_context):
         super(LocalProgressManager, self).__init__(working_context)
+
+    def get_done(self, task):
+        listing = self.working_context.get_listing(self._get_done_suffix(task))
+        return [done_file[:-len(DONE_SUFFIX)] for done_file in listing]
 
     def is_done(self, filename):
         return self.working_context.exists(filename + DONE_SUFFIX)
@@ -200,8 +287,6 @@ class LocalProgressManager(AbstractProgressManager):
             return
 
         lockfile = filename + LOCK_SUFFIX
-
-        # TODO rework for VOSpace
         if self.working_context.exists(lockfile):
             locker = self.working_context.open(lockfile, "rb").read()
             raise FileLockedException(filename, locker)
@@ -264,6 +349,9 @@ class LocalProgressManager(AbstractProgressManager):
         # return os.fdopen(fd, "wb")
         return self.working_context.open(filename, "wb")
 
+    def _get_done_suffix(self, task):
+        return tasks.get_suffix(task) + DONE_SUFFIX
+
 
 class InMemoryProgressManager(AbstractProgressManager):
     """
@@ -278,6 +366,10 @@ class InMemoryProgressManager(AbstractProgressManager):
         self.owned_locks = set()
         self.external_locks = set()
         self.processed_indices = collections.defaultdict(list)
+
+    def get_done(self, task):
+        listing = self.working_context.get_listing(self._get_done_suffix(task))
+        return [done_file[:-len(DONE_SUFFIX)] for done_file in listing]
 
     def is_done(self, filename):
         return filename in self.done
@@ -309,3 +401,6 @@ class InMemoryProgressManager(AbstractProgressManager):
 
     def add_external_lock(self, filename):
         self.external_locks.add(filename)
+
+    def _get_done_suffix(self, task):
+        return tasks.get_suffix(task) + DONE_SUFFIX
