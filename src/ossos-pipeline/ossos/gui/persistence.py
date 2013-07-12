@@ -148,13 +148,13 @@ class AbstractProgressManager(object):
         return tasks.get_suffix(task) + DONE_SUFFIX
 
 
-class ProgressManager(AbstractProgressManager):
+class LocalProgressManager(AbstractProgressManager):
     """
-    Implements AbstractProgressManager by persisting progress to disk.
+    Persists progress locally to disk.
     """
 
     def __init__(self, working_context):
-        super(ProgressManager, self).__init__(working_context)
+        super(LocalProgressManager, self).__init__(working_context)
 
     def is_done(self, filename):
         return self.working_context.exists(filename + DONE_SUFFIX)
