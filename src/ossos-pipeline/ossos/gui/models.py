@@ -33,10 +33,11 @@ class UIModel(object):
 
         self.sources_discovered = set()
 
-        self.start_work()
-
     def start_work(self):
         self.next_workunit()
+
+        if len(self.work_units) == 0:
+            raise NoAvailableWorkException()
 
     def next_source(self):
         self.get_current_workunit().next_source()

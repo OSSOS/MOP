@@ -86,6 +86,7 @@ class AsynchronousImageDownloadManager(object):
 
         return True
 
+
 class DownloadThread(threading.Thread):
     def __init__(self, work_queue, downloader, error_handler):
         super(DownloadThread, self).__init__()
