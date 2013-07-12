@@ -568,6 +568,7 @@ class SourceValidationDialog(wx.Dialog):
         self.comment_text = wx.TextCtrl(self, name=SourceValidationDialog.COMMENT,
                                         style=wx.TE_MULTILINE | wx.TE_PROCESS_ENTER,
                                         size=(250, 50))
+        self.comment_text.SetValue(self.default_comment)
         self.comment_text.Bind(wx.EVT_TEXT_ENTER, self._on_enter_comment)
 
         self.submit_button = wx.Button(
@@ -641,21 +642,33 @@ class AcceptSourceDialog(SourceValidationDialog):
     OBSERVATORY_CODE = "Observatory code: "
 
     def __init__(self, parent, controller, provisional_name, already_discovered, date_of_obs, ra, dec, obs_mag, band,
-                 note1_choices=None, note2_choices=None, note2_default=None, default_observatory_code=""):
+                 note1_choices=None, note2_choices=None, note2_default=None, default_observatory_code="",
+                 default_comment="", phot_failure=False):
         self.controller = controller
+        self.phot_failure = phot_failure
+
         self.provisional_name = provisional_name
         self.already_discovered = already_discovered
         self.date_of_obs = date_of_obs
         self.ra_str = str(ra)
         self.dec_str = str(dec)
-        self.obs_mag = str(obs_mag)
-        self.band = band
+
+        if self.phot_failure:
+            message = "Photometry failed.  Will be left blank."
+            self.obs_mag = message
+            self.band = message
+        else:
+            self.obs_mag = str(obs_mag)
+            self.band = band
+
         self.default_observatory_code = str(default_observatory_code)
 
         self.note1_choices = note1_choices if note1_choices is not None else []
         self.note2_choices = note2_choices if note2_choices is not None else []
 
         self.note2_default = note2_default if note2_default is not None else ""
+
+        self.default_comment = default_comment
 
         super(AcceptSourceDialog, self).__init__(parent, title=self.TITLE)
 
@@ -737,8 +750,8 @@ class AcceptSourceDialog(SourceValidationDialog):
         discovery_asterisk = " " if self.already_discovered else "*"
         note1 = self.note1_combobox.GetValue()
         note2 = self.note2_combobox.GetValue()
-        obs_mag = self.obs_mag
-        band = self.band
+        obs_mag = self.obs_mag if not self.phot_failure else ""
+        band = self.band if not self.phot_failure else ""
         observatory_code = self.observatory_code_text.GetValue()
         comment = self.comment_text.GetValue()
 
@@ -753,7 +766,8 @@ class AcceptSourceDialog(SourceValidationDialog):
                                      obs_mag,
                                      band,
                                      observatory_code,
-                                     comment
+                                     comment,
+                                     self.phot_failure
         )
 
     def _on_cancel(self, event):
@@ -763,7 +777,9 @@ class AcceptSourceDialog(SourceValidationDialog):
 class RejectSourceDialog(SourceValidationDialog):
     TITLE = "Reject Source"
 
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller, default_comment=""):
+        self.default_comment = default_comment
+
         super(RejectSourceDialog, self).__init__(parent, title=self.TITLE)
         self.controller = controller
         self.comment_text.SetFocus()
