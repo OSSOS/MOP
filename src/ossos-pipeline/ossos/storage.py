@@ -21,6 +21,10 @@ vospace = vos.Client(cadc_short_cut=True, certFile=CERTFILE)
 SUCCESS = 'success'
 
 
+class PropertyError(object):
+    """"An error occurred accessing a VOSpace property."""
+
+
 def populate(dataset_name,
              data_web_service_url = DATA_WEB_SERVICE+"CFHT"):
 
@@ -332,3 +336,46 @@ def move(old_uri, new_uri):
 
 def delete_uri(uri):
     vospace.delete(uri)
+
+
+def has_property(node_uri, property_name):
+    """
+    Checks if a node in VOSpace has the specified property.
+    """
+    try:
+        get_property(node_uri, property_name)
+        return True
+    except PropertyError:
+        return False
+
+
+def get_property(node_uri, property_name):
+    """
+    Retrieves the value associated with a property on a node in VOSpace.
+    """
+    # Must use force or we could have a cached copy of the node from before
+    # properties of interest were set/updated.
+    node = vospace.getNode(node_uri, force=True)
+    property_uri = tag_uri(property_name)
+
+    if property_uri not in node.props:
+        raise PropertyError("%s is not a property of %s" % (
+            property_uri, node_uri))
+
+    return node.props[property_uri]
+
+
+def set_property(node_uri, property_name, property_value):
+    """
+    Sets the value of a property on a node in VOSpace.  If the property
+    already has a value then it is first cleared and then set.
+    """
+    node = vospace.getNode(node_uri)
+    property_uri = tag_uri(property_name)
+
+    # First clear any existing value
+    node.props[property_uri] = None
+    vospace.addProps(node)
+
+    node.props[property_uri] = property_value
+    vospace.addProps(node)
