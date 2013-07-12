@@ -12,7 +12,7 @@ from ossos.gui.workload import (WorkUnitProvider,
                                 CandidatesWorkUnitBuilder,
                                 NoAvailableWorkException)
 from ossos.astrom import AstromParser
-from ossos.gui.persistence import ProgressManager
+from ossos.gui.persistence import LocalProgressManager
 from ossos.naming import ProvisionalNameGenerator
 from ossos.gui.errorhandling import DownloadErrorHandler
 from ossos.gui.downloads import (AsynchronousImageDownloadManager,
@@ -80,7 +80,7 @@ class ValidationApplication(object):
                                                             error_handler)
 
         directory_context = context.get_context(working_directory)
-        progress_manager = ProgressManager(directory_context)
+        progress_manager = LocalProgressManager(directory_context)
         builder = factory.create_workunit_builder(parser, progress_manager)
         workunit_provider = WorkUnitProvider(tasks.get_suffix(taskname), directory_context,
                                              progress_manager, builder)

@@ -13,7 +13,7 @@ from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui.downloads import AsynchronousImageDownloadManager
 from ossos.gui.models import UIModel
 from ossos.astrom import AstromParser
-from ossos.gui.persistence import ProgressManager, InMemoryProgressManager
+from ossos.gui.persistence import LocalProgressManager, InMemoryProgressManager
 from ossos.gui.workload import (WorkUnitProvider, WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
                                 NoAvailableWorkException,
                                 StatefulCollection,
@@ -105,7 +105,7 @@ class AbstractWorkUnitTest(FileReadingTestCase):
         self.testfile = "data/1584431p15.measure3.cands.astrom"
         parser = AstromParser()
         self.data = parser.parse(self.get_abs_path(self.testfile))
-        self.progress_manager = Mock(spec=ProgressManager)
+        self.progress_manager = Mock(spec=LocalProgressManager)
         self.progress_manager.get_processed_indices.return_value = []
         self.writer = Mock()
 

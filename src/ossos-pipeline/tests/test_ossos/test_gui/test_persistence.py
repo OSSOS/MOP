@@ -10,7 +10,7 @@ from hamcrest import (assert_that, contains_inanyorder, has_length, contains,
 from tests.base_tests import FileReadingTestCase
 from ossos.gui import tasks
 from ossos.gui.context import LocalDirectoryWorkingContext
-from ossos.gui.persistence import (ProgressManager, InMemoryProgressManager,
+from ossos.gui.persistence import (LocalProgressManager, InMemoryProgressManager,
                                    FileLockedException, RequiresLockException,
                                    LOCK_SUFFIX)
 
@@ -22,7 +22,7 @@ class ProgressManagerLoadingTest(FileReadingTestCase):
     def setUp(self):
         self.working_directory = self.get_abs_path(WD_HAS_PROGRESS)
         directory_manager = LocalDirectoryWorkingContext(self.working_directory)
-        self.progress_manager = ProgressManager(directory_manager)
+        self.progress_manager = LocalProgressManager(directory_manager)
 
     def tearDown(self):
         self.progress_manager.clean(suffixes=[LOCK_SUFFIX])
@@ -38,11 +38,11 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
     def setUp(self):
         self.working_directory = self.get_abs_path(WD_NO_LOG)
         directory_manager = LocalDirectoryWorkingContext(self.working_directory)
-        self.progress_manager = ProgressManager(directory_manager)
+        self.progress_manager = LocalProgressManager(directory_manager)
 
     def create_concurrent_progress_manager(self):
         directory_manager = LocalDirectoryWorkingContext(self.working_directory)
-        return ProgressManager(directory_manager)
+        return LocalProgressManager(directory_manager)
 
     def tearDown(self):
         # Get rid of generated files so we don't interfere with other tests

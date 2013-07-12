@@ -9,7 +9,7 @@ from tests.base_tests import FileReadingTestCase, WxWidgetTestCase, DirectoryCle
 from ossos.daophot import TaskError
 from ossos.gui import tasks
 from ossos.gui.context import LocalDirectoryWorkingContext
-from ossos.gui.persistence import ProgressManager
+from ossos.gui.persistence import LocalProgressManager
 from ossos.gui.controllers import ProcessRealsController
 from ossos.gui.models import UIModel
 from ossos.gui.views import ApplicationView
@@ -38,7 +38,7 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
         parser = AstromParser()
         directory_manager = LocalDirectoryWorkingContext(
             self.get_abs_path("data/controller_testdir"))
-        progress_manager = ProgressManager(directory_manager)
+        progress_manager = LocalProgressManager(directory_manager)
         workunit_provider = WorkUnitProvider(tasks.get_suffix(tasks.REALS_TASK),
                                              directory_manager, progress_manager,
                                              RealsWorkUnitBuilder(parser, progress_manager))

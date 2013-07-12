@@ -12,7 +12,7 @@ from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui.models import ImageNotLoadedException
 from ossos.gui.downloads import AsynchronousImageDownloadManager
 from ossos.astrom import AstromParser
-from ossos.gui.persistence import ProgressManager
+from ossos.gui.persistence import LocalProgressManager
 from ossos.gui.image import DownloadedFitsImage
 from ossos.gui.workload import (WorkUnitProvider, RealsWorkUnitBuilder,
                                CandidatesWorkUnitBuilder, NoAvailableWorkException)
@@ -32,7 +32,7 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
 
         parser = AstromParser()
         directory_manager = LocalDirectoryWorkingContext(self._get_working_dir())
-        progress_manager = ProgressManager(directory_manager)
+        progress_manager = LocalProgressManager(directory_manager)
         workunit_provider = WorkUnitProvider(tasks.get_suffix(self._get_task()),
                                              directory_manager, progress_manager,
                                              self._get_workunit_builder(parser, progress_manager))
@@ -346,7 +346,7 @@ class EmptyWorkloadModelTest(FileReadingTestCase):
     def test_no_available_work_exception(self):
         parser = AstromParser()
         directory_manager = LocalDirectoryWorkingContext(self._get_working_dir())
-        progress_manager = ProgressManager(directory_manager)
+        progress_manager = LocalProgressManager(directory_manager)
         workunit_provider = WorkUnitProvider(tasks.get_suffix(self._get_task()),
                                              directory_manager, progress_manager,
                                              RealsWorkUnitBuilder(parser, progress_manager))
@@ -826,7 +826,7 @@ class RealsModelPersistenceTest(GeneralModelTest):
         super(RealsModelPersistenceTest, self).setUp()
 
         concurrent_directory_manager = LocalDirectoryWorkingContext(self._get_working_dir())
-        self.concurrent_progress_manager = ProgressManager(concurrent_directory_manager)
+        self.concurrent_progress_manager = LocalProgressManager(concurrent_directory_manager)
 
     def _get_task(self):
         return tasks.REALS_TASK
@@ -1023,7 +1023,7 @@ class CandidatesModelPersistenceTest(GeneralModelTest):
         super(CandidatesModelPersistenceTest, self).setUp()
 
         concurrent_directory_manager = LocalDirectoryWorkingContext(self._get_working_dir())
-        self.concurrent_progress_manager = ProgressManager(concurrent_directory_manager)
+        self.concurrent_progress_manager = LocalProgressManager(concurrent_directory_manager)
 
     def _get_task(self):
         return tasks.CANDS_TASK
