@@ -110,7 +110,33 @@ class AcceptSourceDialogTest(WxWidgetTestCase):
         self.controller.on_do_accept.assert_called_once_with(
             TEST_MINOR_PLANET_NUMBER, TEST_PROVISIONAL_NAME, TEST_DISCOVERY_AST,
             TEST_NOTE1, TEST_NOTE2, TEST_DATE, str(TEST_RA), str(TEST_DEC), TEST_MAG,
-            TEST_BAND, TEST_OBS_CODE, TEST_COMMENT)
+            TEST_BAND, TEST_OBS_CODE, TEST_COMMENT, False)
+
+    def test_submit_data_phot_failure(self):
+        undertest = AcceptSourceDialog(self.rootframe, self.controller,
+                                       TEST_PROVISIONAL_NAME, False,
+                                       TEST_DATE, TEST_RA, TEST_DEC, TEST_MAG,
+                                       TEST_BAND,
+                                       note1_choices=None,
+                                       note2_choices=None,
+                                       default_observatory_code=TEST_OBS_CODE,
+                                       default_comment=TEST_COMMENT,
+                                       phot_failure=True
+        )
+
+        # Submit data
+        ok_button = self.get_child_by_name(
+            undertest, SourceValidationDialog.SUBMIT_BTN)
+        self.fire_button_click_event(ok_button)
+
+        # Check data
+        obs_mag = ""
+        band = ""
+        assert_that(self.controller.on_cancel_accept.called, equal_to(False))
+        self.controller.on_do_accept.assert_called_once_with(
+            "", TEST_PROVISIONAL_NAME, TEST_DISCOVERY_AST,
+            "", "", TEST_DATE, str(TEST_RA), str(TEST_DEC), obs_mag,
+            band, TEST_OBS_CODE, TEST_COMMENT, True)
 
 
 class RejectSourceDialogTest(WxWidgetTestCase):
