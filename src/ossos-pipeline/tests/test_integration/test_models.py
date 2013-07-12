@@ -15,11 +15,12 @@ from ossos.astrom import AstromParser
 from ossos.gui.persistence import ProgressManager
 from ossos.gui.image import DownloadedFitsImage
 from ossos.gui.workload import (WorkUnitProvider, RealsWorkUnitBuilder,
-                               CandidatesWorkUnitBuilder)
+                               CandidatesWorkUnitBuilder, NoAvailableWorkException)
 
 MODEL_TEST_DIR_1 = "data/model_testdir_1"
 MODEL_TEST_DIR_2 = "data/model_testdir_2"
 MODEL_TEST_DIR_3 = "data/model_testdir_3"
+EMPTY_DIR = "data/empty"
 
 FRESH_TEST_DIR = "data/model_persistence_fresh"
 TEST_FILES = ["xxx1.cands.astrom", "xxx2.cands.astrom", "xxx3.reals.astrom", "xxx4.reals.astrom"]
@@ -41,6 +42,13 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
         self.download_manager = Mock(spec=AsynchronousImageDownloadManager)
 
         self.model = self.get_model()
+
+        self.custom_setup()
+
+        self.model.start_work()
+
+    def custom_setup(self):
+        pass
 
     def get_model(self):
         raise NotImplementedError()
@@ -323,6 +331,34 @@ class AbstractRealsModelTest(GeneralModelTest):
         assert_that(self.model.get_current_dec(), equal_to(29.2202748))
         assert_that(self.model.get_current_image_FWHM(), equal_to(3.30))
         assert_that(self.model.get_current_image_maxcount(), equal_to(30000.0))
+
+
+class EmptyWorkloadModelTest(FileReadingTestCase):
+    def _get_working_dir(self):
+        return self.get_abs_path(EMPTY_DIR)
+
+    def _get_task(self):
+        return tasks.REALS_TASK
+
+    def setUp(self):
+        events.unsub_all()
+
+    def test_no_available_work_exception(self):
+        parser = AstromParser()
+        directory_manager = DirectoryContext(self._get_working_dir())
+        progress_manager = ProgressManager(directory_manager)
+        workunit_provider = WorkUnitProvider(tasks.get_suffix(self._get_task()),
+                                             directory_manager, progress_manager,
+                                             RealsWorkUnitBuilder(parser, progress_manager))
+
+        workunit_provider = workunit_provider
+        progress_manager = progress_manager
+        download_manager = Mock(spec=AsynchronousImageDownloadManager)
+
+        model = models.UIModel(workunit_provider, progress_manager,
+                               download_manager)
+
+        self.assertRaises(NoAvailableWorkException, model.start_work)
 
 
 class ProcessRealsModelTest(GeneralModelTest):
