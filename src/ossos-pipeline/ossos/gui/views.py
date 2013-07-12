@@ -169,8 +169,7 @@ class MainFrame(wx.Frame):
 
         self.validation_view = SourceValidationPanel(self.control_panel, self.controller)
 
-        self.viewer_panel = wx.Panel(self.main_panel, style=wx.RAISED_BORDER)
-        self.image_viewer = MPLFitsImageViewer(self.viewer_panel)
+        self.image_viewer = MPLFitsImageViewer(self.main_panel)
 
         self.img_loading_dialog = WaitingGaugeDialog(self, "Image loading...")
 
@@ -185,7 +184,7 @@ class MainFrame(wx.Frame):
 
         main_sizer = wx.BoxSizer(wx.HORIZONTAL)
         main_sizer.Add(self.control_panel, flag=wx.EXPAND)
-        main_sizer.Add(self.viewer_panel, flag=wx.EXPAND)
+        main_sizer.Add(self.image_viewer.as_widget(), flag=wx.EXPAND)
 
         self.main_panel.SetSizerAndFit(main_sizer)
 
