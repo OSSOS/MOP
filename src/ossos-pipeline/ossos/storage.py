@@ -136,6 +136,13 @@ class SyncingVOFile(object):
         """
         return self.local_filename
 
+    def seek(self, offset):
+        """
+        This is a no-op since this is an append only file where all reads
+        start from the beginning and all writes append to the end.
+        """
+        pass
+
     def _download_existing_content(self):
         """
         Syncs the local file with the contents of the VOSpace file (if there
