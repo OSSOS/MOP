@@ -192,6 +192,8 @@ class VOSpaceProgressManager(AbstractProgressManager):
     def _record_index(self, filename, index):
         processed_indices = self.get_processed_indices(filename)
         processed_indices.append(index)
+        processed_indices = map(str, processed_indices)
+
         storage.set_property(self._get_uri(filename),
                              PROCESSED_INDICES_PROPERTY,
                              VO_INDEX_SEP.join(processed_indices))
