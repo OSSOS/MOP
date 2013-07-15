@@ -137,6 +137,24 @@ class SyncingVOFileTest(FileReadingTestCase):
                                 os.O_RDONLY)
         assert_that(vofile.read(), equal_to(message))
 
+    def test_open_read_close_doesnt_change_file(self):
+        # Set up a VOSpace file with some text in it
+        vofile = storage.vofile(self.context.get_full_path(TEST_FILE_1),
+                                os.O_WRONLY)
+        message = "test"
+        vofile.write(message)
+        vofile.close()
+
+        self.undertest = SyncingVOFile(self.context.get_full_path(TEST_FILE_1))
+        assert_that(self.undertest.read(), equal_to(message))
+        self.undertest.close()
+
+        # Make sure the original VOSpace file is unchanged
+        vofile2 = storage.vofile(self.context.get_full_path(TEST_FILE_1),
+                                os.O_RDONLY)
+        assert_that(vofile2.read(), equal_to(message))
+        vofile2.close()
+
 
 if __name__ == '__main__':
     unittest.main()
