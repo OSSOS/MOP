@@ -6,15 +6,12 @@ import unittest
 
 from hamcrest import assert_that, equal_to, contains
 
-import vos
-
 from tests.base_tests import FileReadingTestCase
 from ossos import storage
 from ossos.storage import SyncingVOFile, InvalidURIError
 from ossos.gui.context import VOSpaceWorkingContext
 
 BASE_TEST_DIR = "vos:drusk/OSSOS/tests/"
-PROTOTYPE_FILE = "data/prototype"
 CURRENT_TEST_DIR = BASE_TEST_DIR + "storage_tests"
 
 TEST_FILE_1 = "file1"
@@ -122,6 +119,23 @@ class SyncingVOFileTest(FileReadingTestCase):
 
         # ... as many times as we like
         assert_that(self.undertest.read(), equal_to(message))
+
+    def test_close_flushes(self):
+        self.undertest = SyncingVOFile(self.context.get_full_path(TEST_FILE_1))
+
+        # It should be empty
+        assert_that(self.undertest.read(), equal_to(""))
+
+        # Until we write something to it
+        message = "hello"
+        self.undertest.write(message)
+
+        self.undertest.close()
+
+        # Make sure these changes are in VOSpace
+        vofile = storage.vofile(self.context.get_full_path(TEST_FILE_1),
+                                os.O_RDONLY)
+        assert_that(vofile.read(), equal_to(message))
 
 
 if __name__ == '__main__':
