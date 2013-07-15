@@ -115,6 +115,7 @@ class SyncingVOFile(object):
         Returns:
           void
         """
+        self.local_filehandle.flush()
         self.vosclient.copy(self.get_local_filename(), self.uri)
 
     def close(self):
@@ -124,6 +125,7 @@ class SyncingVOFile(object):
         Returns:
           void
         """
+        self.flush()
         self.local_filehandle.close()
 
     def get_local_filename(self):
