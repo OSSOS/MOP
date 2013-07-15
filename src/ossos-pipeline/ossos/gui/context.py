@@ -31,8 +31,8 @@ class WorkingContext(object):
     def exists(self, filename):
         raise NotImplementedError()
 
-    def open(self, filename, mode):
-        return storage.open_vos_or_local(self.get_full_path(filename), mode)
+    def open(self, filename):
+        raise NotImplementedError()
 
     def rename(self, old_name, new_name):
         raise NotImplementedError()
@@ -53,6 +53,9 @@ class LocalDirectoryWorkingContext(WorkingContext):
 
     def exists(self, filename):
         return os.path.exists(self.get_full_path(filename))
+
+    def open(self, filename):
+        return open(self.get_full_path(filename), "a+b")
 
     def rename(self, old_name, new_name):
         os.rename(self.get_full_path(old_name), self.get_full_path(new_name))
@@ -80,9 +83,11 @@ class VOSpaceWorkingContext(WorkingContext):
     def exists(self, filename):
         return storage.exists(self.get_full_path(filename))
 
+    def open(self, filename):
+        return storage.SyncingVOFile(self.get_full_path(filename))
+
     def rename(self, old_name, new_name):
         storage.move(old_name, new_name)
 
     def remove(self, filename):
         storage.delete_uri(self.get_full_path(filename))
-
