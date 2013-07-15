@@ -261,7 +261,7 @@ class LocalProgressManager(AbstractProgressManager):
         if file_with_records is None:
             return []
 
-        filehandle = self.working_context.open(file_with_records, "rb")
+        filehandle = self.working_context.open(file_with_records)
         indices = filehandle.read().rstrip(INDEX_SEP).split(INDEX_SEP)
         filehandle.close()
 
@@ -277,10 +277,10 @@ class LocalProgressManager(AbstractProgressManager):
             self.working_context.rename(partfile, donefile)
         else:
             # Create a new blank file
-            self.working_context.open(donefile, "wb").close()
+            self.working_context.open(donefile).close()
 
     def _record_index(self, filename, index):
-        filehandle = self.working_context.open(filename + PART_SUFFIX, "ab")
+        filehandle = self.working_context.open(filename + PART_SUFFIX)
         filehandle.write(str(index) + INDEX_SEP)
         filehandle.close()
 
@@ -290,10 +290,10 @@ class LocalProgressManager(AbstractProgressManager):
 
         lockfile = filename + LOCK_SUFFIX
         if self.working_context.exists(lockfile):
-            locker = self.working_context.open(lockfile, "rb").read()
+            locker = self.working_context.open(lockfile).read()
             raise FileLockedException(filename, locker)
         else:
-            filehandle = self.working_context.open(lockfile, "wb")
+            filehandle = self.working_context.open(lockfile)
             filehandle.write(getpass.getuser())
             filehandle.close()
 
@@ -304,7 +304,7 @@ class LocalProgressManager(AbstractProgressManager):
             # The lock file was probably already cleaned up by record_done
             return
 
-        filehandle = self.working_context.open(lockfile, "rb")
+        filehandle = self.working_context.open(lockfile)
         locker = filehandle.read()
         filehandle.close()
 
@@ -331,7 +331,7 @@ class LocalProgressManager(AbstractProgressManager):
         lockfile = filename + LOCK_SUFFIX
 
         if self.working_context.exists(lockfile):
-            filehandle = self.working_context.open(lockfile, "rb")
+            filehandle = self.working_context.open(lockfile)
             lock_holder = filehandle.read()
             filehandle.close()
             return getpass.getuser() == lock_holder
@@ -341,15 +341,14 @@ class LocalProgressManager(AbstractProgressManager):
 
     def _atomic_create(self, filename):
         """
-        TODO: this will have to be reworked for VOSpace.  Probably switch
-        to using tags for locking.
+        NOTE: this is not currently being used.
 
         Tries to create the specified file.  Throws an OSError if it already
         exists.
         """
         # fd = os.open(full_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
         # return os.fdopen(fd, "wb")
-        return self.working_context.open(filename, "wb")
+        pass
 
     def _get_done_suffix(self, task):
         return tasks.get_suffix(task) + DONE_SUFFIX
