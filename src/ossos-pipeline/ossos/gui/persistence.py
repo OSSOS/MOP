@@ -171,7 +171,7 @@ class VOSpaceProgressManager(AbstractProgressManager):
         super(VOSpaceProgressManager, self).__init__(working_context)
 
     def get_done(self, task):
-        return [filename for filename in self.working_context.listdir()
+        return [filename for filename in self.working_context.get_listing(task)
                 if self.is_done(filename)]
 
     def is_done(self, filename):
