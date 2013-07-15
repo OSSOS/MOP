@@ -66,7 +66,8 @@ class VOSpaceWorkingContext(WorkingContext):
         super(VOSpaceWorkingContext, self).__init__(directory)
 
     def listdir(self):
-        return storage.listdir(self.directory)
+        # force to make sure we don't get cached results
+        return storage.listdir(self.directory, force=True)
 
     def get_file_size(self, filename):
         # TODO: better/faster way of doing this?

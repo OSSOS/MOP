@@ -3,6 +3,7 @@
 
 import subprocess
 import os
+import tempfile
 import vos
 import logging
 import urllib
@@ -23,6 +24,127 @@ SUCCESS = 'success'
 
 class PropertyError(object):
     """"An error occurred accessing a VOSpace property."""
+
+
+class InvalidURIError(Exception):
+    """An invalid URI was provided."""
+
+
+class SyncingVOFile(object):
+    """
+    A file-like object which allows creating, reading and writing files in
+    VOSpace while maintaining a local backup copy.
+
+    Changes made to the file are saved locally, only being written to VOSpace
+    when flushed.
+    """
+
+    def __init__(self, uri, vosclient=vospace):
+        """
+        Contstructor.
+
+        If a file does not exist at the specified URI, it will not be created
+        right away.  Only a local file will be created, until the first flush
+        (sync) which will create the VOSpace file.
+
+        If a file already exists at the specified URI, it will be opened for
+        reading and writing.  It's contents will be copied to a local file.
+
+        Args:
+          uri: str
+            The URI of the file in VOSpace.  Raises an InvalidUriError if
+            this isn't recognizable as a VOSpace URI.
+        """
+        if not uri.startswith("vos:"):
+            raise InvalidURIError("URI must point to VOSpace.")
+
+        self.uri = uri
+
+        basename = os.path.basename(uri)
+        self.local_filename = os.path.join(tempfile.gettempdir(), basename)
+
+        self.local_filehandle = open(self.local_filename, "a+b")
+
+        self.vosclient = vosclient
+
+        self._download_existing_content()
+
+    def read(self):
+        """
+        Reads the contents of the file.
+
+        Reading is done from the local file which the VOSpace file is being
+        synced from, so it will always have the most up-to-date content
+        (which may not actually have been written to VOSpace yet).
+
+        IMPORTANT NOTE: this read behaves differently than standard file
+        objects because it always reads from the beginning of the file
+        without needing to seek back there.
+
+        Returns:
+          content: str
+            The contents of the file.
+        """
+        self.local_filehandle.seek(0)
+        return self.local_filehandle.read()
+
+    def write(self, content):
+        """
+        Writes some content to the file.
+
+        IMPORTANT NOTE: this write behaves differently than standard file
+        objects because new content is always appended to the existing
+        content.
+
+        IMPORTANT NOTE: content written to the file are not sent to VOSpace
+        until flush is called.
+
+        Args:
+          content: str
+            The content to be appended to the file.
+
+        Returns:
+          void
+        """
+        self.local_filehandle.write(content)
+
+    def flush(self):
+        """
+        Flushes (syncs) changes to VOSpace.
+
+        Returns:
+          void
+        """
+        self.vosclient.copy(self.get_local_filename(), self.uri)
+
+    def close(self):
+        """
+        Closes all resources.
+
+        Returns:
+          void
+        """
+        self.local_filehandle.close()
+
+    def get_local_filename(self):
+        """
+        Returns:
+          filename: str
+            The path to the local file backing the VOFile.
+        """
+        return self.local_filename
+
+    def _download_existing_content(self):
+        """
+        Syncs the local file with the contents of the VOSpace file (if there
+        is one).  If the VOSpace file does not yet exist, this does nothing.
+        """
+        if not exists(self.uri):
+            return
+
+        vospace_file = vofile(self.uri, os.O_RDONLY)
+        self.local_filehandle.write(vospace_file.read())
+        vospace_file.close()
 
 
 def populate(dataset_name,
@@ -314,8 +436,8 @@ def delete(expnum, ccd, version, ext, prefix=None):
             raise e
 
 
-def listdir(directory):
-    return vospace.listdir(directory)
+def listdir(directory, force=False):
+    return vospace.listdir(directory, force=force)
 
 
 def list_dbimages():
