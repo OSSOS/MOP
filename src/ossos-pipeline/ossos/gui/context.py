@@ -3,6 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 
 from ossos import storage
+from ossos.gui.persistence import LocalProgressManager, VOSpaceProgressManager
 
 
 def get_context(directory):
@@ -40,6 +41,9 @@ class WorkingContext(object):
     def remove(self, filename):
         raise NotImplementedError()
 
+    def get_progress_manager(self):
+        raise NotImplementedError()
+
 
 class LocalDirectoryWorkingContext(WorkingContext):
     def __init__(self, directory):
@@ -62,6 +66,9 @@ class LocalDirectoryWorkingContext(WorkingContext):
 
     def remove(self, filename):
         os.remove(self.get_full_path(filename))
+
+    def get_progress_manager(self):
+        return LocalProgressManager(self)
 
 
 class VOSpaceWorkingContext(WorkingContext):
@@ -92,3 +99,6 @@ class VOSpaceWorkingContext(WorkingContext):
 
     def remove(self, filename):
         storage.delete_uri(self.get_full_path(filename))
+
+    def get_progress_manager(self):
+        return VOSpaceProgressManager(self)
