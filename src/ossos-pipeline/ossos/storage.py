@@ -50,6 +50,10 @@ class SyncingVOFile(object):
         If a file already exists at the specified URI, it will be opened for
         reading and writing.  It's contents will be copied to a local file.
 
+        Local files are created in the temp directory with the same basename
+        as the VOFile.  If a file already exists locally, it is first
+        removed.
+
         Args:
           uri: str
             The URI of the file in VOSpace.  Raises an InvalidUriError if
@@ -67,6 +71,10 @@ class SyncingVOFile(object):
         if exists(uri):
             # Download any existing content.
             self.vosclient.copy(uri, self.local_filename)
+        elif os.path.exists(self.local_filename):
+            # Make sure we clear any existing local data or we could be
+            # surprised when it shows up in the VOFile.
+            os.remove(self.local_filename)
 
         self.local_filehandle = open(self.local_filename, "a+b")
 
