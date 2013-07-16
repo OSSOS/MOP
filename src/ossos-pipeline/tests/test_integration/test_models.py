@@ -32,6 +32,7 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
 
         parser = AstromParser()
         directory_manager = LocalDirectoryWorkingContext(self._get_working_dir())
+        self.context = directory_manager
         progress_manager = LocalProgressManager(directory_manager)
         workunit_provider = WorkUnitProvider(tasks.get_suffix(self._get_task()),
                                              directory_manager, progress_manager,
@@ -82,7 +83,7 @@ class AbstractRealsModelTest(GeneralModelTest):
         return tasks.REALS_TASK
 
     def _get_workunit_builder(self, parser, progress_manager):
-        return RealsWorkUnitBuilder(parser, progress_manager)
+        return RealsWorkUnitBuilder(parser, self.context, progress_manager)
 
     def get_files_to_keep(self):
         return ["1584431p15.measure3.reals.astrom"]
@@ -349,7 +350,10 @@ class EmptyWorkloadModelTest(FileReadingTestCase):
         progress_manager = LocalProgressManager(directory_manager)
         workunit_provider = WorkUnitProvider(tasks.get_suffix(self._get_task()),
                                              directory_manager, progress_manager,
-                                             RealsWorkUnitBuilder(parser, progress_manager))
+                                             RealsWorkUnitBuilder(
+                                                 parser,
+                                                 directory_manager,
+                                                 progress_manager))
 
         workunit_provider = workunit_provider
         progress_manager = progress_manager
@@ -369,7 +373,7 @@ class ProcessRealsModelTest(GeneralModelTest):
         return tasks.REALS_TASK
 
     def _get_workunit_builder(self, parser, progress_manager):
-        return RealsWorkUnitBuilder(parser, progress_manager)
+        return RealsWorkUnitBuilder(parser, self.context, progress_manager)
 
     def get_files_to_keep(self):
         return ["1584431p15.measure3.reals.astrom"]
@@ -566,7 +570,7 @@ class ProcessCandidatesModelTest(GeneralModelTest):
         return tasks.CANDS_TASK
 
     def _get_workunit_builder(self, parser, progress_manager):
-        return CandidatesWorkUnitBuilder(parser, progress_manager)
+        return CandidatesWorkUnitBuilder(parser, self.context, progress_manager)
 
     def get_files_to_keep(self):
         return ["1584431p15.measure3.cands.astrom", "1584431p15.measure3.reals.astrom"]
@@ -678,7 +682,7 @@ class ProcessCandidatesModelTest(GeneralModelTest):
 
 class MultipleAstromDataModelTest(GeneralModelTest):
     def _get_workunit_builder(self, parser, progress_manager):
-        return CandidatesWorkUnitBuilder(parser, progress_manager)
+        return CandidatesWorkUnitBuilder(parser, self.context, progress_manager)
 
     def get_model(self):
         return models.UIModel(
@@ -832,7 +836,7 @@ class RealsModelPersistenceTest(GeneralModelTest):
         return tasks.REALS_TASK
 
     def _get_workunit_builder(self, parser, progress_manager):
-        return RealsWorkUnitBuilder(parser, progress_manager)
+        return RealsWorkUnitBuilder(parser, self.context, progress_manager)
 
     def _get_working_dir(self):
         return self.get_abs_path(FRESH_TEST_DIR)
@@ -980,7 +984,7 @@ class RealsModelPersistenceLoadingTest(GeneralModelTest):
         return tasks.REALS_TASK
 
     def _get_workunit_builder(self, parser, progress_manager):
-        return RealsWorkUnitBuilder(parser, progress_manager)
+        return RealsWorkUnitBuilder(parser, self.context, progress_manager)
 
     def _get_working_dir(self):
         return self.get_abs_path("data/model_persistence_partial")
@@ -1029,7 +1033,7 @@ class CandidatesModelPersistenceTest(GeneralModelTest):
         return tasks.CANDS_TASK
 
     def _get_workunit_builder(self, parser, progress_manager):
-        return CandidatesWorkUnitBuilder(parser, progress_manager)
+        return CandidatesWorkUnitBuilder(parser, self.context, progress_manager)
 
     def _get_working_dir(self):
         return self.get_abs_path(FRESH_TEST_DIR)
@@ -1110,7 +1114,7 @@ class CandidatesModelPersistenceLoadingTest(GeneralModelTest):
         return tasks.CANDS_TASK
 
     def _get_workunit_builder(self, parser, progress_manager):
-        return CandidatesWorkUnitBuilder(parser, progress_manager)
+        return CandidatesWorkUnitBuilder(parser, self.context, progress_manager)
 
     def _get_working_dir(self):
         return self.get_abs_path("data/model_persistence_partial")

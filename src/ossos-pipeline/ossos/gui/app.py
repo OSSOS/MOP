@@ -23,7 +23,7 @@ from ossos.gui.controllers import (ProcessRealsController,
 
 
 class AbstractTaskFactory(object):
-    def create_workunit_builder(self, parser, progress_manager):
+    def create_workunit_builder(self, parser, context, progress_manager):
         pass
 
     def create_controller(self, model):
@@ -40,16 +40,16 @@ class ProcessRealsTaskFactory(AbstractTaskFactory):
         # situation and refactor.
         from pyraf import iraf
 
-    def create_workunit_builder(self, parser, progress_manager):
-        return RealsWorkUnitBuilder(parser, progress_manager)
+    def create_workunit_builder(self, parser, context, progress_manager):
+        return RealsWorkUnitBuilder(parser, context, progress_manager)
 
     def create_controller(self, model):
         return ProcessRealsController(model, ProvisionalNameGenerator())
 
 
 class ProcessCandidatesTaskFactory(AbstractTaskFactory):
-    def create_workunit_builder(self, parser, progress_manager):
-        return CandidatesWorkUnitBuilder(parser, progress_manager)
+    def create_workunit_builder(self, parser, context, progress_manager):
+        return CandidatesWorkUnitBuilder(parser, context, progress_manager)
 
     def create_controller(self, model):
         return ProcessCandidatesController(model)
@@ -81,7 +81,8 @@ class ValidationApplication(object):
 
         directory_context = context.get_context(working_directory)
         progress_manager = LocalProgressManager(directory_context)
-        builder = factory.create_workunit_builder(parser, progress_manager)
+        builder = factory.create_workunit_builder(parser, directory_context,
+                                                  progress_manager)
         workunit_provider = WorkUnitProvider(tasks.get_suffix(taskname), directory_context,
                                              progress_manager, builder)
 
