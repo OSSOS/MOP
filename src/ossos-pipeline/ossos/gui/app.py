@@ -87,6 +87,7 @@ class ValidationApplication(object):
                                              progress_manager, builder)
 
         model = UIModel(workunit_provider, progress_manager, download_manager)
+        controller = factory.create_controller(model)
 
         try:
             model.start_work()
@@ -95,8 +96,6 @@ class ValidationApplication(object):
             sys.stdout.write("Either it has already been processed or there "
                              "are no input files for the selected task.\n")
             sys.exit(0)
-
-        controller = factory.create_controller(model)
 
         self.model = model
         self.view = controller.get_view()
