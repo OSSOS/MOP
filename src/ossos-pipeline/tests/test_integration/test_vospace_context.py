@@ -24,7 +24,7 @@ class VOSpaceWorkingContextTest(unittest.TestCase):
     def test_open(self):
         context = VOSpaceWorkingContext(BASE_TEST_DIR)
 
-        filehandle = context.open("README.txt", "rb")
+        filehandle = context.open("README.txt")
         file_contents = filehandle.read()
         filehandle.close()
 

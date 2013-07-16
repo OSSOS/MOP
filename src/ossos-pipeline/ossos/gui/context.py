@@ -73,8 +73,9 @@ class VOSpaceWorkingContext(WorkingContext):
         return storage.listdir(self.directory, force=True)
 
     def get_file_size(self, filename):
-        # TODO: better/faster way of doing this?
-        filehandle = self.open(filename, "rb")
+        # TODO: better/faster way of doing this?  There seems to be a length
+        # property on most nodes which is probably faster to read.
+        filehandle = storage.vofile(self.get_full_path(filename), os.O_RDONLY)
         contents = filehandle.read()
         filehandle.close()
 
