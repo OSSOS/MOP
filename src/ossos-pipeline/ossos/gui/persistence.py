@@ -2,18 +2,27 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import collections
 import getpass
-import os
 
+from ossos import storage
 from ossos.gui import tasks
 
 CANDS = "CANDS"
 REALS = "REALS"
 
+# Constants for local progress manager
 DONE_SUFFIX = ".DONE"
 LOCK_SUFFIX = ".LOCK"
 PART_SUFFIX = ".PART"
 
+# Constants for VOSpace progress manager
+DONE_PROPERTY = "done"
+DONE_FLAG = "TRUE"
+PROCESSED_INDICES_PROPERTY = "processed_indices"
+LOCK_PROPERTY = "lock_holder"
+
+# TODO: just make them both "," for consistency
 INDEX_SEP = "\n"
+VO_INDEX_SEP = ","
 
 
 def requires_lock(function):
@@ -53,12 +62,23 @@ class AbstractProgressManager(object):
     Manages persistence of progress made processing files in a directory.
     """
 
-    def __init__(self, directory_manager):
-        self.directory_manager = directory_manager
+    def __init__(self, working_context):
+        self.working_context = working_context
 
     def get_done(self, task):
-        listing = self.directory_manager.get_listing(self._get_done_suffix(task))
-        return [done_file[:-len(DONE_SUFFIX)] for done_file in listing]
+        """
+        Gets a list of the files which have already been completely
+        processed for a task.
+
+        Args:
+          task: str
+            The task to find files for.
+
+        Returns:
+          done_list: list(str)
+            The list of filenames that have been completely processed.
+        """
+        raise NotImplementedError()
 
     def is_done(self, filename):
         """
@@ -145,93 +165,158 @@ class AbstractProgressManager(object):
     def owns_lock(self, filename):
         raise NotImplementedError()
 
-    def _get_done_suffix(self, task):
-        return tasks.get_suffix(task) + DONE_SUFFIX
 
-    def _get_full_path(self, filename):
-        return self.directory_manager.get_full_path(filename)
+class VOSpaceProgressManager(AbstractProgressManager):
+    def __init__(self, working_context):
+        super(VOSpaceProgressManager, self).__init__(working_context)
 
-
-class ProgressManager(AbstractProgressManager):
-    """
-    Implements AbstractProgressManager by persisting progress to disk.
-    """
-
-    def __init__(self, directory_manager):
-        super(ProgressManager, self).__init__(directory_manager)
+    def get_done(self, task):
+        return [filename for filename in self.working_context.get_listing(task)
+                if self.is_done(filename)]
 
     def is_done(self, filename):
-        return os.path.exists(self._get_full_path(filename) + DONE_SUFFIX)
+        return (storage.get_property(self._get_uri(filename), DONE_PROPERTY)
+                == DONE_FLAG)
 
     def get_processed_indices(self, filename):
-        partfile = self._get_full_path(filename + PART_SUFFIX)
-        donefile = self._get_full_path(filename + DONE_SUFFIX)
+        uri = self._get_uri(filename)
+        if not storage.has_property(uri, PROCESSED_INDICES_PROPERTY):
+            return []
+
+        raw_property = storage.get_property(uri, PROCESSED_INDICES_PROPERTY)
+        return map(int, raw_property.split(VO_INDEX_SEP))
+
+    def _record_done(self, filename):
+        storage.set_property(self._get_uri(filename), DONE_PROPERTY, DONE_FLAG)
+
+    def _record_index(self, filename, index):
+        processed_indices = self.get_processed_indices(filename)
+        processed_indices.append(index)
+        processed_indices = map(str, processed_indices)
+
+        storage.set_property(self._get_uri(filename),
+                             PROCESSED_INDICES_PROPERTY,
+                             VO_INDEX_SEP.join(processed_indices))
+
+    def lock(self, filename):
+        uri = self._get_uri(filename)
+
+        lock_holder = storage.get_property(uri, LOCK_PROPERTY)
+        if lock_holder is None:
+            storage.set_property(uri, LOCK_PROPERTY, getpass.getuser())
+        elif lock_holder == getpass.getuser():
+            # We already had the lock
+            pass
+        else:
+            raise FileLockedException(filename, lock_holder)
+
+    def unlock(self, filename):
+        uri = self._get_uri(filename)
+
+        lock_holder = storage.get_property(uri, LOCK_PROPERTY)
+        if lock_holder is None:
+            # The file isn't actually locked.  Probably already cleaned up.
+            pass
+        elif lock_holder == getpass.getuser():
+            # It was us who locked it
+            storage.set_property(uri, LOCK_PROPERTY, None)
+        else:
+            # Can't remove someone else's lock!
+            raise FileLockedException(filename, lock_holder)
+
+    def clean(self, suffixes=None):
+        pass
+
+    def owns_lock(self, filename):
+        lock_holder = storage.get_property(self._get_uri(filename),
+                                           LOCK_PROPERTY)
+        return lock_holder == getpass.getuser()
+
+    def _get_uri(self, filename):
+        return self.working_context.get_full_path(filename)
+
+
+class LocalProgressManager(AbstractProgressManager):
+    """
+    Persists progress locally to disk.
+    """
+
+    def __init__(self, working_context):
+        super(LocalProgressManager, self).__init__(working_context)
+
+    def get_done(self, task):
+        listing = self.working_context.get_listing(self._get_done_suffix(task))
+        return [done_file[:-len(DONE_SUFFIX)] for done_file in listing]
+
+    def is_done(self, filename):
+        return self.working_context.exists(filename + DONE_SUFFIX)
+
+    def get_processed_indices(self, filename):
+        partfile = filename + PART_SUFFIX
+        donefile = filename + DONE_SUFFIX
 
         file_with_records = None
-        if os.path.exists(donefile):
+        if self.working_context.exists(donefile):
             file_with_records = donefile
-        elif os.path.exists(partfile):
+        elif self.working_context.exists(partfile):
             file_with_records = partfile
 
         if file_with_records is None:
             return []
 
-        with open(file_with_records, "rb") as filehandle:
-            indices = filehandle.read().rstrip(INDEX_SEP).split(INDEX_SEP)
-            return map(int, indices)
+        filehandle = self.working_context.open(file_with_records)
+        indices = filehandle.read().rstrip(INDEX_SEP).split(INDEX_SEP)
+        filehandle.close()
+
+        return map(int, indices)
 
     def _record_done(self, filename):
-        partfile = self._get_full_path(filename) + PART_SUFFIX
-        donefile = self._get_full_path(filename) + DONE_SUFFIX
+        partfile = filename + PART_SUFFIX
+        donefile = filename + DONE_SUFFIX
 
-        if os.path.exists(partfile):
+        if self.working_context.exists(partfile):
             # By just renaming we keep the history of processed indices
             # available.
-            os.rename(partfile, donefile)
+            self.working_context.rename(partfile, donefile)
         else:
             # Create a new blank file
-            open(donefile, "wb").close()
+            self.working_context.open(donefile).close()
 
     def _record_index(self, filename, index):
-        partfile = self._get_full_path(filename + PART_SUFFIX)
-
-        with open(partfile, "ab") as filehandle:
-            filehandle.write(str(index) + INDEX_SEP)
+        filehandle = self.working_context.open(filename + PART_SUFFIX)
+        filehandle.write(str(index) + INDEX_SEP)
+        filehandle.close()
 
     def lock(self, filename):
         if self.owns_lock(filename):
             return
 
-        lockfile = self._get_full_path(filename + LOCK_SUFFIX)
-
-        try:
-            filehandle = self._atomic_create(lockfile)
-        except OSError:
-            # File already exists, someone holds the lock
-            with open(lockfile, "rb") as filehandle:
-                locker = filehandle.read()
-
+        lockfile = filename + LOCK_SUFFIX
+        if self.working_context.exists(lockfile):
+            locker = self.working_context.open(lockfile).read()
             raise FileLockedException(filename, locker)
-
-        # We got the lock, write our ID into the file
-        filehandle.write(getpass.getuser())
-        filehandle.close()
+        else:
+            filehandle = self.working_context.open(lockfile)
+            filehandle.write(getpass.getuser())
+            filehandle.close()
 
     def unlock(self, filename):
-        lockfile = self._get_full_path(filename + LOCK_SUFFIX)
+        lockfile = filename + LOCK_SUFFIX
 
-        if not os.path.exists(lockfile):
+        if not self.working_context.exists(lockfile):
             # The lock file was probably already cleaned up by record_done
             return
 
-        with open(lockfile, "rb") as filehandle:
-            locker = filehandle.read()
-            if locker == getpass.getuser():
-                # It was us who locked it
-                os.remove(lockfile)
-            else:
-                # Can't remove someone else's lock!
-                raise FileLockedException(filename, locker)
+        filehandle = self.working_context.open(lockfile)
+        locker = filehandle.read()
+        filehandle.close()
+
+        if locker == getpass.getuser():
+            # It was us who locked it
+            self.working_context.remove(lockfile)
+        else:
+            # Can't remove someone else's lock!
+            raise FileLockedException(filename, locker)
 
     def clean(self, suffixes=None):
         """
@@ -241,27 +326,35 @@ class ProgressManager(AbstractProgressManager):
             suffixes = [DONE_SUFFIX, LOCK_SUFFIX, PART_SUFFIX]
 
         for suffix in suffixes:
-            listing = self.directory_manager.get_listing(suffix)
+            listing = self.working_context.get_listing(suffix)
             for filename in listing:
-                os.remove(self._get_full_path(filename))
+                self.working_context.remove(filename)
 
     def owns_lock(self, filename):
-        lockfile = self._get_full_path(filename + LOCK_SUFFIX)
+        lockfile = filename + LOCK_SUFFIX
 
-        if os.path.exists(lockfile):
-            with open(lockfile, "rb") as filehandle:
-                return getpass.getuser() == filehandle.read()
+        if self.working_context.exists(lockfile):
+            filehandle = self.working_context.open(lockfile)
+            lock_holder = filehandle.read()
+            filehandle.close()
+            return getpass.getuser() == lock_holder
         else:
             # No lock file, so we can't have a lock
             return False
 
-    def _atomic_create(self, full_path):
+    def _atomic_create(self, filename):
         """
+        NOTE: this is not currently being used.
+
         Tries to create the specified file.  Throws an OSError if it already
         exists.
         """
-        fd = os.open(full_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
-        return os.fdopen(fd, "wb")
+        # fd = os.open(full_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
+        # return os.fdopen(fd, "wb")
+        pass
+
+    def _get_done_suffix(self, task):
+        return tasks.get_suffix(task) + DONE_SUFFIX
 
 
 class InMemoryProgressManager(AbstractProgressManager):
@@ -271,12 +364,16 @@ class InMemoryProgressManager(AbstractProgressManager):
     testing.
     """
 
-    def __init__(self, directory_manager):
-        super(InMemoryProgressManager, self).__init__(directory_manager)
+    def __init__(self, working_context):
+        super(InMemoryProgressManager, self).__init__(working_context)
         self.done = set()
         self.owned_locks = set()
         self.external_locks = set()
         self.processed_indices = collections.defaultdict(list)
+
+    def get_done(self, task):
+        listing = self.working_context.get_listing(self._get_done_suffix(task))
+        return [done_file[:-len(DONE_SUFFIX)] for done_file in listing]
 
     def is_done(self, filename):
         return filename in self.done
@@ -308,3 +405,6 @@ class InMemoryProgressManager(AbstractProgressManager):
 
     def add_external_lock(self, filename):
         self.external_locks.add(filename)
+
+    def _get_done_suffix(self, task):
+        return tasks.get_suffix(task) + DONE_SUFFIX

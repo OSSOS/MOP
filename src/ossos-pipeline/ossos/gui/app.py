@@ -1,18 +1,18 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import os
 import sys
 
 import wx
 import wx.lib.inspection
 
 from ossos.gui import config, tasks
+from ossos.gui import context
 from ossos.gui.workload import (WorkUnitProvider,
                                 RealsWorkUnitBuilder,
                                 CandidatesWorkUnitBuilder,
                                 NoAvailableWorkException)
 from ossos.astrom import AstromParser
-from ossos.gui.persistence import ProgressManager
+from ossos.gui.persistence import LocalProgressManager
 from ossos.naming import ProvisionalNameGenerator
 from ossos.gui.errorhandling import DownloadErrorHandler
 from ossos.gui.downloads import (AsynchronousImageDownloadManager,
@@ -23,7 +23,7 @@ from ossos.gui.controllers import (ProcessRealsController,
 
 
 class AbstractTaskFactory(object):
-    def create_workunit_builder(self, parser, progress_manager):
+    def create_workunit_builder(self, parser, context, progress_manager):
         pass
 
     def create_controller(self, model):
@@ -40,16 +40,16 @@ class ProcessRealsTaskFactory(AbstractTaskFactory):
         # situation and refactor.
         from pyraf import iraf
 
-    def create_workunit_builder(self, parser, progress_manager):
-        return RealsWorkUnitBuilder(parser, progress_manager)
+    def create_workunit_builder(self, parser, context, progress_manager):
+        return RealsWorkUnitBuilder(parser, context, progress_manager)
 
     def create_controller(self, model):
         return ProcessRealsController(model, ProvisionalNameGenerator())
 
 
 class ProcessCandidatesTaskFactory(AbstractTaskFactory):
-    def create_workunit_builder(self, parser, progress_manager):
-        return CandidatesWorkUnitBuilder(parser, progress_manager)
+    def create_workunit_builder(self, parser, context, progress_manager):
+        return CandidatesWorkUnitBuilder(parser, context, progress_manager)
 
     def create_controller(self, model):
         return ProcessCandidatesController(model)
@@ -79,23 +79,17 @@ class ValidationApplication(object):
         download_manager = AsynchronousImageDownloadManager(downloader,
                                                             error_handler)
 
-        directory_context = DirectoryContext(working_directory)
-        progress_manager = ProgressManager(directory_context)
-        builder = factory.create_workunit_builder(parser, progress_manager)
-        workunit_provider = WorkUnitProvider(tasks.get_suffix(taskname), directory_context,
+        working_context = context.get_context(working_directory)
+        progress_manager = working_context.get_progress_manager()
+        builder = factory.create_workunit_builder(parser, working_context,
+                                                  progress_manager)
+        workunit_provider = WorkUnitProvider(tasks.get_suffix(taskname), working_context,
                                              progress_manager, builder)
 
         model = UIModel(workunit_provider, progress_manager, download_manager)
-
-        try:
-            model.start_work()
-        except NoAvailableWorkException:
-            sys.stdout.write("No work to be done in %s\n" % working_directory)
-            sys.stdout.write("Either it has already been processed or there "
-                             "are no input files for the selected task.\n")
-            sys.exit(0)
-
         controller = factory.create_controller(model)
+
+        model.start_work()
 
         self.model = model
         self.view = controller.get_view()
@@ -108,21 +102,3 @@ class ValidationApplication(object):
     def get_view(self):
         return self.view
 
-
-class DirectoryContext(object):
-    def __init__(self, directory):
-        self.directory = directory
-
-    def get_listing(self, suffix):
-        return listdir_for_suffix(self.directory, suffix)
-
-    def get_full_path(self, filename):
-        return os.path.join(self.directory, filename)
-
-    def get_file_size(self, filename):
-        return os.stat(self.get_full_path(filename)).st_size
-
-
-def listdir_for_suffix(directory, suffix):
-    """Note this returns file names, not full paths."""
-    return filter(lambda name: name.endswith(suffix), os.listdir(directory))

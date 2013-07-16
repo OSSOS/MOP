@@ -5,6 +5,8 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import re
 
+from ossos import storage
+
 DATASET_ROOT = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages"
 
 HEADER_LINE_LENGTH = 80
@@ -171,8 +173,9 @@ class AstromParser(object):
             The file contents extracted into a data structure for programmatic
             access.
         """
-        with open(filename, "rb") as filehandle:
-            filestr = filehandle.read()
+        filehandle = storage.open_vos_or_local(filename, "rb")
+        filestr = filehandle.read()
+        filehandle.close()
 
         assert filestr is not None, "File contents are None"
 
