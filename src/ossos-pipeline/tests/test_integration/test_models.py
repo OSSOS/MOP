@@ -334,38 +334,6 @@ class AbstractRealsModelTest(GeneralModelTest):
         assert_that(self.model.get_current_image_maxcount(), equal_to(30000.0))
 
 
-class EmptyWorkloadModelTest(FileReadingTestCase):
-    def _get_working_dir(self):
-        return self.get_abs_path(EMPTY_DIR)
-
-    def _get_task(self):
-        return tasks.REALS_TASK
-
-    def setUp(self):
-        events.unsub_all()
-
-    @unittest.skip("Rework as app level test.")
-    def test_no_available_work_exception(self):
-        parser = AstromParser()
-        directory_manager = LocalDirectoryWorkingContext(self._get_working_dir())
-        progress_manager = LocalProgressManager(directory_manager)
-        workunit_provider = WorkUnitProvider(tasks.get_suffix(self._get_task()),
-                                             directory_manager, progress_manager,
-                                             RealsWorkUnitBuilder(
-                                                 parser,
-                                                 directory_manager,
-                                                 progress_manager))
-
-        workunit_provider = workunit_provider
-        progress_manager = progress_manager
-        download_manager = Mock(spec=AsynchronousImageDownloadManager)
-
-        model = models.UIModel(workunit_provider, progress_manager,
-                               download_manager)
-
-        self.assertRaises(NoAvailableWorkException, model.start_work)
-
-
 class ProcessRealsModelTest(GeneralModelTest):
     def _get_working_dir(self):
         return self.get_abs_path(MODEL_TEST_DIR_1)
