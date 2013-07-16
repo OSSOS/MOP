@@ -59,15 +59,16 @@ class SyncingVOFile(object):
             raise InvalidURIError("URI must point to VOSpace.")
 
         self.uri = uri
+        self.vosclient = vosclient
 
         basename = os.path.basename(uri)
         self.local_filename = os.path.join(tempfile.gettempdir(), basename)
 
+        if exists(uri):
+            # Download any existing content.
+            self.vosclient.copy(uri, self.local_filename)
+
         self.local_filehandle = open(self.local_filename, "a+b")
-
-        self.vosclient = vosclient
-
-        self._download_existing_content()
 
     def read(self):
         """
@@ -142,18 +143,6 @@ class SyncingVOFile(object):
         start from the beginning and all writes append to the end.
         """
         pass
-
-    def _download_existing_content(self):
-        """
-        Syncs the local file with the contents of the VOSpace file (if there
-        is one).  If the VOSpace file does not yet exist, this does nothing.
-        """
-        if not exists(self.uri):
-            return
-
-        vospace_file = vofile(self.uri, os.O_RDONLY)
-        self.local_filehandle.write(vospace_file.read())
-        vospace_file.close()
 
 
 def populate(dataset_name,
