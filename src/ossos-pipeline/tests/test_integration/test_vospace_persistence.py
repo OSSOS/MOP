@@ -110,6 +110,23 @@ class VOSpaceProgressManagerTest(FileReadingTestCase):
         manager2.lock(TEST_FILE_1)
 
     @patch.object(getpass, "getuser")
+    def test_lock_holder_no_file_locked_exception(self, getuser_mock):
+        lock_holding_user = "lock_holding_user"
+        lock_requesting_user = "lock_requesting_user"
+
+        getuser_mock.return_value = lock_holding_user
+        self.undertest.lock(TEST_FILE_1)
+
+        # No-one else should be able to acquire the lock...
+        manager2 = VOSpaceProgressManager(self.context)
+        getuser_mock.return_value = lock_requesting_user
+        self.assertRaises(FileLockedException, manager2.lock, TEST_FILE_1)
+
+        # ... but we should be able to without getting a FileLockedException
+        getuser_mock.return_value = lock_holding_user
+        self.undertest.lock(TEST_FILE_1)
+
+    @patch.object(getpass, "getuser")
     def test_lock_has_locker_id(self, getuser_mock):
         lock_holding_user = "lock_holding_user"
         lock_requesting_user = "lock_requesting_user"

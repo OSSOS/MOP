@@ -204,6 +204,9 @@ class VOSpaceProgressManager(AbstractProgressManager):
         lock_holder = storage.get_property(uri, LOCK_PROPERTY)
         if lock_holder is None:
             storage.set_property(uri, LOCK_PROPERTY, getpass.getuser())
+        elif lock_holder == getpass.getuser():
+            # We already had the lock
+            pass
         else:
             raise FileLockedException(filename, lock_holder)
 
