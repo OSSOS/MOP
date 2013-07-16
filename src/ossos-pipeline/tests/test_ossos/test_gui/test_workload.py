@@ -553,7 +553,7 @@ class WorkUnitProviderTest(FileReadingTestCase, DirectoryCleaningTestCase):
         directory_manager = LocalDirectoryWorkingContext(working_directory)
         progress_manager = InMemoryProgressManager(directory_manager)
         parser = AstromParser()
-        builder = RealsWorkUnitBuilder(parser, progress_manager)
+        builder = RealsWorkUnitBuilder(parser, directory_manager, progress_manager)
         undertest = WorkUnitProvider(tasks.get_suffix(tasks.REALS_TASK),
                                      directory_manager,
                                      progress_manager,

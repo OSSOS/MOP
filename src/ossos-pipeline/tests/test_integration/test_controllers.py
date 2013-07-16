@@ -41,7 +41,10 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
         progress_manager = LocalProgressManager(directory_manager)
         workunit_provider = WorkUnitProvider(tasks.get_suffix(tasks.REALS_TASK),
                                              directory_manager, progress_manager,
-                                             RealsWorkUnitBuilder(parser, progress_manager))
+                                             RealsWorkUnitBuilder(
+                                                 parser,
+                                                 directory_manager,
+                                                 progress_manager))
 
         download_manager = Mock(spec=AsynchronousImageDownloadManager)
 
