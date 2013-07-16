@@ -3,6 +3,7 @@
 
 import subprocess
 import os
+import tempfile
 import vos
 import logging
 import urllib
@@ -18,7 +19,139 @@ DBIMAGES='vos:OSSOS/dbimages'
 DATA_WEB_SERVICE='https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/'
 OSSOS_TAG_URI_BASE='ivo://canfar.uvic.ca/ossos'
 vospace = vos.Client(cadc_short_cut=True, certFile=CERTFILE)
-SUCCESS = 'success' 
+SUCCESS = 'success'
+
+
+class PropertyError(object):
+    """"An error occurred accessing a VOSpace property."""
+
+
+class InvalidURIError(Exception):
+    """An invalid URI was provided."""
+
+
+class SyncingVOFile(object):
+    """
+    A file-like object which allows creating, reading and writing files in
+    VOSpace while maintaining a local backup copy.
+
+    Changes made to the file are saved locally, only being written to VOSpace
+    when flushed.
+    """
+
+    def __init__(self, uri, vosclient=vospace):
+        """
+        Contstructor.
+
+        If a file does not exist at the specified URI, it will not be created
+        right away.  Only a local file will be created, until the first flush
+        (sync) which will create the VOSpace file.
+
+        If a file already exists at the specified URI, it will be opened for
+        reading and writing.  It's contents will be copied to a local file.
+
+        Local files are created in the temp directory with the same basename
+        as the VOFile.  If a file already exists locally, it is first
+        removed.
+
+        Args:
+          uri: str
+            The URI of the file in VOSpace.  Raises an InvalidUriError if
+            this isn't recognizable as a VOSpace URI.
+        """
+        if not uri.startswith("vos:"):
+            raise InvalidURIError("URI must point to VOSpace.")
+
+        self.uri = uri
+        self.vosclient = vosclient
+
+        basename = os.path.basename(uri)
+        self.local_filename = os.path.join(tempfile.gettempdir(), basename)
+
+        if exists(uri):
+            # Download any existing content.
+            self.vosclient.copy(uri, self.local_filename)
+        elif os.path.exists(self.local_filename):
+            # Make sure we clear any existing local data or we could be
+            # surprised when it shows up in the VOFile.
+            os.remove(self.local_filename)
+
+        self.local_filehandle = open(self.local_filename, "a+b")
+
+    def read(self):
+        """
+        Reads the contents of the file.
+
+        Reading is done from the local file which the VOSpace file is being
+        synced from, so it will always have the most up-to-date content
+        (which may not actually have been written to VOSpace yet).
+
+        IMPORTANT NOTE: this read behaves differently than standard file
+        objects because it always reads from the beginning of the file
+        without needing to seek back there.
+
+        Returns:
+          content: str
+            The contents of the file.
+        """
+        self.local_filehandle.seek(0)
+        return self.local_filehandle.read()
+
+    def write(self, content):
+        """
+        Writes some content to the file.
+
+        IMPORTANT NOTE: this write behaves differently than standard file
+        objects because new content is always appended to the existing
+        content.
+
+        IMPORTANT NOTE: content written to the file are not sent to VOSpace
+        until flush is called.
+
+        Args:
+          content: str
+            The content to be appended to the file.
+
+        Returns:
+          void
+        """
+        self.local_filehandle.write(content)
+
+    def flush(self):
+        """
+        Flushes (syncs) changes to VOSpace.
+
+        Returns:
+          void
+        """
+        self.local_filehandle.flush()
+        self.vosclient.copy(self.get_local_filename(), self.uri)
+
+    def close(self):
+        """
+        Closes all resources.
+
+        Returns:
+          void
+        """
+        self.flush()
+        self.local_filehandle.close()
+
+    def get_local_filename(self):
+        """
+        Returns:
+          filename: str
+            The path to the local file backing the VOFile.
+        """
+        return self.local_filename
+
+    def seek(self, offset):
+        """
+        This is a no-op since this is an append only file where all reads
+        start from the beginning and all writes append to the end.
+        """
+        pass
+
 
 def populate(dataset_name,
              data_web_service_url = DATA_WEB_SERVICE+"CFHT"):
@@ -252,7 +385,33 @@ def mkdir(root):
     while len(dir_list)>0:
         logging.debug("Creating directory: %s" % (dir_list[-1]))
         vospace.mkdir(dir_list.pop())
-    return 
+    return
+
+
+def vofile(filename, mode):
+    """Open and return a handle on a VOSpace data connection"""
+    return vospace.open(filename, view='data', mode=mode)
+
+
+def open_vos_or_local(path, mode="rb"):
+    """
+    Opens a file which can either be in VOSpace or the local filesystem.
+    """
+    if path.startswith("vos:"):
+        primary_mode = mode[0]
+        if primary_mode == "r":
+            vofile_mode = os.O_RDONLY
+        elif primary_mode == "w":
+            vofile_mode = os.O_WRONLY
+        elif primary_mode == "a":
+            vofile_mode = os.O_APPEND
+        else:
+            raise ValueError("Can't open with mode %s" % mode)
+
+        return vofile(path, vofile_mode)
+    else:
+        return open(path, mode)
+
 
 def copy(source, dest):
     '''use the vospace service to get a file.
@@ -281,7 +440,68 @@ def delete(expnum, ccd, version, ext, prefix=None):
     except IOError as e:
         if e.errno != errno.ENOENT:
             raise e
-        
+
+
+def listdir(directory, force=False):
+    return vospace.listdir(directory, force=force)
+
 
 def list_dbimages():
-    return vospace.listdir(DBIMAGES)
+    return listdir(DBIMAGES)
+
+
+def exists(uri):
+    return vospace.access(uri)
+
+
+def create(uri):
+    vospace.create(uri)
+
+
+def move(old_uri, new_uri):
+    vospace.move(old_uri, new_uri)
+
+
+def delete_uri(uri):
+    vospace.delete(uri)
+
+
+def has_property(node_uri, property_name):
+    """
+    Checks if a node in VOSpace has the specified property.
+    """
+    if get_property(node_uri, property_name) is None:
+        return False
+    else:
+        return True
+
+
+def get_property(node_uri, property_name):
+    """
+    Retrieves the value associated with a property on a node in VOSpace.
+    """
+    # Must use force or we could have a cached copy of the node from before
+    # properties of interest were set/updated.
+    node = vospace.getNode(node_uri, force=True)
+    property_uri = tag_uri(property_name)
+
+    if property_uri not in node.props:
+        return None
+
+    return node.props[property_uri]
+
+
+def set_property(node_uri, property_name, property_value):
+    """
+    Sets the value of a property on a node in VOSpace.  If the property
+    already has a value then it is first cleared and then set.
+    """
+    node = vospace.getNode(node_uri)
+    property_uri = tag_uri(property_name)
+
+    # First clear any existing value
+    node.props[property_uri] = None
+    vospace.addProps(node)
+
+    node.props[property_uri] = property_value
+    vospace.addProps(node)

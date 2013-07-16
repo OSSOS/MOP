@@ -23,6 +23,9 @@ class DownloadErrorHandler(object):
           downloadable_item: ossos.downloads.DownloadableItem
             The item that was being downloaded when the error occurred.
         """
+        if not hasattr(error, "errno"):
+            raise error
+
         if error.errno == errno.EACCES:
             self.handle_certificate_problem(str(error))
         elif error.errno == errno.ECONNREFUSED:

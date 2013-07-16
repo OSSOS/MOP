@@ -53,9 +53,15 @@ class AbstractController(object):
         self.display_current_image()
 
     def on_no_available_work(self, event):
-        should_exit = self.get_view().all_processed_should_exit_prompt()
-        if should_exit:
+        self.get_view().hide_image_loading_dialog()
+
+        if self.model.get_num_items_processed() == 0:
+            self.get_view().show_empty_workload_dialog()
             self._do_exit()
+        else:
+            should_exit = self.get_view().all_processed_should_exit_prompt()
+            if should_exit:
+                self._do_exit()
 
     def on_exit(self):
         self._do_exit()

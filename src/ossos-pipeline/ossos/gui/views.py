@@ -8,6 +8,7 @@ from wx.lib.mixins import listctrl as listmix
 from ossos.gui import events, config
 from ossos.gui.fitsviewer import MPLFitsImageViewer
 from ossos.gui.errorhandling import CertificateDialog, RetryDownloadDialog
+from ossos.gui.models import NoWorkUnitException
 
 
 def guithread(function):
@@ -125,6 +126,9 @@ class ApplicationView(object):
         if self.reject_source_dialog is not None:
             self.reject_source_dialog.Destroy()
 
+    def show_empty_workload_dialog(self):
+        show_empty_workload_dialog(self.mainframe, self.model)
+
     def all_processed_should_exit_prompt(self):
         return should_exit_prompt(self.mainframe)
 
@@ -211,10 +215,22 @@ class MainFrame(wx.Frame):
     def _create_data_notebook(self):
         notebook = wx.Notebook(self.control_panel)
 
-        reading_data_panel = KeyValueListPanel(notebook, self.model.get_reading_data)
+        def get_reading_data():
+            try:
+                return self.model.get_reading_data()
+            except NoWorkUnitException:
+                return []
+
+        def get_header_data_list():
+            try:
+                return self.model.get_header_data_list()
+            except NoWorkUnitException:
+                return []
+
+        reading_data_panel = KeyValueListPanel(notebook, get_reading_data)
         events.subscribe(events.CHANGE_IMAGE, reading_data_panel.on_change_data)
 
-        obs_header_panel = KeyValueListPanel(notebook, self.model.get_header_data_list)
+        obs_header_panel = KeyValueListPanel(notebook, get_header_data_list)
         events.subscribe(events.CHANGE_IMAGE, obs_header_panel.on_change_data)
 
         notebook.AddPage(reading_data_panel, "Readings")
@@ -853,6 +869,19 @@ def should_exit_prompt(parent):
     dialog.Destroy()
 
     return True if user_choice == wx.ID_YES else False
+
+
+def show_empty_workload_dialog(parent, model):
+    message = ("No work to be done in %s\n"
+               "It was either already processed or has no input files "
+               "for the selected task." % model.get_working_directory())
+    dialog = wx.MessageDialog(parent,
+                              message,
+                              caption="Empty Workload",
+                              style=wx.OK | wx.ICON_INFORMATION)
+
+    dialog.ShowModal()
+    dialog.Destroy()
 
 
 def get_asset_full_path(asset_name):
