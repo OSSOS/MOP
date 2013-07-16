@@ -12,6 +12,8 @@ import wx
 from hamcrest import not_none, assert_that
 from mock import Mock
 
+from ossos.gui import events
+
 
 class FileReadingTestCase(unittest.TestCase):
     def get_abs_path(self, relative_path):
@@ -35,6 +37,7 @@ class FileReadingTestCase(unittest.TestCase):
 
 class WxWidgetTestCase(unittest.TestCase):
     def setUp(self):
+        events.unsub_all()
         self.app = wx.App(False)
         self.rootframe = wx.Frame(None)
 
