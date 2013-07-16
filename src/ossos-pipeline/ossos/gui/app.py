@@ -79,11 +79,11 @@ class ValidationApplication(object):
         download_manager = AsynchronousImageDownloadManager(downloader,
                                                             error_handler)
 
-        directory_context = context.get_context(working_directory)
-        progress_manager = LocalProgressManager(directory_context)
-        builder = factory.create_workunit_builder(parser, directory_context,
+        working_context = context.get_context(working_directory)
+        progress_manager = working_context.get_progress_manager()
+        builder = factory.create_workunit_builder(parser, working_context,
                                                   progress_manager)
-        workunit_provider = WorkUnitProvider(tasks.get_suffix(taskname), directory_context,
+        workunit_provider = WorkUnitProvider(tasks.get_suffix(taskname), working_context,
                                              progress_manager, builder)
 
         model = UIModel(workunit_provider, progress_manager, download_manager)
