@@ -8,6 +8,7 @@ from wx.lib.mixins import listctrl as listmix
 from ossos.gui import events, config
 from ossos.gui.fitsviewer import MPLFitsImageViewer
 from ossos.gui.errorhandling import CertificateDialog, RetryDownloadDialog
+from ossos.gui.models import NoDataException
 
 
 def guithread(function):
@@ -211,10 +212,22 @@ class MainFrame(wx.Frame):
     def _create_data_notebook(self):
         notebook = wx.Notebook(self.control_panel)
 
-        reading_data_panel = KeyValueListPanel(notebook, self.model.get_reading_data)
+        def get_reading_data():
+            try:
+                return self.model.get_reading_data()
+            except NoDataException:
+                return []
+
+        def get_header_data_list():
+            try:
+                return self.model.get_header_data_list()
+            except NoDataException:
+                return []
+
+        reading_data_panel = KeyValueListPanel(notebook, get_reading_data)
         events.subscribe(events.CHANGE_IMAGE, reading_data_panel.on_change_data)
 
-        obs_header_panel = KeyValueListPanel(notebook, self.model.get_header_data_list)
+        obs_header_panel = KeyValueListPanel(notebook, get_header_data_list)
         events.subscribe(events.CHANGE_IMAGE, obs_header_panel.on_change_data)
 
         notebook.AddPage(reading_data_panel, "Readings")
