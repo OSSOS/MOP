@@ -89,13 +89,7 @@ class ValidationApplication(object):
         model = UIModel(workunit_provider, progress_manager, download_manager)
         controller = factory.create_controller(model)
 
-        try:
-            model.start_work()
-        except NoAvailableWorkException:
-            sys.stdout.write("No work to be done in %s\n" % working_directory)
-            sys.stdout.write("Either it has already been processed or there "
-                             "are no input files for the selected task.\n")
-            sys.exit(0)
+        model.start_work()
 
         self.model = model
         self.view = controller.get_view()

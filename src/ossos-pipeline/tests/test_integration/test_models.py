@@ -344,6 +344,7 @@ class EmptyWorkloadModelTest(FileReadingTestCase):
     def setUp(self):
         events.unsub_all()
 
+    @unittest.skip("Rework as app level test.")
     def test_no_available_work_exception(self):
         parser = AstromParser()
         directory_manager = LocalDirectoryWorkingContext(self._get_working_dir())

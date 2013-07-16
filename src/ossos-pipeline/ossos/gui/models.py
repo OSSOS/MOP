@@ -8,7 +8,7 @@ class ImageNotLoadedException(Exception):
     """The requested image hasn't been loaded yet."""
 
 
-class NoDataException(Exception):
+class NoWorkUnitException(Exception):
     """No data is available at the current time."""
 
 
@@ -37,11 +37,12 @@ class UIModel(object):
 
         self.sources_discovered = set()
 
+    def get_working_directory(self):
+        # TODO: yuck, refactor!
+        return self.progress_manager.working_context.directory
+
     def start_work(self):
         self.next_workunit()
-
-        if len(self.work_units) == 0:
-            raise NoAvailableWorkException()
 
     def next_source(self):
         self.get_current_workunit().next_source()
@@ -118,7 +119,7 @@ class UIModel(object):
     def get_current_workunit(self):
         workunit = self.work_units.get_current_item()
         if workunit is None:
-            raise NoDataException()
+            raise NoWorkUnitException()
         else:
             return workunit
 
@@ -209,9 +210,15 @@ class UIModel(object):
         self.download_manager.refresh_vos_client()
 
     def exit(self):
-        self._unlock(self.get_current_workunit())
+        try:
+            self._unlock(self.get_current_workunit())
+        except NoWorkUnitException:
+            # Nothing to unlock
+            pass
+
         for workunit in self.work_units:
             workunit.get_writer().close()
+
         self.download_manager.stop_download()
         self.download_manager.wait_for_downloads_to_stop()
 
