@@ -1,12 +1,12 @@
-.PHONY: unit_test integration_test test coverage
+.PHONY: local_test vospace_test test_all coverage
 
-unit_test:
-	nosetests -v tests/ --exclude test_integration
+local_test:
+	nosetests -v tests/ --exclude test_vospace
 
-integration_test:
-	nosetests -v tests/test_integration/
+vospace_test:
+	nosetests -v tests/test_vospace/
 
-test:
+test_all:
 	nosetests -v tests/
 
 coverage:
