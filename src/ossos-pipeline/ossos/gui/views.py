@@ -872,7 +872,7 @@ def should_exit_prompt(parent):
 
 
 def show_empty_workload_dialog(parent, model):
-    message = ("No work to be done in %s"
+    message = ("No work to be done in %s\n"
                "It was either already processed or has no input files "
                "for the selected task." % model.get_working_directory())
     dialog = wx.MessageDialog(parent,
