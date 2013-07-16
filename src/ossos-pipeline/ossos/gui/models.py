@@ -8,6 +8,10 @@ class ImageNotLoadedException(Exception):
     """The requested image hasn't been loaded yet."""
 
 
+class NoDataException(Exception):
+    """No data is available at the current time."""
+
+
 class UIModel(object):
     """
     Contains the data and associated operations available to the user interface.
@@ -112,7 +116,11 @@ class UIModel(object):
         return self.get_current_workunit().get_data()
 
     def get_current_workunit(self):
-        return self.work_units.get_current_item()
+        workunit = self.work_units.get_current_item()
+        if workunit is None:
+            raise NoDataException()
+        else:
+            return workunit
 
     def get_writer(self):
         return self.get_current_workunit().get_writer()
