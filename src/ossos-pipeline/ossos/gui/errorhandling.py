@@ -6,6 +6,8 @@ import os
 import requests
 import wx
 
+from ossos.gui import logger
+
 
 class DownloadErrorHandler(object):
     def __init__(self, app):
@@ -24,6 +26,7 @@ class DownloadErrorHandler(object):
             The item that was being downloaded when the error occurred.
         """
         if not hasattr(error, "errno"):
+            logger.critical("Unresolvable download error: %s" % str(error))
             raise error
 
         if error.errno == errno.EACCES:
@@ -31,9 +34,12 @@ class DownloadErrorHandler(object):
         elif error.errno == errno.ECONNREFUSED:
             self.handle_connection_refused(str(error), downloadable_item)
         else:
+            logger.critical("Unresolvable download error: %s" % str(error))
             raise error
 
     def handle_certificate_problem(self, error_message):
+        logger.warning("Problem with CADC certificate")
+
         self.app.get_model().stop_loading_images()
 
         view = self.app.get_view()
@@ -43,6 +49,8 @@ class DownloadErrorHandler(object):
     def refresh_certificate(self, username, password):
         download_certificate(username, password)
 
+        logger.info("Downloaded new CADC certificate")
+
         model = self.app.get_model()
         model.refresh_vos_client()
 
@@ -50,6 +58,8 @@ class DownloadErrorHandler(object):
         model.start_loading_images()
 
     def handle_connection_refused(self, error_message, downloadable_item):
+        logger.warning("Connection refused when downloading")
+
         self._failed_downloads.append(downloadable_item)
         self.app.get_view().show_retry_download_dialog(self, error_message)
 
