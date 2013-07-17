@@ -32,8 +32,8 @@ class UIModel(object):
 
         self.num_processed = 0
 
-        # Maps each reading to its image (once downloaded)
-        self._images_by_reading = {}
+        # Maps each reading to its image-reading model (once downloaded)
+        self._image_reading_models = {}
 
         self.sources_discovered = set()
 
@@ -167,10 +167,7 @@ class UIModel(object):
         return self.get_current_reading().dec
 
     def get_current_image(self):
-        try:
-            return self._images_by_reading[self.get_current_reading()]
-        except KeyError:
-            raise ImageNotLoadedException()
+        return self._get_current_image_reading().get_image()
 
     def get_current_hdulist(self):
         return self.get_current_image().as_hdulist()
@@ -195,7 +192,7 @@ class UIModel(object):
         return float(self.get_current_reading().obs.header["MAXCOUNT"])
 
     def get_loaded_image_count(self):
-        return len(self._images_by_reading)
+        return len(self._image_reading_models)
 
     def stop_loading_images(self):
         self.download_manager.stop_download()
@@ -222,6 +219,12 @@ class UIModel(object):
         self.download_manager.stop_download()
         self.download_manager.wait_for_downloads_to_stop()
 
+    def _get_current_image_reading(self):
+        try:
+            return self._image_reading_models[self.get_current_reading()]
+        except KeyError:
+            raise ImageNotLoadedException()
+
     def _lock(self, workunit):
         self.progress_manager.lock(workunit.get_filename())
 
@@ -233,8 +236,22 @@ class UIModel(object):
             workunit, image_loaded_callback=self._on_image_loaded)
 
     def _on_image_loaded(self, reading, image):
-        self._images_by_reading[reading] = image
+        self._image_reading_models[reading] = ImageReading(reading, image)
         events.send(events.IMG_LOADED, reading)
 
     def _on_finished_workunit(self, filename):
         events.send(events.FINISHED_WORKUNIT, filename)
+
+
+class ImageReading(object):
+    """
+    Associates a particular source reading with a downloaded FITS image.
+    """
+
+    def __init__(self, reading, fits_image):
+        self.reading = reading
+        self.fits_image = fits_image
+
+    def get_image(self):
+        return self.fits_image
+
