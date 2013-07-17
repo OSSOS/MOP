@@ -252,6 +252,45 @@ class ImageReading(object):
         self.reading = reading
         self.fits_image = fits_image
 
+        self.x = self.original_x = self.reading.x
+        self.y = self.original_y = self.reading.y
+
+        self._ra = self.reading.ra
+        self._dec = self.reading.dec
+
+        self._stale = False
+
+    def update_x(self, new_x):
+        self.x = new_x
+        self._stale = True
+
+    def update_y(self, new_y):
+        self.y = new_y
+        self._stale = True
+
+    @property
+    def ra(self):
+        self._ensure_fresh()
+        return self._ra
+
+    @property
+    def dec(self):
+        self._ensure_fresh()
+        return self._dec
+
     def get_image(self):
         return self.fits_image
+
+    def is_corrected(self):
+        return self.x != self.original_x or self.y != self.original_y
+
+    def _ensure_fresh(self):
+        if self._stale:
+            self._update_ra_dec()
+            self._stale = False
+
+    def _update_ra_dec(self):
+        # TODO: pull necessary values out of astrom and fits headers and
+        # call wcs.xy2sky
+        pass
 
