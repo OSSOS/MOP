@@ -7,7 +7,7 @@
 CREATE TABLE images (
 	image_id		BIGINT						PRIMARY KEY, -- EXPNUM: CFHT odometer number (TAP:collectionID)
 	cfht_field	 	TEXT						NOT NULL, -- OBJECT the field it thinks it's looking at. eg 'O+0-1   ' 
-	block			TEXT						NOT NULL, -- semester + on/off ecliptic	
+	block			TEXT						NULL, -- semester + on/off ecliptic	
 	filename 		TEXT						NOT NULL, -- FILENAME '1616934o' / Base filename at acquisition: header has a .head suffix
 	obs_start		TIMESTAMP WITH TIME ZONE	NOT NULL, -- from DATE-OBS and UTIME: at start of observation (UTC)
 	obs_end			TIMESTAMP WITH TIME ZONE	NOT NULL, -- DATE: UTC Date of file creation

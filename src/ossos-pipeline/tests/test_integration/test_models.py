@@ -7,19 +7,20 @@ from hamcrest import (assert_that, equal_to, has_length, contains, same_instance
 from mock import Mock, patch
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
-from ossos.gui.app import DirectoryContext
 from ossos.gui import models, events, tasks
+from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui.models import ImageNotLoadedException
 from ossos.gui.downloads import AsynchronousImageDownloadManager
 from ossos.astrom import AstromParser
-from ossos.gui.persistence import ProgressManager
+from ossos.gui.persistence import LocalProgressManager
 from ossos.gui.image import DownloadedFitsImage
 from ossos.gui.workload import (WorkUnitProvider, RealsWorkUnitBuilder,
-                               CandidatesWorkUnitBuilder)
+                               CandidatesWorkUnitBuilder, NoAvailableWorkException)
 
 MODEL_TEST_DIR_1 = "data/model_testdir_1"
 MODEL_TEST_DIR_2 = "data/model_testdir_2"
 MODEL_TEST_DIR_3 = "data/model_testdir_3"
+EMPTY_DIR = "data/empty"
 
 FRESH_TEST_DIR = "data/model_persistence_fresh"
 TEST_FILES = ["xxx1.cands.astrom", "xxx2.cands.astrom", "xxx3.reals.astrom", "xxx4.reals.astrom"]
@@ -30,8 +31,9 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
         events.unsub_all()
 
         parser = AstromParser()
-        directory_manager = DirectoryContext(self._get_working_dir())
-        progress_manager = ProgressManager(directory_manager)
+        directory_manager = LocalDirectoryWorkingContext(self._get_working_dir())
+        self.context = directory_manager
+        progress_manager = LocalProgressManager(directory_manager)
         workunit_provider = WorkUnitProvider(tasks.get_suffix(self._get_task()),
                                              directory_manager, progress_manager,
                                              self._get_workunit_builder(parser, progress_manager))
@@ -41,6 +43,13 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
         self.download_manager = Mock(spec=AsynchronousImageDownloadManager)
 
         self.model = self.get_model()
+
+        self.custom_setup()
+
+        self.model.start_work()
+
+    def custom_setup(self):
+        pass
 
     def get_model(self):
         raise NotImplementedError()
@@ -74,7 +83,7 @@ class AbstractRealsModelTest(GeneralModelTest):
         return tasks.REALS_TASK
 
     def _get_workunit_builder(self, parser, progress_manager):
-        return RealsWorkUnitBuilder(parser, progress_manager)
+        return RealsWorkUnitBuilder(parser, self.context, progress_manager)
 
     def get_files_to_keep(self):
         return ["1584431p15.measure3.reals.astrom"]
@@ -211,7 +220,8 @@ class AbstractRealsModelTest(GeneralModelTest):
         loaded_reading2 = Mock()
         image2 = Mock()
 
-        assert_that(self.download_manager.start_download.call_count, equal_to(1))
+        assert_that(self.download_manager.start_downloading_workunit.call_count,
+                    equal_to(1))
         assert_that(self.model.get_loaded_image_count(), equal_to(0))
 
         # Simulate receiving callback
@@ -332,7 +342,7 @@ class ProcessRealsModelTest(GeneralModelTest):
         return tasks.REALS_TASK
 
     def _get_workunit_builder(self, parser, progress_manager):
-        return RealsWorkUnitBuilder(parser, progress_manager)
+        return RealsWorkUnitBuilder(parser, self.context, progress_manager)
 
     def get_files_to_keep(self):
         return ["1584431p15.measure3.reals.astrom"]
@@ -529,7 +539,7 @@ class ProcessCandidatesModelTest(GeneralModelTest):
         return tasks.CANDS_TASK
 
     def _get_workunit_builder(self, parser, progress_manager):
-        return CandidatesWorkUnitBuilder(parser, progress_manager)
+        return CandidatesWorkUnitBuilder(parser, self.context, progress_manager)
 
     def get_files_to_keep(self):
         return ["1584431p15.measure3.cands.astrom", "1584431p15.measure3.reals.astrom"]
@@ -641,7 +651,7 @@ class ProcessCandidatesModelTest(GeneralModelTest):
 
 class MultipleAstromDataModelTest(GeneralModelTest):
     def _get_workunit_builder(self, parser, progress_manager):
-        return CandidatesWorkUnitBuilder(parser, progress_manager)
+        return CandidatesWorkUnitBuilder(parser, self.context, progress_manager)
 
     def get_model(self):
         return models.UIModel(
@@ -788,14 +798,14 @@ class RealsModelPersistenceTest(GeneralModelTest):
     def setUp(self):
         super(RealsModelPersistenceTest, self).setUp()
 
-        concurrent_directory_manager = DirectoryContext(self._get_working_dir())
-        self.concurrent_progress_manager = ProgressManager(concurrent_directory_manager)
+        concurrent_directory_manager = LocalDirectoryWorkingContext(self._get_working_dir())
+        self.concurrent_progress_manager = LocalProgressManager(concurrent_directory_manager)
 
     def _get_task(self):
         return tasks.REALS_TASK
 
     def _get_workunit_builder(self, parser, progress_manager):
-        return RealsWorkUnitBuilder(parser, progress_manager)
+        return RealsWorkUnitBuilder(parser, self.context, progress_manager)
 
     def _get_working_dir(self):
         return self.get_abs_path(FRESH_TEST_DIR)
@@ -943,7 +953,7 @@ class RealsModelPersistenceLoadingTest(GeneralModelTest):
         return tasks.REALS_TASK
 
     def _get_workunit_builder(self, parser, progress_manager):
-        return RealsWorkUnitBuilder(parser, progress_manager)
+        return RealsWorkUnitBuilder(parser, self.context, progress_manager)
 
     def _get_working_dir(self):
         return self.get_abs_path("data/model_persistence_partial")
@@ -985,14 +995,14 @@ class CandidatesModelPersistenceTest(GeneralModelTest):
     def setUp(self):
         super(CandidatesModelPersistenceTest, self).setUp()
 
-        concurrent_directory_manager = DirectoryContext(self._get_working_dir())
-        self.concurrent_progress_manager = ProgressManager(concurrent_directory_manager)
+        concurrent_directory_manager = LocalDirectoryWorkingContext(self._get_working_dir())
+        self.concurrent_progress_manager = LocalProgressManager(concurrent_directory_manager)
 
     def _get_task(self):
         return tasks.CANDS_TASK
 
     def _get_workunit_builder(self, parser, progress_manager):
-        return CandidatesWorkUnitBuilder(parser, progress_manager)
+        return CandidatesWorkUnitBuilder(parser, self.context, progress_manager)
 
     def _get_working_dir(self):
         return self.get_abs_path(FRESH_TEST_DIR)
@@ -1073,7 +1083,7 @@ class CandidatesModelPersistenceLoadingTest(GeneralModelTest):
         return tasks.CANDS_TASK
 
     def _get_workunit_builder(self, parser, progress_manager):
-        return CandidatesWorkUnitBuilder(parser, progress_manager)
+        return CandidatesWorkUnitBuilder(parser, self.context, progress_manager)
 
     def _get_working_dir(self):
         return self.get_abs_path("data/model_persistence_partial")

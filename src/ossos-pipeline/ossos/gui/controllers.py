@@ -1,5 +1,6 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+from ossos.daophot import TaskError
 from ossos.gui import events, config
 from ossos.gui.views import ApplicationView
 from ossos.gui.models import ImageNotLoadedException
@@ -52,9 +53,15 @@ class AbstractController(object):
         self.display_current_image()
 
     def on_no_available_work(self, event):
-        should_exit = self.get_view().all_processed_should_exit_prompt()
-        if should_exit:
+        self.get_view().hide_image_loading_dialog()
+
+        if self.model.get_num_items_processed() == 0:
+            self.get_view().show_empty_workload_dialog()
             self._do_exit()
+        else:
+            should_exit = self.get_view().all_processed_should_exit_prompt()
+            if should_exit:
+                self._do_exit()
 
     def on_exit(self):
         self._do_exit()
@@ -91,19 +98,35 @@ class ProcessRealsController(AbstractController):
         return self.name_generator.name_source(self.model.get_current_source())
 
     def on_accept(self):
-        """Initiates acceptance procedure, gathering required data."""
+        """
+        Initiates acceptance procedure, gathering required data.
+        """
+        band = self.model.get_current_band()
+        default_comment = ""
+        phot_failure = False
+
+        try:
+            obs_mag = self.model.get_current_source_observed_magnitude()
+        except TaskError as error:
+            phot_failure = True
+            obs_mag = ""
+            band = ""
+            default_comment = str(error)
+
         preset_vals = (
             self._get_provisional_name(),
             self.model.is_current_source_discovered(),
             self.model.get_current_observation_date(),
             self.model.get_current_ra(),
             self.model.get_current_dec(),
-            self.model.get_current_source_observed_magnitude(),
-            self.model.get_current_band(),
+            obs_mag,
+            band,
             config.read("MPC.NOTE1OPTIONS"),
             config.read("MPC.NOTE2OPTIONS"),
             config.read("MPC.NOTE2DEFAULT"),
-            config.read("MPC.DEFAULT_OBSERVATORY_CODE")
+            config.read("MPC.DEFAULT_OBSERVATORY_CODE"),
+            default_comment,
+            phot_failure
         )
         self.get_view().show_accept_source_dialog(preset_vals)
 
@@ -119,7 +142,8 @@ class ProcessRealsController(AbstractController):
                      obs_mag,
                      band,
                      observatory_code,
-                     comment):
+                     comment,
+                     phot_failure):
         """
         Final acceptance with collected data.
         """
@@ -144,7 +168,8 @@ class ProcessRealsController(AbstractController):
             dec,
             obs_mag,
             band,
-            observatory_code)
+            observatory_code,
+            phot_failure=phot_failure)
 
         if self.model.is_current_source_finished():
             writer.flush()

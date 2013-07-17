@@ -1,6 +1,12 @@
-.PHONY: test coverage
+.PHONY: local_test vospace_test test_all coverage
 
-test:
+local_test:
+	nosetests -v tests/ --exclude test_vospace
+
+vospace_test:
+	nosetests -v tests/test_vospace/
+
+test_all:
 	nosetests -v tests/
 
 coverage:

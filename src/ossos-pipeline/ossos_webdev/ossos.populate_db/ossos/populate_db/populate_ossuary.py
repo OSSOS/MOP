@@ -2,26 +2,16 @@
 # 
 # MTB 25 April 2013  NRC-Herzberg
 
-import vos, datetime
+import sys, datetime
+import sqlalchemy as sa
 from astropy.io import fits
 from cStringIO import StringIO
-from queries import retrieve_processed_images, put_image_in_database
+from ossos.field_obs.queries import ImagesQuery
+from ossos import storage
 
-
-def vospace_connector():
-	# images are in http://www.canfar.phys.uvic.ca/vosui/#/OSSOS/dbimages/
-	# eg. (symbolic link, need to be connected/certificate etc)
-	# http://www.canfar.phys.uvic.ca/vosui/#/OSSOS/dbimages/1607615/1607615o.head 
-	vospace = vos.Client()#cadc_short_cut=True)  # shortcut doesn't work due to symbolic links
-	stem = 'vos:OSSOS/dbimages/'
-
-	# pull back each directory in vos:OSSOS/dbimages/ and extract the .head file in it
-	# could use listDir?
-	vos_images = [n[0] for n in vospace.getInfoList(stem) if n[0].isdigit()]
-	vos_images.sort()
-
-	return vospace, stem, vos_images
-
+"""
+Currently assumes your tables are already instantiated in the database that you're connecting to.
+"""
 
 def wanted_keys(header):
 	# strip header into consistency with desired format for ossuary 'images' table
@@ -102,45 +92,79 @@ def field_in_survey_footprint(header):
 	return True
 
 
-def get_iq_and_zeropoint(vospace, hfile, image, header_extract):
-	# go to vospace and retrieve iq and zeropoint.used
-	try:  # image quality is in fwhm separate file - 22 the standard chip: mid lower
-		fwhm_file = hfile+'/ccd22/'+image+'p22.fwhm'
-		fwhm = float(vospace.open(fwhm_file,view='data').read())
-		iq = fwhm*0.1850  # plate scale is 0.1850 arcsec/pixel
-		header_extract['iq_ossos'] = iq
+def get_iq_and_zeropoint(image, header_extract):
+	try:  # 22 is the standard chip: mid lower
+		fwhm = float(storage.get_tag(image, 'fwhm_22'))
+		if fwhm:
+			iq = fwhm*0.1850  # plate scale is 0.1850 arcsec/pixel
+			header_extract['iq_ossos'] = iq
 	except Exception, e:
 		raise e
 	try:
-		zeropt_file = hfile+'/ccd22/'+image+'p22.zeropoint.used'  # the standard chip
-		zeropt = vospace.open(zeropt_file,view='data').read()
-		header_extract['zeropt'] = float(zeropt)
+		zeropt = float(storage.get_tag(image, 'zeropoint_22'))
+		if zeropt:
+			header_extract['zeropt'] = float(zeropt)
 	except Exception, e:
 		raise e
 
 	return header_extract
 
 
+def retrieve_processed_images(ims):
+	ss = sa.select([ims.images.c.image_id], order_by=ims.images.c.image_id)
+	query = ims.conn.execute(ss)
+	retval = [s[0] for s in query if isinstance(s[0], long)]
+
+	return retval
+
+
+def parse_unprocessed_images(dbimages):
+	# Ensure the unprocessed list doesn't include the calibrators/moving folders
+	retval = [im for im in dbimages if (im.isdigit() and long(im) not in processed_images)]
+	retval.sort()
+
+	return retval
+
+
+def get_header(data_web_service_url, image):
+	# pulling back the header: fast if you know the direct source
+	hdr = "%s/%so.fits.fz?cutout=[0]" % (data_web_service_url, image) 
+	header_text = fits.open(StringIO(storage.vospace.open(hdr, view='data').read()))[0].header
+	retval = wanted_keys(header_text)
+
+	return retval 
+
+
+def put_image_in_database(image, ims):
+	ins = ims.images.insert(values=image)
+	ims.conn.execute(ins)
+
+	return
+
+
 
 ############################ BEGIN MAIN #######################################
+data_web_service_url = storage.DATA_WEB_SERVICE+"CFHT"
+images = ImagesQuery()
+processed_images = retrieve_processed_images(images)  # straight list of primary keys
+dbimages = storage.list_dbimages()
+unprocessed_images = parse_unprocessed_images(dbimages)
+sys.stdout.write('%d images in ossuary; updating with %d new in VOspace.\n' % 
+	(len(processed_images), len(unprocessed_images)))
 
-processed_images = retrieve_processed_images()  # straight list of primary keys
-vospace, stem, unprocessed_images = vospace_connector()
-print len(unprocessed_images), 'folders in vospace to check.'
-
+# Construct a full image entry, including header and info in the vtags
 for n, image in enumerate(unprocessed_images):
-	if long(image) not in processed_images:  
-		try: 
-			hfile = stem + image + '/'
-			header = fits.open(StringIO(vospace.open(hfile+image+'o.head',view='data').read()))[0].header
-			header_extract = wanted_keys(header)
-			print image, n+1,'/',len(unprocessed_images) #, header_extract 
-			if verify_ossos_image(header):
-				header_extract = get_iq_and_zeropoint(vospace, hfile, image, header_extract)
-				put_image_in_database(header_extract)
+	# if image == '1624879':  # GOOD TEST IMAGE
+	try:
+		sub = get_header(data_web_service_url, image)
+		# if verify_ossos_image(header):
+		header_extract = get_iq_and_zeropoint(image, sub)
+		# 	put_image_in_database(header_extract, images)
+		print header_extract
+		sys.stdout.write('%s %d/%d\n' % (image, n+1, len(unprocessed_images)))
 
-		except Exception, e:
-			print image, e
+	except Exception, e:
+		sys.stdout.write('%s %s\n' % (image, e))
 
 
 # can do a CLUSTER after data is inserted - maybe once a week, depending how much there is
