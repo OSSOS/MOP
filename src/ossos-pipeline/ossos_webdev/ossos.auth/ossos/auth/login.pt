@@ -14,7 +14,6 @@
       	</div><!--page-header-->
           <tal:block tal:condition="failed_attempt">
             <div class="alert alert-error">
-              <button type="button" class="close" data-dismiss="alert">&times;</button>
                 Invalid credentials, please try again.
             </div>
           </tal:block>
