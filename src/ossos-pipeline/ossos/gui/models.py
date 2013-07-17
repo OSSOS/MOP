@@ -8,6 +8,10 @@ class ImageNotLoadedException(Exception):
     """The requested image hasn't been loaded yet."""
 
 
+class NoWorkUnitException(Exception):
+    """No data is available at the current time."""
+
+
 class UIModel(object):
     """
     Contains the data and associated operations available to the user interface.
@@ -33,7 +37,9 @@ class UIModel(object):
 
         self.sources_discovered = set()
 
-        self.start_work()
+    def get_working_directory(self):
+        # TODO: yuck, refactor!
+        return self.progress_manager.working_context.directory
 
     def start_work(self):
         self.next_workunit()
@@ -111,7 +117,11 @@ class UIModel(object):
         return self.get_current_workunit().get_data()
 
     def get_current_workunit(self):
-        return self.work_units.get_current_item()
+        workunit = self.work_units.get_current_item()
+        if workunit is None:
+            raise NoWorkUnitException()
+        else:
+            return workunit
 
     def get_writer(self):
         return self.get_current_workunit().get_writer()
@@ -193,14 +203,24 @@ class UIModel(object):
     def start_loading_images(self):
         self._download_workunit_images(self.get_current_workunit())
 
+    def retry_download(self, downloadable_item):
+        self.download_manager.retry_download(downloadable_item)
+
     def refresh_vos_client(self):
         self.download_manager.refresh_vos_client()
 
     def exit(self):
-        self.download_manager.stop_download()
-        self._unlock(self.get_current_workunit())
+        try:
+            self._unlock(self.get_current_workunit())
+        except NoWorkUnitException:
+            # Nothing to unlock
+            pass
+
         for workunit in self.work_units:
             workunit.get_writer().close()
+
+        self.download_manager.stop_download()
+        self.download_manager.wait_for_downloads_to_stop()
 
     def _lock(self, workunit):
         self.progress_manager.lock(workunit.get_filename())
@@ -209,7 +229,7 @@ class UIModel(object):
         self.progress_manager.unlock(workunit.get_filename())
 
     def _download_workunit_images(self, workunit):
-        self.download_manager.start_download(
+        self.download_manager.start_downloading_workunit(
             workunit, image_loaded_callback=self._on_image_loaded)
 
     def _on_image_loaded(self, reading, image):

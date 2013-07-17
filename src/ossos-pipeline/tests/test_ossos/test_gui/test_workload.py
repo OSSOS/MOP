@@ -9,11 +9,11 @@ from mock import Mock
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from ossos.gui import tasks
-from ossos.gui.app import DirectoryContext
+from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui.downloads import AsynchronousImageDownloadManager
 from ossos.gui.models import UIModel
 from ossos.astrom import AstromParser
-from ossos.gui.persistence import ProgressManager, InMemoryProgressManager
+from ossos.gui.persistence import LocalProgressManager, InMemoryProgressManager
 from ossos.gui.workload import (WorkUnitProvider, WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
                                 NoAvailableWorkException,
                                 StatefulCollection,
@@ -105,7 +105,7 @@ class AbstractWorkUnitTest(FileReadingTestCase):
         self.testfile = "data/1584431p15.measure3.cands.astrom"
         parser = AstromParser()
         self.data = parser.parse(self.get_abs_path(self.testfile))
-        self.progress_manager = Mock(spec=ProgressManager)
+        self.progress_manager = Mock(spec=LocalProgressManager)
         self.progress_manager.get_processed_indices.return_value = []
         self.writer = Mock()
 
@@ -499,7 +499,7 @@ class StatefulCollectionTest(unittest.TestCase):
 
 class WorkloadManagementTest(unittest.TestCase):
     def setUp(self):
-        self.progress_manager = InMemoryProgressManager(Mock(spec=DirectoryContext))
+        self.progress_manager = InMemoryProgressManager(Mock(spec=LocalDirectoryWorkingContext))
         self.workunit_provider = Mock(spec=WorkUnitProvider)
 
         self.workunit1 = Mock(spec=WorkUnit)
@@ -522,6 +522,7 @@ class WorkloadManagementTest(unittest.TestCase):
 
         self.undertest = UIModel(self.workunit_provider, self.progress_manager,
                                  download_manager)
+        self.undertest.start_work()
 
     def test_workunits_on_demand(self):
         assert_that(self.undertest.get_current_workunit(), equal_to(self.workunit1))
@@ -549,10 +550,10 @@ class WorkloadManagementTest(unittest.TestCase):
 class WorkUnitProviderTest(FileReadingTestCase, DirectoryCleaningTestCase):
     def setUp(self):
         working_directory = self.get_directory_to_clean()
-        directory_manager = DirectoryContext(working_directory)
+        directory_manager = LocalDirectoryWorkingContext(working_directory)
         progress_manager = InMemoryProgressManager(directory_manager)
         parser = AstromParser()
-        builder = RealsWorkUnitBuilder(parser, progress_manager)
+        builder = RealsWorkUnitBuilder(parser, directory_manager, progress_manager)
         undertest = WorkUnitProvider(tasks.get_suffix(tasks.REALS_TASK),
                                      directory_manager,
                                      progress_manager,

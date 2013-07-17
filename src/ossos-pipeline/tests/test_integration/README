@@ -1,0 +1,5 @@
+These are tests which encompass larger pieces of the application, and how
+the various components work together.
+
+Tests that involve accessing VOSpace in any way are separated out into
+the test_vospace package.

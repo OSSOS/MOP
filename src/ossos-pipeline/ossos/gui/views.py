@@ -7,7 +7,8 @@ from wx.lib.mixins import listctrl as listmix
 
 from ossos.gui import events, config
 from ossos.gui.fitsviewer import MPLFitsImageViewer
-from ossos.gui.errorhandling import CertificateDialog
+from ossos.gui.errorhandling import CertificateDialog, RetryDownloadDialog
+from ossos.gui.models import NoWorkUnitException
 
 
 def guithread(function):
@@ -46,6 +47,7 @@ class ApplicationView(object):
         self.accept_source_dialog = None
         self.reject_source_dialog = None
         self.certificate_dialog = None
+        self.retry_downloads_dialog = None
 
         self.mainframe.Show()
         self.mainframe.show_image_loading_dialog()
@@ -98,6 +100,14 @@ class ApplicationView(object):
                                                         handler, error_message)
             self.certificate_dialog.ShowModal()
 
+    @guithread
+    def show_retry_download_dialog(self, handler, error_message):
+        # Only allow one dialog to be shown at a time
+        if not self.retry_downloads_dialog:
+            self.retry_downloads_dialog = RetryDownloadDialog(
+                self.mainframe, handler, error_message)
+            self.retry_downloads_dialog.Show()
+
     def show_accept_source_dialog(self, preset_vals):
         self.accept_source_dialog = AcceptSourceDialog(
             self.mainframe, self.controller, *preset_vals)
@@ -115,6 +125,9 @@ class ApplicationView(object):
     def close_reject_source_dialog(self):
         if self.reject_source_dialog is not None:
             self.reject_source_dialog.Destroy()
+
+    def show_empty_workload_dialog(self):
+        show_empty_workload_dialog(self.mainframe, self.model)
 
     def all_processed_should_exit_prompt(self):
         return should_exit_prompt(self.mainframe)
@@ -160,8 +173,7 @@ class MainFrame(wx.Frame):
 
         self.validation_view = SourceValidationPanel(self.control_panel, self.controller)
 
-        self.viewer_panel = wx.Panel(self.main_panel, style=wx.RAISED_BORDER)
-        self.image_viewer = MPLFitsImageViewer(self.viewer_panel)
+        self.image_viewer = MPLFitsImageViewer(self.main_panel)
 
         self.img_loading_dialog = WaitingGaugeDialog(self, "Image loading...")
 
@@ -176,7 +188,7 @@ class MainFrame(wx.Frame):
 
         main_sizer = wx.BoxSizer(wx.HORIZONTAL)
         main_sizer.Add(self.control_panel, flag=wx.EXPAND)
-        main_sizer.Add(self.viewer_panel, flag=wx.EXPAND)
+        main_sizer.Add(self.image_viewer.as_widget(), flag=wx.EXPAND)
 
         self.main_panel.SetSizerAndFit(main_sizer)
 
@@ -186,7 +198,11 @@ class MainFrame(wx.Frame):
 
         # Create menus and their contents
         file_menu = wx.Menu()
+        keymap_item = file_menu.Append(wx.ID_ANY, "Keymap",
+                                       "Show mappings for keyboard shortcuts.")
         exit_item = file_menu.Append(wx.ID_EXIT, "Exit", "Exit the program")
+
+        do_bind(self._on_select_keymap, keymap_item)
         do_bind(self._on_select_exit, exit_item)
 
         # Create menu bar
@@ -199,16 +215,34 @@ class MainFrame(wx.Frame):
     def _create_data_notebook(self):
         notebook = wx.Notebook(self.control_panel)
 
-        reading_data_panel = KeyValueListPanel(notebook, self.model.get_reading_data)
+        def get_reading_data():
+            try:
+                return self.model.get_reading_data()
+            except NoWorkUnitException:
+                return []
+
+        def get_header_data_list():
+            try:
+                return self.model.get_header_data_list()
+            except NoWorkUnitException:
+                return []
+
+        reading_data_panel = KeyValueListPanel(notebook, get_reading_data)
         events.subscribe(events.CHANGE_IMAGE, reading_data_panel.on_change_data)
 
-        obs_header_panel = KeyValueListPanel(notebook, self.model.get_header_data_list)
+        obs_header_panel = KeyValueListPanel(notebook, get_header_data_list)
         events.subscribe(events.CHANGE_IMAGE, obs_header_panel.on_change_data)
 
         notebook.AddPage(reading_data_panel, "Readings")
         notebook.AddPage(obs_header_panel, "Observation Header")
 
         return notebook
+
+    def _on_select_keymap(self, event):
+        dialog = wx.Dialog(self, title="Key Mappings")
+        KeyValueListPanel(dialog, self.keybind_manager.get_keymappings,
+                          key_header="Action", value_header="Shortcut")
+        dialog.Show()
 
     def _on_select_exit(self, event):
         self.controller.on_exit()
@@ -261,21 +295,28 @@ class KeybindManager(object):
         view.Bind(wx.EVT_MENU, self.on_reject_src_keybind, id=reject_src_kb_id)
         view.Bind(wx.EVT_MENU, self.on_reset_cmap_keybind, id=reset_cmap_kb_id)
 
-        accept_key = config.read("KEYBINDS.ACCEPT_SRC")
-        reject_key = config.read("KEYBINDS.REJECT_SRC")
-        reset_cmap_key = config.read("KEYBINDS.RESET_CMAP")
+        self.accept_key = config.read("KEYBINDS.ACCEPT_SRC")
+        self.reject_key = config.read("KEYBINDS.REJECT_SRC")
+        self.reset_cmap_key = config.read("KEYBINDS.RESET_CMAP")
 
         accelerators = wx.AcceleratorTable(
             [
                 (wx.ACCEL_NORMAL, wx.WXK_TAB, next_obs_kb_id),
                 (wx.ACCEL_SHIFT, wx.WXK_TAB, prev_obs_kb_id),
-                (wx.ACCEL_NORMAL, ord(accept_key), accept_src_kb_id),
-                (wx.ACCEL_NORMAL, ord(reject_key), reject_src_kb_id),
-                (wx.ACCEL_NORMAL, ord(reset_cmap_key), reset_cmap_kb_id),
+                (wx.ACCEL_NORMAL, ord(self.accept_key), accept_src_kb_id),
+                (wx.ACCEL_NORMAL, ord(self.reject_key), reject_src_kb_id),
+                (wx.ACCEL_NORMAL, ord(self.reset_cmap_key), reset_cmap_kb_id),
             ]
         )
 
         view.SetAcceleratorTable(accelerators)
+
+    def get_keymappings(self):
+        return [("Next observation", "Tab"),
+                ("Previos observation", "Shift + Tab"),
+                ("Accept", self.accept_key),
+                ("Reject", self.reject_key),
+                ("Reset colourmap", self.reset_cmap_key)]
 
     def on_next_obs_keybind(self, event):
         self.controller.on_next_obs()
@@ -411,7 +452,8 @@ class ListCtrlAutoWidth(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
 
 
 class KeyValueListPanel(ListCtrlPanel):
-    def __init__(self, parent, get_data):
+    def __init__(self, parent, get_data,
+                 key_header="Key", value_header="Value"):
         """
         Constructor.
 
@@ -423,7 +465,8 @@ class KeyValueListPanel(ListCtrlPanel):
             the key-value list. The returned data should be a list of
             (key, value) tuples.
         """
-        super(KeyValueListPanel, self).__init__(parent, ("Key", "Value"))
+        super(KeyValueListPanel, self).__init__(parent,
+                                                (key_header, value_header))
 
         self.get_data = get_data
 
@@ -541,6 +584,7 @@ class SourceValidationDialog(wx.Dialog):
         self.comment_text = wx.TextCtrl(self, name=SourceValidationDialog.COMMENT,
                                         style=wx.TE_MULTILINE | wx.TE_PROCESS_ENTER,
                                         size=(250, 50))
+        self.comment_text.SetValue(self.default_comment)
         self.comment_text.Bind(wx.EVT_TEXT_ENTER, self._on_enter_comment)
 
         self.submit_button = wx.Button(
@@ -614,21 +658,33 @@ class AcceptSourceDialog(SourceValidationDialog):
     OBSERVATORY_CODE = "Observatory code: "
 
     def __init__(self, parent, controller, provisional_name, already_discovered, date_of_obs, ra, dec, obs_mag, band,
-                 note1_choices=None, note2_choices=None, note2_default=None, default_observatory_code=""):
+                 note1_choices=None, note2_choices=None, note2_default=None, default_observatory_code="",
+                 default_comment="", phot_failure=False):
         self.controller = controller
+        self.phot_failure = phot_failure
+
         self.provisional_name = provisional_name
         self.already_discovered = already_discovered
         self.date_of_obs = date_of_obs
         self.ra_str = str(ra)
         self.dec_str = str(dec)
-        self.obs_mag = str(obs_mag)
-        self.band = band
+
+        if self.phot_failure:
+            message = "Photometry failed.  Will be left blank."
+            self.obs_mag = message
+            self.band = message
+        else:
+            self.obs_mag = str(obs_mag)
+            self.band = band
+
         self.default_observatory_code = str(default_observatory_code)
 
         self.note1_choices = note1_choices if note1_choices is not None else []
         self.note2_choices = note2_choices if note2_choices is not None else []
 
         self.note2_default = note2_default if note2_default is not None else ""
+
+        self.default_comment = default_comment
 
         super(AcceptSourceDialog, self).__init__(parent, title=self.TITLE)
 
@@ -710,8 +766,8 @@ class AcceptSourceDialog(SourceValidationDialog):
         discovery_asterisk = " " if self.already_discovered else "*"
         note1 = self.note1_combobox.GetValue()
         note2 = self.note2_combobox.GetValue()
-        obs_mag = self.obs_mag
-        band = self.band
+        obs_mag = self.obs_mag if not self.phot_failure else ""
+        band = self.band if not self.phot_failure else ""
         observatory_code = self.observatory_code_text.GetValue()
         comment = self.comment_text.GetValue()
 
@@ -726,7 +782,8 @@ class AcceptSourceDialog(SourceValidationDialog):
                                      obs_mag,
                                      band,
                                      observatory_code,
-                                     comment
+                                     comment,
+                                     self.phot_failure
         )
 
     def _on_cancel(self, event):
@@ -736,7 +793,9 @@ class AcceptSourceDialog(SourceValidationDialog):
 class RejectSourceDialog(SourceValidationDialog):
     TITLE = "Reject Source"
 
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller, default_comment=""):
+        self.default_comment = default_comment
+
         super(RejectSourceDialog, self).__init__(parent, title=self.TITLE)
         self.controller = controller
         self.comment_text.SetFocus()
@@ -810,6 +869,19 @@ def should_exit_prompt(parent):
     dialog.Destroy()
 
     return True if user_choice == wx.ID_YES else False
+
+
+def show_empty_workload_dialog(parent, model):
+    message = ("No work to be done in %s\n"
+               "It was either already processed or has no input files "
+               "for the selected task." % model.get_working_directory())
+    dialog = wx.MessageDialog(parent,
+                              message,
+                              caption="Empty Workload",
+                              style=wx.OK | wx.ICON_INFORMATION)
+
+    dialog.ShowModal()
+    dialog.Destroy()
 
 
 def get_asset_full_path(asset_name):

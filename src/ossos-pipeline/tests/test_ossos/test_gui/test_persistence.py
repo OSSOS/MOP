@@ -9,10 +9,10 @@ from hamcrest import (assert_that, contains_inanyorder, has_length, contains,
 
 from tests.base_tests import FileReadingTestCase
 from ossos.gui import tasks
-from ossos.gui.app import DirectoryContext
-from ossos.gui.persistence import (ProgressManager, InMemoryProgressManager,
-                                  FileLockedException, RequiresLockException,
-                                  LOCK_SUFFIX)
+from ossos.gui.context import LocalDirectoryWorkingContext
+from ossos.gui.persistence import (LocalProgressManager, InMemoryProgressManager,
+                                   FileLockedException, RequiresLockException,
+                                   LOCK_SUFFIX)
 
 WD_HAS_PROGRESS = "data/persistence_has_progress"
 WD_NO_LOG = "data/persistence_no_log"
@@ -21,8 +21,8 @@ WD_NO_LOG = "data/persistence_no_log"
 class ProgressManagerLoadingTest(FileReadingTestCase):
     def setUp(self):
         self.working_directory = self.get_abs_path(WD_HAS_PROGRESS)
-        directory_manager = DirectoryContext(self.working_directory)
-        self.progress_manager = ProgressManager(directory_manager)
+        directory_manager = LocalDirectoryWorkingContext(self.working_directory)
+        self.progress_manager = LocalProgressManager(directory_manager)
 
     def tearDown(self):
         self.progress_manager.clean(suffixes=[LOCK_SUFFIX])
@@ -37,12 +37,12 @@ class ProgressManagerLoadingTest(FileReadingTestCase):
 class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
     def setUp(self):
         self.working_directory = self.get_abs_path(WD_NO_LOG)
-        directory_manager = DirectoryContext(self.working_directory)
-        self.progress_manager = ProgressManager(directory_manager)
+        directory_manager = LocalDirectoryWorkingContext(self.working_directory)
+        self.progress_manager = LocalProgressManager(directory_manager)
 
     def create_concurrent_progress_manager(self):
-        directory_manager = DirectoryContext(self.working_directory)
-        return ProgressManager(directory_manager)
+        directory_manager = LocalDirectoryWorkingContext(self.working_directory)
+        return LocalProgressManager(directory_manager)
 
     def tearDown(self):
         # Get rid of generated files so we don't interfere with other tests
@@ -231,7 +231,7 @@ class InMemoryProgressManagerTest(unittest.TestCase):
         self.file1 = "file1"
         self.file2 = "file2"
 
-        directory_manager = Mock(spec=DirectoryContext)
+        directory_manager = Mock(spec=LocalDirectoryWorkingContext)
         self.undertest = InMemoryProgressManager(directory_manager)
 
     def test_done(self):

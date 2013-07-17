@@ -7,20 +7,29 @@ import requests
 import wx
 
 
-class VOSpaceErrorHandler(object):
+class DownloadErrorHandler(object):
     def __init__(self, app):
         self.app = app
 
-    def handle_error(self, error):
+        self._failed_downloads = []
+
+    def handle_error(self, error, downloadable_item):
         """
         Checks what error occured and looks for an appropriate solution.
 
         Args:
           error: Exception
             The error that has occured.
+          downloadable_item: ossos.downloads.DownloadableItem
+            The item that was being downloaded when the error occurred.
         """
-        if isinstance(error, OSError) and error.errno == errno.EACCES:
+        if not hasattr(error, "errno"):
+            raise error
+
+        if error.errno == errno.EACCES:
             self.handle_certificate_problem(str(error))
+        elif error.errno == errno.ECONNREFUSED:
+            self.handle_connection_refused(str(error), downloadable_item)
         else:
             raise error
 
@@ -39,6 +48,15 @@ class VOSpaceErrorHandler(object):
 
         self.app.get_view().show_image_loading_dialog()
         model.start_loading_images()
+
+    def handle_connection_refused(self, error_message, downloadable_item):
+        self._failed_downloads.append(downloadable_item)
+        self.app.get_view().show_retry_download_dialog(self, error_message)
+
+    def retry_downloads(self):
+        model = self.app.get_model()
+        for downloadable_item in self._failed_downloads:
+            model.retry_download(downloadable_item)
 
 
 class CertificateDialog(wx.Dialog):
@@ -122,6 +140,62 @@ class CertificateDialog(wx.Dialog):
         password = self.password_field.GetValue()
 
         self.handler.refresh_certificate(username, password)
+        self.Destroy()
+
+
+class RetryDownloadDialog(wx.Dialog):
+    def __init__(self, parent, handler, error_message):
+        super(RetryDownloadDialog, self).__init__(parent, title="Download Error")
+
+        self.handler = handler
+        self.error_message = error_message
+
+        self._init_ui()
+        self._do_layout()
+
+    def _init_ui(self):
+        self.header_text = wx.StaticText(self, label="One or more downloads "
+                                                     "failed:")
+        self.error_text = wx.StaticText(self, label=self.error_message)
+        error_font = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_ITALIC,
+                             wx.FONTWEIGHT_NORMAL)
+        self.error_text.SetFont(error_font)
+
+        self.retry_button = wx.Button(self, label="Retry")
+        self.cancel_button = wx.Button(self, label="Cancel")
+        self.retry_button.Bind(wx.EVT_BUTTON, self.on_accept)
+        self.cancel_button.Bind(wx.EVT_BUTTON, self.on_cancel)
+
+        self.retry_button.SetDefault()
+
+    def _do_layout(self):
+        vsizer = wx.BoxSizer(wx.VERTICAL)
+
+        flag = wx.ALIGN_CENTER | wx.ALL
+        border = 10
+
+        vsizer.Add(self.header_text, flag=flag, border=border)
+        vsizer.Add(self.error_text, flag=flag, border=border)
+
+        line = wx.StaticLine(self, -1, size=(20, -1), style=wx.LI_HORIZONTAL)
+        vsizer.Add(line, flag=wx.GROW | wx.ALIGN_CENTER_VERTICAL | wx.RIGHT | wx.TOP, border=5)
+
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(self.retry_button, flag=wx.RIGHT, border=5)
+        button_sizer.Add(self.cancel_button, flag=wx.LEFT, border=5)
+
+        vsizer.Add(button_sizer, flag=flag, border=border)
+
+        padding_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        padding_sizer.Add(vsizer, flag=wx.ALL, border=20)
+
+        self.SetSizerAndFit(padding_sizer)
+
+    def on_cancel(self, event):
+        self.Destroy()
+
+    def on_accept(self, event):
+        self.handler.retry_downloads()
         self.Destroy()
 
 

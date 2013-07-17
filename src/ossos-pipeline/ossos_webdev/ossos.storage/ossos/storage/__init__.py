@@ -443,7 +443,7 @@ def delete(expnum, ccd, version, ext, prefix=None):
 
 
 def listdir(directory, force=False):
-    return vospace.listdir(directory, force=force)
+    return vospace.listdir(directory) #, force=force)  # keyword is unexpected by vos.Client.listdir()
 
 
 def list_dbimages():

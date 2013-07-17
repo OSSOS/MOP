@@ -370,23 +370,31 @@ class WorkUnitBuilder(object):
     Used to construct a WorkUnit with its necessary components.
     """
 
-    def __init__(self, parser, progress_manager):
+    def __init__(self, parser, context, progress_manager):
         self.parser = parser
+        self.context = context
         self.progress_manager = progress_manager
 
-    def build_workunit(self, full_path):
-        parsed_data = self.parser.parse(full_path)
+    def build_workunit(self, input_fullpath):
+        parsed_data = self.parser.parse(input_fullpath)
 
-        _, filename = os.path.split(full_path)
-        return self._do_build_workunit(filename, parsed_data,
-                                       self.progress_manager,
-                                       self._create_results_writer(full_path,
-                                                                   parsed_data))
+        _, input_filename = os.path.split(input_fullpath)
+        output_filename = self._get_output_filename(input_filename)
+        output_filehandle = self.context.open(output_filename)
+
+        return self._do_build_workunit(
+            input_filename,
+            parsed_data,
+            self.progress_manager,
+            self._create_results_writer(output_filehandle, parsed_data))
 
     def _create_results_writer(self, full_path, parsed_data):
         raise NotImplementedError()
 
     def _do_build_workunit(self, filename, data, progress_manager, writer):
+        raise NotImplementedError()
+
+    def _get_output_filename(self, input_filename):
         raise NotImplementedError()
 
 
@@ -396,23 +404,24 @@ class RealsWorkUnitBuilder(WorkUnitBuilder):
     Constructs RealsWorkUnits for the process reals task.
     """
 
-    def __init__(self, parser, progress_manager):
-        super(RealsWorkUnitBuilder, self).__init__(parser, progress_manager)
+    def __init__(self, parser, context, progress_manager):
+        super(RealsWorkUnitBuilder, self).__init__(parser, context, progress_manager)
 
-    def _create_results_writer(self, full_path, parsed_data):
+    def _create_results_writer(self, output_filehandle, parsed_data):
         # NOTE: this import is only here so that we don't load up secondary
         # dependencies (like astropy) used in MPCWriter when they are not
         # needed (i.e. cands task).  This is to help reduce the application
         # startup time.
         from ossos.mpc import MPCWriter
 
-        output_filename = full_path.replace(tasks.get_suffix(tasks.REALS_TASK),
-                                            ".mpc")
-        output_filehandle = open(output_filename, "a+b")
         return MPCWriter(output_filehandle, auto_flush=False)
 
     def _do_build_workunit(self, filename, data, progress_manager, writer):
         return RealsWorkUnit(filename, data, progress_manager, writer)
+
+    def _get_output_filename(self, input_filename):
+        return input_filename.replace(tasks.get_suffix(tasks.REALS_TASK),
+                                      ".mpc")
 
 
 class CandidatesWorkUnitBuilder(WorkUnitBuilder):
@@ -421,14 +430,15 @@ class CandidatesWorkUnitBuilder(WorkUnitBuilder):
     Constructs CandidatesWorkUnits for the process candidates task.
     """
 
-    def __init__(self, parser, progress_manager):
-        super(CandidatesWorkUnitBuilder, self).__init__(parser, progress_manager)
+    def __init__(self, parser, context, progress_manager):
+        super(CandidatesWorkUnitBuilder, self).__init__(parser, context, progress_manager)
 
-    def _create_results_writer(self, full_path, parsed_data):
-        output_filename = full_path.replace(tasks.get_suffix(tasks.CANDS_TASK),
-                                            tasks.get_suffix(tasks.REALS_TASK))
-        output_filehandle = open(output_filename, "a+b")
+    def _create_results_writer(self, output_filehandle, parsed_data):
         return StreamingAstromWriter(output_filehandle, parsed_data.sys_header)
 
     def _do_build_workunit(self, filename, data, progress_manager, writer):
         return CandidatesWorkUnit(filename, data, progress_manager, writer)
+
+    def _get_output_filename(self, input_filename):
+        return input_filename.replace(tasks.get_suffix(tasks.CANDS_TASK),
+                                      tasks.get_suffix(tasks.REALS_TASK))

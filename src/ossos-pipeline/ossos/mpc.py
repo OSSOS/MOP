@@ -62,7 +62,8 @@ class MPCWriter(object):
                        dec,
                        obs_mag,
                        band,
-                       observatory_code="568"):
+                       observatory_code="568",
+                       phot_failure=False):
         """
         Writes a single entry in the Minor Planet Center's format.
 
@@ -77,7 +78,12 @@ class MPCWriter(object):
         note1 = note1.ljust(1)
         note2 = note2.ljust(1)
         observatory_code = str(observatory_code).zfill(3)
-        obs_mag = str(round(float(obs_mag), 2)).ljust(5)
+
+        if phot_failure:
+            obs_mag = " " * 5
+            band = " "
+        else:
+            obs_mag = str(round(float(obs_mag), 2)).ljust(5)
 
         # Check for invalid values
         if len(minor_planet_number) > 5:
@@ -127,7 +133,7 @@ class MPCWriter(object):
                                       "must be numeric (can be in string form)",
                                       dec)
 
-        if not _is_numeric(obs_mag) or not len(obs_mag) <= 5:
+        if not phot_failure and (not _is_numeric(obs_mag) or not len(obs_mag) <= 5):
             raise MPCFieldFormatError("Observed magnitude",
                                       "must be numeric (can be in string form) "
                                       "and less than or equal to 5 characters "

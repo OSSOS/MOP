@@ -150,4 +150,10 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
 def phot_mag(*args, **kwargs):
     """Wrapper around phot which only returns the computed magnitude directly."""
     hdu = phot(*args, **kwargs)
-    return hdu["data"]["MAG"][0]
+
+    try:
+        return hdu["data"]["MAG"][0]
+    except IndexError:
+        raise TaskError("Photometry cannot be performed.  "
+                        "No magnitude calculated.")
+
