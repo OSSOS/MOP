@@ -2,7 +2,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import os
 
-from ossos.gui import tasks
+from ossos.gui import tasks, logger
 from ossos.astrom import StreamingAstromWriter
 from ossos.gui.persistence import FileLockedException
 
@@ -377,6 +377,9 @@ class WorkUnitBuilder(object):
 
     def build_workunit(self, input_fullpath):
         parsed_data = self.parser.parse(input_fullpath)
+
+        logger.debug("Parsed %s (%d sources)" %
+                     (input_fullpath, parsed_data.get_source_count()))
 
         _, input_filename = os.path.split(input_fullpath)
         output_filename = self._get_output_filename(input_filename)
