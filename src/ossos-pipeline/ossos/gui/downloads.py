@@ -6,7 +6,7 @@ import threading
 
 import vos
 
-from ossos.gui import config
+from ossos.gui import config, logger
 from ossos.gui.image import DownloadedFitsImage
 from ossos.cutouts import CutoutCalculator
 
@@ -42,6 +42,9 @@ class AsynchronousImageDownloadManager(object):
         self._maximize_workers()
 
     def start_downloading_workunit(self, workunit, image_loaded_callback=None):
+        logger.debug("Starting to download workunit: %s" %
+                     workunit.get_filename())
+
         self._maximize_workers()
 
         # Load up queue with downloadable items
@@ -75,6 +78,9 @@ class AsynchronousImageDownloadManager(object):
             worker.daemon = True  # Thread quits when application does
             self._workers.append(worker)
             worker.start()
+
+            logger.debug("Created download worker thread (total=%d)" %
+                         len(self._workers))
 
     def _prune_dead_workers(self):
         self._workers = filter(lambda thread: thread.is_alive(), self._workers)
@@ -266,20 +272,28 @@ class ImageSliceDownloader(object):
         self.cutout_calculator = CutoutCalculator(slice_rows, slice_cols)
 
     def _download_fits_file(self, downloadable_item):
+        image_uri = downloadable_item.get_image_uri()
+
+        logger.debug("Starting download: %s" % image_uri)
+
         cutout_str, converter = self.cutout_calculator.build_cutout_str(
             downloadable_item.get_extension(),
             downloadable_item.get_focal_point(),
             downloadable_item.get_full_image_size(),
             inverted=downloadable_item.is_inverted())
 
-        vofile = self.vosclient.open(downloadable_item.get_image_uri(),
-                                     view="cutout", cutout=cutout_str)
+        vofile = self.vosclient.open(image_uri, view="cutout",
+                                     cutout=cutout_str)
 
         return vofile.read(), converter
 
     def _download_apcor_file(self, downloadable_item):
-        vofile = self.vosclient.open(downloadable_item.get_apcor_uri(),
-                                     view="data")
+        apcor_uri = downloadable_item.get_apcor_uri()
+
+        logger.debug("Starting download: %s" % apcor_uri)
+
+        vofile = self.vosclient.open(apcor_uri, view="data")
+
         return vofile.read()
 
     def download(self, downloadable_item):

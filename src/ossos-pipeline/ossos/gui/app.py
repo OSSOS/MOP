@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import wx
 import wx.lib.inspection
 
-from ossos.gui import config, tasks
+from ossos.gui import config, tasks, logger
 from ossos.gui import context
 from ossos.gui.workload import (WorkUnitProvider,
                                 RealsWorkUnitBuilder,
@@ -58,6 +58,8 @@ class ValidationApplication(object):
     }
 
     def __init__(self, taskname, working_directory):
+        logger.info("Starting %s task in %s" % (taskname, working_directory))
+
         wx_app = wx.App(False)
 
         debug_mode = config.read("DEBUG")
@@ -67,7 +69,9 @@ class ValidationApplication(object):
         try:
             factory = self.task_name_mapping[taskname]()
         except KeyError:
-            raise ValueError("Unknown task: %s" % taskname)
+            error_message = "Unknown task: %s" % taskname
+            logger.critical(error_message)
+            raise ValueError(error_message)
 
         parser = AstromParser()
         error_handler = DownloadErrorHandler(self)
