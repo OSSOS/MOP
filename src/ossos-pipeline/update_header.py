@@ -6,6 +6,7 @@ import argparse
 import logging
 from ossos import storage
 import os
+import sys
 
 hlines = None
 
@@ -20,8 +21,8 @@ def run_update_header(image, header_filename, extname=None):
             logging.info("Got extno %s from header." % (extname))
             hdu.header = get_header_object(header_filename,
                                            extname)
-            hdu.header.update('BZERO', 32768, 'manually added')
-            hdu.header.update('BSCALE', 1, 'manually added')
+            #hdu.header.update('BZERO', 32768, 'manually added')
+            #hdu.header.update('BSCALE', 1, 'manually added')
     else:
         logging.info("Replacing primary header with %s." % (extname))
         hdu_list[0].header = get_header_object(header_filename, extname)
@@ -83,11 +84,18 @@ if __name__ == '__main__':
                       action='store_true',
                       help='store modified image back to VOSpace?')
     parser.add_argument('-v','--verbose', action='store_true')
-    
+    parser.add_argument('--debug', action='store_true')
+
     args = parser.parse_args()
 
+    level = logging.CRITICAL
     if args.verbose:
-        logging.basicConfig(level=logging.INFO, format="%(message)s")
+        level = logging.INFO
+        format = "%(message)s"
+    if args.debug:
+        level = logging.DEBUG
+        format = "%(module)s %(funcName)s %(lineno)s %(message)s"
+    logging.basicConfig(level=level, format=format)
 
     message = storage.SUCCESS
     try:
