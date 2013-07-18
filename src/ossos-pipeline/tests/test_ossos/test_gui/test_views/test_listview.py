@@ -5,7 +5,7 @@ import unittest
 from hamcrest import assert_that, equal_to
 
 from tests.base_tests import WxWidgetTestCase
-from ossos.gui.views import KeyValueListPanel
+from ossos.gui.views import ListCtrlPanel
 
 
 class ListViewTest(WxWidgetTestCase):
@@ -14,10 +14,10 @@ class ListViewTest(WxWidgetTestCase):
 
         self.dataset1 = (("Key1", "Val1"), ("Key2", "Val2"), ("Key3", "Val3"))
 
-        self.view = KeyValueListPanel(self.rootframe)
+        self.view = ListCtrlPanel(self.rootframe, ("Col1", "Col2"))
 
     def test_kvlist_displayed(self):
-        self.view.display_data(self.dataset1)
+        self.view.populate_list(self.dataset1)
 
         assert_that(self.view.list.GetColumnCount(), equal_to(2))
         assert_that(self.view.list.GetItemCount(), equal_to(3))
