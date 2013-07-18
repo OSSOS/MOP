@@ -307,9 +307,9 @@ class AbstractRealsModelTest(GeneralModelTest):
         assert_that(self.model.get_current_image(),
                     same_instance(self.first_image))
 
-    def test_get_current_hdulist_image_not_loaded(self):
+    def test_get_current_image_not_loaded(self):
         self.model.next_source()
-        self.assertRaises(ImageNotLoadedException, self.model.get_current_hdulist)
+        self.assertRaises(ImageNotLoadedException, self.model.get_current_image)
 
     def test_get_current_reading_data(self):
         self.model.next_source()

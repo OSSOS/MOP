@@ -163,24 +163,26 @@ class UIModel(object):
         return self.get_current_reading().obs.header["MJD_OBS_CENTER"]
 
     def get_current_ra(self):
-        return self.get_current_reading().ra
+        try:
+            return self._get_current_image_reading().ra
+        except ImageNotLoadedException:
+            return self.get_current_reading().ra
 
     def get_current_dec(self):
-        return self.get_current_reading().dec
+        try:
+            return self._get_current_image_reading().dec
+        except ImageNotLoadedException:
+            return self.get_current_reading().dec
 
     def get_current_image(self):
         return self._get_current_image_reading().get_image()
 
-    def get_current_hdulist(self):
-        return self.get_current_image().as_hdulist()
-
     def get_current_band(self):
-        hdu0 = self.get_current_hdulist()[0]
-        return hdu0.header["FILTER"][0]
+        return self.get_current_image().get_header()["FILTER"][0]
 
     def get_current_image_source_point(self):
         return self.get_current_image().get_pixel_coordinates(
-            self.get_current_reading().source_point)
+            self._get_current_image_reading().source_point)
 
     def get_current_source_observed_magnitude(self):
         return self._get_current_image_reading().get_observed_magnitude()
@@ -259,6 +261,10 @@ class ImageReading(object):
         self._dec = self.reading.dec
 
         self._stale = False
+
+    @property
+    def source_point(self):
+        return self.x, self.y
 
     def update_x(self, new_x):
         self.x = new_x
