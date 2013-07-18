@@ -241,3 +241,59 @@ def sky2xy(ra, dec, crpix1, crpix2, crval1, crval2, dc, pv, nord, maxiter=300):
     y = yp + crpix2
 
     return x, y
+
+
+def parse_cd(header):
+    """
+    Parses the CD array from an astropy FITS header.
+
+    Args:
+      header: astropy.io.fits.header.Header
+        The header containing the CD values.
+
+    Returns:
+      cd: 2d array (list(list(float))
+        [[CD1_1, CD1_2], [CD2_1, CD2_2]]
+    """
+    return [[header["CD1_1"], header["CD1_2"]],
+            [header["CD2_1"], header["CD2_2"]]]
+
+
+def parse_pv(header):
+    """
+    Parses the PV array from an astropy FITS header.
+
+    Args:
+      header: astropy.io.fits.header.Header
+        The header containing the PV values.
+
+    Returns:
+      cd: 2d array (list(list(float))
+        [[PV1_0, PV1_1, ... PV1_N], [PV2_0, PV2_1, ... PV2_N]]
+        Note that N depends on the order of the fit.  For example, an
+        order 3 fit goes up to PV?_10.
+    """
+    order_fit = int(header["NORDFIT"])
+
+    def parse_with_base(i):
+        key_base = "PV%d_" % i
+
+        pvi_x = [header[key_base + "0"]]
+
+        def parse_range(lower, upper):
+            for j in range(lower, upper + 1):
+                pvi_x.append(header[key_base + str(j)])
+
+        if order_fit >= 1:
+            parse_range(1, 3)
+
+        if order_fit >= 2:
+            parse_range(4, 6)
+
+        if order_fit >= 3:
+            parse_range(7, 10)
+
+        return pvi_x
+
+    return [parse_with_base(1), parse_with_base(2)]
+
