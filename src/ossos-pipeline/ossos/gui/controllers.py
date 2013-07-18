@@ -206,7 +206,9 @@ class ProcessCandidatesController(AbstractController):
         super(ProcessCandidatesController, self).__init__(model)
 
     def on_accept(self):
-        self.model.get_writer().write_source(self.model.get_current_source())
+        writer = self.model.get_writer()
+        writer.write_source(self.model.get_current_source())
+        writer.flush()
 
         self.model.accept_current_item()
         self.model.next_item()
