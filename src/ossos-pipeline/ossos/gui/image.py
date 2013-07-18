@@ -106,12 +106,6 @@ class DownloadedFitsImage(object):
 
         return self._tempfile
 
-    def close(self):
-        if self._hdulist is not None:
-            self._hdulist.close()
-        if self._tempfile is not None:
-            self._tempfile.close()
-
     def get_observed_magnitude(self, x, y, maxcount=30000.0):
         if not self.has_apcord_data():
             raise ValueError("Apcor data is required in order to calculate "
@@ -129,6 +123,15 @@ class DownloadedFitsImage(object):
                                 swidth=self._apcordata.swidth,
                                 apcor=self._apcordata.apcor,
                                 maxcount=maxcount)
+
+    def get_header(self):
+        return self.as_hdulist()[0].header
+
+    def close(self):
+        if self._hdulist is not None:
+            self._hdulist.close()
+        if self._tempfile is not None:
+            self._tempfile.close()
 
 
 class ApcorData(object):

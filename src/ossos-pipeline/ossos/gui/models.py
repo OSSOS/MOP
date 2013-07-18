@@ -1,5 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+from ossos import wcs
+from ossos import astrom
 from ossos.gui import events
 from ossos.gui.workload import NoAvailableWorkException, StatefulCollection
 
@@ -270,12 +272,12 @@ class ImageReading(object):
 
     @property
     def ra(self):
-        self._ensure_fresh()
+        self._lazy_refresh()
         return self._ra
 
     @property
     def dec(self):
-        self._ensure_fresh()
+        self._lazy_refresh()
         return self._dec
 
     def get_image(self):
@@ -284,13 +286,21 @@ class ImageReading(object):
     def is_corrected(self):
         return self.x != self.original_x or self.y != self.original_y
 
-    def _ensure_fresh(self):
+    def _lazy_refresh(self):
         if self._stale:
             self._update_ra_dec()
             self._stale = False
 
     def _update_ra_dec(self):
-        # TODO: pull necessary values out of astrom and fits headers and
-        # call wcs.xy2sky
-        pass
+        astrom_header = self.reading.get_observation_header()
+        fits_header = self.get_image().get_header()
+
+        self._ra, self._dec = wcs.xy2sky(self.x, self.y,
+                                         float(astrom_header[astrom.CRPIX1]),
+                                         float(astrom_header[astrom.CRPIX2]),
+                                         float(astrom_header[astrom.CRVAL1]),
+                                         float(astrom_header[astrom.CRVAL2]),
+                                         wcs.parse_cd(fits_header),
+                                         wcs.parse_pv(fits_header),
+                                         wcs.parse_order_fit(fits_header))
 
