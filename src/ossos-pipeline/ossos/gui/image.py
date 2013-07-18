@@ -109,7 +109,7 @@ class DownloadedFitsImage(object):
     def get_apcor_data(self):
         return self._apcordata
 
-    def get_header(self):
+    def get_fits_header(self):
         return self.as_hdulist()[0].header
 
     def close(self):

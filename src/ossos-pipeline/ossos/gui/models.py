@@ -146,6 +146,12 @@ class UIModel(object):
     def get_current_reading(self):
         return self.get_current_workunit().get_current_reading()
 
+    def get_current_astrom_header(self):
+        return self.get_current_reading().get_observation_header()
+
+    def get_current_fits_header(self):
+        return self.get_current_image().get_fits_header()
+
     def get_current_exposure_number(self):
         return int(self.get_current_reading().obs.expnum)
 
@@ -156,11 +162,11 @@ class UIModel(object):
                 ("DEC", reading.dec))
 
     def get_header_data_list(self):
-        reading = self.get_current_reading()
-        return [(key, value) for key, value in reading.obs.header.iteritems()]
+        header = self.get_current_astrom_header()
+        return [(key, value) for key, value in header.iteritems()]
 
     def get_current_observation_date(self):
-        return self.get_current_reading().obs.header["MJD_OBS_CENTER"]
+        return self.get_current_astrom_header()["MJD_OBS_CENTER"]
 
     def get_current_ra(self):
         try:
@@ -178,7 +184,7 @@ class UIModel(object):
         return self._get_current_image_reading().get_image()
 
     def get_current_band(self):
-        return self.get_current_image().get_header()["FILTER"][0]
+        return self.get_current_fits_header()["FILTER"][0]
 
     def get_current_image_source_point(self):
         return self._get_current_image_reading().source_point
@@ -187,10 +193,10 @@ class UIModel(object):
         return self._get_current_image_reading().get_observed_magnitude()
 
     def get_current_image_FWHM(self):
-        return float(self.get_current_reading().obs.header["FWHM"])
+        return float(self.get_current_astrom_header()["FWHM"])
 
     def get_current_image_maxcount(self):
-        return float(self.get_current_reading().obs.header["MAXCOUNT"])
+        return float(self.get_current_astrom_header()["MAXCOUNT"])
 
     def get_loaded_image_count(self):
         return len(self._image_reading_models)
@@ -315,7 +321,7 @@ class ImageReading(object):
 
     def _update_ra_dec(self):
         astrom_header = self.reading.get_observation_header()
-        fits_header = self.get_image().get_header()
+        fits_header = self.get_image().get_fits_header()
 
         self._ra, self._dec = wcs.xy2sky(self.x, self.y,
                                          float(astrom_header[astrom.CRPIX1]),
