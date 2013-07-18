@@ -273,7 +273,7 @@ def parse_pv(header):
         Note that N depends on the order of the fit.  For example, an
         order 3 fit goes up to PV?_10.
     """
-    order_fit = int(header["NORDFIT"])
+    order_fit = parse_order_fit(header)
 
     def parse_with_base(i):
         key_base = "PV%d_" % i
@@ -297,3 +297,17 @@ def parse_pv(header):
 
     return [parse_with_base(1), parse_with_base(2)]
 
+
+def parse_order_fit(header):
+    """
+    Parses the order of the fit for PV terms.
+
+    Args:
+      header: astropy.io.fits.header.Header
+        The header containing the PV values.
+
+    Returns:
+      order_fit: int
+        The order of the fit.
+    """
+    return int(header["NORDFIT"])
