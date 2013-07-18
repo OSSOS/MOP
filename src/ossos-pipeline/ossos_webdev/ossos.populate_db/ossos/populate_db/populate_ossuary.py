@@ -120,6 +120,8 @@ def get_iq_and_zeropoint(image, header_extract):
 		if fwhm is not None:
 			iq = float(fwhm)*0.1850  # plate scale is 0.1850 arcsec/pixel
 			header_extract['iq_ossos'] = iq
+		else:
+			header_extract['iq_ossos'] = fwhm  # HACKED FOR NOW, WILL BE ADJUSTED LATER
 
 	except Exception, e:
 		raise e
@@ -132,6 +134,10 @@ def get_iq_and_zeropoint(image, header_extract):
 		# now let's try	
 		if zeropt is not None:
 			header_extract['zeropt'] = float(zeropt)
+
+		else:
+			header_extract['zeropt'] = zeropt  # HACKED FOR NOW, WILL BE ADJUSTED LATER
+
 	except Exception, e:
 		raise e
 
