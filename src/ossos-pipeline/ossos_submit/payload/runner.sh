@@ -20,7 +20,7 @@ args=$@
 log_container_node="vos:OSSOS/joblog"
 vmkdir -p ${log_container_node}
 
-logfile=${jobid}_${script}.out
+logfile=${jobid}.txt
 
 # log the start of the processing
 echo "Running $script on $args sending stdout/stderr to ${logfile}" > ${logfile}
@@ -38,4 +38,5 @@ status=$?
 # job is done, delte log_capture_on and then wait until sync.sh returns
 rm log_capture_on
 wait
+vcp ${logfile} ${log_container_node}
 exit $status
