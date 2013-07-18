@@ -183,9 +183,7 @@ class UIModel(object):
             self.get_current_reading().source_point)
 
     def get_current_source_observed_magnitude(self):
-        x, y = self.get_current_image_source_point()
-        maxcount = self.get_current_image_maxcount()
-        return self.get_current_image().get_observed_magnitude(x, y, maxcount=maxcount)
+        return self._get_current_image_reading().get_observed_magnitude()
 
     def get_current_image_FWHM(self):
         return float(self.get_current_reading().obs.header["FWHM"])
@@ -285,6 +283,25 @@ class ImageReading(object):
 
     def is_corrected(self):
         return self.x != self.original_x or self.y != self.original_y
+
+    def get_observed_magnitude(self):
+        if not self.fits_image.has_apcord_data():
+            raise ValueError("Apcor data is required in order to calculate "
+                             "observed magnitude.")
+
+        # NOTE: this import is only here so that we don't load up IRAF
+        # unnecessarily (ex: for candidates processing).
+        from ossos import daophot
+
+        apcor_data = self.fits_image.get_apcor_data()
+        maxcount = float(self.reading.get_observation_header()["MAXCOUNT"])
+        return daophot.phot_mag(self.fits_image.as_file().name,
+                                self.x, self.y,
+                                aperture=apcor_data.aperture,
+                                sky=apcor_data.sky,
+                                swidth=apcor_data.swidth,
+                                apcor=apcor_data.apcor,
+                                maxcount=maxcount)
 
     def _lazy_refresh(self):
         if self._stale:

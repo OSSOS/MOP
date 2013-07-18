@@ -3,8 +3,9 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 import unittest
 
-from hamcrest import (assert_that, equal_to, has_length, contains, same_instance, is_not, contains_inanyorder)
-from mock import Mock, patch
+from hamcrest import (assert_that, equal_to, has_length, contains,
+                      same_instance, is_not, contains_inanyorder)
+from mock import Mock
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from ossos.gui import models, events, tasks
@@ -15,7 +16,7 @@ from ossos.astrom import AstromParser
 from ossos.gui.persistence import LocalProgressManager
 from ossos.gui.image import DownloadedFitsImage
 from ossos.gui.workload import (WorkUnitProvider, RealsWorkUnitBuilder,
-                               CandidatesWorkUnitBuilder, NoAvailableWorkException)
+                                CandidatesWorkUnitBuilder)
 
 MODEL_TEST_DIR_1 = "data/model_testdir_1"
 MODEL_TEST_DIR_2 = "data/model_testdir_2"
@@ -305,20 +306,6 @@ class AbstractRealsModelTest(GeneralModelTest):
         self.create_real_first_image()
         assert_that(self.model.get_current_image(),
                     same_instance(self.first_image))
-
-    @patch("ossos.daophot.phot_mag")
-    def test_get_current_source_observed_magnitude(self, mock_phot_mag):
-        first_image = Mock()
-        first_reading = self.model.get_current_data().get_sources()[0].get_readings()[0]
-        self.model._on_image_loaded(first_reading, first_image)
-
-        x, y = (1500, 2500)
-        self.model.get_current_image_source_point = Mock(return_value=(x, y))
-
-        self.model.get_current_source_observed_magnitude()
-
-        first_image.get_observed_magnitude.assert_called_once_with(x, y,
-                                                                   maxcount=30000.0)
 
     def test_get_current_hdulist_image_not_loaded(self):
         self.model.next_source()

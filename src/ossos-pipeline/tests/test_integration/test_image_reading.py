@@ -77,6 +77,19 @@ class ImageReadingIntegrationTest(FileReadingTestCase):
         mock_xy2sky.assert_called_once_with(new_x, new_y, 7442.65, -128.69,
                                             211.82842, -11.83331, cd, pv, nord)
 
+    @patch("ossos.daophot.phot_mag")
+    def test_get_observed_magnitude(self, mock_phot_mag):
+        self.undertest.get_observed_magnitude()
+
+        mock_phot_mag.assert_called_once_with(
+            self.image.as_file().name,
+            772.13, 3334.70,
+            aperture=5.0,
+            sky=21.0,
+            swidth=5.0,
+            apcor=0.23,
+            maxcount=30000.0)
+
 
 if __name__ == '__main__':
     unittest.main()

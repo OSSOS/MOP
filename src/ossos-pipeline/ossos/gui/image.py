@@ -106,23 +106,8 @@ class DownloadedFitsImage(object):
 
         return self._tempfile
 
-    def get_observed_magnitude(self, x, y, maxcount=30000.0):
-        if not self.has_apcord_data():
-            raise ValueError("Apcor data is required in order to calculate "
-                             "observed magnitude.")
-
-        # NOTE: this import is only here so that we don't load up IRAF
-        # unnecessarily (ex: for candidates processing).
-        from ossos import daophot
-
-        # TODO refactor: associate SourceReadings here?  Don't want to pass
-        # in maxcount like this...
-        return daophot.phot_mag(self.as_file().name, x, y,
-                                aperture=self._apcordata.aperture,
-                                sky=self._apcordata.sky,
-                                swidth=self._apcordata.swidth,
-                                apcor=self._apcordata.apcor,
-                                maxcount=maxcount)
+    def get_apcor_data(self):
+        return self._apcordata
 
     def get_header(self):
         return self.as_hdulist()[0].header
