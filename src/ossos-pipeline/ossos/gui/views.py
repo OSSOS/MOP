@@ -218,8 +218,9 @@ class MainFrame(wx.Frame):
     def _create_data_notebook(self):
         notebook = wx.Notebook(self.control_panel)
 
-        self.reading_data_panel = KeyValueListPanel(notebook)
-        self.obs_header_panel = KeyValueListPanel(notebook)
+        columns = ("Key", "Value")
+        self.reading_data_panel = ListCtrlPanel(notebook, columns)
+        self.obs_header_panel = ListCtrlPanel(notebook, columns)
 
         notebook.AddPage(self.reading_data_panel, "Readings")
         notebook.AddPage(self.obs_header_panel, "Observation Header")
@@ -228,9 +229,8 @@ class MainFrame(wx.Frame):
 
     def _on_select_keymap(self, event):
         dialog = wx.Dialog(self, title="Key Mappings")
-        panel = KeyValueListPanel(dialog, key_header="Action",
-                                  value_header="Shortcut")
-        panel.display_data(self.keybind_manager.get_keymappings())
+        panel = ListCtrlPanel(dialog, ("Action", "Shortcut"))
+        panel.populate_list(self.keybind_manager.get_keymappings())
 
         dialog.Show()
 
@@ -244,8 +244,8 @@ class MainFrame(wx.Frame):
         self.image_viewer.draw_circle(x, y, radius, redraw=redraw)
 
     def update_displayed_data(self):
-        self.reading_data_panel.display_data(self.model.get_reading_data())
-        self.obs_header_panel.display_data(self.model.get_header_data_list())
+        self.reading_data_panel.populate_list(self.model.get_reading_data())
+        self.obs_header_panel.populate_list(self.model.get_header_data_list())
 
     def reset_colormap(self):
         self.image_viewer.reset_colormap()
@@ -307,7 +307,7 @@ class KeybindManager(object):
 
     def get_keymappings(self):
         return [("Next observation", "Tab"),
-                ("Previos observation", "Shift + Tab"),
+                ("Previous observation", "Shift + Tab"),
                 ("Accept", self.accept_key),
                 ("Reject", self.reject_key),
                 ("Reset colourmap", self.reset_cmap_key)]
@@ -443,22 +443,6 @@ class ListCtrlAutoWidth(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
     def __init__(self, parent, size=wx.DefaultSize, style=0):
         super(ListCtrlAutoWidth, self).__init__(parent, size=size, style=style)
         listmix.ListCtrlAutoWidthMixin.__init__(self)
-
-
-class KeyValueListPanel(ListCtrlPanel):
-    def __init__(self, parent, key_header="Key", value_header="Value"):
-        """
-        Constructor.
-
-        Args:
-          parent: wx.Window
-            the parent window of this new panel
-        """
-        super(KeyValueListPanel, self).__init__(parent,
-                                                (key_header, value_header))
-
-    def display_data(self, data):
-        self.populate_list(data)
 
 
 class SourceValidationPanel(wx.Panel):
