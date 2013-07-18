@@ -105,7 +105,6 @@ def overscan(hdu,
         bias = np.add.reduce(hdu.data[b:t,bl:bh],axis=1)/float(len(hdu.data[b:t,bl:bh][0]))
         mean = bias.mean()
         hdu.data[b:t,al:ah] -= bias[:,np.newaxis]
-	hdu.data = hdu.data.astype('int16')
         hdu.header.update("BIAS%d" % (idx ),mean,comment="Mean bias level")
 	del(bias)
 
@@ -328,7 +327,6 @@ if __name__=='__main__':
                 if opt.verbose:
                     print "Dividing by flat field "+opt.flat
                 hdu.data /= flat[ccd+1].data
-		hdu.data = hdu.data.astype('float16')
                 hdu.header.update("Flat",opt.flat,comment="Flat Image")
             if opt.normal:
                 if opt.verbose:
@@ -337,7 +335,6 @@ if __name__=='__main__':
                 idx = h.argsort()
                 mode = float((b[idx[-1]]+b[idx[-2]])/2.0)
                 hdu.data = hdu.data/mode
-		hdu.data = hdu.data.astype('float16')
 
             if opt.flip:
 	        if ccd < 18 :
@@ -382,9 +379,11 @@ if __name__=='__main__':
                        hdul.writeto(outfile)
                        hdul.close()
                     hdul = fits.open(outfile, 'append')
-                    dtype = ( opt.short and np.int16 ) or  np.float32 
-		    hdul.append(fits.ImageHDU(data=hdu.data.astype(dtype),
+		    hdul.append(fits.ImageHDU(data=hdu.data,
                                               header=hdu.header))
+                    if opt.short:
+                        print "Scaling to interger"
+                        hdul[-1].scale('int16', bzero=32768, bscale=1)
                     hdul.close()
                 hdu = None
                 hdul = None
@@ -393,7 +392,7 @@ if __name__=='__main__':
                 ### stack em up
                 if opt.verbose:
                     print "Saving the data for later"
-		data = hdu.data.astype('float16')
+		data = hdu.data
 	        naxis1 = hdu.data.shape[0]
 	        naxis2 = hdu.data.shape[1]
                 mstack.append(data)
@@ -415,8 +414,6 @@ if __name__=='__main__':
             data = np.percentile(mstack, 40, axis=0)
             del(mstack)
             stack = fits.ImageHDU(data)
-            if stack.data is not None:
-                stack.data = stack.data.astype('float32')
             stack.header[args.extname_kw] = (hdu.header.get(args.extname_kw,args.extname_kw), 'Extension Name')
             stack.header['QRUNID'] = (hdu.header.get('QRUNID',''), 'CFHT QSO Run flat built for')
             stack.header['FILTER'] = (hdu.header.get('FILTER',''), 'Filter flat works for')
@@ -425,15 +422,15 @@ if __name__=='__main__':
             
             for im in file_names:
                 hdu.header['comment'] = str(im)+" used to make this flat"
-            if opt.short:
-                if opt.verbose:
-                    print "Scaling data to ushort"
-                hdu.scale(type='int16',bscale=1,bzero=32768)
             if opt.verbose:
                 print "writing median combined stack to file "+outfile
             if opt.split:
                 fitsobj=fits.open(outfile,'update')
                 fitsobj[0]=hdu
+                if opt.short:
+                    if opt.verbose:
+                        print "Scaling data to ushort"
+                    fitsobj[0].scale(type='int16', option='minmax')
 		fitsobj.close()
             else:
                 if not os.access(outfile,os.W_OK) :
@@ -446,6 +443,10 @@ if __name__=='__main__':
                     fitsobj.close()
                 fitsobj=fits.open(outfile,'append')
                 fitsobj.append(stack)
+                if opt.short:
+                    if opt.verbose:
+                        print "Scaling data to ushort"
+                    fitsobj[-1].scale(type='int16', option='minmax')
                 fitsobj.close()
             del(stack)
             del(hdu)
