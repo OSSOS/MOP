@@ -2,8 +2,11 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 
-from hamcrest import assert_that
+from hamcrest import assert_that, contains, has_length
 
+from astropy.io import fits
+
+from tests.base_tests import FileReadingTestCase
 from tests.matchers import almost_equal
 from ossos import wcs
 
@@ -63,6 +66,53 @@ class WCSTest(unittest.TestCase):
 
         assert_that(x, almost_equal(15000.066582252624, SIGFIGS))
         assert_that(y, almost_equal(19999.992539886229, SIGFIGS))
+
+
+class WCSParseTest(FileReadingTestCase):
+    def setUp(self):
+        testfile = "data/image_reading/cutout-1616687p.fits"
+        hdulist = fits.open(self.get_abs_path(testfile))
+        self.header = hdulist[0].header
+
+    def test_parse_cd_values(self):
+        cd = wcs.parse_cd(self.header)
+
+        assert_that(cd, has_length(2))
+        assert_that(cd[0], has_length(2))
+        assert_that(cd[1], has_length(2))
+
+        # CD1_1, CD1_2
+        assert_that(cd[0],
+                    contains(-5.156837193510000E-05, -3.588985558218000E-07))
+
+        # CD2_1, CD2_2
+        assert_that(cd[1],
+                    contains(-1.674871346376000E-07, 5.178515755263000E-05))
+
+    def test_parse_pv_values(self):
+        pv = wcs.parse_pv(self.header)
+
+        assert_that(pv, has_length(2))
+        assert_that(pv[0], has_length(11))
+        assert_that(pv[1], has_length(11))
+
+        # PV1_0 through PV1_10
+        assert_that(pv[0],
+                    contains(-1.909806626877E-03, 1.00815723310,
+                             1.983393486250E-03, 0.00000000000,
+                             4.623172227977E-05, -1.020423075276E-05,
+                             2.258600565396E-05, -2.354656733463E-02,
+                             -1.671912720931E-04, -2.339051960031E-02,
+                             -2.903290518437E-05))
+
+        # PV2_0 through PV2_10
+        assert_that(pv[1],
+                    contains(-7.294883106769E-04, 1.00392029973,
+                             1.983331686156E-03, 0.00000000000,
+                             3.022667872225E-05, 4.509364811534E-05,
+                             -5.385195875663E-06, -2.333221106141E-02,
+                             -1.789051786060E-04, -2.348803123711E-02,
+                             -2.465552723903E-05))
 
 
 if __name__ == '__main__':
