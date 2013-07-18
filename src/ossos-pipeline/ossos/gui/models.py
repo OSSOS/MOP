@@ -181,8 +181,7 @@ class UIModel(object):
         return self.get_current_image().get_header()["FILTER"][0]
 
     def get_current_image_source_point(self):
-        return self.get_current_image().get_pixel_coordinates(
-            self._get_current_image_reading().source_point)
+        return self._get_current_image_reading().source_point
 
     def get_current_source_observed_magnitude(self):
         return self._get_current_image_reading().get_observed_magnitude()
@@ -264,7 +263,7 @@ class ImageReading(object):
 
     @property
     def source_point(self):
-        return self.x, self.y
+        return self.fits_image.get_pixel_coordinates((self.x, self.y))
 
     def update_x(self, new_x):
         self.x = new_x
