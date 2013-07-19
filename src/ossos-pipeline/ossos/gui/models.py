@@ -186,8 +186,8 @@ class UIModel(object):
     def get_current_band(self):
         return self.get_current_fits_header()["FILTER"][0]
 
-    def get_current_image_source_point(self):
-        return self._get_current_image_reading().source_point
+    def get_current_pixel_source_point(self):
+        return self._get_current_image_reading().pixel_source_point
 
     def get_current_source_observed_magnitude(self):
         return self._get_current_image_reading().get_observed_magnitude()
