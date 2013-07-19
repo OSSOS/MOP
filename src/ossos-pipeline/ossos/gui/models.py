@@ -213,6 +213,17 @@ class UIModel(object):
     def refresh_vos_client(self):
         self.download_manager.refresh_vos_client()
 
+    def update_current_source_location(self, new_location):
+        """
+        Updates the location of the source in the image.
+
+        Args:
+          new_location: tuple(x, y)
+            The source location using pixel coordinates from the
+            displayed image (may be a cutout).
+        """
+        self._get_current_image_reading().update_pixel_location(new_location)
+
     def exit(self):
         try:
             self._unlock(self.get_current_workunit())

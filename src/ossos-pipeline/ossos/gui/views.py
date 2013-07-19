@@ -67,6 +67,9 @@ class ApplicationView(object):
     def reset_colormap(self):
         self.mainframe.reset_colormap()
 
+    def register_xy_changed_event_handler(self, handler):
+        self.mainframe.register_xy_changed_event_handler(handler)
+
     def close(self):
         self.mainframe.Destroy()
 
@@ -255,6 +258,9 @@ class MainFrame(wx.Frame):
 
     def reset_colormap(self):
         self.image_viewer.reset_colormap()
+
+    def register_xy_changed_event_handler(self, handler):
+        self.image_viewer.register_xy_changed_event_handler(handler)
 
     def show_image_loading_dialog(self):
         if not self.img_loading_dialog.IsShown():
