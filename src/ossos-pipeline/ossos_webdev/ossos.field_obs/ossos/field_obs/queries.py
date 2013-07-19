@@ -31,7 +31,10 @@ class ImagesQuery(object):
 	def format_imquery_return(self, ims_query):
 		ret_images = []
 		for row in ims_query:
-			ret_images.append([row[1], row[2], (row[3])])  # obs_end, iq_ossos, image_id
+			if row[2] is not None:  # CATCHES NONE FWHM FROM UNPROCESSED IMAGES (GRRR)
+				ret_images.append([row[1], row[2], (row[3])])  # obs_end, iq_ossos, image_id
+			else:
+				ret_images.append([row[1], -1., (row[3])])
 		ims_query.close()
 
 		return ret_images
@@ -88,7 +91,7 @@ class ImagesQuery(object):
 				threeplus_night_images[date] = date_images
 
 			retval = self.parse_for_best_triple(threeplus_night_images)
-	
+
 		return retval
 
 
@@ -139,7 +142,6 @@ class ImagesQuery(object):
 		good_triples = []
 		for date, ims in threeplus_night_images.items():
 			# for each night, create the best possible triple that meets constraints.
-			print date, len(ims)
 			# is their temporal span sufficiently wide for a triplet to exist?
 			if (ims[-1][4] - ims[0][4]) > datetime.timedelta(minutes=90):
 				# return is [im, im, im, worst_iq]
@@ -150,7 +152,6 @@ class ImagesQuery(object):
 		if len(good_triples) > 0:
 			# Return the set of 3 images that have the lowest value of 'worst iq'. 
 			lowest_worst_iq = min([g[2] for g in good_triples]) 
-			print lowest_worst_iq
 			retval = good_triples[[g[2] for g in good_triples].index(lowest_worst_iq)]  
 		else:
 			retval = None

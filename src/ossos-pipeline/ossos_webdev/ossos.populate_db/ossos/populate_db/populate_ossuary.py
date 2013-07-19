@@ -59,7 +59,7 @@ def wanted_keys(header):
 	# and Stephen informs me that the updated WCS can be found in:
 	# CRVAL1  # / WCS Ref value (RA in decimal degrees)
 	# CRVAL2  # / WCS Ref value (DEC in decimal degrees)
-	# and these (he must add them)
+	# and these (he adds them)
 	# CRPIX1
 	# CRPIX2
 	# CD[1..2]_[1..2]
@@ -68,42 +68,76 @@ def wanted_keys(header):
 
 def verify_ossos_image(header):
 	# confirm that the image is processed and satisfies necessary parameters
-	if ((abs(header['EXPTIME'] - header['EXPREQ']) < 5.)  # approx what integration we asked for
-		and (280. < float(header['EXPTIME']) < 297.) # shouldn't differ more than ~10 sec.
-		and (header['FILTER'] =='r.MP9601')    # it must be an r filter
-		and header['FILENAME'].endswith('o')  # 'o' for an object acquisition
-		and field_in_survey_footprint(header)):
 
+	try:
+		# approx requested integration
+		assert (abs(header['EXPTIME'] - header['EXPREQ']) < 5.)
+	except AssertionError, e:
+		print e
+		return False
+
+	try:
+		# shouldn't differ more than ~10 sec, whether field (~300 sec) or wallpaper (30 sec).
+		assert (280. < float(header['EXPTIME']) < 297.) or (25. < float(header['EXPTIME']) < 35.)
+	except AssertionError, e:
+		print e
+		return False
+
+	try:
+		assert (header['FILTER'] =='r.MP9601')    # it must be an r filter
+	except AssertionError, e:
+		print e
+		return False
+	
+	try:	
+		assert field_in_survey_footprint(header)	
 		# does calibrator exist?
 		# check against qrunid in header to confirm it used the right dark flat.
 
-			print 'valid'
+	except AssertionError, e:
+		print e
+		return False
 
-			return True
-	else:
-		print 'That is weird.'
-		return False 
+	# yay everything went right!
+	return True
 
 
 def field_in_survey_footprint(header):
 	# as the fields precess according to Keplerian shear, required footprint is time-dependent.
-
+	# but it doesn't move that far in four years.
 
 	return True
 
 
 def get_iq_and_zeropoint(image, header_extract):
 	try:  # 22 is the standard chip: mid lower
-		fwhm = float(storage.get_tag(image, 'fwhm_22'))
-		if fwhm:
-			iq = fwhm*0.1850  # plate scale is 0.1850 arcsec/pixel
+		fwhm = storage.get_tag(image, 'fwhm_22')
+		if fwhm is None:
+			fwhm_file = storage.get_uri(image, ccd=22, ext='fwhm')# hfile+'/ccd22/'+image+'p22.fwhm'
+			print fwhm_file
+			fwhm = float(storage.vospace.open(fwhm_file,view='data').read())
+		# now can we work with it?
+		if fwhm is not None:
+			iq = float(fwhm)*0.1850  # plate scale is 0.1850 arcsec/pixel
 			header_extract['iq_ossos'] = iq
+		else:
+			header_extract['iq_ossos'] = fwhm  # HACKED FOR NOW, WILL BE ADJUSTED LATER
+
 	except Exception, e:
 		raise e
+
 	try:
-		zeropt = float(storage.get_tag(image, 'zeropoint_22'))
-		if zeropt:
+		zeropt = storage.get_tag(image, 'zeropoint_22')
+		if zeropt is None:
+			zeropt_file = storage.get_uri(image, ccd=22, ext='zeropoint.used') # hfile+'/ccd22/'+image+'p22.zeropoint.used'  # the standard chip
+			zeropt = storage.vospace.open(zeropt_file,view='data').read()
+		# now let's try	
+		if zeropt is not None:
 			header_extract['zeropt'] = float(zeropt)
+
+		else:
+			header_extract['zeropt'] = zeropt  # HACKED FOR NOW, WILL BE ADJUSTED LATER
+
 	except Exception, e:
 		raise e
 
@@ -111,11 +145,18 @@ def get_iq_and_zeropoint(image, header_extract):
 
 
 def retrieve_processed_images(ims):
-	ss = sa.select([ims.images.c.image_id], order_by=ims.images.c.image_id)
+	ss = sa.select([ims.images.c.image_id, ims.images.c.iq_ossos], order_by=ims.images.c.image_id)
 	query = ims.conn.execute(ss)
-	retval = [s[0] for s in query if isinstance(s[0], long)]
+	retval = []
+	retval2 = []
+	for s in query:
+		if isinstance(s[0], long):
+			retval.append(s[0])
+			retval2.append(s[1])
+	# retval = [s[0] for s in query if isinstance(s[0], long)]
+	# retval2 = [s[1] for s in query if isinstance(s[0], long)]
 
-	return retval
+	return retval, retval2
 
 
 def parse_unprocessed_images(dbimages):
@@ -128,17 +169,28 @@ def parse_unprocessed_images(dbimages):
 
 def get_header(data_web_service_url, image):
 	# pulling back the header: fast if you know the direct source
+	# also this means it's definitely the original header that's being checked
+	# 'o' for an object acquisition
 	hdr = "%s/%so.fits.fz?cutout=[0]" % (data_web_service_url, image) 
 	header_text = fits.open(StringIO(storage.vospace.open(hdr, view='data').read()))[0].header
 	retval = wanted_keys(header_text)
 
-	return retval 
+	return retval, header_text 
 
 
 def put_image_in_database(image, ims):
+	# first check if the key is already present, if so remove and readd the entry 
+	# (don't know what field has been updated.)
+	ss = sa.select([ims.images.c.image_id])
+	ss.append_whereclause(ims.images.c.image_id == image['image_id'])
+	query = ims.conn.execute(ss)
+	if len([s[0] for s in query]) > 0:
+		ss = sa.delete(ims.images.c.image_id == image['image_id'])
+		query = ims.conn.execute(ss)	
+
 	ins = ims.images.insert(values=image)
 	ims.conn.execute(ins)
-
+	
 	return
 
 
@@ -146,25 +198,31 @@ def put_image_in_database(image, ims):
 ############################ BEGIN MAIN #######################################
 data_web_service_url = storage.DATA_WEB_SERVICE+"CFHT"
 images = ImagesQuery()
-processed_images = retrieve_processed_images(images)  # straight list of primary keys
+processed_images, iqs = retrieve_processed_images(images)  # straight list of primary keys
 dbimages = storage.list_dbimages()
-unprocessed_images = parse_unprocessed_images(dbimages)
+#unprocessed_images = parse_unprocessed_images(dbimages, iqs)
+# DEBUGGING
+unprocessed_images = []
+for i, im in enumerate(processed_images):
+	if iqs[i] is None:
+		unprocessed_images.append(im)
+
 sys.stdout.write('%d images in ossuary; updating with %d new in VOspace.\n' % 
 	(len(processed_images), len(unprocessed_images)))
 
 # Construct a full image entry, including header and info in the vtags
-for n, image in enumerate(unprocessed_images):
-	# if image == '1624879':  # GOOD TEST IMAGE
+for n, image in enumerate(unprocessed_images[2:]):  # REMOVE BEFORE FLIGHT
+	sys.stdout.write('%s %d/%d' % (image, n+1, len(unprocessed_images)))
 	try:
-		sub = get_header(data_web_service_url, image)
-		# if verify_ossos_image(header):
-		header_extract = get_iq_and_zeropoint(image, sub)
-		# 	put_image_in_database(header_extract, images)
-		print header_extract
-		sys.stdout.write('%s %d/%d\n' % (image, n+1, len(unprocessed_images)))
-
+		subheader, fullheader = get_header(data_web_service_url, image)
+		header = get_iq_and_zeropoint(image, subheader)
+		if verify_ossos_image(fullheader):
+			put_image_in_database(header, images)
+			sys.stdout.write('...added to ossuary.\n')
+	
 	except Exception, e:
-		sys.stdout.write('%s %s\n' % (image, e))
+		sys.stdout.write('... %s\n' % e)
+
 
 
 # can do a CLUSTER after data is inserted - maybe once a week, depending how much there is
