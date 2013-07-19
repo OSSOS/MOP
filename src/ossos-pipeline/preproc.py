@@ -26,7 +26,7 @@
 
 """Create a MEGAPRIME bias frame given a list of input bias exposure numbers"""
 
-__Version__ = "2.0a"
+__Version__ = "2.0"
 import re, os, string, sys
 import vos
 import numpy as np
