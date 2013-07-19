@@ -34,6 +34,8 @@ class AbstractController(object):
         radius = 2 * round(self.model.get_current_image_FWHM())
         self.get_view().draw_circle(image_x, image_y, radius, redraw=True)
 
+        self.get_view().update_displayed_data()
+
         self.get_view().set_observation_status(
             self.model.get_current_obs_number() + 1,
             self.model.get_obs_count())
