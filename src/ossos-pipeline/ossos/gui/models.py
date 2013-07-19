@@ -257,27 +257,38 @@ class ImageReading(object):
 
     def __init__(self, reading, fits_image):
         self.reading = reading
-        self.fits_image = fits_image
+        self._fits_image = fits_image
 
-        self.x = self.original_x = self.reading.x
-        self.y = self.original_y = self.reading.y
+        self.original_observed_x = self.reading.x
+        self.original_observed_y = self.reading.y
+
+        self.observed_x = self.original_observed_x
+        self.observed_y = self.original_observed_y
+
+        self.pixel_x, self.pixel_y = self._fits_image.get_pixel_coordinates(
+            self.observed_source_point)
 
         self._ra = self.reading.ra
         self._dec = self.reading.dec
 
         self._stale = False
+        self._corrected = False
 
     @property
-    def source_point(self):
-        return self.fits_image.get_pixel_coordinates((self.x, self.y))
+    def observed_source_point(self):
+        return self.observed_x, self.observed_y
 
-    def update_x(self, new_x):
-        self.x = new_x
-        self._stale = True
+    @property
+    def pixel_source_point(self):
+        return self.pixel_x, self.pixel_y
 
-    def update_y(self, new_y):
-        self.y = new_y
+    def update_pixel_location(self, new_pixel_location):
+        self.pixel_x, self.pixel_y = new_pixel_location
+        self.observed_x, self.observed_y = self._fits_image.get_observed_coordinates(
+            new_pixel_location)
+
         self._stale = True
+        self._corrected = True
 
     @property
     def ra(self):
@@ -290,13 +301,13 @@ class ImageReading(object):
         return self._dec
 
     def get_image(self):
-        return self.fits_image
+        return self._fits_image
 
     def is_corrected(self):
-        return self.x != self.original_x or self.y != self.original_y
+        return self._corrected
 
     def get_observed_magnitude(self):
-        if not self.fits_image.has_apcord_data():
+        if not self._fits_image.has_apcord_data():
             raise ValueError("Apcor data is required in order to calculate "
                              "observed magnitude.")
 
@@ -304,10 +315,10 @@ class ImageReading(object):
         # unnecessarily (ex: for candidates processing).
         from ossos import daophot
 
-        apcor_data = self.fits_image.get_apcor_data()
+        apcor_data = self._fits_image.get_apcor_data()
         maxcount = float(self.reading.get_observation_header()["MAXCOUNT"])
-        return daophot.phot_mag(self.fits_image.as_file().name,
-                                self.x, self.y,
+        return daophot.phot_mag(self._fits_image.as_file().name,
+                                self.pixel_x, self.pixel_y,
                                 aperture=apcor_data.aperture,
                                 sky=apcor_data.sky,
                                 swidth=apcor_data.swidth,
@@ -323,7 +334,7 @@ class ImageReading(object):
         astrom_header = self.reading.get_observation_header()
         fits_header = self.get_image().get_fits_header()
 
-        self._ra, self._dec = wcs.xy2sky(self.x, self.y,
+        self._ra, self._dec = wcs.xy2sky(self.observed_x, self.observed_y,
                                          float(astrom_header[astrom.CRPIX1]),
                                          float(astrom_header[astrom.CRPIX2]),
                                          float(astrom_header[astrom.CRVAL1]),
@@ -331,4 +342,3 @@ class ImageReading(object):
                                          wcs.parse_cd(fits_header),
                                          wcs.parse_pv(fits_header),
                                          wcs.parse_order_fit(fits_header))
-

@@ -29,11 +29,34 @@ class ImageReadingIntegrationTest(FileReadingTestCase):
         with open(self.path("1616687p10.apcor")) as fh:
             apcor_str = fh.read()
 
+        # NOTE: the test image
+        # vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1616687/1616687p.fits
+        # has cutout: [11][1449:1199,1429:1179] and is inverted.
+        #
+        # Therefore the first reading at (772.13, 3334.70) in observed
+        # coordinates is at
+        # (NAX1 - max cutout x, NAX2 - max cutout y)
+        #  = (2112 - 1449, 4644 - 1429) = (663, 3215)
+        self.original_pixel_x = 663
+        self.original_pixel_y = 3215
+
+        self.original_observed_x = 772.13
+        self.original_observed_y = 3334.70
+
+        x_offset = self.original_observed_x - self.original_pixel_x
+        y_offset = self.original_observed_y - self.original_pixel_y
+
         self.image = DownloadedFitsImage(fits_str,
-                                         Mock(spec=CoordinateConverter),
+                                         CoordinateConverter(x_offset, y_offset),
                                          apcor_str=apcor_str)
 
         self.undertest = ImageReading(self.reading, self.image)
+
+        assert_that(self.undertest.observed_x, equal_to(self.original_observed_x))
+        assert_that(self.undertest.observed_y, equal_to(self.original_observed_y))
+
+        assert_that(self.undertest.pixel_x, equal_to(self.original_pixel_x))
+        assert_that(self.undertest.pixel_y, equal_to(self.original_pixel_y))
 
     @patch("ossos.wcs.xy2sky")
     def test_update_ra_dec(self, mock_xy2sky):
@@ -41,17 +64,17 @@ class ImageReadingIntegrationTest(FileReadingTestCase):
         new_dec = -11.0
         mock_xy2sky.return_value = (new_ra, new_dec)
 
-        new_x = 773.50
-        new_y = 3333.75
+        diff_x = 5.5
+        diff_y = 4.5
+        new_pixel_x = self.original_pixel_x + diff_x
+        new_pixel_y = self.original_pixel_y + diff_y
 
-        self.undertest.update_x(new_x)
-        self.undertest.update_y(new_y)
+        self.undertest.update_pixel_location((new_pixel_x, new_pixel_y))
 
         assert_that(self.undertest.ra, equal_to(new_ra))
         assert_that(self.undertest.dec, equal_to(new_dec))
 
-        # Check it was called with the correct values from the Astrom file
-        # and FITS header:
+        # Check it was called with the correct values:
         #   x, y, crpix1, crpix2, crval1, crval2, cd, pv, nord
 
         # These values from FITS header:
@@ -73,17 +96,23 @@ class ImageReadingIntegrationTest(FileReadingTestCase):
         # NORDFIT
         nord = 3
 
-        # The rest are from the Astrom header
-        mock_xy2sky.assert_called_once_with(new_x, new_y, 7442.65, -128.69,
-                                            211.82842, -11.83331, cd, pv, nord)
+        # NOTE: the x and y passed in must be the updated OBSERVED coordinates
+        mock_xy2sky.assert_called_once_with(
+            self.original_observed_x + diff_x,
+            self.original_observed_y + diff_y,
+            # These next values are from the Astrom header
+            7442.65, -128.69, 211.82842, -11.83331,
+            cd, pv, nord)
 
     @patch("ossos.daophot.phot_mag")
     def test_get_observed_magnitude(self, mock_phot_mag):
         self.undertest.get_observed_magnitude()
 
+        # NOTE: the x and y passed in must be the PIXEL coordinates
         mock_phot_mag.assert_called_once_with(
             self.image.as_file().name,
-            772.13, 3334.70,
+            self.original_pixel_x,
+            self.original_pixel_y,
             aperture=5.0,
             sky=21.0,
             swidth=5.0,

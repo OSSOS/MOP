@@ -5,7 +5,7 @@ import unittest
 
 from hamcrest import (assert_that, equal_to, has_length, contains,
                       same_instance, is_not, contains_inanyorder)
-from mock import Mock
+from mock import patch, Mock
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from ossos.gui import models, events, tasks
@@ -13,6 +13,7 @@ from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui.models import ImageNotLoadedException
 from ossos.gui.downloads import AsynchronousImageDownloadManager
 from ossos.astrom import AstromParser
+from ossos.cutouts import CoordinateConverter
 from ossos.gui.persistence import LocalProgressManager
 from ossos.gui.image import DownloadedFitsImage
 from ossos.gui.workload import (WorkUnitProvider, RealsWorkUnitBuilder,
@@ -71,7 +72,8 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
         # Put a real fits image on the first source, first observation
         apcor_str = "4 15   0.19   0.01"
         with open(self.get_abs_path(path), "rb") as fh:
-            self.first_image = DownloadedFitsImage(fh.read(), Mock(), apcor_str, in_memory=True)
+            self.first_image = DownloadedFitsImage(
+                fh.read(), CoordinateConverter(0, 0), apcor_str, in_memory=True)
             first_reading = self.model.get_current_workunit().get_sources()[0].get_readings()[0]
             self.model._on_image_loaded(first_reading, self.first_image)
 
@@ -213,7 +215,8 @@ class AbstractRealsModelTest(GeneralModelTest):
             ("R.A.", 26.6833367), ("DEC", 29.2203532)
         ))
 
-    def test_loading_images(self):
+    @patch("ossos.gui.models.ImageReading")
+    def test_loading_images(self, mock_ImageReading):
         observer = Mock()
         events.subscribe(events.IMG_LOADED, observer.on_img_loaded)
         loaded_reading1 = Mock()
@@ -229,11 +232,13 @@ class AbstractRealsModelTest(GeneralModelTest):
         self.model._on_image_loaded(loaded_reading1, image1)
         assert_that(self.model.get_loaded_image_count(), equal_to(1))
         assert_that(observer.on_img_loaded.call_count, equal_to(1))
+        assert_that(mock_ImageReading.call_count, equal_to(1))
 
         # Simulate receiving callback
         self.model._on_image_loaded(loaded_reading2, image2)
         assert_that(self.model.get_loaded_image_count(), equal_to(2))
         assert_that(observer.on_img_loaded.call_count, equal_to(2))
+        assert_that(mock_ImageReading.call_count, equal_to(2))
 
         # Check event args
         call_args_list = observer.on_img_loaded.call_args_list
