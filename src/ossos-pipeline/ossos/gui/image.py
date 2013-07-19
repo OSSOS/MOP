@@ -85,6 +85,21 @@ class DownloadedFitsImage(object):
         """
         return self._coord_converter.convert(point)
 
+    def get_observed_coordinates(self, point):
+        """
+        Retrieves the location of a point using the coordinate system of
+        the original observation, i.e. the original image before any
+        cutouts were done.
+
+        Args:
+          point: tuple(float, float)
+            The pixel coordinates.
+
+        Returns:
+          (x, y) in the original image coordinate system.
+        """
+        return self._coord_converter.get_inverse_converter().convert(point)
+
     def as_hdulist(self):
         if self._hdulist is None:
             # we are currently storing "in file" only
