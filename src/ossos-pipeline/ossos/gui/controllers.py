@@ -30,7 +30,7 @@ class AbstractController(object):
             self.get_view().show_image_loading_dialog()
             return
 
-        image_x, image_y = self.model.get_current_image_source_point()
+        image_x, image_y = self.model.get_current_pixel_source_point()
         radius = 2 * round(self.model.get_current_image_FWHM())
         self.get_view().draw_circle(image_x, image_y, radius, redraw=True)
 
