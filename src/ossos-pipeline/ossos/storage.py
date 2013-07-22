@@ -39,7 +39,7 @@ class SyncingVOFile(object):
     when flushed.
     """
 
-    def __init__(self, uri, vosclient=vospace):
+    def __init__(self, uri, sync_enabled=True, vosclient=vospace):
         """
         Contstructor.
 
@@ -58,7 +58,13 @@ class SyncingVOFile(object):
           uri: str
             The URI of the file in VOSpace.  Raises an InvalidUriError if
             this isn't recognizable as a VOSpace URI.
+          sync_enabled: bool
+            Defaults to True, in which case flushing causes the local file
+            to be synced with VOSpace.  If set to False, no syncing will
+            occur with VOSPace.
         """
+        self.sync_enabled = sync_enabled
+
         if not uri.startswith("vos:"):
             raise InvalidURIError("URI must point to VOSpace.")
 
@@ -119,13 +125,16 @@ class SyncingVOFile(object):
 
     def flush(self):
         """
-        Flushes (syncs) changes to VOSpace.
+        Flushes the local file and then syncs it to VOSpace by copying
+        (unless syncing has been disabled).
 
         Returns:
           void
         """
         self.local_filehandle.flush()
-        self.vosclient.copy(self.get_local_filename(), self.uri)
+
+        if self.sync_enabled:
+            self.vosclient.copy(self.get_local_filename(), self.uri)
 
     def close(self):
         """
