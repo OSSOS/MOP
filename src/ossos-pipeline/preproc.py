@@ -13,9 +13,6 @@
 #*	
 #*
 #*
-#*   CVS data:
-#*	$Header: /home/observe/cvsroot/MOP/src/jjk/preproc/preproc.py,v 1.7 2007/01/26 20:20:24 observe Exp $
-#*
 #*   Initiated by       : JJ Kavelaars
 #*   Date		: <Nov 30 2004>
 #*
@@ -29,7 +26,7 @@
 
 """Create a MEGAPRIME bias frame given a list of input bias exposure numbers"""
 
-__Version__ = "1.8"
+__Version__ = "2.0"
 import re, os, string, sys
 import vos
 import numpy as np
@@ -39,15 +36,15 @@ from astropy.io import fits
 
 version=__Version__
 
-elixir_header={ 'PHOT_C' : (30.0000 , "Fake Elixir zero point"),
-                'PHOT_CS': (1.0000 , "Fake Elixir zero point - scatter" ) ,
-                'PHOT_NS': (0, 'Elixir zero point - N stars' ),
-                'PHOT_NM' : (0, 'Elixir zero point - N images'),
-                'PHOT_C0' : ( 25.978, 'Elixir zero point - nominal'),
-                'PHOT_X'  :             (  0.0000 ,'Elixir zero point - color term'),
-                'PHOT_K'  :             ( -0.1000 , 'Elixir zero point - airmass term'),
-                'PHOT_C1' : ('g_SDSS            ' , 'Elixir zero point - color 1'),
-                'PHOT_C2' : ('r_SDSS            ' , 'Elixir zero point - color 2')
+elixir_header={ 'PHOT_C' : ( 30.0000, "Fake Elixir zero point" ),
+                'PHOT_CS': ( 1.0000, "Fake Elixir zero point - scatter" ),
+                'PHOT_NS': ( 0, 'Elixir zero point - N stars' ),
+                'PHOT_NM': ( 0, 'Elixir zero point - N images' ),
+                'PHOT_C0': ( 25.978, 'Elixir zero point - nominal' ),
+                'PHOT_X' : ( 0.0000, 'Elixir zero point - color term' ),
+                'PHOT_K' : ( -0.1000, 'Elixir zero point - airmass term' ),
+                'PHOT_C1': ( 'g_SDSS', 'Elixir zero point - color 1' ),
+                'PHOT_C2': ( 'r_SDSS', 'Elixir zero point - color 2')
                 }
 
 
@@ -63,8 +60,12 @@ def trim(hdu, datasec='DATASEC'):
     if opt.verbose:
         print "Trimming [%d:%d,%d:%d]" % ( l,r,b,t)
     hdu.data = hdu.data[b:t,l:r]    
-    hdu.header.update('DATASEC',"[%d:%d,%d:%d]" % (1,r-l+1,1,t-b+1), comment="Image was trimmed")
-    hdu.header.update('ODATASEC',"[%d:%d,%d:%d]" % (l+1,r,b+1,t), comment="previous DATASEC")
+    hdu.header.update('DATASEC',
+                      "[%d:%d,%d:%d]" % (1,r-l+1,1,t-b+1),
+                      comment="Image was trimmed")
+    hdu.header.update('ODATASEC',
+                      "[%d:%d,%d:%d]" % (l+1,r,b+1,t),
+                      comment="previous DATASEC")
     return
 
 def overscan(hdu,
@@ -75,8 +76,9 @@ def overscan(hdu,
     subtract the average row of biassecs from ampsecs data.
 
 
-    Default for megapipe. The BIAS section keywords are expected to be BSEC[A|B] (for amps
-    A and B) and the AMP sectoin is ASEC[A|B].
+    Default for megapipe. The BIAS section keywords are expected to be
+    BSEC[A|B] (for amps A and B) and the AMP sectoin is ASEC[A|B].
+
     """
 
     for idx in range(len(biassecs)):
@@ -85,8 +87,9 @@ def overscan(hdu,
         dsec=re.findall(r'(\d+)',
                        hdu.header.get(AMPKW))
         if len(dsec) != 4 :
-            raise ValueError("Failed to parse AMPSEC: %s %s" % (AMPKW,
-                                                                hdu.header.get(AMPKW)))
+            raise ValueError(
+                "Failed to parse AMPSEC: %s %s" % (AMPKW,
+                                                   hdu.header.get(AMPKW)))
         bias=re.findall(r'(\d+)',
                         hdu.header.get(BIASKW))
         
@@ -102,7 +105,8 @@ def overscan(hdu,
         b=max(int(bias[2]),int(dsec[2]))-1
         t=min(int(bias[3]),int(dsec[3]))
 
-        bias = np.add.reduce(hdu.data[b:t,bl:bh],axis=1)/float(len(hdu.data[b:t,bl:bh][0]))
+        bias = np.add.reduce(hdu.data[b:t,bl:bh],axis=1)
+        bias /= float(len(hdu.data[b:t,bl:bh][0]))
         mean = bias.mean()
         hdu.data[b:t,al:ah] -= bias[:,np.newaxis]
         hdu.header.update("BIAS%d" % (idx ),mean,comment="Mean bias level")
@@ -148,7 +152,7 @@ if __name__=='__main__':
     parser.add_argument("--flat",
                       default=None,
                       action="store",
-                      help="Flat field [leave out if you don't want to flatten your inputs]")
+                      help="Flat field")
     parser.add_argument("--normal",
                       action="store_true",
                       help="Normallize before averaging?")
@@ -156,45 +160,47 @@ if __name__=='__main__':
                       action="store_true",
                       help="Combine multiple images into single OUTFILE")
     parser.add_argument("--extname_kw",
-                      action="store",
-                      default="EXTNAME",
-                      help="FITS keyword that is the extention name")
+                        action="store",
+                        default="EXTNAME",
+                        help="FITS keyword that is the extention name")
     parser.add_argument("--split",
-                      action="store_true",
-                      default=False,
-                      help="Split MEF files into FITS on write after processing")
+                        action="store_true",
+                        default=False,
+                        help="Split MEF files into SIF on write")
     parser.add_argument("--flip",
-                      action="store_true",
-                      help="Flip CCDs 0 to 18?")
+                        action="store_true",
+                        help="Flip CCDs 0 to 18?")
     parser.add_argument("--dist",
-                      action="store",
-		      default=None,
-                      help="Distribution the output by header/chip?")
+                        action="store",
+                        default=None,
+                        help="Distribution the output by header/chip?")
     parser.add_argument("--ccds",
-                      action="store",
-		      default=range(36),
-                      type=int,
-                      nargs='+',
-                      help="CCDs to process [do all be default]")
+                        action="store",
+                        default=range(36),
+                        type=int,
+                        nargs='+',
+                        help="CCDs to process [do all be default]")
     parser.add_argument("--dbimages",
-                      action="store",
-                      default="vos:OSSOS/dbimages",
-                      help="VOSpace location of the dbimages directory")
+                        action="store",
+                        default="vos:OSSOS/dbimages",
+                        help="VOSpace location of the dbimages directory")
     parser.add_argument("--obstype_kw",
-                      action="store",
-                      default="OBSTYPE",
-                      help="observation type keyword")
+                        action="store",
+                        default="OBSTYPE",
+                        help="observation type keyword")
     parser.add_argument("--file_id_kw",
-                      action="store",
-                      default="EXPNUM",
-                      help="Keyword that uniquely identifies this exposure")
+                        action="store",
+                        default="EXPNUM",
+                        help="Keyword that uniquely identifies this exposure")
     parser.add_argument("images",
-                      nargs='+',
-                      help="Images to process with give flat/bias/trim or to stack into flat/bias")
+                        nargs='+',
+                        help=("Images to process with give flat/bias/trim "
+                              "or stack into output flat/bias"))
     parser.add_argument("--megapipe",
-                      action="store_true",
-                      default=False,
-                      help="Add 'dummy' ELIXIR keywords to image so megapipe will work?")
+                        action="store_true",
+                        default=False,
+                        help=("Add 'dummy' ELIXIR keywords for megapipe?")
+                        )
                       
     ### get the bias frames from the archive.
     (args)=parser.parse_args()
@@ -206,8 +212,10 @@ if __name__=='__main__':
         ## only take one image from each pointing
         t={}
         for file_id in file_ids:
-            filename = os.path.join(opt.dbimages,"%s/%so.head" % ( file_id, file_id))
-            f = fits.open(StringIO(vos_client.open(filename,view='data').read()))
+            filename = os.path.join(
+                opt.dbimages,"%s/%so.head" % ( file_id, file_id))
+            f = fits.open(
+                StringIO(vos_client.open(filename,view='data').read()))
             t[f[0].header['OBJECT']]=file_id
             f.close()
             f = None
@@ -383,7 +391,7 @@ if __name__=='__main__':
                                               header=hdu.header))
                     if opt.short:
                         print "Scaling to interger"
-                        hdul[-1].scale('int16', bzero=32768, bscale=1)
+                        hdul[-1].scale('int16', bzero=32768)
                     hdul.close()
                 hdu = None
                 hdul = None
@@ -430,7 +438,7 @@ if __name__=='__main__':
                 if opt.short:
                     if opt.verbose:
                         print "Scaling data to ushort"
-                    fitsobj[0].scale(type='int16', option='minmax')
+                    fitsobj[0].scale(type='int16', bzero=32768)
 		fitsobj.close()
             else:
                 if not os.access(outfile,os.W_OK) :
@@ -446,7 +454,7 @@ if __name__=='__main__':
                 if opt.short:
                     if opt.verbose:
                         print "Scaling data to ushort"
-                    fitsobj[-1].scale(type='int16', option='minmax')
+                    fitsobj[-1].scale(type='int16', bzero=32768)
                 fitsobj.close()
             del(stack)
             del(hdu)

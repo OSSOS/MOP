@@ -15,6 +15,7 @@ class AbstractController(object):
         events.subscribe(events.NO_AVAILABLE_WORK, self.on_no_available_work)
 
         self.view = ApplicationView(self.model, self)
+        self.view.register_xy_changed_event_handler(self.on_reposition_source)
 
     def get_view(self):
         return self.view
@@ -30,13 +31,18 @@ class AbstractController(object):
             self.get_view().show_image_loading_dialog()
             return
 
-        image_x, image_y = self.model.get_current_image_source_point()
+        image_x, image_y = self.model.get_current_pixel_source_point()
         radius = 2 * round(self.model.get_current_image_FWHM())
         self.get_view().draw_circle(image_x, image_y, radius, redraw=True)
+
+        self.get_view().update_displayed_data()
 
         self.get_view().set_observation_status(
             self.model.get_current_obs_number() + 1,
             self.model.get_obs_count())
+
+    def on_reposition_source(self, new_x, new_y):
+        self.model.update_current_source_location((new_x, new_y))
 
     def on_image_loaded(self, event):
         source_reading = event.data

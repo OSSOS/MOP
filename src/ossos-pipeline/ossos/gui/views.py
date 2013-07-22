@@ -5,10 +5,9 @@ import os
 import wx
 from wx.lib.mixins import listctrl as listmix
 
-from ossos.gui import events, config
+from ossos.gui import config
 from ossos.gui.fitsviewer import MPLFitsImageViewer
 from ossos.gui.errorhandling import CertificateDialog, RetryDownloadDialog
-from ossos.gui.models import NoWorkUnitException
 
 
 def guithread(function):
@@ -64,8 +63,15 @@ class ApplicationView(object):
         self.mainframe.draw_circle(x, y, radius, redraw=redraw)
 
     @guithread
+    def update_displayed_data(self):
+        self.mainframe.update_displayed_data()
+
+    @guithread
     def reset_colormap(self):
         self.mainframe.reset_colormap()
+
+    def register_xy_changed_event_handler(self, handler):
+        self.mainframe.register_xy_changed_event_handler(handler)
 
     def close(self):
         self.mainframe.Destroy()
@@ -136,6 +142,32 @@ class ApplicationView(object):
         return self.mainframe
 
 
+class FocusablePanel(wx.Panel):
+    """
+    Work-around used to make sure the right windows have focus so the
+    keybind accelerator table works.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(FocusablePanel, self).__init__(*args, **kwargs)
+
+        self._focus = None
+
+    def use_as_focus(self, widget):
+        self._focus = widget
+
+    def SetFocus(self):
+        """
+        Over-rides normal behaviour of shifting focus to any child.  Prefers
+        the one set explicityly by use_as_focus.
+        """
+        if self._focus is not None:
+            self._focus.SetFocus()
+        else:
+            # fall back on the default behaviour
+            super(FocusablePanel, self).SetFocus()
+
+
 class MainFrame(wx.Frame):
     """
     This is the main window of the application.  It should not be
@@ -164,8 +196,9 @@ class MainFrame(wx.Frame):
     def _init_ui_components(self):
         self.menubar = self._create_menus()
 
-        self.main_panel = wx.Panel(self, style=wx.RAISED_BORDER)
+        self.main_panel = FocusablePanel(self, style=wx.RAISED_BORDER)
         self.control_panel = wx.Panel(self.main_panel)
+        self.main_panel.use_as_focus(self.control_panel)
 
         self.nav_view = NavPanel(self.control_panel, self.controller)
 
@@ -215,33 +248,20 @@ class MainFrame(wx.Frame):
     def _create_data_notebook(self):
         notebook = wx.Notebook(self.control_panel)
 
-        def get_reading_data():
-            try:
-                return self.model.get_reading_data()
-            except NoWorkUnitException:
-                return []
+        columns = ("Key", "Value")
+        self.reading_data_panel = ListCtrlPanel(notebook, columns)
+        self.obs_header_panel = ListCtrlPanel(notebook, columns)
 
-        def get_header_data_list():
-            try:
-                return self.model.get_header_data_list()
-            except NoWorkUnitException:
-                return []
-
-        reading_data_panel = KeyValueListPanel(notebook, get_reading_data)
-        events.subscribe(events.CHANGE_IMAGE, reading_data_panel.on_change_data)
-
-        obs_header_panel = KeyValueListPanel(notebook, get_header_data_list)
-        events.subscribe(events.CHANGE_IMAGE, obs_header_panel.on_change_data)
-
-        notebook.AddPage(reading_data_panel, "Readings")
-        notebook.AddPage(obs_header_panel, "Observation Header")
+        notebook.AddPage(self.reading_data_panel, "Readings")
+        notebook.AddPage(self.obs_header_panel, "Observation Header")
 
         return notebook
 
     def _on_select_keymap(self, event):
         dialog = wx.Dialog(self, title="Key Mappings")
-        KeyValueListPanel(dialog, self.keybind_manager.get_keymappings,
-                          key_header="Action", value_header="Shortcut")
+        panel = ListCtrlPanel(dialog, ("Action", "Shortcut"))
+        panel.populate_list(self.keybind_manager.get_keymappings())
+
         dialog.Show()
 
     def _on_select_exit(self, event):
@@ -253,8 +273,15 @@ class MainFrame(wx.Frame):
     def draw_circle(self, x, y, radius, redraw=True):
         self.image_viewer.draw_circle(x, y, radius, redraw=redraw)
 
+    def update_displayed_data(self):
+        self.reading_data_panel.populate_list(self.model.get_reading_data())
+        self.obs_header_panel.populate_list(self.model.get_header_data_list())
+
     def reset_colormap(self):
         self.image_viewer.reset_colormap()
+
+    def register_xy_changed_event_handler(self, handler):
+        self.image_viewer.register_xy_changed_event_handler(handler)
 
     def show_image_loading_dialog(self):
         if not self.img_loading_dialog.IsShown():
@@ -313,7 +340,7 @@ class KeybindManager(object):
 
     def get_keymappings(self):
         return [("Next observation", "Tab"),
-                ("Previos observation", "Shift + Tab"),
+                ("Previous observation", "Shift + Tab"),
                 ("Accept", self.accept_key),
                 ("Reject", self.reject_key),
                 ("Reset colourmap", self.reset_cmap_key)]
@@ -449,34 +476,6 @@ class ListCtrlAutoWidth(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
     def __init__(self, parent, size=wx.DefaultSize, style=0):
         super(ListCtrlAutoWidth, self).__init__(parent, size=size, style=style)
         listmix.ListCtrlAutoWidthMixin.__init__(self)
-
-
-class KeyValueListPanel(ListCtrlPanel):
-    def __init__(self, parent, get_data,
-                 key_header="Key", value_header="Value"):
-        """
-        Constructor.
-
-        Args:
-          parent: wx.Window
-            the parent window of this new panel
-          get_data: callable
-            when called this should provide the data which will populate
-            the key-value list. The returned data should be a list of
-            (key, value) tuples.
-        """
-        super(KeyValueListPanel, self).__init__(parent,
-                                                (key_header, value_header))
-
-        self.get_data = get_data
-
-        self.display_data()
-
-    def display_data(self):
-        self.populate_list(self.get_data())
-
-    def on_change_data(self, event):
-        self.display_data()
 
 
 class SourceValidationPanel(wx.Panel):
