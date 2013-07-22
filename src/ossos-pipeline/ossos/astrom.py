@@ -440,8 +440,11 @@ class SourceReading(object):
         """
         return self.xref + self.x_ref_offset, self.yref + self.y_ref_offset
 
+    def get_observation_header(self):
+        return self.obs.header
+
     def get_original_image_size(self):
-        header = self.obs.header
+        header = self.get_observation_header()
         return (int(header[Observation.HEADER_IMG_SIZE_X]),
                 int(header[Observation.HEADER_IMG_SIZE_Y]))
 

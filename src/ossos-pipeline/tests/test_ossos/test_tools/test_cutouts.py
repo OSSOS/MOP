@@ -4,7 +4,7 @@ import unittest
 
 from hamcrest import assert_that, equal_to, close_to
 
-from ossos.cutouts import CutoutCalculator
+from ossos.cutouts import CutoutCalculator, CoordinateConverter
 
 
 class CutoutCalculatorTest(unittest.TestCase):
@@ -196,6 +196,26 @@ class CutoutCalculatorTest(unittest.TestCase):
         assert_that(x1, close_to(2112, delta))
         assert_that(y0, close_to(4394, delta))
         assert_that(y1, close_to(4644, delta))
+
+    def test_inverse_converter(self):
+        original_coords_x = 1500
+        original_coords_y = 2000
+
+        converter = CoordinateConverter(1000, 500)
+
+        new_coords_x, new_coords_y = converter.convert(
+            (original_coords_x, original_coords_y))
+
+        assert_that(new_coords_x, equal_to(500))
+        assert_that(new_coords_y, equal_to(1500))
+
+        inverse_converter = converter.get_inverse_converter()
+
+        final_x, final_y = inverse_converter.convert(
+            (new_coords_x, new_coords_y))
+
+        assert_that(final_x, equal_to(original_coords_x))
+        assert_that(final_y, equal_to(original_coords_y))
 
 
 if __name__ == '__main__':
