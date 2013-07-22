@@ -17,7 +17,7 @@ shift
 args=$@
 
 # setup the logger output area
-log_container_node="vos:OSSOS/joblog"
+log_container_node="vos:OSSOS/joblog/${script}"
 vmkdir -p ${log_container_node}
 
 logfile=${jobid}.txt
@@ -32,7 +32,7 @@ touch log_capture_on
 
 # launch the job (check if maybe its in local dir first)
 [ -e ${script} ] && script="./${script}"
-${script} $args >& ${logfile}
+${script} $args &> ${logfile}
 status=$?
 
 # job is done, delte log_capture_on and then wait until sync.sh returns

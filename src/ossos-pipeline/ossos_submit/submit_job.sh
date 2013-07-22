@@ -26,8 +26,13 @@ echo "Error = ${jobid}.err" >> ${condor_submit}
 echo "QUEUE" >> ${condor_submit}
 echo "" >> ${condor_submit}
 echo "submitting ${job_id} $task $args"
-curl -s -k -E ${proxy_pem} \
+status=1
+while [ status -ne 0 ] ;  do 
+   curl --fail -s -k -E ${proxy_pem} \
     -X POST \
     -F "condor_submit=<${condor_submit}" \
     -F "payload=<${payload}" \
     "${proc_service}?job=${condor_submit},param:condor_submit&exec=${payload},param:payload"
+  status=$?
+  [ $status -ne 0 ]  && sleep 3
+  done
