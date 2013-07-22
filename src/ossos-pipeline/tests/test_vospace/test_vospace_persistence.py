@@ -26,6 +26,10 @@ TEST_USER = "testuser"
 
 
 class AbstractVOSpaceProgressManagerTest(FileReadingTestCase):
+    # Do not run this class directly; run its subclasses
+    # (which must set __test__ = True)
+    __test__ = False
+
     def create_vofile(self, destination):
         # Just copy a prototype file until I figure out how to do this
         # properly
@@ -199,6 +203,8 @@ class AbstractVOSpaceProgressManagerTest(FileReadingTestCase):
 
 
 class PartialProgressTrackingTest(AbstractVOSpaceProgressManagerTest):
+    __test__ = True
+
     def _tracks_partial_progress(self):
         return True
 
@@ -255,6 +261,8 @@ class PartialProgressTrackingTest(AbstractVOSpaceProgressManagerTest):
 
 
 class NoTrackingTest(AbstractVOSpaceProgressManagerTest):
+    __test__ = True
+
     def _tracks_partial_progress(self):
         return False
 
