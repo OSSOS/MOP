@@ -55,6 +55,8 @@ class MPLFitsImageViewer(object):
     """
 
     def __init__(self, parent):
+        self._parent = parent
+
         # Create the actual mpl figure we will draw on
         self.figure = plt.figure()
 
@@ -185,6 +187,9 @@ class MPLFitsImageViewer(object):
     def redraw(self):
         self.figure.canvas.draw()
 
+    def release_focus(self):
+        self._parent.SetFocus()
+
     def is_event_in_axes(self, event):
         return self.axes == event.inaxes
 
@@ -267,6 +272,7 @@ class InteractionContext(object):
     def on_release(self, event):
         self.state.on_release(event)
         self.viewer.redraw()
+        self.viewer.release_focus()
 
     def get_circle(self):
         return self.viewer.get_circle()

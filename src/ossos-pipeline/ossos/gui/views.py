@@ -142,6 +142,32 @@ class ApplicationView(object):
         return self.mainframe
 
 
+class FocusablePanel(wx.Panel):
+    """
+    Work-around used to make sure the right windows have focus so the
+    keybind accelerator table works.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(FocusablePanel, self).__init__(*args, **kwargs)
+
+        self._focus = None
+
+    def use_as_focus(self, widget):
+        self._focus = widget
+
+    def SetFocus(self):
+        """
+        Over-rides normal behaviour of shifting focus to any child.  Prefers
+        the one set explicityly by use_as_focus.
+        """
+        if self._focus is not None:
+            self._focus.SetFocus()
+        else:
+            # fall back on the default behaviour
+            super(FocusablePanel, self).SetFocus()
+
+
 class MainFrame(wx.Frame):
     """
     This is the main window of the application.  It should not be
@@ -170,8 +196,9 @@ class MainFrame(wx.Frame):
     def _init_ui_components(self):
         self.menubar = self._create_menus()
 
-        self.main_panel = wx.Panel(self, style=wx.RAISED_BORDER)
+        self.main_panel = FocusablePanel(self, style=wx.RAISED_BORDER)
         self.control_panel = wx.Panel(self.main_panel)
+        self.main_panel.use_as_focus(self.control_panel)
 
         self.nav_view = NavPanel(self.control_panel, self.controller)
 
