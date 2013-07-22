@@ -9,6 +9,7 @@ from mock import patch
 from tests.base_tests import FileReadingTestCase
 from ossos import storage
 from ossos.gui.context import VOSpaceWorkingContext
+from ossos.gui import persistence
 from ossos.gui.persistence import VOSpaceProgressManager, FileLockedException, RequiresLockException
 
 # TODO: don't use my own VOSpace
@@ -20,6 +21,8 @@ PERSISTENCE_TEST_DIR = BASE_TEST_DIR + "persistence_tests"
 TEST_FILE_1 = "1.cands.astrom"
 TEST_FILE_2 = "2.reals.astrom"
 TEST_FILE_3 = "3.cands.astrom"
+
+TEST_USER = "testuser"
 
 
 class VOSpaceProgressManagerTest(FileReadingTestCase):
@@ -35,6 +38,9 @@ class VOSpaceProgressManagerTest(FileReadingTestCase):
         self.create_vofile(self.context.get_full_path(TEST_FILE_1))
         self.create_vofile(self.context.get_full_path(TEST_FILE_2))
         self.create_vofile(self.context.get_full_path(TEST_FILE_3))
+
+    def get_uri(self, filename):
+        return self.context.get_full_path(filename)
 
     def tearDown(self):
         for filename in self.context.listdir():
@@ -215,6 +221,19 @@ class VOSpaceProgressManagerTest(FileReadingTestCase):
         manager2 = VOSpaceProgressManager(self.context)
         assert_that(manager2.get_processed_indices(filename),
                     contains_inanyorder(0, 1, 2))
+
+    @patch.object(getpass, "getuser")
+    def test_record_done_puts_username_in_property(self, mock_getuser):
+        mock_getuser.return_value = TEST_USER
+
+        filename = TEST_FILE_1
+        self.undertest.lock(filename)
+        self.undertest.record_done(filename)
+        self.undertest.unlock(filename)
+
+        assert_that(
+            storage.get_property(self.get_uri(filename), persistence.DONE_PROPERTY),
+            equal_to(TEST_USER))
 
 
 if __name__ == '__main__':
