@@ -92,7 +92,8 @@ class VOSpaceWorkingContext(WorkingContext):
         return storage.exists(self.get_full_path(filename))
 
     def open(self, filename):
-        return storage.SyncingVOFile(self.get_full_path(filename))
+        return storage.SyncingVOFile(self.get_full_path(filename),
+                                     sync_enabled=False)
 
     def rename(self, old_name, new_name):
         storage.move(old_name, new_name)
@@ -101,4 +102,4 @@ class VOSpaceWorkingContext(WorkingContext):
         storage.delete_uri(self.get_full_path(filename))
 
     def get_progress_manager(self):
-        return VOSpaceProgressManager(self)
+        return VOSpaceProgressManager(self, track_partial_progress=False)
