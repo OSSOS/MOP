@@ -80,12 +80,19 @@ class VOSpaceWorkingContext(WorkingContext):
         return storage.listdir(self.directory, force=True)
 
     def get_file_size(self, filename):
-        # TODO: better/faster way of doing this?  There seems to be a length
-        # property on most nodes which is probably faster to read.
+        length_property = storage.get_property(
+            self.get_full_path(filename), "length", ossos_base=False)
+
+        if length_property is None:
+            # Fall-back if the length property is not set for some reason
+            return self._get_file_size_by_downloading(filename)
+
+        return int(length_property)
+
+    def _get_file_size_by_downloading(self, filename):
         filehandle = storage.vofile(self.get_full_path(filename), os.O_RDONLY)
         contents = filehandle.read()
         filehandle.close()
-
         return len(contents)
 
     def exists(self, filename):
