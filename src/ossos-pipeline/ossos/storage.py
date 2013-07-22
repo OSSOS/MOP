@@ -475,24 +475,24 @@ def delete_uri(uri):
     vospace.delete(uri)
 
 
-def has_property(node_uri, property_name):
+def has_property(node_uri, property_name, ossos_base=True):
     """
     Checks if a node in VOSpace has the specified property.
     """
-    if get_property(node_uri, property_name) is None:
+    if get_property(node_uri, property_name, ossos_base) is None:
         return False
     else:
         return True
 
 
-def get_property(node_uri, property_name):
+def get_property(node_uri, property_name, ossos_base=True):
     """
     Retrieves the value associated with a property on a node in VOSpace.
     """
     # Must use force or we could have a cached copy of the node from before
     # properties of interest were set/updated.
     node = vospace.getNode(node_uri, force=True)
-    property_uri = tag_uri(property_name)
+    property_uri = tag_uri(property_name) if ossos_base else property_name
 
     if property_uri not in node.props:
         return None
@@ -500,13 +500,13 @@ def get_property(node_uri, property_name):
     return node.props[property_uri]
 
 
-def set_property(node_uri, property_name, property_value):
+def set_property(node_uri, property_name, property_value, ossos_base=True):
     """
     Sets the value of a property on a node in VOSpace.  If the property
     already has a value then it is first cleared and then set.
     """
     node = vospace.getNode(node_uri)
-    property_uri = tag_uri(property_name)
+    property_uri = tag_uri(property_name) if ossos_base else property_name
 
     # First clear any existing value
     node.props[property_uri] = None
