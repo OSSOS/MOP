@@ -25,7 +25,7 @@ TEST_FILE_3 = "3.cands.astrom"
 TEST_USER = "testuser"
 
 
-class VOSpaceProgressManagerTest(FileReadingTestCase):
+class AbstractVOSpaceProgressManagerTest(FileReadingTestCase):
     def create_vofile(self, destination):
         # Just copy a prototype file until I figure out how to do this
         # properly
@@ -33,7 +33,8 @@ class VOSpaceProgressManagerTest(FileReadingTestCase):
 
     def setUp(self):
         self.context = VOSpaceWorkingContext(PERSISTENCE_TEST_DIR)
-        self.undertest = VOSpaceProgressManager(self.context)
+        self.undertest = VOSpaceProgressManager(
+            self.context, track_partial_progress=self._tracks_partial_progress())
 
         self.create_vofile(self.context.get_full_path(TEST_FILE_1))
         self.create_vofile(self.context.get_full_path(TEST_FILE_2))
@@ -42,9 +43,22 @@ class VOSpaceProgressManagerTest(FileReadingTestCase):
     def get_uri(self, filename):
         return self.context.get_full_path(filename)
 
+    def get_property(self, filename, property):
+        return storage.get_property(self.get_uri(filename), property)
+
+    def has_property(self, filename, property):
+        return storage.has_property(self.get_uri(filename), property)
+
     def tearDown(self):
         for filename in self.context.listdir():
             storage.delete_uri(self.context.get_full_path(filename))
+
+    def create_independent_manager(self):
+        return VOSpaceProgressManager(
+            self.context, track_partial_progress=self._tracks_partial_progress())
+
+    def _tracks_partial_progress(self):
+        raise NotImplementedError()
 
     def test_is_done_record_done(self):
         assert_that(self.undertest.is_done(TEST_FILE_1), equal_to(False))
@@ -151,29 +165,17 @@ class VOSpaceProgressManagerTest(FileReadingTestCase):
             assert_that(ex.filename, equal_to(file1))
             assert_that(ex.locker, equal_to(lock_holding_user))
 
-    def test_record_index_requires_lock(self):
-        self.assertRaises(RequiresLockException,
-                          self.undertest.record_index,
-                          TEST_FILE_1, 0)
+    @patch.object(getpass, "getuser")
+    def test_record_done_puts_username_in_property(self, mock_getuser):
+        mock_getuser.return_value = TEST_USER
 
-    def test_record_index(self):
-        self.undertest.lock(TEST_FILE_1)
-        self.undertest.record_index(TEST_FILE_1, 1)
-        self.undertest.record_index(TEST_FILE_1, 3)
-        self.undertest.record_index(TEST_FILE_1, 0)
+        filename = TEST_FILE_1
+        self.undertest.lock(filename)
+        self.undertest.record_done(filename)
+        self.undertest.unlock(filename)
 
-        assert_that(self.undertest.get_processed_indices(TEST_FILE_1),
-                    contains_inanyorder(1, 3, 0))
-
-        # Check they are still recorded after we release lock
-        self.undertest.unlock(TEST_FILE_1)
-        assert_that(self.undertest.get_processed_indices(TEST_FILE_1),
-                    contains_inanyorder(1, 3, 0))
-
-        # Check other clients can read them
-        manager2 = VOSpaceProgressManager(self.context)
-        assert_that(manager2.get_processed_indices(TEST_FILE_1),
-                    contains_inanyorder(1, 3, 0))
+        assert_that(self.get_property(filename, persistence.DONE_PROPERTY),
+                    equal_to(TEST_USER))
 
     def test_unlock_after_record_done_no_error(self):
         file1 = TEST_FILE_1
@@ -194,6 +196,35 @@ class VOSpaceProgressManagerTest(FileReadingTestCase):
 
         manager2.unlock(file2)
         assert_that(manager2.owns_lock(file2), equal_to(False))
+
+
+class PartialProgressTrackingTest(AbstractVOSpaceProgressManagerTest):
+    def _tracks_partial_progress(self):
+        return True
+
+    def test_record_index_requires_lock(self):
+        self.assertRaises(RequiresLockException,
+                          self.undertest.record_index,
+                          TEST_FILE_1, 0)
+
+    def test_record_index(self):
+        self.undertest.lock(TEST_FILE_1)
+        self.undertest.record_index(TEST_FILE_1, 1)
+        self.undertest.record_index(TEST_FILE_1, 3)
+        self.undertest.record_index(TEST_FILE_1, 0)
+
+        assert_that(self.undertest.get_processed_indices(TEST_FILE_1),
+                    contains_inanyorder(1, 3, 0))
+
+        # Check they are still recorded after we release lock
+        self.undertest.unlock(TEST_FILE_1)
+        assert_that(self.undertest.get_processed_indices(TEST_FILE_1),
+                    contains_inanyorder(1, 3, 0))
+
+        # Check other clients can read them
+        manager2 = self.create_independent_manager()
+        assert_that(manager2.get_processed_indices(TEST_FILE_1),
+                    contains_inanyorder(1, 3, 0))
 
     def test_get_processed_indices_empty_should_not_cause_error(self):
         assert_that(self.undertest.get_processed_indices(TEST_FILE_1),
@@ -218,22 +249,33 @@ class VOSpaceProgressManagerTest(FileReadingTestCase):
                     contains_inanyorder(0, 1, 2))
 
         # Double check with a second manager
-        manager2 = VOSpaceProgressManager(self.context)
+        manager2 = self.create_independent_manager()
         assert_that(manager2.get_processed_indices(filename),
                     contains_inanyorder(0, 1, 2))
 
-    @patch.object(getpass, "getuser")
-    def test_record_done_puts_username_in_property(self, mock_getuser):
-        mock_getuser.return_value = TEST_USER
 
-        filename = TEST_FILE_1
-        self.undertest.lock(filename)
-        self.undertest.record_done(filename)
-        self.undertest.unlock(filename)
+class NoTrackingTest(AbstractVOSpaceProgressManagerTest):
+    def _tracks_partial_progress(self):
+        return False
 
-        assert_that(
-            storage.get_property(self.get_uri(filename), persistence.DONE_PROPERTY),
-            equal_to(TEST_USER))
+    def test_record_index_does_nothing(self):
+        self.undertest.lock(TEST_FILE_1)
+        self.undertest.record_index(TEST_FILE_1, 1)
+        self.undertest.record_index(TEST_FILE_1, 3)
+        self.undertest.record_index(TEST_FILE_1, 0)
+        self.undertest.unlock(TEST_FILE_1)
+
+        assert_that(self.has_property(TEST_FILE_1, persistence.PROCESSED_INDICES_PROPERTY),
+                    equal_to(False))
+
+    def test_get_processed_indices_empty(self):
+        self.undertest.lock(TEST_FILE_1)
+        self.undertest.record_index(TEST_FILE_1, 1)
+        self.undertest.record_index(TEST_FILE_1, 3)
+        self.undertest.record_index(TEST_FILE_1, 0)
+        self.undertest.unlock(TEST_FILE_1)
+
+        assert_that(self.undertest.get_processed_indices(TEST_FILE_1), has_length(0))
 
 
 if __name__ == '__main__':
