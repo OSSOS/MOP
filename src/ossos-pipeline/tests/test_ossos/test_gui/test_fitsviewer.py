@@ -234,6 +234,37 @@ class InteractionTest(unittest.TestCase):
         assert_that(self.interaction_context.get_circle().center,
                     equal_to((click_x, click_y)))
 
+    def test_xy_changed_event_on_click(self):
+        handler = Mock()
+        self.viewer.register_xy_changed_event_handler(handler)
+
+        self.viewer.draw_circle(10, 10, 5)
+
+        x_click = 20
+        y_click = 30
+        self.fire_press_event(x_click, y_click)
+        self.fire_release_event()
+
+        handler.assert_called_once_with(x_click, y_click)
+
+    def test_xy_changed_event_on_drag(self):
+        handler = Mock()
+        self.viewer.register_xy_changed_event_handler(handler)
+
+        x0 = 10
+        y0 = 10
+        radius = 5
+        self.viewer.draw_circle(x0, y0, radius)
+
+        xclick = x0 + 2
+        yclick = y0 + 2
+        dx = 10
+        dy = 20
+        self.fire_press_event(xclick, yclick)
+        self.fire_motion_event(xclick + dx, yclick + dy)
+
+        handler.assert_called_once_with(x0 + dx, y0 + dy)
+
 
 class UtilityTest(unittest.TestCase):
     def test_clip_in_range(self):

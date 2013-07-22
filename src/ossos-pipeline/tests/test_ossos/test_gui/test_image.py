@@ -68,25 +68,12 @@ class DownloadedFitsImageTest(FileReadingTestCase):
 
         assert_that(not os.path.exists(as_file.name))
 
-    @patch("ossos.daophot.phot_mag")
-    def test_get_observed_magnitude(self, mock_phot_mag):
-        fitsimage = DownloadedFitsImage(self.strdata, self.coord_converter,
-                                        self.apcor_str, in_memory=True)
-        x = 1500
-        y = 2500
-        fitsimage.get_observed_magnitude(x, y)
-
-        mock_phot_mag.assert_called_once_with(
-            fitsimage.as_file().name, x, y, aperture=4.0, sky=16.0, swidth=4.0,
-            apcor=0.19, maxcount=30000.0
-        )
-
     def test_no_apcord_data(self):
         fitsimage = DownloadedFitsImage(self.strdata, self.coord_converter)
 
         assert_that(fitsimage.has_apcord_data(), equal_to(False))
 
-        self.assertRaises(ValueError, fitsimage.get_observed_magnitude, 1500, 2500)
+        assert_that(fitsimage.get_apcor_data(), none())
 
 
 class ApcorDataTest(unittest.TestCase):

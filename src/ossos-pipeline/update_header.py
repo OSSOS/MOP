@@ -10,22 +10,23 @@ import sys
 
 hlines = None
 
-def run_update_header(image, header_filename, extname=None):
+def run_update_header(image, header_filename):
 
     hdu_list = fits.open(image,
                          do_not_scale_image_data=True,
                          mode='update')
-    if extname is None:
-        for hdu in hdu_list[1:]:
-            extname = hdu.header.get('EXTNAME',None)
-            logging.info("Got extno %s from header." % (extname))
-            hdu.header = get_header_object(header_filename,
-                                           extname)
-            #hdu.header.update('BZERO', 32768, 'manually added')
-            #hdu.header.update('BSCALE', 1, 'manually added')
-    else:
-        logging.info("Replacing primary header with %s." % (extname))
-        hdu_list[0].header = get_header_object(header_filename, extname)
+    for hdu in hdu_list[1:]:
+        extname = hdu.header.get('EXTNAME',None)
+        logging.info("Got extno %s from header." % (extname))
+        new_header = get_header_object(header_filename,
+                                       extname)
+        for key in ['BZERO', 'BSCALE', 'CADCPROC']:
+            v = hdu.header.get(key,None)
+            if v is None:
+                del(new_header[key])
+                continue
+            new_header[key] = v
+        hdu.header = new_header
 
     hdu_list.flush()
 
@@ -98,6 +99,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=level, format=format)
 
     message = storage.SUCCESS
+
     try:
         
         image = (os.access(args.expnum,os.W_OK) and args.expnum ) or (
@@ -115,15 +117,17 @@ if __name__ == '__main__':
         run_update_header(image, header)
     
         if args.replace:
-            expnum = args.expnum or fits.open(image)[0].header['EXPNUM']
+            expnum = fits.open(image)[0].header['EXPNUM'] or args.expnum
             dest = storage.dbimages_uri(expnum)
             storage.copy(image, dest)
-        storage.set_status(args.expnum, 36, 'update_header', message)
-        sys.exit(0)
+            storage.set_status(expnum, 36, 'update_header', message)
     except Exception as e:
         logging.error("Error replacing header for %s" % ( args.expnum))
         logging.error(str(e))
-        message = str(e)
-        storage.set_status(args.expnum, 36, 'update_header', message)
+        if args.replace:
+            message = str(e)
+            storage.set_status(expnum, 36, 'update_header', message)
         sys.exit(2)
+
+        
     

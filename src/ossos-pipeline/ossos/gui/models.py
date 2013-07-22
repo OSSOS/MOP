@@ -1,5 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+from ossos import wcs
+from ossos import astrom
 from ossos.gui import events
 from ossos.gui.workload import NoAvailableWorkException, StatefulCollection
 
@@ -32,8 +34,8 @@ class UIModel(object):
 
         self.num_processed = 0
 
-        # Maps each reading to its image (once downloaded)
-        self._images_by_reading = {}
+        # Maps each reading to its image-reading model (once downloaded)
+        self._image_reading_models = {}
 
         self.sources_discovered = set()
 
@@ -144,6 +146,12 @@ class UIModel(object):
     def get_current_reading(self):
         return self.get_current_workunit().get_current_reading()
 
+    def get_current_astrom_header(self):
+        return self.get_current_reading().get_observation_header()
+
+    def get_current_fits_header(self):
+        return self.get_current_image().get_fits_header()
+
     def get_current_exposure_number(self):
         return int(self.get_current_reading().obs.expnum)
 
@@ -154,48 +162,44 @@ class UIModel(object):
                 ("DEC", reading.dec))
 
     def get_header_data_list(self):
-        reading = self.get_current_reading()
-        return [(key, value) for key, value in reading.obs.header.iteritems()]
+        header = self.get_current_astrom_header()
+        return [(key, value) for key, value in header.iteritems()]
 
     def get_current_observation_date(self):
-        return self.get_current_reading().obs.header["MJD_OBS_CENTER"]
+        return self.get_current_astrom_header()["MJD_OBS_CENTER"]
 
     def get_current_ra(self):
-        return self.get_current_reading().ra
+        try:
+            return self._get_current_image_reading().ra
+        except ImageNotLoadedException:
+            return self.get_current_reading().ra
 
     def get_current_dec(self):
-        return self.get_current_reading().dec
+        try:
+            return self._get_current_image_reading().dec
+        except ImageNotLoadedException:
+            return self.get_current_reading().dec
 
     def get_current_image(self):
-        try:
-            return self._images_by_reading[self.get_current_reading()]
-        except KeyError:
-            raise ImageNotLoadedException()
-
-    def get_current_hdulist(self):
-        return self.get_current_image().as_hdulist()
+        return self._get_current_image_reading().get_image()
 
     def get_current_band(self):
-        hdu0 = self.get_current_hdulist()[0]
-        return hdu0.header["FILTER"][0]
+        return self.get_current_fits_header()["FILTER"][0]
 
-    def get_current_image_source_point(self):
-        return self.get_current_image().get_pixel_coordinates(
-            self.get_current_reading().source_point)
+    def get_current_pixel_source_point(self):
+        return self._get_current_image_reading().pixel_source_point
 
     def get_current_source_observed_magnitude(self):
-        x, y = self.get_current_image_source_point()
-        maxcount = self.get_current_image_maxcount()
-        return self.get_current_image().get_observed_magnitude(x, y, maxcount=maxcount)
+        return self._get_current_image_reading().get_observed_magnitude()
 
     def get_current_image_FWHM(self):
-        return float(self.get_current_reading().obs.header["FWHM"])
+        return float(self.get_current_astrom_header()["FWHM"])
 
     def get_current_image_maxcount(self):
-        return float(self.get_current_reading().obs.header["MAXCOUNT"])
+        return float(self.get_current_astrom_header()["MAXCOUNT"])
 
     def get_loaded_image_count(self):
-        return len(self._images_by_reading)
+        return len(self._image_reading_models)
 
     def stop_loading_images(self):
         self.download_manager.stop_download()
@@ -208,6 +212,17 @@ class UIModel(object):
 
     def refresh_vos_client(self):
         self.download_manager.refresh_vos_client()
+
+    def update_current_source_location(self, new_location):
+        """
+        Updates the location of the source in the image.
+
+        Args:
+          new_location: tuple(x, y)
+            The source location using pixel coordinates from the
+            displayed image (may be a cutout).
+        """
+        self._get_current_image_reading().update_pixel_location(new_location)
 
     def exit(self):
         try:
@@ -222,6 +237,12 @@ class UIModel(object):
         self.download_manager.stop_download()
         self.download_manager.wait_for_downloads_to_stop()
 
+    def _get_current_image_reading(self):
+        try:
+            return self._image_reading_models[self.get_current_reading()]
+        except KeyError:
+            raise ImageNotLoadedException()
+
     def _lock(self, workunit):
         self.progress_manager.lock(workunit.get_filename())
 
@@ -233,8 +254,102 @@ class UIModel(object):
             workunit, image_loaded_callback=self._on_image_loaded)
 
     def _on_image_loaded(self, reading, image):
-        self._images_by_reading[reading] = image
+        self._image_reading_models[reading] = ImageReading(reading, image)
         events.send(events.IMG_LOADED, reading)
 
     def _on_finished_workunit(self, filename):
         events.send(events.FINISHED_WORKUNIT, filename)
+
+
+class ImageReading(object):
+    """
+    Associates a particular source reading with a downloaded FITS image.
+    """
+
+    def __init__(self, reading, fits_image):
+        self.reading = reading
+        self._fits_image = fits_image
+
+        self.original_observed_x = self.reading.x
+        self.original_observed_y = self.reading.y
+
+        self.observed_x = self.original_observed_x
+        self.observed_y = self.original_observed_y
+
+        self.pixel_x, self.pixel_y = self._fits_image.get_pixel_coordinates(
+            self.observed_source_point)
+
+        self._ra = self.reading.ra
+        self._dec = self.reading.dec
+
+        self._stale = False
+        self._corrected = False
+
+    @property
+    def observed_source_point(self):
+        return self.observed_x, self.observed_y
+
+    @property
+    def pixel_source_point(self):
+        return self.pixel_x, self.pixel_y
+
+    def update_pixel_location(self, new_pixel_location):
+        self.pixel_x, self.pixel_y = new_pixel_location
+        self.observed_x, self.observed_y = self._fits_image.get_observed_coordinates(
+            new_pixel_location)
+
+        self._stale = True
+        self._corrected = True
+
+    @property
+    def ra(self):
+        self._lazy_refresh()
+        return self._ra
+
+    @property
+    def dec(self):
+        self._lazy_refresh()
+        return self._dec
+
+    def get_image(self):
+        return self._fits_image
+
+    def is_corrected(self):
+        return self._corrected
+
+    def get_observed_magnitude(self):
+        if not self._fits_image.has_apcord_data():
+            raise ValueError("Apcor data is required in order to calculate "
+                             "observed magnitude.")
+
+        # NOTE: this import is only here so that we don't load up IRAF
+        # unnecessarily (ex: for candidates processing).
+        from ossos import daophot
+
+        apcor_data = self._fits_image.get_apcor_data()
+        maxcount = float(self.reading.get_observation_header()["MAXCOUNT"])
+        return daophot.phot_mag(self._fits_image.as_file().name,
+                                self.pixel_x, self.pixel_y,
+                                aperture=apcor_data.aperture,
+                                sky=apcor_data.sky,
+                                swidth=apcor_data.swidth,
+                                apcor=apcor_data.apcor,
+                                maxcount=maxcount)
+
+    def _lazy_refresh(self):
+        if self._stale:
+            self._update_ra_dec()
+            self._stale = False
+
+    def _update_ra_dec(self):
+        astrom_header = self.reading.get_observation_header()
+        fits_header = self.get_image().get_fits_header()
+
+        self._ra, self._dec = wcs.xy2sky(self.observed_x, self.observed_y,
+                                         float(astrom_header[astrom.CRPIX1]),
+                                         float(astrom_header[astrom.CRPIX2]),
+                                         float(astrom_header[astrom.CRVAL1]),
+                                         float(astrom_header[astrom.CRVAL2]),
+                                         wcs.parse_cd(fits_header),
+                                         wcs.parse_pv(fits_header),
+                                         wcs.parse_order_fit(fits_header))
