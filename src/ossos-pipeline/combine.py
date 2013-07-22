@@ -8,7 +8,14 @@ from ossos import mop_file
 import argparse
 import logging
 
-def combine(expnum, ccd, prefix=None, type='p' ):
+MEASURE3='vos:OSSOS/measure3/'
+
+def combine(expnum, ccd, prefix=None, type='p', field=None, measure3=MEASURE3 ):
+
+    if field is None:
+        field=str(expnum)
+
+    field += "_%s" % ( str(ccd))
 
     for ext in ['moving.matt','moving.jmp']:
         fname = storage.get_image(expnum,
@@ -48,7 +55,8 @@ def combine(expnum, ccd, prefix=None, type='p' ):
         if not os.access(filename,os.R_OK):
             logging.critical("No %s file" % (filename))
             continue
-        storage.copy(filename, uri)
+        vospace_name = "%s.%s" % ( field, ext ) 
+        storage.copy(filename, os.path.join(uri, vospace_name))
 
     base_name = prefix+str(expnum)+type+str(ccd).zfill(2)
     cands_file = base_name+'.cands.comb'
@@ -60,7 +68,9 @@ def combine(expnum, ccd, prefix=None, type='p' ):
                          str(ccd).zfill(2)+
                          '.no_candidates' )
         open(nocands_file, 'w').close()
-        storage.copy(nocands_file,'vos:OSSOS/measure3/'+nocands_file)
+        vospace_name = "%s.no_candidates" % ( field ) 
+        storage.copy(nocands_file,os.path.join(measure3, vospace_name))
+
         return storage.SUCCESS
 
 
@@ -77,8 +87,8 @@ def combine(expnum, ccd, prefix=None, type='p' ):
     util.exec_prog(cmd_args)
     
     filename=base_name+".measure3.cands.astrom"
-    
-    storage.copy(filename, 'vos:OSSOS/measure3/'+filename)
+    vospace_filename = "%s.measure3.cands.astrom" % ( field)
+    storage.copy(filename, os.path.join(measure3,vospace_filename))
     return storage.SUCCESS
 
 
@@ -99,9 +109,17 @@ if __name__=='__main__':
                         action="store",
                         default="vos:OSSOS/dbimages",
                         help='vospace dbimages containerNode')
+    parser.add_argument("--field",
+                        action="store",
+                        default=None,
+                        help="Name of the field being combined")
     parser.add_argument("expnum",
                         type=int,
                         help="expnum to process")
+    parser.add_argument("measure3",
+                        action="store",
+                        help="VOSpace location for measure3 files",
+                        default=MEASURE3)
     parser.add_argument('--type', default='p', choices=['o','p','s'], help="which type of image")
     parser.add_argument("--verbose","-v",
                         action="store_true")
@@ -136,7 +154,13 @@ if __name__=='__main__':
                 raise IOError(35, "need to run step3 first")
             if storage.get_status(args.expnum, ccd, prefix+'combine') and not args.force:
                 continue
-            message = combine(args.expnum, ccd, prefix=prefix, type=args.type)
+            message = combine(args.expnum, 
+                              ccd, 
+                              prefix=prefix, 
+                              type=args.type, 
+                              field=args.field, 
+                              measure3=args.measure3
+                              )
         except Exception as e:
             message = str(e)
 
