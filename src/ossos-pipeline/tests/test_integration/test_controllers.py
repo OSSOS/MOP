@@ -36,14 +36,15 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
         WxWidgetTestCase.setUp(self)
 
         parser = AstromParser()
-        directory_manager = LocalDirectoryWorkingContext(
+        context = LocalDirectoryWorkingContext(
             self.get_abs_path("data/controller_testdir"))
-        progress_manager = LocalProgressManager(directory_manager)
+        progress_manager = LocalProgressManager(context)
         workunit_provider = WorkUnitProvider(tasks.get_suffix(tasks.REALS_TASK),
-                                             directory_manager, progress_manager,
+                                             context, progress_manager,
                                              RealsWorkUnitBuilder(
                                                  parser,
-                                                 directory_manager,
+                                                 context,
+                                                 context,
                                                  progress_manager))
 
         download_manager = Mock(spec=AsynchronousImageDownloadManager)

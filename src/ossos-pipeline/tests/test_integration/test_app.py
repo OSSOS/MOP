@@ -17,7 +17,9 @@ class ValidationApplicationTest(FileReadingTestCase):
         # currently creates the view.  TODO Refactor.
 
         working_directory = self.get_abs_path("data/empty")
-        app = ValidationApplication(tasks.REALS_TASK, working_directory)
+        output_directory = working_directory
+        app = ValidationApplication(tasks.REALS_TASK, working_directory,
+                                    output_directory)
 
         assert_that(app.get_view().show_empty_workload_dialog.call_count,
                     equal_to(1))
