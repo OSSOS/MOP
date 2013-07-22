@@ -8,3 +8,4 @@ MANIFEST
 .sublime-*
 build
 dist
+.DS_Store
