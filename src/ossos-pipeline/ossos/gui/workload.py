@@ -370,9 +370,10 @@ class WorkUnitBuilder(object):
     Used to construct a WorkUnit with its necessary components.
     """
 
-    def __init__(self, parser, context, progress_manager):
+    def __init__(self, parser, input_context, output_context, progress_manager):
         self.parser = parser
-        self.context = context
+        self.input_context = input_context
+        self.output_context = output_context
         self.progress_manager = progress_manager
 
     def build_workunit(self, input_fullpath):
@@ -383,7 +384,7 @@ class WorkUnitBuilder(object):
 
         _, input_filename = os.path.split(input_fullpath)
         output_filename = self._get_output_filename(input_filename)
-        output_filehandle = self.context.open(output_filename)
+        output_filehandle = self.output_context.open(output_filename)
 
         return self._do_build_workunit(
             input_filename,
@@ -407,8 +408,9 @@ class RealsWorkUnitBuilder(WorkUnitBuilder):
     Constructs RealsWorkUnits for the process reals task.
     """
 
-    def __init__(self, parser, context, progress_manager):
-        super(RealsWorkUnitBuilder, self).__init__(parser, context, progress_manager)
+    def __init__(self, parser, input_context, output_context, progress_manager):
+        super(RealsWorkUnitBuilder, self).__init__(
+            parser, input_context, output_context, progress_manager)
 
     def _create_results_writer(self, output_filehandle, parsed_data):
         # NOTE: this import is only here so that we don't load up secondary
@@ -433,8 +435,9 @@ class CandidatesWorkUnitBuilder(WorkUnitBuilder):
     Constructs CandidatesWorkUnits for the process candidates task.
     """
 
-    def __init__(self, parser, context, progress_manager):
-        super(CandidatesWorkUnitBuilder, self).__init__(parser, context, progress_manager)
+    def __init__(self, parser, input_context, output_context, progress_manager):
+        super(CandidatesWorkUnitBuilder, self).__init__(
+            parser, input_context, output_context, progress_manager)
 
     def _create_results_writer(self, output_filehandle, parsed_data):
         return StreamingAstromWriter(output_filehandle, parsed_data.sys_header)

@@ -19,7 +19,11 @@ from ossos.gui.controllers import (ProcessRealsController,
 
 
 class AbstractTaskFactory(object):
-    def create_workunit_builder(self, parser, context, progress_manager):
+    def create_workunit_builder(self,
+                                parser,
+                                input_context,
+                                output_context,
+                                progress_manager):
         pass
 
     def create_controller(self, model):
@@ -36,16 +40,26 @@ class ProcessRealsTaskFactory(AbstractTaskFactory):
         # situation and refactor.
         from pyraf import iraf
 
-    def create_workunit_builder(self, parser, context, progress_manager):
-        return RealsWorkUnitBuilder(parser, context, progress_manager)
+    def create_workunit_builder(self,
+                                parser,
+                                input_context,
+                                output_context,
+                                progress_manager):
+        return RealsWorkUnitBuilder(
+            parser, input_context, output_context, progress_manager)
 
     def create_controller(self, model):
         return ProcessRealsController(model, ProvisionalNameGenerator())
 
 
 class ProcessCandidatesTaskFactory(AbstractTaskFactory):
-    def create_workunit_builder(self, parser, context, progress_manager):
-        return CandidatesWorkUnitBuilder(parser, context, progress_manager)
+    def create_workunit_builder(self,
+                                parser,
+                                input_context,
+                                output_context,
+                                progress_manager):
+        return CandidatesWorkUnitBuilder(
+            parser, input_context, output_context, progress_manager)
 
     def create_controller(self, model):
         return ProcessCandidatesController(model)
@@ -57,8 +71,9 @@ class ValidationApplication(object):
         tasks.REALS_TASK: ProcessRealsTaskFactory
     }
 
-    def __init__(self, taskname, working_directory):
+    def __init__(self, taskname, working_directory, output_directory):
         logger.info("Starting %s task in %s" % (taskname, working_directory))
+        logger.info("Output directory set to: %s" % output_directory)
 
         wx_app = wx.App(False)
 
@@ -80,8 +95,12 @@ class ValidationApplication(object):
                                                             error_handler)
 
         working_context = context.get_context(working_directory)
+        output_context = context.get_context(output_directory)
+
         progress_manager = working_context.get_progress_manager()
-        builder = factory.create_workunit_builder(parser, working_context,
+        builder = factory.create_workunit_builder(parser,
+                                                  working_context,
+                                                  output_context,
                                                   progress_manager)
         workunit_provider = WorkUnitProvider(tasks.get_suffix(taskname), working_context,
                                              progress_manager, builder)
