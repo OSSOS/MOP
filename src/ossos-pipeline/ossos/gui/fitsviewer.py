@@ -172,7 +172,7 @@ class MPLFitsImageViewer(object):
         self.figure.canvas.draw()
 
     def release_focus(self):
-        self._parent.GetChildren()[0].SetFocus()
+        self._parent.SetFocus()
 
     def is_event_in_axes(self, event):
         return self.axes == event.inaxes
