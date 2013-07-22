@@ -16,6 +16,18 @@ class MPLViewerError(object):
     """Base exception for matplotlib viewer"""
 
 
+class Signal(object):
+    def __init__(self):
+        self._handlers = []
+
+    def connect(self, handler):
+        self._handlers.append(handler)
+
+    def fire(self, *args):
+        for handler in self._handlers:
+            handler(*args)
+
+
 class ColormappedFitsImage(object):
     def __init__(self, fits_image):
         self.fits_image = fits_image
@@ -43,6 +55,8 @@ class MPLFitsImageViewer(object):
     """
 
     def __init__(self, parent):
+        self._parent = parent
+
         # Create the actual mpl figure we will draw on
         self.figure = plt.figure()
 
@@ -77,6 +91,8 @@ class MPLFitsImageViewer(object):
         self._has_had_interaction = False
 
         self._viewed_images = {}
+
+        self.xy_changed = Signal()
 
     def view_image(self, fits_image, redraw=True):
         if fits_image not in self._viewed_images:
@@ -163,11 +179,16 @@ class MPLFitsImageViewer(object):
 
         self.redraw()
 
+        self.xy_changed.fire(x, y)
+
     def get_circle(self):
         return self.circle
 
     def redraw(self):
         self.figure.canvas.draw()
+
+    def release_focus(self):
+        self._parent.SetFocus()
 
     def is_event_in_axes(self, event):
         return self.axes == event.inaxes
@@ -175,10 +196,13 @@ class MPLFitsImageViewer(object):
     def close(self):
         self.interaction_context.disconnect()
 
-    def register_event_handler(self, eventname, handler):
+    def register_xy_changed_event_handler(self, handler):
+        self.xy_changed.connect(handler)
+
+    def register_mpl_event_handler(self, eventname, handler):
         return self.figure.canvas.mpl_connect(eventname, handler)
 
-    def deregister_event_handler(self, id):
+    def deregister_mpl_event_handler(self, id):
         self.figure.canvas.mpl_disconnect(id)
 
     def as_widget(self):
@@ -204,11 +228,11 @@ class InteractionContext(object):
         """
         Connect to start listening for the relevant events.
         """
-        self.cidpress = self.viewer.register_event_handler(
+        self.cidpress = self.viewer.register_mpl_event_handler(
             "button_press_event", self.on_press)
-        self.cidrelease = self.viewer.register_event_handler(
+        self.cidrelease = self.viewer.register_mpl_event_handler(
             "button_release_event", self.on_release)
-        self.cidmotion = self.viewer.register_event_handler(
+        self.cidmotion = self.viewer.register_mpl_event_handler(
             "motion_notify_event", self.on_motion)
 
     def on_press(self, event):
@@ -248,6 +272,7 @@ class InteractionContext(object):
     def on_release(self, event):
         self.state.on_release(event)
         self.viewer.redraw()
+        self.viewer.release_focus()
 
     def get_circle(self):
         return self.viewer.get_circle()
@@ -260,9 +285,9 @@ class InteractionContext(object):
 
     def disconnect(self):
         """Disconnects all the stored connection ids"""
-        self.viewer.deregister_event_handler(self.cidpress)
-        self.viewer.deregister_event_handler(self.cidrelease)
-        self.viewer.deregister_event_handler(self.cidmotion)
+        self.viewer.deregister_mpl_event_handler(self.cidpress)
+        self.viewer.deregister_mpl_event_handler(self.cidrelease)
+        self.viewer.deregister_mpl_event_handler(self.cidmotion)
 
 
 class BaseInteractionState(object):

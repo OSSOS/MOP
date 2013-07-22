@@ -131,3 +131,10 @@ class CoordinateConverter(object):
         """
         x, y = point
         return x - self.x_offset, y - self.y_offset
+
+    def get_inverse_converter(self):
+        """
+        Returns a converter object for converting back from this converter's
+        output coordinate system to its input coordinate system.
+        """
+        return CoordinateConverter(-self.x_offset, -self.y_offset)
