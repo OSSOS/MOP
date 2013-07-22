@@ -16,7 +16,6 @@ PART_SUFFIX = ".PART"
 
 # Constants for VOSpace progress manager
 DONE_PROPERTY = "done"
-DONE_FLAG = "TRUE"
 PROCESSED_INDICES_PROPERTY = "processed_indices"
 LOCK_PROPERTY = "lock_holder"
 
@@ -175,8 +174,7 @@ class VOSpaceProgressManager(AbstractProgressManager):
                 if self.is_done(filename)]
 
     def is_done(self, filename):
-        return (storage.get_property(self._get_uri(filename), DONE_PROPERTY)
-                == DONE_FLAG)
+        return storage.has_property(self._get_uri(filename), DONE_PROPERTY)
 
     def get_processed_indices(self, filename):
         uri = self._get_uri(filename)
@@ -187,7 +185,8 @@ class VOSpaceProgressManager(AbstractProgressManager):
         return map(int, raw_property.split(VO_INDEX_SEP))
 
     def _record_done(self, filename):
-        storage.set_property(self._get_uri(filename), DONE_PROPERTY, DONE_FLAG)
+        storage.set_property(self._get_uri(filename), DONE_PROPERTY,
+                             getpass.getuser())
 
     def _record_index(self, filename, index):
         processed_indices = self.get_processed_indices(filename)
