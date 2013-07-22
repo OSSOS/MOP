@@ -274,13 +274,14 @@ class ImageSliceDownloader(object):
     def _download_fits_file(self, downloadable_item):
         image_uri = downloadable_item.get_image_uri()
 
-        logger.debug("Starting download: %s" % image_uri)
-
         cutout_str, converter = self.cutout_calculator.build_cutout_str(
             downloadable_item.get_extension(),
             downloadable_item.get_focal_point(),
             downloadable_item.get_full_image_size(),
             inverted=downloadable_item.is_inverted())
+
+        logger.debug("Starting download: %s with cutout: %s"
+                     % (image_uri, cutout_str))
 
         vofile = self.vosclient.open(image_uri, view="cutout",
                                      cutout=cutout_str)
