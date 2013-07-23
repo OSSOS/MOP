@@ -286,7 +286,7 @@ class ImageReading(object):
         self._dec = self.reading.dec
 
         self._stale = False
-        self._corrected = False
+        self._adjusted = False
 
     @property
     def observed_source_point(self):
@@ -302,7 +302,7 @@ class ImageReading(object):
             new_pixel_location)
 
         self._stale = True
-        self._corrected = True
+        self._adjusted = True
 
     def reset_source_location(self):
         self.observed_x = self.original_observed_x
@@ -310,7 +310,7 @@ class ImageReading(object):
         self.pixel_x, self.pixel_y = self.get_pixel_location(self.observed_source_point)
 
         self._stale = True
-        self._corrected = False
+        self._adjusted = False
 
     @property
     def ra(self):
@@ -325,8 +325,8 @@ class ImageReading(object):
     def get_image(self):
         return self._fits_image
 
-    def is_corrected(self):
-        return self._corrected
+    def is_adjusted(self):
+        return self._adjusted
 
     def get_pixel_location(self, observed_point):
         return self._fits_image.get_pixel_coordinates(observed_point)
