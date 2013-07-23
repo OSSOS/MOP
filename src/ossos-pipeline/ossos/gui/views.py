@@ -259,16 +259,33 @@ class MainFrame(wx.Frame):
 
         # Create menus and their contents
         file_menu = wx.Menu()
-        keymap_item = file_menu.Append(wx.ID_ANY, "Keymap",
-                                       "Show mappings for keyboard shortcuts.")
-        exit_item = file_menu.Append(wx.ID_EXIT, "Exit", "Exit the program")
+
+        keymap_item = file_menu.Append(
+            id=wx.ID_ANY,
+            text="Keymap",
+            help="Show mappings for keyboard shortcuts.")
+
+        exit_item = file_menu.Append(
+            id=wx.ID_EXIT,
+            text="Exit",
+            help="Exit the program")
 
         do_bind(self._on_select_keymap, keymap_item)
         do_bind(self._on_select_exit, exit_item)
 
+        sync_menu = wx.Menu()
+        auto_sync_item = sync_menu.Append(
+            id=wx.ID_ANY,
+            text="Automatically",
+            help="Automatically synchronize results.",
+            kind=wx.ITEM_CHECK)
+
+        do_bind(self._on_select_automatically_sync, auto_sync_item)
+
         # Create menu bar
         menubar = wx.MenuBar()
         menubar.Append(file_menu, "File")
+        menubar.Append(sync_menu, "Sync")
         self.SetMenuBar(menubar)
 
         return menubar
@@ -294,6 +311,12 @@ class MainFrame(wx.Frame):
 
     def _on_select_exit(self, event):
         self.controller.on_exit()
+
+    def _on_select_automatically_sync(self, event):
+        if event.Checked():
+            print "TODO: enable automatic sync"
+        else:
+            print "TODO: disble automatic sync"
 
     def view_image(self, fits_image, redraw=True):
         self.image_viewer.view_image(fits_image, redraw=redraw)
