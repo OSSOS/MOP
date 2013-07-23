@@ -224,6 +224,9 @@ class UIModel(object):
         """
         self._get_current_image_reading().update_pixel_location(new_location)
 
+    def reset_current_source_location(self):
+        self._get_current_image_reading().reset_source_location()
+
     def exit(self):
         try:
             self._unlock(self.get_current_workunit())
@@ -276,7 +279,7 @@ class ImageReading(object):
         self.observed_x = self.original_observed_x
         self.observed_y = self.original_observed_y
 
-        self.pixel_x, self.pixel_y = self._fits_image.get_pixel_coordinates(
+        self.pixel_x, self.pixel_y = self.get_pixel_location(
             self.observed_source_point)
 
         self._ra = self.reading.ra
@@ -295,11 +298,19 @@ class ImageReading(object):
 
     def update_pixel_location(self, new_pixel_location):
         self.pixel_x, self.pixel_y = new_pixel_location
-        self.observed_x, self.observed_y = self._fits_image.get_observed_coordinates(
+        self.observed_x, self.observed_y = self.get_observed_location(
             new_pixel_location)
 
         self._stale = True
         self._corrected = True
+
+    def reset_source_location(self):
+        self.observed_x = self.original_observed_x
+        self.observed_y = self.original_observed_y
+        self.pixel_x, self.pixel_y = self.get_pixel_location(self.observed_source_point)
+
+        self._stale = True
+        self._corrected = False
 
     @property
     def ra(self):
@@ -316,6 +327,12 @@ class ImageReading(object):
 
     def is_corrected(self):
         return self._corrected
+
+    def get_pixel_location(self, observed_point):
+        return self._fits_image.get_pixel_coordinates(observed_point)
+
+    def get_observed_location(self, pixel_point):
+        return self._fits_image.get_observed_coordinates(pixel_point)
 
     def get_observed_magnitude(self):
         if not self._fits_image.has_apcord_data():
