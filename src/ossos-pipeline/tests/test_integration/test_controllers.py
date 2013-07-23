@@ -225,19 +225,19 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
         self.controller.on_accept()
 
         view_mock.show_accept_source_dialog.assert_called_once_with(
-            (ANY,
-             ANY,
-             ANY,
-             ANY,
-             ANY,
-             "", # obs_mag
-             "", # band
-             ANY,
-             ANY,
-             ANY,
-             ANY,
-             error_message, # default_comment
-             True)  # phot_failed
+            ANY,
+            ANY,
+            ANY,
+            ANY,
+            ANY,
+            "", # obs_mag
+            "", # band
+            ANY,
+            ANY,
+            ANY,
+            ANY,
+            error_message, # default_comment
+            True  # phot_failed
         )
 
 
