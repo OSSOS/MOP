@@ -232,12 +232,12 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
             ANY,
             "", # obs_mag
             "", # band
-            ANY,
-            ANY,
-            ANY,
-            ANY,
-            error_message, # default_comment
-            True  # phot_failed
+            note1_choices=ANY,
+            note2_choices=ANY,
+            note2_default=ANY,
+            default_observatory_code=ANY,
+            default_comment=error_message,
+            phot_failure=True
         )
 
 

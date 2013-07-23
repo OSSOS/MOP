@@ -136,12 +136,12 @@ class ProcessRealsController(AbstractController):
             self.model.get_current_dec(),
             obs_mag,
             band,
-            config.read("MPC.NOTE1OPTIONS"),
-            config.read("MPC.NOTE2OPTIONS"),
-            config.read("MPC.NOTE2DEFAULT"),
-            config.read("MPC.DEFAULT_OBSERVATORY_CODE"),
-            default_comment,
-            phot_failure
+            note1_choices=config.read("MPC.NOTE1OPTIONS"),
+            note2_choices=config.read("MPC.NOTE2OPTIONS"),
+            note2_default=config.read("MPC.NOTE2DEFAULT"),
+            default_observatory_code=config.read("MPC.DEFAULT_OBSERVATORY_CODE"),
+            default_comment=default_comment,
+            phot_failure=phot_failure
         )
 
     def on_do_accept(self,

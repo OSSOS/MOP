@@ -691,9 +691,21 @@ class AcceptSourceDialog(SourceValidationDialog):
     BAND = "Band: "
     OBSERVATORY_CODE = "Observatory code: "
 
-    def __init__(self, parent, controller, provisional_name, already_discovered, date_of_obs, ra, dec, obs_mag, band,
-                 note1_choices=None, note2_choices=None, note2_default=None, default_observatory_code="",
-                 default_comment="", phot_failure=False):
+    def __init__(self, parent, controller,
+                 provisional_name,
+                 already_discovered,
+                 date_of_obs,
+                 ra,
+                 dec,
+                 obs_mag,
+                 band,
+                 note1_choices=None,
+                 note2_choices=None,
+                 note1_default=None,
+                 note2_default=None,
+                 default_observatory_code="",
+                 default_comment="",
+                 phot_failure=False):
         self.controller = controller
         self.phot_failure = phot_failure
 
@@ -716,6 +728,7 @@ class AcceptSourceDialog(SourceValidationDialog):
         self.note1_choices = note1_choices if note1_choices is not None else []
         self.note2_choices = note2_choices if note2_choices is not None else []
 
+        self.note1_default = note1_default if note1_default is not None else ""
         self.note2_default = note2_default if note2_default is not None else ""
 
         self.default_comment = default_comment
@@ -742,7 +755,8 @@ class AcceptSourceDialog(SourceValidationDialog):
 
         self.note1_label = wx.StaticText(self, label=AcceptSourceDialog.NOTE1)
         self.note1_combobox = KeyboardCompleteComboBox(
-            self, choices=self.note1_choices, name=AcceptSourceDialog.NOTE1)
+            self, value=self.note1_default, choices=self.note1_choices,
+            name=AcceptSourceDialog.NOTE1)
 
         self.note2_label = wx.StaticText(self, label=AcceptSourceDialog.NOTE2)
         self.note2_combobox = KeyboardCompleteComboBox(
