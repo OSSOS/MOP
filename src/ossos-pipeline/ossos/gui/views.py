@@ -747,13 +747,15 @@ class AcceptSourceDialog(SourceValidationDialog):
 
         self.provisional_name_label = wx.StaticText(
             self, label=AcceptSourceDialog.PROVISIONAL_NAME)
-        self.provision_name_text = wx.StaticText(
-            self, label=self.provisional_name, name=self.PROVISIONAL_NAME)
+        self.provision_name_text = wx.TextCtrl(
+            self, style=wx.TE_READONLY,
+            value=self.provisional_name, name=self.PROVISIONAL_NAME)
 
         self.discovery_asterisk_label = wx.StaticText(
             self, label=AcceptSourceDialog.DISCOVERY_ASTERISK)
         discovery_asterisk = "No" if self.already_discovered else "Yes"
-        self.discovery_asterisk_text = wx.StaticText(self, label=discovery_asterisk)
+        self.discovery_asterisk_text = wx.TextCtrl(self, style=wx.TE_READONLY,
+                                                   value=discovery_asterisk)
 
         self.note1_label = wx.StaticText(self, label=AcceptSourceDialog.NOTE1)
         self.note1_combobox = KeyboardCompleteComboBox(
@@ -767,30 +769,35 @@ class AcceptSourceDialog(SourceValidationDialog):
 
         self.date_of_obs_label = wx.StaticText(
             self, label=AcceptSourceDialog.DATE_OF_OBS)
-        self.date_of_obs_text = wx.StaticText(
-            self, label=self.date_of_obs, name=AcceptSourceDialog.DATE_OF_OBS)
+        self.date_of_obs_text = wx.TextCtrl(
+            self, style=wx.TE_READONLY,
+            value=self.date_of_obs, name=AcceptSourceDialog.DATE_OF_OBS)
 
         self.ra_label = wx.StaticText(self, label=AcceptSourceDialog.RA)
-        self.ra_text = wx.StaticText(
-            self, label=self.ra_str, name=AcceptSourceDialog.RA)
+        self.ra_text = wx.TextCtrl(
+            self, style=wx.TE_READONLY,
+            value=self.ra_str, name=AcceptSourceDialog.RA)
 
         self.dec_label = wx.StaticText(self, label=AcceptSourceDialog.DEC)
-        self.dec_text = wx.StaticText(
-            self, label=self.dec_str, name=AcceptSourceDialog.DEC)
+        self.dec_text = wx.TextCtrl(
+            self, style=wx.TE_READONLY,
+            value=self.dec_str, name=AcceptSourceDialog.DEC)
 
         self.obs_mag_label = wx.StaticText(self, label=AcceptSourceDialog.OBS_MAG)
-        self.obs_mag_text = wx.StaticText(
-            self, label=self.obs_mag, name=self.OBS_MAG)
+        self.obs_mag_text = wx.TextCtrl(
+            self, style=wx.TE_READONLY,
+            value=self.obs_mag, name=self.OBS_MAG)
 
         self.band_label = wx.StaticText(self, label=AcceptSourceDialog.BAND)
-        self.band_text = wx.StaticText(
-            self, label=self.band, name=AcceptSourceDialog.BAND)
+        self.band_text = wx.TextCtrl(
+            self, style=wx.TE_READONLY,
+            value=self.band, name=AcceptSourceDialog.BAND)
 
         self.observatory_code_label = wx.StaticText(
             self, label=AcceptSourceDialog.OBSERVATORY_CODE)
         self.observatory_code_text = wx.TextCtrl(
-            self, name=AcceptSourceDialog.OBSERVATORY_CODE)
-        self.observatory_code_text.SetValue(self.default_observatory_code)
+            self, value=self.default_observatory_code,
+            name=AcceptSourceDialog.OBSERVATORY_CODE)
 
     def _get_vertical_widget_list(self):
         return [self._create_horizontal_pair(self.minor_planet_num_label, self.minor_planet_num_text),
