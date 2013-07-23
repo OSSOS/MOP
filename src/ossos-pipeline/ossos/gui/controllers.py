@@ -128,7 +128,7 @@ class ProcessRealsController(AbstractController):
             band = ""
             default_comment = str(error)
 
-        preset_vals = (
+        self.get_view().show_accept_source_dialog(
             self._get_provisional_name(),
             self.model.is_current_source_discovered(),
             self.model.get_current_observation_date(),
@@ -143,7 +143,6 @@ class ProcessRealsController(AbstractController):
             default_comment,
             phot_failure
         )
-        self.get_view().show_accept_source_dialog(preset_vals)
 
     def on_do_accept(self,
                      minor_plant_number,

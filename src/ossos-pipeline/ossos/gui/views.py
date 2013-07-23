@@ -114,9 +114,35 @@ class ApplicationView(object):
                 self.mainframe, handler, error_message)
             self.retry_downloads_dialog.Show()
 
-    def show_accept_source_dialog(self, preset_vals):
+    def show_accept_source_dialog(self, provisional_name,
+                                  already_discovered,
+                                  date_of_obs,
+                                  ra,
+                                  dec,
+                                  obs_mag,
+                                  band,
+                                  note1_choices=None,
+                                  note2_choices=None,
+                                  note2_default=None,
+                                  default_observatory_code="",
+                                  default_comment="",
+                                  phot_failure=False
+                                  ):
         self.accept_source_dialog = AcceptSourceDialog(
-            self.mainframe, self.controller, *preset_vals)
+            self.mainframe, self.controller,
+            provisional_name,
+            already_discovered,
+            date_of_obs,
+            ra,
+            dec,
+            obs_mag,
+            band,
+            note1_choices=note1_choices,
+            note2_choices=note2_choices,
+            note2_default=note2_default,
+            default_observatory_code=default_observatory_code,
+            default_comment=default_comment,
+            phot_failure=phot_failure)
         self.accept_source_dialog.ShowModal()
 
     def close_accept_source_dialog(self):
