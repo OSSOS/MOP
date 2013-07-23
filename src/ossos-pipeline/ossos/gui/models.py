@@ -224,6 +224,9 @@ class UIModel(object):
         """
         self._get_current_image_reading().update_pixel_location(new_location)
 
+    def reset_current_source_location(self):
+        self._get_current_image_reading().reset_source_location()
+
     def exit(self):
         try:
             self._unlock(self.get_current_workunit())

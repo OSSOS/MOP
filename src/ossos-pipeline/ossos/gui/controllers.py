@@ -24,22 +24,27 @@ class AbstractController(object):
         return self.model
 
     def display_current_image(self):
+        view = self.get_view()
+
         try:
-            self.get_view().view_image(self.get_model().get_current_image(),
-                                       redraw=False)
+            view.view_image(self.get_model().get_current_image(),
+                            redraw=False)
         except ImageNotLoadedException:
-            self.get_view().show_image_loading_dialog()
+            view.show_image_loading_dialog()
             return
 
+        self.circle_current_source()
+
+        view.update_displayed_data()
+
+        view.set_observation_status(
+            self.model.get_current_obs_number() + 1,
+            self.model.get_obs_count())
+
+    def circle_current_source(self):
         image_x, image_y = self.model.get_current_pixel_source_point()
         radius = 2 * round(self.model.get_current_image_FWHM())
         self.get_view().draw_circle(image_x, image_y, radius, redraw=True)
-
-        self.get_view().update_displayed_data()
-
-        self.get_view().set_observation_status(
-            self.model.get_current_obs_number() + 1,
-            self.model.get_obs_count())
 
     def on_reposition_source(self, new_x, new_y):
         self.model.update_current_source_location((new_x, new_y))
@@ -87,6 +92,10 @@ class AbstractController(object):
 
     def on_reject(self):
         raise NotImplementedError()
+
+    def on_reset_source_location(self):
+        self.model.reset_current_source_location()
+        self.circle_current_source()
 
 
 class ProcessRealsController(AbstractController):

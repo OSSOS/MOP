@@ -315,16 +315,20 @@ class KeybindManager(object):
         accept_src_kb_id = wx.NewId()
         reject_src_kb_id = wx.NewId()
         reset_cmap_kb_id = wx.NewId()
+        reset_src_kb_id = wx.NewId()
 
         view.Bind(wx.EVT_MENU, self.on_next_obs_keybind, id=next_obs_kb_id)
         view.Bind(wx.EVT_MENU, self.on_prev_obs_keybind, id=prev_obs_kb_id)
         view.Bind(wx.EVT_MENU, self.on_accept_src_keybind, id=accept_src_kb_id)
         view.Bind(wx.EVT_MENU, self.on_reject_src_keybind, id=reject_src_kb_id)
         view.Bind(wx.EVT_MENU, self.on_reset_cmap_keybind, id=reset_cmap_kb_id)
+        view.Bind(wx.EVT_MENU, self.on_reset_source_location_keybind,
+                  id=reset_src_kb_id)
 
         self.accept_key = config.read("KEYBINDS.ACCEPT_SRC")
         self.reject_key = config.read("KEYBINDS.REJECT_SRC")
         self.reset_cmap_key = config.read("KEYBINDS.RESET_CMAP")
+        self.reset_source_key = config.read("KEYBINDS.RESET_SOURCE_LOCATION")
 
         accelerators = wx.AcceleratorTable(
             [
@@ -333,6 +337,7 @@ class KeybindManager(object):
                 (wx.ACCEL_NORMAL, ord(self.accept_key), accept_src_kb_id),
                 (wx.ACCEL_NORMAL, ord(self.reject_key), reject_src_kb_id),
                 (wx.ACCEL_NORMAL, ord(self.reset_cmap_key), reset_cmap_kb_id),
+                (wx.ACCEL_NORMAL, ord(self.reset_source_key), reset_src_kb_id),
             ]
         )
 
@@ -343,7 +348,8 @@ class KeybindManager(object):
                 ("Previous observation", "Shift + Tab"),
                 ("Accept", self.accept_key),
                 ("Reject", self.reject_key),
-                ("Reset colourmap", self.reset_cmap_key)]
+                ("Reset colourmap", self.reset_cmap_key),
+                ("Reset source location", self.reset_source_key)]
 
     def on_next_obs_keybind(self, event):
         self.controller.on_next_obs()
@@ -362,6 +368,9 @@ class KeybindManager(object):
 
     def on_reset_cmap_keybind(self, event):
         self.view.reset_colormap()
+
+    def on_reset_source_location_keybind(self, event):
+        self.controller.on_reset_source_location()
 
 
 class NavPanel(wx.Panel):
