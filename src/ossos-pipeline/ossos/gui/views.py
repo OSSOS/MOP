@@ -128,7 +128,7 @@ class ApplicationView(object):
                                   default_observatory_code="",
                                   default_comment="",
                                   phot_failure=False
-                                  ):
+    ):
         self.accept_source_dialog = AcceptSourceDialog(
             self.mainframe, self.controller,
             provisional_name,
@@ -747,13 +747,14 @@ class AcceptSourceDialog(SourceValidationDialog):
 
         self.provisional_name_label = wx.StaticText(
             self, label=AcceptSourceDialog.PROVISIONAL_NAME)
-        self.provision_name_text = wx.StaticText(
-            self, label=self.provisional_name, name=self.PROVISIONAL_NAME)
+        self.provision_name_text = self._create_readonly_text(
+            value=self.provisional_name, name=self.PROVISIONAL_NAME)
 
         self.discovery_asterisk_label = wx.StaticText(
             self, label=AcceptSourceDialog.DISCOVERY_ASTERISK)
         discovery_asterisk = "No" if self.already_discovered else "Yes"
-        self.discovery_asterisk_text = wx.StaticText(self, label=discovery_asterisk)
+        self.discovery_asterisk_text = self._create_readonly_text(
+            value=discovery_asterisk, name=AcceptSourceDialog.DISCOVERY_ASTERISK)
 
         self.note1_label = wx.StaticText(self, label=AcceptSourceDialog.NOTE1)
         self.note1_combobox = KeyboardCompleteComboBox(
@@ -767,47 +768,59 @@ class AcceptSourceDialog(SourceValidationDialog):
 
         self.date_of_obs_label = wx.StaticText(
             self, label=AcceptSourceDialog.DATE_OF_OBS)
-        self.date_of_obs_text = wx.StaticText(
-            self, label=self.date_of_obs, name=AcceptSourceDialog.DATE_OF_OBS)
+        self.date_of_obs_text = self._create_readonly_text(
+            value=self.date_of_obs, name=AcceptSourceDialog.DATE_OF_OBS)
 
         self.ra_label = wx.StaticText(self, label=AcceptSourceDialog.RA)
-        self.ra_text = wx.StaticText(
-            self, label=self.ra_str, name=AcceptSourceDialog.RA)
+        self.ra_text = self._create_readonly_text(
+            value=self.ra_str, name=AcceptSourceDialog.RA)
 
         self.dec_label = wx.StaticText(self, label=AcceptSourceDialog.DEC)
-        self.dec_text = wx.StaticText(
-            self, label=self.dec_str, name=AcceptSourceDialog.DEC)
+        self.dec_text = self._create_readonly_text(
+            value=self.dec_str, name=AcceptSourceDialog.DEC)
 
         self.obs_mag_label = wx.StaticText(self, label=AcceptSourceDialog.OBS_MAG)
-        self.obs_mag_text = wx.StaticText(
-            self, label=self.obs_mag, name=self.OBS_MAG)
+        self.obs_mag_text = self._create_readonly_text(
+            value=self.obs_mag, name=self.OBS_MAG)
 
         self.band_label = wx.StaticText(self, label=AcceptSourceDialog.BAND)
-        self.band_text = wx.StaticText(
-            self, label=self.band, name=AcceptSourceDialog.BAND)
+        self.band_text = self._create_readonly_text(
+            value=self.band, name=AcceptSourceDialog.BAND)
 
         self.observatory_code_label = wx.StaticText(
             self, label=AcceptSourceDialog.OBSERVATORY_CODE)
         self.observatory_code_text = wx.TextCtrl(
-            self, name=AcceptSourceDialog.OBSERVATORY_CODE)
-        self.observatory_code_text.SetValue(self.default_observatory_code)
+            self, value=self.default_observatory_code,
+            name=AcceptSourceDialog.OBSERVATORY_CODE)
+
+    def _create_readonly_text(self, value, name):
+        text_ctrl = wx.TextCtrl(self, style=wx.TE_READONLY, value=value,
+                                name=name)
+        text_ctrl.SetBackgroundColour(self.GetBackgroundColour())
+        return text_ctrl
 
     def _get_vertical_widget_list(self):
-        return [self._create_horizontal_pair(self.minor_planet_num_label, self.minor_planet_num_text),
-                self._create_horizontal_pair(self.provisional_name_label, self.provision_name_text),
-                self._create_horizontal_pair(self.discovery_asterisk_label, self.discovery_asterisk_text),
-                (0, 0), # blank space
-                self._create_horizontal_pair(self.note1_label, self.note1_combobox),
-                self._create_horizontal_pair(self.note2_label, self.note2_combobox),
-                (0, 0), # blank space
-                self._create_horizontal_pair(self.date_of_obs_label, self.date_of_obs_text),
-                self._create_horizontal_pair(self.ra_label, self.ra_text),
-                self._create_horizontal_pair(self.dec_label, self.dec_text),
-                self._create_horizontal_pair(self.obs_mag_label, self.obs_mag_text),
-                self._create_horizontal_pair(self.band_label, self.band_text),
-                self._create_horizontal_pair(self.observatory_code_label, self.observatory_code_text),
-                (0, 0)  # blank space
+        data_fields = [(self.minor_planet_num_label, self.minor_planet_num_text),
+                       (self.provisional_name_label, self.provision_name_text),
+                       (self.discovery_asterisk_label, self.discovery_asterisk_text),
+                       (self.note1_label, self.note1_combobox),
+                       (self.note2_label, self.note2_combobox),
+                       (self.date_of_obs_label, self.date_of_obs_text),
+                       (self.ra_label, self.ra_text),
+                       (self.dec_label, self.dec_text),
+                       (self.obs_mag_label, self.obs_mag_text),
+                       (self.band_label, self.band_text),
+                       (self.observatory_code_label, self.observatory_code_text),
         ]
+
+        sizer = wx.FlexGridSizer(rows=len(data_fields), cols=2)
+        for label, value in data_fields:
+            sizer.Add(label)
+            sizer.Add(value, proportion=1, flag=wx.EXPAND)
+
+        sizer.AddGrowableCol(1, proportion=1)
+
+        return [sizer]
 
     def _on_submit(self, event):
         # Grab data out of the form
