@@ -800,21 +800,27 @@ class AcceptSourceDialog(SourceValidationDialog):
         return text_ctrl
 
     def _get_vertical_widget_list(self):
-        return [self._create_horizontal_pair(self.minor_planet_num_label, self.minor_planet_num_text),
-                self._create_horizontal_pair(self.provisional_name_label, self.provision_name_text),
-                self._create_horizontal_pair(self.discovery_asterisk_label, self.discovery_asterisk_text),
-                (0, 0), # blank space
-                self._create_horizontal_pair(self.note1_label, self.note1_combobox),
-                self._create_horizontal_pair(self.note2_label, self.note2_combobox),
-                (0, 0), # blank space
-                self._create_horizontal_pair(self.date_of_obs_label, self.date_of_obs_text),
-                self._create_horizontal_pair(self.ra_label, self.ra_text),
-                self._create_horizontal_pair(self.dec_label, self.dec_text),
-                self._create_horizontal_pair(self.obs_mag_label, self.obs_mag_text),
-                self._create_horizontal_pair(self.band_label, self.band_text),
-                self._create_horizontal_pair(self.observatory_code_label, self.observatory_code_text),
-                (0, 0)  # blank space
+        data_fields = [(self.minor_planet_num_label, self.minor_planet_num_text),
+                       (self.provisional_name_label, self.provision_name_text),
+                       (self.discovery_asterisk_label, self.discovery_asterisk_text),
+                       (self.note1_label, self.note1_combobox),
+                       (self.note2_label, self.note2_combobox),
+                       (self.date_of_obs_label, self.date_of_obs_text),
+                       (self.ra_label, self.ra_text),
+                       (self.dec_label, self.dec_text),
+                       (self.obs_mag_label, self.obs_mag_text),
+                       (self.band_label, self.band_text),
+                       (self.observatory_code_label, self.observatory_code_text),
         ]
+
+        sizer = wx.FlexGridSizer(rows=len(data_fields), cols=2)
+        for label, value in data_fields:
+            sizer.Add(label)
+            sizer.Add(value, proportion=1, flag=wx.EXPAND)
+
+        sizer.AddGrowableCol(1, proportion=1)
+
+        return [sizer]
 
     def _on_submit(self, event):
         # Grab data out of the form
