@@ -9,7 +9,7 @@ from mock import Mock
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from ossos.gui import tasks
-from ossos.gui.context import LocalDirectoryWorkingContext
+from ossos.gui.context import WorkingContext, LocalDirectoryWorkingContext
 from ossos.gui.downloads import AsynchronousImageDownloadManager
 from ossos.gui.models import UIModel
 from ossos.astrom import AstromParser
@@ -108,6 +108,7 @@ class AbstractWorkUnitTest(FileReadingTestCase):
         self.progress_manager = Mock(spec=LocalProgressManager)
         self.progress_manager.get_processed_indices.return_value = []
         self.writer = Mock()
+        self.output_context = Mock(spec=WorkingContext)
 
 
 class WorkUnitTest(AbstractWorkUnitTest):
@@ -115,7 +116,8 @@ class WorkUnitTest(AbstractWorkUnitTest):
         super(WorkUnitTest, self).setUp()
 
         self.workunit = RealsWorkUnit(self.testfile, self.data,
-                                      self.progress_manager, self.writer)
+                                      self.progress_manager, self.writer,
+                                      self.output_context)
 
     def test_initialization(self):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
@@ -180,7 +182,8 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         super(RealsWorkUnitTest, self).setUp()
 
         self.workunit = RealsWorkUnit(self.testfile, self.data,
-                                      self.progress_manager, self.writer)
+                                      self.progress_manager, self.writer,
+                                      self.output_context)
 
     def test_next_vettable_item_no_validation(self):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
@@ -352,7 +355,8 @@ class CandidatesWorkUnitTest(AbstractWorkUnitTest):
         super(CandidatesWorkUnitTest, self).setUp()
 
         self.workunit = CandidatesWorkUnit(self.testfile, self.data,
-                                           self.progress_manager, self.writer)
+                                           self.progress_manager, self.writer,
+                                           self.output_context)
 
     def test_next_vettable_item(self):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
