@@ -128,6 +128,11 @@ class ProcessRealsController(AbstractController):
             band = ""
             default_comment = str(error)
 
+        if self.model.is_current_source_adjusted():
+            note1_default = config.read("MPC.NOTE1_HAND_ADJUSTED")
+        else:
+            note1_default = None
+
         self.get_view().show_accept_source_dialog(
             self._get_provisional_name(),
             self.model.is_current_source_discovered(),
@@ -138,6 +143,7 @@ class ProcessRealsController(AbstractController):
             band,
             note1_choices=config.read("MPC.NOTE1OPTIONS"),
             note2_choices=config.read("MPC.NOTE2OPTIONS"),
+            note1_default=note1_default,
             note2_default=config.read("MPC.NOTE2DEFAULT"),
             default_observatory_code=config.read("MPC.DEFAULT_OBSERVATORY_CODE"),
             default_comment=default_comment,

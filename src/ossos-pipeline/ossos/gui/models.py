@@ -112,6 +112,9 @@ class UIModel(object):
     def is_current_source_finished(self):
         return self.get_current_workunit().is_current_source_finished()
 
+    def is_current_source_adjusted(self):
+        return self._get_current_image_reading().is_adjusted()
+
     def get_num_items_processed(self):
         return self.num_processed
 
