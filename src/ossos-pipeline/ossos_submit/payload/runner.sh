@@ -32,7 +32,7 @@ touch log_capture_on
 
 # launch the job (check if maybe its in local dir first)
 [ -e ${script} ] && script="./${script}"
-${script} $args &> ${logfile}
+${script} $args >& ${logfile}
 status=$?
 
 # job is done, delte log_capture_on and then wait until sync.sh returns
