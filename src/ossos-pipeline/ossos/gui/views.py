@@ -128,7 +128,7 @@ class ApplicationView(object):
                                   default_observatory_code="",
                                   default_comment="",
                                   phot_failure=False
-                                  ):
+    ):
         self.accept_source_dialog = AcceptSourceDialog(
             self.mainframe, self.controller,
             provisional_name,
@@ -747,15 +747,14 @@ class AcceptSourceDialog(SourceValidationDialog):
 
         self.provisional_name_label = wx.StaticText(
             self, label=AcceptSourceDialog.PROVISIONAL_NAME)
-        self.provision_name_text = wx.TextCtrl(
-            self, style=wx.TE_READONLY,
+        self.provision_name_text = self._create_readonly_text(
             value=self.provisional_name, name=self.PROVISIONAL_NAME)
 
         self.discovery_asterisk_label = wx.StaticText(
             self, label=AcceptSourceDialog.DISCOVERY_ASTERISK)
         discovery_asterisk = "No" if self.already_discovered else "Yes"
-        self.discovery_asterisk_text = wx.TextCtrl(self, style=wx.TE_READONLY,
-                                                   value=discovery_asterisk)
+        self.discovery_asterisk_text = self._create_readonly_text(
+            value=discovery_asterisk, name=AcceptSourceDialog.DISCOVERY_ASTERISK)
 
         self.note1_label = wx.StaticText(self, label=AcceptSourceDialog.NOTE1)
         self.note1_combobox = KeyboardCompleteComboBox(
@@ -769,28 +768,23 @@ class AcceptSourceDialog(SourceValidationDialog):
 
         self.date_of_obs_label = wx.StaticText(
             self, label=AcceptSourceDialog.DATE_OF_OBS)
-        self.date_of_obs_text = wx.TextCtrl(
-            self, style=wx.TE_READONLY,
+        self.date_of_obs_text = self._create_readonly_text(
             value=self.date_of_obs, name=AcceptSourceDialog.DATE_OF_OBS)
 
         self.ra_label = wx.StaticText(self, label=AcceptSourceDialog.RA)
-        self.ra_text = wx.TextCtrl(
-            self, style=wx.TE_READONLY,
+        self.ra_text = self._create_readonly_text(
             value=self.ra_str, name=AcceptSourceDialog.RA)
 
         self.dec_label = wx.StaticText(self, label=AcceptSourceDialog.DEC)
-        self.dec_text = wx.TextCtrl(
-            self, style=wx.TE_READONLY,
+        self.dec_text = self._create_readonly_text(
             value=self.dec_str, name=AcceptSourceDialog.DEC)
 
         self.obs_mag_label = wx.StaticText(self, label=AcceptSourceDialog.OBS_MAG)
-        self.obs_mag_text = wx.TextCtrl(
-            self, style=wx.TE_READONLY,
+        self.obs_mag_text = self._create_readonly_text(
             value=self.obs_mag, name=self.OBS_MAG)
 
         self.band_label = wx.StaticText(self, label=AcceptSourceDialog.BAND)
-        self.band_text = wx.TextCtrl(
-            self, style=wx.TE_READONLY,
+        self.band_text = self._create_readonly_text(
             value=self.band, name=AcceptSourceDialog.BAND)
 
         self.observatory_code_label = wx.StaticText(
@@ -798,6 +792,12 @@ class AcceptSourceDialog(SourceValidationDialog):
         self.observatory_code_text = wx.TextCtrl(
             self, value=self.default_observatory_code,
             name=AcceptSourceDialog.OBSERVATORY_CODE)
+
+    def _create_readonly_text(self, value, name):
+        text_ctrl = wx.TextCtrl(self, style=wx.TE_READONLY, value=value,
+                                name=name)
+        text_ctrl.SetBackgroundColour(self.GetBackgroundColour())
+        return text_ctrl
 
     def _get_vertical_widget_list(self):
         return [self._create_horizontal_pair(self.minor_planet_num_label, self.minor_planet_num_text),
