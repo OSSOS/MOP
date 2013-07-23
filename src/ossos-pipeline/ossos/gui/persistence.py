@@ -16,7 +16,6 @@ PART_SUFFIX = ".PART"
 
 # Constants for VOSpace progress manager
 DONE_PROPERTY = "done"
-DONE_FLAG = "TRUE"
 PROCESSED_INDICES_PROPERTY = "processed_indices"
 LOCK_PROPERTY = "lock_holder"
 
@@ -167,18 +166,27 @@ class AbstractProgressManager(object):
 
 
 class VOSpaceProgressManager(AbstractProgressManager):
-    def __init__(self, working_context):
+    def __init__(self, working_context, track_partial_progress=False):
+        """
+        By default partial results are not tracked when working in VOSpace.
+        get_processed_indices returns an empty list and record_index is a
+        no-op.
+        """
         super(VOSpaceProgressManager, self).__init__(working_context)
+
+        self.track_partial_results = track_partial_progress
 
     def get_done(self, task):
         return [filename for filename in self.working_context.get_listing(task)
                 if self.is_done(filename)]
 
     def is_done(self, filename):
-        return (storage.get_property(self._get_uri(filename), DONE_PROPERTY)
-                == DONE_FLAG)
+        return storage.has_property(self._get_uri(filename), DONE_PROPERTY)
 
     def get_processed_indices(self, filename):
+        if not self.track_partial_results:
+            return []
+
         uri = self._get_uri(filename)
         if not storage.has_property(uri, PROCESSED_INDICES_PROPERTY):
             return []
@@ -187,9 +195,13 @@ class VOSpaceProgressManager(AbstractProgressManager):
         return map(int, raw_property.split(VO_INDEX_SEP))
 
     def _record_done(self, filename):
-        storage.set_property(self._get_uri(filename), DONE_PROPERTY, DONE_FLAG)
+        storage.set_property(self._get_uri(filename), DONE_PROPERTY,
+                             getpass.getuser())
 
     def _record_index(self, filename, index):
+        if not self.track_partial_results:
+            return
+
         processed_indices = self.get_processed_indices(filename)
         processed_indices.append(index)
         processed_indices = map(str, processed_indices)

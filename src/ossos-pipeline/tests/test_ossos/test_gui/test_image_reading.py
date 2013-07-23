@@ -39,6 +39,10 @@ class ImageReadingTest(FileReadingTestCase):
         self.mock_update_ra_dec = Mock()
         self.undertest._update_ra_dec = self.mock_update_ra_dec
 
+    def assert_update_ra_dec_call_count_equals(self, expected_calls):
+        assert_that(self.mock_update_ra_dec.call_count,
+                    equal_to(expected_calls))
+
     def test_xy_coordinate_systems(self):
         assert_that(self.undertest.observed_x,
                     equal_to(self.original_observed_x))
@@ -83,41 +87,41 @@ class ImageReadingTest(FileReadingTestCase):
         assert_that(self.undertest.is_corrected(), equal_to(True))
 
     def test_update_xy_updates_ra_dec(self):
-        assert_that(self.mock_update_ra_dec.call_count, equal_to(0))
+        self.assert_update_ra_dec_call_count_equals(0)
 
         self.undertest.update_pixel_location((665.0, 3215.0))
 
         _ = self.undertest.dec
 
-        assert_that(self.mock_update_ra_dec.call_count, equal_to(1))
+        self.assert_update_ra_dec_call_count_equals(1)
 
     def test_ra_dec_updates_lazilly(self):
-        assert_that(self.mock_update_ra_dec.call_count, equal_to(0))
+        self.assert_update_ra_dec_call_count_equals(0)
 
         self.undertest.update_pixel_location((665.0, 3215.0))
 
-        assert_that(self.mock_update_ra_dec.call_count, equal_to(0))
+        self.assert_update_ra_dec_call_count_equals(0)
 
         self.undertest.update_pixel_location((665.0, 3218.0))
 
-        assert_that(self.mock_update_ra_dec.call_count, equal_to(0))
+        self.assert_update_ra_dec_call_count_equals(0)
 
         _ = self.undertest.ra
 
-        assert_that(self.mock_update_ra_dec.call_count, equal_to(1))
+        self.assert_update_ra_dec_call_count_equals(1)
 
         _ = self.undertest.dec
 
-        assert_that(self.mock_update_ra_dec.call_count, equal_to(1))
+        self.assert_update_ra_dec_call_count_equals(1)
 
         self.undertest.update_pixel_location((667.2, 3216.6))
 
-        assert_that(self.mock_update_ra_dec.call_count, equal_to(1))
+        self.assert_update_ra_dec_call_count_equals(1)
 
         _ = self.undertest.dec
         _ = self.undertest.ra
 
-        assert_that(self.mock_update_ra_dec.call_count, equal_to(2))
+        self.assert_update_ra_dec_call_count_equals(2)
 
     def test_original_xy(self):
         assert_that(self.undertest.observed_x, equal_to(self.original_observed_x))
@@ -145,6 +149,62 @@ class ImageReadingTest(FileReadingTestCase):
                     equal_to(self.original_observed_x))
         assert_that(self.undertest.original_observed_y,
                     equal_to(self.original_observed_y))
+
+    def test_reset_location(self):
+        original_pixel_x, original_pixel_y = self.undertest.pixel_source_point
+
+        diff_x = 2.5
+        diff_y = 3.5
+        new_pixel_x = self.undertest.pixel_x + diff_x
+        new_pixel_y = self.undertest.pixel_y + diff_y
+
+        self.undertest.update_pixel_location((new_pixel_x, new_pixel_y))
+
+        assert_that(self.undertest.observed_x,
+                    equal_to(self.original_observed_x + diff_x))
+        assert_that(self.undertest.observed_y,
+                    equal_to(self.original_observed_y + diff_y))
+
+        assert_that(self.undertest.pixel_x, equal_to(new_pixel_x))
+        assert_that(self.undertest.pixel_y, equal_to(new_pixel_y))
+
+        self.undertest.reset_source_location()
+
+        assert_that(self.undertest.observed_x,
+                    equal_to(self.original_observed_x))
+        assert_that(self.undertest.observed_y,
+                    equal_to(self.original_observed_y))
+
+        assert_that(self.undertest.pixel_x, equal_to(original_pixel_x))
+        assert_that(self.undertest.pixel_y, equal_to(original_pixel_y))
+
+    def test_reset_location_is_corrected_false(self):
+        assert_that(self.undertest.is_corrected(), equal_to(False))
+
+        self.undertest.update_pixel_location((100, 100))
+
+        assert_that(self.undertest.is_corrected(), equal_to(True))
+
+        self.undertest.reset_source_location()
+
+        assert_that(self.undertest.is_corrected(), equal_to(False))
+
+    def test_reset_location_makes_data_stale(self):
+        self.assert_update_ra_dec_call_count_equals(0)
+
+        self.undertest.update_pixel_location((665.0, 3215.0))
+
+        _ = self.undertest.ra
+
+        self.assert_update_ra_dec_call_count_equals(1)
+
+        self.undertest.reset_source_location()
+
+        self.assert_update_ra_dec_call_count_equals(1)
+
+        _ = self.undertest.ra
+
+        self.assert_update_ra_dec_call_count_equals(2)
 
 
 if __name__ == '__main__':
