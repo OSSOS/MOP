@@ -16,6 +16,8 @@
     "MPC": {
         "DEFAULT_OBSERVATORY_CODE": "568",
 
+        "NOTE1_HAND_ADJUSTED": "H  hand measurement of CCD image",
+
         "NOTE1OPTIONS": [
             "",
             "A  earlier approximate position inferior",
