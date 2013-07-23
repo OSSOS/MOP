@@ -128,7 +128,12 @@ class ProcessRealsController(AbstractController):
             band = ""
             default_comment = str(error)
 
-        preset_vals = (
+        if self.model.is_current_source_adjusted():
+            note1_default = config.read("MPC.NOTE1_HAND_ADJUSTED")
+        else:
+            note1_default = None
+
+        self.get_view().show_accept_source_dialog(
             self._get_provisional_name(),
             self.model.is_current_source_discovered(),
             self.model.get_current_observation_date(),
@@ -136,14 +141,14 @@ class ProcessRealsController(AbstractController):
             self.model.get_current_dec(),
             obs_mag,
             band,
-            config.read("MPC.NOTE1OPTIONS"),
-            config.read("MPC.NOTE2OPTIONS"),
-            config.read("MPC.NOTE2DEFAULT"),
-            config.read("MPC.DEFAULT_OBSERVATORY_CODE"),
-            default_comment,
-            phot_failure
+            note1_choices=config.read("MPC.NOTE1OPTIONS"),
+            note2_choices=config.read("MPC.NOTE2OPTIONS"),
+            note1_default=note1_default,
+            note2_default=config.read("MPC.NOTE2DEFAULT"),
+            default_observatory_code=config.read("MPC.DEFAULT_OBSERVATORY_CODE"),
+            default_comment=default_comment,
+            phot_failure=phot_failure
         )
-        self.get_view().show_accept_source_dialog(preset_vals)
 
     def on_do_accept(self,
                      minor_plant_number,
