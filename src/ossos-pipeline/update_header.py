@@ -122,12 +122,10 @@ if __name__ == '__main__':
             storage.copy(image, dest)
             storage.set_status(expnum, 36, 'update_header', message)
     except Exception as e:
-        logging.error("Error replacing header for %s" % ( args.expnum))
-        logging.error(str(e))
         if args.replace:
             message = str(e)
             storage.set_status(expnum, 36, 'update_header', message)
-        sys.exit(2)
+        raise e
 
         
     

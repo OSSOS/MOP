@@ -286,6 +286,9 @@ class BaseAstromWriter(object):
 
         self._header_written = True
 
+    def flush(self):
+        self.output_file.flush()
+
     def close(self):
         self.output_file.close()
 

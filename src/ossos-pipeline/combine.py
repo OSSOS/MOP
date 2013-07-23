@@ -15,6 +15,8 @@ def combine(expnum, ccd, prefix=None, type='p', field=None, measure3=MEASURE3 ):
     if field is None:
         field=str(expnum)
 
+    if prefix is not None and len(prefix) > 0:
+        field = "%s_%s" % ( prefix, field ) 
     field += "_%s" % ( str(ccd))
 
     for ext in ['moving.matt','moving.jmp']:
@@ -42,10 +44,14 @@ def combine(expnum, ccd, prefix=None, type='p', field=None, measure3=MEASURE3 ):
     
     cmd_args = ['comb-list', prefix+str(expnum)+type+str(ccd).zfill(2)]
     util.exec_prog(cmd_args)
+    ext_list = ['cands.comb']
+    if prefix is not None and len(prefix) > 0 :
+        ext_list.extend( [ 'jmp.missed', 'matt.missed',
+                            'jmp.found', 'matt.found',
+                            'comb.missed', 'comb.found' ] )
+                         
 
-    for ext in['cands.comb', 'comb.found', 'comb.missed',
-               'jmp.found', 'jmp.missed',
-               'matt.found', 'matt.missed' ]:
+    for ext in ext_list:
         uri = storage.get_uri(expnum,
                               ccd=ccd,
                               prefix=prefix,
@@ -55,8 +61,9 @@ def combine(expnum, ccd, prefix=None, type='p', field=None, measure3=MEASURE3 ):
         if not os.access(filename,os.R_OK):
             logging.critical("No %s file" % (filename))
             continue
-        vospace_name = "%s.%s" % ( field, ext ) 
-        storage.copy(filename, os.path.join(uri, vospace_name))
+        vospace_name = "%s.%s" % ( field, ext )
+        logging.info("%s -> %s" % ( filename, os.path.join(measure3, vospace_name)))
+        storage.copy(filename, os.path.join(measure3, vospace_name))
 
     base_name = prefix+str(expnum)+type+str(ccd).zfill(2)
     cands_file = base_name+'.cands.comb'
@@ -74,6 +81,7 @@ def combine(expnum, ccd, prefix=None, type='p', field=None, measure3=MEASURE3 ):
         return storage.SUCCESS
 
 
+    # get the images we need to compute x/y ra/dec transforms
     cands_file = mop_file.Parser().parse(cands_file)
     for file_id in cands_file.header.file_ids:
         rec_no=cands_file.header.file_ids.index(file_id)
@@ -84,6 +92,7 @@ def combine(expnum, ccd, prefix=None, type='p', field=None, measure3=MEASURE3 ):
                           ext='fits')
 
     cmd_args = ['measure3', prefix+str(expnum)+type+str(ccd).zfill(2)]
+    logging.info("Running measure3")
     util.exec_prog(cmd_args)
     
     filename=base_name+".measure3.cands.astrom"
@@ -116,7 +125,7 @@ if __name__=='__main__':
     parser.add_argument("expnum",
                         type=int,
                         help="expnum to process")
-    parser.add_argument("measure3",
+    parser.add_argument("--measure3",
                         action="store",
                         help="VOSpace location for measure3 files",
                         default=MEASURE3)
