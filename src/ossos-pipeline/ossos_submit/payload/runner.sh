@@ -4,6 +4,7 @@
 [ -f ${HOME}/.moprc ] && source ${HOME}/.moprc
 
 ## this script should be shipped with a cadcproxy.epm file
+[ -e ${HOME}/.ssl ] || mkdir -p ${HOME}/.ssl
 [ -f cadcproxy.pem ]  && cp cadcproxy.pem ${HOME}/.ssl/cadcproxy.pem
 
 Usage="Usage: runner.sh jobid script arguments"
