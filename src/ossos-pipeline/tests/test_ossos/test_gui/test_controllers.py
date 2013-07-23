@@ -2,11 +2,13 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 
-from mock import MagicMock, patch, ANY
+from mock import Mock, MagicMock, patch, ANY
 from hamcrest import equal_to, assert_that
 
+from ossos.gui import config
 from ossos.gui.models import UIModel
-from ossos.gui.controllers import AbstractController
+from ossos.gui.controllers import AbstractController, ProcessRealsController
+from ossos.naming import ProvisionalNameGenerator
 
 
 class AbstractControllerTest(unittest.TestCase):
@@ -43,6 +45,57 @@ class AbstractControllerTest(unittest.TestCase):
 
         # Don't need to redraw whole image
         assert_that(self.view.display_current_image.call_count, equal_to(0))
+
+
+class RealsControllerTest(unittest.TestCase):
+    def setUp(self):
+        self.model = MagicMock(spec=UIModel)
+
+        # TODO: indicates refactoring needed
+        with patch("ossos.gui.controllers.ApplicationView"):
+            self.controller = ProcessRealsController(
+                self.model, Mock(spec=ProvisionalNameGenerator))
+            self.view = self.controller.get_view()
+
+    def test_accept_sets_note1_to_hand_adjusted_if_current_source_adjusted(self):
+        self.model.is_current_source_adjusted.return_value = True
+
+        self.controller.on_accept()
+        self.view.show_accept_source_dialog.assert_called_once_with(
+            ANY,
+            ANY,
+            ANY,
+            ANY,
+            ANY,
+            ANY,
+            ANY,
+            note1_choices=ANY,
+            note2_choices=ANY,
+            note1_default=config.read("MPC.NOTE1_HAND_ADJUSTED"),
+            note2_default=ANY,
+            default_observatory_code=ANY,
+            default_comment=ANY,
+            phot_failure=ANY)
+
+    def test_accept_doesnt_set_note1_to_hand_adjusted_if_current_source_not_adjusted(self):
+        self.model.is_current_source_adjusted.return_value = False
+
+        self.controller.on_accept()
+        self.view.show_accept_source_dialog.assert_called_once_with(
+            ANY,
+            ANY,
+            ANY,
+            ANY,
+            ANY,
+            ANY,
+            ANY,
+            note1_choices=ANY,
+            note2_choices=ANY,
+            note1_default=None,
+            note2_default=ANY,
+            default_observatory_code=ANY,
+            default_comment=ANY,
+            phot_failure=ANY)
 
 
 if __name__ == '__main__':
