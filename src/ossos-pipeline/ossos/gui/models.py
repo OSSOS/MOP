@@ -3,6 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 from ossos import wcs
 from ossos import astrom
 from ossos.gui import events
+from ossos.gui import logger
 from ossos.gui.workload import NoAvailableWorkException, StatefulCollection
 
 
@@ -19,10 +20,15 @@ class UIModel(object):
     Contains the data and associated operations available to the user interface.
     """
 
-    def __init__(self, workunit_provider, progress_manager, download_manager):
+    def __init__(self,
+                 workunit_provider,
+                 progress_manager,
+                 download_manager,
+                 synchronization_manager):
         self.workunit_provider = workunit_provider
         self.progress_manager = progress_manager
         self.download_manager = download_manager
+        self.synchronization_manager = synchronization_manager
 
         self.work_units = StatefulCollection()
 
@@ -230,6 +236,16 @@ class UIModel(object):
     def reset_current_source_location(self):
         self._get_current_image_reading().reset_source_location()
 
+    def enable_synchronization(self):
+        if self.synchronization_manager:
+            self.synchronization_manager.enable_sync()
+            logger.info("Synchronization enabled")
+
+    def disable_synchronization(self):
+        if self.synchronization_manager:
+            self.synchronization_manager.disable_sync()
+            logger.info("Synchronization disabled")
+
     def exit(self):
         try:
             self._unlock(self.get_current_workunit())
@@ -263,8 +279,11 @@ class UIModel(object):
         self._image_reading_models[reading] = ImageReading(reading, image)
         events.send(events.IMG_LOADED, reading)
 
-    def _on_finished_workunit(self, filename):
-        events.send(events.FINISHED_WORKUNIT, filename)
+    def _on_finished_workunit(self, results_file_path):
+        events.send(events.FINISHED_WORKUNIT, results_file_path)
+
+        if self.synchronization_manager:
+            self.synchronization_manager.add_syncable_file(results_file_path)
 
 
 class ImageReading(object):

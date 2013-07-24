@@ -94,7 +94,8 @@ class AbstractRealsModelTest(GeneralModelTest):
 
     def get_model(self):
         return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
+            self.workunit_provider, self.progress_manager, self.download_manager,
+            None)
 
     def test_sources_initialized(self):
         assert_that(self.model.get_current_source_number(), equal_to(0))
@@ -343,7 +344,8 @@ class ProcessRealsModelTest(GeneralModelTest):
 
     def get_model(self):
         return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
+            self.workunit_provider, self.progress_manager, self.download_manager,
+            None)
 
     def test_next_item_no_validation(self):
         observer = Mock()
@@ -541,7 +543,8 @@ class ProcessCandidatesModelTest(GeneralModelTest):
 
     def get_model(self):
         return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
+            self.workunit_provider, self.progress_manager, self.download_manager,
+            None)
 
     def test_next_item(self):
         observer = Mock()
@@ -651,7 +654,8 @@ class MultipleAstromDataModelTest(GeneralModelTest):
 
     def get_model(self):
         return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
+            self.workunit_provider, self.progress_manager, self.download_manager,
+            None)
 
     def _get_task(self):
         return tasks.CANDS_TASK
@@ -789,7 +793,8 @@ class MultipleAstromDataModelTest(GeneralModelTest):
 class RealsModelPersistenceTest(GeneralModelTest):
     def get_model(self):
         return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
+            self.workunit_provider, self.progress_manager, self.download_manager,
+            None)
 
     def setUp(self):
         super(RealsModelPersistenceTest, self).setUp()
@@ -905,7 +910,7 @@ class RealsModelPersistenceTest(GeneralModelTest):
         observer = Mock()
         events.subscribe(events.FINISHED_WORKUNIT, observer.on_file_processed)
 
-        filename = self.model.get_current_filename()
+        workunit = self.model.get_current_workunit()
         accepts_before_next_file = 9
 
         while accepts_before_next_file > 1:
@@ -923,7 +928,7 @@ class RealsModelPersistenceTest(GeneralModelTest):
 
         msg = args[0]
         assert_that(msg.topic, equal_to(events.FINISHED_WORKUNIT))
-        assert_that(msg.data, equal_to(filename))
+        assert_that(msg.data, equal_to(workunit.get_results_file_path()))
 
     def test_unlock_on_exit(self):
         current_file = self.model.get_current_filename()
@@ -936,7 +941,8 @@ class RealsModelPersistenceTest(GeneralModelTest):
 class RealsModelPersistenceLoadingTest(GeneralModelTest):
     def get_model(self):
         return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
+            self.workunit_provider, self.progress_manager, self.download_manager,
+            None)
 
     def setUp(self):
         # Have to set this up here because test cases may modify the .PART file
@@ -966,8 +972,8 @@ class RealsModelPersistenceLoadingTest(GeneralModelTest):
         observer = Mock()
         events.subscribe(events.FINISHED_WORKUNIT, observer)
 
-        assert_that(self.model.get_current_workunit().get_unprocessed_sources(),
-                    has_length(1))
+        workunit = self.model.get_current_workunit()
+        assert_that(workunit.get_unprocessed_sources(), has_length(1))
 
         assert_that(self.model.get_current_source_number(), equal_to(2))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
@@ -982,13 +988,14 @@ class RealsModelPersistenceLoadingTest(GeneralModelTest):
         assert_that(observer.call_count, equal_to(1))
 
         msg = observer.call_args_list[0][0][0]
-        assert_that(msg.data, equal_to("xxx3.reals.astrom"))
+        assert_that(msg.data, equal_to(workunit.get_results_file_path()))
 
 
 class CandidatesModelPersistenceTest(GeneralModelTest):
     def get_model(self):
         return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
+            self.workunit_provider, self.progress_manager, self.download_manager,
+            None)
 
     def setUp(self):
         super(CandidatesModelPersistenceTest, self).setUp()
@@ -1066,7 +1073,8 @@ class CandidatesModelPersistenceTest(GeneralModelTest):
 class CandidatesModelPersistenceLoadingTest(GeneralModelTest):
     def get_model(self):
         return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
+            self.workunit_provider, self.progress_manager, self.download_manager,
+            None)
 
     def create_part_file_with_indices(self, indices):
         str_indices = ""
@@ -1101,8 +1109,8 @@ class CandidatesModelPersistenceLoadingTest(GeneralModelTest):
         observer = Mock()
         events.subscribe(events.FINISHED_WORKUNIT, observer)
 
-        assert_that(self.model.get_current_workunit().get_unprocessed_sources(),
-                    has_length(1))
+        workunit = self.model.get_current_workunit()
+        assert_that(workunit.get_unprocessed_sources(), has_length(1))
 
         assert_that(self.model.get_current_source_number(), equal_to(1))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
@@ -1111,7 +1119,7 @@ class CandidatesModelPersistenceLoadingTest(GeneralModelTest):
         assert_that(observer.call_count, equal_to(1))
 
         msg = observer.call_args_list[0][0][0]
-        assert_that(msg.data, equal_to("xxx1.cands.astrom"))
+        assert_that(msg.data, equal_to(workunit.get_results_file_path()))
 
     def test_load_fast_forward_through_sources(self):
         self.create_part_file_with_indices([0, 1])
