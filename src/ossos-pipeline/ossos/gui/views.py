@@ -100,6 +100,10 @@ class ApplicationView(object):
         return self.mainframe.is_source_validation_enabled()
 
     @guithread
+    def disable_sync_menu(self):
+        self.mainframe.disable_sync_menu()
+
+    @guithread
     def show_certificate_dialog(self, handler, error_message):
         if not self.certificate_dialog:
             self.certificate_dialog = CertificateDialog(self.mainframe,
@@ -284,8 +288,10 @@ class MainFrame(wx.Frame):
 
         # Create menu bar
         menubar = wx.MenuBar()
-        menubar.Append(file_menu, "File")
-        menubar.Append(sync_menu, "Sync")
+        self.file_menu_title = "File"
+        menubar.Append(file_menu, self.file_menu_title)
+        self.sync_menu_title = "Sync"
+        menubar.Append(sync_menu, self.sync_menu_title)
         self.SetMenuBar(menubar)
 
         return menubar
@@ -354,6 +360,10 @@ class MainFrame(wx.Frame):
 
     def is_source_validation_enabled(self):
         return self.validation_view.is_validation_enabled()
+
+    def disable_sync_menu(self):
+        self.menubar.EnableTop(
+            self.menubar.FindMenu(self.sync_menu_title), False)
 
 
 class KeybindManager(object):
