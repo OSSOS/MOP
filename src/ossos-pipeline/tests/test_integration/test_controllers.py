@@ -36,20 +36,24 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
         WxWidgetTestCase.setUp(self)
 
         parser = AstromParser()
-        directory_manager = LocalDirectoryWorkingContext(
+        context = LocalDirectoryWorkingContext(
             self.get_abs_path("data/controller_testdir"))
-        progress_manager = LocalProgressManager(directory_manager)
+        progress_manager = LocalProgressManager(context)
         workunit_provider = WorkUnitProvider(tasks.get_suffix(tasks.REALS_TASK),
-                                             directory_manager, progress_manager,
+                                             context, progress_manager,
                                              RealsWorkUnitBuilder(
                                                  parser,
-                                                 directory_manager,
+                                                 context,
+                                                 context,
                                                  progress_manager))
 
         download_manager = Mock(spec=AsynchronousImageDownloadManager)
 
         self.model = UIModel(workunit_provider, progress_manager, download_manager)
         self.model.start_work()
+
+        # We don't actually have any images loaded, so mock this out
+        self.model.is_current_source_adjusted = Mock(return_value=False)
 
         self.name_generator = Mock()
         self.controller = ProcessRealsController(self.model, self.name_generator)
@@ -224,19 +228,20 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
         self.controller.on_accept()
 
         view_mock.show_accept_source_dialog.assert_called_once_with(
-            (ANY,
-             ANY,
-             ANY,
-             ANY,
-             ANY,
-             "", # obs_mag
-             "", # band
-             ANY,
-             ANY,
-             ANY,
-             ANY,
-             error_message, # default_comment
-             True)  # phot_failed
+            ANY,
+            ANY,
+            ANY,
+            ANY,
+            ANY,
+            "", # obs_mag
+            "", # band
+            note1_choices=ANY,
+            note2_choices=ANY,
+            note1_default=ANY,
+            note2_default=ANY,
+            default_observatory_code=ANY,
+            default_comment=error_message,
+            phot_failure=True
         )
 
 

@@ -550,12 +550,12 @@ class WorkloadManagementTest(unittest.TestCase):
 class WorkUnitProviderTest(FileReadingTestCase, DirectoryCleaningTestCase):
     def setUp(self):
         working_directory = self.get_directory_to_clean()
-        directory_manager = LocalDirectoryWorkingContext(working_directory)
-        progress_manager = InMemoryProgressManager(directory_manager)
+        context = LocalDirectoryWorkingContext(working_directory)
+        progress_manager = InMemoryProgressManager(context)
         parser = AstromParser()
-        builder = RealsWorkUnitBuilder(parser, directory_manager, progress_manager)
+        builder = RealsWorkUnitBuilder(parser, context, context, progress_manager)
         undertest = WorkUnitProvider(tasks.get_suffix(tasks.REALS_TASK),
-                                     directory_manager,
+                                     context,
                                      progress_manager,
                                      builder)
         self.progress_manager = progress_manager

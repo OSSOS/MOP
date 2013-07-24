@@ -55,12 +55,16 @@ class AcceptSourceDialogTest(WxWidgetTestCase):
     def test_required_preset_values(self):
         undertest = self.create_undertest()
 
-        assert_that(undertest.GetTitle(), equal_to(AcceptSourceDialog.TITLE))
-        self.assert_has_child_with_label(undertest, TEST_PROVISIONAL_NAME)
+        def assert_has_value(name, value):
+            assert_that(self.get_child_by_name(undertest, name).GetValue(),
+                        equal_to(str(value)))
 
-        self.assert_has_child_with_label(undertest, str(TEST_RA))
-        self.assert_has_child_with_label(undertest, str(TEST_DEC))
-        self.assert_has_child_with_label(undertest, TEST_DATE)
+        assert_that(undertest.GetTitle(), equal_to(AcceptSourceDialog.TITLE))
+        assert_has_value(AcceptSourceDialog.PROVISIONAL_NAME, TEST_PROVISIONAL_NAME)
+
+        assert_has_value(AcceptSourceDialog.RA, TEST_RA)
+        assert_has_value(AcceptSourceDialog.DEC, TEST_DEC)
+        assert_has_value(AcceptSourceDialog.DATE_OF_OBS, TEST_DATE)
 
     def test_note_comboboxes_populated(self):
         note1_choices = ["", "n1a", "n1b"]
