@@ -73,7 +73,7 @@ class Field(object):
 		return retval
 
 	# @property
-	# def export_triplet(self):
+	# def export_triplet(self):   # CHECK TMPFILE HAS BEEN SET TO CORRECT BLOCK
 	# 	retval = self.imagesQuery.export_discovery_triplet(self.fieldId)
 
 

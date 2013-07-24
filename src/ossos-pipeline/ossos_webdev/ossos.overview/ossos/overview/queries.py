@@ -19,8 +19,8 @@ class SurveyQuery(object):
 
 
 	def fields_observed(self):
-		# prune fields_observed to not include wallpaper.
 		fields = self.ims.what_fields_have_any_observations()
+		# don't include the wallpaper in the overall count
 		tno_fields = [f for f in fields if not f['fieldId'].__contains__('WP')]
 		num_fields = len(tno_fields)
 		# pixel scale is symmetric, 0.1850 arcsec/pixel. Dectector is [1:23219,1:19354] pixels.
