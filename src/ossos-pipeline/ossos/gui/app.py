@@ -120,6 +120,9 @@ class ValidationApplication(object):
         self.model = model
         self.view = controller.get_view()
 
+        if not synchronization_manager:
+            self.view.disable_sync_menu()
+
         wx_app.MainLoop()
 
     def get_model(self):
