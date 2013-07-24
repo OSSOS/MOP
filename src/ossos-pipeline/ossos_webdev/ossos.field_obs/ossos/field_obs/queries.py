@@ -1,10 +1,7 @@
 import sqlalchemy as sa
 from ossos.overview.ossuary import OssuaryTable
 import os, vos, ephem, datetime
-
-CERTFILE=os.path.join(os.getenv('HOME'),
-                      '.ssl',
-                      'cadcproxy.pem')
+from ossos import storage
 
 
 class ImagesQuery(object):
@@ -22,6 +19,7 @@ class ImagesQuery(object):
 		ss.append_whereclause(it.c.cfht_field == field)
 		ims_query = self.conn.execute(ss)
 		ret_images = self.format_imquery_return(ims_query)
+		proc_levels = self.get_processing_status(ret_images)
 
 		retval = {'obs':ret_images}
 
@@ -38,6 +36,85 @@ class ImagesQuery(object):
 		ims_query.close()
 
 		return ret_images
+
+
+	def get_processing_status(self, ret_images):
+		# want to show: [vtag, vtag:{error:[ccds] sorted in ascending ccd order}]
+		# where the vtags are shown in their order of processing.
+	
+		retval = []
+		for row in ret_images:
+			retrow = row
+			proc_keys = self.clean_keys(row)
+			errors = self.collate_errors(proc_keys)
+
+			# display the steps existing and their errors, if any.
+			order = []
+			steps = ['mkpsf', 'update_header', 'step1', 'step2', 'step3', 'combine', 'scramble', 'plant', 'fkstep1', 'fkstep2', 'fkstep3', 'fkcombine']
+			for j, step in enumerate(steps):
+			 	if step in errors.keys():  
+			 		if len(errors[step]) == 0: # step was completed successfully for all ccds
+				 		order.append(step)
+				 	else:
+				 		order.append({step: errors[step]})
+
+			retrow.append(order)
+			retval.append(retrow)
+
+		return retval
+
+
+	def clean_keys(self, row):
+		# first retrieve and clean off the keys
+		uri = os.path.join(storage.DBIMAGES, str(row[2]))
+		node = storage.vospace.getNode(uri).props
+		unwanted = ['creator', 'date', 'groupread', 'groupwrite', 'ispublic', 'length']
+		proc_keys = []
+		for vtag, value in node.items():
+			if (vtag not in unwanted) and not vtag.__contains__('fwhm') and not vtag.__contains__('zeropoint'):
+				try:
+					clean_key = vtag.split("#")[1]
+				except:
+					clean_key = vtag
+				proc_keys.append((clean_key, value))
+
+		return proc_keys
+
+
+	def collate_errors(self, proc_keys):
+		# split each vtag to its root and collate errors under 
+		# {root:{error:[ccds]}}, where ccds are sorted in ascending order.
+		errors = {}
+		for key, val in proc_keys:
+			if not key.__contains__('update_header'):
+				root, ccd = key.split('_')[0], key.split('_')[1]
+			else:  # this vtag has a different naming convention: extra underscore
+				root = key.rpartition('_')[0]
+
+			tag = errors.get(root, {})
+			if not val == 'success':  # not successful :(
+				err = tag.get(val, [])
+				err.append(ccd)
+				tag[val] = err
+			errors[root] = tag  # entirely successful vtags will have just root:[] in errors
+
+		retval = self.sort_ccds(errors)
+
+		return retval
+
+
+	def sort_ccds(self, errors):
+		# sort the ccds into order for each error
+		retval = {}
+		for root, errs in errors.items():
+			rr = retval.get(root, {})
+			for error_type, ccds in errs.items():
+				temp = ccds
+				temp.sort()
+				rr[error_type] = temp
+			retval[root] = rr
+
+		return retval
 
 
 	def field_ra(self, field):
@@ -266,17 +343,15 @@ class ImagesQuery(object):
 		triplet = self.discovery_triplet(field)
 
 		if triplet:
-#			try:
 			stem = 'vos:OSSOS/triplets/'
-			vospace = vos.Client(certFile=CERTFILE)
 			# TESTING TESTING REMOVE BEFORE FLIGHT
-			tmpfile = 'E_13A_discovery_expnums.txt'
+			tmpfile = 'test_13A_discovery_expnums.txt'
 			blockuri = stem + tmpfile
 
 			# does a file for this block already exist in VOSpace? If so, copy it back.
-			if vospace.access(blockuri):  # Does this work this way?
+			if storage.vospace.access(blockuri):  # Does this work this way?
 				# vospace.create(blockuri)
-				vospace.copy(blockuri, './'+tmpfile)
+				storage.vospace.copy(blockuri, './'+tmpfile)
 				print tmpfile, '<-', blockuri
 				# the field is already present
 				with open(tmpfile, 'r+') as scratch:
@@ -290,13 +365,10 @@ class ImagesQuery(object):
 					# 3-line file: id id id field
 					scratch.write('%s %s %s %s\n' % (triplet[0][0], triplet[0][1], triplet[0][2], field))
 
-			vospace.copy(tmpfile, blockuri)
+			storage.vospace.copy(tmpfile, blockuri)
 			print tmpfile, '->', blockuri
 
-#			except Exception, e:
-#				print e
-
-		return
+#		return
 
 
 

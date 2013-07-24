@@ -4,7 +4,8 @@
     "KEYBINDS": {
         "ACCEPT_SRC": "a",
         "REJECT_SRC": "r",
-        "RESET_CMAP": "s"
+        "RESET_CMAP": "s",
+        "RESET_SOURCE_LOCATION": "c"
     },
 
     "IMG_RETRIEVAL": {
@@ -14,6 +15,8 @@
 
     "MPC": {
         "DEFAULT_OBSERVATORY_CODE": "568",
+
+        "NOTE1_HAND_ADJUSTED": "H  hand measurement of CCD image",
 
         "NOTE1OPTIONS": [
             "",

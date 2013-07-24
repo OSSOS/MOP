@@ -4,6 +4,7 @@
 [ -f ${HOME}/.moprc ] && source ${HOME}/.moprc
 
 ## this script should be shipped with a cadcproxy.epm file
+[ -e ${HOME}/.ssl ] || mkdir -p ${HOME}/.ssl
 [ -f cadcproxy.pem ]  && cp cadcproxy.pem ${HOME}/.ssl/cadcproxy.pem
 
 Usage="Usage: runner.sh jobid script arguments"
@@ -32,7 +33,7 @@ touch log_capture_on
 
 # launch the job (check if maybe its in local dir first)
 [ -e ${script} ] && script="./${script}"
-${script} $args &> ${logfile}
+${script} $args >& ${logfile}
 status=$?
 
 # job is done, delte log_capture_on and then wait until sync.sh returns
