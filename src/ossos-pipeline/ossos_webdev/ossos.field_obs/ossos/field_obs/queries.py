@@ -19,11 +19,8 @@ class ImagesQuery(object):
 		ss.append_whereclause(it.c.cfht_field == field)
 		ims_query = self.conn.execute(ss)
 		ret_images = self.format_imquery_return(ims_query)
-		proc_levels = self.get_processing_status(ret_images)
-
-		retval = {'obs':ret_images}
-
-		return retval
+	
+		return ret_images
 
 
 	def format_imquery_return(self, ims_query):
@@ -274,7 +271,7 @@ class ImagesQuery(object):
 		retval = 'no discovery triplet'
 		if triplet:
 			images = self.field_images(field)
-			precoveries = [im for im in images['obs'] if (im[0] < triplet[1][0][4])]
+			precoveries = [im for im in images if (im[0] < triplet[1][0][4])]
 			retval = len(precoveries)
 
 		return retval
@@ -286,7 +283,7 @@ class ImagesQuery(object):
 		retval = 'no discovery triplet'
 		if triplet:
 			images = self.field_images(field)
-			after = [im for im in images['obs'] if 
+			after = [im for im in images if 
 					((im[0] > triplet[1][2][4]) 
 						and im[0].strftime('%Y-%m-%d') != triplet[1][2][4].strftime('%Y-%m-%d'))]
 

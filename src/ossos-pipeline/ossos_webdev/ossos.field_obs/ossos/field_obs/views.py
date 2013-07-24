@@ -22,7 +22,9 @@ class Field(object):
 
 	@property
 	def observations(self):
-		retval = self.imagesQuery.field_images(self.fieldId)
+		rv = self.imagesQuery.field_images(self.fieldId)
+		proc_rv = self.imagesQuery.get_processing_status(rv) # here to stop slow loading elsewhere
+		retval = {'obs':proc_rv}
 		return retval
 	
 	@property
