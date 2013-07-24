@@ -1,6 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import os
+import random
 
 from ossos.gui import tasks, logger
 from ossos.astrom import StreamingAstromWriter
@@ -348,7 +349,9 @@ class WorkUnitProvider(object):
         potential_files = self.directory_context.get_listing(self.taskid)
 
         while len(potential_files) > 0:
-            potential_file = potential_files.pop()
+            # Don't want predictable patterns in the order we get work units.
+            potential_file = random.choice(potential_files)
+            potential_files.remove(potential_file)
 
             if self.directory_context.get_file_size(potential_file) == 0:
                 continue
