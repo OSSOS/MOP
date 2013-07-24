@@ -314,9 +314,9 @@ class MainFrame(wx.Frame):
 
     def _on_select_automatically_sync(self, event):
         if event.Checked():
-            print "TODO: enable automatic sync"
+            self.controller.on_enable_auto_sync()
         else:
-            print "TODO: disble automatic sync"
+            self.controller.on_disable_auto_sync()
 
     def view_image(self, fits_image, redraw=True):
         self.image_viewer.view_image(fits_image, redraw=redraw)
