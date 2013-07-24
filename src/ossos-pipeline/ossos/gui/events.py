@@ -1,7 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 # TODO: compatibility with both new and old versions
-from wx.lib.pubsub import setupv1
+#from wx.lib.pubsub import setupv1
 from wx.lib.pubsub import Publisher as pub
 
 # Event ids
