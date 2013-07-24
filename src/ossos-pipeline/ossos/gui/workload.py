@@ -98,11 +98,16 @@ class WorkUnit(object):
     input file.
     """
 
-    def __init__(self, filename, parsed_data, progress_manager, results_writer):
+    def __init__(self, filename,
+                 parsed_data,
+                 progress_manager,
+                 results_writer,
+                 output_context):
         self.filename = filename
         self.data = parsed_data
         self.progress_manager = progress_manager
         self.results_writer = results_writer
+        self.output_context = output_context
 
         self.sources = StatefulCollection(parsed_data.get_sources())
 
@@ -153,7 +158,7 @@ class WorkUnit(object):
             self.progress_manager.record_done(self.get_filename())
 
             for callback in self.finished_callbacks:
-                callback(self.get_filename())
+                callback(self.get_results_file_path())
 
     def get_current_item(self):
         raise NotImplementedError()
@@ -214,6 +219,10 @@ class WorkUnit(object):
     def get_writer(self):
         return self.results_writer
 
+    def get_results_file_path(self):
+        return self.output_context.get_full_path(
+            self.results_writer.get_filename())
+
     def is_finished(self):
         return len(self._get_item_set() - self.processed_items) == 0
 
@@ -232,9 +241,18 @@ class RealsWorkUnit(WorkUnit):
     A unit of work when performing the process reals task.
     """
 
-    def __init__(self, filename, parsed_data, progress_manager, results_writer):
+    def __init__(self,
+                 filename,
+                 parsed_data,
+                 progress_manager,
+                 results_writer,
+                 output_context):
         super(RealsWorkUnit, self).__init__(
-            filename, parsed_data, progress_manager, results_writer)
+            filename,
+            parsed_data,
+            progress_manager,
+            results_writer,
+            output_context)
 
     def next_item(self):
         assert not self.is_finished()
@@ -287,9 +305,18 @@ class CandidatesWorkUnit(WorkUnit):
     A unit of work when performing the process candidates task.
     """
 
-    def __init__(self, filename, parsed_data, progress_manager, results_writer):
+    def __init__(self,
+                 filename,
+                 parsed_data,
+                 progress_manager,
+                 results_writer,
+                 output_context):
         super(CandidatesWorkUnit, self).__init__(
-            filename, parsed_data, progress_manager, results_writer)
+            filename,
+            parsed_data,
+            progress_manager,
+            results_writer,
+            output_context)
 
     def next_item(self):
         assert not self.is_finished()
@@ -393,12 +420,18 @@ class WorkUnitBuilder(object):
             input_filename,
             parsed_data,
             self.progress_manager,
-            self._create_results_writer(output_filehandle, parsed_data))
+            self._create_results_writer(output_filehandle, parsed_data),
+            self.output_context)
 
     def _create_results_writer(self, full_path, parsed_data):
         raise NotImplementedError()
 
-    def _do_build_workunit(self, filename, data, progress_manager, writer):
+    def _do_build_workunit(self,
+                           filename,
+                           data,
+                           progress_manager,
+                           writer,
+                           output_context):
         raise NotImplementedError()
 
     def _get_output_filename(self, input_filename):
@@ -424,8 +457,14 @@ class RealsWorkUnitBuilder(WorkUnitBuilder):
 
         return MPCWriter(output_filehandle, auto_flush=False)
 
-    def _do_build_workunit(self, filename, data, progress_manager, writer):
-        return RealsWorkUnit(filename, data, progress_manager, writer)
+    def _do_build_workunit(self,
+                           filename,
+                           data,
+                           progress_manager,
+                           writer,
+                           output_context):
+        return RealsWorkUnit(
+            filename, data, progress_manager, writer, output_context)
 
     def _get_output_filename(self, input_filename):
         return input_filename.replace(tasks.get_suffix(tasks.REALS_TASK),
@@ -445,8 +484,14 @@ class CandidatesWorkUnitBuilder(WorkUnitBuilder):
     def _create_results_writer(self, output_filehandle, parsed_data):
         return StreamingAstromWriter(output_filehandle, parsed_data.sys_header)
 
-    def _do_build_workunit(self, filename, data, progress_manager, writer):
-        return CandidatesWorkUnit(filename, data, progress_manager, writer)
+    def _do_build_workunit(self,
+                           filename,
+                           data,
+                           progress_manager,
+                           writer,
+                           output_context):
+        return CandidatesWorkUnit(
+            filename, data, progress_manager, writer, output_context)
 
     def _get_output_filename(self, input_filename):
         return input_filename.replace(tasks.get_suffix(tasks.CANDS_TASK),
