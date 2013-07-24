@@ -17,6 +17,9 @@ class WorkingContext(object):
     def __init__(self, directory):
         self.directory = directory
 
+    def is_remote(self):
+        raise NotImplementedError()
+
     def get_full_path(self, filename):
         return os.path.join(self.directory, filename)
 
@@ -49,6 +52,9 @@ class LocalDirectoryWorkingContext(WorkingContext):
     def __init__(self, directory):
         super(LocalDirectoryWorkingContext, self).__init__(directory)
 
+    def is_remote(self):
+        return False
+
     def listdir(self):
         return os.listdir(self.directory)
 
@@ -74,6 +80,9 @@ class LocalDirectoryWorkingContext(WorkingContext):
 class VOSpaceWorkingContext(WorkingContext):
     def __init__(self, directory):
         super(VOSpaceWorkingContext, self).__init__(directory)
+
+    def is_remote(self):
+        return True
 
     def listdir(self):
         # force to make sure we don't get cached results

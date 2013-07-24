@@ -74,6 +74,12 @@ class AbstractController(object):
             if should_exit:
                 self._do_exit()
 
+    def on_enable_auto_sync(self):
+        self.model.enable_synchronization()
+
+    def on_disable_auto_sync(self):
+        self.model.disable_synchronization()
+
     def on_exit(self):
         self._do_exit()
 
