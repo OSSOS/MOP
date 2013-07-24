@@ -93,6 +93,7 @@
             <th>Nailings</th>
             <th>Doubles</th>
             <th>Discoveries</th>
+            <th>Processing status</th>
           </tr>
         </thead>
         <tbody>
@@ -105,8 +106,10 @@
                 <td>${obj[3]}</td>
                 <td>${obj[4]}</td>
                 <td>${obj[5]}</td>
+                <td></td>
+                <!-- add a td here for block processing status (overview level) -->
               </tal:block>
-              <td tal:condition="not(obj)" colspan="6">
+              <td tal:condition="not(obj)" colspan="7">
                 &mdash;
               </td>
             </tr>
