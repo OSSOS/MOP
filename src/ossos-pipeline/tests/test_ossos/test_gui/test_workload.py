@@ -525,7 +525,7 @@ class WorkloadManagementTest(unittest.TestCase):
         download_manager = Mock(spec=AsynchronousImageDownloadManager)
 
         self.undertest = UIModel(self.workunit_provider, self.progress_manager,
-                                 download_manager)
+                                 download_manager, None)
         self.undertest.start_work()
 
     def test_workunits_on_demand(self):

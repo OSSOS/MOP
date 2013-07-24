@@ -94,7 +94,8 @@ class AbstractRealsModelTest(GeneralModelTest):
 
     def get_model(self):
         return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
+            self.workunit_provider, self.progress_manager, self.download_manager,
+            None)
 
     def test_sources_initialized(self):
         assert_that(self.model.get_current_source_number(), equal_to(0))
@@ -343,7 +344,8 @@ class ProcessRealsModelTest(GeneralModelTest):
 
     def get_model(self):
         return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
+            self.workunit_provider, self.progress_manager, self.download_manager,
+            None)
 
     def test_next_item_no_validation(self):
         observer = Mock()
@@ -541,7 +543,8 @@ class ProcessCandidatesModelTest(GeneralModelTest):
 
     def get_model(self):
         return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
+            self.workunit_provider, self.progress_manager, self.download_manager,
+            None)
 
     def test_next_item(self):
         observer = Mock()
@@ -651,7 +654,8 @@ class MultipleAstromDataModelTest(GeneralModelTest):
 
     def get_model(self):
         return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
+            self.workunit_provider, self.progress_manager, self.download_manager,
+            None)
 
     def _get_task(self):
         return tasks.CANDS_TASK
@@ -789,7 +793,8 @@ class MultipleAstromDataModelTest(GeneralModelTest):
 class RealsModelPersistenceTest(GeneralModelTest):
     def get_model(self):
         return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
+            self.workunit_provider, self.progress_manager, self.download_manager,
+            None)
 
     def setUp(self):
         super(RealsModelPersistenceTest, self).setUp()
@@ -936,7 +941,8 @@ class RealsModelPersistenceTest(GeneralModelTest):
 class RealsModelPersistenceLoadingTest(GeneralModelTest):
     def get_model(self):
         return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
+            self.workunit_provider, self.progress_manager, self.download_manager,
+            None)
 
     def setUp(self):
         # Have to set this up here because test cases may modify the .PART file
@@ -988,7 +994,8 @@ class RealsModelPersistenceLoadingTest(GeneralModelTest):
 class CandidatesModelPersistenceTest(GeneralModelTest):
     def get_model(self):
         return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
+            self.workunit_provider, self.progress_manager, self.download_manager,
+            None)
 
     def setUp(self):
         super(CandidatesModelPersistenceTest, self).setUp()
@@ -1066,7 +1073,8 @@ class CandidatesModelPersistenceTest(GeneralModelTest):
 class CandidatesModelPersistenceLoadingTest(GeneralModelTest):
     def get_model(self):
         return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
+            self.workunit_provider, self.progress_manager, self.download_manager,
+            None)
 
     def create_part_file_with_indices(self, indices):
         str_indices = ""
