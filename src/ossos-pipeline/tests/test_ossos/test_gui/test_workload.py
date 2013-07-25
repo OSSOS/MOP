@@ -570,42 +570,42 @@ class PreFetchingWorkUnitProviderTest(unittest.TestCase):
 
         self.workunit_provider.get_workunit.side_effect = side_effect
 
-    def mock_fetch_workunit(self, bypass_threading=False):
-        fetch_workunit_mock = Mock()
+    def mock_prefetch_workunit(self, bypass_threading=False):
+        prefetch_workunit_mock = Mock()
 
         if bypass_threading:
             def do_prefetch():
-                self.undertest._do_fetch_workunit()
+                self.undertest._do_prefetch_workunit()
 
-            fetch_workunit_mock.side_effect = do_prefetch
+            prefetch_workunit_mock.side_effect = do_prefetch
 
         else:
             def generate_mocked_workunit():
-                self.undertest.workunits.put(self.create_workunit())
+                self.undertest.workunits.append(self.create_workunit())
 
-            fetch_workunit_mock.side_effect = generate_mocked_workunit
+            prefetch_workunit_mock.side_effect = generate_mocked_workunit
 
-        self.undertest.fetch_workunit = fetch_workunit_mock
+        self.undertest.prefetch_workunit = prefetch_workunit_mock
 
-        return fetch_workunit_mock
+        return prefetch_workunit_mock
 
     def test_get_first_workunit_also_prefetches_configured_quantity(self):
-        fetch_workunit_mock = self.mock_fetch_workunit()
+        prefetch_workunit_mock = self.mock_prefetch_workunit()
 
         self.undertest.get_workunit()
-        assert_that(fetch_workunit_mock.call_count,
-                    equal_to(self.prefetch_quantity + 1))
+        assert_that(prefetch_workunit_mock.call_count,
+                    equal_to(self.prefetch_quantity))
 
     def test_get_second_workunit_prefetches_one_more(self):
-        fetch_workunit_mock = self.mock_fetch_workunit()
+        prefetch_workunit_mock = self.mock_prefetch_workunit()
 
         self.undertest.get_workunit()
         self.undertest.get_workunit()
-        assert_that(fetch_workunit_mock.call_count,
-                    equal_to(self.prefetch_quantity + 2))
+        assert_that(prefetch_workunit_mock.call_count,
+                    equal_to(self.prefetch_quantity + 1))
 
     def test_all_prefetched_doesnt_raise_no_available_work_until_all_retrieved(self):
-        fetch_workunit_mock = self.mock_fetch_workunit(bypass_threading=True)
+        prefetch_workunit_mock = self.mock_prefetch_workunit(bypass_threading=True)
 
         workunit1 = self.create_workunit()
         workunit2 = self.create_workunit()
@@ -616,20 +616,20 @@ class PreFetchingWorkUnitProviderTest(unittest.TestCase):
 
         assert_that(self.undertest.get_workunit(), equal_to(workunit1))
 
-        assert_that(fetch_workunit_mock.call_count,
-                    equal_to(self.prefetch_quantity + 1))
+        assert_that(prefetch_workunit_mock.call_count,
+                    equal_to(self.prefetch_quantity))
 
         assert_that(self.undertest.get_workunit(), equal_to(workunit2))
 
         # This call to fetch will raise a NoAvailableWorkException
-        assert_that(fetch_workunit_mock.call_count,
-                    equal_to(self.prefetch_quantity + 2))
+        assert_that(prefetch_workunit_mock.call_count,
+                    equal_to(self.prefetch_quantity + 1))
 
         assert_that(self.undertest.get_workunit(), equal_to(workunit3))
 
         # Note we don't try to fetch anymore
-        assert_that(fetch_workunit_mock.call_count,
-                    equal_to(self.prefetch_quantity + 2))
+        assert_that(prefetch_workunit_mock.call_count,
+                    equal_to(self.prefetch_quantity + 1))
 
         self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
 
@@ -638,7 +638,7 @@ class PreFetchingWorkUnitProviderTest(unittest.TestCase):
         self.workunit_provider = Mock(spec=WorkUnitProvider)
         self.undertest = PreFetchingWorkUnitProvider(self.workunit_provider,
                                                      self.prefetch_quantity)
-        fetch_workunit_mock = self.mock_fetch_workunit(bypass_threading=True)
+        prefetch_workunit_mock = self.mock_prefetch_workunit(bypass_threading=True)
 
         workunit1 = self.create_workunit()
         workunit2 = self.create_workunit()
@@ -649,15 +649,15 @@ class PreFetchingWorkUnitProviderTest(unittest.TestCase):
 
         assert_that(self.undertest.get_workunit(), equal_to(workunit1))
 
-        assert_that(fetch_workunit_mock.call_count, equal_to(1))
+        assert_that(prefetch_workunit_mock.call_count, equal_to(0))
 
         assert_that(self.undertest.get_workunit(), equal_to(workunit2))
 
-        assert_that(fetch_workunit_mock.call_count, equal_to(2))
+        assert_that(prefetch_workunit_mock.call_count, equal_to(0))
 
         assert_that(self.undertest.get_workunit(), equal_to(workunit3))
 
-        assert_that(fetch_workunit_mock.call_count, equal_to(3))
+        assert_that(prefetch_workunit_mock.call_count, equal_to(0))
 
         self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
 
