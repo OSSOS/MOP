@@ -409,6 +409,7 @@ class PreFetchingWorkUnitProvider(object):
         self.workunit_provider = workunit_provider
         self.prefetch_quantity = prefetch_quantity
 
+        self.fetched_files = []
         self.workunits = []
         self._all_fetched = False
 
@@ -419,7 +420,9 @@ class PreFetchingWorkUnitProvider(object):
         if len(self.workunits) > 0:
             workunit = self.workunits.pop(0)
         else:
-            workunit = self.workunit_provider.get_workunit()
+            workunit = self.workunit_provider.get_workunit(
+                ignore_list=self.fetched_files)
+            self.fetched_files.append(workunit.get_filename())
 
         self.trigger_prefetching()
         return workunit
@@ -443,7 +446,15 @@ class PreFetchingWorkUnitProvider(object):
 
     def _do_prefetch_workunit(self):
         try:
-            self.workunits.append(self.workunit_provider.get_workunit())
+            workunit = self.workunit_provider.get_workunit(
+                ignore_list=self.fetched_files)
+            filename = workunit.get_filename()
+
+            self.fetched_files.append(filename)
+            self.workunits.append(workunit)
+
+            logger.info("%s was prefetched." % filename)
+
         except NoAvailableWorkException:
             self._all_fetched = True
 
