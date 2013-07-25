@@ -17,7 +17,7 @@ from ossos.gui.persistence import LocalProgressManager, InMemoryProgressManager
 from ossos.gui.workload import (WorkUnitProvider, WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
                                 NoAvailableWorkException,
                                 StatefulCollection,
-                                RealsWorkUnitBuilder)
+                                RealsWorkUnitBuilder, PreFetchingWorkUnitProvider)
 
 
 class TestDirectoryManager(object):
@@ -547,6 +547,117 @@ class WorkUnitProviderTest(unittest.TestCase):
         workunit = self.undertest.get_workunit()
         assert_that(workunit.get_filename(), equal_to(self.file1))
         self.progress_manager.record_done(self.file1)
+
+        self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
+
+
+class PreFetchingWorkUnitProviderTest(unittest.TestCase):
+    def setUp(self):
+        self.prefetch_quantity = 2
+        self.workunit_provider = Mock(spec=WorkUnitProvider)
+        self.undertest = PreFetchingWorkUnitProvider(self.workunit_provider,
+                                                     self.prefetch_quantity)
+
+    def create_workunit(self):
+        return Mock(spec=WorkUnit)
+
+    def set_workunit_provider_return_values(self, return_values):
+        def side_effect():
+            result = return_values.pop(0)
+            if isinstance(result, Exception):
+                raise result
+            return result
+
+        self.workunit_provider.get_workunit.side_effect = side_effect
+
+    def mock_fetch_workunit(self, bypass_threading=False):
+        fetch_workunit_mock = Mock()
+
+        if bypass_threading:
+            def do_prefetch():
+                self.undertest._do_fetch_workunit()
+
+            fetch_workunit_mock.side_effect = do_prefetch
+
+        else:
+            def generate_mocked_workunit():
+                self.undertest.workunits.put(self.create_workunit())
+
+            fetch_workunit_mock.side_effect = generate_mocked_workunit
+
+        self.undertest.fetch_workunit = fetch_workunit_mock
+
+        return fetch_workunit_mock
+
+    def test_get_first_workunit_also_prefetches_configured_quantity(self):
+        fetch_workunit_mock = self.mock_fetch_workunit()
+
+        self.undertest.get_workunit()
+        assert_that(fetch_workunit_mock.call_count,
+                    equal_to(self.prefetch_quantity + 1))
+
+    def test_get_second_workunit_prefetches_one_more(self):
+        fetch_workunit_mock = self.mock_fetch_workunit()
+
+        self.undertest.get_workunit()
+        self.undertest.get_workunit()
+        assert_that(fetch_workunit_mock.call_count,
+                    equal_to(self.prefetch_quantity + 2))
+
+    def test_all_prefetched_doesnt_raise_no_available_work_until_all_retrieved(self):
+        fetch_workunit_mock = self.mock_fetch_workunit(bypass_threading=True)
+
+        workunit1 = self.create_workunit()
+        workunit2 = self.create_workunit()
+        workunit3 = self.create_workunit()
+
+        self.set_workunit_provider_return_values(
+            [workunit1, workunit2, workunit3, NoAvailableWorkException()])
+
+        assert_that(self.undertest.get_workunit(), equal_to(workunit1))
+
+        assert_that(fetch_workunit_mock.call_count,
+                    equal_to(self.prefetch_quantity + 1))
+
+        assert_that(self.undertest.get_workunit(), equal_to(workunit2))
+
+        # This call to fetch will raise a NoAvailableWorkException
+        assert_that(fetch_workunit_mock.call_count,
+                    equal_to(self.prefetch_quantity + 2))
+
+        assert_that(self.undertest.get_workunit(), equal_to(workunit3))
+
+        # Note we don't try to fetch anymore
+        assert_that(fetch_workunit_mock.call_count,
+                    equal_to(self.prefetch_quantity + 2))
+
+        self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
+
+    def test_get_workunit_no_prefetch(self):
+        self.prefetch_quantity = 0
+        self.workunit_provider = Mock(spec=WorkUnitProvider)
+        self.undertest = PreFetchingWorkUnitProvider(self.workunit_provider,
+                                                     self.prefetch_quantity)
+        fetch_workunit_mock = self.mock_fetch_workunit(bypass_threading=True)
+
+        workunit1 = self.create_workunit()
+        workunit2 = self.create_workunit()
+        workunit3 = self.create_workunit()
+
+        self.set_workunit_provider_return_values(
+            [workunit1, workunit2, workunit3, NoAvailableWorkException()])
+
+        assert_that(self.undertest.get_workunit(), equal_to(workunit1))
+
+        assert_that(fetch_workunit_mock.call_count, equal_to(1))
+
+        assert_that(self.undertest.get_workunit(), equal_to(workunit2))
+
+        assert_that(fetch_workunit_mock.call_count, equal_to(2))
+
+        assert_that(self.undertest.get_workunit(), equal_to(workunit3))
+
+        assert_that(fetch_workunit_mock.call_count, equal_to(3))
 
         self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
 

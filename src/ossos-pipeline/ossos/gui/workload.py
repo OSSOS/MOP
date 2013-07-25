@@ -1,7 +1,9 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import Queue
 import os
 import random
+import threading
 
 from ossos.gui import tasks, logger
 from ossos.astrom import StreamingAstromWriter
@@ -393,6 +395,42 @@ class WorkUnitProvider(object):
                     self.directory_context.get_full_path(potential_file))
 
         raise NoAvailableWorkException()
+
+
+class PreFetchingWorkUnitProvider(object):
+    def __init__(self, workunit_provider, prefetch_quantity):
+        self.workunit_provider = workunit_provider
+        self.prefetch_quantity = prefetch_quantity
+
+        self.workunits = Queue.Queue()
+        self._all_fetched = False
+
+    def get_workunit(self):
+        if self._all_fetched and self.workunits.empty():
+            raise NoAvailableWorkException()
+
+        # Add 1 for the workunit we are about to return immediately
+        self.trigger_prefetching(self.prefetch_quantity + 1)
+        return self.workunits.get()
+
+    def trigger_prefetching(self, num_workunits):
+        if self._all_fetched:
+            return
+
+        num_to_fetch = num_workunits - self.workunits.qsize()
+
+        while num_to_fetch > 0:
+            self.fetch_workunit()
+            num_to_fetch -= 1
+
+    def fetch_workunit(self):
+        threading.Thread(target=self._do_fetch_workunit).start()
+
+    def _do_fetch_workunit(self):
+        try:
+            self.workunits.put(self.workunit_provider.get_workunit())
+        except NoAvailableWorkException:
+            self._all_fetched = True
 
 
 class WorkUnitBuilder(object):
