@@ -355,11 +355,13 @@ class WorkUnitProvider(object):
                  taskid,
                  directory_context,
                  progress_manager,
-                 builder):
+                 builder,
+                 randomize=False):
         self.taskid = taskid
         self.directory_context = directory_context
         self.progress_manager = progress_manager
         self.builder = builder
+        self.randomize = randomize
 
     def get_workunit(self):
         """
@@ -376,8 +378,7 @@ class WorkUnitProvider(object):
         potential_files = self.directory_context.get_listing(self.taskid)
 
         while len(potential_files) > 0:
-            # Don't want predictable patterns in the order we get work units.
-            potential_file = random.choice(potential_files)
+            potential_file = self.select_potential_file(potential_files)
             potential_files.remove(potential_file)
 
             if self.directory_context.get_file_size(potential_file) == 0:
@@ -393,6 +394,13 @@ class WorkUnitProvider(object):
                     self.directory_context.get_full_path(potential_file))
 
         raise NoAvailableWorkException()
+
+    def select_potential_file(self, potential_files):
+        if self.randomize:
+            # Don't want predictable patterns in the order we get work units.
+            return random.choice(potential_files)
+        else:
+            return potential_files[0]
 
 
 class WorkUnitBuilder(object):

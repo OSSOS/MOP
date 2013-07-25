@@ -30,6 +30,9 @@ class AbstractTaskFactory(object):
     def create_controller(self, model):
         pass
 
+    def should_randomize_workunits(self):
+        pass
+
 
 class ProcessRealsTaskFactory(AbstractTaskFactory):
     def __init__(self):
@@ -52,6 +55,9 @@ class ProcessRealsTaskFactory(AbstractTaskFactory):
     def create_controller(self, model):
         return ProcessRealsController(model, ProvisionalNameGenerator())
 
+    def should_randomize_workunits(self):
+        return False
+
 
 class ProcessCandidatesTaskFactory(AbstractTaskFactory):
     def create_workunit_builder(self,
@@ -64,6 +70,9 @@ class ProcessCandidatesTaskFactory(AbstractTaskFactory):
 
     def create_controller(self, model):
         return ProcessCandidatesController(model)
+
+    def should_randomize_workunits(self):
+        return True
 
 
 class ValidationApplication(object):
@@ -103,8 +112,11 @@ class ValidationApplication(object):
                                                   working_context,
                                                   output_context,
                                                   progress_manager)
-        workunit_provider = WorkUnitProvider(tasks.get_suffix(taskname), working_context,
-                                             progress_manager, builder)
+
+        workunit_provider = WorkUnitProvider(tasks.get_suffix(taskname),
+                                             working_context,
+                                             progress_manager, builder,
+                                             randomize=factory.should_randomize_workunits())
 
         if working_context.is_remote():
             synchronization_manager = SynchronizationManager(working_context)
