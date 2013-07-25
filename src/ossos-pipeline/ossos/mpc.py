@@ -38,6 +38,9 @@ class MPCWriter(object):
         self.auto_flush = auto_flush
         self.date_regex = re.compile("\d{4} \d{2} \d{2}\.\d{5,6}")
 
+    def get_filename(self):
+        return self.filehandle.name
+
     def write_comment(self, reading, comment):
         """
         Writes a special comment line intended to annotate the following line.

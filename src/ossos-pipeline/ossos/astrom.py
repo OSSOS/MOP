@@ -201,6 +201,9 @@ class BaseAstromWriter(object):
 
         self._header_written = False
 
+    def get_filename(self):
+        return self.output_file.name
+
     def _write_line(self, line, ljust=True):
         if ljust:
             line = line.ljust(HEADER_LINE_LENGTH)
