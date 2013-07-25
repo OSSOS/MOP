@@ -550,6 +550,15 @@ class WorkUnitProviderTest(unittest.TestCase):
 
         self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
 
+    def test_items_in_ignore_list_ignored(self):
+        workunit = self.undertest.get_workunit(ignore_list=[self.file1])
+
+        assert_that(workunit.get_filename(), equal_to(self.file2))
+        self.progress_manager.record_done(self.file2)
+
+        self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit,
+                          ignore_list=[self.file1])
+
 
 class PreFetchingWorkUnitProviderTest(unittest.TestCase):
     def setUp(self):
