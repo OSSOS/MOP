@@ -5,6 +5,7 @@ import wx.lib.inspection
 
 from ossos.gui import config, tasks, logger
 from ossos.gui import context
+from ossos.gui.sync import SynchronizationManager
 from ossos.gui.workload import (WorkUnitProvider,
                                 RealsWorkUnitBuilder,
                                 CandidatesWorkUnitBuilder)
@@ -105,13 +106,22 @@ class ValidationApplication(object):
         workunit_provider = WorkUnitProvider(tasks.get_suffix(taskname), working_context,
                                              progress_manager, builder)
 
-        model = UIModel(workunit_provider, progress_manager, download_manager)
+        if working_context.is_remote():
+            synchronization_manager = SynchronizationManager(working_context)
+        else:
+            synchronization_manager = None
+
+        model = UIModel(workunit_provider, progress_manager, download_manager,
+                        synchronization_manager)
         controller = factory.create_controller(model)
 
         model.start_work()
 
         self.model = model
         self.view = controller.get_view()
+
+        if not synchronization_manager:
+            self.view.disable_sync_menu()
 
         wx_app.MainLoop()
 
