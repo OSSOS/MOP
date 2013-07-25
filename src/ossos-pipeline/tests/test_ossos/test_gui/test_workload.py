@@ -5,9 +5,10 @@ import unittest
 
 from hamcrest import (assert_that, is_in, is_not, equal_to, is_, none,
                       contains_inanyorder, has_length)
-from mock import Mock
+from mock import Mock, call
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
+from tests.testutil import CopyingMock
 from ossos.gui import tasks
 from ossos.gui.context import WorkingContext, LocalDirectoryWorkingContext
 from ossos.gui.downloads import AsynchronousImageDownloadManager
@@ -563,15 +564,19 @@ class WorkUnitProviderTest(unittest.TestCase):
 class PreFetchingWorkUnitProviderTest(unittest.TestCase):
     def setUp(self):
         self.prefetch_quantity = 2
-        self.workunit_provider = Mock(spec=WorkUnitProvider)
+        self.workunit_provider = CopyingMock(spec=WorkUnitProvider)
         self.undertest = PreFetchingWorkUnitProvider(self.workunit_provider,
                                                      self.prefetch_quantity)
+        self._workunit_number = 0
 
     def create_workunit(self):
-        return Mock(spec=WorkUnit)
+        workunit = Mock(spec=WorkUnit)
+        workunit.get_filename.return_value = "Workunit%d" % self._workunit_number
+        self._workunit_number += 1
+        return workunit
 
     def set_workunit_provider_return_values(self, return_values):
-        def side_effect():
+        def side_effect(*args, **kwargs):
             result = return_values.pop(0)
             if isinstance(result, Exception):
                 raise result
@@ -641,6 +646,31 @@ class PreFetchingWorkUnitProviderTest(unittest.TestCase):
                     equal_to(self.prefetch_quantity + 1))
 
         self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
+
+    def test_prefetch_excludes_already_fetched(self):
+        prefetch_workunit_mock = self.mock_prefetch_workunit(bypass_threading=True)
+
+        workunit1 = self.create_workunit()
+        workunit2 = self.create_workunit()
+        workunit3 = self.create_workunit()
+
+        self.set_workunit_provider_return_values(
+            [workunit1, workunit2, workunit3, NoAvailableWorkException()])
+
+        self.undertest.get_workunit()
+        self.undertest.get_workunit()
+        self.undertest.get_workunit()
+        self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
+
+        expected_calls = [
+            call(ignore_list=[]),
+            call(ignore_list=[workunit1.get_filename()]),
+            call(ignore_list=[workunit1.get_filename(), workunit2.get_filename()]),
+            call(ignore_list=[workunit1.get_filename(), workunit2.get_filename(),
+                              workunit3.get_filename()])
+        ]
+
+        self.workunit_provider.get_workunit.assert_has_calls(expected_calls)
 
     def test_get_workunit_no_prefetch(self):
         self.prefetch_quantity = 0
