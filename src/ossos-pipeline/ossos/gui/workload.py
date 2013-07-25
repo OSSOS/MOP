@@ -362,9 +362,13 @@ class WorkUnitProvider(object):
         self.progress_manager = progress_manager
         self.builder = builder
 
-    def get_workunit(self):
+    def get_workunit(self, ignore_list=None):
         """
         Gets a new unit of work.
+
+        Args:
+          ignore_list: list(str)
+            A list of filenames which should be ignored.  Defaults to None.
 
         Returns:
           new_workunit: WorkUnit
@@ -375,6 +379,10 @@ class WorkUnitProvider(object):
             There is no more work available.
         """
         potential_files = self.directory_context.get_listing(self.taskid)
+
+        if ignore_list:
+            potential_files = filter(lambda file: file not in ignore_list,
+                                     potential_files)
 
         while len(potential_files) > 0:
             # Don't want predictable patterns in the order we get work units.
