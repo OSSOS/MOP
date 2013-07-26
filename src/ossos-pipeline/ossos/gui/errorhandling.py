@@ -143,14 +143,14 @@ class CertificateDialog(wx.Dialog):
         self.SetSizerAndFit(padding_sizer)
 
     def on_cancel(self, event):
-        self.Destroy()
+        self.Close()
 
     def on_accept(self, event):
         username = self.username_field.GetValue()
         password = self.password_field.GetValue()
 
         self.handler.refresh_certificate(username, password)
-        self.Destroy()
+        self.Close()
 
 
 class RetryDownloadDialog(wx.Dialog):
@@ -202,11 +202,11 @@ class RetryDownloadDialog(wx.Dialog):
         self.SetSizerAndFit(padding_sizer)
 
     def on_cancel(self, event):
-        self.Destroy()
+        self.Close()
 
     def on_accept(self, event):
         self.handler.retry_downloads()
-        self.Destroy()
+        self.Close()
 
 
 def download_certificate(username, password):
