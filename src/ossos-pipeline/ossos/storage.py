@@ -176,7 +176,6 @@ def populate(dataset_name,
     try:
         c.mkdir(os.path.dirname(data_dest))
     except IOError as e:
-        print e
         if e.errno == errno.EEXIST:
             pass
         else:
@@ -185,7 +184,6 @@ def populate(dataset_name,
     try: 
         c.link(data_source, data_dest)
     except IOError as e:
-        print e
         if e.errno == errno.EEXIST:
             pass
         else:
@@ -197,7 +195,6 @@ def populate(dataset_name,
     try:
         c.link(header_source, header_dest)
     except IOError as e:
-        print e
         if e.errno == errno.EEXIST:
             pass
         else:
@@ -332,7 +329,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
         copy(uri, filename)
     except Exception as e:
         logging.debug(str(e))
-        if e.errno != errno.ENOENT or ccd is None:
+        if getattr(e,'errno',0) != errno.ENOENT or ccd is None:
             raise e
         ## try doing a cutout from MEF in VOSpace
         uri = get_uri(expnum,

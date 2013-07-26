@@ -102,6 +102,7 @@ if __name__ == '__main__':
 
     try:
         
+        expnum=args.expnum
         image = (os.access(args.expnum,os.W_OK) and args.expnum ) or (
             storage.get_image(args.expnum) )
     

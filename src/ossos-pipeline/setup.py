@@ -20,6 +20,7 @@ setup(name='ossos',
                'scramble.py',
                'plant.py',
                'preproc.py',
+               'validate.py',
                'ObsStatus.py',
                'combine.py'],
       classifiers=[
