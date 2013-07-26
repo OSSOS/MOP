@@ -155,7 +155,8 @@ class ApplicationView(object):
     @guithread
     def close_accept_source_dialog(self):
         if self.accept_source_dialog is not None:
-            self.accept_source_dialog.Destroy()
+            self.accept_source_dialog.Close()
+            self.accept_source_dialog = None
 
     @guithread
     def show_reject_source_dialog(self):
@@ -166,7 +167,8 @@ class ApplicationView(object):
     @guithread
     def close_reject_source_dialog(self):
         if self.reject_source_dialog is not None:
-            self.reject_source_dialog.Destroy()
+            self.reject_source_dialog.Close()
+            self.reject_source_dialog = None
 
     @guithread
     def show_empty_workload_dialog(self):
