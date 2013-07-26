@@ -27,8 +27,6 @@ class StatefulCollection(object):
             self.items = items
             self.index = 0
 
-        self.callbacks = []
-
     def __len__(self):
         return len(self.items)
 
@@ -37,14 +35,6 @@ class StatefulCollection(object):
 
     def __getitem__(self, index):
         return self.items[index]
-
-    def register_change_item_callback(self, callback):
-        """
-        Registers a function to be called when the current item is changed.
-        The function will be called with two arguments: the item that was
-        current, and the new current item.
-        """
-        self.callbacks.append(callback)
 
     def append(self, item):
         """Adds a new item to the end of the collection."""
@@ -88,9 +78,6 @@ class StatefulCollection(object):
         first_item = self.get_current_item()
         self.index = (self.index + delta) % len(self)
         second_item = self.get_current_item()
-
-        for callback in self.callbacks:
-            callback(first_item, second_item)
 
 
 class WorkUnit(object):
