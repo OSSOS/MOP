@@ -2,6 +2,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import collections
 import getpass
+import threading
 
 from ossos import storage
 from ossos.gui import tasks
@@ -155,7 +156,20 @@ class AbstractProgressManager(object):
     def lock(self, filename):
         raise NotImplementedError()
 
-    def unlock(self, filename):
+    def unlock(self, filename, async=False):
+        """
+        Unlocks the file.
+
+        Args:
+          filename: str
+            The file to be unlocked.
+          async: bool
+            If set to True, tries to unlock the file asynchronously, if
+            possible.  This allows processing to continue if it is not
+            critical that the lock be released before continuing.
+
+        Returns: void
+        """
         raise NotImplementedError()
 
     def clean(self, suffixes=None):
@@ -222,7 +236,13 @@ class VOSpaceProgressManager(AbstractProgressManager):
         else:
             raise FileLockedException(filename, lock_holder)
 
-    def unlock(self, filename):
+    def unlock(self, filename, async=False):
+        if async:
+            threading.Thread(target=self._do_unlock, args=(filename, )).start()
+        else:
+            self._do_unlock(filename)
+
+    def _do_unlock(self, filename):
         uri = self._get_uri(filename)
 
         lock_holder = storage.get_property(uri, LOCK_PROPERTY)
@@ -312,7 +332,8 @@ class LocalProgressManager(AbstractProgressManager):
             filehandle.write(getpass.getuser())
             filehandle.close()
 
-    def unlock(self, filename):
+    def unlock(self, filename, async=False):
+        # NOTE: locally this is fast so we don't both doing it asynchronously
         lockfile = filename + LOCK_SUFFIX
 
         if not self.working_context.exists(lockfile):
@@ -405,7 +426,7 @@ class InMemoryProgressManager(AbstractProgressManager):
 
         self.owned_locks.add(filename)
 
-    def unlock(self, filename):
+    def unlock(self, filename, async=False):
         if filename in self.external_locks:
             raise FileLockedException(filename, "x")
 
