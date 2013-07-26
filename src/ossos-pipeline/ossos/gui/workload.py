@@ -157,6 +157,7 @@ class WorkUnit(object):
 
         if self.is_finished():
             self.progress_manager.record_done(self.get_filename())
+            self.progress_manager.unlock(self.get_filename())
 
             for callback in self.finished_callbacks:
                 callback(self.get_results_file_path())
@@ -374,7 +375,8 @@ class WorkUnitProvider(object):
 
         Returns:
           new_workunit: WorkUnit
-            A new unit of work that has not yet been processed.
+            A new unit of work that has not yet been processed.  A lock on
+            it has been acquired.
 
         Raises:
           NoAvailableWorkException

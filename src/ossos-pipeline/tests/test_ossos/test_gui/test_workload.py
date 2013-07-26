@@ -295,6 +295,20 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         assert_that(self.workunit.get_unprocessed_sources(),
                     has_length(0))
 
+    def test_finish_workunit_unlocks_file(self):
+        num_items = 9
+        while num_items > 1:
+            self.workunit.accept_current_item()
+            self.workunit.next_item()
+            num_items -= 1
+
+        assert_that(self.progress_manager.unlock.called, equal_to(False))
+
+        self.workunit.accept_current_item()
+
+        self.progress_manager.unlock.assert_called_once_with(
+            self.testfile)
+
 
 class CandidatesWorkUnitTest(AbstractWorkUnitTest):
     def setUp(self):
@@ -378,6 +392,16 @@ class CandidatesWorkUnitTest(AbstractWorkUnitTest):
 
         assert_that(self.workunit.get_unprocessed_sources(),
                     has_length(0))
+
+    def test_finish_workunit_unlocks_file(self):
+        self.workunit.accept_current_item()
+        self.workunit.next_item()
+        self.workunit.accept_current_item()
+        self.workunit.next_item()
+        self.workunit.accept_current_item()
+
+        self.progress_manager.unlock.assert_called_once_with(
+            self.testfile)
 
 
 class StatefulCollectionTest(unittest.TestCase):
@@ -489,12 +513,11 @@ class WorkloadManagementTest(unittest.TestCase):
 
         self.undertest.next_workunit()
         assert_that(self.undertest.get_current_workunit(), equal_to(self.workunit2))
-        assert_that(self.progress_manager.owns_lock(self.file1), equal_to(False))
-        assert_that(self.progress_manager.owns_lock(self.file2), equal_to(True))
 
-        self.undertest.previous_workunit()
+        # Note we don't give up lock just by going to next workunit.  It is
+        # released once it is done processing.
         assert_that(self.progress_manager.owns_lock(self.file1), equal_to(True))
-        assert_that(self.progress_manager.owns_lock(self.file2), equal_to(False))
+        assert_that(self.progress_manager.owns_lock(self.file2), equal_to(True))
 
 
 class WorkUnitProviderTest(unittest.TestCase):
