@@ -65,7 +65,15 @@ class LocalDirectoryWorkingContext(WorkingContext):
         return os.path.exists(self.get_full_path(filename))
 
     def open(self, filename):
-        return open(self.get_full_path(filename), "a+b")
+        filehandle = open(self.get_full_path(filename), "a+b")
+
+        # Note: Linux starts the file position at 0, but on MacOSX it
+        # starts at the end of the file, so this makes things consistent
+        # and allows us to subsequently call a read with the expected
+        # results.
+        filehandle.seek(0)
+
+        return filehandle
 
     def rename(self, old_name, new_name):
         os.rename(self.get_full_path(old_name), self.get_full_path(new_name))
