@@ -1,3 +1,6 @@
+import glob
+import os
+
 from setuptools import setup, find_packages
 import sys
 
@@ -6,8 +9,18 @@ if sys.version_info[0] > 2:
     sys.exit(-1)
 
 
+import astropy
+from astropy.setup_helpers import (register_commands, adjust_compiler,
+                                   filter_packages, update_package_files,
+                                   get_debug_option)
+from astropy.version_helpers import get_git_devstr, generate_version_py
+
+
+version = "0.1dev"+get_git_devstr(False)
+
+
 setup(name='ossos',
-      version=0.1,
+      version=version,
       url='https://github.com/ijiraq/MOP',
       description="Outer Solar System Origins Survey (OSSOS) Pipeline",
       packages=['ossos'],
