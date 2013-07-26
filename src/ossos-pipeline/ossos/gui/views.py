@@ -118,6 +118,7 @@ class ApplicationView(object):
                 self.mainframe, handler, error_message)
             self.retry_downloads_dialog.Show()
 
+    @guithread
     def show_accept_source_dialog(self, provisional_name,
                                   already_discovered,
                                   date_of_obs,
@@ -151,22 +152,27 @@ class ApplicationView(object):
             phot_failure=phot_failure)
         self.accept_source_dialog.ShowModal()
 
+    @guithread
     def close_accept_source_dialog(self):
         if self.accept_source_dialog is not None:
             self.accept_source_dialog.Destroy()
 
+    @guithread
     def show_reject_source_dialog(self):
         self.reject_source_dialog = RejectSourceDialog(
             self.mainframe, self.controller)
         self.reject_source_dialog.ShowModal()
 
+    @guithread
     def close_reject_source_dialog(self):
         if self.reject_source_dialog is not None:
             self.reject_source_dialog.Destroy()
 
+    @guithread
     def show_empty_workload_dialog(self):
         show_empty_workload_dialog(self.mainframe, self.model)
 
+    @guithread
     def all_processed_should_exit_prompt(self):
         return should_exit_prompt(self.mainframe)
 
