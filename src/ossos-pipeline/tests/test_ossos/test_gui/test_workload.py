@@ -307,7 +307,7 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         self.workunit.accept_current_item()
 
         self.progress_manager.unlock.assert_called_once_with(
-            self.testfile)
+            self.testfile, async=True)
 
 
 class CandidatesWorkUnitTest(AbstractWorkUnitTest):
@@ -401,7 +401,7 @@ class CandidatesWorkUnitTest(AbstractWorkUnitTest):
         self.workunit.accept_current_item()
 
         self.progress_manager.unlock.assert_called_once_with(
-            self.testfile)
+            self.testfile, async=True)
 
 
 class StatefulCollectionTest(unittest.TestCase):

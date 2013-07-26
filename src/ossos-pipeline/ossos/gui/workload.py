@@ -144,7 +144,7 @@ class WorkUnit(object):
 
         if self.is_finished():
             self.progress_manager.record_done(self.get_filename())
-            self.progress_manager.unlock(self.get_filename())
+            self.progress_manager.unlock(self.get_filename(), async=True)
 
             for callback in self.finished_callbacks:
                 callback(self.get_results_file_path())
