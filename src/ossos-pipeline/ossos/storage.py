@@ -275,18 +275,19 @@ def tag_uri(key):
 def get_tag(expnum, key):
     '''given a key, return the vospace tag value.'''
 
-    uri = os.path.join(DBIMAGES, str(expnum))
-
-    node = vospace.getNode(uri)
-    if tag_uri(key) not in node.props.keys():
-        node = vospace.getNode(uri, force=True)
+    if tag_uri(key) not in get_tags(expnum):
+        get_tags(expnum, force=True)
     logging.debug("%s # %s -> %s"  % (
-        uri, tag_uri(key), node.props.get(tag_uri(key), None)))
-    return node.props.get(tag_uri(key), None)
+        expnum, tag_uri(key), get_tags(expnum).get(tag_uri(key), None)))
+    return get_tags(expnum).get(tag_uri(key), None)
 
 def get_process_tag(program, ccd):
     """make a process tag have a suffix indicating which ccd its for"""
     return "%s_%s" % ( program, str(ccd).zfill(2))
+
+def get_tags(expnum, force=False):
+    uri = os.path.join(DBIMAGES,str(expnum))
+    return vospace.getNode(uri, force=force).props
 
 def get_status(expnum, ccd, program, return_message=False):
     '''Report back status of the given program'''
