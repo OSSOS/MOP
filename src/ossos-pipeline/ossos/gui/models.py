@@ -256,9 +256,6 @@ class UIModel(object):
         except KeyError:
             raise ImageNotLoadedException()
 
-    def _lock(self, workunit):
-        self.progress_manager.lock(workunit.get_filename())
-
     def _unlock(self, workunit):
         self.progress_manager.unlock(workunit.get_filename())
 
