@@ -426,27 +426,8 @@ class StatefulCollectionTest(unittest.TestCase):
         assert_that(undertest.get_index(), equal_to(0))
         assert_that(undertest.get_current_item(), equal_to(items[0]))
 
-    def test_callbacks(self):
-        first_callback = Mock()
-        second_callback = Mock()
-
-        items = [1, 2, 3]
-        undertest = StatefulCollection(items)
-        undertest.register_change_item_callback(first_callback)
-
-        undertest.next()
-        first_callback.assert_called_once_with(items[0], items[1])
-
-        undertest.register_change_item_callback(second_callback)
-        undertest.previous()
-        second_callback.assert_called_once_with(items[1], items[0])
-
-        assert_that(first_callback.call_count, equal_to(2))
-
     def test_start_empty(self):
-        callback = Mock()
         undertest = StatefulCollection()
-        undertest.register_change_item_callback(callback)
 
         assert_that(undertest, has_length(0))
 
@@ -459,16 +440,12 @@ class StatefulCollectionTest(unittest.TestCase):
         assert_that(undertest.get_current_item(), equal_to(item1))
         assert_that(undertest.get_index(), equal_to(0))
 
-        assert_that(callback.call_count, equal_to(0))
-
         item2 = 2
         undertest.append(item2)
 
         undertest.next()
         assert_that(undertest.get_index(), equal_to(1))
         assert_that(undertest.get_current_item(), equal_to(item2))
-
-        callback.assert_called_once_with(item1, item2)
 
 
 class WorkloadManagementTest(unittest.TestCase):
