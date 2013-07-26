@@ -2,6 +2,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import os
 import random
+import threading
 
 from ossos.gui import tasks, logger
 from ossos.astrom import StreamingAstromWriter
@@ -26,8 +27,6 @@ class StatefulCollection(object):
             self.items = items
             self.index = 0
 
-        self.callbacks = []
-
     def __len__(self):
         return len(self.items)
 
@@ -36,14 +35,6 @@ class StatefulCollection(object):
 
     def __getitem__(self, index):
         return self.items[index]
-
-    def register_change_item_callback(self, callback):
-        """
-        Registers a function to be called when the current item is changed.
-        The function will be called with two arguments: the item that was
-        current, and the new current item.
-        """
-        self.callbacks.append(callback)
 
     def append(self, item):
         """Adds a new item to the end of the collection."""
@@ -87,9 +78,6 @@ class StatefulCollection(object):
         first_item = self.get_current_item()
         self.index = (self.index + delta) % len(self)
         second_item = self.get_current_item()
-
-        for callback in self.callbacks:
-            callback(first_item, second_item)
 
 
 class WorkUnit(object):
@@ -156,6 +144,7 @@ class WorkUnit(object):
 
         if self.is_finished():
             self.progress_manager.record_done(self.get_filename())
+            self.progress_manager.unlock(self.get_filename(), async=True)
 
             for callback in self.finished_callbacks:
                 callback(self.get_results_file_path())
@@ -363,19 +352,28 @@ class WorkUnitProvider(object):
         self.builder = builder
         self.randomize = randomize
 
-    def get_workunit(self):
+    def get_workunit(self, ignore_list=None):
         """
         Gets a new unit of work.
 
+        Args:
+          ignore_list: list(str)
+            A list of filenames which should be ignored.  Defaults to None.
+
         Returns:
           new_workunit: WorkUnit
-            A new unit of work that has not yet been processed.
+            A new unit of work that has not yet been processed.  A lock on
+            it has been acquired.
 
         Raises:
           NoAvailableWorkException
             There is no more work available.
         """
         potential_files = self.directory_context.get_listing(self.taskid)
+
+        if ignore_list:
+            potential_files = filter(lambda file: file not in ignore_list,
+                                     potential_files)
 
         while len(potential_files) > 0:
             potential_file = self.select_potential_file(potential_files)
@@ -401,6 +399,61 @@ class WorkUnitProvider(object):
             return random.choice(potential_files)
         else:
             return potential_files[0]
+
+
+class PreFetchingWorkUnitProvider(object):
+    def __init__(self, workunit_provider, prefetch_quantity):
+        self.workunit_provider = workunit_provider
+        self.prefetch_quantity = prefetch_quantity
+
+        self.fetched_files = []
+        self.workunits = []
+        self._all_fetched = False
+
+    def get_workunit(self):
+        if self._all_fetched and len(self.workunits) == 0:
+            raise NoAvailableWorkException()
+
+        if len(self.workunits) > 0:
+            workunit = self.workunits.pop(0)
+        else:
+            workunit = self.workunit_provider.get_workunit(
+                ignore_list=self.fetched_files)
+            self.fetched_files.append(workunit.get_filename())
+
+        self.trigger_prefetching()
+        return workunit
+
+    def trigger_prefetching(self):
+        if self._all_fetched:
+            return
+
+        num_to_fetch = self.prefetch_quantity - len(self.workunits)
+
+        if num_to_fetch < 0:
+            # Prefetch quantity can be 0
+            num_to_fetch = 0
+
+        while num_to_fetch > 0:
+            self.prefetch_workunit()
+            num_to_fetch -= 1
+
+    def prefetch_workunit(self):
+        threading.Thread(target=self._do_prefetch_workunit).start()
+
+    def _do_prefetch_workunit(self):
+        try:
+            workunit = self.workunit_provider.get_workunit(
+                ignore_list=self.fetched_files)
+            filename = workunit.get_filename()
+
+            self.fetched_files.append(filename)
+            self.workunits.append(workunit)
+
+            logger.info("%s was prefetched." % filename)
+
+        except NoAvailableWorkException:
+            self._all_fetched = True
 
 
 class WorkUnitBuilder(object):
