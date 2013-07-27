@@ -32,12 +32,6 @@ class UIModel(object):
 
         self.work_units = StatefulCollection()
 
-        def shift_locks(workunit1, workunit2):
-            self._unlock(workunit1)
-            self._lock(workunit2)
-
-        self.work_units.register_change_item_callback(shift_locks)
-
         self.num_processed = 0
 
         # Maps each reading to its image-reading model (once downloaded)
@@ -105,9 +99,6 @@ class UIModel(object):
         new_workunit.register_finished_callback(self._on_finished_workunit)
         self.work_units.append(new_workunit)
         self._download_workunit_images(new_workunit)
-
-    def previous_workunit(self):
-        self.work_units.previous()
 
     def is_current_source_discovered(self):
         return self.get_current_source() in self.sources_discovered
@@ -264,9 +255,6 @@ class UIModel(object):
             return self._image_reading_models[self.get_current_reading()]
         except KeyError:
             raise ImageNotLoadedException()
-
-    def _lock(self, workunit):
-        self.progress_manager.lock(workunit.get_filename())
 
     def _unlock(self, workunit):
         self.progress_manager.unlock(workunit.get_filename())

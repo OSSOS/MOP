@@ -8,7 +8,8 @@ from ossos.gui import context
 from ossos.gui.sync import SynchronizationManager
 from ossos.gui.workload import (WorkUnitProvider,
                                 RealsWorkUnitBuilder,
-                                CandidatesWorkUnitBuilder)
+                                CandidatesWorkUnitBuilder,
+                                PreFetchingWorkUnitProvider)
 from ossos.astrom import AstromParser
 from ossos.naming import ProvisionalNameGenerator
 from ossos.gui.errorhandling import DownloadErrorHandler
@@ -118,13 +119,17 @@ class ValidationApplication(object):
                                              progress_manager, builder,
                                              randomize=factory.should_randomize_workunits())
 
+        prefetching_workunit_provider = PreFetchingWorkUnitProvider(workunit_provider, 1)
+
         if working_context.is_remote():
             synchronization_manager = SynchronizationManager(working_context)
         else:
             synchronization_manager = None
 
-        model = UIModel(workunit_provider, progress_manager, download_manager,
+        model = UIModel(prefetching_workunit_provider,
+                        progress_manager, download_manager,
                         synchronization_manager)
+
         controller = factory.create_controller(model)
 
         model.start_work()
