@@ -13,6 +13,12 @@ class NoAvailableWorkException(Exception):
     """"No more work is available."""
 
 
+class SourceNotNamedException(Exception):
+    """The source has no name."""
+    def __init__(self, source):
+        self.source = source
+
+
 class StatefulCollection(object):
     """
     An ordered collection of objects which have the notion of one of them
@@ -89,12 +95,10 @@ class WorkUnit(object):
     def __init__(self, filename,
                  parsed_data,
                  progress_manager,
-                 results_writer,
                  output_context):
         self.filename = filename
         self.data = parsed_data
         self.progress_manager = progress_manager
-        self.results_writer = results_writer
         self.output_context = output_context
 
         self.sources = StatefulCollection(parsed_data.get_sources())
@@ -141,13 +145,16 @@ class WorkUnit(object):
         if self.is_current_source_finished():
             self.progress_manager.record_index(self.get_filename(),
                                                self.get_current_source_number())
+            self._on_source_finished()
 
         if self.is_finished():
             self.progress_manager.record_done(self.get_filename())
             self.progress_manager.unlock(self.get_filename(), async=True)
 
             for callback in self.finished_callbacks:
-                callback(self.get_results_file_path())
+                callback(self.get_results_file_paths())
+
+            self._close_writers()
 
     def get_current_item(self):
         raise NotImplementedError()
@@ -206,11 +213,10 @@ class WorkUnit(object):
         return self.get_current_source_readings().get_index()
 
     def get_writer(self):
-        return self.results_writer
+        raise NotImplementedError()
 
-    def get_results_file_path(self):
-        return self.output_context.get_full_path(
-            self.results_writer.get_filename())
+    def get_results_file_paths(self):
+        raise NotImplementedError()
 
     def is_finished(self):
         return len(self._get_item_set() - self.processed_items) == 0
@@ -224,6 +230,12 @@ class WorkUnit(object):
     def _mark_previously_processed_items(self):
         pass
 
+    def _on_source_finished(self):
+        pass
+
+    def _close_writers(self):
+        pass
+
 
 class RealsWorkUnit(WorkUnit):
     """
@@ -234,14 +246,14 @@ class RealsWorkUnit(WorkUnit):
                  filename,
                  parsed_data,
                  progress_manager,
-                 results_writer,
                  output_context):
         super(RealsWorkUnit, self).__init__(
             filename,
             parsed_data,
             progress_manager,
-            results_writer,
             output_context)
+
+        self._writers = {}
 
     def next_item(self):
         assert not self.is_finished()
@@ -276,6 +288,37 @@ class RealsWorkUnit(WorkUnit):
     def is_apcor_needed(self):
         return True
 
+    def get_writer(self):
+        filename = self._get_current_source_output_filename()
+        if filename in self._writers:
+            return self._writers[filename]
+
+        writer = self._create_writer(filename)
+        self._writers[filename] = writer
+        return writer
+
+    def get_results_file_paths(self):
+        return [self.output_context.get_full_path(filename)
+                for filename in self._writers]
+
+    def _get_current_source_output_filename(self):
+        source = self.get_current_source()
+
+        if not source.has_provisional_name():
+            raise SourceNotNamedException(source)
+
+        return source.get_provisional_name() + ".mpc"
+
+    def _create_writer(self, filename):
+        # NOTE: this import is only here so that we don't load up secondary
+        # dependencies (like astropy) used in MPCWriter when they are not
+        # needed (i.e. cands task).  This is to help reduce the application
+        # startup time.
+        from ossos.mpc import MPCWriter
+
+        return MPCWriter(self.output_context.open(filename),
+                         auto_flush=False)
+
     def _get_item_set(self):
         all_readings = set()
         for readings in self.readings_by_source.itervalues():
@@ -288,6 +331,13 @@ class RealsWorkUnit(WorkUnit):
             for reading in self.get_sources()[index].get_readings():
                 self.processed_items.add(reading)
 
+    def _on_source_finished(self):
+        self.get_writer().flush()
+
+    def _close_writers(self):
+        for writer in self._writers.values():
+            writer.close()
+
 
 class CandidatesWorkUnit(WorkUnit):
     """
@@ -298,14 +348,16 @@ class CandidatesWorkUnit(WorkUnit):
                  filename,
                  parsed_data,
                  progress_manager,
-                 results_writer,
                  output_context):
         super(CandidatesWorkUnit, self).__init__(
             filename,
             parsed_data,
             progress_manager,
-            results_writer,
             output_context)
+
+        output_filename = filename.replace(tasks.get_suffix(tasks.CANDS_TASK),
+                                           tasks.get_suffix(tasks.REALS_TASK))
+        self._writer = self._create_writer(output_filename)
 
     def next_item(self):
         assert not self.is_finished()
@@ -313,6 +365,10 @@ class CandidatesWorkUnit(WorkUnit):
         self.next_source()
         while self.is_current_item_processed():
             self.next_source()
+
+    def accept_current_item(self):
+        super(CandidatesWorkUnit, self).accept_current_item()
+        self.get_writer().flush()
 
     def get_current_item(self):
         return self.get_current_source()
@@ -326,6 +382,16 @@ class CandidatesWorkUnit(WorkUnit):
     def is_apcor_needed(self):
         return False
 
+    def get_writer(self):
+        return self._writer
+
+    def get_results_file_paths(self):
+        return [self.output_context.get_full_path(self._writer.get_filename())]
+
+    def _create_writer(self, filename):
+        return StreamingAstromWriter(self.output_context.open(filename),
+                                     self.data.sys_header)
+
     def _get_item_set(self):
         return set(self.sources)
 
@@ -333,6 +399,9 @@ class CandidatesWorkUnit(WorkUnit):
         processed_indices = self.progress_manager.get_processed_indices(self.get_filename())
         for index in processed_indices:
             self.processed_items.add(self.get_sources()[index])
+
+    def _close_writers(self):
+        self._writer.close()
 
 
 class WorkUnitProvider(object):
@@ -474,28 +543,18 @@ class WorkUnitBuilder(object):
                      (input_fullpath, parsed_data.get_source_count()))
 
         _, input_filename = os.path.split(input_fullpath)
-        output_filename = self._get_output_filename(input_filename)
-        output_filehandle = self.output_context.open(output_filename)
 
         return self._do_build_workunit(
             input_filename,
             parsed_data,
             self.progress_manager,
-            self._create_results_writer(output_filehandle, parsed_data),
             self.output_context)
-
-    def _create_results_writer(self, full_path, parsed_data):
-        raise NotImplementedError()
 
     def _do_build_workunit(self,
                            filename,
                            data,
                            progress_manager,
-                           writer,
                            output_context):
-        raise NotImplementedError()
-
-    def _get_output_filename(self, input_filename):
         raise NotImplementedError()
 
 
@@ -509,27 +568,13 @@ class RealsWorkUnitBuilder(WorkUnitBuilder):
         super(RealsWorkUnitBuilder, self).__init__(
             parser, input_context, output_context, progress_manager)
 
-    def _create_results_writer(self, output_filehandle, parsed_data):
-        # NOTE: this import is only here so that we don't load up secondary
-        # dependencies (like astropy) used in MPCWriter when they are not
-        # needed (i.e. cands task).  This is to help reduce the application
-        # startup time.
-        from ossos.mpc import MPCWriter
-
-        return MPCWriter(output_filehandle, auto_flush=False)
-
     def _do_build_workunit(self,
                            filename,
                            data,
                            progress_manager,
-                           writer,
                            output_context):
         return RealsWorkUnit(
-            filename, data, progress_manager, writer, output_context)
-
-    def _get_output_filename(self, input_filename):
-        return input_filename.replace(tasks.get_suffix(tasks.REALS_TASK),
-                                      ".mpc")
+            filename, data, progress_manager, output_context)
 
 
 class CandidatesWorkUnitBuilder(WorkUnitBuilder):
@@ -542,18 +587,10 @@ class CandidatesWorkUnitBuilder(WorkUnitBuilder):
         super(CandidatesWorkUnitBuilder, self).__init__(
             parser, input_context, output_context, progress_manager)
 
-    def _create_results_writer(self, output_filehandle, parsed_data):
-        return StreamingAstromWriter(output_filehandle, parsed_data.sys_header)
-
     def _do_build_workunit(self,
                            filename,
                            data,
                            progress_manager,
-                           writer,
                            output_context):
         return CandidatesWorkUnit(
-            filename, data, progress_manager, writer, output_context)
-
-    def _get_output_filename(self, input_filename):
-        return input_filename.replace(tasks.get_suffix(tasks.CANDS_TASK),
-                                      tasks.get_suffix(tasks.REALS_TASK))
+            filename, data, progress_manager, output_context)
