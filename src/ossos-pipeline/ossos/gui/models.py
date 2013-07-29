@@ -180,6 +180,15 @@ class UIModel(object):
         except ImageNotLoadedException:
             return self.get_current_reading().dec
 
+    def is_current_source_named(self):
+        return self.get_current_source().has_provisional_name()
+
+    def get_current_source_name(self):
+        return self.get_current_source().get_provisional_name()
+
+    def set_current_source_name(self, name):
+        return self.get_current_source().set_provisional_name(name)
+
     def get_current_image(self):
         return self._get_current_image_reading().get_image()
 
@@ -244,9 +253,6 @@ class UIModel(object):
             # Nothing to unlock
             pass
 
-        for workunit in self.work_units:
-            workunit.get_writer().close()
-
         self.download_manager.stop_download()
         self.download_manager.wait_for_downloads_to_stop()
 
@@ -267,11 +273,12 @@ class UIModel(object):
         self._image_reading_models[reading] = ImageReading(reading, image)
         events.send(events.IMG_LOADED, reading)
 
-    def _on_finished_workunit(self, results_file_path):
-        events.send(events.FINISHED_WORKUNIT, results_file_path)
+    def _on_finished_workunit(self, results_file_paths):
+        events.send(events.FINISHED_WORKUNIT, results_file_paths)
 
         if self.synchronization_manager:
-            self.synchronization_manager.add_syncable_file(results_file_path)
+            for path in results_file_paths:
+                self.synchronization_manager.add_syncable_file(path)
 
 
 class ImageReading(object):
@@ -380,3 +387,4 @@ class ImageReading(object):
                                          wcs.parse_cd(fits_header),
                                          wcs.parse_pv(fits_header),
                                          wcs.parse_order_fit(fits_header))
+

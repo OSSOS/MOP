@@ -388,6 +388,7 @@ class Source(object):
 
     def __init__(self, readings):
         self.readings = readings
+        self.provisional_name = None
 
     def get_reading(self, index):
         return self.readings[index]
@@ -397,6 +398,15 @@ class Source(object):
 
     def num_readings(self):
         return len(self.readings)
+
+    def has_provisional_name(self):
+        return self.provisional_name is not None
+
+    def get_provisional_name(self):
+        return self.provisional_name
+
+    def set_provisional_name(self, provisional_name):
+        self.provisional_name = provisional_name
 
 
 class SourceReading(object):
