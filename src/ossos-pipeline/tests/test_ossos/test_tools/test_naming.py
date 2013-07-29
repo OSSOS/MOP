@@ -19,12 +19,15 @@ class ProvisionalNameGeneratorTest(FileReadingTestCase):
 
     def test_generate_name(self):
         astrom_data = self.parse_data()
-        source0 = astrom_data.get_sources()[0]
-        reading0 = source0.get_reading(0)
+        source = astrom_data.get_sources()[0]
 
-        expected = (naming.base62encode(1616688) +
-                    naming.base62encode(int(reading0.x + reading0.y)))
-        assert_that(self.undertest.name_source(source0), equal_to(expected))
+        assert_that(self.undertest.name_source(source), equal_to("LZuI52T"))
+
+    def test_generated_name_is_padded_if_short(self):
+        astrom_data = self.parse_data()
+        source = astrom_data.get_sources()[1]
+
+        assert_that(self.undertest.name_source(source), equal_to("LZuIBB0"))
 
 
 class EncodingTest(unittest.TestCase):

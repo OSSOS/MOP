@@ -2,11 +2,16 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 ALPHABET_BASE_26 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 ALPHABET_BASE_36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+ALPHABET_BASE_52 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 ALPHABET_BASE_62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
 
 def base26encode(number):
     return encode(number, ALPHABET_BASE_26)
+
+
+def base52encode(number):
+    return encode(number, ALPHABET_BASE_52)
 
 
 def base62encode(number):
@@ -57,8 +62,11 @@ class ProvisionalNameGenerator(object):
         Generates a name for a source.
         """
         reading0 = source.get_reading(0)
-        name = (base62encode(int(reading0.get_exposure_number())) +
+        name = (base52encode(int(reading0.get_exposure_number())) +
                 base62encode(int(reading0.x + reading0.y)))
+
+        # Pad with 0's if short
+        name = name.ljust(7, "0")
 
         if len(name) > 7:
             raise ValueError("Name is more than 7 characters: %s" % name)
