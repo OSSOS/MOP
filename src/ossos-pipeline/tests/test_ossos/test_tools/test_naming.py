@@ -4,7 +4,8 @@ import unittest
 
 from hamcrest import assert_that, equal_to
 
-from ossos.naming import ProvisionalNameGenerator, to_base26
+from ossos import naming
+from ossos.naming import ProvisionalNameGenerator
 from ossos.astrom import Observation, Source, SourceReading
 
 
@@ -74,19 +75,31 @@ class ProvisionalNameGeneratorTest(unittest.TestCase):
         assert_that(self.undertest.name_source(source2), equal_to("DNZOX01"))
 
 
-class Base26ConverterTest(unittest.TestCase):
-    def test_boundary(self):
-        assert_that(to_base26(0), equal_to("A"))
-        assert_that(to_base26(1), equal_to("B"))
-        assert_that(to_base26(9999999), equal_to("VWYXJ"))
+class EncodingTest(unittest.TestCase):
+    def test_base26_boundary(self):
+        assert_that(naming.base26encode(0), equal_to("A"))
+        assert_that(naming.base26encode(1), equal_to("B"))
+        assert_that(naming.base26encode(9999999), equal_to("VWYXJ"))
 
-    def test_realistic_exposure_numbers(self):
-        assert_that(to_base26(1616703), equal_to("DNZOX"))
-        assert_that(to_base26(1616704), equal_to("DNZOY"))
-        assert_that(to_base26(1616705), equal_to("DNZOZ"))
+    def test_base26_realistic_exposure_numbers(self):
+        assert_that(naming.base26encode(1616703), equal_to("DNZOX"))
+        assert_that(naming.base26encode(1616704), equal_to("DNZOY"))
+        assert_that(naming.base26encode(1616705), equal_to("DNZOZ"))
 
-    def test_negative(self):
-        self.assertRaises(ValueError, to_base26, -1)
+    def test_base36_encode_1(self):
+        assert_that(naming.encode(1, naming.ALPHABET_BASE_36), equal_to("1"))
+
+    def test_base36_encode_10(self):
+        assert_that(naming.encode(10, naming.ALPHABET_BASE_36), equal_to("A"))
+
+    def test_base36_encode_100(self):
+        assert_that(naming.encode(100, naming.ALPHABET_BASE_36), equal_to("2S"))
+
+    def test_base36_encode_1000(self):
+        assert_that(naming.encode(1000, naming.ALPHABET_BASE_36), equal_to("RS"))
+
+    def test_base36_encode_10000(self):
+        assert_that(naming.encode(10000, naming.ALPHABET_BASE_36), equal_to("7PS"))
 
 
 if __name__ == '__main__':
