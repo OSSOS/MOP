@@ -3,6 +3,10 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import collections
 import re
 
+ALPHABET_BASE_26 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+ALPHABET_BASE_36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+ALPHABET_BASE_62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
 
 def to_base26(number):
     if number < 0:
@@ -20,6 +24,45 @@ def to_base26(number):
             should_continue = False
 
     return converted
+
+
+def base26encode(number):
+    return encode(number, ALPHABET_BASE_26)
+
+
+def base62encode(number):
+    """
+    Converts an integer to a base62 string (i.e. using the upper and lower
+    case alphabet and the digits 0-9).
+    """
+    return encode(number, ALPHABET_BASE_36)
+
+
+def encode(number, alphabet):
+    """
+    Converts an integer to a base n string where n is the length of the
+    provided alphabet.
+
+    Modified from http://en.wikipedia.org/wiki/Base_36
+    """
+    if not isinstance(number, (int, long)):
+        raise TypeError("Number must be an integer.")
+
+    base_n = ""
+    sign = ""
+
+    if number < 0:
+        sign = "-"
+        number = -number
+
+    if 0 <= number < len(alphabet):
+        return sign + alphabet[number]
+
+    while number != 0:
+        number, i = divmod(number, len(alphabet))
+        base_n = alphabet[i] + base_n
+
+    return sign + base_n
 
 
 class ProvisionalNameGenerator(object):
