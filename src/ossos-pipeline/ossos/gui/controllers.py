@@ -115,13 +115,15 @@ class ProcessRealsController(AbstractController):
 
         self.name_generator = name_generator
 
-    def _get_provisional_name(self):
-        return self.name_generator.name_source(self.model.get_current_source())
-
     def on_accept(self):
         """
         Initiates acceptance procedure, gathering required data.
         """
+        if self.model.is_current_source_named():
+            provisional_name = self.model.get_current_source_name()
+        else:
+            provisional_name = self.name_generator.name_source(self.model.get_current_source())
+
         band = self.model.get_current_band()
         default_comment = ""
         phot_failure = False
@@ -140,7 +142,7 @@ class ProcessRealsController(AbstractController):
             note1_default = None
 
         self.get_view().show_accept_source_dialog(
-            self._get_provisional_name(),
+            provisional_name,
             self.model.is_current_source_discovered(),
             self.model.get_current_observation_date(),
             self.model.get_current_ra(),
@@ -179,7 +181,8 @@ class ProcessRealsController(AbstractController):
         note2_code = note2.split(" ")[0]
 
         self.get_view().close_accept_source_dialog()
-        self.model.accept_current_item()
+
+        self.model.set_current_source_name(provisional_name)
 
         writer = self.model.get_writer()
         writer.write_comment(self.model.get_current_reading(), comment)
@@ -197,9 +200,7 @@ class ProcessRealsController(AbstractController):
             observatory_code,
             phot_failure=phot_failure)
 
-        if self.model.is_current_source_finished():
-            writer.flush()
-
+        self.model.accept_current_item()
         self.model.next_item()
 
     def on_cancel_accept(self):
@@ -210,7 +211,10 @@ class ProcessRealsController(AbstractController):
 
     def on_do_reject(self, comment):
         self.get_view().close_reject_source_dialog()
-        self.model.reject_current_item()
+
+        if not self.model.is_current_source_named():
+            self.model.set_current_source_name(
+                self.name_generator.name_source(self.model.get_current_source()))
 
         writer = self.model.get_writer()
         writer.write_comment(self.model.get_current_reading(), comment)
@@ -218,9 +222,7 @@ class ProcessRealsController(AbstractController):
                                     self.model.get_current_ra(),
                                     self.model.get_current_dec())
 
-        if self.model.is_current_source_finished():
-            writer.flush()
-
+        self.model.reject_current_item()
         self.model.next_item()
 
     def on_cancel_reject(self):
@@ -234,7 +236,6 @@ class ProcessCandidatesController(AbstractController):
     def on_accept(self):
         writer = self.model.get_writer()
         writer.write_source(self.model.get_current_source())
-        writer.flush()
 
         self.model.accept_current_item()
         self.model.next_item()

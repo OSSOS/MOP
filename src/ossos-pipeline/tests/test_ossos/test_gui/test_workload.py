@@ -5,7 +5,7 @@ import unittest
 
 from hamcrest import (assert_that, is_in, is_not, equal_to, is_, none,
                       contains_inanyorder, has_length)
-from mock import Mock, call
+from mock import Mock, call, patch
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from tests.testutil import CopyingMock
@@ -14,6 +14,7 @@ from ossos.gui.context import WorkingContext, LocalDirectoryWorkingContext
 from ossos.gui.downloads import AsynchronousImageDownloadManager
 from ossos.gui.models import UIModel
 from ossos.astrom import AstromParser
+from ossos.mpc import MPCWriter
 from ossos.gui.persistence import LocalProgressManager, InMemoryProgressManager
 from ossos.gui.workload import (WorkUnitProvider, WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
                                 NoAvailableWorkException,
@@ -48,22 +49,29 @@ class TestWorkUnitBuilder(object):
 
 class AbstractWorkUnitTest(FileReadingTestCase):
     def setUp(self):
-        self.testfile = "data/1584431p15.measure3.cands.astrom"
+        self.testfile = self.get_input_file()
         parser = AstromParser()
         self.data = parser.parse(self.get_abs_path(self.testfile))
         self.progress_manager = Mock(spec=LocalProgressManager)
         self.progress_manager.get_processed_indices.return_value = []
-        self.writer = Mock()
         self.output_context = Mock(spec=WorkingContext)
+
+    def get_input_file(self):
+        raise NotImplementedError()
 
 
 class WorkUnitTest(AbstractWorkUnitTest):
+    def get_input_file(self):
+        return "data/1584431p15.measure3.reals.astrom"
+
     def setUp(self):
         super(WorkUnitTest, self).setUp()
 
         self.workunit = RealsWorkUnit(self.testfile, self.data,
-                                      self.progress_manager, self.writer,
+                                      self.progress_manager,
                                       self.output_context)
+        self.writer = Mock(spec=MPCWriter)
+        self.workunit.get_writer = Mock(return_value=self.writer)
 
     def test_initialization(self):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
@@ -124,12 +132,17 @@ class WorkUnitTest(AbstractWorkUnitTest):
 
 
 class RealsWorkUnitTest(AbstractWorkUnitTest):
+    def get_input_file(self):
+        return "data/1584431p15.measure3.reals.astrom"
+
     def setUp(self):
         super(RealsWorkUnitTest, self).setUp()
 
         self.workunit = RealsWorkUnit(self.testfile, self.data,
-                                      self.progress_manager, self.writer,
+                                      self.progress_manager,
                                       self.output_context)
+        self.writer = Mock(spec=MPCWriter)
+        self.workunit.get_writer = Mock(return_value=self.writer)
 
     def test_next_vettable_item_no_validation(self):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
@@ -309,14 +322,37 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         self.progress_manager.unlock.assert_called_once_with(
             self.testfile, async=True)
 
+    def test_flush_only_after_source_finished(self):
+        assert_that(self.writer.flush.called, equal_to(False))
+
+        self.workunit.accept_current_item()
+        self.workunit.next_item()
+
+        assert_that(self.writer.flush.called, equal_to(False))
+
+        self.workunit.reject_current_item()
+        self.workunit.next_item()
+
+        assert_that(self.writer.flush.called, equal_to(False))
+
+        self.workunit.accept_current_item()
+        assert_that(self.writer.flush.call_count, equal_to(1))
+
 
 class CandidatesWorkUnitTest(AbstractWorkUnitTest):
-    def setUp(self):
+    def get_input_file(self):
+        return "data/1584431p15.measure3.cands.astrom"
+
+    @patch("ossos.gui.workload.StreamingAstromWriter")
+    def setUp(self, AstromWriterMock):
         super(CandidatesWorkUnitTest, self).setUp()
 
         self.workunit = CandidatesWorkUnit(self.testfile, self.data,
-                                           self.progress_manager, self.writer,
+                                           self.progress_manager,
                                            self.output_context)
+        self.output_context.open.assert_called_once_with(self.testfile.replace(".cands", ".reals"))
+        AstromWriterMock.assert_called_once_with(self.output_context.open.return_value,
+                                                 self.data.sys_header)
 
     def test_next_vettable_item(self):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
