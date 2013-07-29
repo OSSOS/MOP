@@ -27,6 +27,8 @@ EMPTY_DIR = "data/empty"
 FRESH_TEST_DIR = "data/model_persistence_fresh"
 TEST_FILES = ["xxx1.cands.astrom", "xxx2.cands.astrom", "xxx3.reals.astrom", "xxx4.reals.astrom"]
 
+TEST_OBJECT_NAME = "O13AE0Z"
+
 
 class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
     def setUp(self):
@@ -372,6 +374,8 @@ class ProcessRealsModelTest(GeneralModelTest):
         assert_that(observer.on_change_img.call_count, equal_to(3))
 
     def test_next_item_after_validate_last(self):
+        self.model.set_current_source_name(TEST_OBJECT_NAME)
+
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
 
@@ -434,6 +438,8 @@ class ProcessRealsModelTest(GeneralModelTest):
         assert_that(self.model.get_current_obs_number(), equal_to(2))
 
     def test_is_source_discovered(self):
+        self.model.set_current_source_name(TEST_OBJECT_NAME)
+
         assert_that(self.model.is_current_source_discovered(), equal_to(False))
         self.model.reject_current_item()
         assert_that(self.model.is_current_source_discovered(), equal_to(False))
@@ -497,6 +503,7 @@ class ProcessRealsModelTest(GeneralModelTest):
         total_items = 9
         item = 0
         while item < total_items - 1:
+            self.model.set_current_source_name(TEST_OBJECT_NAME)
             self.model.accept_current_item()
             assert_that(observer.on_all_processed.call_count, equal_to(0))
             self.model.next_item()
@@ -515,6 +522,7 @@ class ProcessRealsModelTest(GeneralModelTest):
         total_items = 9
         item = 0
         while item < total_items - 1:
+            self.model.set_current_source_name(TEST_OBJECT_NAME)
             self.model.accept_current_item()
             assert_that(observer.on_all_processed.call_count, equal_to(0))
             self.model.next_item()
@@ -824,6 +832,8 @@ class RealsModelPersistenceTest(GeneralModelTest):
         assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
                     has_length(0))
 
+        self.model.set_current_source_name(TEST_OBJECT_NAME)
+
         self.model.accept_current_item()
         assert_that(self.concurrent_progress_manager.is_done(first_file),
                     equal_to(False))
@@ -850,6 +860,8 @@ class RealsModelPersistenceTest(GeneralModelTest):
         assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
                     has_length(0))
 
+        self.model.set_current_source_name(TEST_OBJECT_NAME)
+
         # source 1 of 3, reading 1 of 3
         self.model.accept_current_item()
         self.model.next_item()
@@ -865,6 +877,8 @@ class RealsModelPersistenceTest(GeneralModelTest):
                     equal_to(False))
         assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
                     contains_inanyorder(0))
+
+        self.model.set_current_source_name(TEST_OBJECT_NAME)
 
         # source 2 of 3 reading 1 of 3
         self.model.accept_current_item()
@@ -885,6 +899,8 @@ class RealsModelPersistenceTest(GeneralModelTest):
                     equal_to(False))
         assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
                     contains_inanyorder(0, 1))
+
+        self.model.set_current_source_name(TEST_OBJECT_NAME)
 
         # source 3 of 3 reading 1 of 3
         self.model.next_item()
@@ -914,6 +930,7 @@ class RealsModelPersistenceTest(GeneralModelTest):
         accepts_before_next_file = 9
 
         while accepts_before_next_file > 1:
+            self.model.set_current_source_name(TEST_OBJECT_NAME)
             self.model.accept_current_item()
             self.model.next_item()
             assert_that(observer.on_file_processed.call_count, equal_to(0))
@@ -928,7 +945,7 @@ class RealsModelPersistenceTest(GeneralModelTest):
 
         msg = args[0]
         assert_that(msg.topic, equal_to(events.FINISHED_WORKUNIT))
-        assert_that(msg.data, equal_to(workunit.get_results_file_path()))
+        assert_that(msg.data, equal_to(workunit.get_results_file_paths()))
 
     def test_unlock_on_exit(self):
         current_file = self.model.get_current_filename()
@@ -969,6 +986,8 @@ class RealsModelPersistenceLoadingTest(GeneralModelTest):
         return ["xxx1.cands.astrom", "xxx3.reals.astrom"]
 
     def test_load_partially_processed(self):
+        self.model.set_current_source_name(TEST_OBJECT_NAME)
+
         observer = Mock()
         events.subscribe(events.FINISHED_WORKUNIT, observer)
 
@@ -988,7 +1007,7 @@ class RealsModelPersistenceLoadingTest(GeneralModelTest):
         assert_that(observer.call_count, equal_to(1))
 
         msg = observer.call_args_list[0][0][0]
-        assert_that(msg.data, equal_to(workunit.get_results_file_path()))
+        assert_that(msg.data, equal_to(workunit.get_results_file_paths()))
 
 
 class CandidatesModelPersistenceTest(GeneralModelTest):
@@ -1119,7 +1138,7 @@ class CandidatesModelPersistenceLoadingTest(GeneralModelTest):
         assert_that(observer.call_count, equal_to(1))
 
         msg = observer.call_args_list[0][0][0]
-        assert_that(msg.data, equal_to(workunit.get_results_file_path()))
+        assert_that(msg.data, equal_to(workunit.get_results_file_paths()))
 
     def test_load_fast_forward_through_sources(self):
         self.create_part_file_with_indices([0, 1])

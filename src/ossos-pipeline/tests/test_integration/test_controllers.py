@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import unittest
 
 from mock import Mock, ANY
-from hamcrest import assert_that, equal_to, is_not, same_instance, has_length
+from hamcrest import assert_that, equal_to, is_not, same_instance
 
 from tests.base_tests import FileReadingTestCase, WxWidgetTestCase, DirectoryCleaningTestCase
 from ossos.daophot import TaskError
@@ -14,6 +14,7 @@ from ossos.gui.controllers import ProcessRealsController
 from ossos.gui.models import UIModel
 from ossos.gui.views import ApplicationView
 from ossos.astrom import AstromParser
+from ossos.naming import ProvisionalNameGenerator
 from ossos.gui.downloads import AsynchronousImageDownloadManager
 from ossos.gui.workload import WorkUnitProvider, RealsWorkUnitBuilder
 
@@ -55,7 +56,8 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
         # We don't actually have any images loaded, so mock this out
         self.model.is_current_source_adjusted = Mock(return_value=False)
 
-        self.name_generator = Mock()
+        self.name_generator = Mock(spec=ProvisionalNameGenerator)
+        self.name_generator.name_source.return_value = TEST_PROVISIONAL_NAME
         self.controller = ProcessRealsController(self.model, self.name_generator)
 
     def tearDown(self):
@@ -183,38 +185,6 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
 
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
-
-    def read_written_results(self):
-        writer = self.model.get_current_workunit().get_writer()
-        filehandle = writer.filehandle
-        filehandle.seek(0)
-        return filehandle.read()
-
-    def test_writer_flushing(self):
-        def assert_sources_written_equals(num_sources):
-            if num_sources == 0:
-                assert_that(self.read_written_results(), equal_to(""))
-            else:
-                # Each source has 3 readings, and each reading has a comment
-                # line and MPC line
-                assert_that(self.read_written_results().rstrip().split("\n"),
-                            has_length(6 * num_sources))
-
-        # Should flush only after accepting all readings for a source
-        assert_sources_written_equals(0)
-        self.accept_source_reading()
-        assert_sources_written_equals(0)
-        self.accept_source_reading()
-        assert_sources_written_equals(0)
-        self.accept_source_reading()
-        assert_sources_written_equals(1)
-
-        self.reject_source_reading()
-        assert_sources_written_equals(1)
-        self.reject_source_reading()
-        assert_sources_written_equals(1)
-        self.reject_source_reading()
-        assert_sources_written_equals(2)
 
     def test_phot_error_handling(self):
         view_mock = Mock(spec=ApplicationView)
