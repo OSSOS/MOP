@@ -1,0 +1,32 @@
+# 1616688s17
+# 1616699s17
+# 1616710s17
+## MOPversion                                                                   
+#  1.20                                                                         
+## MJD-OBS-CENTER  EXPTIME THRES FWHM  MAXCOUNT CRVAL1     CRVAL2     EXPNUM    
+# 2013 04 09.39399  287.07  2.70  3.89  30000.0  215.91821  -12.23050  1616688  
+## SCALE CHIP CRPIX1    CRPIX2    NAX1  NAX2   DETECTOR           PHADU RDNOIS  
+#  0.185  18  -7511.19   -113.36  2112  4644 MegaCam              1.98  4.00    
+## MOPversion                                                                   
+#  1.20                                                                         
+## MJD-OBS-CENTER  EXPTIME THRES FWHM  MAXCOUNT CRVAL1     CRVAL2     EXPNUM    
+# 2013 04 09.43719  287.06  2.70  3.39  30000.0  215.91821  -12.23053  1616699  
+## SCALE CHIP CRPIX1    CRPIX2    NAX1  NAX2   DETECTOR           PHADU RDNOIS  
+#  0.185  18  -7507.83   -114.86  2112  4644 MegaCam              1.98  4.00    
+## MOPversion                                                                   
+#  1.20                                                                         
+## MJD-OBS-CENTER  EXPTIME THRES FWHM  MAXCOUNT CRVAL1     CRVAL2     EXPNUM    
+# 2013 04 09.48059  287.08  2.70  3.96  30000.0  215.91821  -12.23053  1616710  
+## SCALE CHIP CRPIX1    CRPIX2    NAX1  NAX2   DETECTOR           PHADU RDNOIS  
+#  0.185  18  -7503.89   -114.49  2112  4644 MegaCam              1.98  4.00    
+##     RMIN    RMAX   ANGLE   AWIDTH                                            
+#      0.4    15.0    20.0    30.0                                              
+##   X        Y        X_0     Y_0          R.A.          DEC                   
+
+  1970.17  4611.65  1970.17  4611.65  215.4214407  -11.9892541
+  1992.40  4619.65  1997.68  4618.31  215.4200037  -11.9889259
+  2028.20  4623.54  2024.13  4624.42  215.4186153  -11.9886194
+
+  264.36   142.88   264.36  1142.88  213.6888002  -11.7168799
+  329.89   159.87   327.52  1158.12  213.6854530  -11.7161018
+  390.83   172.93   393.33  1174.36  213.6819605  -11.7152679
