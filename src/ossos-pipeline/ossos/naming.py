@@ -8,24 +8,6 @@ ALPHABET_BASE_36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 ALPHABET_BASE_62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
 
-def to_base26(number):
-    if number < 0:
-        raise ValueError("Must be a number >= 0")
-
-    converted = ""
-
-    should_continue = True
-    while should_continue:
-        remainder = number % 26
-        converted = chr(remainder + ord('A')) + converted
-        number = (number - remainder) / 26
-
-        if number <= 0:
-            should_continue = False
-
-    return converted
-
-
 def base26encode(number):
     return encode(number, ALPHABET_BASE_26)
 
@@ -113,7 +95,7 @@ class ProvisionalNameGenerator(object):
                 "Exposure number (%s) does not meet required format (%s)" % (
                     exp_str, self.valid_expnum_reg.pattern))
 
-        return to_base26(int(exposure_number))
+        return base26encode(int(exposure_number))
 
     def _get_extension(self, min_expnum):
         ext = self._processed_expnums[min_expnum]
