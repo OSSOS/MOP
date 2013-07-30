@@ -16,6 +16,7 @@ CERTFILE=os.path.join(os.getenv('HOME'),
                       'cadcproxy.pem')
 
 DBIMAGES='vos:OSSOS/dbimages'
+MEASURE3='vos:OSSOS/measure3'
 DATA_WEB_SERVICE='https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/'
 OSSOS_TAG_URI_BASE='ivo://canfar.uvic.ca/ossos'
 vospace = vos.Client(cadc_short_cut=True, certFile=CERTFILE)
@@ -380,3 +381,11 @@ def set_property(node_uri, property_name, property_value, ossos_base=True):
 
     node.props[property_uri] = property_value
     vospace.addProps(node)
+
+
+def get_object_counter(node_uri, epoch_field):
+    pass
+
+
+def increment_object_counter(node_uri, epoch_field):
+    pass
