@@ -115,6 +115,11 @@ class ProcessRealsController(AbstractController):
 
         self.name_generator = name_generator
 
+    def _generate_provisional_name(self):
+        return self.name_generator.generate_name(
+            self.model.get_current_astrom_header(),
+            self.model.get_current_fits_header())
+
     def on_accept(self):
         """
         Initiates acceptance procedure, gathering required data.
@@ -122,7 +127,7 @@ class ProcessRealsController(AbstractController):
         if self.model.is_current_source_named():
             provisional_name = self.model.get_current_source_name()
         else:
-            provisional_name = self.name_generator.name_source(self.model.get_current_source())
+            provisional_name = self._generate_provisional_name()
 
         band = self.model.get_current_band()
         default_comment = ""
@@ -213,8 +218,7 @@ class ProcessRealsController(AbstractController):
         self.get_view().close_reject_source_dialog()
 
         if not self.model.is_current_source_named():
-            self.model.set_current_source_name(
-                self.name_generator.name_source(self.model.get_current_source()))
+            self.model.set_current_source_name(self._generate_provisional_name())
 
         writer = self.model.get_writer()
         writer.write_comment(self.model.get_current_reading(), comment)
