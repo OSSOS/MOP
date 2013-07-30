@@ -51,9 +51,7 @@ class ProvisionalNameGenerator(object):
 
         epoch_field = "O" + epoch + field
 
-        current_count = storage.get_object_counter(storage.MEASURE3, epoch_field)
-        new_count = coding.base36encode(coding.base36decode(current_count) + 1, pad_length=2)
-        storage.increment_object_counter(storage.MEASURE3, epoch_field)
+        count = storage.increment_object_counter(storage.MEASURE3, epoch_field)
 
-        return epoch_field + new_count
+        return epoch_field + count
 
