@@ -41,20 +41,21 @@ class EncodingTest(unittest.TestCase):
         assert_that(naming.base26encode(1616704), equal_to("DNZOY"))
         assert_that(naming.base26encode(1616705), equal_to("DNZOZ"))
 
-    def test_base36_encode_1(self):
-        assert_that(naming.encode(1, naming.ALPHABET_BASE_36), equal_to("1"))
+    def test_base36_encode_decode_1(self):
+        assert_that(naming.base36encode(1), equal_to("1"))
+        assert_that(naming.base36decode("1"), equal_to(1))
 
     def test_base36_encode_10(self):
-        assert_that(naming.encode(10, naming.ALPHABET_BASE_36), equal_to("A"))
+        assert_that(naming.base36encode(10), equal_to("A"))
+        assert_that(naming.base36decode("A"), equal_to(10))
 
     def test_base36_encode_100(self):
-        assert_that(naming.encode(100, naming.ALPHABET_BASE_36), equal_to("2S"))
-
-    def test_base36_encode_1000(self):
-        assert_that(naming.encode(1000, naming.ALPHABET_BASE_36), equal_to("RS"))
+        assert_that(naming.base36encode(100), equal_to("2S"))
+        assert_that(naming.base36decode("2S"), equal_to(100))
 
     def test_base36_encode_10000(self):
-        assert_that(naming.encode(10000, naming.ALPHABET_BASE_36), equal_to("7PS"))
+        assert_that(naming.base36encode(10000), equal_to("7PS"))
+        assert_that(naming.base36decode("7PS"), equal_to(10000))
 
 
 if __name__ == '__main__':

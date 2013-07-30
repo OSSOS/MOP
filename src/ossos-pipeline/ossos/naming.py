@@ -10,6 +10,14 @@ def base26encode(number):
     return encode(number, ALPHABET_BASE_26)
 
 
+def base36encode(number):
+    return encode(number, ALPHABET_BASE_36)
+
+
+def base36decode(number):
+    return decode(number, 36)
+
+
 def base52encode(number):
     return encode(number, ALPHABET_BASE_52)
 
@@ -47,6 +55,10 @@ def encode(number, alphabet):
         base_n = alphabet[i] + base_n
 
     return sign + base_n
+
+
+def decode(number, base):
+    return int(number, base)
 
 
 class ProvisionalNameGenerator(object):
