@@ -1,7 +1,6 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 from ossos import astrom
-from ossos import coding
 from ossos import storage
 
 
@@ -12,22 +11,6 @@ class ProvisionalNameGenerator(object):
     These names must be stored in a 7-character packed form:
     http://www.minorplanetcenter.net/iau/info/PackedDes.html
     """
-
-    def name_source(self, source):
-        """
-        Generates a name for a source.
-        """
-        reading0 = source.get_reading(0)
-        name = (coding.base52encode(int(reading0.get_exposure_number())) +
-                coding.base62encode(int(reading0.x + reading0.y)))
-
-        # Pad with 0's if short
-        name = name.ljust(7, "0")
-
-        if len(name) > 7:
-            raise ValueError("Name is more than 7 characters: %s" % name)
-
-        return name
 
     def generate_name(self, astrom_header, fits_header):
         """

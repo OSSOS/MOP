@@ -6,28 +6,12 @@ ALPHABET_BASE_52 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 ALPHABET_BASE_62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
 
-def base26encode(number):
-    return encode(number, ALPHABET_BASE_26)
-
-
 def base36encode(number, pad_length=0):
     return encode(number, ALPHABET_BASE_36).rjust(pad_length, "0")
 
 
 def base36decode(number):
     return decode(number, 36)
-
-
-def base52encode(number):
-    return encode(number, ALPHABET_BASE_52)
-
-
-def base62encode(number):
-    """
-    Converts an integer to a base62 string (i.e. using the upper and lower
-    case alphabet and the digits 0-9).
-    """
-    return encode(number, ALPHABET_BASE_36)
 
 
 def encode(number, alphabet):
