@@ -145,7 +145,7 @@ class WorkUnit(object):
         if self.is_current_source_finished():
             self.progress_manager.record_index(self.get_filename(),
                                                self.get_current_source_number())
-            self._on_source_finished()
+            self.get_writer().flush()
 
         if self.is_finished():
             self.progress_manager.record_done(self.get_filename())
@@ -228,9 +228,6 @@ class WorkUnit(object):
         raise NotImplementedError()
 
     def _mark_previously_processed_items(self):
-        pass
-
-    def _on_source_finished(self):
         pass
 
     def _close_writers(self):
@@ -331,9 +328,6 @@ class RealsWorkUnit(WorkUnit):
             for reading in self.get_sources()[index].get_readings():
                 self.processed_items.add(reading)
 
-    def _on_source_finished(self):
-        self.get_writer().flush()
-
     def _close_writers(self):
         for writer in self._writers.values():
             writer.close()
@@ -365,10 +359,6 @@ class CandidatesWorkUnit(WorkUnit):
         self.next_source()
         while self.is_current_item_processed():
             self.next_source()
-
-    def accept_current_item(self):
-        super(CandidatesWorkUnit, self).accept_current_item()
-        self.get_writer().flush()
 
     def get_current_item(self):
         return self.get_current_source()

@@ -4,6 +4,7 @@ import os
 import threading
 
 from ossos import storage
+from ossos.gui import logger
 
 
 class SynchronizationManager(object):
@@ -34,9 +35,9 @@ class SynchronizationManager(object):
             thread.start()
 
     def do_synchronize(self, local_path):
-        # TODO: logging
-        # TODO: some indication in view that synchronization is in progress
-        storage.copy(local_path, self.get_remote_uri(local_path))
+        remote_uri = self.get_remote_uri(local_path)
+        logger.info("Syncing %s to %s." % (local_path, remote_uri))
+        storage.copy(local_path, remote_uri)
 
     def get_remote_uri(self, local_path):
         basename = os.path.basename(local_path)
