@@ -57,6 +57,12 @@ class EncodingTest(unittest.TestCase):
         assert_that(naming.base36encode(10000), equal_to("7PS"))
         assert_that(naming.base36decode("7PS"), equal_to(10000))
 
+    def test_base36_encode_pad_short(self):
+        assert_that(naming.base36encode(1, pad_length=2), equal_to("01"))
+
+    def test_base36_encode_pad_long(self):
+        assert_that(naming.base36encode(10000, pad_length=2), equal_to("7PS"))
+
 
 if __name__ == '__main__':
     unittest.main()
