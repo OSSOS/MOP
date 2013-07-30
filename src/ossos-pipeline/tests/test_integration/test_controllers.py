@@ -55,9 +55,10 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
 
         # We don't actually have any images loaded, so mock this out
         self.model.is_current_source_adjusted = Mock(return_value=False)
+        self.model.get_current_fits_header = Mock()
 
         self.name_generator = Mock(spec=ProvisionalNameGenerator)
-        self.name_generator.name_source.return_value = TEST_PROVISIONAL_NAME
+        self.name_generator.generate_name.return_value = TEST_PROVISIONAL_NAME
         self.controller = ProcessRealsController(self.model, self.name_generator)
 
     def tearDown(self):
