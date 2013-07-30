@@ -55,3 +55,18 @@ class ProvisionalNameGenerator(object):
 
         return epoch_field + count
 
+
+class DryRunNameGenerator(object):
+    """
+    Generate a fake name for dry runs so we don't increment counters.
+    """
+    def __init__(self):
+        self.counter = 0
+
+    def generate_name(self, astrom_header, fits_header):
+        base = "DRY"
+        count = str(self.counter).zfill(7 - len(base))
+
+        self.counter += 1
+
+        return base + count
