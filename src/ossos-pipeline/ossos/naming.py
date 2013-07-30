@@ -10,8 +10,8 @@ def base26encode(number):
     return encode(number, ALPHABET_BASE_26)
 
 
-def base36encode(number):
-    return encode(number, ALPHABET_BASE_36)
+def base36encode(number, pad_length=0):
+    return encode(number, ALPHABET_BASE_36).rjust(pad_length, "0")
 
 
 def base36decode(number):
