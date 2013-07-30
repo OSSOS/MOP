@@ -8,16 +8,6 @@ from ossos import coding
 
 
 class EncodingDecodingTest(unittest.TestCase):
-    def test_base26_boundary(self):
-        assert_that(coding.base26encode(0), equal_to("A"))
-        assert_that(coding.base26encode(1), equal_to("B"))
-        assert_that(coding.base26encode(9999999), equal_to("VWYXJ"))
-
-    def test_base26_realistic_exposure_numbers(self):
-        assert_that(coding.base26encode(1616703), equal_to("DNZOX"))
-        assert_that(coding.base26encode(1616704), equal_to("DNZOY"))
-        assert_that(coding.base26encode(1616705), equal_to("DNZOZ"))
-
     def test_base36_encode_decode_1(self):
         assert_that(coding.base36encode(1), equal_to("1"))
         assert_that(coding.base36decode("1"), equal_to(1))
