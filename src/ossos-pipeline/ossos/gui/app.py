@@ -120,6 +120,10 @@ class ValidationApplication(object):
             sys.stdout.write("A dry run can only be done on local files.\n")
             sys.exit(0)
 
+        if output_context.is_remote():
+            sys.stdout.write("The output directory must be local.\n")
+            sys.exit(0)
+
         progress_manager = working_context.get_progress_manager()
         builder = factory.create_workunit_builder(parser,
                                                   working_context,
