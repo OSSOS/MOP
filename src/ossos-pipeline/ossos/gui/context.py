@@ -116,8 +116,7 @@ class VOSpaceWorkingContext(WorkingContext):
         return storage.exists(self.get_full_path(filename))
 
     def open(self, filename):
-        return storage.SyncingVOFile(self.get_full_path(filename),
-                                     sync_enabled=False)
+        return storage.vofile(self.get_full_path(filename), os.O_RDONLY)
 
     def rename(self, old_name, new_name):
         storage.move(old_name, new_name)

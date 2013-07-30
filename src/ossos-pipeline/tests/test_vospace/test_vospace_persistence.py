@@ -25,10 +25,8 @@ TEST_FILE_3 = "3.cands.astrom"
 TEST_USER = "testuser"
 
 
-class AbstractVOSpaceProgressManagerTest(FileReadingTestCase):
+class AbstractVOSpaceProgressManagerTestCase(object):
     # Do not run this class directly; run its subclasses
-    # (which must set __test__ = True)
-    __test__ = False
 
     def create_vofile(self, destination):
         # Just copy a prototype file until I figure out how to do this
@@ -202,9 +200,7 @@ class AbstractVOSpaceProgressManagerTest(FileReadingTestCase):
         assert_that(manager2.owns_lock(file2), equal_to(False))
 
 
-class PartialProgressTrackingTest(AbstractVOSpaceProgressManagerTest):
-    __test__ = True
-
+class PartialProgressTrackingTest(AbstractVOSpaceProgressManagerTestCase, FileReadingTestCase):
     def _tracks_partial_progress(self):
         return True
 
@@ -260,9 +256,7 @@ class PartialProgressTrackingTest(AbstractVOSpaceProgressManagerTest):
                     contains_inanyorder(0, 1, 2))
 
 
-class NoTrackingTest(AbstractVOSpaceProgressManagerTest):
-    __test__ = True
-
+class NoTrackingTest(AbstractVOSpaceProgressManagerTestCase, FileReadingTestCase):
     def _tracks_partial_progress(self):
         return False
 
