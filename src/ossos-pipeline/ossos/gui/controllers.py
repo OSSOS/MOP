@@ -265,11 +265,11 @@ class ProcessCandidatesController(AbstractController):
 class ImageLoadingDialogManager(object):
     def __init__(self, view):
         self.view = view
-        self._wait_items = []
+        self._wait_items = set()
         self._dialog_showing = False
 
     def wait_for_item(self, item):
-        self._wait_items.append(item)
+        self._wait_items.add(item)
 
         if not self._dialog_showing:
             self.view.show_image_loading_dialog()
