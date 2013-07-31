@@ -257,3 +257,24 @@ class ProcessCandidatesController(AbstractController):
     def on_reject(self):
         self.model.reject_current_item()
         self.model.next_item()
+
+
+class ImageLoadingDialogManager(object):
+    def __init__(self, view):
+        self.view = view
+        self._wait_items = []
+        self._dialog_showing = False
+
+    def wait_for_item(self, item):
+        self._wait_items.append(item)
+
+        if not self._dialog_showing:
+            self.view.show_image_loading_dialog()
+            self._dialog_showing = True
+
+    def set_item_done(self, item):
+        self._wait_items.remove(item)
+
+        if len(self._wait_items) == 0 and self._dialog_showing:
+            self.view.hide_image_loading_dialog()
+            self._dialog_showing = False

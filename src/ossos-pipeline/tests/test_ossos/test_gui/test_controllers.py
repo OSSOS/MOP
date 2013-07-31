@@ -6,8 +6,10 @@ from mock import Mock, MagicMock, patch, ANY
 from hamcrest import equal_to, assert_that
 
 from ossos.gui import config
+from ossos.astrom import SourceReading
+from ossos.gui.views import ApplicationView
 from ossos.gui.models import UIModel
-from ossos.gui.controllers import AbstractController, ProcessRealsController
+from ossos.gui.controllers import AbstractController, ProcessRealsController, ImageLoadingDialogManager
 from ossos.naming import ProvisionalNameGenerator
 
 
@@ -96,6 +98,34 @@ class RealsControllerTest(unittest.TestCase):
             default_observatory_code=ANY,
             default_comment=ANY,
             phot_failure=ANY)
+
+
+class ImageLoadingDialogManagerTest(unittest.TestCase):
+    def setUp(self):
+        self.view = Mock(spec=ApplicationView)
+        self.undertest = ImageLoadingDialogManager(self.view)
+
+    def test_wait_for_source_shows_dialog(self):
+        source_reading = Mock(spec=SourceReading)
+        assert_that(self.view.show_image_loading_dialog.called, equal_to(False))
+        self.undertest.wait_for_item(source_reading)
+        self.view.show_image_loading_dialog.assert_called_once_with()
+
+    def test_dialog_hidden_when_all_sources_ready(self):
+        source_reading1 = Mock(spec=SourceReading)
+        source_reading2 = Mock(spec=SourceReading)
+
+        self.undertest.wait_for_item(source_reading1)
+        self.undertest.wait_for_item(source_reading2)
+
+        self.view.show_image_loading_dialog.assert_called_once_with()
+        assert_that(self.view.hide_image_loading_dialog.called, equal_to(False))
+
+        self.undertest.set_item_done(source_reading1)
+        assert_that(self.view.hide_image_loading_dialog.called, equal_to(False))
+        self.undertest.set_item_done(source_reading2)
+
+        self.view.hide_image_loading_dialog.assert_called_once_with()
 
 
 if __name__ == '__main__':
