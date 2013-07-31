@@ -94,6 +94,17 @@ class AbstractController(object):
     def on_disable_autoplay(self):
         self.autoplay_manager.stop_autoplay()
 
+    def on_toggle_autoplay_key(self):
+        """
+        The user has pressed the keybind for toggling autoplay.
+        """
+        if self.autoplay_manager.is_running():
+            self.autoplay_manager.stop_autoplay()
+            self.view.set_autoplay(False)
+        else:
+            self.autoplay_manager.start_autoplay()
+            self.view.set_autoplay(True)
+
     def on_exit(self):
         self._do_exit()
 
