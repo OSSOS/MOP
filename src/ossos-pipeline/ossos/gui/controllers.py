@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 from ossos.daophot import TaskError
 from ossos.gui import events, config
 from ossos.gui.views import ApplicationView
-from ossos.gui.models import ImageNotLoadedException
+from ossos.gui.models import ImageNotLoadedException, NoWorkUnitException
 from ossos.gui.autoplay import AutoplayManager
 
 
@@ -36,6 +36,8 @@ class AbstractController(object):
         except ImageNotLoadedException:
             self.image_loading_dialog_manager.wait_for_item(
                 self.get_model().get_current_reading())
+            return
+        except NoWorkUnitException:
             return
 
         self.circle_current_source()
