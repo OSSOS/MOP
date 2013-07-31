@@ -149,6 +149,7 @@ class ValidationApplication(object):
         controller = factory.create_controller(model, dry_run=dry_run)
 
         model.start_work()
+        controller.display_current_image()
 
         self.model = model
         self.view = controller.get_view()
