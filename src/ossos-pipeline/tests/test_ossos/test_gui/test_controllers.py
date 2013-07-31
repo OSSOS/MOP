@@ -137,6 +137,16 @@ class ImageLoadingDialogManagerTest(unittest.TestCase):
         self.view.show_image_loading_dialog.assert_called_once_with()
         assert_that(self.view.hide_image_loading_dialog.called, equal_to(False))
 
+    def test_wait_on_item_twice_only_requires_setting_done_once(self):
+        source_reading1 = Mock(spec=SourceReading)
+        self.undertest.wait_for_item(source_reading1)
+        self.undertest.wait_for_item(source_reading1)
+
+        self.view.show_image_loading_dialog.assert_called_once_with()
+
+        self.undertest.set_item_done(source_reading1)
+        self.view.hide_image_loading_dialog.assert_called_once_with()
+
 
 if __name__ == '__main__':
     unittest.main()
