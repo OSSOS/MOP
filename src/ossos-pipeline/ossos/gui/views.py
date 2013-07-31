@@ -49,7 +49,6 @@ class ApplicationView(object):
         self.retry_downloads_dialog = None
 
         self.mainframe.Show()
-        self.mainframe.show_image_loading_dialog()
 
     def _on_close_window(self, event):
         self.close()

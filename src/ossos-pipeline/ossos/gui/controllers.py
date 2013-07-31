@@ -19,6 +19,7 @@ class AbstractController(object):
         self.view.register_xy_changed_event_handler(self.on_reposition_source)
 
         self.autoplay_manager = AutoplayManager(model)
+        self.image_loading_dialog_manager = ImageLoadingDialogManager(self.view)
 
     def get_view(self):
         return self.view
@@ -33,7 +34,8 @@ class AbstractController(object):
             view.view_image(self.get_model().get_current_image(),
                             redraw=False)
         except ImageNotLoadedException:
-            view.show_image_loading_dialog()
+            self.image_loading_dialog_manager.wait_for_item(
+                self.get_model().get_current_reading())
             return
 
         self.circle_current_source()
@@ -54,8 +56,9 @@ class AbstractController(object):
 
     def on_image_loaded(self, event):
         source_reading = event.data
+        self.image_loading_dialog_manager.set_item_done(source_reading)
+
         if source_reading == self.model.get_current_reading():
-            self.get_view().hide_image_loading_dialog()
             self.display_current_image()
 
     def on_change_image(self, event):
@@ -273,6 +276,9 @@ class ImageLoadingDialogManager(object):
             self._dialog_showing = True
 
     def set_item_done(self, item):
+        if item not in self._wait_items:
+            return
+
         self._wait_items.remove(item)
 
         if len(self._wait_items) == 0 and self._dialog_showing:
