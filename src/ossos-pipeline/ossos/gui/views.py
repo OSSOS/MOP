@@ -285,6 +285,15 @@ class MainFrame(wx.Frame):
         do_bind(self._on_select_keymap, keymap_item)
         do_bind(self._on_select_exit, exit_item)
 
+        display_menu = wx.Menu()
+        auto_play_item = display_menu.Append(
+            id=wx.ID_ANY,
+            text="Autoplay",
+            help="Automatically transition through images.",
+            kind=wx.ITEM_CHECK)
+
+        do_bind(self._on_select_autoplay, auto_play_item)
+
         sync_menu = wx.Menu()
         auto_sync_item = sync_menu.Append(
             id=wx.ID_ANY,
@@ -298,6 +307,8 @@ class MainFrame(wx.Frame):
         menubar = wx.MenuBar()
         self.file_menu_title = "File"
         menubar.Append(file_menu, self.file_menu_title)
+        self.display_menu_title = "Display"
+        menubar.Append(display_menu, self.display_menu_title)
         self.sync_menu_title = "Sync"
         menubar.Append(sync_menu, self.sync_menu_title)
         self.SetMenuBar(menubar)
@@ -331,6 +342,12 @@ class MainFrame(wx.Frame):
             self.controller.on_enable_auto_sync()
         else:
             self.controller.on_disable_auto_sync()
+
+    def _on_select_autoplay(self, event):
+        if event.Checked():
+            self.controller.on_enable_autoplay()
+        else:
+            self.controller.on_disable_autoplay()
 
     def view_image(self, fits_image, redraw=True):
         self.image_viewer.view_image(fits_image, redraw=redraw)

@@ -4,6 +4,7 @@ from ossos.daophot import TaskError
 from ossos.gui import events, config
 from ossos.gui.views import ApplicationView
 from ossos.gui.models import ImageNotLoadedException
+from ossos.gui.autoplay import AutoplayManager
 
 
 class AbstractController(object):
@@ -16,6 +17,8 @@ class AbstractController(object):
 
         self.view = ApplicationView(self.model, self)
         self.view.register_xy_changed_event_handler(self.on_reposition_source)
+
+        self.autoplay_manager = AutoplayManager(model)
 
     def get_view(self):
         return self.view
@@ -80,10 +83,17 @@ class AbstractController(object):
     def on_disable_auto_sync(self):
         self.model.disable_synchronization()
 
+    def on_enable_autoplay(self):
+        self.autoplay_manager.start_autoplay()
+
+    def on_disable_autoplay(self):
+        self.autoplay_manager.stop_autoplay()
+
     def on_exit(self):
         self._do_exit()
 
     def _do_exit(self):
+        self.autoplay_manager.stop_autoplay()
         self.view.close()
         self.model.exit()
 
