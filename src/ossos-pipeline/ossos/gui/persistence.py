@@ -1,10 +1,10 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import collections
-import getpass
 import threading
 
 from ossos import storage
+from ossos import auth
 from ossos.gui import tasks
 
 CANDS = "CANDS"
@@ -23,10 +23,6 @@ LOCK_PROPERTY = "lock_holder"
 # TODO: just make them both "," for consistency
 INDEX_SEP = "\n"
 VO_INDEX_SEP = ","
-
-
-def get_id():
-    return getpass.getuser()
 
 
 def requires_lock(function):
@@ -69,7 +65,7 @@ class AbstractProgressManager(object):
     def __init__(self, working_context, userid=None):
         self.working_context = working_context
         if userid is None:
-            self.userid = get_id()
+            self.userid = auth.get_cadc_username()
         else:
             self.userid = userid
 
