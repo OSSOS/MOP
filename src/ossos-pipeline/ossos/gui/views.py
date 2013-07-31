@@ -177,6 +177,10 @@ class ApplicationView(object):
     def all_processed_should_exit_prompt(self):
         return should_exit_prompt(self.mainframe)
 
+    @guithread
+    def set_autoplay(self, autoplay_enabled):
+        self.mainframe.set_autoplay(autoplay_enabled)
+
     def as_widget(self):
         return self.mainframe
 
@@ -233,7 +237,7 @@ class MainFrame(wx.Frame):
         self.main_panel.SetFocus()
 
     def _init_ui_components(self):
-        self.menubar = self._create_menus()
+        self.menu = Menu(self, self.controller)
 
         self.main_panel = FocusablePanel(self, style=wx.RAISED_BORDER)
         self.control_panel = wx.Panel(self.main_panel)
@@ -326,28 +330,6 @@ class MainFrame(wx.Frame):
 
         return notebook
 
-    def _on_select_keymap(self, event):
-        dialog = wx.Dialog(self, title="Key Mappings")
-        panel = ListCtrlPanel(dialog, ("Action", "Shortcut"))
-        panel.populate_list(self.keybind_manager.get_keymappings())
-
-        dialog.Show()
-
-    def _on_select_exit(self, event):
-        self.controller.on_exit()
-
-    def _on_select_automatically_sync(self, event):
-        if event.Checked():
-            self.controller.on_enable_auto_sync()
-        else:
-            self.controller.on_disable_auto_sync()
-
-    def _on_select_autoplay(self, event):
-        if event.Checked():
-            self.controller.on_enable_autoplay()
-        else:
-            self.controller.on_disable_autoplay()
-
     def view_image(self, fits_image, redraw=True):
         self.image_viewer.view_image(fits_image, redraw=redraw)
 
@@ -386,8 +368,97 @@ class MainFrame(wx.Frame):
         return self.validation_view.is_validation_enabled()
 
     def disable_sync_menu(self):
+        self.menu.disable_sync()
+
+    def set_autoplay(self, autoplay_enabled):
+        self.menu.set_autoplay(autoplay_enabled)
+
+
+class Menu(object):
+    def __init__(self, frame, controller):
+        self.controller = controller
+        self.frame = frame
+
+        self._build_menu()
+
+    def _build_menu(self):
+        def do_bind(handler, item):
+            self.frame.Bind(wx.EVT_MENU, handler, item)
+
+        # Create menus and their contents
+        file_menu = wx.Menu()
+        keymap_item = file_menu.Append(
+            id=wx.ID_ANY,
+            text="Keymap",
+            help="Show mappings for keyboard shortcuts.")
+        exit_item = file_menu.Append(
+            id=wx.ID_EXIT,
+            text="Exit",
+            help="Exit the program")
+
+        do_bind(self._on_select_keymap, keymap_item)
+        do_bind(self._on_select_exit, exit_item)
+
+        display_menu = wx.Menu()
+        auto_play_item = display_menu.Append(
+            id=wx.ID_ANY,
+            text="Autoplay",
+            help="Automatically transition through images.",
+            kind=wx.ITEM_CHECK)
+
+        do_bind(self._on_select_autoplay, auto_play_item)
+
+        sync_menu = wx.Menu()
+        auto_sync_item = sync_menu.Append(
+            id=wx.ID_ANY,
+            text="Automatically",
+            help="Automatically synchronize results.",
+            kind=wx.ITEM_CHECK)
+
+        do_bind(self._on_select_automatically_sync, auto_sync_item)
+
+        # Create menu bar
+        menubar = wx.MenuBar()
+        self.file_menu_title = "File"
+        menubar.Append(file_menu, self.file_menu_title)
+        self.display_menu_title = "Display"
+        menubar.Append(display_menu, self.display_menu_title)
+        self.sync_menu_title = "Sync"
+        menubar.Append(sync_menu, self.sync_menu_title)
+
+        self.frame.SetMenuBar(menubar)
+
+        self.menubar = menubar
+        self.auto_play_item = auto_play_item
+
+    def _on_select_keymap(self, event):
+        dialog = wx.Dialog(self.frame, title="Key Mappings")
+        panel = ListCtrlPanel(dialog, ("Action", "Shortcut"))
+        panel.populate_list(self.frame.keybind_manager.get_keymappings())
+
+        dialog.Show()
+
+    def _on_select_exit(self, event):
+        self.controller.on_exit()
+
+    def _on_select_automatically_sync(self, event):
+        if event.Checked():
+            self.controller.on_enable_auto_sync()
+        else:
+            self.controller.on_disable_auto_sync()
+
+    def _on_select_autoplay(self, event):
+        if event.Checked():
+            self.controller.on_enable_autoplay()
+        else:
+            self.controller.on_disable_autoplay()
+
+    def disable_sync(self):
         self.menubar.EnableTop(
             self.menubar.FindMenu(self.sync_menu_title), False)
+
+    def set_autoplay(self, autoplay_enabled):
+        self.auto_play_item.Check(autoplay_enabled)
 
 
 class KeybindManager(object):
@@ -401,6 +472,7 @@ class KeybindManager(object):
         reject_src_kb_id = wx.NewId()
         reset_cmap_kb_id = wx.NewId()
         reset_src_kb_id = wx.NewId()
+        autoplay_kb_id = wx.NewId()
 
         view.Bind(wx.EVT_MENU, self.on_next_obs_keybind, id=next_obs_kb_id)
         view.Bind(wx.EVT_MENU, self.on_prev_obs_keybind, id=prev_obs_kb_id)
@@ -409,11 +481,13 @@ class KeybindManager(object):
         view.Bind(wx.EVT_MENU, self.on_reset_cmap_keybind, id=reset_cmap_kb_id)
         view.Bind(wx.EVT_MENU, self.on_reset_source_location_keybind,
                   id=reset_src_kb_id)
+        view.Bind(wx.EVT_MENU, self.on_toggle_autoplay, id=autoplay_kb_id)
 
         self.accept_key = config.read("KEYBINDS.ACCEPT_SRC")
         self.reject_key = config.read("KEYBINDS.REJECT_SRC")
         self.reset_cmap_key = config.read("KEYBINDS.RESET_CMAP")
         self.reset_source_key = config.read("KEYBINDS.RESET_SOURCE_LOCATION")
+        self.autoplay_key = config.read("KEYBINDS.AUTOPLAY")
 
         accelerators = wx.AcceleratorTable(
             [
@@ -423,6 +497,7 @@ class KeybindManager(object):
                 (wx.ACCEL_NORMAL, ord(self.reject_key), reject_src_kb_id),
                 (wx.ACCEL_NORMAL, ord(self.reset_cmap_key), reset_cmap_kb_id),
                 (wx.ACCEL_NORMAL, ord(self.reset_source_key), reset_src_kb_id),
+                (wx.ACCEL_NORMAL, ord(self.autoplay_key), autoplay_kb_id),
             ]
         )
 
@@ -434,7 +509,8 @@ class KeybindManager(object):
                 ("Accept", self.accept_key),
                 ("Reject", self.reject_key),
                 ("Reset colourmap", self.reset_cmap_key),
-                ("Reset source location", self.reset_source_key)]
+                ("Reset source location", self.reset_source_key),
+                ("Autoplay", self.autoplay_key)]
 
     def on_next_obs_keybind(self, event):
         self.controller.on_next_obs()
@@ -456,6 +532,9 @@ class KeybindManager(object):
 
     def on_reset_source_location_keybind(self, event):
         self.controller.on_reset_source_location()
+
+    def on_toggle_autoplay(self, event):
+        self.controller.on_toggle_autoplay_key()
 
 
 class NavPanel(wx.Panel):
