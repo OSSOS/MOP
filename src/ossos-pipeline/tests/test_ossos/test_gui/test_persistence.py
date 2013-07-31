@@ -1,9 +1,8 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import getpass
 import unittest
 
-from mock import patch, Mock
+from mock import Mock
 from hamcrest import (assert_that, contains_inanyorder, has_length, contains,
                       equal_to)
 
@@ -36,13 +35,15 @@ class ProgressManagerLoadingTest(FileReadingTestCase):
 
 class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
     def setUp(self):
+        self.main_user_id = "main_user"
         self.working_directory = self.get_abs_path(WD_NO_LOG)
         directory_manager = LocalDirectoryWorkingContext(self.working_directory)
-        self.progress_manager = LocalProgressManager(directory_manager)
+        self.progress_manager = LocalProgressManager(directory_manager,
+                                                     userid=self.main_user_id)
 
-    def create_concurrent_progress_manager(self):
+    def create_concurrent_progress_manager(self, userid="test_user"):
         directory_manager = LocalDirectoryWorkingContext(self.working_directory)
-        return LocalProgressManager(directory_manager)
+        return LocalProgressManager(directory_manager, userid=userid)
 
     def tearDown(self):
         # Get rid of generated files so we don't interfere with other tests
@@ -99,7 +100,7 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
         # Create a second simultaneous manager
         manager2 = self.create_concurrent_progress_manager()
         processed2 = "xxx3.reals.astrom"
-        self.progress_manager.lock(processed2)
+        manager2.lock(processed2)
         manager2.record_done(processed2)
 
         # Make sure second manager sees both entries
@@ -114,40 +115,29 @@ class ProgressManagerFreshDirectoryTest(FileReadingTestCase):
         assert_that(self.progress_manager.get_done(tasks.REALS_TASK),
                     contains_inanyorder(processed1, processed2))
 
-    @patch.object(getpass, "getuser")
-    def test_lock_file(self, getuser_mock):
-        lock_holding_user = "lock_holding_user"
-        lock_requesting_user = "lock_requesting_user"
-
+    def test_lock_file(self):
         file1 = "xxx1.cands.astrom"
-        getuser_mock.return_value = lock_holding_user
         self.progress_manager.lock(file1)
 
         # No-one else should be able to acquire the lock...
-        manager2 = self.create_concurrent_progress_manager()
-        getuser_mock.return_value = lock_requesting_user
+        lock_requesting_user = "lock_requesting_user"
+        manager2 = self.create_concurrent_progress_manager(lock_requesting_user)
         self.assertRaises(FileLockedException, manager2.lock, file1)
 
         # ... until we unlock it
-        getuser_mock.return_value = lock_holding_user
         self.progress_manager.unlock(file1)
-
-        getuser_mock.return_value = lock_requesting_user
         manager2.lock(file1)
 
-    @patch.object(getpass, "getuser")
-    def test_lock_has_locker_id(self, getuser_mock):
-        lock_holding_user = "lock_holding_user"
+    def test_lock_has_locker_id(self):
+        lock_holding_user = self.main_user_id
         lock_requesting_user = "lock_requesting_user"
 
-        getuser_mock.return_value = lock_holding_user
         file1 = "xxx1.cands.astrom"
         self.progress_manager.lock(file1)
 
-        manager2 = self.create_concurrent_progress_manager()
+        manager2 = self.create_concurrent_progress_manager(lock_requesting_user)
 
         try:
-            getuser_mock.return_value = lock_requesting_user
             manager2.lock(file1)
             self.fail("Should have thrown FileLockedExcecption")
         except FileLockedException as ex:
