@@ -13,6 +13,10 @@
         "DEFAULT_SLICE_COLS": 250
     },
 
+    "DISPLAY" : {
+        "AUTOPLAY_INTERVAL": 0.250
+    },
+
     "MPC": {
         "DEFAULT_OBSERVATORY_CODE": "568",
 
