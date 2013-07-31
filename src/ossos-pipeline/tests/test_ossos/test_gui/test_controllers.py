@@ -127,6 +127,16 @@ class ImageLoadingDialogManagerTest(unittest.TestCase):
 
         self.view.hide_image_loading_dialog.assert_called_once_with()
 
+    def test_set_item_done_that_wasnt_in_wait_list_gets_ignored(self):
+        source_reading1 = Mock(spec=SourceReading)
+        source_reading2 = Mock(spec=SourceReading)
+
+        self.undertest.wait_for_item(source_reading1)
+        self.undertest.set_item_done(source_reading2)
+
+        self.view.show_image_loading_dialog.assert_called_once_with()
+        assert_that(self.view.hide_image_loading_dialog.called, equal_to(False))
+
 
 if __name__ == '__main__':
     unittest.main()
