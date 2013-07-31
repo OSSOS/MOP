@@ -11,14 +11,20 @@ class AutoplayManager(object):
 
         self.interval = config.read("DISPLAY.AUTOPLAY_INTERVAL")
         self._task_thread = None
+        self._running = False
 
     def start_autoplay(self):
         self._task_thread = AutoplayThread(self.model, self.interval)
         self._task_thread.start()
+        self._running = True
 
     def stop_autoplay(self):
-        if self._task_thread is not None:
+        if self._running:
             self._task_thread.stop()
+            self._running = False
+
+    def is_running(self):
+        return self._running
 
 
 class TaskThread(threading.Thread):
