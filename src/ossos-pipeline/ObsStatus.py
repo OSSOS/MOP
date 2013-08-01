@@ -1,4 +1,5 @@
-#!/Users/jjk/Library/Enthought/Canopy_64bit/User/bin/python
+#!/usr/bin/env python
+# Copyright 2012, 2013 JJ Kavelaars
 
 import argparse
 import urllib, datetime, tempfile, math, ephem
