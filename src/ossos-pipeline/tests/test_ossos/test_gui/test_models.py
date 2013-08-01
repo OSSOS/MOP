@@ -32,6 +32,10 @@ class UIModelTest(unittest.TestCase):
         workunit1.unlock.assert_called_once_with()
         workunit2.unlock.assert_called_once_with()
 
+    def test_workunit_provider_shutdown_on_exit(self):
+        self.model.exit()
+        self.workunit_provider.shutdown.assert_called_once_with()
+
 
 if __name__ == '__main__':
     unittest.main()
