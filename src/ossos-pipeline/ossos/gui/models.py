@@ -20,13 +20,8 @@ class UIModel(object):
     Contains the data and associated operations available to the user interface.
     """
 
-    def __init__(self,
-                 workunit_provider,
-                 progress_manager,
-                 download_manager,
-                 synchronization_manager):
+    def __init__(self, workunit_provider, download_manager, synchronization_manager):
         self.workunit_provider = workunit_provider
-        self.progress_manager = progress_manager
         self.download_manager = download_manager
         self.synchronization_manager = synchronization_manager
 

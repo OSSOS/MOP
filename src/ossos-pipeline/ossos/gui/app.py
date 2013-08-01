@@ -142,8 +142,7 @@ class ValidationApplication(object):
         else:
             synchronization_manager = None
 
-        model = UIModel(prefetching_workunit_provider,
-                        progress_manager, download_manager,
+        model = UIModel(prefetching_workunit_provider, download_manager,
                         synchronization_manager)
 
         controller = factory.create_controller(model, dry_run=dry_run)

@@ -17,9 +17,7 @@ class UIModelTest(unittest.TestCase):
         self.progress_manager = Mock(spec=LocalProgressManager)
         self.download_manager = Mock(spec=AsynchronousImageDownloadManager)
         self.synchronization_manager = Mock(spec=SynchronizationManager)
-        self.model = UIModel(self.workunit_provider,
-                             self.progress_manager,
-                             self.download_manager,
+        self.model = UIModel(self.workunit_provider, self.download_manager,
                              self.synchronization_manager)
 
     def test_all_workunits_unlocked_on_exit(self):
