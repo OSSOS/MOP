@@ -418,6 +418,9 @@ class WorkUnitProvider(object):
         self.builder = builder
         self.randomize = randomize
 
+        self._done = []
+        self._already_fetched = []
+
     @property
     def directory(self):
         """
@@ -442,11 +445,10 @@ class WorkUnitProvider(object):
           NoAvailableWorkException
             There is no more work available.
         """
-        potential_files = self.directory_context.get_listing(self.taskid)
+        if ignore_list is None:
+            ignore_list = []
 
-        if ignore_list:
-            potential_files = filter(lambda file: file not in ignore_list,
-                                     potential_files)
+        potential_files = self.get_potential_files(ignore_list)
 
         while len(potential_files) > 0:
             potential_file = self.select_potential_file(potential_files)
@@ -455,11 +457,16 @@ class WorkUnitProvider(object):
             if self.directory_context.get_file_size(potential_file) == 0:
                 continue
 
-            if not self.progress_manager.is_done(potential_file):
+            if self.progress_manager.is_done(potential_file):
+                self._done.append(potential_file)
+                continue
+            else:
                 try:
                     self.progress_manager.lock(potential_file)
                 except FileLockedException:
                     continue
+
+                self._already_fetched.append(potential_file)
 
                 return self.builder.build_workunit(
                     self.directory_context.get_full_path(potential_file))
@@ -467,6 +474,16 @@ class WorkUnitProvider(object):
         logger.info("No eligible workunits remain to be fetched.")
 
         raise NoAvailableWorkException()
+
+    def get_potential_files(self, ignore_list):
+        """
+        Get a listing of files for the appropriate task which may or may
+        not be locked and/or done.
+        """
+        return [file for file in self.directory_context.get_listing(self.taskid)
+                if file not in ignore_list and
+                   file not in self._done and
+                   file not in self._already_fetched]
 
     def select_potential_file(self, potential_files):
         if self.randomize:
