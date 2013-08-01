@@ -115,6 +115,8 @@ class WorkUnit(object):
 
         self.finished_callbacks = []
 
+        self._unlocked = False
+
     def register_finished_callback(self, callback):
         self.finished_callbacks.append(callback)
 
@@ -149,7 +151,7 @@ class WorkUnit(object):
 
         if self.is_finished():
             self.progress_manager.record_done(self.get_filename())
-            self.progress_manager.unlock(self.get_filename(), async=True)
+            self.unlock()
 
             for callback in self.finished_callbacks:
                 callback(self.get_results_file_paths())
@@ -223,6 +225,11 @@ class WorkUnit(object):
 
     def is_apcor_needed(self):
         raise NotImplementedError()
+
+    def unlock(self):
+        if not self._unlocked:
+            self.progress_manager.unlock(self.get_filename(), async=True)
+            self._unlocked = True
 
     def _get_item_set(self):
         raise NotImplementedError()
