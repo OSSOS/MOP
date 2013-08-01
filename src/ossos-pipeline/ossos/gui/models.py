@@ -38,6 +38,7 @@ class UIModel(object):
         return self.workunit_provider.directory
 
     def start_work(self):
+        logger.debug("Model starting work.")
         self.next_workunit()
 
     def next_source(self):

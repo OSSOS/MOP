@@ -6,6 +6,7 @@ import wx
 from wx.lib.mixins import listctrl as listmix
 
 from ossos.gui import config
+from ossos.gui import logger
 from ossos.gui.fitsviewer import MPLFitsImageViewer
 from ossos.gui.errorhandling import CertificateDialog, RetryDownloadDialog
 
@@ -49,6 +50,8 @@ class ApplicationView(object):
         self.retry_downloads_dialog = None
 
         self.mainframe.Show()
+
+        logger.debug("View created.")
 
     def _on_close_window(self, event):
         self.close()
