@@ -507,8 +507,7 @@ class WorkloadManagementTest(unittest.TestCase):
         self.workunit_provider.get_workunit.side_effect = (get_workunit(index) for index in xrange(2))
         download_manager = Mock(spec=AsynchronousImageDownloadManager)
 
-        self.undertest = UIModel(self.workunit_provider, self.progress_manager,
-                                 download_manager, None)
+        self.undertest = UIModel(self.workunit_provider, download_manager, None)
         self.undertest.start_work()
 
     def test_workunits_on_demand(self):

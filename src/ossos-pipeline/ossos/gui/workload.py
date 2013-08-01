@@ -115,6 +115,8 @@ class WorkUnit(object):
 
         self.finished_callbacks = []
 
+        self._unlocked = False
+
     def register_finished_callback(self, callback):
         self.finished_callbacks.append(callback)
 
@@ -149,7 +151,7 @@ class WorkUnit(object):
 
         if self.is_finished():
             self.progress_manager.record_done(self.get_filename())
-            self.progress_manager.unlock(self.get_filename(), async=True)
+            self.unlock()
 
             for callback in self.finished_callbacks:
                 callback(self.get_results_file_paths())
@@ -223,6 +225,11 @@ class WorkUnit(object):
 
     def is_apcor_needed(self):
         raise NotImplementedError()
+
+    def unlock(self):
+        if not self._unlocked:
+            self.progress_manager.unlock(self.get_filename(), async=True)
+            self._unlocked = True
 
     def _get_item_set(self):
         raise NotImplementedError()
@@ -411,6 +418,13 @@ class WorkUnitProvider(object):
         self.builder = builder
         self.randomize = randomize
 
+    @property
+    def directory(self):
+        """
+        The directory that workunits are being acquired from.
+        """
+        return self.directory_context.directory
+
     def get_workunit(self, ignore_list=None):
         """
         Gets a new unit of work.
@@ -459,6 +473,9 @@ class WorkUnitProvider(object):
         else:
             return potential_files[0]
 
+    def shutdown(self):
+        pass
+
 
 class PreFetchingWorkUnitProvider(object):
     def __init__(self, workunit_provider, prefetch_quantity):
@@ -467,7 +484,16 @@ class PreFetchingWorkUnitProvider(object):
 
         self.fetched_files = []
         self.workunits = []
+
+        self._threads = []
         self._all_fetched = False
+
+    @property
+    def directory(self):
+        """
+        The directory that workunits are being acquired from.
+        """
+        return self.workunit_provider.directory
 
     def get_workunit(self):
         if self._all_fetched and len(self.workunits) == 0:
@@ -498,7 +524,9 @@ class PreFetchingWorkUnitProvider(object):
             num_to_fetch -= 1
 
     def prefetch_workunit(self):
-        threading.Thread(target=self._do_prefetch_workunit).start()
+        thread = threading.Thread(target=self._do_prefetch_workunit)
+        self._threads.append(thread)
+        thread.start()
 
     def _do_prefetch_workunit(self):
         try:
@@ -513,6 +541,15 @@ class PreFetchingWorkUnitProvider(object):
 
         except NoAvailableWorkException:
             self._all_fetched = True
+
+    def shutdown(self):
+        # Make sure all threads are finished so that no more locks are
+        # acquired
+        for thread in self._threads:
+            thread.join()
+
+        for workunit in self.workunits:
+            workunit.unlock()
 
 
 class WorkUnitBuilder(object):
