@@ -5,12 +5,17 @@
         "ACCEPT_SRC": "a",
         "REJECT_SRC": "r",
         "RESET_CMAP": "s",
-        "RESET_SOURCE_LOCATION": "c"
+        "RESET_SOURCE_LOCATION": "c",
+        "AUTOPLAY": "d"
     },
 
     "IMG_RETRIEVAL": {
         "DEFAULT_SLICE_ROWS": 250,
         "DEFAULT_SLICE_COLS": 250
+    },
+
+    "DISPLAY" : {
+        "AUTOPLAY_INTERVAL": 0.250
     },
 
     "MPC": {

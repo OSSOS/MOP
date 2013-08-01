@@ -1,10 +1,10 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import collections
-import getpass
 import threading
 
 from ossos import storage
+from ossos import auth
 from ossos.gui import tasks
 
 CANDS = "CANDS"
@@ -62,8 +62,12 @@ class AbstractProgressManager(object):
     Manages persistence of progress made processing files in a directory.
     """
 
-    def __init__(self, working_context):
+    def __init__(self, working_context, userid=None):
         self.working_context = working_context
+        if userid is None:
+            self.userid = auth.get_cadc_username()
+        else:
+            self.userid = userid
 
     def get_done(self, task):
         """
@@ -180,13 +184,13 @@ class AbstractProgressManager(object):
 
 
 class VOSpaceProgressManager(AbstractProgressManager):
-    def __init__(self, working_context, track_partial_progress=False):
+    def __init__(self, working_context, userid=None, track_partial_progress=False):
         """
         By default partial results are not tracked when working in VOSpace.
         get_processed_indices returns an empty list and record_index is a
         no-op.
         """
-        super(VOSpaceProgressManager, self).__init__(working_context)
+        super(VOSpaceProgressManager, self).__init__(working_context, userid=userid)
 
         self.track_partial_results = track_partial_progress
 
@@ -210,7 +214,7 @@ class VOSpaceProgressManager(AbstractProgressManager):
 
     def _record_done(self, filename):
         storage.set_property(self._get_uri(filename), DONE_PROPERTY,
-                             getpass.getuser())
+                             self.userid)
 
     def _record_index(self, filename, index):
         if not self.track_partial_results:
@@ -229,8 +233,8 @@ class VOSpaceProgressManager(AbstractProgressManager):
 
         lock_holder = storage.get_property(uri, LOCK_PROPERTY)
         if lock_holder is None:
-            storage.set_property(uri, LOCK_PROPERTY, getpass.getuser())
-        elif lock_holder == getpass.getuser():
+            storage.set_property(uri, LOCK_PROPERTY, self.userid)
+        elif lock_holder == self.userid:
             # We already had the lock
             pass
         else:
@@ -249,7 +253,7 @@ class VOSpaceProgressManager(AbstractProgressManager):
         if lock_holder is None:
             # The file isn't actually locked.  Probably already cleaned up.
             pass
-        elif lock_holder == getpass.getuser():
+        elif lock_holder == self.userid:
             # It was us who locked it
             storage.set_property(uri, LOCK_PROPERTY, None)
         else:
@@ -262,7 +266,7 @@ class VOSpaceProgressManager(AbstractProgressManager):
     def owns_lock(self, filename):
         lock_holder = storage.get_property(self._get_uri(filename),
                                            LOCK_PROPERTY)
-        return lock_holder == getpass.getuser()
+        return lock_holder == self.userid
 
     def _get_uri(self, filename):
         return self.working_context.get_full_path(filename)
@@ -273,8 +277,8 @@ class LocalProgressManager(AbstractProgressManager):
     Persists progress locally to disk.
     """
 
-    def __init__(self, working_context):
-        super(LocalProgressManager, self).__init__(working_context)
+    def __init__(self, working_context, userid=None):
+        super(LocalProgressManager, self).__init__(working_context, userid=userid)
 
     def get_done(self, task):
         listing = self.working_context.get_listing(self._get_done_suffix(task))
@@ -329,7 +333,7 @@ class LocalProgressManager(AbstractProgressManager):
             raise FileLockedException(filename, locker)
         else:
             filehandle = self.working_context.open(lockfile)
-            filehandle.write(getpass.getuser())
+            filehandle.write(self.userid)
             filehandle.close()
 
     def unlock(self, filename, async=False):
@@ -344,7 +348,7 @@ class LocalProgressManager(AbstractProgressManager):
         locker = filehandle.read()
         filehandle.close()
 
-        if locker == getpass.getuser():
+        if locker == self.userid:
             # It was us who locked it
             self.working_context.remove(lockfile)
         else:
@@ -370,7 +374,7 @@ class LocalProgressManager(AbstractProgressManager):
             filehandle = self.working_context.open(lockfile)
             lock_holder = filehandle.read()
             filehandle.close()
-            return getpass.getuser() == lock_holder
+            return self.userid == lock_holder
         else:
             # No lock file, so we can't have a lock
             return False
@@ -397,8 +401,8 @@ class InMemoryProgressManager(AbstractProgressManager):
     testing.
     """
 
-    def __init__(self, working_context):
-        super(InMemoryProgressManager, self).__init__(working_context)
+    def __init__(self, working_context, userid=None):
+        super(InMemoryProgressManager, self).__init__(working_context, userid=userid)
         self.done = set()
         self.owned_locks = set()
         self.external_locks = set()
