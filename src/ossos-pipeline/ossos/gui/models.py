@@ -247,6 +247,7 @@ class UIModel(object):
             workunit.unlock()
 
         self.download_manager.stop_download()
+        self.workunit_provider.shutdown()
         self.download_manager.wait_for_downloads_to_stop()
 
     def _get_current_image_reading(self):

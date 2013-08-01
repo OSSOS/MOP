@@ -473,6 +473,9 @@ class WorkUnitProvider(object):
         else:
             return potential_files[0]
 
+    def shutdown(self):
+        pass
+
 
 class PreFetchingWorkUnitProvider(object):
     def __init__(self, workunit_provider, prefetch_quantity):
@@ -481,6 +484,8 @@ class PreFetchingWorkUnitProvider(object):
 
         self.fetched_files = []
         self.workunits = []
+
+        self._threads = []
         self._all_fetched = False
 
     @property
@@ -519,7 +524,9 @@ class PreFetchingWorkUnitProvider(object):
             num_to_fetch -= 1
 
     def prefetch_workunit(self):
-        threading.Thread(target=self._do_prefetch_workunit).start()
+        thread = threading.Thread(target=self._do_prefetch_workunit)
+        self._threads.append(thread)
+        thread.start()
 
     def _do_prefetch_workunit(self):
         try:
@@ -534,6 +541,15 @@ class PreFetchingWorkUnitProvider(object):
 
         except NoAvailableWorkException:
             self._all_fetched = True
+
+    def shutdown(self):
+        # Make sure all threads are finished so that no more locks are
+        # acquired
+        for thread in self._threads:
+            thread.join()
+
+        for workunit in self.workunits:
+            workunit.unlock()
 
 
 class WorkUnitBuilder(object):
