@@ -418,6 +418,13 @@ class WorkUnitProvider(object):
         self.builder = builder
         self.randomize = randomize
 
+    @property
+    def directory(self):
+        """
+        The directory that workunits are being acquired from.
+        """
+        return self.directory_context.directory
+
     def get_workunit(self, ignore_list=None):
         """
         Gets a new unit of work.
@@ -475,6 +482,13 @@ class PreFetchingWorkUnitProvider(object):
         self.fetched_files = []
         self.workunits = []
         self._all_fetched = False
+
+    @property
+    def directory(self):
+        """
+        The directory that workunits are being acquired from.
+        """
+        return self.workunit_provider.directory
 
     def get_workunit(self):
         if self._all_fetched and len(self.workunits) == 0:

@@ -40,8 +40,7 @@ class UIModel(object):
         self.sources_discovered = set()
 
     def get_working_directory(self):
-        # TODO: yuck, refactor!
-        return self.progress_manager.working_context.directory
+        return self.workunit_provider.directory
 
     def start_work(self):
         self.next_workunit()
