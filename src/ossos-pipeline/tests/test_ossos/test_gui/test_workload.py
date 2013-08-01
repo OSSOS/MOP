@@ -30,7 +30,7 @@ class TestDirectoryManager(object):
         self.listings[suffix] = listing[:]
 
     def get_listing(self, suffix):
-        return self.listings[suffix]
+        return self.listings[suffix][:]
 
     def get_full_path(self, filename):
         return filename
@@ -537,6 +537,8 @@ class WorkUnitProviderTest(unittest.TestCase):
         self.taskid = "id"
         self.file1 = "file1"
         self.file2 = "file2"
+        self.file3 = "file3"
+        self.file4 = "file4"
         self.test_files = [self.file1, self.file2]
 
         directory_manager = TestDirectoryManager()
@@ -594,6 +596,32 @@ class WorkUnitProviderTest(unittest.TestCase):
 
         self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit,
                           ignore_list=[self.file1])
+
+    def test_file_found_to_be_done_not_checked_again(self):
+        test_files = [self.file1, self.file2, self.file3, self.file4]
+        self.directory_manager.set_listing(self.taskid, test_files)
+
+        self.progress_manager.lock(self.file2)
+        self.progress_manager.record_done(self.file2)
+        self.progress_manager.unlock(self.file2)
+
+        # We don't yet know file1 is done.
+        assert_that(self.undertest.get_potential_files([]),
+                    contains_inanyorder(self.file1, self.file2, self.file3,
+                                        self.file4))
+        assert_that(self.undertest.get_workunit().get_filename(), equal_to(self.file1))
+
+        # We have not yet discovered file2 is done because we found file 1
+        # right away.  However, we should remember we already returned file1.
+        assert_that(self.undertest.get_potential_files([]),
+                    contains_inanyorder(self.file2, self.file3, self.file4))
+
+        # Here we should discover file2 is done and skip over it
+        assert_that(self.undertest.get_workunit().get_filename(), equal_to(self.file3))
+
+        # So the next time we know not to check file2 again
+        assert_that(self.undertest.get_potential_files([]),
+                    contains_inanyorder(self.file4))
 
 
 class PreFetchingWorkUnitProviderTest(unittest.TestCase):
