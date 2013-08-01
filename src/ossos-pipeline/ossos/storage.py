@@ -11,14 +11,22 @@ import errno
 from astropy.io import fits
 import urlparse
 
+from ossos import coding
+
 CERTFILE=os.path.join(os.getenv('HOME'),
                       '.ssl',
                       'cadcproxy.pem')
 
 DBIMAGES='vos:OSSOS/dbimages'
+MEASURE3='vos:OSSOS/measure3'
+
 DATA_WEB_SERVICE='https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/'
+
 OSSOS_TAG_URI_BASE='ivo://canfar.uvic.ca/ossos'
+OBJECT_COUNT = "object_count"
+
 vospace = vos.Client(cadc_short_cut=True, certFile=CERTFILE)
+
 SUCCESS = 'success'
 
 
@@ -380,3 +388,47 @@ def set_property(node_uri, property_name, property_value, ossos_base=True):
 
     node.props[property_uri] = property_value
     vospace.addProps(node)
+
+
+def build_counter_tag(epoch_field):
+    """
+    Builds the tag for the counter of a given epoch/field,
+    without the OSSOS base.
+    """
+    return epoch_field + "-" + OBJECT_COUNT
+
+
+def read_object_counter(node_uri, epoch_field):
+    """
+    Reads the object counter for the given epoch/field on the specified
+    node.
+
+    Returns:
+      count: str
+        The current object count.
+    """
+    return get_property(node_uri, build_counter_tag(epoch_field),
+                        ossos_base=True)
+
+
+def increment_object_counter(node_uri, epoch_field):
+    """
+    Increments the object counter for the given epoch/field on the specified
+    node.
+
+    Returns:
+      new_count: str
+        The object count AFTER incrementing.
+    """
+    current_count = read_object_counter(node_uri, epoch_field)
+
+    if current_count is None:
+        new_count = "01"
+    else:
+        new_count = coding.base36encode(coding.base36decode(current_count) + 1,
+                                        pad_length=2)
+
+    set_property(node_uri, build_counter_tag(epoch_field), new_count,
+                 ossos_base=True)
+
+    return new_count

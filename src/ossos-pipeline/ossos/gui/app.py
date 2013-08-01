@@ -1,5 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import sys
+
 import wx
 import wx.lib.inspection
 
@@ -11,7 +13,7 @@ from ossos.gui.workload import (WorkUnitProvider,
                                 CandidatesWorkUnitBuilder,
                                 PreFetchingWorkUnitProvider)
 from ossos.astrom import AstromParser
-from ossos.naming import ProvisionalNameGenerator
+from ossos.naming import ProvisionalNameGenerator, DryRunNameGenerator
 from ossos.gui.errorhandling import DownloadErrorHandler
 from ossos.gui.downloads import (AsynchronousImageDownloadManager,
                                  ImageSliceDownloader)
@@ -28,7 +30,7 @@ class AbstractTaskFactory(object):
                                 progress_manager):
         pass
 
-    def create_controller(self, model):
+    def create_controller(self, model, dry_run=False):
         pass
 
     def should_randomize_workunits(self):
@@ -53,8 +55,13 @@ class ProcessRealsTaskFactory(AbstractTaskFactory):
         return RealsWorkUnitBuilder(
             parser, input_context, output_context, progress_manager)
 
-    def create_controller(self, model):
-        return ProcessRealsController(model, ProvisionalNameGenerator())
+    def create_controller(self, model, dry_run=False):
+        if dry_run:
+            name_generator = DryRunNameGenerator()
+        else:
+            name_generator = ProvisionalNameGenerator()
+
+        return ProcessRealsController(model, name_generator)
 
     def should_randomize_workunits(self):
         return False
@@ -69,7 +76,7 @@ class ProcessCandidatesTaskFactory(AbstractTaskFactory):
         return CandidatesWorkUnitBuilder(
             parser, input_context, output_context, progress_manager)
 
-    def create_controller(self, model):
+    def create_controller(self, model, dry_run=False):
         return ProcessCandidatesController(model)
 
     def should_randomize_workunits(self):
@@ -82,7 +89,8 @@ class ValidationApplication(object):
         tasks.REALS_TASK: ProcessRealsTaskFactory
     }
 
-    def __init__(self, taskname, working_directory, output_directory):
+    def __init__(self, taskname, working_directory, output_directory,
+                 dry_run=False):
         logger.info("Starting %s task in %s" % (taskname, working_directory))
         logger.info("Output directory set to: %s" % output_directory)
 
@@ -108,6 +116,14 @@ class ValidationApplication(object):
         working_context = context.get_context(working_directory)
         output_context = context.get_context(output_directory)
 
+        if dry_run and working_context.is_remote():
+            sys.stdout.write("A dry run can only be done on local files.\n")
+            sys.exit(0)
+
+        if output_context.is_remote():
+            sys.stdout.write("The output directory must be local.\n")
+            sys.exit(0)
+
         progress_manager = working_context.get_progress_manager()
         builder = factory.create_workunit_builder(parser,
                                                   working_context,
@@ -130,9 +146,10 @@ class ValidationApplication(object):
                         progress_manager, download_manager,
                         synchronization_manager)
 
-        controller = factory.create_controller(model)
+        controller = factory.create_controller(model, dry_run=dry_run)
 
         model.start_work()
+        controller.display_current_image()
 
         self.model = model
         self.view = controller.get_view()

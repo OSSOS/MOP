@@ -3,7 +3,8 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 from ossos.daophot import TaskError
 from ossos.gui import events, config
 from ossos.gui.views import ApplicationView
-from ossos.gui.models import ImageNotLoadedException
+from ossos.gui.models import ImageNotLoadedException, NoWorkUnitException
+from ossos.gui.autoplay import AutoplayManager
 
 
 class AbstractController(object):
@@ -16,6 +17,9 @@ class AbstractController(object):
 
         self.view = ApplicationView(self.model, self)
         self.view.register_xy_changed_event_handler(self.on_reposition_source)
+
+        self.autoplay_manager = AutoplayManager(model)
+        self.image_loading_dialog_manager = ImageLoadingDialogManager(self.view)
 
     def get_view(self):
         return self.view
@@ -30,7 +34,10 @@ class AbstractController(object):
             view.view_image(self.get_model().get_current_image(),
                             redraw=False)
         except ImageNotLoadedException:
-            view.show_image_loading_dialog()
+            self.image_loading_dialog_manager.wait_for_item(
+                self.get_model().get_current_reading())
+            return
+        except NoWorkUnitException:
             return
 
         self.circle_current_source()
@@ -51,8 +58,9 @@ class AbstractController(object):
 
     def on_image_loaded(self, event):
         source_reading = event.data
+        self.image_loading_dialog_manager.set_item_done(source_reading)
+
         if source_reading == self.model.get_current_reading():
-            self.get_view().hide_image_loading_dialog()
             self.display_current_image()
 
     def on_change_image(self, event):
@@ -80,10 +88,28 @@ class AbstractController(object):
     def on_disable_auto_sync(self):
         self.model.disable_synchronization()
 
+    def on_enable_autoplay(self):
+        self.autoplay_manager.start_autoplay()
+
+    def on_disable_autoplay(self):
+        self.autoplay_manager.stop_autoplay()
+
+    def on_toggle_autoplay_key(self):
+        """
+        The user has pressed the keybind for toggling autoplay.
+        """
+        if self.autoplay_manager.is_running():
+            self.autoplay_manager.stop_autoplay()
+            self.view.set_autoplay(False)
+        else:
+            self.autoplay_manager.start_autoplay()
+            self.view.set_autoplay(True)
+
     def on_exit(self):
         self._do_exit()
 
     def _do_exit(self):
+        self.autoplay_manager.stop_autoplay()
         self.view.close()
         self.model.exit()
 
@@ -115,6 +141,11 @@ class ProcessRealsController(AbstractController):
 
         self.name_generator = name_generator
 
+    def _generate_provisional_name(self):
+        return self.name_generator.generate_name(
+            self.model.get_current_astrom_header(),
+            self.model.get_current_fits_header())
+
     def on_accept(self):
         """
         Initiates acceptance procedure, gathering required data.
@@ -122,7 +153,7 @@ class ProcessRealsController(AbstractController):
         if self.model.is_current_source_named():
             provisional_name = self.model.get_current_source_name()
         else:
-            provisional_name = self.name_generator.name_source(self.model.get_current_source())
+            provisional_name = self._generate_provisional_name()
 
         band = self.model.get_current_band()
         default_comment = ""
@@ -213,8 +244,7 @@ class ProcessRealsController(AbstractController):
         self.get_view().close_reject_source_dialog()
 
         if not self.model.is_current_source_named():
-            self.model.set_current_source_name(
-                self.name_generator.name_source(self.model.get_current_source()))
+            self.model.set_current_source_name(self._generate_provisional_name())
 
         writer = self.model.get_writer()
         writer.write_comment(self.model.get_current_reading(), comment)
@@ -243,3 +273,27 @@ class ProcessCandidatesController(AbstractController):
     def on_reject(self):
         self.model.reject_current_item()
         self.model.next_item()
+
+
+class ImageLoadingDialogManager(object):
+    def __init__(self, view):
+        self.view = view
+        self._wait_items = set()
+        self._dialog_showing = False
+
+    def wait_for_item(self, item):
+        self._wait_items.add(item)
+
+        if not self._dialog_showing:
+            self.view.show_image_loading_dialog()
+            self._dialog_showing = True
+
+    def set_item_done(self, item):
+        if item not in self._wait_items:
+            return
+
+        self._wait_items.remove(item)
+
+        if len(self._wait_items) == 0 and self._dialog_showing:
+            self.view.hide_image_loading_dialog()
+            self._dialog_showing = False
