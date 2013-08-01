@@ -144,8 +144,10 @@ class ValidationApplication(object):
 
         model = UIModel(prefetching_workunit_provider, download_manager,
                         synchronization_manager)
+        logger.debug("Created model.")
 
         controller = factory.create_controller(model, dry_run=dry_run)
+        logger.debug("Created controller.")
 
         model.start_work()
         controller.display_current_image()
