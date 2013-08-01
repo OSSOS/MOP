@@ -464,6 +464,8 @@ class WorkUnitProvider(object):
                 return self.builder.build_workunit(
                     self.directory_context.get_full_path(potential_file))
 
+        logger.info("No eligible workunits remain to be fetched.")
+
         raise NoAvailableWorkException()
 
     def select_potential_file(self, potential_files):
