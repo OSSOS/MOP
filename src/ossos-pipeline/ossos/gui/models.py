@@ -94,11 +94,13 @@ class UIModel(object):
 
         self.work_units.next()
 
-    def _get_new_workunit(self):
-        new_workunit = self.workunit_provider.get_workunit()
+    def add_workunit(self, new_workunit):
         new_workunit.register_finished_callback(self._on_finished_workunit)
         self.work_units.append(new_workunit)
         self._download_workunit_images(new_workunit)
+
+    def _get_new_workunit(self):
+        self.add_workunit(self.workunit_provider.get_workunit())
 
     def is_current_source_discovered(self):
         return self.get_current_source() in self.sources_discovered
@@ -247,11 +249,8 @@ class UIModel(object):
             logger.info("Synchronization disabled")
 
     def exit(self):
-        try:
-            self._unlock(self.get_current_workunit())
-        except NoWorkUnitException:
-            # Nothing to unlock
-            pass
+        for workunit in self.work_units:
+            workunit.unlock()
 
         self.download_manager.stop_download()
         self.download_manager.wait_for_downloads_to_stop()
@@ -261,9 +260,6 @@ class UIModel(object):
             return self._image_reading_models[self.get_current_reading()]
         except KeyError:
             raise ImageNotLoadedException()
-
-    def _unlock(self, workunit):
-        self.progress_manager.unlock(workunit.get_filename())
 
     def _download_workunit_images(self, workunit):
         self.download_manager.start_downloading_workunit(
