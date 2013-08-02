@@ -5,7 +5,7 @@ import unittest
 
 from hamcrest import (assert_that, is_in, is_not, equal_to, is_, none,
                       contains_inanyorder, has_length)
-from mock import Mock, call, patch
+from mock import Mock, call
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from tests.testutil import CopyingMock
@@ -13,7 +13,7 @@ from ossos.gui import tasks
 from ossos.gui.context import WorkingContext, LocalDirectoryWorkingContext
 from ossos.gui.downloads import AsynchronousImageDownloadManager
 from ossos.gui.models import UIModel
-from ossos.astrom import AstromParser
+from ossos.astrom import AstromParser, StreamingAstromWriter
 from ossos.mpc import MPCWriter
 from ossos.gui.persistence import LocalProgressManager, InMemoryProgressManager
 from ossos.gui.workload import (WorkUnitProvider, WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
@@ -30,7 +30,7 @@ class TestDirectoryManager(object):
         self.listings[suffix] = listing[:]
 
     def get_listing(self, suffix):
-        return self.listings[suffix]
+        return self.listings[suffix][:]
 
     def get_full_path(self, filename):
         return filename
@@ -343,16 +343,18 @@ class CandidatesWorkUnitTest(AbstractWorkUnitTest):
     def get_input_file(self):
         return "data/1584431p15.measure3.cands.astrom"
 
-    @patch("ossos.gui.workload.StreamingAstromWriter")
-    def setUp(self, AstromWriterMock):
+    def setUp(self):
         super(CandidatesWorkUnitTest, self).setUp()
 
         self.workunit = CandidatesWorkUnit(self.testfile, self.data,
                                            self.progress_manager,
                                            self.output_context)
-        self.output_context.open.assert_called_once_with(self.testfile.replace(".cands", ".reals"))
-        AstromWriterMock.assert_called_once_with(self.output_context.open.return_value,
-                                                 self.data.sys_header)
+        self.writer = Mock(spec=StreamingAstromWriter)
+        self.workunit.get_writer = Mock(return_value=self.writer)
+
+    def test_output_filename(self):
+        assert_that(self.workunit.get_output_filename(),
+                    equal_to(self.testfile.replace(".cands", ".reals")))
 
     def test_next_vettable_item(self):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
@@ -507,8 +509,7 @@ class WorkloadManagementTest(unittest.TestCase):
         self.workunit_provider.get_workunit.side_effect = (get_workunit(index) for index in xrange(2))
         download_manager = Mock(spec=AsynchronousImageDownloadManager)
 
-        self.undertest = UIModel(self.workunit_provider, self.progress_manager,
-                                 download_manager, None)
+        self.undertest = UIModel(self.workunit_provider, download_manager, None)
         self.undertest.start_work()
 
     def test_workunits_on_demand(self):
@@ -538,6 +539,8 @@ class WorkUnitProviderTest(unittest.TestCase):
         self.taskid = "id"
         self.file1 = "file1"
         self.file2 = "file2"
+        self.file3 = "file3"
+        self.file4 = "file4"
         self.test_files = [self.file1, self.file2]
 
         directory_manager = TestDirectoryManager()
@@ -595,6 +598,32 @@ class WorkUnitProviderTest(unittest.TestCase):
 
         self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit,
                           ignore_list=[self.file1])
+
+    def test_file_found_to_be_done_not_checked_again(self):
+        test_files = [self.file1, self.file2, self.file3, self.file4]
+        self.directory_manager.set_listing(self.taskid, test_files)
+
+        self.progress_manager.lock(self.file2)
+        self.progress_manager.record_done(self.file2)
+        self.progress_manager.unlock(self.file2)
+
+        # We don't yet know file1 is done.
+        assert_that(self.undertest.get_potential_files([]),
+                    contains_inanyorder(self.file1, self.file2, self.file3,
+                                        self.file4))
+        assert_that(self.undertest.get_workunit().get_filename(), equal_to(self.file1))
+
+        # We have not yet discovered file2 is done because we found file 1
+        # right away.  However, we should remember we already returned file1.
+        assert_that(self.undertest.get_potential_files([]),
+                    contains_inanyorder(self.file2, self.file3, self.file4))
+
+        # Here we should discover file2 is done and skip over it
+        assert_that(self.undertest.get_workunit().get_filename(), equal_to(self.file3))
+
+        # So the next time we know not to check file2 again
+        assert_that(self.undertest.get_potential_files([]),
+                    contains_inanyorder(self.file4))
 
 
 class PreFetchingWorkUnitProviderTest(unittest.TestCase):

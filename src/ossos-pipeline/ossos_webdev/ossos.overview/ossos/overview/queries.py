@@ -86,9 +86,13 @@ class SurveyQuery(object):
 
 	def megacam_schedule(self):
 		# tuples bracket the ends of date ranges that MegaCam is on the telescope
-		schedule = [(datetime.datetime(2013,5,31), datetime.datetime(2013,6,14)), 
-			(datetime.datetime(2013,07,01), datetime.datetime(2013,7,14)),
-			(datetime.datetime(2013,07,29), datetime.datetime(2013,7,31))
+		schedule = [(datetime.datetime(2013,7,29), datetime.datetime(2013,8,11)),
+			(datetime.datetime(2013,8,29), datetime.datetime(2013,9,10)),
+			(datetime.datetime(2013,9,27), datetime.datetime(2013,10,8)),
+			(datetime.datetime(2013,10,28), datetime.datetime(2013,11,7)),
+			(datetime.datetime(2013,11,27), datetime.datetime(2013,12,5)),
+			(datetime.datetime(2013,12,27), datetime.datetime(2014,1,6)),
+			(datetime.datetime(2014,1,22), datetime.datetime(2014,1,31))
 			]
 		return schedule
 
