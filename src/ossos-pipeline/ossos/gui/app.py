@@ -17,7 +17,7 @@ from ossos.naming import ProvisionalNameGenerator, DryRunNameGenerator
 from ossos.gui.errorhandling import DownloadErrorHandler
 from ossos.gui.downloads import (AsynchronousImageDownloadManager,
                                  ImageSliceDownloader)
-from ossos.gui.models import UIModel
+from ossos.gui.models import TransAckUIModel
 from ossos.gui.controllers import (ProcessRealsController,
                                    ProcessCandidatesController)
 
@@ -142,11 +142,13 @@ class ValidationApplication(object):
         else:
             synchronization_manager = None
 
-        model = UIModel(prefetching_workunit_provider,
-                        progress_manager, download_manager,
-                        synchronization_manager)
+        model = TransAckUIModel(prefetching_workunit_provider,
+                                download_manager,
+                                synchronization_manager)
+        logger.debug("Created model.")
 
         controller = factory.create_controller(model, dry_run=dry_run)
+        logger.debug("Created controller.")
 
         model.start_work()
         controller.display_current_image()
