@@ -64,9 +64,9 @@ class TransitionAcknowledgementUIModelTest(FileReadingTestCase):
         assert_that(self.model.get_current_reading(), equal_to(self.sources[0].get_reading(0)))
 
     def use_cands_workunit(self):
-        CandidatesWorkUnit._create_writer = Mock()
         self.workunit = CandidatesWorkUnit("file", self.data, self.progress_manager,
                                            self.output_context)
+        self.workunit.get_writer = Mock()
         self.model.add_workunit(self.workunit)
         assert_that(self.model.get_current_reading(), equal_to(self.sources[0].get_reading(0)))
 
