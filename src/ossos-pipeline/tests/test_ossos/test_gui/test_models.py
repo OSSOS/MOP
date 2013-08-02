@@ -9,7 +9,7 @@ from tests.base_tests import FileReadingTestCase
 from ossos.astrom import AstromParser
 from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui import events
-from ossos.gui.models import UIModel, TransitionAcknowledgementUIModel
+from ossos.gui.models import UIModel, TransAckUIModel
 from ossos.gui.downloads import AsynchronousImageDownloadManager
 from ossos.gui.persistence import LocalProgressManager
 from ossos.gui.sync import SynchronizationManager
@@ -48,7 +48,7 @@ class TransitionAcknowledgementUIModelTest(FileReadingTestCase):
         self.workunit_provider = Mock(spec=PreFetchingWorkUnitProvider)
         self.download_manager = Mock(spec=AsynchronousImageDownloadManager)
         self.synchronization_manager = Mock(spec=SynchronizationManager)
-        self.model = TransitionAcknowledgementUIModel(self.workunit_provider, self.download_manager, self.synchronization_manager)
+        self.model = TransAckUIModel(self.workunit_provider, self.download_manager, self.synchronization_manager)
 
         self.data = AstromParser().parse(
             self.get_abs_path("data/model_testdir_1/1584431p15.measure3.reals.astrom"))
