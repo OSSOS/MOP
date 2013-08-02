@@ -247,6 +247,14 @@ class WorkUnit(object):
             self.progress_manager.unlock(self.get_filename(), async=True)
             self._unlocked = True
 
+    def freeze(self):
+        self.sources.freeze()
+        self.get_current_source_readings().freeze()
+
+    def unfreeze(self):
+        self.sources.unfreeze()
+        self.get_current_source_readings().unfreeze()
+
     def _get_item_set(self):
         raise NotImplementedError()
 
