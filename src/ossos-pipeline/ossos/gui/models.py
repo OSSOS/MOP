@@ -4,7 +4,8 @@ from ossos import wcs
 from ossos import astrom
 from ossos.gui import events
 from ossos.gui import logger
-from ossos.gui.workload import NoAvailableWorkException, StatefulCollection
+from ossos.gui.workload import (NoAvailableWorkException, StatefulCollection,
+                                CandidatesWorkUnit, RealsWorkUnit)
 
 
 class ImageNotLoadedException(Exception):
@@ -43,30 +44,30 @@ class UIModel(object):
 
     def next_source(self):
         self.get_current_workunit().next_source()
-        self.expect_image_transition()
+        self.expect_source_transition()
 
     def previous_source(self):
         self.get_current_workunit().previous_source()
-        self.expect_image_transition()
+        self.expect_source_transition()
 
     def next_obs(self):
         self.get_current_workunit().next_obs()
-        self.expect_image_transition()
+        self.expect_observation_transition()
 
     def previous_obs(self):
         self.get_current_workunit().previous_obs()
-        self.expect_image_transition()
+        self.expect_observation_transition()
 
     def next_item(self):
         if self.get_current_workunit().is_finished():
             self.next_workunit()
         else:
             self.get_current_workunit().next_item()
-            self.expect_image_transition()
 
-    def previous_item(self):
-        self.get_current_workunit().previous_vettable_item()
-        self.expect_image_transition()
+            if self.is_processing_candidates():
+                self.expect_source_transition()
+            elif self.is_processing_reals():
+                self.expect_observation_transition()
 
     def accept_current_item(self):
         self.sources_discovered.add(self.get_current_source())
@@ -88,6 +89,12 @@ class UIModel(object):
                 return
 
         self.work_units.next()
+
+    def expect_source_transition(self):
+        self.expect_image_transition()
+
+    def expect_observation_transition(self):
+        self.expect_image_transition()
 
     def expect_image_transition(self):
         events.send(events.CHANGE_IMAGE)
@@ -257,6 +264,12 @@ class UIModel(object):
         self.workunit_provider.shutdown()
         self.download_manager.wait_for_downloads_to_stop()
 
+    def is_processing_candidates(self):
+        return isinstance(self.get_current_workunit(), CandidatesWorkUnit)
+
+    def is_processing_reals(self):
+        return isinstance(self.get_current_workunit(), RealsWorkUnit)
+
     def _get_current_image_reading(self):
         try:
             return self._image_reading_models[self.get_current_reading()]
@@ -293,32 +306,90 @@ class TransAckUIModel(UIModel):
         super(TransAckUIModel, self).__init__(workunit_provider,
                                               download_manager,
                                               synchronization_manager)
-        self._waiting_for_acknowledgement = False
+        self._source_transitioning = False
+        self._observation_transitioning = False
 
-    def expect_image_transition(self):
-        if self._waiting_for_acknowledgement:
+    def is_waiting_for_source_transition(self):
+        return self._source_transitioning
+
+    def is_waiting_for_observation_transition(self):
+        return self._observation_transitioning
+
+    def is_waiting_for_transition(self):
+        return (self.is_waiting_for_source_transition() or
+                self.is_waiting_for_observation_transition())
+
+    def expect_source_transition(self):
+        if self.is_waiting_for_transition():
             # Don't allow additional events to be generated
             return
 
-        self._waiting_for_acknowledgement = True
-        self.get_current_workunit().freeze()
-        super(TransAckUIModel, self).expect_image_transition()
+        self._source_transitioning = True
+        self.expect_image_transition()
+
+    def expect_observation_transition(self):
+        if self.is_waiting_for_transition():
+            # Don't allow additional events to be generated
+            return
+
+        self._observation_transitioning = True
+        self.expect_image_transition()
 
     def acknowledge_image_displayed(self):
-        self._waiting_for_acknowledgement = False
-        self.get_current_workunit().unfreeze()
+        self._source_transitioning = False
+        self._observation_transitioning = False
+
+    def next_obs(self):
+        if self.is_waiting_for_transition():
+            return
+
+        super(TransAckUIModel, self).next_obs()
+
+    def previous_obs(self):
+        if self.is_waiting_for_transition():
+            return
+
+        super(TransAckUIModel, self).previous_obs()
+
+    def next_source(self):
+        if self.is_waiting_for_transition():
+            return
+
+        super(TransAckUIModel, self).next_source()
+
+    def previous_source(self):
+        if self.is_waiting_for_transition():
+            return
+
+        super(TransAckUIModel, self).previous_source()
+
+    def next_item(self):
+        if self.is_waiting_for_transition():
+            return
+
+        super(TransAckUIModel, self).next_item()
 
     def accept_current_item(self):
-        if self._waiting_for_acknowledgement:
+        if self._should_disable_validation():
             return
 
         super(TransAckUIModel, self).accept_current_item()
 
     def reject_current_item(self):
-        if self._waiting_for_acknowledgement:
+        if self._should_disable_validation():
             return
 
         super(TransAckUIModel, self).reject_current_item()
+
+    def _should_disable_validation(self):
+        if self.is_waiting_for_transition() and self.is_processing_reals():
+            return True
+
+        if (self.is_waiting_for_source_transition() and
+                self.is_processing_candidates()):
+            return True
+
+        return False
 
 
 class ImageReading(object):
