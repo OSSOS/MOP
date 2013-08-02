@@ -2,7 +2,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 
-from mock import Mock, MagicMock
+from mock import Mock, MagicMock, patch
 from hamcrest import assert_that, equal_to
 
 from tests.base_tests import FileReadingTestCase
@@ -175,6 +175,23 @@ class TransitionAcknowledgementUIModelTest(FileReadingTestCase):
 
         self.model.reject_current_item()
         assert_that(self.model.get_num_items_processed(), equal_to(1))
+
+    @patch("ossos.gui.models.events")
+    def test_additional_change_image_events_not_sent_when_waiting(self, events_mock):
+        # This should cause the model to enter the waiting state.
+        self.model.next_item()
+
+        assert_that(events_mock.send.call_count, equal_to(1))
+
+        self.model.next_item()
+
+        assert_that(events_mock.send.call_count, equal_to(1))
+
+        self.model.acknowledge_image_displayed()
+
+        self.model.next_item()
+
+        assert_that(events_mock.send.call_count, equal_to(2))
 
 
 if __name__ == '__main__':

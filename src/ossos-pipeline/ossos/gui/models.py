@@ -296,6 +296,10 @@ class TransAckUIModel(UIModel):
         self._waiting_for_acknowledgement = False
 
     def expect_image_transition(self):
+        if self._waiting_for_acknowledgement:
+            # Don't allow additional events to be generated
+            return
+
         self._waiting_for_acknowledgement = True
         self.get_current_workunit().freeze()
         super(TransAckUIModel, self).expect_image_transition()
