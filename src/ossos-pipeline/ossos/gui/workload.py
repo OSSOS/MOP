@@ -380,9 +380,7 @@ class CandidatesWorkUnit(WorkUnit):
             progress_manager,
             output_context)
 
-        output_filename = filename.replace(tasks.get_suffix(tasks.CANDS_TASK),
-                                           tasks.get_suffix(tasks.REALS_TASK))
-        self._writer = self._create_writer(output_filename)
+        self._writer = None
 
     def next_item(self):
         assert not self.is_finished()
@@ -404,12 +402,23 @@ class CandidatesWorkUnit(WorkUnit):
         return False
 
     def get_writer(self):
+        if self._writer is None:
+            self._writer = self._create_writer()
+
         return self._writer
 
     def get_results_file_paths(self):
+        if self._writer is None:
+            return []
+
         return [self.output_context.get_full_path(self._writer.get_filename())]
 
-    def _create_writer(self, filename):
+    def get_output_filename(self):
+        return self.get_filename().replace(tasks.get_suffix(tasks.CANDS_TASK),
+                                           tasks.get_suffix(tasks.REALS_TASK))
+
+    def _create_writer(self):
+        filename = self.get_output_filename()
         return StreamingAstromWriter(self.output_context.open(filename),
                                      self.data.sys_header)
 
@@ -422,7 +431,8 @@ class CandidatesWorkUnit(WorkUnit):
             self.processed_items.add(self.get_sources()[index])
 
     def _close_writers(self):
-        self._writer.close()
+        if self._writer is not None:
+            self._writer.close()
 
 
 class WorkUnitProvider(object):
