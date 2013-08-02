@@ -62,23 +62,54 @@ class TransitionAcknowledgementUIModelTest(FileReadingTestCase):
     def test_ignores_changes_observations_while_expecting_acknowledgement(self):
         first_reading = self.sources[0].get_reading(0)
         second_reading = self.sources[0].get_reading(1)
+        third_reading = self.sources[0].get_reading(2)
 
         assert_that(self.model.get_current_reading(), equal_to(first_reading))
-        self.model.expect_image_transition()
 
+        # This should cause the model to enter the waiting state.
         self.model.next_obs()
 
-        assert_that(self.model.get_current_reading(), equal_to(first_reading))
-
-        self.model.previous_obs()
-
-        assert_that(self.model.get_current_reading(), equal_to(first_reading))
-
-        self.model.acknowledge_image_displayed(first_reading)
+        assert_that(self.model.get_current_reading(), equal_to(second_reading))
 
         self.model.next_obs()
 
         assert_that(self.model.get_current_reading(), equal_to(second_reading))
+
+        self.model.previous_obs()
+
+        assert_that(self.model.get_current_reading(), equal_to(second_reading))
+
+        self.model.acknowledge_image_displayed(second_reading)
+
+        self.model.next_obs()
+
+        assert_that(self.model.get_current_reading(), equal_to(third_reading))
+
+    def test_ignores_changes_sources_while_expecting_acknowledgement(self):
+        first_source = self.sources[0]
+        second_source = self.sources[1]
+        third_source = self.sources[2]
+
+        assert_that(self.model.get_current_source(), equal_to(first_source))
+
+        # This should cause the model to enter the waiting state.
+        self.model.next_source()
+
+        assert_that(self.model.get_current_source(), equal_to(second_source))
+
+        self.model.next_source()
+
+        assert_that(self.model.get_current_source(), equal_to(second_source))
+
+        self.model.previous_source()
+
+        assert_that(self.model.get_current_source(), equal_to(second_source))
+
+        self.model.acknowledge_image_displayed(second_source.get_reading(0))
+
+        self.model.next_source()
+
+        assert_that(self.model.get_current_source(), equal_to(third_source))
 
 
 if __name__ == '__main__':

@@ -312,6 +312,18 @@ class TransitionAcknowledgementUIModel(UIModel):
 
         super(TransitionAcknowledgementUIModel, self).previous_obs()
 
+    def next_source(self):
+        if self._waiting_for is not None:
+            return
+
+        super(TransitionAcknowledgementUIModel, self).next_source()
+
+    def previous_source(self):
+        if self._waiting_for is not None:
+            return
+
+        super(TransitionAcknowledgementUIModel, self).previous_source()
+
 
 class ImageReading(object):
     """
