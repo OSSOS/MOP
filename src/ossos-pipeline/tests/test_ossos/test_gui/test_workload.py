@@ -485,25 +485,6 @@ class StatefulCollectionTest(unittest.TestCase):
         assert_that(undertest.get_index(), equal_to(1))
         assert_that(undertest.get_current_item(), equal_to(item2))
 
-    def test_freeze(self):
-        undertest = StatefulCollection(items=[1, 2, 3])
-
-        undertest.next()
-        assert_that(undertest.get_current_item(), equal_to(2))
-
-        undertest.freeze()
-        undertest.next()
-
-        assert_that(undertest.get_current_item(), equal_to(2))
-
-        undertest.previous()
-        assert_that(undertest.get_current_item(), equal_to(2))
-
-        undertest.unfreeze()
-
-        undertest.next()
-        assert_that(undertest.get_current_item(), equal_to(3))
-
 
 class WorkloadManagementTest(unittest.TestCase):
     def setUp(self):
