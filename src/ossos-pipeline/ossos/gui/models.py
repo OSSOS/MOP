@@ -92,6 +92,9 @@ class UIModel(object):
     def expect_image_transition(self):
         events.send(events.CHANGE_IMAGE)
 
+    def acknowledge_image_displayed(self):
+        pass
+
     def add_workunit(self, new_workunit):
         new_workunit.register_finished_callback(self._on_finished_workunit)
         self.work_units.append(new_workunit)

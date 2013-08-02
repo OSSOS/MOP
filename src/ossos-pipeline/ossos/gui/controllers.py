@@ -48,6 +48,8 @@ class AbstractController(object):
             self.model.get_current_obs_number() + 1,
             self.model.get_obs_count())
 
+        self.model.acknowledge_image_displayed()
+
     def circle_current_source(self):
         image_x, image_y = self.model.get_current_pixel_source_point()
         radius = 2 * round(self.model.get_current_image_FWHM())
