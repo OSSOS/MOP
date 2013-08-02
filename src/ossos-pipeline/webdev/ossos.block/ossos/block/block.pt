@@ -49,6 +49,7 @@
               <th colspan="2">2</th>
               <th colspan="2">3</th>
               <th>overall</th>
+              <th colspan="2">Processing status</th>
             </tr>
             <tr>
               <td></td>
@@ -58,7 +59,9 @@
               <th>IQ</th>
               <th>time</th>
               <th>IQ</th>
-              <th>Worst IQ of triplet</th>
+              <th>Worst IQ</th>
+              <th>Pipeline</th>
+              <th>Blinking</th>
             </tr>
         </thead>
         <tbody>
@@ -75,8 +78,19 @@
                 <td>${obj['triplet'][2][4].strftime('%H:%M:%S')}</td>
                 <td>${'%.2f' % obj['triplet'][2][5]}</td>
                 <td align=center>${'%.2f' % obj['worstIQ']}</td>
+                <td><!-- 
+                  <div class="control-group">
+                    <div class="controls">
+                      <button type="submit" class="btn" name="reprocess">Reprocess</button>
+                    </div> <!-- controls -->
+                  <!-- control-group -->  
+                  <!-- need to have the numerically lowest image of the triplet proc status here -->
+                  <!-- need to show blinking status too. (but many ccds)
+                  use a unicode symbol rather than words: show '✓' -->
+                 </td>
+                 <td></td>
               </tal:block>
-              <td tal:condition="not(obj['triplet'])" colspan="7">
+              <td tal:condition="not(obj['triplet'])" colspan="9">
                 &mdash;
               </td>
             </tr>

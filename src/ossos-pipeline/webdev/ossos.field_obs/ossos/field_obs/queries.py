@@ -63,8 +63,7 @@ class ImagesQuery(object):
 
 	def clean_keys(self, row):
 		# first retrieve and clean off the keys
-		uri = os.path.join(storage.DBIMAGES, str(row[2]))
-		node = storage.vospace.getNode(uri, force=True).props
+		node = storage.get_tags(row[2], force=True)
 		unwanted = ['creator', 'date', 'groupread', 'groupwrite', 'ispublic', 'length']
 		proc_keys = []
 		for vtag, value in node.items():
