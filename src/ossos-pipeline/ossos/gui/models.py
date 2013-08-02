@@ -43,30 +43,30 @@ class UIModel(object):
 
     def next_source(self):
         self.get_current_workunit().next_source()
-        events.send(events.CHANGE_IMAGE)
+        self.expect_image_transition()
 
     def previous_source(self):
         self.get_current_workunit().previous_source()
-        events.send(events.CHANGE_IMAGE)
+        self.expect_image_transition()
 
     def next_obs(self):
         self.get_current_workunit().next_obs()
-        events.send(events.CHANGE_IMAGE)
+        self.expect_image_transition()
 
     def previous_obs(self):
         self.get_current_workunit().previous_obs()
-        events.send(events.CHANGE_IMAGE)
+        self.expect_image_transition()
 
     def next_item(self):
         if self.get_current_workunit().is_finished():
             self.next_workunit()
         else:
             self.get_current_workunit().next_item()
-            events.send(events.CHANGE_IMAGE)
+            self.expect_image_transition()
 
     def previous_item(self):
         self.get_current_workunit().previous_vettable_item()
-        events.send(events.CHANGE_IMAGE)
+        self.expect_image_transition()
 
     def accept_current_item(self):
         self.sources_discovered.add(self.get_current_source())
@@ -88,6 +88,9 @@ class UIModel(object):
                 return
 
         self.work_units.next()
+
+    def expect_image_transition(self):
+        events.send(events.CHANGE_IMAGE)
 
     def add_workunit(self, new_workunit):
         new_workunit.register_finished_callback(self._on_finished_workunit)
@@ -271,6 +274,43 @@ class UIModel(object):
         if self.synchronization_manager:
             for path in results_file_paths:
                 self.synchronization_manager.add_syncable_file(path)
+
+
+class TransitionAcknowledgementUIModel(UIModel):
+    """
+    This version of the UIModel requires confirmation that the view has
+    been updated before it will allow further image transitions or
+    accepting/rejecting.
+
+    Any requests for further transitions while waiting for acknowledgement
+    are simply ignored.
+    """
+
+    def __init__(self, workunit_provider, download_manager, synchronization_manager):
+        super(TransitionAcknowledgementUIModel, self).__init__(workunit_provider,
+                                                               download_manager,
+                                                               synchronization_manager)
+        self._waiting_for = None
+
+    def expect_image_transition(self):
+        self._waiting_for = self.get_current_reading()
+        super(TransitionAcknowledgementUIModel, self).expect_image_transition()
+
+    def acknowledge_image_displayed(self, reading):
+        if reading == self._waiting_for:
+            self._waiting_for = None
+
+    def next_obs(self):
+        if self._waiting_for is not None:
+            return
+
+        super(TransitionAcknowledgementUIModel, self).next_obs()
+
+    def previous_obs(self):
+        if self._waiting_for is not None:
+            return
+
+        super(TransitionAcknowledgementUIModel, self).previous_obs()
 
 
 class ImageReading(object):
