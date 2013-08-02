@@ -15,6 +15,7 @@ class NoAvailableWorkException(Exception):
 
 class SourceNotNamedException(Exception):
     """The source has no name."""
+
     def __init__(self, source):
         self.source = source
 
@@ -32,8 +33,6 @@ class StatefulCollection(object):
         else:
             self.items = items
             self.index = 0
-
-        self._frozen = False
 
     def __len__(self):
         return len(self.items)
@@ -82,23 +81,7 @@ class StatefulCollection(object):
         """
         return self.index == len(self) - 1
 
-    def freeze(self):
-        """
-        Causes requests for transitions between items to be ignored. Call
-        unfreeze to re-enable transitions.
-        """
-        self._frozen = True
-
-    def unfreeze(self):
-        """
-        Re-enables transitions between items after being frozen.
-        """
-        self._frozen = False
-
     def _move(self, delta):
-        if self._frozen:
-            return
-
         self.index = (self.index + delta) % len(self)
 
 
@@ -246,14 +229,6 @@ class WorkUnit(object):
         if not self._unlocked:
             self.progress_manager.unlock(self.get_filename(), async=True)
             self._unlocked = True
-
-    def freeze(self):
-        self.sources.freeze()
-        self.get_current_source_readings().freeze()
-
-    def unfreeze(self):
-        self.sources.unfreeze()
-        self.get_current_source_readings().unfreeze()
 
     def _get_item_set(self):
         raise NotImplementedError()
