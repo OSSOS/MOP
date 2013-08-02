@@ -302,6 +302,18 @@ class TransitionAcknowledgementUIModel(UIModel):
             self._waiting_for = None
             self.get_current_workunit().unfreeze()
 
+    def accept_current_item(self):
+        if self._waiting_for is not None:
+            return
+
+        super(TransitionAcknowledgementUIModel, self).accept_current_item()
+
+    def reject_current_item(self):
+        if self._waiting_for is not None:
+            return
+
+        super(TransitionAcknowledgementUIModel, self).reject_current_item()
+
 
 class ImageReading(object):
     """
