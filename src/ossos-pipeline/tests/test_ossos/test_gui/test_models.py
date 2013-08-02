@@ -59,7 +59,7 @@ class TransitionAcknowledgementUIModelTest(FileReadingTestCase):
         self.sources = self.data.get_sources()
         assert_that(self.model.get_current_reading(), equal_to(self.sources[0].get_reading(0)))
 
-    def test_ignores_changes_observations_while_expecting_acknowledgement(self):
+    def test_ignores_change_observations_while_expecting_acknowledgement(self):
         first_reading = self.sources[0].get_reading(0)
         second_reading = self.sources[0].get_reading(1)
         third_reading = self.sources[0].get_reading(2)
@@ -85,7 +85,7 @@ class TransitionAcknowledgementUIModelTest(FileReadingTestCase):
 
         assert_that(self.model.get_current_reading(), equal_to(third_reading))
 
-    def test_ignores_changes_sources_while_expecting_acknowledgement(self):
+    def test_ignores_change_sources_while_expecting_acknowledgement(self):
         first_source = self.sources[0]
         second_source = self.sources[1]
         third_source = self.sources[2]
@@ -110,6 +110,68 @@ class TransitionAcknowledgementUIModelTest(FileReadingTestCase):
         self.model.next_source()
 
         assert_that(self.model.get_current_source(), equal_to(third_source))
+
+    def test_ignores_change_item_while_expecting_acknowledgement(self):
+        first_reading = self.sources[0].get_reading(0)
+        second_reading = self.sources[0].get_reading(1)
+        third_reading = self.sources[0].get_reading(2)
+
+        assert_that(self.model.get_current_reading(), equal_to(first_reading))
+
+        # This should cause the model to enter the waiting state.
+        self.model.next_item()
+
+        assert_that(self.model.get_current_reading(), equal_to(second_reading))
+
+        self.model.next_item()
+
+        assert_that(self.model.get_current_reading(), equal_to(second_reading))
+
+        self.model.acknowledge_image_displayed(second_reading)
+
+        self.model.next_item()
+
+        assert_that(self.model.get_current_reading(), equal_to(third_reading))
+
+    def test_accept_ignored_while_expecting_acknowledgement(self):
+        first_reading = self.sources[0].get_reading(0)
+        second_reading = self.sources[0].get_reading(1)
+
+        assert_that(self.model.get_current_reading(), equal_to(first_reading))
+
+        # This should cause the model to enter the waiting state.
+        self.model.next_item()
+
+        assert_that(self.model.get_current_reading(), equal_to(second_reading))
+
+        assert_that(self.model.get_num_items_processed(), equal_to(0))
+        self.model.accept_current_item()
+        assert_that(self.model.get_num_items_processed(), equal_to(0))
+
+        self.model.acknowledge_image_displayed(second_reading)
+
+        self.model.accept_current_item()
+        assert_that(self.model.get_num_items_processed(), equal_to(1))
+
+    def test_reject_ignored_while_expecting_acknowledgement(self):
+        first_reading = self.sources[0].get_reading(0)
+        second_reading = self.sources[0].get_reading(1)
+
+        assert_that(self.model.get_current_reading(), equal_to(first_reading))
+
+        # This should cause the model to enter the waiting state.
+        self.model.next_item()
+
+        assert_that(self.model.get_current_reading(), equal_to(second_reading))
+
+        assert_that(self.model.get_num_items_processed(), equal_to(0))
+        self.model.reject_current_item()
+        assert_that(self.model.get_num_items_processed(), equal_to(0))
+
+        self.model.acknowledge_image_displayed(second_reading)
+
+        self.model.reject_current_item()
+        assert_that(self.model.get_num_items_processed(), equal_to(1))
 
 
 if __name__ == '__main__':
