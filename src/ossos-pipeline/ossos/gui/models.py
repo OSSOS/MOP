@@ -294,35 +294,13 @@ class TransitionAcknowledgementUIModel(UIModel):
 
     def expect_image_transition(self):
         self._waiting_for = self.get_current_reading()
+        self.get_current_workunit().freeze()
         super(TransitionAcknowledgementUIModel, self).expect_image_transition()
 
     def acknowledge_image_displayed(self, reading):
         if reading == self._waiting_for:
             self._waiting_for = None
-
-    def next_obs(self):
-        if self._waiting_for is not None:
-            return
-
-        super(TransitionAcknowledgementUIModel, self).next_obs()
-
-    def previous_obs(self):
-        if self._waiting_for is not None:
-            return
-
-        super(TransitionAcknowledgementUIModel, self).previous_obs()
-
-    def next_source(self):
-        if self._waiting_for is not None:
-            return
-
-        super(TransitionAcknowledgementUIModel, self).next_source()
-
-    def previous_source(self):
-        if self._waiting_for is not None:
-            return
-
-        super(TransitionAcknowledgementUIModel, self).previous_source()
+            self.get_current_workunit().unfreeze()
 
 
 class ImageReading(object):
