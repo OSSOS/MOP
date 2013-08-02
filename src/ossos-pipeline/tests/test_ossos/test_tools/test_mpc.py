@@ -4,9 +4,72 @@ import unittest
 import tempfile
 
 from hamcrest import assert_that, equal_to, has_length
+from astropy.time.core import Time
+
 
 from ossos.astrom import SourceReading, Observation
 from ossos import mpc
+
+Time.FORMATS['mpc'] = mpc.TimeMPC
+
+class ObservationTest(unittest.TestCase):
+    def test_default_line(self):
+        expected = "     K04K18V**C2004 05 24.36017 15 06 36.12 -18 56 49.5          23.5 g      568"
+        actual = str(mpc.Observation(provisional_name="K04K18V",
+                                          discovery=True,
+                                          note1='*',
+                                          note2='C',
+                                          date="2004 05 24.36017",
+                                          ra="15 06 36.12",
+                                          dec="-18 56 49.5",
+                                          mag=23.5,
+                                          band='g',
+                                          observatory_code=568))
+        self.assertEquals(expected, actual)
+
+    def test_format_line(self):
+        actual = str(mpc.Observation("12345","A234567","*","M","N","2012 10 21.405160",
+                                      "26.683336700", # 01 46 44.001
+                                      "29.220353200", # +29 13 13.27
+                                      "12.4",
+                                      "A",
+                                      "523"))
+
+        expected = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         12.4 A      523"
+
+        assert_that(actual, has_length(80))
+        self.assertEquals(actual, expected)
+
+class TimeMPCTest(unittest.TestCase):
+
+    def test_time_formatting(self):
+        mpc_time = "2000 01 01.000001"
+        iso_time = "2000-01-01 00:00:00.0864"
+        t1 = Time(mpc_time, format='mpc', in_subfmt='mpc', scale='utc', precision=6)
+        t2 = Time(iso_time, format='iso', scale='utc', precision=4)
+        t3 = t2.replicate(format='mpc')
+        t3.precision=6
+        self.assertEquals(str(t1),mpc_time)
+        self.assertEquals(t2.jd, t1.jd)
+        self.assertEquals(str(t3), mpc_time)
+
+
+class MPCNoteTest(unittest.TestCase):
+
+    def test_note1_code_large_numeric(self):
+        self.assertRaises(mpc.MPCFieldFormatError,
+                          mpc.MPCNote, code='10', note_type="Note1")
+
+    def test_note2_code_invalid(self):
+        self.assertRaises(mpc.MPCFieldFormatError,
+                          mpc.MPCNote, code='1', note_type="Note2")
+
+    def test_note1_get_long_description(self):
+        self.assertEquals(mpc.MPCNote(code="H",note_type="Note1").long,mpc.MPCNOTES["Note1"]["H"])
+
+    def test_note2_set_correctly(self):
+        self.assertEquals(str(mpc.MPCNote(code="C",note_type="Note2")),"C")
+
 
 
 class MPCWriterTest(unittest.TestCase):
@@ -375,7 +438,7 @@ class MPCWriterTest(unittest.TestCase):
                 "2012 10 21.405160",
                 "26.683336700",
                 "29.683336700",
-                "123.54",
+                "123456",
                 "A",
                 "523"]
 
