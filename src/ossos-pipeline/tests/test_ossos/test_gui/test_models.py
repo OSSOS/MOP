@@ -79,7 +79,7 @@ class TransitionAcknowledgementUIModelTest(FileReadingTestCase):
 
         assert_that(self.model.get_current_reading(), equal_to(second_reading))
 
-        self.model.acknowledge_image_displayed(second_reading)
+        self.model.acknowledge_image_displayed()
 
         self.model.next_obs()
 
@@ -105,7 +105,7 @@ class TransitionAcknowledgementUIModelTest(FileReadingTestCase):
 
         assert_that(self.model.get_current_source(), equal_to(second_source))
 
-        self.model.acknowledge_image_displayed(second_source.get_reading(0))
+        self.model.acknowledge_image_displayed()
 
         self.model.next_source()
 
@@ -127,7 +127,7 @@ class TransitionAcknowledgementUIModelTest(FileReadingTestCase):
 
         assert_that(self.model.get_current_reading(), equal_to(second_reading))
 
-        self.model.acknowledge_image_displayed(second_reading)
+        self.model.acknowledge_image_displayed()
 
         self.model.next_item()
 
@@ -148,7 +148,7 @@ class TransitionAcknowledgementUIModelTest(FileReadingTestCase):
         self.model.accept_current_item()
         assert_that(self.model.get_num_items_processed(), equal_to(0))
 
-        self.model.acknowledge_image_displayed(second_reading)
+        self.model.acknowledge_image_displayed()
 
         self.model.accept_current_item()
         assert_that(self.model.get_num_items_processed(), equal_to(1))
@@ -168,7 +168,7 @@ class TransitionAcknowledgementUIModelTest(FileReadingTestCase):
         self.model.reject_current_item()
         assert_that(self.model.get_num_items_processed(), equal_to(0))
 
-        self.model.acknowledge_image_displayed(second_reading)
+        self.model.acknowledge_image_displayed()
 
         self.model.reject_current_item()
         assert_that(self.model.get_num_items_processed(), equal_to(1))

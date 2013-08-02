@@ -290,26 +290,25 @@ class TransitionAcknowledgementUIModel(UIModel):
         super(TransitionAcknowledgementUIModel, self).__init__(workunit_provider,
                                                                download_manager,
                                                                synchronization_manager)
-        self._waiting_for = None
+        self._waiting_for_acknowledgement = False
 
     def expect_image_transition(self):
-        self._waiting_for = self.get_current_reading()
+        self._waiting_for_acknowledgement = True
         self.get_current_workunit().freeze()
         super(TransitionAcknowledgementUIModel, self).expect_image_transition()
 
-    def acknowledge_image_displayed(self, reading):
-        if reading == self._waiting_for:
-            self._waiting_for = None
-            self.get_current_workunit().unfreeze()
+    def acknowledge_image_displayed(self):
+        self._waiting_for_acknowledgement = False
+        self.get_current_workunit().unfreeze()
 
     def accept_current_item(self):
-        if self._waiting_for is not None:
+        if self._waiting_for_acknowledgement:
             return
 
         super(TransitionAcknowledgementUIModel, self).accept_current_item()
 
     def reject_current_item(self):
-        if self._waiting_for is not None:
+        if self._waiting_for_acknowledgement:
             return
 
         super(TransitionAcknowledgementUIModel, self).reject_current_item()
