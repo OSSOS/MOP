@@ -4,6 +4,7 @@ from ossos.field_obs.queries import ImagesQuery
 from ossos.overview.ossuary import OssuaryTable
 import ephem
 from math import degrees
+import os
 
 
 class BlockQuery(object):
@@ -182,7 +183,54 @@ class BlockQuery(object):
 		return retval
 
 
+	def block_blinking_status(self, blockID):
+		#  36*21*2 = 1512 (or 1440 if it's a 20-field block.)
+		# combine.py makes a given prefix-field-ccd (type doesn't seem to be included)
+		# real files have either a .measure3.cands.astrom or a .no_candidates file.
+		# fk files have more stuff. And there's a lot more of them, because every ccd gets one.
+		# 
+		# sometimes weird stuff gets in there. So check on a field-by-field basis, I think.
+		empty_units, fields = self.fields_in_block(blockID)
+		for field in fields:
+			uris = [os.path.join(storage.MEASURE3, str(field), '.measure3.cands.astrom'),
+					os.path.join(storage.MEASURE3, str(field), '.no_candidates')]
+			for uri in uris:
+				if storage.exists(uri):
+					node = storage.vospace.getNode(uri, force=force).props
 
+			done = storage.tag_uri('done')
+			# get_tags is built to obtain tags on the dbimages
+
+		# RIGHT. There can be 'done' tags without there being a corresponding 'reals' file.
+		# this is NOT IDEAL...
+
+		# vtag vos:OSSOS/measure3/fk_E+3-1_17.measure3.cands.astrom
+		# shows
+		# 'ivo://canfar.uvic.ca/ossos#done': 'michele'
+		# when done, but will show
+		# 'ivo://canfar.uvic.ca/ossos#lock_holder': 'michele'
+		# when someone has it out to blink.
+
+		# if no ccds blinked, show 'Not started'
+		# if some, show who has locks on those, group by lock_holder
+		# if all ccds show 'done', show 'Completed'.
+
+		# for the blocks page, just show 'x/36' under 'Blinked.'
+		# has to show that for both fk and real.
+
+		return None
+
+	#def get_cands_tags():
+
+
+
+	def block_processing_status(self, blockID):
+		try:
+			self.bk.get_processing_status(self.block_discovery_triples(blockID))
+		except:
+			print 'bother'
+
+		return None
 
 
 

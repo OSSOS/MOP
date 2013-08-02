@@ -106,8 +106,8 @@ NAME                |RA         |DEC        |EPOCH |POINT|
 blocks={'E':{"RA": "14:32:30.29","DEC":"-13:54:01.4"},
         'O':{"RA": "16:17:04.41","DEC":"-13:14:45.8"}}
 #fall13
-blocks={'EB': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"}, 
-        'OB': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"}}
+blocks={'13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"}, 
+        '13BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"}}
 
 newMoons={'Feb13': "2013/02/10 10:00:00",
           'Mar13': "2013/03/11 10:00:00",
@@ -396,7 +396,7 @@ scale = 0.5*10**((min - Rmag)/2.5)
 print scale.min(), scale.max()
 ax.scatter(t.array['RAJ2000'], t.array['DEJ2000'], s=scale, marker='o', facecolor='y', alpha=0.8, edgecolor='', zorder=-10)
 
-for planet in [ephem.Mars(), ephem.Jupiter(), ephem.Saturn(), ephem.Neptune()]:
+for planet in [ephem.Mars(), ephem.Jupiter(), ephem.Saturn(), ephem.Uranus(), ephem.Neptune()]:
   planet.compute(ephem.date(newMoons['Oct13']))
   ax.scatter(math.degrees(planet.ra), math.degrees(planet.dec),
              marker='o',
