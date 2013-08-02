@@ -13,7 +13,7 @@ from ossos.gui.models import UIModel, TransAckUIModel
 from ossos.gui.downloads import AsynchronousImageDownloadManager
 from ossos.gui.persistence import LocalProgressManager
 from ossos.gui.sync import SynchronizationManager
-from ossos.gui.workload import PreFetchingWorkUnitProvider, RealsWorkUnit
+from ossos.gui.workload import PreFetchingWorkUnitProvider, RealsWorkUnit, CandidatesWorkUnit
 
 
 class UIModelTest(unittest.TestCase):
@@ -54,15 +54,25 @@ class TransitionAcknowledgementUIModelTest(FileReadingTestCase):
             self.get_abs_path("data/model_testdir_1/1584431p15.measure3.reals.astrom"))
         self.output_context = Mock(spec=LocalDirectoryWorkingContext)
         self.progress_manager = MagicMock(spec=LocalProgressManager)
-        self.workunit = RealsWorkUnit("file", self.data, self.progress_manager,
-                                      self.output_context)
-
-        self.model.add_workunit(self.workunit)
 
         self.sources = self.data.get_sources()
+
+    def use_reals_workunit(self):
+        self.workunit = RealsWorkUnit("file", self.data, self.progress_manager,
+                                      self.output_context)
+        self.model.add_workunit(self.workunit)
         assert_that(self.model.get_current_reading(), equal_to(self.sources[0].get_reading(0)))
 
-    def test_ignores_change_observations_while_expecting_acknowledgement(self):
+    def use_cands_workunit(self):
+        CandidatesWorkUnit._create_writer = Mock()
+        self.workunit = CandidatesWorkUnit("file", self.data, self.progress_manager,
+                                           self.output_context)
+        self.model.add_workunit(self.workunit)
+        assert_that(self.model.get_current_reading(), equal_to(self.sources[0].get_reading(0)))
+
+    def test_ignores_change_observations_while_transitioning_observations(self):
+        self.use_reals_workunit()
+
         first_reading = self.sources[0].get_reading(0)
         second_reading = self.sources[0].get_reading(1)
         third_reading = self.sources[0].get_reading(2)
@@ -88,7 +98,9 @@ class TransitionAcknowledgementUIModelTest(FileReadingTestCase):
 
         assert_that(self.model.get_current_reading(), equal_to(third_reading))
 
-    def test_ignores_change_sources_while_expecting_acknowledgement(self):
+    def test_ignores_change_sources_while_transitioning_sources(self):
+        self.use_reals_workunit()
+
         first_source = self.sources[0]
         second_source = self.sources[1]
         third_source = self.sources[2]
@@ -114,36 +126,40 @@ class TransitionAcknowledgementUIModelTest(FileReadingTestCase):
 
         assert_that(self.model.get_current_source(), equal_to(third_source))
 
-    def test_ignores_change_item_while_expecting_acknowledgement(self):
-        first_reading = self.sources[0].get_reading(0)
-        second_reading = self.sources[0].get_reading(1)
-        third_reading = self.sources[0].get_reading(2)
+    def test_ignores_next_item_while_transitioning_items(self):
+        self.use_cands_workunit()
 
-        assert_that(self.model.get_current_reading(), equal_to(first_reading))
+        first_source = self.sources[0]
+        second_source = self.sources[1]
+        third_source = self.sources[2]
+
+        assert_that(self.model.get_current_source(), equal_to(first_source))
 
         # This should cause the model to enter the waiting state.
         self.model.next_item()
 
-        assert_that(self.model.get_current_reading(), equal_to(second_reading))
+        assert_that(self.model.get_current_source(), equal_to(second_source))
 
         self.model.next_item()
 
-        assert_that(self.model.get_current_reading(), equal_to(second_reading))
+        assert_that(self.model.get_current_source(), equal_to(second_source))
 
         self.model.acknowledge_image_displayed()
 
         self.model.next_item()
 
-        assert_that(self.model.get_current_reading(), equal_to(third_reading))
+        assert_that(self.model.get_current_source(), equal_to(third_source))
 
-    def test_accept_ignored_while_expecting_acknowledgement(self):
+    def test_reals_ignores_accept_while_transitioning_observations(self):
+        self.use_reals_workunit()
+
         first_reading = self.sources[0].get_reading(0)
         second_reading = self.sources[0].get_reading(1)
 
         assert_that(self.model.get_current_reading(), equal_to(first_reading))
 
         # This should cause the model to enter the waiting state.
-        self.model.next_item()
+        self.model.next_obs()
 
         assert_that(self.model.get_current_reading(), equal_to(second_reading))
 
@@ -156,16 +172,66 @@ class TransitionAcknowledgementUIModelTest(FileReadingTestCase):
         self.model.accept_current_item()
         assert_that(self.model.get_num_items_processed(), equal_to(1))
 
-    def test_reject_ignored_while_expecting_acknowledgement(self):
+    def test_reals_ignores_reject_while_transitioning_observations(self):
+        self.use_reals_workunit()
+
         first_reading = self.sources[0].get_reading(0)
         second_reading = self.sources[0].get_reading(1)
 
         assert_that(self.model.get_current_reading(), equal_to(first_reading))
 
         # This should cause the model to enter the waiting state.
-        self.model.next_item()
+        self.model.next_obs()
 
         assert_that(self.model.get_current_reading(), equal_to(second_reading))
+
+        assert_that(self.model.get_num_items_processed(), equal_to(0))
+        self.model.reject_current_item()
+        assert_that(self.model.get_num_items_processed(), equal_to(0))
+
+        self.model.acknowledge_image_displayed()
+
+        self.model.reject_current_item()
+        assert_that(self.model.get_num_items_processed(), equal_to(1))
+
+    def test_cands_allow_accept_while_transitioning_observations(self):
+        self.use_cands_workunit()
+
+        self.model.next_obs()
+
+        assert_that(self.model.get_num_items_processed(), equal_to(0))
+        self.model.accept_current_item()
+        assert_that(self.model.get_num_items_processed(), equal_to(1))
+
+    def test_cands_allow_reject_while_transitioning_observations(self):
+        self.use_cands_workunit()
+
+        self.model.next_obs()
+
+        assert_that(self.model.get_num_items_processed(), equal_to(0))
+        self.model.reject_current_item()
+        assert_that(self.model.get_num_items_processed(), equal_to(1))
+
+    def test_cands_ignore_accept_while_transitioning_sources(self):
+        self.use_cands_workunit()
+
+        # This should cause the model to enter the waiting state.
+        self.model.next_source()
+
+        assert_that(self.model.get_num_items_processed(), equal_to(0))
+        self.model.accept_current_item()
+        assert_that(self.model.get_num_items_processed(), equal_to(0))
+
+        self.model.acknowledge_image_displayed()
+
+        self.model.accept_current_item()
+        assert_that(self.model.get_num_items_processed(), equal_to(1))
+
+    def test_cands_ignore_reject_while_transitioning_sources(self):
+        self.use_cands_workunit()
+
+        # This should cause the model to enter the waiting state.
+        self.model.next_source()
 
         assert_that(self.model.get_num_items_processed(), equal_to(0))
         self.model.reject_current_item()
@@ -178,6 +244,8 @@ class TransitionAcknowledgementUIModelTest(FileReadingTestCase):
 
     @patch("ossos.gui.models.events")
     def test_additional_change_image_events_not_sent_when_waiting(self, events_mock):
+        self.use_reals_workunit()
+
         # This should cause the model to enter the waiting state.
         self.model.next_item()
 
