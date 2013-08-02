@@ -279,7 +279,7 @@ class UIModel(object):
                 self.synchronization_manager.add_syncable_file(path)
 
 
-class TransitionAcknowledgementUIModel(UIModel):
+class TransAckUIModel(UIModel):
     """
     This version of the UIModel requires confirmation that the view has
     been updated before it will allow further image transitions or
@@ -290,15 +290,15 @@ class TransitionAcknowledgementUIModel(UIModel):
     """
 
     def __init__(self, workunit_provider, download_manager, synchronization_manager):
-        super(TransitionAcknowledgementUIModel, self).__init__(workunit_provider,
-                                                               download_manager,
-                                                               synchronization_manager)
+        super(TransAckUIModel, self).__init__(workunit_provider,
+                                              download_manager,
+                                              synchronization_manager)
         self._waiting_for_acknowledgement = False
 
     def expect_image_transition(self):
         self._waiting_for_acknowledgement = True
         self.get_current_workunit().freeze()
-        super(TransitionAcknowledgementUIModel, self).expect_image_transition()
+        super(TransAckUIModel, self).expect_image_transition()
 
     def acknowledge_image_displayed(self):
         self._waiting_for_acknowledgement = False
@@ -308,13 +308,13 @@ class TransitionAcknowledgementUIModel(UIModel):
         if self._waiting_for_acknowledgement:
             return
 
-        super(TransitionAcknowledgementUIModel, self).accept_current_item()
+        super(TransAckUIModel, self).accept_current_item()
 
     def reject_current_item(self):
         if self._waiting_for_acknowledgement:
             return
 
-        super(TransitionAcknowledgementUIModel, self).reject_current_item()
+        super(TransAckUIModel, self).reject_current_item()
 
 
 class ImageReading(object):
