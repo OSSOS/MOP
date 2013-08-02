@@ -33,6 +33,8 @@ class StatefulCollection(object):
             self.items = items
             self.index = 0
 
+        self._frozen = False
+
     def __len__(self):
         return len(self.items)
 
@@ -80,10 +82,24 @@ class StatefulCollection(object):
         """
         return self.index == len(self) - 1
 
+    def freeze(self):
+        """
+        Causes requests for transitions between items to be ignored. Call
+        unfreeze to re-enable transitions.
+        """
+        self._frozen = True
+
+    def unfreeze(self):
+        """
+        Re-enables transitions between items after being frozen.
+        """
+        self._frozen = False
+
     def _move(self, delta):
-        first_item = self.get_current_item()
+        if self._frozen:
+            return
+
         self.index = (self.index + delta) % len(self)
-        second_item = self.get_current_item()
 
 
 class WorkUnit(object):
