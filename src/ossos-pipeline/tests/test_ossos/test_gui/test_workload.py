@@ -5,7 +5,7 @@ import unittest
 
 from hamcrest import (assert_that, is_in, is_not, equal_to, is_, none,
                       contains_inanyorder, has_length)
-from mock import Mock, call, patch
+from mock import Mock, call
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from tests.testutil import CopyingMock
@@ -13,7 +13,7 @@ from ossos.gui import tasks
 from ossos.gui.context import WorkingContext, LocalDirectoryWorkingContext
 from ossos.gui.downloads import AsynchronousImageDownloadManager
 from ossos.gui.models import UIModel
-from ossos.astrom import AstromParser
+from ossos.astrom import AstromParser, StreamingAstromWriter
 from ossos.mpc import MPCWriter
 from ossos.gui.persistence import LocalProgressManager, InMemoryProgressManager
 from ossos.gui.workload import (WorkUnitProvider, WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
@@ -343,16 +343,18 @@ class CandidatesWorkUnitTest(AbstractWorkUnitTest):
     def get_input_file(self):
         return "data/1584431p15.measure3.cands.astrom"
 
-    @patch("ossos.gui.workload.StreamingAstromWriter")
-    def setUp(self, AstromWriterMock):
+    def setUp(self):
         super(CandidatesWorkUnitTest, self).setUp()
 
         self.workunit = CandidatesWorkUnit(self.testfile, self.data,
                                            self.progress_manager,
                                            self.output_context)
-        self.output_context.open.assert_called_once_with(self.testfile.replace(".cands", ".reals"))
-        AstromWriterMock.assert_called_once_with(self.output_context.open.return_value,
-                                                 self.data.sys_header)
+        self.writer = Mock(spec=StreamingAstromWriter)
+        self.workunit.get_writer = Mock(return_value=self.writer)
+
+    def test_output_filename(self):
+        assert_that(self.workunit.get_output_filename(),
+                    equal_to(self.testfile.replace(".cands", ".reals")))
 
     def test_next_vettable_item(self):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
