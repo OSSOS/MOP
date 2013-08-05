@@ -45,13 +45,13 @@ class TimeMPCTest(unittest.TestCase):
     def test_time_formatting(self):
         mpc_time = "2000 01 01.000001"
         iso_time = "2000-01-01 00:00:00.0864"
-        t1 = Time(mpc_time, format='mpc', in_subfmt='mpc', scale='utc', precision=6)
-        t2 = Time(iso_time, format='iso', scale='utc', precision=4)
+        t1 = Time(mpc_time, format='mpc', scale='utc', precision=6)
+        t2 = Time(iso_time, format='iso', scale='utc', precision=6)
         t3 = t2.replicate(format='mpc')
         t3.precision=6
-        self.assertEquals(str(t1),mpc_time)
+        self.assertEquals(mpc_time, str(t1))
         self.assertEquals(t2.jd, t1.jd)
-        self.assertEquals(str(t3), mpc_time)
+        self.assertEquals(mpc_time, str(t3))
 
 
 class MPCNoteTest(unittest.TestCase):
