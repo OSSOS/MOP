@@ -249,7 +249,7 @@ class TimeMPC(TimeString):
     """
 
     name = 'mpc'
-    subfmts = (('mpc', '%Y %m %d', "{year:4d} {mon:02d} {day:02d}.{fracday:g}"),)
+    subfmts = (('mpc', '%Y %m %d', "{year:4d} {mon:02d} {day:02d}.{fracday:s}"),)
 
     ### need our own 'set_jds' function as the MPC Time string is not typical
     def set_jds(self, val1, val2):
@@ -301,6 +301,7 @@ class TimeMPC(TimeString):
 
         self.jd1, self.jd2 = sofa_time.dtf_jd(self.scale.upper().encode('utf8'),
                                               iy, im, iday, ihr, imin, dsec)
+        return
 
 
     def str_kwargs(self):
@@ -328,7 +329,7 @@ class TimeMPC(TimeString):
 
             # MPC uses day fraction as time part of datetime
             fracday = (((((ifracsec / 1000000.0 + isec) / 60.0 + imin) / 60.0) + ihr) / 24.0) * (10 ** 6)
-            fracday = int('{0:g}'.format(fracday)[0:self.precision])
+            fracday ='{0:06g}'.format(fracday)[0:self.precision]
             #format_str = '{{0:g}}'.format(self.precision)
             #fracday = int(format_str.format(fracday))
             yield dict(year=int(iy), mon=int(im), day=int(iday), hour=int(ihr), min=int(imin), sec=int(isec),
