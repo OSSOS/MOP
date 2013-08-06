@@ -1,6 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 from ossos.daophot import TaskError
+from ossos import mpc
 from ossos.gui import events, config
 from ossos.gui.views import ApplicationView
 from ossos.gui.models import ImageNotLoadedException, NoWorkUnitException
@@ -198,12 +199,12 @@ class ProcessRealsController(AbstractController):
         )
 
     def on_do_accept(self,
-                     minor_plant_number,
+                     minor_planet_number,
                      provisional_name,
                      discovery_asterisk,
                      note1,
                      note2,
-                     date_of_ob,
+                     date_of_obs,
                      ra,
                      dec,
                      obs_mag,
@@ -223,21 +224,21 @@ class ProcessRealsController(AbstractController):
 
         self.model.set_current_source_name(provisional_name)
 
+        mpc_observation = mpc.Observation(minor_planet_number=minor_planet_number,
+                                          provisional_name=provisional_name,
+                                          discovery=discovery_asterisk,
+                                          note1=note1,
+                                          note2=note2,
+                                          date=date_of_obs,
+                                          ra=ra,
+                                          dec=dec,
+                                          mag=obs_mag,
+                                          band=band,
+                                          observatory_code=observatory_code)
+
         writer = self.model.get_writer()
         writer.write_comment(self.model.get_current_reading(), comment)
-        writer.write_mpc_line(
-            minor_plant_number,
-            provisional_name,
-            discovery_asterisk,
-            note1_code,
-            note2_code,
-            date_of_ob,
-            ra,
-            dec,
-            obs_mag,
-            band,
-            observatory_code,
-            phot_failure=phot_failure)
+        writer.write_mpc_line(mpc_observation)
 
         self.model.accept_current_item()
         self.model.next_item()

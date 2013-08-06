@@ -629,38 +629,15 @@ class MPCWriter(object):
         if self.auto_flush:
             self.flush()
 
-    def write_mpc_line(self,
-                       minor_planet_number,
-                       provisional_name,
-                       discovery_asterisk,
-                       note1,
-                       note2,
-                       date_of_obs,
-                       ra,
-                       dec,
-                       obs_mag,
-                       band,
-                       observatory_code="568",
-                       phot_failure=False):
+    def write_mpc_line(self, mpc_observation):
         """
         Writes a single entry in the Minor Planet Center's format.
 
         Minor planet number can be left empty ("").  All other fields
         should be provided.
         """
-        # Convert some fields to strings for convenience and perform
-        # filling/justification
-        line = str(Observation(minor_planet_number=minor_planet_number,
-                              provisional_name=provisional_name,
-                              discovery=discovery_asterisk,
-                              note1=note1,
-                              note2=note2,
-                              date=date_of_obs,
-                              ra=ra,
-                              dec=dec,
-                              mag=obs_mag,
-                              band=band,
-                              observatory_code=observatory_code))
+        line = str(mpc_observation)
+
         if len(line) != 80:
             raise MPCFormatError("MPC line must be 80 characters but was: %d" % len(line))
 
