@@ -210,8 +210,7 @@ class ProcessRealsController(AbstractController):
                      obs_mag,
                      band,
                      observatory_code,
-                     comment,
-                     phot_failure):
+                     comment):
         """
         Final acceptance with collected data.
         """
