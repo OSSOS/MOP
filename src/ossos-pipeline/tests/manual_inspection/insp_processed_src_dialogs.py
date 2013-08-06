@@ -4,7 +4,7 @@ import wx
 import wx.lib.inspection
 
 from tests.manual_inspection.context import testutil
-from ossos.gui.views.app import AcceptSourceDialog, RejectSourceDialog
+from ossos.gui.views.validation import AcceptSourceDialog, RejectSourceDialog
 
 
 def main():

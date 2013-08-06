@@ -6,9 +6,8 @@ from mock import Mock, call
 from hamcrest import assert_that, equal_to, has_length, contains
 
 from tests.base_tests import WxWidgetTestCase
-from ossos.gui.views.app import (SourceValidationDialog, AcceptSourceDialog,
-                             RejectSourceDialog)
 from ossos.gui.controllers import ProcessRealsController
+from ossos.gui.views.validation import SourceValidationDialog, AcceptSourceDialog, RejectSourceDialog
 
 # Constants used for test data
 TEST_MINOR_PLANET_NUMBER = "mpn01"
