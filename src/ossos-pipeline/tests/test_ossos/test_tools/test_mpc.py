@@ -13,6 +13,11 @@ from ossos import mpc
 Time.FORMATS['mpc'] = mpc.TimeMPC
 
 class ObservationTest(unittest.TestCase):
+
+    def test_create_from_line(self):
+        expected = '     NONE     C2009 02 23.62578512 32 05.249+07 08 55.70         30.00g      568'
+        self.assertEquals(expected, str(mpc.Observation.from_line(expected)))
+
     def test_default_line(self):
         expected = "     K04K18V**C2004 05 24.36017 15 06 36.12 -18 56 49.5          23.5 g      568"
         actual = str(mpc.Observation(provisional_name="K04K18V",
@@ -45,13 +50,13 @@ class TimeMPCTest(unittest.TestCase):
     def test_time_formatting(self):
         mpc_time = "2000 01 01.000001"
         iso_time = "2000-01-01 00:00:00.0864"
-        t1 = Time(mpc_time, format='mpc', in_subfmt='mpc', scale='utc', precision=6)
-        t2 = Time(iso_time, format='iso', scale='utc', precision=4)
+        t1 = Time(mpc_time, format='mpc', scale='utc', precision=6)
+        t2 = Time(iso_time, format='iso', scale='utc', precision=6)
         t3 = t2.replicate(format='mpc')
         t3.precision=6
-        self.assertEquals(str(t1),mpc_time)
+        self.assertEquals(mpc_time, str(t1))
         self.assertEquals(t2.jd, t1.jd)
-        self.assertEquals(str(t3), mpc_time)
+        self.assertEquals(mpc_time, str(t3))
 
 
 class MPCNoteTest(unittest.TestCase):
@@ -104,6 +109,7 @@ class MPCWriterTest(unittest.TestCase):
         assert_that(actual.endswith("\n"))
         assert_that(actual, has_length(81))
         assert_that(actual, equal_to(expected))
+
 
     def test_write_line_valid_inputs_numeric(self):
         self.undertest.write_mpc_line("12345",

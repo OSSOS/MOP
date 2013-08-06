@@ -1,3 +1,4 @@
+import struct
 import astropy
 from astropy.time import TimeString
 from astropy.time import Time
@@ -249,7 +250,7 @@ class TimeMPC(TimeString):
     """
 
     name = 'mpc'
-    subfmts = (('mpc', '%Y %m %d', "{year:4d} {mon:02d} {day:02d}.{fracday:g}"),)
+    subfmts = (('mpc', '%Y %m %d', "{year:4d} {mon:02d} {day:02d}.{fracday:s}"),)
 
     ### need our own 'set_jds' function as the MPC Time string is not typical
     def set_jds(self, val1, val2):
@@ -301,6 +302,7 @@ class TimeMPC(TimeString):
 
         self.jd1, self.jd2 = sofa_time.dtf_jd(self.scale.upper().encode('utf8'),
                                               iy, im, iday, ihr, imin, dsec)
+        return
 
 
     def str_kwargs(self):
@@ -328,7 +330,7 @@ class TimeMPC(TimeString):
 
             # MPC uses day fraction as time part of datetime
             fracday = (((((ifracsec / 1000000.0 + isec) / 60.0 + imin) / 60.0) + ihr) / 24.0) * (10 ** 6)
-            fracday = int('{0:g}'.format(fracday)[0:self.precision])
+            fracday ='{0:06g}'.format(fracday)[0:self.precision]
             #format_str = '{{0:g}}'.format(self.precision)
             #fracday = int(format_str.format(fracday))
             yield dict(year=int(iy), mon=int(im), day=int(iday), hour=int(ihr), min=int(imin), sec=int(isec),
@@ -355,6 +357,8 @@ class Observation(object):
                  mag=0.00,
                  band='r',
                  observatory_code=568):
+
+
         self.minor_planet_number = minor_planet_number
         self.provisional_name = provisional_name
         self.discovery = discovery
@@ -365,6 +369,15 @@ class Observation(object):
         self.mag = mag
         self.band = band
         self.observatory_code = observatory_code
+
+    @classmethod
+    def from_line(cls,mpc_line):
+        """
+        Given an MPC formatted line, returns an MPC Observation object.
+        :param mpc_line: a line in the one-line roving observer format
+        """
+        mpc_format = '5s7s1s1s1s17s12s12s9x5s1s6x3s'
+        return cls(*list(struct.unpack(mpc_format, mpc_line.strip('\n'))))
 
 
     def __str__(self):
@@ -380,7 +393,8 @@ class Observation(object):
         mpc_str += '{0:<17s}'.format(str(self.date))
         mpc_str += '{0:<12s}{1:<12s}'.format(str(self.ra), str(self.dec))
         mpc_str += 9 * " "
-        mag_str = ( self.mag is None and 6* " ") or '{0:<5.4g}{1:1s}'.format(self.mag,self.band)
+        mag_format = '{0:<5.'+str(self._mag_precision)+'f}{1:1s}'
+        mag_str = ( self.mag is None and 6* " ") or mag_format.format(self.mag,self.band)
         if len(mag_str) != 6:
             raise MPCFieldFormatError("mag",
                                       "length of mag string should be exactly 6 characters, got->",
@@ -495,11 +509,11 @@ class Observation(object):
         """
         Compute the number of decimal places in the last part of a sexagesimal string
         """
-        parts = str(coord).replace('/', ' ').split(' ')
-        if '.' in parts[2]:
-            return len(parts[2]) - parts[2].rindex('.') - 1
-        else:
+        parts = str(coord).replace('/', ' ').split('.')
+        if len(parts) < 2 :
             return 0
+        else:
+            return len(parts[-1])
 
 
     @coordinate.setter
@@ -533,9 +547,11 @@ class Observation(object):
     @mag.setter
     def mag(self, mag):
         if mag is None or len(str(mag))==0 :
+            self._mag_precision = 0
             self._mag = None
         else:
             self._mag = float(mag)
+            self._mag_precision = min(2,self._compute_precision(str(mag)))
 
     @property
     def band(self):
@@ -560,10 +576,9 @@ class Observation(object):
         self._observatory_code = str(observatory_code)
 
 
-class MPCReader(object):
-    """
-    Reads in an MPC formatted file.
-    """
+
+
+
 
 
 class MPCWriter(object):
