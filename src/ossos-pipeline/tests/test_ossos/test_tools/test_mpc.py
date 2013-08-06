@@ -463,27 +463,42 @@ class MPCWriterTest(unittest.TestCase):
         assert_that(actual, equal_to(expected))
 
     def test_write_comment(self):
-        obs = Observation("1234567", "p", "00")
-        reading = SourceReading(334.56, 884.22, 335.56, 885.22, 0, 0,
-                                335.56, 885.22, obs)
+        comment = "1234567p00 334.56 884.22 Something fishy."
+        obs = mpc.Observation(minor_planet_number="",
+                              provisional_name="A234567",
+                              discovery="*",
+                              note1="M",
+                              note2="N",
+                              date="2012 10 21.405160",
+                              ra="26.683336700", # 01 46 44.001
+                              dec="29.220353200", # +29 13 13.27
+                              mag="123.5",
+                              band="A",
+                              observatory_code="523",
+                              comment=comment)
 
-        self.undertest.write_comment(reading, "Something fishy.")
+        self.undertest.write_mpc_line(obs)
 
-        assert_that(self.read_outputfile(),
-                    equal_to("# 1234567p00 334.56 884.22 Something fishy.\n"))
+        expected = ("     A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27"
+                    "         123.5A      523 1234567p00 334.56 884.22 Something fishy.\n")
+        assert_that(self.read_outputfile(), equal_to(expected))
 
     def test_write_rejection_line(self):
-        self.undertest.write_rejection_line("2012 10 21.405160",
-                                            "26.683336700", # 01 46 44.001
-                                            "29.220353200", # +29 13 13.27
-        )
+        comment = "1234567p00 334.56 884.22 Something fishy."
+        obs = mpc.Observation(date="2012 10 21.405160",
+                              ra="26.683336700", # 01 46 44.001
+                              dec="29.220353200", # +29 13 13.27
+                              comment=comment)
 
-        expected = "!              2012 10 21.40516001 46 44.001+29 13 13.27                        \n"
+        obs.null_observation = True
+
+        self.undertest.write_mpc_line(obs)
+
+        expected = "!              2012 10 21.40516001 46 44.001+29 13 13.27         0.0  r      568 1234567p00 334.56 884.22 Something fishy.\n"
 
         actual = self.read_outputfile()
 
         assert_that(actual.endswith("\n"))
-        assert_that(actual, has_length(81))
         assert_that(actual, equal_to(expected))
 
     def test_flush(self):

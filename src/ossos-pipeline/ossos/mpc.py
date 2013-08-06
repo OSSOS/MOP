@@ -676,12 +676,9 @@ class MPCWriter(object):
         Minor planet number can be left empty ("").  All other fields
         should be provided.
         """
-        line = str(mpc_observation)
+        line = mpc_observation.to_string()
 
-        if len(line) != 80:
-            raise MPCFormatError("MPC line must be 80 characters but was: %d" % len(line))
-
-        self.buffer += line+"\n"
+        self.buffer += line + "\n"
 
         if self.auto_flush:
             self.flush()
