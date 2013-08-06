@@ -72,9 +72,21 @@
       	<tbody>
       		<tal:block tal:repeat="obj observations['obs']">
         		<tr tal:condition="discovery_triplet" tal:attributes = "class 'success' if obj[2] in discovery_triplet[0] else 'normal-image'">
-      				<tal:block tal:condition="obj">
-      					<td>${obj[0].strftime('%Y-%m-%d %H:%M:%S')}</td> 
-      					<td>${'%.2f' % obj[1]}</td>
+    					<td>${obj[0].strftime('%Y-%m-%d %H:%M:%S')}</td> 
+    					<td>${'%.2f' % obj[1]}</td>
+              <td>${obj[2]}</td>
+              <td>${obj[3]}</td>
+              <td>
+                <div class="control-group">
+                  <div class="controls">
+                    <button type="submit" class="btn" name="reprocess">Reprocess</button>
+                  </div> <!-- controls -->
+                </div> <!-- control-group -->  
+              </td>
+            </tr>
+            <tr tal:condition="not(discovery_triplet)"> <!-- wallpaper has no triplet -->
+                <td>${obj[0].strftime('%Y-%m-%d %H:%M:%S')}</td> 
+                <td>${'%.2f' % obj[1]}</td>
                 <td>${obj[2]}</td>
                 <td>${obj[3]}</td>
                 <td>
@@ -84,17 +96,6 @@
                     </div> <!-- controls -->
                   </div> <!-- control-group -->  
                 </td>
-      				</tal:block>
-            <tr tal:condition="not(discovery_triplet)"> <!-- wallpaper has no triplet -->
-              <tal:block tal:condition="obj">
-                <td>${obj[0].strftime('%Y-%m-%d %H:%M:%S')}</td> 
-                <td>${'%.2f' % obj[1]}</td>
-                <td>${obj[2]}</td>
-                <td>${obj[3]}</td>
-              </tal:block>
-      				<td tal:condition="not(obj)" colspan="4">  <!-- NEED TO IMPROVE THIS! -->
-      					&mdash;
-      				</td>
       			</tr>
       		</tal:block>  <!-- tal:repeat obj observations -->
       	</tbody>
