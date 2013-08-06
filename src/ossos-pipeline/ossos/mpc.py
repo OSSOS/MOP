@@ -166,7 +166,11 @@ class MPCNote(object):
         :type code: str
         :param code: an MPC Note code. Either from the allow dictionary or 0-9
         """
-        _code = (code is None and " ") or str(code).strip()
+        if code is None:
+            _code = " "
+        else:
+            _code = str(code).strip()
+
         if _code.isdigit():
             if self.note_type != 'Note1':
                 raise MPCFieldFormatError(self.note_type,
@@ -351,7 +355,7 @@ class Observation(object):
                  mag=0.00,
                  band='r',
                  observatory_code=568,
-                 comment=None):
+                 comment=""):
 
         self.minor_planet_number = minor_planet_number
         self.provisional_name = provisional_name
@@ -378,8 +382,10 @@ class Observation(object):
         return cls(*struct.unpack(mpc_format, mpc_line), comment=comment)
 
     def to_string(self):
-        return str(self) + self.comment
-
+        as_string = str(self)
+        if self.comment != "":
+            as_string += " " + self.comment
+        return as_string
 
     def __str__(self):
         """
@@ -448,16 +454,19 @@ class Observation(object):
 
     @provisional_name.setter
     def provisional_name(self, provisional_name=None):
-        provisional_name = str(provisional_name)
-        if not 0 < len(provisional_name) <= 7:
-            raise MPCFieldFormatError("Provisional name",
-                                      "must be 7 characters or less",
-                                      provisional_name)
+        if provisional_name is None:
+            provisional_name = " " * 7
+        else:
+            if not 0 < len(provisional_name) <= 7:
+                raise MPCFieldFormatError("Provisional name",
+                                          "must be 7 characters or less",
+                                          provisional_name)
 
-        if not provisional_name[0].isalpha():
-            raise MPCFieldFormatError("Provisional name",
-                                      "must start with a letter",
-                                      provisional_name)
+            if not provisional_name[0].isalpha():
+                raise MPCFieldFormatError("Provisional name",
+                                          "must start with a letter",
+                                          provisional_name)
+
         self._provisional_name = provisional_name
 
     @property
@@ -526,7 +535,10 @@ class Observation(object):
 
     @comment.setter
     def comment(self, comment):
-        self._comment = (comment is None and "") or str(comment)
+        if comment is None:
+            self._comment = ""
+        else:
+            self._comment = comment
 
     @property
     def coordinate(self):
