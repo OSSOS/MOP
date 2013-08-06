@@ -30,14 +30,6 @@ vospace = vos.Client(cadc_short_cut=True, certFile=CERTFILE)
 SUCCESS = 'success'
 
 
-class PropertyError(object):
-    """"An error occurred accessing a VOSpace property."""
-
-
-class InvalidURIError(Exception):
-    """An invalid URI was provided."""
-
-
 def populate(dataset_name,
              data_web_service_url = DATA_WEB_SERVICE+"CFHT"):
 
@@ -335,10 +327,6 @@ def list_dbimages():
 
 def exists(uri):
     return vospace.access(uri)
-
-
-def create(uri):
-    vospace.create(uri)
 
 
 def move(old_uri, new_uri):

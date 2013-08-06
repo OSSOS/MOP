@@ -9,10 +9,10 @@ from tests.base_tests import FileReadingTestCase, WxWidgetTestCase, DirectoryCle
 from ossos.daophot import TaskError
 from ossos.gui import tasks
 from ossos.gui.context import LocalDirectoryWorkingContext
-from ossos.gui.persistence import LocalProgressManager
+from ossos.gui.progress import LocalProgressManager
 from ossos.gui.controllers import ProcessRealsController
 from ossos.gui.models import UIModel
-from ossos.gui.views import ApplicationView
+from ossos.gui.views.app import ApplicationView
 from ossos.astrom import AstromParser
 from ossos.naming import ProvisionalNameGenerator
 from ossos.gui.downloads import AsynchronousImageDownloadManager
@@ -125,8 +125,7 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
                                      TEST_MAG,
                                      TEST_BAND,
                                      TEST_OBS_CODE,
-                                     TEST_COMMENT,
-                                     False
+                                     TEST_COMMENT
         )
 
     def reject_source_reading(self):

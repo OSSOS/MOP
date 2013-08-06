@@ -4,7 +4,7 @@ import wx
 import wx.lib.inspection
 
 from tests.manual_inspection.context import testutil
-from ossos.gui.views import MainFrame
+from ossos.gui.views.mainframe import MainFrame
 
 
 def main():

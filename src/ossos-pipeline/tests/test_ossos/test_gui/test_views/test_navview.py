@@ -6,7 +6,7 @@ from mock import Mock
 from hamcrest import assert_that, equal_to, not_none
 
 from tests.base_tests import WxWidgetTestCase
-from ossos.gui.views import NavPanel
+from ossos.gui.views.navigation import NavPanel
 
 
 class NavigationPanelTest(WxWidgetTestCase):

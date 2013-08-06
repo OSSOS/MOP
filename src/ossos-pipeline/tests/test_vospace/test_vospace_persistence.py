@@ -9,8 +9,8 @@ from mock import patch
 from tests.base_tests import FileReadingTestCase
 from ossos import storage
 from ossos.gui.context import VOSpaceWorkingContext
-from ossos.gui import persistence
-from ossos.gui.persistence import VOSpaceProgressManager, FileLockedException, RequiresLockException
+from ossos.gui import progress
+from ossos.gui.progress import VOSpaceProgressManager, FileLockedException, RequiresLockException
 
 # TODO: don't use my own VOSpace
 # BASE_TEST_DIR = "vos:OSSOS/tests/"
@@ -162,7 +162,7 @@ class AbstractVOSpaceProgressManagerTestCase(object):
         self.undertest.record_done(filename)
         self.undertest.unlock(filename)
 
-        assert_that(self.get_property(filename, persistence.DONE_PROPERTY),
+        assert_that(self.get_property(filename, progress.DONE_PROPERTY),
                     equal_to(self.main_user_id))
 
     def test_unlock_after_record_done_no_error(self):
@@ -253,7 +253,7 @@ class NoTrackingTest(AbstractVOSpaceProgressManagerTestCase, FileReadingTestCase
         self.undertest.record_index(TEST_FILE_1, 0)
         self.undertest.unlock(TEST_FILE_1)
 
-        assert_that(self.has_property(TEST_FILE_1, persistence.PROCESSED_INDICES_PROPERTY),
+        assert_that(self.has_property(TEST_FILE_1, progress.PROCESSED_INDICES_PROPERTY),
                     equal_to(False))
 
     def test_get_processed_indices_empty(self):

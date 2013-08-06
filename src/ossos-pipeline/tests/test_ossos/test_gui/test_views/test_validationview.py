@@ -6,8 +6,8 @@ from mock import Mock
 from hamcrest import assert_that, equal_to
 
 from tests.base_tests import WxWidgetTestCase
-from ossos.gui.views import SourceValidationPanel
 from ossos.gui.controllers import ProcessRealsController
+from ossos.gui.views.validation import SourceValidationPanel
 
 
 class TestSourceValidationPanel(WxWidgetTestCase):
