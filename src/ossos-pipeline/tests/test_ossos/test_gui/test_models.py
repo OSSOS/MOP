@@ -11,7 +11,7 @@ from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui import events
 from ossos.gui.models import UIModel, TransAckUIModel
 from ossos.gui.downloads import AsynchronousImageDownloadManager
-from ossos.gui.persistence import LocalProgressManager
+from ossos.gui.progress import LocalProgressManager
 from ossos.gui.sync import SynchronizationManager
 from ossos.gui.workload import PreFetchingWorkUnitProvider, RealsWorkUnit, CandidatesWorkUnit
 

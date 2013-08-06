@@ -15,7 +15,7 @@ from ossos.gui.downloads import AsynchronousImageDownloadManager
 from ossos.gui.models import UIModel
 from ossos.astrom import AstromParser, StreamingAstromWriter
 from ossos.mpc import MPCWriter
-from ossos.gui.persistence import LocalProgressManager, InMemoryProgressManager
+from ossos.gui.progress import LocalProgressManager, InMemoryProgressManager
 from ossos.gui.workload import (WorkUnitProvider, WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
                                 NoAvailableWorkException,
                                 StatefulCollection,
