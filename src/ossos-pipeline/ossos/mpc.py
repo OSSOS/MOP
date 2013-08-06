@@ -420,7 +420,14 @@ class Observation(object):
                                       "must be 5 or less characters",
                                       minor_planet_number)
         self._minor_planet_number = minor_planet_number
+        self._null_observation = False
+        if len(str(minor_planet_number)) > 0 and str(minor_planet_number)[0] == "!":
+            self._null_observation = True
         return
+
+    @property
+    def null_observation(self):
+        return self._null_observation
 
     @property
     def provisional_name(self):
@@ -517,36 +524,44 @@ class Observation(object):
 
 
     @coordinate.setter
-    def coordinate(self, (ra, dec)):
+    def coordinate(self, coord_pair):
         """
 
-        :param ra: Right Ascension in degrees or as HH MM SS[.ss]
-        :param dec: Declination in degrees of as [+-]dd mm ss[.sss]
+        :param coord_pair: RA/DEC pair [as a tuple or single string]
         """
+
+        if type(coord_pair) in [list, tuple] and len(coord_pair) == 2:
+            val1 = coord_pair[0]
+            val2 = coord_pair[1]
+        else:
+            raise MPCFieldFormatError("RA/DEC",
+                                      "Expected a pair of coordinates got: ",
+                                      coord_pair)
 
         self._ra_precision = 3
         self._dec_precision = 2
         try:
-            ra = float(ra)
-            dec = float(dec)
+            ra = float(val1)
+            dec = float(val2)
             self._coordinate = coordinates.ICRSCoordinates(ra, dec, unit=(units.degree, units.degree))
         except:
             try:
-                self._ra_precision = self._compute_precision(ra)
-                self._dec_precision = self._compute_precision(dec)
-                self._coordinate = coordinates.ICRSCoordinates(ra, dec, unit=(units.hour, units.degree))
+                self._ra_precision = self._compute_precision(val1)
+                self._dec_precision = self._compute_precision(val2)
+                self._coordinate = coordinates.ICRSCoordinates(val1, val2, unit=(units.hour, units.degree))
             except Exception as e:
-                raise MPCFieldFormatError("(ra , dec)",
+                raise MPCFieldFormatError("coord_pair",
                                           "must be [ra_deg, dec_deg] or HH MM SS.S[+-]dd mm ss.ss",
-                                          (ra, dec))
+                                          coord_pair)
 
     @property
     def mag(self):
         return self._mag
 
+
     @mag.setter
     def mag(self, mag):
-        if mag is None or len(str(mag))==0 :
+        if mag is None or len(str(str(mag).strip(' ')))==0 :
             self._mag_precision = 0
             self._mag = None
         else:
@@ -559,7 +574,7 @@ class Observation(object):
 
     @band.setter
     def band(self, band):
-        band = str(band)
+        band = str(band.strip(' '))
         self._band = ( len(band) > 0 and str(band)[0] ) or None
 
     @property
