@@ -337,10 +337,6 @@ def exists(uri):
     return vospace.access(uri)
 
 
-def create(uri):
-    vospace.create(uri)
-
-
 def move(old_uri, new_uri):
     vospace.move(old_uri, new_uri)
 
