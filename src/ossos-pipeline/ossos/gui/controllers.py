@@ -224,21 +224,21 @@ class ProcessRealsController(AbstractController):
 
         self.model.set_current_source_name(provisional_name)
 
-        mpc_observation = mpc.Observation(minor_planet_number=minor_planet_number,
-                                          provisional_name=provisional_name,
-                                          discovery=discovery_asterisk,
-                                          note1=note1_code,
-                                          note2=note2_code,
-                                          date=date_of_obs,
-                                          ra=ra,
-                                          dec=dec,
-                                          mag=obs_mag,
-                                          band=band,
-                                          observatory_code=observatory_code)
+        mpc_observation = mpc.Observation(
+            minor_planet_number=minor_planet_number,
+            provisional_name=provisional_name,
+            discovery=discovery_asterisk,
+            note1=note1_code,
+            note2=note2_code,
+            date=date_of_obs,
+            ra=ra,
+            dec=dec,
+            mag=obs_mag,
+            band=band,
+            observatory_code=observatory_code,
+            comment=self.generate_mpc_comment(comment))
 
-        writer = self.model.get_writer()
-        writer.write_comment(self.model.get_current_reading(), comment)
-        writer.write_mpc_line(mpc_observation)
+        self.model.get_writer().write_mpc_line(mpc_observation)
 
         self.model.accept_current_item()
         self.model.next_item()
@@ -255,17 +255,26 @@ class ProcessRealsController(AbstractController):
         if not self.model.is_current_source_named():
             self.model.set_current_source_name(self._generate_provisional_name())
 
-        writer = self.model.get_writer()
-        writer.write_comment(self.model.get_current_reading(), comment)
-        writer.write_rejection_line(self.model.get_current_observation_date(),
-                                    self.model.get_current_ra(),
-                                    self.model.get_current_dec())
+        mpc_observation = mpc.Observation(
+            date=self.model.get_current_observation_date(),
+            ra=self.model.get_current_ra(),
+            dec=self.model.get_current_dec(),
+            comment=self.generate_mpc_comment(comment))
+
+        mpc_observation.null_observation = True
+
+        self.model.get_writer().write_mpc_line(mpc_observation)
 
         self.model.reject_current_item()
         self.model.next_item()
 
     def on_cancel_reject(self):
         self.get_view().close_reject_source_dialog()
+
+    def generate_mpc_comment(self, comment):
+        reading = self.model.get_current_reading()
+        return "%s %s %s %s\n" % (
+            reading.obs.rawname, reading.x, reading.y, comment)
 
 
 class ProcessCandidatesController(AbstractController):
