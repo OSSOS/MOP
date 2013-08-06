@@ -1,3 +1,4 @@
+import struct
 import astropy
 from astropy.time import TimeString
 from astropy.time import Time
@@ -356,6 +357,8 @@ class Observation(object):
                  mag=0.00,
                  band='r',
                  observatory_code=568):
+
+
         self.minor_planet_number = minor_planet_number
         self.provisional_name = provisional_name
         self.discovery = discovery
@@ -366,6 +369,15 @@ class Observation(object):
         self.mag = mag
         self.band = band
         self.observatory_code = observatory_code
+
+    @classmethod
+    def from_line(cls,mpc_line):
+        """
+        Given an MPC formatted line, returns an MPC Observation object.
+        :param mpc_line: a line in the one-line roving observer format
+        """
+        mpc_format = '5s7s1s1s1s17s12s12s9x5s1s6x3s'
+        return cls(*list(struct.unpack(mpc_format, mpc_line.strip('\n'))))
 
 
     def __str__(self):
@@ -381,7 +393,8 @@ class Observation(object):
         mpc_str += '{0:<17s}'.format(str(self.date))
         mpc_str += '{0:<12s}{1:<12s}'.format(str(self.ra), str(self.dec))
         mpc_str += 9 * " "
-        mag_str = ( self.mag is None and 6* " ") or '{0:<5.4g}{1:1s}'.format(self.mag,self.band)
+        mag_format = '{0:<5.'+str(self._mag_precision)+'f}{1:1s}'
+        mag_str = ( self.mag is None and 6* " ") or mag_format.format(self.mag,self.band)
         if len(mag_str) != 6:
             raise MPCFieldFormatError("mag",
                                       "length of mag string should be exactly 6 characters, got->",
@@ -496,11 +509,11 @@ class Observation(object):
         """
         Compute the number of decimal places in the last part of a sexagesimal string
         """
-        parts = str(coord).replace('/', ' ').split(' ')
-        if '.' in parts[2]:
-            return len(parts[2]) - parts[2].rindex('.') - 1
-        else:
+        parts = str(coord).replace('/', ' ').split('.')
+        if len(parts) < 2 :
             return 0
+        else:
+            return len(parts[-1])
 
 
     @coordinate.setter
@@ -534,9 +547,11 @@ class Observation(object):
     @mag.setter
     def mag(self, mag):
         if mag is None or len(str(mag))==0 :
+            self._mag_precision = 0
             self._mag = None
         else:
             self._mag = float(mag)
+            self._mag_precision = min(2,self._compute_precision(str(mag)))
 
     @property
     def band(self):
@@ -561,10 +576,9 @@ class Observation(object):
         self._observatory_code = str(observatory_code)
 
 
-class MPCReader(object):
-    """
-    Reads in an MPC formatted file.
-    """
+
+
+
 
 
 class MPCWriter(object):
