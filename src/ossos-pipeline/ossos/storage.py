@@ -382,9 +382,10 @@ def set_property(node_uri, property_name, property_value, ossos_base=True):
     node = vospace.getNode(node_uri)
     property_uri = tag_uri(property_name) if ossos_base else property_name
 
-    # First clear any existing value
-    node.props[property_uri] = None
-    vospace.addProps(node)
+    # If there is an existing value, clear it first
+    if property_uri in node.props:
+        node.props[property_uri] = None
+        vospace.addProps(node)
 
     node.props[property_uri] = property_value
     vospace.addProps(node)
