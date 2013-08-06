@@ -8,7 +8,7 @@ from mock import Mock
 from hamcrest import assert_that, equal_to
 
 from tests.base_tests import WxWidgetTestCase
-from ossos.gui.views.app import KeyboardCompleteComboBox
+from ossos.gui.views.validation import KeyboardCompleteComboBox
 
 
 class KeyboardCompleteComboBoxTest(WxWidgetTestCase):

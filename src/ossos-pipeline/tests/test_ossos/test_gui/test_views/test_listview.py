@@ -5,7 +5,7 @@ import unittest
 from hamcrest import assert_that, equal_to
 
 from tests.base_tests import WxWidgetTestCase
-from ossos.gui.views.app import ListCtrlPanel
+from ossos.gui.views.listctrls import ListCtrlPanel
 
 
 class ListViewTest(WxWidgetTestCase):

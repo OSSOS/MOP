@@ -2,7 +2,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
 
-from ossos.gui.views.app import should_exit_prompt
+from ossos.gui.views.dialogs import should_exit_prompt
 
 
 def main():

@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import wx
 
 from tests.manual_inspection.context import testutil
-from ossos.gui.views.app import NavPanel
+from ossos.gui.views.navigation import NavPanel
 
 
 def main():
