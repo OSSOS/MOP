@@ -8,7 +8,7 @@ import collections
 from ossos import storage
 from ossos.gui import context
 from ossos.gui import tasks
-from ossos.gui.persistence import DONE_PROPERTY
+from ossos.gui.progress import DONE_PROPERTY
 
 
 def print_progress_stats(task, directory):

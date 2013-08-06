@@ -9,7 +9,7 @@ from tests.base_tests import FileReadingTestCase, WxWidgetTestCase, DirectoryCle
 from ossos.daophot import TaskError
 from ossos.gui import tasks
 from ossos.gui.context import LocalDirectoryWorkingContext
-from ossos.gui.persistence import LocalProgressManager
+from ossos.gui.progress import LocalProgressManager
 from ossos.gui.controllers import ProcessRealsController
 from ossos.gui.models import UIModel
 from ossos.gui.views import ApplicationView
