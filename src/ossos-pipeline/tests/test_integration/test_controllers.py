@@ -125,8 +125,7 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
                                      TEST_MAG,
                                      TEST_BAND,
                                      TEST_OBS_CODE,
-                                     TEST_COMMENT,
-                                     False
+                                     TEST_COMMENT
         )
 
     def reject_source_reading(self):

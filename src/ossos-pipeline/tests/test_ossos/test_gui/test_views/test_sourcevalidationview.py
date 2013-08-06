@@ -113,7 +113,7 @@ class AcceptSourceDialogTest(WxWidgetTestCase):
         self.controller.on_do_accept.assert_called_once_with(
             TEST_MINOR_PLANET_NUMBER, TEST_PROVISIONAL_NAME, TEST_DISCOVERY_AST,
             TEST_NOTE1, TEST_NOTE2, TEST_DATE, str(TEST_RA), str(TEST_DEC), TEST_MAG,
-            TEST_BAND, TEST_OBS_CODE, TEST_COMMENT, False)
+            TEST_BAND, TEST_OBS_CODE, TEST_COMMENT)
 
     def test_submit_data_phot_failure(self):
         undertest = AcceptSourceDialog(self.rootframe, self.controller,
@@ -139,7 +139,7 @@ class AcceptSourceDialogTest(WxWidgetTestCase):
         self.controller.on_do_accept.assert_called_once_with(
             "", TEST_PROVISIONAL_NAME, TEST_DISCOVERY_AST,
             "", "", TEST_DATE, str(TEST_RA), str(TEST_DEC), obs_mag,
-            band, TEST_OBS_CODE, TEST_COMMENT, True)
+            band, TEST_OBS_CODE, TEST_COMMENT)
 
 
 class RejectSourceDialogTest(WxWidgetTestCase):

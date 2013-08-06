@@ -299,8 +299,7 @@ class AcceptSourceDialog(SourceValidationDialog):
                                      obs_mag,
                                      band,
                                      observatory_code,
-                                     comment,
-                                     self.phot_failure
+                                     comment
         )
 
     def _on_cancel(self, event):
