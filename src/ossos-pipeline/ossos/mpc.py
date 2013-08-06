@@ -166,7 +166,11 @@ class MPCNote(object):
         :type code: str
         :param code: an MPC Note code. Either from the allow dictionary or 0-9
         """
-        _code = (code is None and " ") or str(code).strip()
+        if code is None:
+            _code = " "
+        else:
+            _code = str(code).strip()
+
         if _code.isdigit():
             if self.note_type != 'Note1':
                 raise MPCFieldFormatError(self.note_type,
@@ -351,7 +355,7 @@ class Observation(object):
                  mag=0.00,
                  band='r',
                  observatory_code=568,
-                 comment=None):
+                 comment=""):
 
         self.minor_planet_number = minor_planet_number
         self.provisional_name = provisional_name
@@ -378,8 +382,10 @@ class Observation(object):
         return cls(*struct.unpack(mpc_format, mpc_line), comment=comment)
 
     def to_string(self):
-        return str(self) + self.comment
-
+        as_string = str(self)
+        if self.comment != "":
+            as_string += " " + self.comment
+        return as_string
 
     def __str__(self):
         """
@@ -448,16 +454,19 @@ class Observation(object):
 
     @provisional_name.setter
     def provisional_name(self, provisional_name=None):
-        provisional_name = str(provisional_name)
-        if not 0 < len(provisional_name) <= 7:
-            raise MPCFieldFormatError("Provisional name",
-                                      "must be 7 characters or less",
-                                      provisional_name)
+        if provisional_name is None:
+            provisional_name = " " * 7
+        else:
+            if not 0 < len(provisional_name) <= 7:
+                raise MPCFieldFormatError("Provisional name",
+                                          "must be 7 characters or less",
+                                          provisional_name)
 
-        if not provisional_name[0].isalpha():
-            raise MPCFieldFormatError("Provisional name",
-                                      "must start with a letter",
-                                      provisional_name)
+            if not provisional_name[0].isalpha():
+                raise MPCFieldFormatError("Provisional name",
+                                          "must start with a letter",
+                                          provisional_name)
+
         self._provisional_name = provisional_name
 
     @property
@@ -526,7 +535,10 @@ class Observation(object):
 
     @comment.setter
     def comment(self, comment):
-        self._comment = (comment is None and "") or str(comment)
+        if comment is None:
+            self._comment = ""
+        else:
+            self._comment = comment
 
     @property
     def coordinate(self):
@@ -644,65 +656,16 @@ class MPCWriter(object):
     def get_filename(self):
         return self.filehandle.name
 
-    def write_comment(self, reading, comment):
-        """
-        Writes a special comment line intended to annotate the following line.
-
-        Has format:
-        # expnum_ccd xcen ycen <comment text>
-        """
-        self.buffer += "# %s %s %s %s\n" % (
-            reading.obs.rawname, reading.x, reading.y, comment)
-
-        if self.auto_flush:
-            self.flush()
-
-    def write_mpc_line(self, mpc_observation):
+    def write(self, mpc_observation):
         """
         Writes a single entry in the Minor Planet Center's format.
 
         Minor planet number can be left empty ("").  All other fields
         should be provided.
         """
-        line = str(mpc_observation)
+        line = mpc_observation.to_string()
 
-        if len(line) != 80:
-            raise MPCFormatError("MPC line must be 80 characters but was: %d" % len(line))
-
-        self.buffer += line+"\n"
-
-        if self.auto_flush:
-            self.flush()
-
-    def write_rejection_line(self, date_of_obs, ra, dec):
-        date_of_obs = date_of_obs.ljust(17)
-
-        if not self.date_regex.match(date_of_obs):
-            raise MPCFieldFormatError("Date of observation",
-                                      "must match regex: %s" % self.date_regex.pattern,
-                                      date_of_obs)
-
-        if not _is_numeric(ra):
-            raise MPCFieldFormatError("RA",
-                                      "must be numeric (can be in string form)",
-                                      ra)
-
-        if not _is_numeric(dec):
-            raise MPCFieldFormatError("DEC",
-                                      "must be numeric (can be in string form)",
-                                      dec)
-
-        formatted_ra, formatted_dec = format_ra_dec(ra, dec)
-
-        line = ("!" + " " * 14 + date_of_obs + formatted_ra +
-                formatted_dec + " " * 24 + "\n")
-
-        # subtract 1 because of newline character
-        line_len = len(line) - 1
-        if line_len != 80:
-            raise MPCFormatError("MPC line must be 80 characters but was: %d" % line_len)
-
-        self.buffer += line
+        self.buffer += line + "\n"
 
         if self.auto_flush:
             self.flush()
