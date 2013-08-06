@@ -2,10 +2,10 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
 
-from ossos.gui.errorhandling import CertificateDialog, RetryDownloadDialog
 from ossos.gui import logger
 from ossos.gui.views.dialogs import (should_exit_prompt,
                                      show_empty_workload_dialog)
+from ossos.gui.views.errorhandling import CertificateDialog, RetryDownloadDialog
 from ossos.gui.views.mainframe import MainFrame
 from ossos.gui.views.validation import AcceptSourceDialog, RejectSourceDialog
 
