@@ -1,78 +1,77 @@
-import struct
-import astropy
-from astropy.time import TimeString
-from astropy.time import Time
-from astropy.time import sofa_time
-import itertools
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import itertools
 import re
+import struct
+import time
 from datetime import datetime
+import numpy
+
 from astropy import coordinates
 from astropy import units
-import numpy
-import time
+from astropy.time import sofa_time
+from astropy.time import TimeString
+from astropy.time import Time
 
 
 MPCNOTES = {'Note1':
-                { " ": " ",
-                  "": " ",
-                    "*": "*",
-                    "A": "earlier approximate position inferior",
-                    "a": "sense of motion ambiguous",
-                    "B": "bright sky/black or dark plate",
-                    "b": "bad seeing",
-                    "c": "crowded star field",
-                    "D": "declination uncertain",
-                    "d": "diffuse image",
-                    "E": "at or near edge of plate",
-                    "F": "faint image",
-                    "f": "involved with emulsion or plate flaw",
-                    "G": "poor guiding",
-                    "g": "no guiding",
-                    "H": "hand measurement of CCD image",
-                    "I": "involved with star",
-                    "i": "inkdot measured",
-                    "J": "J2000.0 rereduction of previously-reported position",
-                    "K": "stacked image",
-                    "k": "stare-mode observation by scanning system",
-                    "M": "measurement difficult",
-                    "m": "image tracked on object motion",
-                    "N": "near edge of plate, measurement uncertain",
-                    "O": "image out of focus",
-                    "o": "plate measured in one direction only",
-                    "P": "position uncertain",
-                    "p": "poor image",
-                    "R": "right ascension uncertain",
-                    "r": "poor distribution of reference stars",
-                    "S": "poor sky",
-                    "s": "streaked image",
-                    "T": "time uncertain",
-                    "t": "trailed image",
-                    "U": "uncertain image",
-                    "u": "unconfirmed image",
-                    "V": "very faint image",
-                    "W": "weak image",
-                    "w": "weak solution"},
+                {" ": " ",
+                 "": " ",
+                 "*": "*",
+                 "A": "earlier approximate position inferior",
+                 "a": "sense of motion ambiguous",
+                 "B": "bright sky/black or dark plate",
+                 "b": "bad seeing",
+                 "c": "crowded star field",
+                 "D": "declination uncertain",
+                 "d": "diffuse image",
+                 "E": "at or near edge of plate",
+                 "F": "faint image",
+                 "f": "involved with emulsion or plate flaw",
+                 "G": "poor guiding",
+                 "g": "no guiding",
+                 "H": "hand measurement of CCD image",
+                 "I": "involved with star",
+                 "i": "inkdot measured",
+                 "J": "J2000.0 rereduction of previously-reported position",
+                 "K": "stacked image",
+                 "k": "stare-mode observation by scanning system",
+                 "M": "measurement difficult",
+                 "m": "image tracked on object motion",
+                 "N": "near edge of plate, measurement uncertain",
+                 "O": "image out of focus",
+                 "o": "plate measured in one direction only",
+                 "P": "position uncertain",
+                 "p": "poor image",
+                 "R": "right ascension uncertain",
+                 "r": "poor distribution of reference stars",
+                 "S": "poor sky",
+                 "s": "streaked image",
+                 "T": "time uncertain",
+                 "t": "trailed image",
+                 "U": "uncertain image",
+                 "u": "unconfirmed image",
+                 "V": "very faint image",
+                 "W": "weak image",
+                 "w": "weak solution"},
             'Note2': {
-    " ": " ",
-    "": " ",
-    "P": "Photographic",
-    "e": "Encoder",
-    "C": "CCD",
-    "T": "Meridian or transit circle",
-    "M": "Micrometer",
-    "V": "'Roving Observer' observation",
-    "R": "Radar observation",
-    "S": "Satellite observation",
-    "c": "Corrected-without-republication CCD observation",
-    "E": "Occultation-derived observations",
-    "O": "Offset observations (used only for observations of natural satellites)",
-    "H": "Hipparcos geocentric observations",
-    "N": "Normal place",
-    "n": "Mini-normal place derived from averaging observations from video frames"
-}}
+                " ": " ",
+                "": " ",
+                "P": "Photographic",
+                "e": "Encoder",
+                "C": "CCD",
+                "T": "Meridian or transit circle",
+                "M": "Micrometer",
+                "V": "'Roving Observer' observation",
+                "R": "Radar observation",
+                "S": "Satellite observation",
+                "c": "Corrected-without-republication CCD observation",
+                "E": "Occultation-derived observations",
+                "O": "Offset observations (used only for observations of natural satellites)",
+                "H": "Hipparcos geocentric observations",
+                "N": "Normal place",
+                "n": "Mini-normal place derived from averaging observations from video frames"
+            }}
 
 
 class MPCFormatError(Exception):
@@ -134,14 +133,11 @@ class MPCNote(object):
     Alphabetic note shown with some of the observations. Non-alphabetic codes are used to differentiate between
     different programs at the same site and such codes will be defined in the headings for the individual
     observatories in the Minor Planet Circulars.
-
-
     """
 
     def __init__(self, code="C", note_type="Note2"):
         self.note_type = note_type
         self.code = code
-
 
     @property
     def note_type(self):
@@ -170,8 +166,7 @@ class MPCNote(object):
         :type code: str
         :param code: an MPC Note code. Either from the allow dictionary or 0-9
         """
-
-        _code = ( code is None and " " ) or str(code).strip()
+        _code = (code is None and " ") or str(code).strip()
         if _code.isdigit():
             if self.note_type != 'Note1':
                 raise MPCFieldFormatError(self.note_type,
@@ -227,8 +222,8 @@ class Discovery(object):
     def is_discovery(self, is_discovery):
         if is_discovery not in ['*', ' ', '', True, False, None]:
             raise MPCFieldFormatError("discovery",
-                                "must be one of '',' ','*',True, False. Was: ",
-                                is_discovery)
+                                      "must be one of '',' ','*',True, False. Was: ",
+                                      is_discovery)
         self._is_discovery = (( (is_discovery or False) == '*' or is_discovery == True ) and True ) or False
 
     def __str__(self):
@@ -304,7 +299,6 @@ class TimeMPC(TimeString):
                                               iy, im, iday, ihr, imin, dsec)
         return
 
-
     def str_kwargs(self):
         """                                                                                                                                           
         Generator that yields a dict of values corresponding to the                                                                                   
@@ -330,7 +324,7 @@ class TimeMPC(TimeString):
 
             # MPC uses day fraction as time part of datetime
             fracday = (((((ifracsec / 1000000.0 + isec) / 60.0 + imin) / 60.0) + ihr) / 24.0) * (10 ** 6)
-            fracday ='{0:06g}'.format(fracday)[0:self.precision]
+            fracday = '{0:06g}'.format(fracday)[0:self.precision]
             #format_str = '{{0:g}}'.format(self.precision)
             #fracday = int(format_str.format(fracday))
             yield dict(year=int(iy), mon=int(im), day=int(iday), hour=int(ihr), min=int(imin), sec=int(isec),
@@ -358,7 +352,6 @@ class Observation(object):
                  band='r',
                  observatory_code=568):
 
-
         self.minor_planet_number = minor_planet_number
         self.provisional_name = provisional_name
         self.discovery = discovery
@@ -371,7 +364,7 @@ class Observation(object):
         self.observatory_code = observatory_code
 
     @classmethod
-    def from_line(cls,mpc_line):
+    def from_line(cls, mpc_line):
         """
         Given an MPC formatted line, returns an MPC Observation object.
         :param mpc_line: a line in the one-line roving observer format
@@ -379,29 +372,28 @@ class Observation(object):
         mpc_format = '5s7s1s1s1s17s12s12s9x5s1s6x3s'
         return cls(*list(struct.unpack(mpc_format, mpc_line.strip('\n'))))
 
-
     def __str__(self):
         """
         Writes out data about accepted objects in the Minor Planet Center's 'Minor Planets'
         format as specified here:
         http://www.minorplanetcenter.net/iau/info/OpticalObs.html
         """
-        mpc_str = ( self.minor_planet_number is None and 5 * " " ) or "%5s" % ( self.minor_planet_number)
-        mpc_str += ( self.provisional_name is None and 7 * " " ) or "%7s" % ( self.provisional_name )
+        mpc_str = (self.minor_planet_number is None and 5 * " ") or "%5s" % (self.minor_planet_number)
+        mpc_str += (self.provisional_name is None and 7 * " ") or "%7s" % (self.provisional_name)
         mpc_str += str(self.discovery)
         mpc_str += '{0:1s}{1:1s}'.format(str(self.note1), str(self.note2))
         mpc_str += '{0:<17s}'.format(str(self.date))
         mpc_str += '{0:<12s}{1:<12s}'.format(str(self.ra), str(self.dec))
         mpc_str += 9 * " "
-        mag_format = '{0:<5.'+str(self._mag_precision)+'f}{1:1s}'
-        mag_str = ( self.mag is None and 6* " ") or mag_format.format(self.mag,self.band)
+        mag_format = '{0:<5.' + str(self._mag_precision) + 'f}{1:1s}'
+        mag_str = ( self.mag is None and 6 * " ") or mag_format.format(self.mag, self.band)
         if len(mag_str) != 6:
             raise MPCFieldFormatError("mag",
                                       "length of mag string should be exactly 6 characters, got->",
                                       mag_str)
         mpc_str += mag_str
         mpc_str += 6 * " "
-        mpc_str += "%3s" % ( self.observatory_code )
+        mpc_str += "%3s" % self.observatory_code
         return mpc_str
 
     @property
@@ -460,11 +452,10 @@ class Observation(object):
     def discovery(self, is_discovery):
         """
 
-        :type discovery: bool
-        :param discovery: indicates if observation was a discovery
+        :type is_discovery: bool
+        :param is_discovery: indicates if observation was a discovery
         """
         self._discovery = Discovery(is_discovery=is_discovery)
-
 
     @property
     def note1(self):
@@ -517,11 +508,10 @@ class Observation(object):
         Compute the number of decimal places in the last part of a sexagesimal string
         """
         parts = str(coord).replace('/', ' ').split('.')
-        if len(parts) < 2 :
+        if len(parts) < 2:
             return 0
         else:
             return len(parts[-1])
-
 
     @coordinate.setter
     def coordinate(self, coord_pair):
@@ -558,7 +548,6 @@ class Observation(object):
     def mag(self):
         return self._mag
 
-
     @mag.setter
     def mag(self, mag):
         if mag is None or len(str(str(mag).strip(' ')))==0 :
@@ -589,11 +578,6 @@ class Observation(object):
                                       "must be 3 characters or less",
                                       observatory_code)
         self._observatory_code = str(observatory_code)
-
-
-
-
-
 
 
 class MPCWriter(object):
@@ -644,38 +628,15 @@ class MPCWriter(object):
         if self.auto_flush:
             self.flush()
 
-    def write_mpc_line(self,
-                       minor_planet_number,
-                       provisional_name,
-                       discovery_asterisk,
-                       note1,
-                       note2,
-                       date_of_obs,
-                       ra,
-                       dec,
-                       obs_mag,
-                       band,
-                       observatory_code="568",
-                       phot_failure=False):
+    def write_mpc_line(self, mpc_observation):
         """
         Writes a single entry in the Minor Planet Center's format.
 
         Minor planet number can be left empty ("").  All other fields
         should be provided.
         """
-        # Convert some fields to strings for convenience and perform
-        # filling/justification
-        line = str(Observation(minor_planet_number=minor_planet_number,
-                              provisional_name=provisional_name,
-                              discovery=discovery_asterisk,
-                              note1=note1,
-                              note2=note2,
-                              date=date_of_obs,
-                              ra=ra,
-                              dec=dec,
-                              mag=obs_mag,
-                              band=band,
-                              observatory_code=observatory_code))
+        line = str(mpc_observation)
+
         if len(line) != 80:
             raise MPCFormatError("MPC line must be 80 characters but was: %d" % len(line))
 
@@ -724,5 +685,3 @@ class MPCWriter(object):
 
     def close(self):
         self.filehandle.close()
-
-
