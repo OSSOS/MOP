@@ -656,19 +656,6 @@ class MPCWriter(object):
     def get_filename(self):
         return self.filehandle.name
 
-    def write_comment(self, reading, comment):
-        """
-        Writes a special comment line intended to annotate the following line.
-
-        Has format:
-        # expnum_ccd xcen ycen <comment text>
-        """
-        self.buffer += "# %s %s %s %s\n" % (
-            reading.obs.rawname, reading.x, reading.y, comment)
-
-        if self.auto_flush:
-            self.flush()
-
     def write_mpc_line(self, mpc_observation):
         """
         Writes a single entry in the Minor Planet Center's format.
@@ -679,39 +666,6 @@ class MPCWriter(object):
         line = mpc_observation.to_string()
 
         self.buffer += line + "\n"
-
-        if self.auto_flush:
-            self.flush()
-
-    def write_rejection_line(self, date_of_obs, ra, dec):
-        date_of_obs = date_of_obs.ljust(17)
-
-        if not self.date_regex.match(date_of_obs):
-            raise MPCFieldFormatError("Date of observation",
-                                      "must match regex: %s" % self.date_regex.pattern,
-                                      date_of_obs)
-
-        if not _is_numeric(ra):
-            raise MPCFieldFormatError("RA",
-                                      "must be numeric (can be in string form)",
-                                      ra)
-
-        if not _is_numeric(dec):
-            raise MPCFieldFormatError("DEC",
-                                      "must be numeric (can be in string form)",
-                                      dec)
-
-        formatted_ra, formatted_dec = format_ra_dec(ra, dec)
-
-        line = ("!" + " " * 14 + date_of_obs + formatted_ra +
-                formatted_dec + " " * 24 + "\n")
-
-        # subtract 1 because of newline character
-        line_len = len(line) - 1
-        if line_len != 80:
-            raise MPCFormatError("MPC line must be 80 characters but was: %d" % line_len)
-
-        self.buffer += line
 
         if self.auto_flush:
             self.flush()

@@ -6,7 +6,6 @@ import tempfile
 from hamcrest import assert_that, equal_to, has_length
 from astropy.time.core import Time
 
-from ossos.astrom import SourceReading, Observation
 from ossos import mpc
 
 Time.FORMATS['mpc'] = mpc.TimeMPC
@@ -503,44 +502,40 @@ class MPCWriterTest(unittest.TestCase):
 
     def test_flush(self):
         self.undertest = mpc.MPCWriter(self.outputfile, auto_flush=False)
-        obs = Observation("1234567", "p", "00")
-        reading = SourceReading(334.56, 884.22, 335.56, 885.22, 0, 0,
-                                335.56, 885.22, obs)
 
-        self.undertest.write_comment(reading, "Something fishy.")
+        obs1 = mpc.Observation(minor_planet_number="12345",
+                               provisional_name="A234567",
+                               discovery="*",
+                               note1="M",
+                               note2="N",
+                               date="2012 10 21.405160",
+                               ra="26.683336700", # 01 46 44.001
+                               dec="29.220353200", # +29 13 13.27
+                               mag="123.5",
+                               band="A",
+                               observatory_code="523")
 
-        assert_that(self.read_outputfile(), equal_to(""))
-
-        obs = mpc.Observation("12345",
-                              "A234567",
-                              "*",
-                              "M",
-                              "N",
-                              "2012 10 21.405160",
-                              "26.683336700", # 01 46 44.001
-                              "29.220353200", # +29 13 13.27
-                              "123.5",
-                              "A",
-                              "523")
-
-        self.undertest.write_mpc_line(obs)
+        self.undertest.write_mpc_line(obs1)
 
         assert_that(self.read_outputfile(), equal_to(""))
 
-        self.undertest.write_rejection_line("2012 10 21.405160",
-                                            "26.683336700", # 01 46 44.001
-                                            "29.220353200", # +29 13 13.27
+        obs2 = mpc.Observation(date="2012 10 21.405160",
+                               ra="26.683336700", # 01 46 44.001
+                               dec="29.220353200", # +29 13 13.27
         )
 
+        obs2.null_observation = True
+
+        self.undertest.write_mpc_line(obs2)
+
         assert_that(self.read_outputfile(), equal_to(""))
 
-        expected_comment = "# 1234567p00 334.56 884.22 Something fishy.\n"
         expected_mpcline = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         123.5A      523\n"
-        expected_reject_line = "!              2012 10 21.40516001 46 44.001+29 13 13.27                        \n"
+        expected_reject_line = "!              2012 10 21.40516001 46 44.001+29 13 13.27         0.0  r      568\n"
 
         self.undertest.flush()
         assert_that(self.read_outputfile(),
-                    equal_to(expected_comment + expected_mpcline + expected_reject_line))
+                    equal_to(expected_mpcline + expected_reject_line))
 
     def test_format_ra(self):
         """
