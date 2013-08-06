@@ -1,3 +1,7 @@
+"""
+General-purpose list control widgets.
+"""
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
@@ -32,20 +36,20 @@ class ListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         sizer.Add(self.list, 1, wx.EXPAND)
         self.SetSizer(sizer)
 
-    def populate_list(self, datatuples):
+    def populate_list(self, data):
         # Clear any existing data
         self.list.DeleteAllItems()
 
         item_data_map = {}
         index = 0
-        for tuple in datatuples:
+        for record in data:
             self.list.InsertStringItem(index, str(index))
-            for colindex, item in enumerate(tuple):
+            for colindex, item in enumerate(record):
                 self.list.SetStringItem(index, colindex, str(item))
 
             # For ColumnSorterMixin
             self.list.SetItemData(index, index)
-            item_data_map[index] = tuple
+            item_data_map[index] = record
 
             index += 1
 

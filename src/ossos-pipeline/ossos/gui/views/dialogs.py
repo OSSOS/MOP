@@ -1,8 +1,9 @@
-__author__ = "David Rusk <drusk@uvic.ca>"
 """
 This module contains various dialogs used in the application.
 The accept/reject source dialogs are in validation.py.
 """
+
+__author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
 
