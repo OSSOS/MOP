@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 from ossos.daophot import TaskError
 from ossos import mpc
 from ossos.gui import events, config
-from ossos.gui.views import ApplicationView
+from ossos.gui.views.app import ApplicationView
 from ossos.gui.models import ImageNotLoadedException, NoWorkUnitException
 from ossos.gui.autoplay import AutoplayManager
 
@@ -210,8 +210,7 @@ class ProcessRealsController(AbstractController):
                      obs_mag,
                      band,
                      observatory_code,
-                     comment,
-                     phot_failure):
+                     comment):
         """
         Final acceptance with collected data.
         """

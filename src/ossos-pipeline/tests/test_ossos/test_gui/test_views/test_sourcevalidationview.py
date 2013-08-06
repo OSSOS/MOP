@@ -6,9 +6,8 @@ from mock import Mock, call
 from hamcrest import assert_that, equal_to, has_length, contains
 
 from tests.base_tests import WxWidgetTestCase
-from ossos.gui.views import (SourceValidationDialog, AcceptSourceDialog,
-                             RejectSourceDialog)
 from ossos.gui.controllers import ProcessRealsController
+from ossos.gui.views.validation import SourceValidationDialog, AcceptSourceDialog, RejectSourceDialog
 
 # Constants used for test data
 TEST_MINOR_PLANET_NUMBER = "mpn01"
@@ -114,7 +113,7 @@ class AcceptSourceDialogTest(WxWidgetTestCase):
         self.controller.on_do_accept.assert_called_once_with(
             TEST_MINOR_PLANET_NUMBER, TEST_PROVISIONAL_NAME, TEST_DISCOVERY_AST,
             TEST_NOTE1, TEST_NOTE2, TEST_DATE, str(TEST_RA), str(TEST_DEC), TEST_MAG,
-            TEST_BAND, TEST_OBS_CODE, TEST_COMMENT, False)
+            TEST_BAND, TEST_OBS_CODE, TEST_COMMENT)
 
     def test_submit_data_phot_failure(self):
         undertest = AcceptSourceDialog(self.rootframe, self.controller,
@@ -140,7 +139,7 @@ class AcceptSourceDialogTest(WxWidgetTestCase):
         self.controller.on_do_accept.assert_called_once_with(
             "", TEST_PROVISIONAL_NAME, TEST_DISCOVERY_AST,
             "", "", TEST_DATE, str(TEST_RA), str(TEST_DEC), obs_mag,
-            band, TEST_OBS_CODE, TEST_COMMENT, True)
+            band, TEST_OBS_CODE, TEST_COMMENT)
 
 
 class RejectSourceDialogTest(WxWidgetTestCase):

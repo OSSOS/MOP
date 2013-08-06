@@ -4,7 +4,7 @@ import wx
 import wx.lib.inspection
 
 from tests.manual_inspection.context import testutil
-from ossos.gui.errorhandling import CertificateDialog
+from ossos.gui.views.errorhandling import CertificateDialog
 
 
 def main():

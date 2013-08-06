@@ -6,7 +6,7 @@ import threading
 
 from ossos.gui import tasks, logger
 from ossos.astrom import StreamingAstromWriter
-from ossos.gui.persistence import FileLockedException
+from ossos.gui.progress import FileLockedException
 
 
 class NoAvailableWorkException(Exception):

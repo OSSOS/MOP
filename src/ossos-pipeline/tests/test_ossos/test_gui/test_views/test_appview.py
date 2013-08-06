@@ -7,7 +7,7 @@ from mock import Mock
 from hamcrest import assert_that, equal_to
 
 from tests.base_tests import WxWidgetTestCase
-from ossos.gui.views import ApplicationView
+from ossos.gui.views.app import ApplicationView
 
 
 class ApplicationViewTest(WxWidgetTestCase):

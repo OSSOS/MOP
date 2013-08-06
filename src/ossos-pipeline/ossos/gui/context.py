@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 
 from ossos import storage
-from ossos.gui.persistence import LocalProgressManager, VOSpaceProgressManager
+from ossos.gui.progress import LocalProgressManager, VOSpaceProgressManager
 
 
 def get_context(directory):
