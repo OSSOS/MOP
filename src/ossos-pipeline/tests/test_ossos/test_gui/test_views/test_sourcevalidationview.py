@@ -6,7 +6,7 @@ from mock import Mock, call
 from hamcrest import assert_that, equal_to, has_length, contains
 
 from tests.base_tests import WxWidgetTestCase
-from ossos.gui.views import (SourceValidationDialog, AcceptSourceDialog,
+from ossos.gui.views.app import (SourceValidationDialog, AcceptSourceDialog,
                              RejectSourceDialog)
 from ossos.gui.controllers import ProcessRealsController
 
