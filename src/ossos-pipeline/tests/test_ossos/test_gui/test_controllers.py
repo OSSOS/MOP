@@ -6,7 +6,7 @@ from mock import Mock, MagicMock, patch, ANY
 from hamcrest import equal_to, assert_that
 
 from ossos.gui import config
-from ossos.astrom import SourceReading
+from ossos.astrom import SourceReading, Observation
 from ossos.gui.views import ApplicationView
 from ossos.gui.models import UIModel
 from ossos.gui.controllers import AbstractController, ProcessRealsController, ImageLoadingDialogManager
@@ -98,6 +98,15 @@ class RealsControllerTest(unittest.TestCase):
             default_observatory_code=ANY,
             default_comment=ANY,
             phot_failure=ANY)
+
+    def test_generate_mpc_line(self):
+        obs = Observation("1234567", "p", "00")
+        reading = SourceReading(334.56, 884.22, 335.56, 885.22, 0, 0,
+                                335.56, 885.22, obs)
+        self.model.get_current_reading = Mock(return_value=reading)
+
+        assert_that(self.controller.generate_mpc_comment("Something fishy."),
+                    equal_to("1234567p00 334.56 884.22 Something fishy.\n"))
 
 
 class ImageLoadingDialogManagerTest(unittest.TestCase):
