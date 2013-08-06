@@ -15,6 +15,7 @@ class NoAvailableWorkException(Exception):
 
 class SourceNotNamedException(Exception):
     """The source has no name."""
+
     def __init__(self, source):
         self.source = source
 
@@ -81,9 +82,7 @@ class StatefulCollection(object):
         return self.index == len(self) - 1
 
     def _move(self, delta):
-        first_item = self.get_current_item()
         self.index = (self.index + delta) % len(self)
-        second_item = self.get_current_item()
 
 
 class WorkUnit(object):
@@ -114,6 +113,8 @@ class WorkUnit(object):
             self.next_item()
 
         self.finished_callbacks = []
+
+        self._unlocked = False
 
     def register_finished_callback(self, callback):
         self.finished_callbacks.append(callback)
@@ -149,7 +150,7 @@ class WorkUnit(object):
 
         if self.is_finished():
             self.progress_manager.record_done(self.get_filename())
-            self.progress_manager.unlock(self.get_filename(), async=True)
+            self.unlock()
 
             for callback in self.finished_callbacks:
                 callback(self.get_results_file_paths())
@@ -223,6 +224,11 @@ class WorkUnit(object):
 
     def is_apcor_needed(self):
         raise NotImplementedError()
+
+    def unlock(self):
+        if not self._unlocked:
+            self.progress_manager.unlock(self.get_filename(), async=True)
+            self._unlocked = True
 
     def _get_item_set(self):
         raise NotImplementedError()
@@ -349,9 +355,7 @@ class CandidatesWorkUnit(WorkUnit):
             progress_manager,
             output_context)
 
-        output_filename = filename.replace(tasks.get_suffix(tasks.CANDS_TASK),
-                                           tasks.get_suffix(tasks.REALS_TASK))
-        self._writer = self._create_writer(output_filename)
+        self._writer = None
 
     def next_item(self):
         assert not self.is_finished()
@@ -373,12 +377,23 @@ class CandidatesWorkUnit(WorkUnit):
         return False
 
     def get_writer(self):
+        if self._writer is None:
+            self._writer = self._create_writer()
+
         return self._writer
 
     def get_results_file_paths(self):
+        if self._writer is None:
+            return []
+
         return [self.output_context.get_full_path(self._writer.get_filename())]
 
-    def _create_writer(self, filename):
+    def get_output_filename(self):
+        return self.get_filename().replace(tasks.get_suffix(tasks.CANDS_TASK),
+                                           tasks.get_suffix(tasks.REALS_TASK))
+
+    def _create_writer(self):
+        filename = self.get_output_filename()
         return StreamingAstromWriter(self.output_context.open(filename),
                                      self.data.sys_header)
 
@@ -391,7 +406,8 @@ class CandidatesWorkUnit(WorkUnit):
             self.processed_items.add(self.get_sources()[index])
 
     def _close_writers(self):
-        self._writer.close()
+        if self._writer is not None:
+            self._writer.close()
 
 
 class WorkUnitProvider(object):
@@ -411,6 +427,16 @@ class WorkUnitProvider(object):
         self.builder = builder
         self.randomize = randomize
 
+        self._done = []
+        self._already_fetched = []
+
+    @property
+    def directory(self):
+        """
+        The directory that workunits are being acquired from.
+        """
+        return self.directory_context.directory
+
     def get_workunit(self, ignore_list=None):
         """
         Gets a new unit of work.
@@ -428,11 +454,10 @@ class WorkUnitProvider(object):
           NoAvailableWorkException
             There is no more work available.
         """
-        potential_files = self.directory_context.get_listing(self.taskid)
+        if ignore_list is None:
+            ignore_list = []
 
-        if ignore_list:
-            potential_files = filter(lambda file: file not in ignore_list,
-                                     potential_files)
+        potential_files = self.get_potential_files(ignore_list)
 
         while len(potential_files) > 0:
             potential_file = self.select_potential_file(potential_files)
@@ -441,16 +466,33 @@ class WorkUnitProvider(object):
             if self.directory_context.get_file_size(potential_file) == 0:
                 continue
 
-            if not self.progress_manager.is_done(potential_file):
+            if self.progress_manager.is_done(potential_file):
+                self._done.append(potential_file)
+                continue
+            else:
                 try:
                     self.progress_manager.lock(potential_file)
                 except FileLockedException:
                     continue
 
+                self._already_fetched.append(potential_file)
+
                 return self.builder.build_workunit(
                     self.directory_context.get_full_path(potential_file))
 
+        logger.info("No eligible workunits remain to be fetched.")
+
         raise NoAvailableWorkException()
+
+    def get_potential_files(self, ignore_list):
+        """
+        Get a listing of files for the appropriate task which may or may
+        not be locked and/or done.
+        """
+        return [file for file in self.directory_context.get_listing(self.taskid)
+                if file not in ignore_list and
+                   file not in self._done and
+                   file not in self._already_fetched]
 
     def select_potential_file(self, potential_files):
         if self.randomize:
@@ -458,6 +500,9 @@ class WorkUnitProvider(object):
             return random.choice(potential_files)
         else:
             return potential_files[0]
+
+    def shutdown(self):
+        pass
 
 
 class PreFetchingWorkUnitProvider(object):
@@ -467,7 +512,16 @@ class PreFetchingWorkUnitProvider(object):
 
         self.fetched_files = []
         self.workunits = []
+
+        self._threads = []
         self._all_fetched = False
+
+    @property
+    def directory(self):
+        """
+        The directory that workunits are being acquired from.
+        """
+        return self.workunit_provider.directory
 
     def get_workunit(self):
         if self._all_fetched and len(self.workunits) == 0:
@@ -498,7 +552,9 @@ class PreFetchingWorkUnitProvider(object):
             num_to_fetch -= 1
 
     def prefetch_workunit(self):
-        threading.Thread(target=self._do_prefetch_workunit).start()
+        thread = threading.Thread(target=self._do_prefetch_workunit)
+        self._threads.append(thread)
+        thread.start()
 
     def _do_prefetch_workunit(self):
         try:
@@ -513,6 +569,15 @@ class PreFetchingWorkUnitProvider(object):
 
         except NoAvailableWorkException:
             self._all_fetched = True
+
+    def shutdown(self):
+        # Make sure all threads are finished so that no more locks are
+        # acquired
+        for thread in self._threads:
+            thread.join()
+
+        for workunit in self.workunits:
+            workunit.unlock()
 
 
 class WorkUnitBuilder(object):

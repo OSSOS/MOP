@@ -20,8 +20,11 @@ class Block(object):
 
 	@property
 	def observed_fields(self):
-		retval = self.blockQuery.block_discovery_triples(self.blockID)
-		return retval
+		rv = self.blockQuery.block_discovery_triples(self.blockID)
+		# both processing and blinking status only have to show the discovery triplets
+		# proc_rv = self.blockQuery.bk.get_processing_status(rv)
+		# blink_rv = self.blockQuery.block_blinking_status(self.blockID)
+		return rv   # MODIFY TO SHOW PROCESSING STATUS AND BLINKING STATUS
 	
 	@property
 	def central_radec(self):

@@ -21,8 +21,8 @@ from ossos.gui.workload import WorkUnitProvider, RealsWorkUnitBuilder
 TEST_MINOR_PLANET_NUMBER = "mpn01"
 TEST_PROVISIONAL_NAME = "DNZOH00"
 TEST_DISCOVERY_AST = "*"
-TEST_NOTE1 = "A"
-TEST_NOTE2 = "B"
+TEST_NOTE1 = "A  earlier approximate position inferior"
+TEST_NOTE2 = "C   CCD"
 TEST_DATE = "2013 04 09.43325"
 TEST_DEC = 31.2123
 TEST_RA = 27.213
@@ -50,7 +50,7 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
 
         download_manager = Mock(spec=AsynchronousImageDownloadManager)
 
-        self.model = UIModel(workunit_provider, progress_manager, download_manager, None)
+        self.model = UIModel(workunit_provider, download_manager, None)
         self.model.start_work()
 
         # We don't actually have any images loaded, so mock this out

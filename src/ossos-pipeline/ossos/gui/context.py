@@ -93,8 +93,8 @@ class VOSpaceWorkingContext(WorkingContext):
         return True
 
     def listdir(self):
-        # force to make sure we don't get cached results
-        return storage.listdir(self.directory, force=True)
+        # Don't force because it causes a HUGE performance hit.
+        return storage.listdir(self.directory, force=False)
 
     def get_file_size(self, filename):
         length_property = storage.get_property(

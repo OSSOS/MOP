@@ -4,7 +4,8 @@ from ossos import wcs
 from ossos import astrom
 from ossos.gui import events
 from ossos.gui import logger
-from ossos.gui.workload import NoAvailableWorkException, StatefulCollection
+from ossos.gui.workload import (NoAvailableWorkException, StatefulCollection,
+                                CandidatesWorkUnit, RealsWorkUnit)
 
 
 class ImageNotLoadedException(Exception):
@@ -20,13 +21,8 @@ class UIModel(object):
     Contains the data and associated operations available to the user interface.
     """
 
-    def __init__(self,
-                 workunit_provider,
-                 progress_manager,
-                 download_manager,
-                 synchronization_manager):
+    def __init__(self, workunit_provider, download_manager, synchronization_manager):
         self.workunit_provider = workunit_provider
-        self.progress_manager = progress_manager
         self.download_manager = download_manager
         self.synchronization_manager = synchronization_manager
 
@@ -40,38 +36,38 @@ class UIModel(object):
         self.sources_discovered = set()
 
     def get_working_directory(self):
-        # TODO: yuck, refactor!
-        return self.progress_manager.working_context.directory
+        return self.workunit_provider.directory
 
     def start_work(self):
+        logger.debug("Model starting work.")
         self.next_workunit()
 
     def next_source(self):
         self.get_current_workunit().next_source()
-        events.send(events.CHANGE_IMAGE)
+        self.expect_source_transition()
 
     def previous_source(self):
         self.get_current_workunit().previous_source()
-        events.send(events.CHANGE_IMAGE)
+        self.expect_source_transition()
 
     def next_obs(self):
         self.get_current_workunit().next_obs()
-        events.send(events.CHANGE_IMAGE)
+        self.expect_observation_transition()
 
     def previous_obs(self):
         self.get_current_workunit().previous_obs()
-        events.send(events.CHANGE_IMAGE)
+        self.expect_observation_transition()
 
     def next_item(self):
         if self.get_current_workunit().is_finished():
             self.next_workunit()
         else:
             self.get_current_workunit().next_item()
-            events.send(events.CHANGE_IMAGE)
 
-    def previous_item(self):
-        self.get_current_workunit().previous_vettable_item()
-        events.send(events.CHANGE_IMAGE)
+            if self.is_processing_candidates():
+                self.expect_source_transition()
+            elif self.is_processing_reals():
+                self.expect_observation_transition()
 
     def accept_current_item(self):
         self.sources_discovered.add(self.get_current_source())
@@ -94,11 +90,25 @@ class UIModel(object):
 
         self.work_units.next()
 
-    def _get_new_workunit(self):
-        new_workunit = self.workunit_provider.get_workunit()
+    def expect_source_transition(self):
+        self.expect_image_transition()
+
+    def expect_observation_transition(self):
+        self.expect_image_transition()
+
+    def expect_image_transition(self):
+        events.send(events.CHANGE_IMAGE)
+
+    def acknowledge_image_displayed(self):
+        pass
+
+    def add_workunit(self, new_workunit):
         new_workunit.register_finished_callback(self._on_finished_workunit)
         self.work_units.append(new_workunit)
         self._download_workunit_images(new_workunit)
+
+    def _get_new_workunit(self):
+        self.add_workunit(self.workunit_provider.get_workunit())
 
     def is_current_source_discovered(self):
         return self.get_current_source() in self.sources_discovered
@@ -247,23 +257,24 @@ class UIModel(object):
             logger.info("Synchronization disabled")
 
     def exit(self):
-        try:
-            self._unlock(self.get_current_workunit())
-        except NoWorkUnitException:
-            # Nothing to unlock
-            pass
+        for workunit in self.work_units:
+            workunit.unlock()
 
         self.download_manager.stop_download()
+        self.workunit_provider.shutdown()
         self.download_manager.wait_for_downloads_to_stop()
+
+    def is_processing_candidates(self):
+        return isinstance(self.get_current_workunit(), CandidatesWorkUnit)
+
+    def is_processing_reals(self):
+        return isinstance(self.get_current_workunit(), RealsWorkUnit)
 
     def _get_current_image_reading(self):
         try:
             return self._image_reading_models[self.get_current_reading()]
         except KeyError:
             raise ImageNotLoadedException()
-
-    def _unlock(self, workunit):
-        self.progress_manager.unlock(workunit.get_filename())
 
     def _download_workunit_images(self, workunit):
         self.download_manager.start_downloading_workunit(
@@ -279,6 +290,106 @@ class UIModel(object):
         if self.synchronization_manager:
             for path in results_file_paths:
                 self.synchronization_manager.add_syncable_file(path)
+
+
+class TransAckUIModel(UIModel):
+    """
+    This version of the UIModel requires confirmation that the view has
+    been updated before it will allow further image transitions or
+    accepting/rejecting.
+
+    Any requests for further transitions while waiting for acknowledgement
+    are simply ignored.
+    """
+
+    def __init__(self, workunit_provider, download_manager, synchronization_manager):
+        super(TransAckUIModel, self).__init__(workunit_provider,
+                                              download_manager,
+                                              synchronization_manager)
+        self._source_transitioning = False
+        self._observation_transitioning = False
+
+    def is_waiting_for_source_transition(self):
+        return self._source_transitioning
+
+    def is_waiting_for_observation_transition(self):
+        return self._observation_transitioning
+
+    def is_waiting_for_transition(self):
+        return (self.is_waiting_for_source_transition() or
+                self.is_waiting_for_observation_transition())
+
+    def expect_source_transition(self):
+        if self.is_waiting_for_transition():
+            # Don't allow additional events to be generated
+            return
+
+        self._source_transitioning = True
+        self.expect_image_transition()
+
+    def expect_observation_transition(self):
+        if self.is_waiting_for_transition():
+            # Don't allow additional events to be generated
+            return
+
+        self._observation_transitioning = True
+        self.expect_image_transition()
+
+    def acknowledge_image_displayed(self):
+        self._source_transitioning = False
+        self._observation_transitioning = False
+
+    def next_obs(self):
+        if self.is_waiting_for_transition():
+            return
+
+        super(TransAckUIModel, self).next_obs()
+
+    def previous_obs(self):
+        if self.is_waiting_for_transition():
+            return
+
+        super(TransAckUIModel, self).previous_obs()
+
+    def next_source(self):
+        if self.is_waiting_for_transition():
+            return
+
+        super(TransAckUIModel, self).next_source()
+
+    def previous_source(self):
+        if self.is_waiting_for_transition():
+            return
+
+        super(TransAckUIModel, self).previous_source()
+
+    def next_item(self):
+        if self.is_waiting_for_transition():
+            return
+
+        super(TransAckUIModel, self).next_item()
+
+    def accept_current_item(self):
+        if self._should_disable_validation():
+            return
+
+        super(TransAckUIModel, self).accept_current_item()
+
+    def reject_current_item(self):
+        if self._should_disable_validation():
+            return
+
+        super(TransAckUIModel, self).reject_current_item()
+
+    def _should_disable_validation(self):
+        if self.is_waiting_for_transition() and self.is_processing_reals():
+            return True
+
+        if (self.is_waiting_for_source_transition() and
+                self.is_processing_candidates()):
+            return True
+
+        return False
 
 
 class ImageReading(object):
