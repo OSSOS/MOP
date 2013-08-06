@@ -268,7 +268,7 @@ class MPCWriterTest(unittest.TestCase):
                               band="A",
                               observatory_code="523")
 
-        self.undertest.write_mpc_line(obs)
+        self.undertest.write(obs)
 
         expected = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         123.5A      523\n"
 
@@ -291,7 +291,7 @@ class MPCWriterTest(unittest.TestCase):
                               band="A",
                               observatory_code=523)
 
-        self.undertest.write_mpc_line(obs)
+        self.undertest.write(obs)
 
         expected = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         123.5A      523\n"
 
@@ -314,7 +314,7 @@ class MPCWriterTest(unittest.TestCase):
                               band="A",
                               observatory_code=523)
 
-        self.undertest.write_mpc_line(obs)
+        self.undertest.write(obs)
 
         expected = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         22.52A      523\n"
 
@@ -337,7 +337,7 @@ class MPCWriterTest(unittest.TestCase):
                               band="A",
                               observatory_code=523)
 
-        self.undertest.write_mpc_line(obs)
+        self.undertest.write(obs)
 
         expected = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         22.52A      523\n"
 
@@ -360,7 +360,7 @@ class MPCWriterTest(unittest.TestCase):
                               band="A",
                               observatory_code="523")
 
-        self.undertest.write_mpc_line(obs)
+        self.undertest.write(obs)
 
         expected = "12345A234567*MN2013 04 09.36658 01 46 44.001+29 13 13.27         123.5A      523\n"
 
@@ -383,7 +383,7 @@ class MPCWriterTest(unittest.TestCase):
                               band="A",
                               observatory_code="523")
 
-        self.undertest.write_mpc_line(obs)
+        self.undertest.write(obs)
 
         expected = "12345A234567   2013 04 09.36658 01 46 44.001+29 13 13.27         123.5A      523\n"
 
@@ -406,7 +406,7 @@ class MPCWriterTest(unittest.TestCase):
                               band="A",
                               observatory_code="523")
 
-        self.undertest.write_mpc_line(obs)
+        self.undertest.write(obs)
 
         expected = "     A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         123.5A      523\n"
 
@@ -429,7 +429,7 @@ class MPCWriterTest(unittest.TestCase):
                               band="A",
                               observatory_code="523")
 
-        self.undertest.write_mpc_line(obs)
+        self.undertest.write(obs)
 
         expected = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         12.35A      523\n"
         actual = self.read_outputfile()
@@ -451,7 +451,7 @@ class MPCWriterTest(unittest.TestCase):
                               band="",
                               observatory_code="523")
 
-        self.undertest.write_mpc_line(obs)
+        self.undertest.write(obs)
 
         expected = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27                     523\n"
 
@@ -476,7 +476,7 @@ class MPCWriterTest(unittest.TestCase):
                               observatory_code="523",
                               comment=comment)
 
-        self.undertest.write_mpc_line(obs)
+        self.undertest.write(obs)
 
         expected = ("     A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27"
                     "         123.5A      523 1234567p00 334.56 884.22 Something fishy.\n")
@@ -491,7 +491,7 @@ class MPCWriterTest(unittest.TestCase):
 
         obs.null_observation = True
 
-        self.undertest.write_mpc_line(obs)
+        self.undertest.write(obs)
 
         expected = "!              2012 10 21.40516001 46 44.001+29 13 13.27         0.0  r      568 1234567p00 334.56 884.22 Something fishy.\n"
 
@@ -515,7 +515,7 @@ class MPCWriterTest(unittest.TestCase):
                                band="A",
                                observatory_code="523")
 
-        self.undertest.write_mpc_line(obs1)
+        self.undertest.write(obs1)
 
         assert_that(self.read_outputfile(), equal_to(""))
 
@@ -526,7 +526,7 @@ class MPCWriterTest(unittest.TestCase):
 
         obs2.null_observation = True
 
-        self.undertest.write_mpc_line(obs2)
+        self.undertest.write(obs2)
 
         assert_that(self.read_outputfile(), equal_to(""))
 

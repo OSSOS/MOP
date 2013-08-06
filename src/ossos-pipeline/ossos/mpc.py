@@ -656,7 +656,7 @@ class MPCWriter(object):
     def get_filename(self):
         return self.filehandle.name
 
-    def write_mpc_line(self, mpc_observation):
+    def write(self, mpc_observation):
         """
         Writes a single entry in the Minor Planet Center's format.
 
