@@ -238,7 +238,7 @@ class ProcessRealsController(AbstractController):
             observatory_code=observatory_code,
             comment=self.generate_mpc_comment(comment))
 
-        self.model.get_writer().write_mpc_line(mpc_observation)
+        self.model.get_writer().write(mpc_observation)
 
         self.model.accept_current_item()
         self.model.next_item()
@@ -263,7 +263,7 @@ class ProcessRealsController(AbstractController):
 
         mpc_observation.null_observation = True
 
-        self.model.get_writer().write_mpc_line(mpc_observation)
+        self.model.get_writer().write(mpc_observation)
 
         self.model.reject_current_item()
         self.model.next_item()
