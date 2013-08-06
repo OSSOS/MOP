@@ -9,7 +9,7 @@ from hamcrest import (assert_that, contains_inanyorder, has_length, contains,
 from tests.base_tests import FileReadingTestCase
 from ossos.gui import tasks
 from ossos.gui.context import LocalDirectoryWorkingContext
-from ossos.gui.persistence import (LocalProgressManager, InMemoryProgressManager,
+from ossos.gui.progress import (LocalProgressManager, InMemoryProgressManager,
                                    FileLockedException, RequiresLockException,
                                    LOCK_SUFFIX)
 

@@ -14,7 +14,7 @@ from ossos.gui.models import ImageNotLoadedException
 from ossos.gui.downloads import AsynchronousImageDownloadManager
 from ossos.astrom import AstromParser
 from ossos.cutouts import CoordinateConverter
-from ossos.gui.persistence import LocalProgressManager
+from ossos.gui.progress import LocalProgressManager
 from ossos.gui.image import DownloadedFitsImage
 from ossos.gui.workload import (WorkUnitProvider, RealsWorkUnitBuilder,
                                 CandidatesWorkUnitBuilder)
