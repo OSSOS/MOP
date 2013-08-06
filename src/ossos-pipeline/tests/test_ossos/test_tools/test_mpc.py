@@ -15,7 +15,7 @@ Time.FORMATS['mpc'] = mpc.TimeMPC
 class ObservationTest(unittest.TestCase):
     def test_create_from_line(self):
         expected = '     NONE     C2009 02 23.62578512 32 05.249+07 08 55.70         30.00g      568'
-        self.assertEquals(expected, str(mpc.Observation.from_line(expected)))
+        self.assertEquals(expected, str(mpc.Observation.from_string(expected)))
 
     def test_default_line(self):
         expected = "     K04K18V**C2004 05 24.36017 15 06 36.12 -18 56 49.5          23.5 g      568"
