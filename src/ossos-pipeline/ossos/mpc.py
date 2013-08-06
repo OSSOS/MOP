@@ -350,7 +350,8 @@ class Observation(object):
                  dec="+00 00 00.00",
                  mag=0.00,
                  band='r',
-                 observatory_code=568):
+                 observatory_code=568,
+                 comment=None):
 
         self.minor_planet_number = minor_planet_number
         self.provisional_name = provisional_name
@@ -362,15 +363,23 @@ class Observation(object):
         self.mag = mag
         self.band = band
         self.observatory_code = observatory_code
+        self.comment = comment
 
     @classmethod
-    def from_line(cls, mpc_line):
+    def from_string(cls, mpc_line):
         """
         Given an MPC formatted line, returns an MPC Observation object.
         :param mpc_line: a line in the one-line roving observer format
         """
         mpc_format = '5s7s1s1s1s17s12s12s9x5s1s6x3s'
-        return cls(*list(struct.unpack(mpc_format, mpc_line.strip('\n'))))
+        mpc_line = mpc_line.strip('\n')
+        comment = mpc_line[80:]
+        mpc_line = mpc_line[0:80]
+        return cls(*struct.unpack(mpc_format, mpc_line), comment=comment)
+
+    def to_string(self):
+        return str(self) + self.comment
+
 
     def __str__(self):
         """
@@ -378,7 +387,10 @@ class Observation(object):
         format as specified here:
         http://www.minorplanetcenter.net/iau/info/OpticalObs.html
         """
-        mpc_str = (self.minor_planet_number is None and 5 * " ") or "%5s" % (self.minor_planet_number)
+        if self.null_observation is True:
+            mpc_str = "!" + 4*" "
+        else:
+            mpc_str = (self.minor_planet_number is None and 5 * " ") or "%5s" % (self.minor_planet_number)
         mpc_str += (self.provisional_name is None and 7 * " ") or "%7s" % (self.provisional_name)
         mpc_str += str(self.discovery)
         mpc_str += '{0:1s}{1:1s}'.format(str(self.note1), str(self.note2))
@@ -412,14 +424,23 @@ class Observation(object):
                                       "must be 5 or less characters",
                                       minor_planet_number)
         self._minor_planet_number = minor_planet_number
-        self._null_observation = False
+        self.null_observation = False
         if len(str(minor_planet_number)) > 0 and str(minor_planet_number)[0] == "!":
-            self._null_observation = True
+            self.null_observation = True
         return
+
 
     @property
     def null_observation(self):
         return self._null_observation
+
+    @null_observation.setter
+    def null_observation(self, null_observation):
+        if type(null_observation) != bool:
+            raise MPCFieldFormatError("null_observation",
+                                      "should be True/False",
+                                      null_observation)
+        self._null_observation = null_observation
 
     @property
     def provisional_name(self):
@@ -498,6 +519,14 @@ class Observation(object):
         return self.coordinate.dec.format(unit=units.degree, decimal=False,
                                           sep=" ", precision=self._dec_precision, alwayssign=True,
                                           pad=True)
+
+    @property
+    def comment(self):
+        return self._comment
+
+    @comment.setter
+    def comment(self, comment):
+        self._comment = (comment is None and "") or str(comment)
 
     @property
     def coordinate(self):
