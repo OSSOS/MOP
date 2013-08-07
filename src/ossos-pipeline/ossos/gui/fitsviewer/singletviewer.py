@@ -1,31 +1,26 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import numpy as np
-import wx
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from matplotlib.backends.backend_wxagg import \
-    FigureCanvasWxAgg as FigureCanvas
 from stsci import numdisplay
 
 from ossos.gui import config
+from ossos.gui.fitsviewer.baseviewer import MPLFitsViewer
 from ossos.gui.fitsviewer.colormap import ColormappedFitsImage
 from ossos.gui.fitsviewer.exceptions import MPLViewerError
 from ossos.gui.fitsviewer.interaction import InteractionContext
 
 
-class MPLFitsImageViewer(object):
+class SingletViewer(MPLFitsViewer):
     """
-    Display FITS images using matplotlib.
+    Displays a single FITS image at a time.
     """
 
     def __init__(self, parent):
-        self._parent = parent
+        super(SingletViewer, self).__init__(parent)
 
-        # Create the actual mpl figure we will draw on
-        self.figure = plt.figure()
-
-        self.colorbar_height_portion = 0.05
+        self._colorbar_height_portion = 0.05
 
         # limits specified as [left, bottom, width, height]
         # leave 2.5% border on left and right
@@ -42,9 +37,6 @@ class MPLFitsImageViewer(object):
 
         self.figure.add_axes(self.axes)
 
-        # Create the canvas on which the figure is rendered
-        self.canvas = FigureCanvas(parent, wx.ID_ANY, self.figure)
-
         self.interaction_context = InteractionContext(self)
 
         self.current_image = None
@@ -59,7 +51,7 @@ class MPLFitsImageViewer(object):
 
         self.xy_changed = Signal()
 
-    def view_image(self, fits_image, redraw=True):
+    def display(self, fits_image, redraw=True):
         if fits_image not in self._viewed_images:
             colormapped_image = ColormappedFitsImage(fits_image)
             self._viewed_images[fits_image] = colormapped_image
@@ -70,7 +62,7 @@ class MPLFitsImageViewer(object):
 
         if self.axes_image is None:
             self.axes_image = plt.imshow(processed_image_data,
-                                         extent=(1,self.imgwidth+1,self.imgheight+1,1),
+                                         extent=(1, self.imgwidth + 1, self.imgheight + 1, 1),
                                          cmap=self.current_image.get_cmap())
         else:
             # We re-use the old AxesImage object so that the colorbar can
@@ -84,7 +76,7 @@ class MPLFitsImageViewer(object):
         if self.colorbar is None:
             # Create axes for colorbar.  Make it tightly fit the image.
             divider = make_axes_locatable(self.axes)
-            size = str(100 * self.colorbar_height_portion) + "%"
+            size = str(100 * self._colorbar_height_portion) + "%"
             self.cax = divider.append_axes("bottom", size=size, pad=0.05)
             self.colorbar = self.figure.colorbar(
                 self.axes_image, orientation="horizontal", cax=self.cax)
@@ -150,12 +142,6 @@ class MPLFitsImageViewer(object):
     def get_circle(self):
         return self.circle
 
-    def redraw(self):
-        self.figure.canvas.draw()
-
-    def release_focus(self):
-        self._parent.SetFocus()
-
     def is_event_in_axes(self, event):
         return self.axes == event.inaxes
 
@@ -170,9 +156,6 @@ class MPLFitsImageViewer(object):
 
     def deregister_mpl_event_handler(self, id_):
         self.figure.canvas.mpl_disconnect(id_)
-
-    def as_widget(self):
-        return self.canvas
 
 
 class Signal(object):

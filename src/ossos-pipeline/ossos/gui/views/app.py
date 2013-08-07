@@ -56,8 +56,8 @@ class ApplicationView(object):
         self.close()
 
     @guithread
-    def view_image(self, fits_image, redraw=True):
-        self.mainframe.view_image(fits_image, redraw=redraw)
+    def display(self, fits_image, redraw=True):
+        self.mainframe.display(fits_image, redraw=redraw)
 
     @guithread
     def draw_circle(self, x, y, radius, redraw=True):

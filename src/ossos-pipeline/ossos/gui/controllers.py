@@ -1,7 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from ossos.daophot import TaskError
 from ossos import mpc
+from ossos.daophot import TaskError
 from ossos.gui import events, config
 from ossos.gui.views.app import ApplicationView
 from ossos.gui.models import ImageNotLoadedException, NoWorkUnitException
@@ -32,8 +32,8 @@ class AbstractController(object):
         view = self.get_view()
 
         try:
-            view.view_image(self.get_model().get_current_image(),
-                            redraw=False)
+            view.display(self.get_model().get_current_image(),
+                         redraw=False)
         except ImageNotLoadedException:
             self.image_loading_dialog_manager.wait_for_item(
                 self.get_model().get_current_reading())

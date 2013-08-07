@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import wx
 
 from ossos.gui import config
-from ossos.gui.fitsviewer.singletviewer import MPLFitsImageViewer
+from ossos.gui.fitsviewer.singletviewer import SingletViewer
 from ossos.gui.views.dialogs import WaitingGaugeDialog
 from ossos.gui.views.keybinds import KeybindManager
 from ossos.gui.views.listctrls import ListCtrlPanel
@@ -50,7 +50,7 @@ class MainFrame(wx.Frame):
 
         self.validation_view = SourceValidationPanel(self.control_panel, self.controller)
 
-        self.image_viewer = MPLFitsImageViewer(self.main_panel)
+        self.image_viewer = SingletViewer(self.main_panel)
 
         self.img_loading_dialog = WaitingGaugeDialog(self, "Image loading...")
 
@@ -81,8 +81,8 @@ class MainFrame(wx.Frame):
 
         return notebook
 
-    def view_image(self, fits_image, redraw=True):
-        self.image_viewer.view_image(fits_image, redraw=redraw)
+    def display(self, fits_image, redraw=True):
+        self.image_viewer.display(fits_image, redraw=redraw)
 
     def draw_circle(self, x, y, radius, redraw=True):
         self.image_viewer.draw_circle(x, y, radius, redraw=redraw)
