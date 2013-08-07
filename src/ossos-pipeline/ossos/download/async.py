@@ -4,7 +4,7 @@ import Queue
 import threading
 
 from ossos.download.downloads import DownloadableItem
-from ossos.download.focus import FocalPointCalculator
+from ossos.download.focus import SingletFocalPointCalculator
 from ossos.gui import logger
 
 MAX_THREADS = 3
@@ -34,7 +34,7 @@ class AsynchronousImageDownloadManager(object):
         self._workers = []
         self._maximize_workers()
 
-        self._focal_point_calculator = FocalPointCalculator()
+        self._focal_point_calculator = SingletFocalPointCalculator()
 
     def start_downloading_workunit(self, workunit, image_loaded_callback=None):
         logger.debug("Starting to download workunit: %s" %
