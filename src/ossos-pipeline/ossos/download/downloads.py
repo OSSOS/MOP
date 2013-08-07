@@ -160,6 +160,8 @@ class DownloadedFitsImage(object):
         else:
             self._tempfile = self._create_tempfile(fits_str)
 
+        self._raw_fits_data = fits_str
+
     def _create_hdulist(self, strdata):
         return fits.open(cStringIO.StringIO(strdata))
 
@@ -232,6 +234,10 @@ class DownloadedFitsImage(object):
 
     def get_fits_header(self):
         return self.as_hdulist()[0].header
+
+    def save(self, path):
+        with open(path, "wb") as filehandle:
+            filehandle.write(self._raw_fits_data)
 
     def close(self):
         if self._hdulist is not None:
