@@ -11,11 +11,11 @@ from mock import Mock, call
 import vos
 
 from tests.base_tests import FileReadingTestCase
-from ossos.gui.image import DownloadedFitsImage
-from ossos.astrom import SourceReading, Observation, AstromParser
+from ossos.astrom import AstromParser
+from ossos.download.async import DownloadThread
+from ossos.download.downloaders import ImageSliceDownloader
 from ossos.gui.errorhandling import DownloadErrorHandler
-from ossos.gui.downloads import (ImageSliceDownloader, AsynchronousImageDownloadManager,
-                                 DownloadableItem, DownloadThread)
+from ossos.download.downloads import ( DownloadableItem, DownloadedFitsImage)
 
 
 class ImageSliceDownloaderTest(FileReadingTestCase):
