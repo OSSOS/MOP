@@ -5,6 +5,24 @@ import math
 
 class FocalPointCalculator(object):
     def calculate_focal_points(self, source):
+        raise NotImplementedError()
+
+    def _convert_source_location(self, source_reading, reference_reading):
+        """
+        Converts the source (x, y) location from reading into the coordinate
+        system of reference_reading.
+        """
+        offset_x, offset_y = reference_reading.get_coordinate_offset(source_reading)
+        return source_reading.x + offset_x, source_reading.y + offset_y
+
+
+class SingletFocalPointCalculator(FocalPointCalculator):
+    """
+    Calculates focal points for display as single images.  The focal point
+    will be the location of the source in the middle observation.
+    """
+
+    def calculate_focal_points(self, source):
         """
         Determines all focal points of interest for a source.
 
@@ -30,9 +48,36 @@ class FocalPointCalculator(object):
         middle_index = int(math.ceil((len(source.get_readings()) / 2)))
         middle_reading = source.get_reading(middle_index)
 
-        offset_x, offset_y = reading.get_coordinate_offset(middle_reading)
+        return self._convert_source_location(middle_reading, reading)
 
-        return middle_reading.x + offset_x, middle_reading.y + offset_y
+
+class TripletFocalPointCalculator(FocalPointCalculator):
+    """
+    Calculates the focal points for displaying triplets.
+    """
+
+    def __init__(self):
+        self._singlet_calculator = SingletFocalPointCalculator()
+
+    def calculate_focal_points(self, source):
+        """
+        Determines all focal points of interest for a source.
+
+        Returns:
+          focal_points: list(FocalPoint)
+        """
+        focal_points = []
+        for reference_reading in source.get_readings():
+            for source_reading in source.get_readings():
+                focal_points.append(
+                    self._get_focal_point(source_reading, reference_reading))
+
+        return focal_points
+
+    def _get_focal_point(self, source_reading, reference_reading):
+        return FocalPoint(source_reading,
+                          self._convert_source_location(
+                              source_reading, reference_reading))
 
 
 class FocalPoint(object):
