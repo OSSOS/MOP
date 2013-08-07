@@ -4,6 +4,7 @@ import Queue
 import threading
 
 from ossos.download.downloads import DownloadableItem
+from ossos.download.focus import FocalPointCalculator
 from ossos.gui import logger
 
 MAX_THREADS = 3
@@ -33,6 +34,8 @@ class AsynchronousImageDownloadManager(object):
         self._workers = []
         self._maximize_workers()
 
+        self._focal_point_calculator = FocalPointCalculator()
+
     def start_downloading_workunit(self, workunit, image_loaded_callback=None):
         logger.debug("Starting to download workunit: %s" %
                      workunit.get_filename())
@@ -41,11 +44,17 @@ class AsynchronousImageDownloadManager(object):
 
         # Load up queue with downloadable items
         needs_apcor = workunit.is_apcor_needed()
+
+        focal_points = []
         for source in workunit.get_unprocessed_sources():
-            for reading in source.get_readings():
-                self._work_queue.put(
-                    DownloadableItem(reading, source, needs_apcor,
-                                     image_loaded_callback))
+            focal_points.extend(
+                self._focal_point_calculator.calculate_focal_points(source))
+
+        for focal_point in focal_points:
+            self._work_queue.put(DownloadableItem(focal_point.reading,
+                                                  focal_point.point,
+                                                  needs_apcor,
+                                                  image_loaded_callback))
 
     def retry_download(self, downloadable_item):
         self._work_queue.put(downloadable_item)

@@ -16,7 +16,7 @@ class DownloadableItem(object):
     Specifies an item (image and potentially related files) to be downloaded.
     """
 
-    def __init__(self, reading, source, needs_apcor, on_finished_callback,
+    def __init__(self, reading, focal_point, needs_apcor, on_finished_callback,
                  in_memory=True):
         """
         Constructor.
@@ -24,8 +24,10 @@ class DownloadableItem(object):
         Args:
           source_reading: ossos.astrom.SourceReading
             The reading which will be the focus of the downloaded image.
-          source: ossos.astrom.Source
-            The source for which the reading was taken.
+          focal_point: tuple(int, int)
+            The x, y coordinates that should be the focus of the downloaded
+            image.  These coordinates should be in terms of the
+            source_reading parameter's coordinate system.
           needs_apcor: bool
             If True, the apcor file with data needed for photometry
             calculations is downloaded in addition to the image.
@@ -34,7 +36,7 @@ class DownloadableItem(object):
             disk.  If False, the image will be written to a temporary file.
         """
         self.reading = reading
-        self.source = source
+        self.focal_point = focal_point
         self.needs_apcor = needs_apcor
         self.on_finished_callback = on_finished_callback
         self.in_memory = in_memory
@@ -54,12 +56,7 @@ class DownloadableItem(object):
             The location of the source in the middle observation, in the
             coordinate system of the current source reading.
         """
-        middle_index = int(math.ceil((len(self.source.get_readings()) / 2)))
-        middle_reading = self.source.get_reading(middle_index)
-
-        offset_x, offset_y = self.reading.get_coordinate_offset(middle_reading)
-
-        return middle_reading.x + offset_x, middle_reading.y + offset_y
+        return self.focal_point
 
     def get_full_image_size(self):
         """
