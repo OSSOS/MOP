@@ -1,3 +1,5 @@
+from ossos.download.async import AsynchronousImageDownloadManager
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
@@ -15,7 +17,6 @@ from ossos.gui.models import UIModel
 from ossos.gui.views.app import ApplicationView
 from ossos.astrom import AstromParser
 from ossos.naming import ProvisionalNameGenerator
-from ossos.gui.downloads import AsynchronousImageDownloadManager
 from ossos.gui.workload import WorkUnitProvider, RealsWorkUnitBuilder
 
 TEST_MINOR_PLANET_NUMBER = "mpn01"

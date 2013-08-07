@@ -5,17 +5,17 @@ import Queue
 import tempfile
 import unittest
 
-from hamcrest import assert_that, equal_to, contains, close_to
+from hamcrest import assert_that, equal_to, contains
 from mock import Mock, call
 
 import vos
 
 from tests.base_tests import FileReadingTestCase
-from ossos.gui.image import DownloadedFitsImage
-from ossos.astrom import SourceReading, Observation, AstromParser
+from ossos.astrom import AstromParser
+from ossos.download.async import DownloadThread
+from ossos.download.downloaders import ImageSliceDownloader
 from ossos.gui.errorhandling import DownloadErrorHandler
-from ossos.gui.downloads import (ImageSliceDownloader, AsynchronousImageDownloadManager,
-                                 DownloadableItem, DownloadThread)
+from ossos.download.downloads import ( DownloadableItem, DownloadedFitsImage)
 
 
 class ImageSliceDownloaderTest(FileReadingTestCase):
@@ -92,41 +92,6 @@ class ImageSliceDownloaderTest(FileReadingTestCase):
 
         fitsfile.close()
         assert_that(not os.path.exists(fitsfile._tempfile.name))
-
-
-class DownloadableItemTest(FileReadingTestCase):
-    def setUp(self):
-        astrom_data = AstromParser().parse(
-            self.get_abs_path("data/1616681p22.measure3.cands.astrom"))
-        self.source = astrom_data.get_sources()[0]
-        self.reading0 = self.source.get_reading(0)
-        self.reading1 = self.source.get_reading(1)
-        self.reading2 = self.source.get_reading(2)
-
-        self.needs_apcor = False
-        self.callback = Mock()
-
-    def create_downloadable_item(self, reading, source):
-        return DownloadableItem(reading, source, self.needs_apcor, self.callback)
-
-    def assert_tuples_almost_equal(self, actual, expected, delta=0.0000001):
-        assert_that(actual[0], close_to(expected[0], delta))
-        assert_that(actual[1], close_to(expected[1], delta))
-
-    def test_get_focal_point_first_reading(self):
-        downloadable_item = self.create_downloadable_item(self.reading0, self.source)
-        self.assert_tuples_almost_equal(downloadable_item.get_focal_point(),
-                                        (583.42, 408.46))
-
-    def test_get_focal_point_second_reading(self):
-        downloadable_item = self.create_downloadable_item(self.reading1, self.source)
-        self.assert_tuples_almost_equal(downloadable_item.get_focal_point(),
-                                        (586.18, 408.63))
-
-    def test_get_focal_point_third_reading(self):
-        downloadable_item = self.create_downloadable_item(self.reading2, self.source)
-        self.assert_tuples_almost_equal(downloadable_item.get_focal_point(),
-                                        (587.80, 407.98))
 
 
 class DownloadThreadTest(FileReadingTestCase):
