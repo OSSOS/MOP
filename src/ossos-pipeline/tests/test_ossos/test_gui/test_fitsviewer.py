@@ -7,7 +7,7 @@ from matplotlib.backend_bases import MouseEvent as MPLMouseEvent
 from mock import Mock
 from hamcrest import assert_that, equal_to, has_length, instance_of, none
 
-from ossos.gui.fitsviewer import baseviewer
+from ossos.gui.fitsviewer import singletviewer
 from ossos.gui.fitsviewer.colormap import clip
 from ossos.gui.fitsviewer.interaction import (InteractionContext,
                                               MoveCircleState,
@@ -20,7 +20,7 @@ class MPLFitsImageViewerTest(unittest.TestCase):
         self.app = wx.App()
         self.rootframe = wx.Frame(None)
 
-        self.viewer = baseviewer.MPLFitsImageViewer(self.rootframe)
+        self.viewer = singletviewer.MPLFitsImageViewer(self.rootframe)
 
     def test_draw_one_circle(self):
         axes = self.viewer.axes
@@ -64,7 +64,7 @@ class InteractionTest(unittest.TestCase):
     def setUp(self):
         self.app = wx.App()
         self.rootframe = wx.Frame(None)
-        self.viewer = baseviewer.MPLFitsImageViewer(self.rootframe)
+        self.viewer = singletviewer.MPLFitsImageViewer(self.rootframe)
         self.viewer.figure = Mock()
         self.viewer.axes = Mock()
 

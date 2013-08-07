@@ -6,7 +6,7 @@ from mock import Mock
 from astropy.io import fits
 
 from tests.manual_inspection import context
-from ossos.gui.fitsviewer.baseviewer import MPLFitsImageViewer
+from ossos.gui.fitsviewer.singletviewer import MPLFitsImageViewer
 
 
 TEST_FILE = "cutout_1200_2400_1350_2300-1616681p.fits"
