@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import wx
 
 from ossos.gui import config
-from ossos.gui.fitsviewer.baseviewer import MPLFitsImageViewer
+from ossos.gui.fitsviewer.singletviewer import MPLFitsImageViewer
 from ossos.gui.views.dialogs import WaitingGaugeDialog
 from ossos.gui.views.keybinds import KeybindManager
 from ossos.gui.views.listctrls import ListCtrlPanel
