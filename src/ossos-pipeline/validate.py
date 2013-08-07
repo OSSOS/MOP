@@ -6,7 +6,15 @@ import argparse
 import tempfile
 
 from ossos.gui import tasks
-from ossos.gui.app import ValidationApplication
+
+
+def launch_app(task, working_directory, output_directory, dry_run):
+    # Put import here to avoid the delay loading them.  This allows quick
+    # feedback when argparse can tell the arguments are invalid, and makes
+    # getting help with the -h flag faster.
+    from ossos.gui.app import ValidationApplication
+
+    ValidationApplication(task, working_directory, output_directory, dry_run)
 
 
 def main():
@@ -28,7 +36,7 @@ def main():
 
     args = parser.parse_args()
 
-    ValidationApplication(args.task, args.input, args.output, args.dry_run)
+    launch_app(args.task, args.input, args.output, args.dry_run)
 
 
 if __name__ == "__main__":
