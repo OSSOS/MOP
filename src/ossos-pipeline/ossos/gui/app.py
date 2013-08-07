@@ -13,10 +13,10 @@ from ossos.gui.workload import (WorkUnitProvider,
                                 CandidatesWorkUnitBuilder,
                                 PreFetchingWorkUnitProvider)
 from ossos.astrom import AstromParser
+from ossos.download.async import AsynchronousImageDownloadManager
+from ossos.download.downloaders import ImageSliceDownloader
 from ossos.naming import ProvisionalNameGenerator, DryRunNameGenerator
 from ossos.gui.errorhandling import DownloadErrorHandler
-from ossos.gui.downloads import (AsynchronousImageDownloadManager,
-                                 ImageSliceDownloader)
 from ossos.gui.models import TransAckUIModel
 from ossos.gui.controllers import (ProcessRealsController,
                                    ProcessCandidatesController)

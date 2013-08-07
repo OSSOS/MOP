@@ -1,9 +1,118 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import cStringIO
+import math
 import tempfile
 
 from astropy.io import fits
+
+
+# Images from CCDs < 18 have their coordinates flipped
+MAX_INVERTED_CCD = 17
+
+
+class DownloadableItem(object):
+    """
+    Specifies an item (image and potentially related files) to be downloaded.
+    """
+
+    def __init__(self, reading, source, needs_apcor, on_finished_callback,
+                 in_memory=True):
+        """
+        Constructor.
+
+        Args:
+          source_reading: ossos.astrom.SourceReading
+            The reading which will be the focus of the downloaded image.
+          source: ossos.astrom.Source
+            The source for which the reading was taken.
+          needs_apcor: bool
+            If True, the apcor file with data needed for photometry
+            calculations is downloaded in addition to the image.
+          in_memory: bool
+            If True, the image is stored in memory without being written to
+            disk.  If False, the image will be written to a temporary file.
+        """
+        self.reading = reading
+        self.source = source
+        self.needs_apcor = needs_apcor
+        self.on_finished_callback = on_finished_callback
+        self.in_memory = in_memory
+
+    def get_image_uri(self):
+        return self.reading.get_image_uri()
+
+    def get_apcor_uri(self):
+        return self.reading.get_apcor_uri()
+
+    def get_focal_point(self):
+        """
+        Determines what the focal point of the downloaded image should be.
+
+        Returns:
+          focal_point: (x, y)
+            The location of the source in the middle observation, in the
+            coordinate system of the current source reading.
+        """
+        middle_index = int(math.ceil((len(self.source.get_readings()) / 2)))
+        middle_reading = self.source.get_reading(middle_index)
+
+        offset_x, offset_y = self.reading.get_coordinate_offset(middle_reading)
+
+        return middle_reading.x + offset_x, middle_reading.y + offset_y
+
+    def get_full_image_size(self):
+        """
+        Returns:
+          tuple(int width, int height)
+            The full pixel size of the image before any cutouts.
+        """
+        return self.reading.get_original_image_size()
+
+    def get_extension(self):
+        """
+        Returns:
+          extension: str
+            The FITS file extension to be downloaded.
+        """
+        if self._is_observation_fake():
+            # We get the image from the CCD directory and it is not
+            # multi-extension.
+            return 0
+
+        # NOTE: ccd number is the extension, BUT Fits file extensions start at 1
+        # Therefore ccd n = extension n + 1
+        return str(self.get_ccd_num() + 1)
+
+    def is_inverted(self):
+        """
+        Returns:
+          inverted: bool
+            True if the stored image is inverted.
+        """
+        if self._is_observation_fake():
+            # We get the image from the CCD directory and it has already
+            # been corrected for inversion.
+            return False
+
+        return True if self.get_ccd_num() <= MAX_INVERTED_CCD else False
+
+    def get_ccd_num(self):
+        """
+        Returns:
+          ccdnum: int
+            The number of the CCD that the image is on.
+        """
+        return int(self.reading.get_observation().ccdnum)
+
+    def finished_download(self, downloaded_item):
+        """
+        Triggers callbacks indicating the item has been downloaded.
+        """
+        self.on_finished_callback(self.reading, downloaded_item)
+
+    def _is_observation_fake(self):
+        return self.reading.get_observation().is_fake()
 
 
 class DownloadedFitsImage(object):
