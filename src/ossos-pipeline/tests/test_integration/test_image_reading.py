@@ -1,14 +1,15 @@
+from ossos.download.downloads import DownloadedFitsImage
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 
 from hamcrest import assert_that, equal_to
-from mock import patch, Mock
+from mock import patch
 
 from tests.base_tests import FileReadingTestCase
 from ossos.cutouts import CoordinateConverter
 from ossos.astrom import AstromParser
-from ossos.gui.image import DownloadedFitsImage
 from ossos.gui.models import ImageReading
 
 
