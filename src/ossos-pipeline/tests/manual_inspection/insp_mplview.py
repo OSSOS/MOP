@@ -1,5 +1,3 @@
-from tests.manual_inspection import context
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
@@ -7,7 +5,8 @@ import wx
 from mock import Mock
 from astropy.io import fits
 
-from ossos.gui.fitsviewer import MPLFitsImageViewer
+from tests.manual_inspection import context
+from ossos.gui.fitsviewer.baseviewer import MPLFitsImageViewer
 
 
 TEST_FILE = "cutout_1200_2400_1350_2300-1616681p.fits"
