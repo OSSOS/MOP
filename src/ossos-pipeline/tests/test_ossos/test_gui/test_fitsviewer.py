@@ -8,8 +8,11 @@ from mock import Mock
 from hamcrest import assert_that, equal_to, has_length, instance_of, none
 
 from ossos.gui.fitsviewer import baseviewer
-from ossos.gui.fitsviewer.baseviewer import (InteractionContext, MoveCircleState,
-                                 CreateCircleState, AdjustColormapState)
+from ossos.gui.fitsviewer.colormap import clip
+from ossos.gui.fitsviewer.interaction import (InteractionContext,
+                                              MoveCircleState,
+                                              CreateCircleState,
+                                              AdjustColormapState)
 
 
 class MPLFitsImageViewerTest(unittest.TestCase):
@@ -268,13 +271,13 @@ class InteractionTest(unittest.TestCase):
 
 class UtilityTest(unittest.TestCase):
     def test_clip_in_range(self):
-        assert_that(baseviewer.clip(0.5, 0, 1), equal_to(0.5))
+        assert_that(clip(0.5, 0, 1), equal_to(0.5))
 
     def test_clip_below_range(self):
-        assert_that(baseviewer.clip(-0.5, 0, 1), equal_to(0.0))
+        assert_that(clip(-0.5, 0, 1), equal_to(0.0))
 
     def test_clip_above_range(self):
-        assert_that(baseviewer.clip(1.5, 0, 1), equal_to(1.0))
+        assert_that(clip(1.5, 0, 1), equal_to(1.0))
 
 
 if __name__ == '__main__':
