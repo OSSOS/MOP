@@ -105,6 +105,7 @@ class MPLFitsImageViewer(object):
 
         if self.axes_image is None:
             self.axes_image = plt.imshow(processed_image_data,
+                                         extent=(1,self.imgwidth+1,self.imgheight+1,1),
                                          cmap=self.current_image.get_cmap())
         else:
             # We re-use the old AxesImage object so that the colorbar can
