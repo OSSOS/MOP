@@ -1,9 +1,9 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from ossos.gui.fitsviewer.baseviewer import MPLFitsViewer
+from ossos.gui.fitsviewer.baseviewer import WxMPLFitsViewer
 
 
-class TripletViewer(MPLFitsViewer):
+class TripletViewer(WxMPLFitsViewer):
     """
     Displays a single FITS image at a time.
     """
