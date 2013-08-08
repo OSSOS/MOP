@@ -4,7 +4,7 @@ from ossos import wcs
 from ossos import astrom
 from ossos.gui import events
 from ossos.gui import logger
-from ossos.gui.fitsviewer.displayable import DisplayableImageSinglet
+from ossos.fitsviewer.displayable import DisplayableImageSinglet
 from ossos.gui.workload import (NoAvailableWorkException, StatefulCollection,
                                 CandidatesWorkUnit, RealsWorkUnit)
 

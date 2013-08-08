@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from stsci import numdisplay
 
-from ossos.gui.fitsviewer.colormap import GrayscaleColorMap
-from ossos.gui.fitsviewer.exceptions import MPLViewerError
-from ossos.gui.fitsviewer.interaction import InteractionContext, Signal
+from ossos.fitsviewer.colormap import GrayscaleColorMap
+from ossos.fitsviewer.exceptions import MPLViewerError
+from ossos.fitsviewer.interaction import InteractionContext, Signal
 
 
 class DisplayableImageSinglet(object):

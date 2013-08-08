@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 
-from ossos.gui.fitsviewer.colormap import GrayscaleColorMap
+from ossos.fitsviewer.colormap import GrayscaleColorMap
 
 
 def create_test_image():
