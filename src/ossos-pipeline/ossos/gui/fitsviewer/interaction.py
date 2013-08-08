@@ -180,6 +180,9 @@ class Signal(object):
     def connect(self, handler):
         self._handlers.append(handler)
 
+    def disconnect(self, handler):
+        self._handlers.remove(handler)
+
     def fire(self, *args):
         for handler in self._handlers:
             handler(*args)

@@ -19,10 +19,8 @@ class DisplayableImageSinglet(object):
             The FITS image to be displayed.
         """
         self.hdulist = hdulist
-
-        self.figure = plt.figure()
-        self.axes = self._create_axes()
-        self.figure.add_axes(self.axes)
+        self.figure = None
+        self.axes = None
 
         self.circle = None
 
@@ -33,9 +31,7 @@ class DisplayableImageSinglet(object):
         self._colormap = GrayscaleColorMap()
 
         self._mpl_event_handlers = {}
-        self._interaction_context = InteractionContext(self)
-
-        self._rendered = False
+        self._interaction_context = None
 
     @property
     def image_data(self):
@@ -50,7 +46,7 @@ class DisplayableImageSinglet(object):
         return self.image_data.shape[1]
 
     def render(self, canvas=None):
-        if not self._rendered:
+        if self.figure is None:
             self._do_render()
 
         if canvas is None:
@@ -142,6 +138,12 @@ class DisplayableImageSinglet(object):
         return axes
 
     def _do_render(self):
+        self.figure = plt.figure()
+        self.axes = self._create_axes()
+        self.figure.add_axes(self.axes)
+
+        self._interaction_context = InteractionContext(self)
+
         # Add 1 because FITS images start at pixel 1,1 while matplotlib
         # starts at 0,0
         extent = (1, self.image_width + 1, self.image_height + 1, 1)
@@ -154,8 +156,6 @@ class DisplayableImageSinglet(object):
         cax = divider.append_axes("bottom", size="5%", pad=0.05)
         self.figure.colorbar(self.axes_image, orientation="horizontal",
                              cax=cax)
-
-        self._rendered = True
 
     def _refresh_displayed_colormap(self):
         self.axes_image.set_cmap(self._colormap.as_mpl_cmap())

@@ -4,6 +4,7 @@ from ossos import wcs
 from ossos import astrom
 from ossos.gui import events
 from ossos.gui import logger
+from ossos.gui.fitsviewer.displayable import DisplayableImageSinglet
 from ossos.gui.workload import (NoAvailableWorkException, StatefulCollection,
                                 CandidatesWorkUnit, RealsWorkUnit)
 
@@ -32,6 +33,9 @@ class UIModel(object):
 
         # Maps each reading to its image-reading model (once downloaded)
         self._image_reading_models = {}
+
+        # Maps each reading to its displayable item (once downloaded)
+        self._displayable_items = {}
 
         self.sources_discovered = set()
 
@@ -202,6 +206,12 @@ class UIModel(object):
     def get_current_image(self):
         return self._get_current_image_reading().get_image()
 
+    def get_current_displayable_item(self):
+        try:
+            return self._displayable_items[self.get_current_reading()]
+        except KeyError:
+            raise ImageNotLoadedException()
+
     def get_current_band(self):
         return self.get_current_fits_header()["FILTER"][0]
 
@@ -282,6 +292,8 @@ class UIModel(object):
 
     def _on_image_loaded(self, reading, image):
         self._image_reading_models[reading] = ImageReading(reading, image)
+        self._displayable_items[reading] = DisplayableImageSinglet(
+            image.as_hdulist())
         events.send(events.IMG_LOADED, reading)
 
     def _on_finished_workunit(self, results_file_paths):

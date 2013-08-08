@@ -71,6 +71,7 @@ class ApplicationView(object):
     def reset_colormap(self):
         self.mainframe.reset_colormap()
 
+    @guithread
     def register_xy_changed_event_handler(self, handler):
         self.mainframe.register_xy_changed_event_handler(handler)
 

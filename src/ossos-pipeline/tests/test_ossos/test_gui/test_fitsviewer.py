@@ -2,9 +2,10 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 
-from matplotlib.backend_bases import MouseEvent as MPLMouseEvent
-from mock import Mock
 from hamcrest import assert_that, equal_to, has_length, instance_of, none
+from matplotlib.backend_bases import MouseEvent as MPLMouseEvent
+import matplotlib.pyplot as plt
+from mock import Mock
 
 from ossos.gui.fitsviewer.colormap import clip
 from ossos.gui.fitsviewer.displayable import DisplayableImageSinglet
@@ -21,10 +22,9 @@ class DisplayableImageSingletTest(unittest.TestCase):
         self.hdulist = [mainhdu]
         self.displayable = DisplayableImageSinglet(self.hdulist)
 
-        # self.app = wx.App()
-        # self.rootframe = wx.Frame(None)
-        #
-        # self.viewer = singletviewer.SingletViewer(self.rootframe)
+        fig = plt.figure()
+        axes = plt.Axes(fig, [0, 0, 1, 1])
+        self.displayable.axes = axes
 
     def test_draw_one_circle(self):
         axes = self.displayable.axes
