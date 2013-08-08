@@ -1,6 +1,3 @@
-from ossos.download.async import AsynchronousImageDownloadManager
-from ossos.download.downloads import DownloadedFitsImage
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import os
@@ -11,6 +8,8 @@ from hamcrest import (assert_that, equal_to, has_length, contains,
 from mock import patch, Mock
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
+from ossos.download.async import AsynchronousImageDownloadManager
+from ossos.download.downloads import DownloadedFitsImage
 from ossos.gui import models, events, tasks
 from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui.models import ImageNotLoadedException
@@ -218,8 +217,9 @@ class AbstractRealsModelTest(GeneralModelTest):
             ("R.A.", 26.6833367), ("DEC", 29.2203532)
         ))
 
+    @patch("ossos.gui.models.DisplayableImageSinglet")
     @patch("ossos.gui.models.ImageReading")
-    def test_loading_images(self, mock_ImageReading):
+    def test_loading_images(self, mock_ImageReading, mock_DisplayableImageSinglet):
         observer = Mock()
         events.subscribe(events.IMG_LOADED, observer.on_img_loaded)
         loaded_reading1 = Mock()
@@ -236,12 +236,14 @@ class AbstractRealsModelTest(GeneralModelTest):
         assert_that(self.model.get_loaded_image_count(), equal_to(1))
         assert_that(observer.on_img_loaded.call_count, equal_to(1))
         assert_that(mock_ImageReading.call_count, equal_to(1))
+        assert_that(mock_DisplayableImageSinglet.call_count, equal_to(1))
 
         # Simulate receiving callback
         self.model._on_image_loaded(loaded_reading2, image2)
         assert_that(self.model.get_loaded_image_count(), equal_to(2))
         assert_that(observer.on_img_loaded.call_count, equal_to(2))
         assert_that(mock_ImageReading.call_count, equal_to(2))
+        assert_that(mock_DisplayableImageSinglet.call_count, equal_to(2))
 
         # Check event args
         call_args_list = observer.on_img_loaded.call_args_list
