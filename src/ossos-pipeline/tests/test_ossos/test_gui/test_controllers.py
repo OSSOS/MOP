@@ -33,7 +33,7 @@ class AbstractControllerTest(unittest.TestCase):
         # TODO: indicates refactoring needed
         with patch("ossos.gui.controllers.ApplicationView"):
             self.controller = AbstractController(self.model)
-            self.view = self.controller.get_view()
+            self.view = self.controller.view
 
     def test_reset_source_location_updates_model(self):
         self.controller.on_reset_source_location()
@@ -57,7 +57,7 @@ class RealsControllerTest(unittest.TestCase):
         with patch("ossos.gui.controllers.ApplicationView"):
             self.controller = ProcessRealsController(
                 self.model, Mock(spec=ProvisionalNameGenerator))
-            self.view = self.controller.get_view()
+            self.view = self.controller.view
 
     def test_accept_sets_note1_to_hand_adjusted_if_current_source_adjusted(self):
         self.model.is_current_source_adjusted.return_value = True
