@@ -1,16 +1,13 @@
-from ossos.gui.fitsviewer.displayable import DisplayableImageSinglet
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
-import wx
 
 from matplotlib.backend_bases import MouseEvent as MPLMouseEvent
 from mock import Mock
 from hamcrest import assert_that, equal_to, has_length, instance_of, none
 
-from ossos.gui.fitsviewer import singletviewer
 from ossos.gui.fitsviewer.colormap import clip
+from ossos.gui.fitsviewer.displayable import DisplayableImageSinglet
 from ossos.gui.fitsviewer.interaction import (InteractionContext,
                                               MoveCircleState,
                                               CreateCircleState,

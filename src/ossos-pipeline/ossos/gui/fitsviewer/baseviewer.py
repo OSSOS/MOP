@@ -6,7 +6,7 @@ from matplotlib.backends.backend_wxagg import \
     FigureCanvasWxAgg as FigureCanvas
 
 
-class MPLFitsViewer(object):
+class WxMPLFitsViewer(object):
     """
     Display FITS images using matplotlib.
     """
@@ -14,7 +14,7 @@ class MPLFitsViewer(object):
     def __init__(self, parent):
         self.parent = parent
 
-        # The initial matplotlib figure to draw on
+        # The initial matplotlib figure (may be swapped out later)
         self.figure = plt.figure()
 
         # Create the canvas on which the figure is rendered

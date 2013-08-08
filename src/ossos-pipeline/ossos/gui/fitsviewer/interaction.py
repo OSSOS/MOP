@@ -61,11 +61,9 @@ class InteractionContext(object):
             return
 
         self.state.on_motion(event)
-        # self.displayable.redraw()
 
     def on_release(self, event):
         self.state.on_release(event)
-        # self.displayable.redraw()
         self.displayable.release_focus()
 
     def get_circle(self):

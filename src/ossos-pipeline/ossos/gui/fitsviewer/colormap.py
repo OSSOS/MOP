@@ -114,27 +114,6 @@ class GrayscaleColorMap(object):
         return LinearSegmentedColormap("CustomGrayscale", self.cdict)
 
 
-class ColormappedFitsImage(object):
-    def __init__(self, fits_image):
-        self.fits_image = fits_image
-        self.colormap = GrayscaleColorMap()
-
-    def update_contrast(self, contrast_diff):
-        self.colormap.update_contrast(contrast_diff)
-
-    def update_bias(self, bias_diff):
-        self.colormap.update_bias(bias_diff)
-
-    def reset_colormap(self):
-        self.colormap.set_defaults()
-
-    def get_image_data(self):
-        return self.fits_image.as_hdulist()[0].data
-
-    def get_cmap(self):
-        return self.colormap.as_mpl_cmap()
-
-
 def clip(value, min_val, max_val):
     """
     Clip a value to a certain range.

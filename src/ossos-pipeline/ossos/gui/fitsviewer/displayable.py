@@ -1,10 +1,10 @@
-import numpy as np
-from stsci import numdisplay
-
 __author__ = "David Rusk <drusk@uvic.ca>"
+
+import numpy as np
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from stsci import numdisplay
 
 from ossos.gui.fitsviewer.colormap import GrayscaleColorMap
 from ossos.gui.fitsviewer.exceptions import MPLViewerError
@@ -32,7 +32,7 @@ class DisplayableImageSinglet(object):
 
         self._colormap = GrayscaleColorMap()
 
-        self._registered_mpl_event_handlers = {}
+        self._mpl_event_handlers = {}
         self._interaction_context = InteractionContext(self)
 
         self._rendered = False
@@ -91,8 +91,6 @@ class DisplayableImageSinglet(object):
         self.axes.add_patch(self.circle)
 
         self.display_changed.fire()
-        # if redraw:
-        #     self.figure.()
 
     def update_circle(self, x, y, radius=None):
         if self.circle is None:
@@ -115,15 +113,15 @@ class DisplayableImageSinglet(object):
 
     def register_mpl_event_handler(self, eventname, handler):
         handler_id = self.figure.canvas.mpl_connect(eventname, handler)
-        self._registered_mpl_event_handlers[handler_id] = (eventname, handler)
+        self._mpl_event_handlers[handler_id] = (eventname, handler)
         return handler_id
 
     def deregister_mpl_event_handler(self, id_):
         self.figure.canvas.mpl_disconnect(id_)
-        del self._registered_mpl_event_handlers[id_]
+        del self._mpl_event_handlers[id_]
 
     def _apply_event_handlers(self, canvas):
-        for eventname, handler in self._registered_mpl_event_handlers.itervalues():
+        for eventname, handler in self._mpl_event_handlers.itervalues():
             canvas.mpl_connect(eventname, handler)
 
     def release_focus(self):
@@ -165,7 +163,7 @@ class DisplayableImageSinglet(object):
         self.display_changed.fire()
 
 
-def zscale(img):
+def zscale(image):
     """
     Performs the zscale operation on an image.
 
@@ -178,5 +176,5 @@ def zscale(img):
         The input image after scaling.
     """
     # Using the default values, but listing explicitly
-    z1, z2 = numdisplay.zscale.zscale(img, nsamples=1000, contrast=0.25)
-    return np.clip(img, z1, z2)
+    z1, z2 = numdisplay.zscale.zscale(image, nsamples=1000, contrast=0.25)
+    return np.clip(image, z1, z2)
