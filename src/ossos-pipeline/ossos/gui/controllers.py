@@ -1,11 +1,12 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from ossos.daophot import TaskError
 from ossos import mpc
-from ossos.gui import events, config
-from ossos.gui.views.app import ApplicationView
-from ossos.gui.models import ImageNotLoadedException, NoWorkUnitException
+from ossos.daophot import TaskError
+from ossos.gui import config
+from ossos.gui import events
 from ossos.gui.autoplay import AutoplayManager
+from ossos.gui.models import ImageNotLoadedException, NoWorkUnitException
+from ossos.gui.views.app import ApplicationView
 
 
 class AbstractController(object):
@@ -25,27 +26,22 @@ class AbstractController(object):
     def get_view(self):
         return self.view
 
-    def get_model(self):
-        return self.model
-
     def display_current_image(self):
-        view = self.get_view()
-
         try:
-            view.view_image(self.get_model().get_current_image(),
-                            redraw=False)
+            self.view.display(self.model.get_current_displayable_item(),
+                              redraw=False)
         except ImageNotLoadedException:
             self.image_loading_dialog_manager.wait_for_item(
-                self.get_model().get_current_reading())
+                self.model.get_current_reading())
             return
         except NoWorkUnitException:
             return
 
         self.circle_current_source()
 
-        view.update_displayed_data()
+        self.view.update_displayed_data()
 
-        view.set_observation_status(
+        self.view.set_observation_status(
             self.model.get_current_obs_number() + 1,
             self.model.get_obs_count())
 
@@ -54,7 +50,7 @@ class AbstractController(object):
     def circle_current_source(self):
         image_x, image_y = self.model.get_current_pixel_source_point()
         radius = 2 * round(self.model.get_current_image_FWHM())
-        self.get_view().draw_circle(image_x, image_y, radius, redraw=True)
+        self.view.draw_circle(image_x, image_y, radius, redraw=True)
 
     def on_reposition_source(self, new_x, new_y):
         try:
@@ -71,20 +67,20 @@ class AbstractController(object):
 
     def on_change_image(self, event):
         if self.model.is_current_item_processed():
-            self.get_view().disable_source_validation()
+            self.view.disable_source_validation()
         else:
-            self.get_view().enable_source_validation()
+            self.view.enable_source_validation()
 
         self.display_current_image()
 
     def on_no_available_work(self, event):
-        self.get_view().hide_image_loading_dialog()
+        self.view.hide_image_loading_dialog()
 
         if self.model.get_num_items_processed() == 0:
-            self.get_view().show_empty_workload_dialog()
+            self.view.show_empty_workload_dialog()
             self._do_exit()
         else:
-            should_exit = self.get_view().all_processed_should_exit_prompt()
+            should_exit = self.view.all_processed_should_exit_prompt()
             if should_exit:
                 self._do_exit()
 
@@ -181,7 +177,7 @@ class ProcessRealsController(AbstractController):
         else:
             note1_default = None
 
-        self.get_view().show_accept_source_dialog(
+        self.view.show_accept_source_dialog(
             provisional_name,
             self.model.is_current_source_discovered(),
             self.model.get_current_observation_date(),
@@ -219,7 +215,7 @@ class ProcessRealsController(AbstractController):
         note1_code = note1.split(" ")[0]
         note2_code = note2.split(" ")[0]
 
-        self.get_view().close_accept_source_dialog()
+        self.view.close_accept_source_dialog()
 
         self.model.set_current_source_name(provisional_name)
 
@@ -243,13 +239,13 @@ class ProcessRealsController(AbstractController):
         self.model.next_item()
 
     def on_cancel_accept(self):
-        self.get_view().close_accept_source_dialog()
+        self.view.close_accept_source_dialog()
 
     def on_reject(self):
-        self.get_view().show_reject_source_dialog()
+        self.view.show_reject_source_dialog()
 
     def on_do_reject(self, comment):
-        self.get_view().close_reject_source_dialog()
+        self.view.close_reject_source_dialog()
 
         if not self.model.is_current_source_named():
             self.model.set_current_source_name(self._generate_provisional_name())
@@ -268,7 +264,7 @@ class ProcessRealsController(AbstractController):
         self.model.next_item()
 
     def on_cancel_reject(self):
-        self.get_view().close_reject_source_dialog()
+        self.view.close_reject_source_dialog()
 
     def generate_mpc_comment(self, comment):
         reading = self.model.get_current_reading()

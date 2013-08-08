@@ -55,12 +55,14 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
         self.model.start_work()
 
         # We don't actually have any images loaded, so mock this out
+        self.model.get_current_displayable_item = Mock()
         self.model.is_current_source_adjusted = Mock(return_value=False)
         self.model.get_current_fits_header = Mock()
 
         self.name_generator = Mock(spec=ProvisionalNameGenerator)
         self.name_generator.generate_name.return_value = TEST_PROVISIONAL_NAME
         self.controller = ProcessRealsController(self.model, self.name_generator)
+        self.controller.display_current_image = Mock()
 
     def tearDown(self):
         WxWidgetTestCase.tearDown(self)
@@ -74,7 +76,7 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
 
     def test_reject_disables_validation_controls(self):
         comment = "test"
-        view = self.controller.get_view()
+        view = self.controller.view
 
         assert_that(view.is_source_validation_enabled(), equal_to(True))
         self.controller.on_do_reject(comment)
@@ -94,7 +96,7 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
 
     def test_reject_last_item_disables_validation_controls(self):
         comment = "test"
-        view = self.controller.get_view()
+        view = self.controller.view
 
         self.controller.on_next_obs()
         self.controller.on_next_obs()
