@@ -1,6 +1,6 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from ossos.gui.fitsviewer.exceptions import MPLViewerError
+from ossos.fitsviewer.exceptions import MPLViewerError
 
 
 class InteractionContext(object):

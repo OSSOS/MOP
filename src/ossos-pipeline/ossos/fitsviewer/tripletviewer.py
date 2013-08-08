@@ -1,6 +1,6 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from ossos.gui.fitsviewer.baseviewer import WxMPLFitsViewer
+from ossos.fitsviewer.baseviewer import WxMPLFitsViewer
 
 
 class TripletViewer(WxMPLFitsViewer):

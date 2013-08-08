@@ -7,9 +7,9 @@ from matplotlib.backend_bases import MouseEvent as MPLMouseEvent
 import matplotlib.pyplot as plt
 from mock import Mock
 
-from ossos.gui.fitsviewer.colormap import clip
-from ossos.gui.fitsviewer.displayable import DisplayableImageSinglet
-from ossos.gui.fitsviewer.interaction import (InteractionContext,
+from ossos.fitsviewer.colormap import clip
+from ossos.fitsviewer.displayable import DisplayableImageSinglet
+from ossos.fitsviewer.interaction import (InteractionContext,
                                               MoveCircleState,
                                               CreateCircleState,
                                               AdjustColormapState)
