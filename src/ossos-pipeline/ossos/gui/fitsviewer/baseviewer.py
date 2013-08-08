@@ -14,14 +14,14 @@ class MPLFitsViewer(object):
     def __init__(self, parent):
         self.parent = parent
 
-        # Create the actual mpl figure we will draw on
+        # The initial matplotlib figure to draw on
         self.figure = plt.figure()
 
         # Create the canvas on which the figure is rendered
         self.canvas = FigureCanvas(parent, wx.ID_ANY, self.figure)
 
     def redraw(self):
-        self.figure.canvas.draw()
+        self.canvas.draw()
 
     def release_focus(self):
         self.parent.SetFocus()

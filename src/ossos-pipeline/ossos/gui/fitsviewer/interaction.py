@@ -12,8 +12,8 @@ class InteractionContext(object):
     MOUSE_BUTTON_LEFT = 1
     MOUSE_BUTTON_RIGHT = 3
 
-    def __init__(self, viewer):
-        self.viewer = viewer
+    def __init__(self, displayable):
+        self.displayable = displayable
         self._register_event_handlers()
 
         self.state = CreateCircleState(self)
@@ -22,15 +22,15 @@ class InteractionContext(object):
         """
         Connect to start listening for the relevant events.
         """
-        self.cidpress = self.viewer.register_mpl_event_handler(
+        self.cidpress = self.displayable.register_mpl_event_handler(
             "button_press_event", self.on_press)
-        self.cidrelease = self.viewer.register_mpl_event_handler(
+        self.cidrelease = self.displayable.register_mpl_event_handler(
             "button_release_event", self.on_release)
-        self.cidmotion = self.viewer.register_mpl_event_handler(
+        self.cidmotion = self.displayable.register_mpl_event_handler(
             "motion_notify_event", self.on_motion)
 
     def on_press(self, event):
-        if not self.viewer.is_event_in_axes(event):
+        if not self.displayable.is_event_in_axes(event):
             return
 
         if event.button == InteractionContext.MOUSE_BUTTON_LEFT:
@@ -44,7 +44,7 @@ class InteractionContext(object):
         self.state.on_press(event)
 
     def _choose_left_click_state(self, event):
-        circle = self.viewer.get_circle()
+        circle = self.displayable.circle
 
         if circle is None:
             in_circle = False
@@ -57,31 +57,31 @@ class InteractionContext(object):
             return CreateCircleState(self)
 
     def on_motion(self, event):
-        if not self.viewer.is_event_in_axes(event):
+        if not self.displayable.is_event_in_axes(event):
             return
 
         self.state.on_motion(event)
-        self.viewer.redraw()
+        # self.displayable.redraw()
 
     def on_release(self, event):
         self.state.on_release(event)
-        self.viewer.redraw()
-        self.viewer.release_focus()
+        # self.displayable.redraw()
+        self.displayable.release_focus()
 
     def get_circle(self):
-        return self.viewer.get_circle()
+        return self.displayable.circle
 
     def update_circle(self, x, y, radius=None):
-        self.viewer.update_circle(x, y, radius)
+        self.displayable.update_circle(x, y, radius)
 
     def update_colormap(self, dx, dy):
-        self.viewer.update_colormap(dx, dy)
+        self.displayable.update_colormap(dx, dy)
 
     def disconnect(self):
         """Disconnects all the stored connection ids"""
-        self.viewer.deregister_mpl_event_handler(self.cidpress)
-        self.viewer.deregister_mpl_event_handler(self.cidrelease)
-        self.viewer.deregister_mpl_event_handler(self.cidmotion)
+        self.displayable.deregister_mpl_event_handler(self.cidpress)
+        self.displayable.deregister_mpl_event_handler(self.cidrelease)
+        self.displayable.deregister_mpl_event_handler(self.cidmotion)
 
 
 class BaseInteractionState(object):
@@ -173,3 +173,15 @@ class AdjustColormapState(BaseInteractionState):
     def on_drag(self, event):
         self.context.update_colormap(event.xdata - self.last_x,
                                      event.ydata - self.last_y)
+
+
+class Signal(object):
+    def __init__(self):
+        self._handlers = []
+
+    def connect(self, handler):
+        self._handlers.append(handler)
+
+    def fire(self, *args):
+        for handler in self._handlers:
+            handler(*args)

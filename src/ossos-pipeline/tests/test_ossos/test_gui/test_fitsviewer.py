@@ -1,3 +1,5 @@
+from ossos.gui.fitsviewer.displayable import DisplayableImageSinglet
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
@@ -15,21 +17,26 @@ from ossos.gui.fitsviewer.interaction import (InteractionContext,
                                               AdjustColormapState)
 
 
-class MPLFitsImageViewerTest(unittest.TestCase):
+class DisplayableImageSingletTest(unittest.TestCase):
     def setUp(self):
-        self.app = wx.App()
-        self.rootframe = wx.Frame(None)
+        mainhdu = Mock()
+        mainhdu.data.shape = (100, 100)
+        self.hdulist = [mainhdu]
+        self.displayable = DisplayableImageSinglet(self.hdulist)
 
-        self.viewer = singletviewer.SingletViewer(self.rootframe)
+        # self.app = wx.App()
+        # self.rootframe = wx.Frame(None)
+        #
+        # self.viewer = singletviewer.SingletViewer(self.rootframe)
 
     def test_draw_one_circle(self):
-        axes = self.viewer.axes
+        axes = self.displayable.axes
 
         assert_that(axes.patches, has_length(0))
         cx = 1
         cy = 2
         cr = 3
-        self.viewer.draw_circle(cx, cy, cr)
+        self.displayable.draw_circle(cx, cy, cr)
 
         assert_that(axes.patches, has_length(1))
         circle = axes.patches[0]
@@ -38,19 +45,19 @@ class MPLFitsImageViewerTest(unittest.TestCase):
         assert_that(circle.radius, equal_to(cr))
 
     def test_draw_second_circle_removes_first(self):
-        axes = self.viewer.axes
+        axes = self.displayable.axes
 
         c1x = 1
         c1y = 2
         c1r = 3
-        self.viewer.draw_circle(c1x, c1y, c1r)
+        self.displayable.draw_circle(c1x, c1y, c1r)
 
         assert_that(axes.patches, has_length(1))
 
         c2x = 4
         c2y = 5
         c2r = 6
-        self.viewer.draw_circle(c2x, c2y, c2r)
+        self.displayable.draw_circle(c2x, c2y, c2r)
 
         assert_that(axes.patches, has_length(1))
 
@@ -62,13 +69,17 @@ class MPLFitsImageViewerTest(unittest.TestCase):
 
 class InteractionTest(unittest.TestCase):
     def setUp(self):
-        self.app = wx.App()
-        self.rootframe = wx.Frame(None)
-        self.viewer = singletviewer.SingletViewer(self.rootframe)
-        self.viewer.figure = Mock()
-        self.viewer.axes = Mock()
+        # self.app = wx.App()
+        # self.rootframe = wx.Frame(None)
+        mainhdu = Mock()
+        mainhdu.data.shape = (100, 100)
+        self.hdulist = [mainhdu]
+        self.displayable = DisplayableImageSinglet(self.hdulist)
+        # self.viewer = singletviewer.SingletViewer(self.rootframe)
+        self.displayable.figure = Mock()
+        self.displayable.axes = Mock()
 
-        self.interaction_context = InteractionContext(self.viewer)
+        self.interaction_context = InteractionContext(self.displayable)
 
     def _create_mouse_event(self, x, y, button, inaxes=True):
         event = Mock(spec=MPLMouseEvent)
@@ -79,7 +90,7 @@ class InteractionTest(unittest.TestCase):
         event.button = button
 
         if inaxes:
-            event.inaxes = self.viewer.axes
+            event.inaxes = self.displayable.axes
         else:
             event.inaxes = Mock()  # a new, different axes
 
@@ -104,7 +115,7 @@ class InteractionTest(unittest.TestCase):
         y = 10
         radius = 5
 
-        self.viewer.draw_circle(x, y, radius)
+        self.displayable.draw_circle(x, y, radius)
         self.fire_press_event(x + 2, y + 2)
         assert_that(self.interaction_context.state, instance_of(MoveCircleState))
 
@@ -113,7 +124,7 @@ class InteractionTest(unittest.TestCase):
         y = 10
         radius = 5
 
-        self.viewer.draw_circle(x, y, radius)
+        self.displayable.draw_circle(x, y, radius)
         assert_that(not self.interaction_context.state.pressed)
         self.fire_press_event(x + 2, y + 2)
         assert_that(self.interaction_context.state.pressed)
@@ -125,7 +136,7 @@ class InteractionTest(unittest.TestCase):
         y = 10
         radius = 5
 
-        self.viewer.draw_circle(x, y, radius)
+        self.displayable.draw_circle(x, y, radius)
         self.fire_press_event(x + 2, y + 2)
         assert_that(self.interaction_context.state, instance_of(MoveCircleState))
         self.fire_release_event()
@@ -159,7 +170,7 @@ class InteractionTest(unittest.TestCase):
         dx = 10
         dy = 5
 
-        self.viewer.draw_circle(x0, y0, radius)
+        self.displayable.draw_circle(x0, y0, radius)
         assert_that(self.interaction_context.get_circle().center, equal_to((x0, y0)))
         self.fire_press_event(xclick, yclick)
 
@@ -181,21 +192,12 @@ class InteractionTest(unittest.TestCase):
                     equal_to((15, 25)))
         assert_that(self.interaction_context.get_circle().radius, equal_to(15))
 
-    def test_has_had_interaction(self):
-        assert_that(not self.viewer.has_had_interaction())
-        self.fire_press_event(10, 10)
-        # NOTE: don't count an interaction until it has altered the viewer in
-        # a visible way
-        assert_that(not self.viewer.has_had_interaction())
-        self.fire_motion_event(12, 12)
-        assert_that(self.viewer.has_had_interaction())
-
     def test_motion_not_pressed(self):
         x = 10
         y = 10
         radius = 5
 
-        self.viewer.draw_circle(x, y, radius)
+        self.displayable.draw_circle(x, y, radius)
 
         self.interaction_context.state = CreateCircleState(self.interaction_context)
         self.fire_motion_event(x + 2, y + 2)
@@ -212,7 +214,7 @@ class InteractionTest(unittest.TestCase):
         y = 10
         radius = 5
 
-        self.viewer.draw_circle(x, y, radius)
+        self.displayable.draw_circle(x, y, radius)
 
         click_x = 12
         click_y = 13
@@ -227,7 +229,7 @@ class InteractionTest(unittest.TestCase):
         y = 10
         radius = 5
 
-        self.viewer.draw_circle(x, y, radius)
+        self.displayable.draw_circle(x, y, radius)
 
         click_x = 20
         click_y = 21
@@ -239,9 +241,9 @@ class InteractionTest(unittest.TestCase):
 
     def test_xy_changed_event_on_click(self):
         handler = Mock()
-        self.viewer.register_xy_changed_event_handler(handler)
+        self.displayable.xy_changed.connect(handler)
 
-        self.viewer.draw_circle(10, 10, 5)
+        self.displayable.draw_circle(10, 10, 5)
 
         x_click = 20
         y_click = 30
@@ -252,12 +254,12 @@ class InteractionTest(unittest.TestCase):
 
     def test_xy_changed_event_on_drag(self):
         handler = Mock()
-        self.viewer.register_xy_changed_event_handler(handler)
+        self.displayable.xy_changed.connect(handler)
 
         x0 = 10
         y0 = 10
         radius = 5
-        self.viewer.draw_circle(x0, y0, radius)
+        self.displayable.draw_circle(x0, y0, radius)
 
         xclick = x0 + 2
         yclick = y0 + 2
