@@ -1,7 +1,6 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 from ossos.gui.fitsviewer.baseviewer import WxMPLFitsViewer
-from ossos.gui.fitsviewer.displayable import DisplayableImageSinglet
 from ossos.gui.fitsviewer.interaction import Signal
 
 
@@ -16,21 +15,18 @@ class SingletViewer(WxMPLFitsViewer):
         self.current_image = None
         self.xy_changed = Signal()
 
-        self._viewed_images = {}
-
-    def display(self, fits_image, redraw=True):
-        if fits_image in self._viewed_images:
-            displayable = self._viewed_images[fits_image]
-        else:
-            displayable = DisplayableImageSinglet(fits_image.as_hdulist())
-            self._viewed_images[fits_image] = displayable
+    def display(self, displayable, redraw=True):
+        if self.current_image is not None:
+            self.current_image.display_changed.disconnect(self.redraw)
+            self.current_image.xy_changed.disconnect(self.xy_changed.fire)
+            self.current_image.focus_released.disconnect(self.release_focus)
 
         self.current_image = displayable
+        self.current_image.display_changed.connect(self.redraw)
+        self.current_image.xy_changed.connect(self.xy_changed.fire)
+        self.current_image.focus_released.connect(self.release_focus)
 
-        displayable.display_changed.connect(self.redraw)
-        displayable.xy_changed.connect(self.xy_changed.fire)
-        displayable.focus_released.connect(self.release_focus)
-        displayable.render(self.canvas)
+        self.current_image.render(self.canvas)
 
         if redraw:
             self.redraw()
