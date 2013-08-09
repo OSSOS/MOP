@@ -1,5 +1,3 @@
-from ossos.download.downloads import DownloadedFitsImage
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
@@ -9,6 +7,7 @@ from mock import patch
 
 from tests.base_tests import FileReadingTestCase
 from ossos.download.cutouts import CoordinateConverter
+from ossos.download.data import DownloadedFitsImage
 from ossos.astrom import AstromParser
 from ossos.gui.models import ImageReading
 
