@@ -76,7 +76,7 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
         apcor_str = "4 15   0.19   0.01"
         with open(self.get_abs_path(path), "rb") as fh:
             self.first_image = DownloadedFitsImage(
-                fh.read(), CoordinateConverter(0, 0), apcor_str, in_memory=True)
+                fh.read(), CoordinateConverter(0, 0), apcor_str)
             first_reading = self.model.get_current_workunit().get_sources()[0].get_readings()[0]
             self.model._on_image_loaded(first_reading, self.first_image)
 

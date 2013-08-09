@@ -60,13 +60,12 @@ class DownloadTest(FileReadingTestCase):
         self.localfile.close()
         self.apcorfile.close()
 
-    def make_request(self, callback=None, in_memory=True):
+    def make_request(self, callback=None):
         return DownloadRequest(self.downloader, self.reading,
-                               self.focal_point, self.needs_apcor, callback,
-                               in_memory=in_memory)
+                               self.focal_point, self.needs_apcor, callback)
 
-    def test_retrieve_sliced_image_in_memory(self):
-        request = self.make_request(in_memory=True)
+    def test_request_image_cutout(self):
+        request = self.make_request()
 
         fitsfile = request.execute()
 
@@ -79,22 +78,6 @@ class DownloadTest(FileReadingTestCase):
         # it.  It won't have the right shape necessarily though.
         assert_that(fitsfile.as_hdulist()[0].header["FILENAME"],
                     equal_to("u5780205r_cvt.c0h"))
-
-    def test_download_image_slice_in_file(self):
-        request = self.make_request(in_memory=False)
-        fitsfile = request.execute()
-
-        assert_that(fitsfile.as_hdulist()[0].header["FILENAME"],
-                    equal_to("u5780205r_cvt.c0h"))
-
-    def test_download_image_in_file_removed_when_file_closed(self):
-        request = self.make_request(in_memory=False)
-        fitsfile = request.execute()
-
-        assert_that(os.path.exists(fitsfile._tempfile.name))
-
-        fitsfile.close()
-        assert_that(not os.path.exists(fitsfile._tempfile.name))
 
     def test_download_callback(self):
         callback = Mock()
