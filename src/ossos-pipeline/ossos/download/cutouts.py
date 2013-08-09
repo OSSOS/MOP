@@ -4,7 +4,6 @@ import vos
 
 from ossos.gui import config
 from ossos.gui import logger
-from ossos.download.downloads import DownloadedFitsImage
 
 
 class ImageCutoutDownloader(object):
@@ -40,14 +39,14 @@ class ImageCutoutDownloader(object):
 
         self.cutout_calculator = CutoutCalculator(slice_rows, slice_cols)
 
-    def _download_fits_file(self, downloadable_item):
-        image_uri = downloadable_item.get_image_uri()
+    def download_fits(self, reading, focal_point):
+        image_uri = reading.get_image_uri()
 
         cutout_str, converter = self.cutout_calculator.build_cutout_str(
-            downloadable_item.get_extension(),
-            downloadable_item.get_focal_point(),
-            downloadable_item.get_full_image_size(),
-            inverted=downloadable_item.is_inverted())
+            reading.get_extension(),
+            focal_point,
+            reading.get_original_image_size(),
+            inverted=reading.is_inverted())
 
         logger.debug("Starting download: %s with cutout: %s"
                      % (image_uri, cutout_str))
@@ -57,36 +56,14 @@ class ImageCutoutDownloader(object):
 
         return vofile.read(), converter
 
-    def _download_apcor_file(self, downloadable_item):
-        apcor_uri = downloadable_item.get_apcor_uri()
+    def download_apcor(self, reading):
+        apcor_uri = reading.get_apcor_uri()
 
         logger.debug("Starting download: %s" % apcor_uri)
 
         vofile = self.vosclient.open(apcor_uri, view="data")
 
         return vofile.read()
-
-    def download(self, downloadable_item):
-        """
-        Retrieves a remote image.
-
-        Args:
-          downloadable_item: DownloadableItem
-            Specification for the item to be downloaded.
-
-        Returns:
-          fitsimage: ossos.gui.image.DownloadedFitsImage
-            The downloaded image, either in-memory or on disk as specified.
-        """
-        fits_str, converter = self._download_fits_file(downloadable_item)
-
-        if downloadable_item.needs_apcor:
-            apcor_str = self._download_apcor_file(downloadable_item)
-        else:
-            apcor_str = None
-
-        return DownloadedFitsImage(fits_str, converter, apcor_str,
-                                   in_memory=downloadable_item.in_memory)
 
     def refresh_vos_client(self):
         """

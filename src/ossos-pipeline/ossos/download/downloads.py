@@ -39,50 +39,22 @@ class DownloadRequest(object):
         self.on_finished_callback = on_finished_callback
         self.in_memory = in_memory
 
-    def get_image_uri(self):
-        return self.reading.get_image_uri()
+    def execute(self):
+        fits_str, converter = self.downloader.download_fits(
+            self.reading, self.focal_point)
 
-    def get_apcor_uri(self):
-        return self.reading.get_apcor_uri()
+        if self.needs_apcor:
+            apcor_str = self.downloader.download_apcor(self.reading)
+        else:
+            apcor_str = None
 
-    def get_focal_point(self):
-        """
-        Determines what the focal point of the downloaded image should be.
+        download = DownloadedFitsImage(fits_str, converter, apcor_str,
+                                       in_memory=self.in_memory)
 
-        Returns:
-          focal_point: (x, y)
-            The location of the source in the middle observation, in the
-            coordinate system of the current source reading.
-        """
-        return self.focal_point
+        if self.on_finished_callback is not None:
+            self.on_finished_callback(self.reading, download)
 
-    def get_full_image_size(self):
-        """
-        Returns:
-          tuple(int width, int height)
-            The full pixel size of the image before any cutouts.
-        """
-        return self.reading.get_original_image_size()
-
-    def get_extension(self):
-        """
-        Returns:
-          extension: str
-            The FITS file extension to be downloaded.
-        """
-        return self.reading.get_extension()
-
-    def is_inverted(self):
-        return self.reading.is_inverted()
-
-    def get_ccd_num(self):
-        return self.reading.get_ccd_num()
-
-    def finished_download(self, downloaded_item):
-        """
-        Triggers callbacks indicating the item has been downloaded.
-        """
-        self.on_finished_callback(self.reading, downloaded_item)
+        return download
 
 
 class DownloadedFitsImage(object):
