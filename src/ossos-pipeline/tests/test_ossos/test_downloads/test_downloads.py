@@ -13,9 +13,9 @@ import vos
 from tests.base_tests import FileReadingTestCase
 from ossos.astrom import AstromParser
 from ossos.download.async import DownloadThread
-from ossos.download.downloaders import ImageSliceDownloader
+from ossos.download.cutouts import ImageCutoutDownloader
+from ossos.download.downloads import DownloadableItem, DownloadedFitsImage
 from ossos.gui.errorhandling import DownloadErrorHandler
-from ossos.download.downloads import ( DownloadableItem, DownloadedFitsImage)
 
 
 class ImageSliceDownloaderTest(FileReadingTestCase):
@@ -33,7 +33,7 @@ class ImageSliceDownloaderTest(FileReadingTestCase):
         self.downloadable_item.is_inverted.return_value = False
 
         self.vosclient = Mock(spec=vos.Client)
-        self.undertest = ImageSliceDownloader(slice_rows=100, slice_cols=50,
+        self.undertest = ImageCutoutDownloader(slice_rows=100, slice_cols=50,
                                               vosclient=self.vosclient)
 
         # Mock vosclient to open a local file instead of one from vospace
@@ -96,7 +96,7 @@ class ImageSliceDownloaderTest(FileReadingTestCase):
 
 class DownloadThreadTest(FileReadingTestCase):
     def setUp(self):
-        self.downloader = Mock(spec=ImageSliceDownloader)
+        self.downloader = Mock(spec=ImageCutoutDownloader)
         self.downloaded_image = Mock(spec=DownloadedFitsImage)
         self.downloader.download.return_value = self.downloaded_image
         self.error_handler = Mock(spec=DownloadErrorHandler)
