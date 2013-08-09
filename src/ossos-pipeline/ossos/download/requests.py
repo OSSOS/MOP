@@ -1,6 +1,6 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from ossos.download.data import DownloadedFitsImage
+from ossos.download.data import ImageReading
 
 
 class DownloadRequest(object):
@@ -41,7 +41,7 @@ class DownloadRequest(object):
         else:
             apcor = None
 
-        download = DownloadedFitsImage(hdulist, converter, apcor)
+        download = ImageReading(self.reading, hdulist, converter, apcor)
 
         if self.on_finished_callback is not None:
             self.on_finished_callback(self.reading, download)

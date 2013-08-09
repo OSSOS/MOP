@@ -203,7 +203,8 @@ class UIModel(object):
         return self.get_current_source().set_provisional_name(name)
 
     def get_current_image(self):
-        return self._get_current_image_reading().get_image()
+        # TODO: inline
+        return self._get_current_image_reading()
 
     def get_current_displayable_item(self):
         try:
@@ -289,10 +290,10 @@ class UIModel(object):
         self.download_manager.start_downloading_workunit(
             workunit, image_loaded_callback=self._on_image_loaded)
 
-    def _on_image_loaded(self, reading, image):
-        self._image_reading_models[reading] = ImageReading(reading, image)
+    def _on_image_loaded(self, reading, image_reading):
+        self._image_reading_models[reading] = image_reading
         self._displayable_items[reading] = DisplayableImageSinglet(
-            image.as_hdulist())
+            image_reading.hdulist)
         events.send(events.IMG_LOADED, reading)
 
     def _on_finished_workunit(self, results_file_paths):
