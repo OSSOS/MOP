@@ -23,7 +23,7 @@ class ImageReading(object):
         self.observed_x = self.original_observed_x
         self.observed_y = self.original_observed_y
 
-        self.pixel_x, self.pixel_y = self.get_pixel_location(
+        self.pixel_x, self.pixel_y = self.get_pixel_coordinates(
             self.observed_source_point)
 
         self._ra = self.reading.ra
@@ -44,7 +44,7 @@ class ImageReading(object):
 
     def update_pixel_location(self, new_pixel_location):
         self.pixel_x, self.pixel_y = new_pixel_location
-        self.observed_x, self.observed_y = self.get_observed_location(
+        self.observed_x, self.observed_y = self.get_observed_coordinates(
             new_pixel_location)
 
         self._stale = True
@@ -53,7 +53,8 @@ class ImageReading(object):
     def reset_source_location(self):
         self.observed_x = self.original_observed_x
         self.observed_y = self.original_observed_y
-        self.pixel_x, self.pixel_y = self.get_pixel_location(self.observed_source_point)
+        self.pixel_x, self.pixel_y = self.get_pixel_coordinates(
+            self.observed_source_point)
 
         self._stale = True
         self._adjusted = False
@@ -73,14 +74,6 @@ class ImageReading(object):
 
     def is_adjusted(self):
         return self._adjusted
-
-    def get_pixel_location(self, observed_point):
-        # TODO: inline
-        return self.get_pixel_coordinates(observed_point)
-
-    def get_observed_location(self, pixel_point):
-        # TODO: inline
-        return self.get_observed_coordinates(pixel_point)
 
     def get_pixel_coordinates(self, point):
         """
