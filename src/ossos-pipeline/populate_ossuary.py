@@ -186,6 +186,7 @@ def put_image_in_database(image, ims):
 	ss = sa.select([ims.images.c.image_id])
 	ss.append_whereclause(ims.images.c.image_id == image['image_id'])
 	query = ims.conn.execute(ss)
+
 	if len([s[0] for s in query]) > 0:
 		ss = sa.delete(ims.images.c.image_id == image['image_id'])
 		query = ims.conn.execute(ss)	

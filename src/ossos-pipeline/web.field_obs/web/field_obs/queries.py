@@ -2,6 +2,7 @@ import sqlalchemy as sa
 from web.overview.ossuary import OssuaryTable
 import os, vos, ephem, datetime
 from ossos import storage
+import cPickle
 
 
 class ImagesQuery(object):
@@ -35,25 +36,62 @@ class ImagesQuery(object):
 		return ret_images
 
 
-	def get_processing_status(self, ret_images):
+	def image_errors(self, image_id):
+		# Retrieve existing information on processing errors from the db.
+		retval = ''
+		it = self.images
+		cols = [it.c.image_id, it.c.proc_status]
+		ss = sa.select(cols)
+		ss.append_whereclause(it.c.image_id == image_id)
+		ims_query = self.conn.execute(ss)
+		for row in ims_query:  # Should just be the one, one image after all...
+			if row[1] is None: # need something better here for error catching
+				# Oh well, go and get it anew (this also adds it to the db for next time)
+				retval = self.check_VOSpace_for_proc_status(image_id)  
+			else:
+				retval = cPickle.loads(str(row[1]))
+
+		return retval
+
+
+	def add_err_to_db(self, image_id, ordered_errors):
+		# Turn the list/dict object of errors into a linear string, save that in the db
+		strerr = cPickle.dumps(ordered_errors)
+		ss = self.images.update(self.images.c.image_id == image_id)
+		params = {'proc_status': strerr}
+		self.conn.execute(ss, params)#, self.images.c.proc_status=strerr)
+
+		return
+
+
+	def check_VOSpace_for_proc_status(self, image_id):
+		proc_keys = self.clean_keys(image_id)
+		errors = self.collate_errors(proc_keys)
+		ordered_errors = self.order_errors_in_pipeline(errors)
+		self.add_err_to_db(image_id, ordered_errors)
+
+		return ordered_errors
+
+
+	def processing_status(self, ret_images, update=False):
 		# want to show: [vtag, vtag:{error:[ccds] sorted in ascending ccd order}]
 		# where the vtags are shown in their order of processing.
 		retval = []
 		for row in ret_images:
 			retrow = row
-			proc_keys = self.clean_keys(row)
-			errors = self.collate_errors(proc_keys)
-			ordered_errors = self.order_errors_in_pipeline(errors)
-
+			if update:  # retrieve new data from VOSpace
+				ordered_errors = self.check_VOSpace_for_proc_status(row[2])
+			else:       # retrieve existing data from local database
+				ordered_errors = self.image_errors(row[2])
 			retrow.append(ordered_errors)
 			retval.append(retrow)
 
 		return retval
 
 
-	def clean_keys(self, row):
+	def clean_keys(self, image_id):
 		# first retrieve and clean off the keys
-		node = storage.get_tags(row[2], force=True)
+		node = storage.get_tags(image_id, force=True)
 		unwanted = ['creator', 'date', 'groupread', 'groupwrite', 'ispublic', 'length']
 		proc_keys = []
 		for vtag, value in node.items():
