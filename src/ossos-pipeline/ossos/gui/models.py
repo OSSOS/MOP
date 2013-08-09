@@ -163,7 +163,7 @@ class UIModel(object):
         return self.get_current_reading().get_observation_header()
 
     def get_current_fits_header(self):
-        return self.get_current_image().get_fits_header()
+        return self.get_current_snapshot().get_fits_header()
 
     def get_current_exposure_number(self):
         return int(self.get_current_reading().obs.expnum)
@@ -201,10 +201,6 @@ class UIModel(object):
 
     def set_current_source_name(self, name):
         return self.get_current_source().set_provisional_name(name)
-
-    def get_current_image(self):
-        # TODO: inline
-        return self.get_current_snapshot()
 
     def get_current_displayable_item(self):
         try:
