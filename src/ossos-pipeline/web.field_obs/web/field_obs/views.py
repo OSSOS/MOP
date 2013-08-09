@@ -18,14 +18,14 @@ class SimpleStatus(object):
 
 
 class ErrorStatus(object):
-	def __init__(self, error, joblogs):
+	def __init__(self, error, image_id, joblogs):
 		self.error = error
+		self.image_id = image_id
 		self.joblogs = joblogs
 
 	def render(self):
 		retval = ''
 		for component, errors in self.error.items():
-			# How can I get the cross to be #FF0000 ?
 			retval += u'<span class="text-error">{0}&nbsp;&#x2718; </span>'.format(component)
 			assert isinstance(errors, dict)
 			for errtype, ccds in errors.items():
@@ -42,28 +42,29 @@ class ErrorStatus(object):
 
 	def joblog_url(self, component, ccd):
 		retval = ""
-		if component in self.joblogs.keys():  # just to make sure
-			complogs = self.joblogs[component]
-			ccdlog = []
-			for log in complogs:
-				if ccd < 10:  # stop failure of file-matching on ccds < 10
-					ccd = str(ccd).lstrip('0')
-				if log.__contains__('_'+str(ccd)+'.txt'):
-					ccdlog.append(log)
-			ccdlog.sort()
-			if len(ccdlog) > 0:  # Would there ever be a case it didn't exist if an error does?
-				canfar_url = 'http://www.canfar.phys.uvic.ca/vosui/#/OSSOS/joblog/'
-				retval = canfar_url + component + '.py/' + ccdlog[len(ccdlog)-1]
+		if self.joblogs is not None:  # Is joblog retrieval turned on?
+			if component in self.joblogs.keys():  # just to make sure
+				complogs = self.joblogs[component]
+				ccdlog = []
+				for log in complogs:
+					if ccd < 10:  # stop failure of file-matching on ccds < 10
+						ccd = str(ccd).lstrip('0')
+					if log.__contains__('_'+self.image_id+'_'+str(ccd)+'.txt'):
+						ccdlog.append(log)
+				ccdlog.sort()
+				if len(ccdlog) > 0:  # Would there ever be a case it didn't exist if an error does?
+					canfar_url = 'http://www.canfar.phys.uvic.ca/vospace/nodes/OSSOS/joblog/'
+					retval = canfar_url + component + '.py/' + ccdlog[len(ccdlog)-1] + '?view=data'
 
 		return retval
 
 
-def mk_status(val, joblogs):
+def mk_status(val, image_id, joblogs):
 	if isinstance(val, str):
 		retval = SimpleStatus(val)
 	else:
 		assert isinstance(val, dict)
-		retval = ErrorStatus(val, joblogs)
+		retval = ErrorStatus(val, image_id, joblogs)
 
 	return retval
 
@@ -86,10 +87,8 @@ class Field(object):
 
 
 	def get_joblogs(self):
-		# parse the files grep-like for those that contain this field's first image.
-		# ie. first image of the discovery triplet.
-		keyid = str(self.discovery_triplet[0][0])
-
+		# Parse the directory listings for joblogs matching this field's images.
+		keyids = [str(n[2]) for n in self.observations]
 		# which directories do we need to list? FIXME: FAKES CURRENTLY EXCLUDED
 		steps = ['update_header', 'mkpsf', 'step1', 'step2', 'step3', 'combine', 'scramble', 'plant']#, 'fkstep1', 'fkstep2', 'fkstep3', 'fkcombine']
 		retval = {}
@@ -99,10 +98,11 @@ class Field(object):
 #			if storage.exists(dirpath):  # COMMAND SEEMS BROKEN
 			files = storage.listdir(dirpath, force=True)
 			for ff in files:
-				if ff.__contains__('_'+keyid+'_'):
-					jl = retval.get(component, [])
-					jl.append(ff)
-					retval[component] = jl
+				for keyid in keyids:
+					if ff.__contains__('_'+keyid+'_'):
+						jl = retval.get(component, [])
+						jl.append(ff)
+						retval[component] = jl
 
 		return retval
 
@@ -110,15 +110,14 @@ class Field(object):
 	@property.Lazy
 	def observations(self):
 		rv = self.imagesQuery.field_images(self.fieldId)
-		 # here to stop slow loading elsewhere
-		proc_rv = self.imagesQuery.get_processing_status(rv)
+		proc_rv = self.imagesQuery.processing_status(rv, update=False)  # use this to trigger renewal
 		# setting this may be time-consuming?
-		self.joblogs = self.get_joblogs()
+#		self.joblogs = self.get_joblogs()
 	
 		# format the errors in html with links to their joblogs	
 		retproc = []
 		for row in proc_rv:
-			statuses = [mk_status(s, self.joblogs) for s in row[3]]
+			statuses = [mk_status(s, row[2], self.joblogs) for s in row[3]]
 			retrow = row[0:3]  # without the unformatted errors
 			retrow.append(statuses)
 			retproc.append(retrow)

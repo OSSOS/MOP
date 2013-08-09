@@ -39,17 +39,23 @@
       </div>
       <div class="span6 well well-small" role="region">
         <dl class="dl">
-          <dt>Processing status: </dt>
+          <dt>Processing status: last updated </dt>
           <dd><span>
           </span>
           </dd>
-        </dl>    
+        </dl>
         <div class="control-group">
           <div class="controls">
-            <button type="submit" class="btn" name="reprocess">Reprocess</button>
+            <button type="submit" class="btn" name="update">Update status</button>
           </div> <!-- controls -->
-        </div> <!-- control-group -->  
+        </div> <!-- control-group --> 
+<!--         <div class="control-group">
+          <div class="controls">
+            <button type="submit" class="btn" name="reprocess">Reprocess data</button>
+          </div> <!-- controls -->
+        <!-- </div> <!-- control-group  -->
       </div>  <!-- row-region -->
+
       <!--         $("#sparkline").sparkline([1,1,0,1,-1,-1,1,-1,0,0,1,1], {
         type: 'tristate',
         posBarColor: '#007fff',

@@ -33,8 +33,9 @@ CREATE TABLE images (
 -- PV[1..2]_[1..10]  -- okay there's an awful lot of these!	
 	iq_ossos 		REAL						NULL, -- fwhm x pixel scale modulated by airmass
 	iq_elixir		REAL						NULL, -- elixir does its own thing: for comparison
-	zeropt			REAL						NULL -- zeropoint of image
-
+	zeropt			REAL						NULL, -- zeropoint of image
+	proc_status		TEXT						NULL, -- storage for VOSpace tags
+	blink_status	TEXT						NULL -- storage for VOSpace tags
 );
 
 -- pixel scale is symmetric, 0.1850 arcsec/pixel. Dectector is [1:23219,1:19354] pixels.
@@ -44,6 +45,6 @@ CREATE TABLE images (
 -- for date searching
 CREATE INDEX images_obsdt_index ON images(obs_end ASC);
 -- for the q3c spatial searching: requires q3c to be installed!
-CREATE INDEX images_q3c_index ON images(q3c_ang2ipix(crval_ra, crval_dec));
-CLUSTER images USING images_q3c_index;
+--CREATE INDEX images_q3c_index ON images(q3c_ang2ipix(crval_ra, crval_dec));
+--CLUSTER images USING images_q3c_index;
 ANALYZE images;
