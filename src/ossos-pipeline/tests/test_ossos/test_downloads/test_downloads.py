@@ -14,7 +14,7 @@ from tests.base_tests import FileReadingTestCase
 from ossos.astrom import AstromParser
 from ossos.download.async import DownloadThread
 from ossos.download.cutouts import ImageCutoutDownloader
-from ossos.download.downloads import DownloadableItem, DownloadedFitsImage
+from ossos.download.downloads import DownloadRequest, DownloadedFitsImage
 from ossos.gui.errorhandling import DownloadErrorHandler
 
 
@@ -23,7 +23,7 @@ class ImageSliceDownloaderTest(FileReadingTestCase):
         self.image_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/1584431p15.fits"
         self.apcor_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/ccd15/1584431p15.apcor"
 
-        self.downloadable_item = Mock(spec=DownloadableItem)
+        self.downloadable_item = Mock(spec=DownloadRequest)
         self.downloadable_item.get_image_uri.return_value = self.image_uri
         self.downloadable_item.get_apcor_uri.return_value = self.apcor_uri
         self.downloadable_item.needs_apcor = True
@@ -114,7 +114,7 @@ class DownloadThreadTest(FileReadingTestCase):
 
         callback = Mock()
 
-        downloadable_item = DownloadableItem(reading, source, True, callback)
+        downloadable_item = DownloadRequest(reading, source, True, callback)
 
         self.undertest.do_download(downloadable_item)
 

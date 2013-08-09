@@ -6,7 +6,7 @@ import tempfile
 from astropy.io import fits
 
 
-class DownloadableItem(object):
+class DownloadRequest(object):
     """
     Specifies an item (image and potentially related files) to be downloaded.
     """
