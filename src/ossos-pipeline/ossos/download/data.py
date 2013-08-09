@@ -14,8 +14,7 @@ class DownloadedFitsImage(object):
     A FITS file image which has been downloaded along with its apcor file.
     """
 
-    def __init__(self, fits_str, coord_converter, apcor_str=None,
-                 in_memory=True):
+    def __init__(self, fits_str, coord_converter, apcor_str=None):
         """
         Constructs a new FitsImage object.
 
@@ -29,15 +28,6 @@ class DownloadedFitsImage(object):
             Raw data from from the .apcor file associated with this image.
             Defaults to None, in which case attempting to perform
             astrometric calculations will raise a ValueError.
-          in_memory: bool
-            If True, the FITS file will only be held in memory without
-            writing to disk.  If False, the data will be written to a
-            temporary file on disk and not held in memory.
-            NOTE: calling as_hdulist will load the data into memory if
-            it is only on disk.  Likewise, calling as_file on an "in memory"
-            image will cause it to be written to disk.  Therefore this
-            parameter is mostly for specifying the PREFERRED way of storing
-            the data, not the only way in which it may be stored.
         """
         assert fits_str is not None, "No fits data"
         assert coord_converter is not None, "Must have a coordinate converter"
@@ -49,15 +39,8 @@ class DownloadedFitsImage(object):
         else:
             self._apcordata = None
 
-        self._hdulist = None
+        self._hdulist = fits.open(cStringIO.StringIO(fits_str))
         self._tempfile = None
-
-        if in_memory:
-            self._hdulist = self._create_hdulist(fits_str)
-        else:
-            self._tempfile = self._create_tempfile(fits_str)
-
-        self._raw_fits_data = fits_str
 
     def _create_hdulist(self, strdata):
         return fits.open(cStringIO.StringIO(strdata))
@@ -106,22 +89,12 @@ class DownloadedFitsImage(object):
         return self._coord_converter.get_inverse_converter().convert(point)
 
     def as_hdulist(self):
-        if self._hdulist is None:
-            # we are currently storing "in file" only
-            assert self._tempfile is not None
-
-            self._tempfile.seek(0)
-            self._hdulist = self._create_hdulist(self._tempfile.read())
-            self._tempfile.seek(0)
-
         return self._hdulist
 
     def as_file(self):
         if self._tempfile is None:
-            # we are currently storing "in memory" only
-            assert self._hdulist is not None
-
-            self._tempfile = self._create_tempfile()
+            self._tempfile = tempfile.NamedTemporaryFile(
+                mode="r+b", suffix=".fits")
             self._hdulist.writeto(self._tempfile.name)
 
         return self._tempfile
@@ -131,10 +104,6 @@ class DownloadedFitsImage(object):
 
     def get_fits_header(self):
         return self.as_hdulist()[0].header
-
-    def save(self, path):
-        with open(path, "wb") as filehandle:
-            filehandle.write(self._raw_fits_data)
 
     def close(self):
         if self._hdulist is not None:

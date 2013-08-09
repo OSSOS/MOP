@@ -18,61 +18,23 @@ class DownloadedFitsImageTest(FileReadingTestCase):
         self.apcor_str = "4 15   0.19   0.01"
         self.coord_converter = Mock()
 
-    def test_create_in_memory_image(self):
+    def test_as_file(self):
         fitsimage = DownloadedFitsImage(self.strdata, self.coord_converter,
-                                        self.apcor_str, in_memory=True)
-
-        # Breaking interface for testing purposes
-        assert_that(fitsimage._hdulist, not_none())
-        assert_that(fitsimage._tempfile, none())
-
-    def test_create_on_disk_image(self):
-        fitsimage = DownloadedFitsImage(self.strdata, self.coord_converter,
-                                        self.apcor_str, in_memory=False)
-
-        # Breaking interface for testing purposes
-        assert_that(fitsimage._hdulist, none())
-        assert_that(fitsimage._tempfile, not_none())
-
-    def test_in_memory_as_file(self):
-        fitsimage = DownloadedFitsImage(self.strdata, self.coord_converter,
-                                        self.apcor_str, in_memory=True)
-        assert_that(os.path.exists(fitsimage.as_file().name))
-
-    def test_on_disk_as_hdulist(self):
-        fitsimage = DownloadedFitsImage(self.strdata, self.coord_converter,
-                                        self.apcor_str, in_memory=False)
-
-        assert_that(fitsimage._hdulist, none())
-        assert_that(fitsimage.as_hdulist()[0].header["FILENAME"],
-                    equal_to("u5780205r_cvt.c0h"))
-        assert_that(fitsimage._hdulist, not_none())
-
-    def test_in_memory_as_hdulist(self):
-        fitsimage = DownloadedFitsImage(self.strdata, self.coord_converter,
-                                        self.apcor_str, in_memory=True)
-        assert_that(fitsimage.as_hdulist()[0].header["FILENAME"],
-                    equal_to("u5780205r_cvt.c0h"))
-
-    def test_on_disk_as_file(self):
-        fitsimage = DownloadedFitsImage(self.strdata, self.coord_converter,
-                                        self.apcor_str, in_memory=False)
+                                        self.apcor_str)
         assert_that(os.path.exists(fitsimage.as_file().name))
 
     def test_close(self):
         fitsimage = DownloadedFitsImage(self.strdata, self.coord_converter,
-                                        self.apcor_str, in_memory=True)
+                                        self.apcor_str)
         as_file = fitsimage.as_file()
+        assert_that(os.path.exists(as_file.name), equal_to(True))
 
         fitsimage.close()
-
-        assert_that(not os.path.exists(as_file.name))
+        assert_that(os.path.exists(as_file.name), equal_to(False))
 
     def test_no_apcord_data(self):
         fitsimage = DownloadedFitsImage(self.strdata, self.coord_converter)
-
         assert_that(fitsimage.has_apcord_data(), equal_to(False))
-
         assert_that(fitsimage.get_apcor_data(), none())
 
 

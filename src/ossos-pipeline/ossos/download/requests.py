@@ -9,7 +9,7 @@ class DownloadRequest(object):
     """
 
     def __init__(self, downloader, reading, focal_point, needs_apcor,
-                 on_finished_callback, in_memory=True):
+                 on_finished_callback):
         """
         Constructor.
 
@@ -25,16 +25,12 @@ class DownloadRequest(object):
           needs_apcor: bool
             If True, the apcor file with data needed for photometry
             calculations is downloaded in addition to the image.
-          in_memory: bool
-            If True, the image is stored in memory without being written to
-            disk.  If False, the image will be written to a temporary file.
         """
         self.downloader = downloader
         self.reading = reading
         self.focal_point = focal_point
         self.needs_apcor = needs_apcor
         self.on_finished_callback = on_finished_callback
-        self.in_memory = in_memory
 
     def execute(self):
         fits_str, converter = self.downloader.download_fits(
@@ -45,8 +41,7 @@ class DownloadRequest(object):
         else:
             apcor_str = None
 
-        download = DownloadedFitsImage(fits_str, converter, apcor_str,
-                                       in_memory=self.in_memory)
+        download = DownloadedFitsImage(fits_str, converter, apcor_str)
 
         if self.on_finished_callback is not None:
             self.on_finished_callback(self.reading, download)
