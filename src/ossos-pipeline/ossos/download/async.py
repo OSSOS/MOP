@@ -108,26 +108,21 @@ class DownloadThread(threading.Thread):
 
     def run(self):
         while not self._should_stop:
-            downloadable_item = self.work_queue.get()
+            download_request = self.work_queue.get()
             self._idle = False
 
             try:
-                self.do_download(downloadable_item)
+                self.do_download(download_request)
             except Exception as error:
-                self.error_handler.handle_error(error, downloadable_item)
+                self.error_handler.handle_error(error, download_request)
             finally:
                 # It is up to the error handler to requeue the downloadable
                 # item if needed.
                 self.work_queue.task_done()
                 self._idle = True
 
-    def do_download(self, downloadable_item):
-        downloaded_item = self.downloader.download(downloadable_item)
-
-        if self._should_stop:
-            return
-
-        downloadable_item.finished_download(downloaded_item)
+    def do_download(self, download_request):
+        download_request.execute()
 
     def stop(self):
         self._should_stop = True
