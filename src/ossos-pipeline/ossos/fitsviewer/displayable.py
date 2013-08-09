@@ -1,7 +1,6 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import numpy as np
-
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from stsci import numdisplay
@@ -35,15 +34,15 @@ class DisplayableImageSinglet(object):
 
     @property
     def image_data(self):
-        return self.hdulist[0].data
+        return _image_data(self.hdulist)
 
     @property
     def image_width(self):
-        return self.image_data.shape[1]
+        return _image_width(self.hdulist)
 
     @property
     def image_height(self):
-        return self.image_data.shape[0]
+        return _image_height(self.hdulist)
 
     def render(self, canvas=None):
         if self.figure is None:
@@ -116,26 +115,12 @@ class DisplayableImageSinglet(object):
         self.figure.canvas.mpl_disconnect(id_)
         del self._mpl_event_handlers[id_]
 
-    def _apply_event_handlers(self, canvas):
-        for eventname, handler in self._mpl_event_handlers.itervalues():
-            canvas.mpl_connect(eventname, handler)
-
     def release_focus(self):
         self.focus_released.fire()
 
-    def _create_axes(self):
-        # limits specified as [left, bottom, width, height]
-        # leave 2.5% border all around
-        axes = plt.Axes(self.figure, [0.025, 0.025, 0.95, 0.95])
-
-        # Make the axes fit the image tightly
-        axes.set_xlim([0, self.image_width])
-        axes.set_ylim([0, self.image_height])
-
-        # # Don't draw tick marks and labels
-        axes.set_axis_off()
-
-        return axes
+    def _apply_event_handlers(self, canvas):
+        for eventname, handler in self._mpl_event_handlers.itervalues():
+            canvas.mpl_connect(eventname, handler)
 
     def _do_render(self):
         self.figure = plt.figure()
@@ -157,10 +142,117 @@ class DisplayableImageSinglet(object):
         self.figure.colorbar(self.axes_image, orientation="horizontal",
                              cax=cax)
 
+    def _create_axes(self):
+        # limits specified as [left, bottom, width, height]
+        # leave 2.5% border all around
+        axes = plt.Axes(self.figure, [0.025, 0.025, 0.95, 0.95])
+
+        # Make the axes fit the image tightly
+        axes.set_xlim([0, self.image_width])
+        axes.set_ylim([0, self.image_height])
+
+        # # Don't draw tick marks and labels
+        axes.set_axis_off()
+
+        return axes
+
     def _refresh_displayed_colormap(self):
         self.axes_image.set_cmap(self._colormap.as_mpl_cmap())
         self.axes_image.changed()
         self.display_changed.fire()
+
+
+class DisplayableImageTriplet(object):
+    def __init__(self, hdulist_grid):
+        if len(hdulist_grid) != 3:
+            raise ValueError("Grid must have 3 rows (given %d)"
+                             % len(hdulist_grid))
+
+        self.frames = map(_ImageTriplet, hdulist_grid)
+
+        self.figure = None
+        self.axes = None
+        self._mpl_event_handlers = {}
+        self._interaction_context = None
+
+    def render(self, canvas=None):
+        if self.figure is None:
+            self._do_render()
+
+        if canvas is None:
+            plt.show()
+        else:
+            canvas.figure = self.figure
+
+            parent_size = canvas.GetClientSize()
+
+            figure_dpi = self.figure.get_dpi()
+            self.figure.set_size_inches(parent_size[0] / figure_dpi,
+                                        parent_size[1] / figure_dpi)
+
+    def _do_render(self):
+        self.figure = plt.figure()
+        for position, frame in enumerate(self.frames):
+            frame.render(self.figure, position)
+
+
+class _ImageTriplet(object):
+    """
+    A row of images that share an axes and colormap.  Does not have its
+    own figure.
+    """
+
+    def __init__(self, hdulists):
+        if len(hdulists) != 3:
+            raise ValueError("Image triplet must contain 3 images (given %d)"
+                             % len(hdulists))
+
+        self.hdulists = hdulists
+        self.axes = None
+
+        self._colormap = GrayscaleColorMap()
+
+    @property
+    def total_width(self):
+        return sum(map(_image_width, self.hdulists))
+
+    @property
+    def total_height(self):
+        return _image_height(self.hdulists[0])
+
+    def render(self, figure, position):
+        if self.axes is None:
+            self._do_render(figure, position)
+
+    def _do_render(self, figure, position):
+        self._create_axes(figure, position)
+
+        full_image = zscale(np.concatenate(map(_image_data, self.hdulists),
+                                           axis=1))
+
+        # TODO: this knowledge should exist in only one place
+        # Add 1 because FITS images start at pixel 1,1 while matplotlib
+        # starts at 0,0
+        extent = (1, self.total_width + 1, self.total_height + 1, 1)
+        self.axes_image = self.axes.imshow(full_image,
+                                           extent=extent,
+                                           cmap=self._colormap.as_mpl_cmap())
+
+    def _create_axes(self, figure, position):
+        # limits specified as [left, bottom, width, height]
+        # leave 2.5% border all around
+        border = 0.025
+        width = 1 - 2 * border
+        height = (1 - 2 * border) / 3
+        bottom = border + position * height
+        self.axes = figure.add_axes([border, bottom, width, height])
+
+        # Make the axes fit the image tightly
+        self.axes.set_xlim([0, self.total_width])
+        self.axes.set_ylim([0, self.total_height])
+
+        # Don't draw tick marks and labels
+        self.axes.set_axis_off()
 
 
 def zscale(image):
@@ -178,3 +270,19 @@ def zscale(image):
     # Using the default values, but listing explicitly
     z1, z2 = numdisplay.zscale.zscale(image, nsamples=1000, contrast=0.25)
     return np.clip(image, z1, z2)
+
+
+def _image_width(hdulist):
+    return _image_shape(hdulist)[1]
+
+
+def _image_height(hdulist):
+    return _image_shape(hdulist)[0]
+
+
+def _image_shape(hdulist):
+    return _image_data(hdulist).shape
+
+
+def _image_data(hdulist):
+    return hdulist[0].data
