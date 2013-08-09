@@ -9,6 +9,9 @@ from ossos import storage
 
 DATASET_ROOT = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages"
 
+# Images from CCDs < 18 have their coordinates flipped
+MAX_INVERTED_CCD = 17
+
 HEADER_LINE_LENGTH = 80
 
 FAKE_PREFIX = "fk"
@@ -492,6 +495,42 @@ class SourceReading(object):
 
     def get_apcor_uri(self):
         return self.obs.get_apcor_uri()
+
+    def get_ccd_num(self):
+        """
+        Returns:
+          ccdnum: int
+            The number of the CCD that the image is on.
+        """
+        return int(self.obs.ccdnum)
+
+    def get_extension(self):
+        """
+        Returns:
+          extension: str
+            The FITS file extension.
+        """
+        if self.obs.is_fake():
+            # We get the image from the CCD directory and it is not
+            # multi-extension.
+            return 0
+
+        # NOTE: ccd number is the extension, BUT Fits file extensions start at 1
+        # Therefore ccd n = extension n + 1
+        return str(self.get_ccd_num() + 1)
+
+    def is_inverted(self):
+        """
+        Returns:
+          inverted: bool
+            True if the stored image is inverted.
+        """
+        if self.obs.is_fake():
+            # We get the image from the CCD directory and it has already
+            # been corrected for inversion.
+            return False
+
+        return True if self.get_ccd_num() <= MAX_INVERTED_CCD else False
 
 
 class Observation(object):

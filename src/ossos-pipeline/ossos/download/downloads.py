@@ -1,14 +1,9 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import cStringIO
-import math
 import tempfile
 
 from astropy.io import fits
-
-
-# Images from CCDs < 18 have their coordinates flipped
-MAX_INVERTED_CCD = 17
 
 
 class DownloadableItem(object):
@@ -72,44 +67,19 @@ class DownloadableItem(object):
           extension: str
             The FITS file extension to be downloaded.
         """
-        if self._is_observation_fake():
-            # We get the image from the CCD directory and it is not
-            # multi-extension.
-            return 0
-
-        # NOTE: ccd number is the extension, BUT Fits file extensions start at 1
-        # Therefore ccd n = extension n + 1
-        return str(self.get_ccd_num() + 1)
+        return self.reading.get_extension()
 
     def is_inverted(self):
-        """
-        Returns:
-          inverted: bool
-            True if the stored image is inverted.
-        """
-        if self._is_observation_fake():
-            # We get the image from the CCD directory and it has already
-            # been corrected for inversion.
-            return False
-
-        return True if self.get_ccd_num() <= MAX_INVERTED_CCD else False
+        return self.reading.is_inverted()
 
     def get_ccd_num(self):
-        """
-        Returns:
-          ccdnum: int
-            The number of the CCD that the image is on.
-        """
-        return int(self.reading.get_observation().ccdnum)
+        return self.reading.get_ccd_num()
 
     def finished_download(self, downloaded_item):
         """
         Triggers callbacks indicating the item has been downloaded.
         """
         self.on_finished_callback(self.reading, downloaded_item)
-
-    def _is_observation_fake(self):
-        return self.reading.get_observation().is_fake()
 
 
 class DownloadedFitsImage(object):
