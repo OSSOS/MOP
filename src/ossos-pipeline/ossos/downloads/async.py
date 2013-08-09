@@ -3,8 +3,8 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import Queue
 import threading
 
-from ossos.download.focus import SingletFocalPointCalculator
-from ossos.download.requests import DownloadRequest
+from ossos.downloads.focus import SingletFocalPointCalculator
+from ossos.downloads.requests import DownloadRequest
 from ossos.gui import logger
 
 MAX_THREADS = 3

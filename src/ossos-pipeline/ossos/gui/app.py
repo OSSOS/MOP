@@ -6,8 +6,8 @@ import wx
 import wx.lib.inspection
 
 from ossos.astrom import AstromParser
-from ossos.download.async import AsynchronousImageDownloadManager
-from ossos.download.cutouts import ImageCutoutDownloader
+from ossos.downloads.async import AsynchronousImageDownloadManager
+from ossos.downloads.cutouts import ImageCutoutDownloader
 from ossos.gui import config, tasks, logger
 from ossos.gui import context
 from ossos.gui.sync import SynchronizationManager
