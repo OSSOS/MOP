@@ -38,24 +38,14 @@ class ImagesQuery(object):
 	def get_processing_status(self, ret_images):
 		# want to show: [vtag, vtag:{error:[ccds] sorted in ascending ccd order}]
 		# where the vtags are shown in their order of processing.
-	
 		retval = []
 		for row in ret_images:
 			retrow = row
 			proc_keys = self.clean_keys(row)
 			errors = self.collate_errors(proc_keys)
+			ordered_errors = self.order_errors_in_pipeline(errors)
 
-			# display the steps existing and their errors, if any.
-			order = []
-			steps = ['mkpsf', 'update_header', 'step1', 'step2', 'step3', 'combine', 'scramble', 'plant', 'fkstep1', 'fkstep2', 'fkstep3', 'fkcombine']
-			for j, step in enumerate(steps):
-			 	if step in errors.keys():  
-			 		if len(errors[step]) == 0: # step was completed successfully for all ccds
-				 		order.append(step)
-				 	else:
-				 		order.append({step: errors[step]})
-
-			retrow.append(order)
+			retrow.append(ordered_errors)
 			retval.append(retrow)
 
 		return retval
@@ -111,6 +101,21 @@ class ImagesQuery(object):
 			retval[root] = rr
 
 		return retval
+
+
+	def order_errors_in_pipeline(self, errors):
+		# display the steps existing and their errors, if any.
+		order = []
+		# preproc is invisible under this, but runs before update_header
+		steps = ['update_header', 'mkpsf', 'step1', 'step2', 'step3', 'combine', 'scramble', 'plant', 'fkstep1', 'fkstep2', 'fkstep3', 'fkcombine']
+		for j, step in enumerate(steps):
+		 	if step in errors.keys():  
+		 		if len(errors[step]) == 0: # step was completed successfully for all ccds
+			 		order.append(step)
+			 	else:
+			 		order.append({step: errors[step]})
+
+		return order
 
 
 	def field_ra(self, field):

@@ -70,32 +70,30 @@
       		</tr>
       	</thead>
       	<tbody>
-      		<tal:block tal:repeat="obj observations['obs']">
+      		<tal:block repeat="obj observations['obs']">
         		<tr tal:condition="discovery_triplet" tal:attributes = "class 'success' if obj[2] in discovery_triplet[0] else 'normal-image'">
     					<td>${obj[0].strftime('%Y-%m-%d %H:%M:%S')}</td> 
     					<td>${'%.2f' % obj[1]}</td>
-              <td>${obj[2]}</td>
-              <td>${obj[3]}</td>
               <td>
-                <div class="control-group">
-                  <div class="controls">
-                    <button type="submit" class="btn" name="reprocess">Reprocess</button>
-                  </div> <!-- controls -->
-                </div> <!-- control-group -->  
+                <a href="http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/vosui/#OSSOS/dbimages/${obj[2]}">${obj[2]}</a>
+              </td>
+              <td>
+                <tal:block repeat="status obj[3]">
+                  <span tal:content="structure status.render()"></span>
+                </tal:block>
               </td>
             </tr>
             <tr tal:condition="not(discovery_triplet)"> <!-- wallpaper has no triplet -->
-                <td>${obj[0].strftime('%Y-%m-%d %H:%M:%S')}</td> 
-                <td>${'%.2f' % obj[1]}</td>
-                <td>${obj[2]}</td>
-                <td>${obj[3]}</td>
-                <td>
-                  <div class="control-group">
-                    <div class="controls">
-                      <button type="submit" class="btn" name="reprocess">Reprocess</button>
-                    </div> <!-- controls -->
-                  </div> <!-- control-group -->  
-                </td>
+              <td>${obj[0].strftime('%Y-%m-%d %H:%M:%S')}</td> 
+              <td>${'%.2f' % obj[1]}</td>
+              <td>
+                <a href="http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/vosui/#OSSOS/dbimages/${obj[2]}">${obj[2]}</a>
+              </td>
+              <td>
+                <tal:block repeat="status obj[3]">
+                  <span tal:content="structure status.render()"></span>
+                </tal:block>
+              </td>
       			</tr>
       		</tal:block>  <!-- tal:repeat obj observations -->
       	</tbody>

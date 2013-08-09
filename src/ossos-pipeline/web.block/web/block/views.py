@@ -1,6 +1,7 @@
 from pyramid.response import Response
 from pyramid.view import view_config
 from queries import BlockQuery
+from zope.cachedescriptors import property
 
 
 class Block(object):
@@ -12,13 +13,13 @@ class Block(object):
 		# reengineer for robustness with urllib.
 		self.blockID = request.current_route_url().rpartition('/')[2]
 	
-	@property
+	@property.Lazy
 	def num_fields(self):
 		empty_units, fields = self.blockQuery.fields_in_block(self.blockID)
 		retval = len(fields)
 		return retval
 
-	@property
+	@property.Lazy
 	def observed_fields(self):
 		rv = self.blockQuery.block_discovery_triples(self.blockID)
 		# both processing and blinking status only have to show the discovery triplets
@@ -26,7 +27,7 @@ class Block(object):
 		# blink_rv = self.blockQuery.block_blinking_status(self.blockID)
 		return rv   # MODIFY TO SHOW PROCESSING STATUS AND BLINKING STATUS
 	
-	@property
+	@property.Lazy
 	def central_radec(self):
 		ret = self.blockQuery.central_radec(self.blockID)
 		# parse just the first bit for niceness
@@ -36,27 +37,27 @@ class Block(object):
 		dec2 = ret[1].split(':')[1] + "'"
 		return (ra, ra2, dec, dec2)
 
-	@property
+	@property.Lazy
 	def ecliptic_lat_span(self):
 		retval = self.blockQuery.ecliptic_lat_span(self.blockID)
 		return retval
 
-	@property
+	@property.Lazy
 	def numObs(self):
 		retval = self.blockQuery.num_block_images(self.blockID)
 		return retval
 
-	@property
+	@property.Lazy
 	def num_precoveries(self):
 		retval = self.blockQuery.block_precoveries(self.blockID)
 		return retval
 
-	@property
+	@property.Lazy
 	def num_nailings(self):
 		retval = self.blockQuery.block_nailings(self.blockID)
 		return retval
 
-	@property
+	@property.Lazy
 	def num_doubles(self):
 		retval = self.blockQuery.block_doubles(self.blockID)
 		return retval
