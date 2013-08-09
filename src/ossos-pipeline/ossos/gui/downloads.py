@@ -297,6 +297,12 @@ class ImageSliceDownloader(object):
 
         return vofile.read()
 
+    def download_object_planted(self, uri):
+
+        vofile = self.vosclient.open(uri, view='data')
+        return vofile.read()
+
+
     def download(self, downloadable_item):
         """
         Retrieves a remote image.
