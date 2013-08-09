@@ -48,6 +48,14 @@ ANGLE = "ANGLE"
 AWIDTH = "AWIDTH"
 
 
+def parse(filename):
+    return AstromParser().parse(filename)
+
+
+def parse_sources(filename):
+    return parse(filename).get_sources()
+
+
 class AstromFormatError(Exception):
     """Base class for errors in working with Astrom files."""
 
