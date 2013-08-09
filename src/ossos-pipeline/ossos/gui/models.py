@@ -290,7 +290,8 @@ class UIModel(object):
         self.download_manager.start_downloading_workunit(
             workunit, image_loaded_callback=self._on_image_loaded)
 
-    def _on_image_loaded(self, reading, image_reading):
+    def _on_image_loaded(self, image_reading):
+        reading = image_reading.reading
         self._image_reading_models[reading] = image_reading
         self._displayable_items[reading] = DisplayableImageSinglet(
             image_reading.hdulist)

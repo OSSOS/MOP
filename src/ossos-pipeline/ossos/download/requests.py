@@ -44,6 +44,6 @@ class DownloadRequest(object):
         download = ImageReading(self.reading, hdulist, converter, apcor)
 
         if self.on_finished_callback is not None:
-            self.on_finished_callback(self.reading, download)
+            self.on_finished_callback(download)
 
         return download
