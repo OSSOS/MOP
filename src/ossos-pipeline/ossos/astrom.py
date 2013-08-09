@@ -536,6 +536,10 @@ class Observation(object):
 
         return uri
 
+    def get_object_planted_uri(self):
+        return "%s/%s/ccd%s/Object.planted" % (DATASET_ROOT, self.expnum,
+                                               self.ccdnum)
+
     def get_apcor_uri(self):
         return "%s/%s/ccd%s/%s.apcor" % (DATASET_ROOT, self.expnum,
                                          self.ccdnum, self.rawname)
