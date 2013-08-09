@@ -33,15 +33,15 @@ class DownloadRequest(object):
         self.on_finished_callback = on_finished_callback
 
     def execute(self):
-        fits_str, converter = self.downloader.download_fits(
+        hdulist, converter = self.downloader.download_fits(
             self.reading, self.focal_point)
 
         if self.needs_apcor:
-            apcor_str = self.downloader.download_apcor(self.reading)
+            apcor = self.downloader.download_apcor(self.reading)
         else:
-            apcor_str = None
+            apcor = None
 
-        download = DownloadedFitsImage(fits_str, converter, apcor_str)
+        download = DownloadedFitsImage(hdulist, converter, apcor)
 
         if self.on_finished_callback is not None:
             self.on_finished_callback(self.reading, download)

@@ -3,13 +3,14 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 import unittest
 
+from astropy.io import fits
 from hamcrest import (assert_that, equal_to, has_length, contains,
                       same_instance, is_not, contains_inanyorder)
 from mock import patch, Mock
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from ossos.download.async import AsynchronousImageDownloadManager
-from ossos.download.data import DownloadedFitsImage
+from ossos.download.data import DownloadedFitsImage, ApcorData
 from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui import models, events, tasks
 from ossos.gui.models import ImageNotLoadedException
@@ -73,10 +74,11 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
 
     def create_real_first_image(self, path="data/testimg.fits"):
         # Put a real fits image on the first source, first observation
-        apcor_str = "4 15   0.19   0.01"
+        apcor = ApcorData.from_raw_string("4 15   0.19   0.01")
+        hdulist = fits.open(self.get_abs_path(path))
         with open(self.get_abs_path(path), "rb") as fh:
             self.first_image = DownloadedFitsImage(
-                fh.read(), CoordinateConverter(0, 0), apcor_str)
+                hdulist, CoordinateConverter(0, 0), apcor)
             first_reading = self.model.get_current_workunit().get_sources()[0].get_readings()[0]
             self.model._on_image_loaded(first_reading, self.first_image)
 

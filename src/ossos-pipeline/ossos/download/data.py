@@ -1,9 +1,6 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import cStringIO
 import tempfile
-
-from astropy.io import fits
 
 from ossos import astrom
 from ossos import wcs
@@ -14,46 +11,11 @@ class DownloadedFitsImage(object):
     A FITS file image which has been downloaded along with its apcor file.
     """
 
-    def __init__(self, fits_str, coord_converter, apcor_str=None):
-        """
-        Constructs a new FitsImage object.
-
-        Args:
-          fits_str: str
-            Raw data read from a FITS file in string format.
-          coord_converter: ossos.cutouts.CoordinateConverter
-            Converts coordinates from the original FITS file into pixel
-            locations.  Takes into account cutouts.
-          apcor_str: str:
-            Raw data from from the .apcor file associated with this image.
-            Defaults to None, in which case attempting to perform
-            astrometric calculations will raise a ValueError.
-        """
-        assert fits_str is not None, "No fits data"
-        assert coord_converter is not None, "Must have a coordinate converter"
-
+    def __init__(self, hdulist, coord_converter, apcor=None):
         self._coord_converter = coord_converter
-
-        if apcor_str is not None:
-            self._apcordata = ApcorData.from_raw_string(apcor_str)
-        else:
-            self._apcordata = None
-
-        self._hdulist = fits.open(cStringIO.StringIO(fits_str))
+        self._apcordata = apcor
+        self._hdulist = hdulist
         self._tempfile = None
-
-    def _create_hdulist(self, strdata):
-        return fits.open(cStringIO.StringIO(strdata))
-
-    def _create_tempfile(self, strdata=None):
-        tf = tempfile.NamedTemporaryFile(mode="r+b", suffix=".fits")
-
-        if strdata is not None:
-            tf.write(strdata)
-            tf.flush()
-            tf.seek(0)
-
-        return tf
 
     def has_apcord_data(self):
         return self._apcordata is not None

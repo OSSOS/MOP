@@ -2,12 +2,13 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 
+from astropy.io import fits
 from hamcrest import assert_that, equal_to
 from mock import patch
 
 from tests.base_tests import FileReadingTestCase
 from ossos.download.cutouts import CoordinateConverter
-from ossos.download.data import DownloadedFitsImage, ImageReading
+from ossos.download.data import DownloadedFitsImage, ImageReading, ApcorData
 from ossos.astrom import AstromParser
 
 
@@ -22,11 +23,10 @@ class ImageReadingIntegrationTest(FileReadingTestCase):
         self.reading = astrom_data.get_sources()[0].get_reading(0)
 
         # Load the real image
-        with open(self.path("cutout-1616687p.fits")) as fh:
-            fits_str = fh.read()
+        hdulist = fits.open(self.path("cutout-1616687p.fits"))
 
         with open(self.path("1616687p10.apcor")) as fh:
-            apcor_str = fh.read()
+            apcor = ApcorData.from_raw_string(fh.read())
 
         # NOTE: the test image
         # vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1616687/1616687p.fits
@@ -45,9 +45,9 @@ class ImageReadingIntegrationTest(FileReadingTestCase):
         x_offset = self.original_observed_x - self.original_pixel_x
         y_offset = self.original_observed_y - self.original_pixel_y
 
-        self.image = DownloadedFitsImage(fits_str,
+        self.image = DownloadedFitsImage(hdulist,
                                          CoordinateConverter(x_offset, y_offset),
-                                         apcor_str=apcor_str)
+                                         apcor=apcor)
 
         self.undertest = ImageReading(self.reading, self.image)
 
