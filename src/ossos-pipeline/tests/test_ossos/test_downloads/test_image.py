@@ -3,8 +3,9 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import unittest
 import os
 
+from astropy.io import fits
 from mock import Mock
-from hamcrest import assert_that, not_none, none, equal_to
+from hamcrest import assert_that, none, equal_to
 
 from tests.base_tests import FileReadingTestCase
 from ossos.download.data import DownloadedFitsImage, ApcorData
@@ -12,28 +13,26 @@ from ossos.download.data import DownloadedFitsImage, ApcorData
 
 class DownloadedFitsImageTest(FileReadingTestCase):
     def setUp(self):
-        with open(self.get_abs_path("data/testimg.fits"), "rb") as fh:
-            self.strdata = fh.read()
-
-        self.apcor_str = "4 15   0.19   0.01"
+        self.hdulist = fits.open(self.get_abs_path("data/testimg.fits"))
+        self.apcor = ApcorData.from_raw_string("4 15   0.19   0.01")
         self.coord_converter = Mock()
 
     def test_as_file(self):
-        fitsimage = DownloadedFitsImage(self.strdata, self.coord_converter,
-                                        self.apcor_str)
+        fitsimage = DownloadedFitsImage(self.hdulist, self.coord_converter,
+                                        self.apcor)
         assert_that(os.path.exists(fitsimage.as_file().name))
 
     def test_close(self):
-        fitsimage = DownloadedFitsImage(self.strdata, self.coord_converter,
-                                        self.apcor_str)
+        fitsimage = DownloadedFitsImage(self.hdulist, self.coord_converter,
+                                        self.apcor)
         as_file = fitsimage.as_file()
         assert_that(os.path.exists(as_file.name), equal_to(True))
 
         fitsimage.close()
         assert_that(os.path.exists(as_file.name), equal_to(False))
 
-    def test_no_apcord_data(self):
-        fitsimage = DownloadedFitsImage(self.strdata, self.coord_converter)
+    def test_no_apcor_data(self):
+        fitsimage = DownloadedFitsImage(self.hdulist, self.coord_converter)
         assert_that(fitsimage.has_apcord_data(), equal_to(False))
         assert_that(fitsimage.get_apcor_data(), none())
 

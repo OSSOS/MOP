@@ -1,7 +1,11 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import cStringIO
+
+from astropy.io import fits
 import vos
 
+from ossos.download.data import ApcorData
 from ossos.gui import config
 from ossos.gui import logger
 
@@ -54,7 +58,7 @@ class ImageCutoutDownloader(object):
         vofile = self.vosclient.open(image_uri, view="cutout",
                                      cutout=cutout_str)
 
-        return vofile.read(), converter
+        return fits.open(cStringIO.StringIO(vofile.read())), converter
 
     def download_apcor(self, reading):
         apcor_uri = reading.get_apcor_uri()
@@ -63,7 +67,7 @@ class ImageCutoutDownloader(object):
 
         vofile = self.vosclient.open(apcor_uri, view="data")
 
-        return vofile.read()
+        return ApcorData.from_raw_string(vofile.read())
 
     def refresh_vos_client(self):
         """
