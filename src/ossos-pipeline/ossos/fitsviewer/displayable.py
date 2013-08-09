@@ -176,6 +176,7 @@ class DisplayableImageTriplet(object):
         self._interaction_context = None
 
     def render(self, canvas=None):
+        # TODO: remove duplication with singlet
         if self.figure is None:
             self._do_render()
 
@@ -230,7 +231,7 @@ class _ImageTriplet(object):
         full_image = zscale(np.concatenate(map(_image_data, self.hdulists),
                                            axis=1))
 
-        # TODO: this knowledge should exist in only one place
+        # TODO: remove duplication with singlet
         # Add 1 because FITS images start at pixel 1,1 while matplotlib
         # starts at 0,0
         extent = (1, self.width + 1, self.height + 1, 1)
@@ -239,6 +240,7 @@ class _ImageTriplet(object):
                                            cmap=self._colormap.as_mpl_cmap())
 
     def _create_axes(self, figure, position):
+        # TODO: remove duplication with singlet
         # limits specified as [left, bottom, width, height]
         # leave 2.5% border all around
         border = 0.025
