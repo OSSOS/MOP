@@ -51,10 +51,11 @@ class AsynchronousImageDownloadManager(object):
                 self._focal_point_calculator.calculate_focal_points(source))
 
         for focal_point in focal_points:
-            self._work_queue.put(DownloadRequest(focal_point.reading,
-                                                  focal_point.point,
-                                                  needs_apcor,
-                                                  image_loaded_callback))
+            self._work_queue.put(DownloadRequest(self.downloader,
+                                                 focal_point.reading,
+                                                 focal_point.point,
+                                                 needs_apcor,
+                                                 image_loaded_callback))
 
     def retry_download(self, downloadable_item):
         self._work_queue.put(downloadable_item)

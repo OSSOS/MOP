@@ -114,9 +114,9 @@ class DownloadThreadTest(FileReadingTestCase):
 
         callback = Mock()
 
-        downloadable_item = DownloadRequest(reading, source, True, callback)
+        request = DownloadRequest(self.downloader, reading, source, True, callback)
 
-        self.undertest.do_download(downloadable_item)
+        self.undertest.do_download(request)
 
         callback.assert_called_once_with(reading, self.downloaded_image)
 

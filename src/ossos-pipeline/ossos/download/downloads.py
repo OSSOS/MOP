@@ -11,12 +11,14 @@ class DownloadRequest(object):
     Specifies an item (image and potentially related files) to be downloaded.
     """
 
-    def __init__(self, reading, focal_point, needs_apcor, on_finished_callback,
-                 in_memory=True):
+    def __init__(self, downloader, reading, focal_point, needs_apcor,
+                 on_finished_callback, in_memory=True):
         """
         Constructor.
 
         Args:
+          downloader:
+            The downloader which will execute this request.
           source_reading: ossos.astrom.SourceReading
             The reading which will be the focus of the downloaded image.
           focal_point: tuple(int, int)
@@ -30,6 +32,7 @@ class DownloadRequest(object):
             If True, the image is stored in memory without being written to
             disk.  If False, the image will be written to a temporary file.
         """
+        self.downloader = downloader
         self.reading = reading
         self.focal_point = focal_point
         self.needs_apcor = needs_apcor
