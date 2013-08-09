@@ -1,10 +1,9 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from ossos import wcs
-from ossos import astrom
+from ossos.download.data import ImageReading
+from ossos.fitsviewer.displayable import DisplayableImageSinglet
 from ossos.gui import events
 from ossos.gui import logger
-from ossos.fitsviewer.displayable import DisplayableImageSinglet
 from ossos.gui.workload import (NoAvailableWorkException, StatefulCollection,
                                 CandidatesWorkUnit, RealsWorkUnit)
 
@@ -402,112 +401,4 @@ class TransAckUIModel(UIModel):
             return True
 
         return False
-
-
-class ImageReading(object):
-    """
-    Associates a particular source reading with a downloaded FITS image.
-    """
-
-    def __init__(self, reading, fits_image):
-        self.reading = reading
-        self._fits_image = fits_image
-
-        self.original_observed_x = self.reading.x
-        self.original_observed_y = self.reading.y
-
-        self.observed_x = self.original_observed_x
-        self.observed_y = self.original_observed_y
-
-        self.pixel_x, self.pixel_y = self.get_pixel_location(
-            self.observed_source_point)
-
-        self._ra = self.reading.ra
-        self._dec = self.reading.dec
-
-        self._stale = False
-        self._adjusted = False
-
-    @property
-    def observed_source_point(self):
-        return self.observed_x, self.observed_y
-
-    @property
-    def pixel_source_point(self):
-        return self.pixel_x, self.pixel_y
-
-    def update_pixel_location(self, new_pixel_location):
-        self.pixel_x, self.pixel_y = new_pixel_location
-        self.observed_x, self.observed_y = self.get_observed_location(
-            new_pixel_location)
-
-        self._stale = True
-        self._adjusted = True
-
-    def reset_source_location(self):
-        self.observed_x = self.original_observed_x
-        self.observed_y = self.original_observed_y
-        self.pixel_x, self.pixel_y = self.get_pixel_location(self.observed_source_point)
-
-        self._stale = True
-        self._adjusted = False
-
-    @property
-    def ra(self):
-        self._lazy_refresh()
-        return self._ra
-
-    @property
-    def dec(self):
-        self._lazy_refresh()
-        return self._dec
-
-    def get_image(self):
-        return self._fits_image
-
-    def is_adjusted(self):
-        return self._adjusted
-
-    def get_pixel_location(self, observed_point):
-        return self._fits_image.get_pixel_coordinates(observed_point)
-
-    def get_observed_location(self, pixel_point):
-        return self._fits_image.get_observed_coordinates(pixel_point)
-
-    def get_observed_magnitude(self):
-        if not self._fits_image.has_apcord_data():
-            raise ValueError("Apcor data is required in order to calculate "
-                             "observed magnitude.")
-
-        # NOTE: this import is only here so that we don't load up IRAF
-        # unnecessarily (ex: for candidates processing).
-        from ossos import daophot
-
-        apcor_data = self._fits_image.get_apcor_data()
-        maxcount = float(self.reading.get_observation_header()["MAXCOUNT"])
-        return daophot.phot_mag(self._fits_image.as_file().name,
-                                self.pixel_x, self.pixel_y,
-                                aperture=apcor_data.aperture,
-                                sky=apcor_data.sky,
-                                swidth=apcor_data.swidth,
-                                apcor=apcor_data.apcor,
-                                maxcount=maxcount)
-
-    def _lazy_refresh(self):
-        if self._stale:
-            self._update_ra_dec()
-            self._stale = False
-
-    def _update_ra_dec(self):
-        astrom_header = self.reading.get_observation_header()
-        fits_header = self.get_image().get_fits_header()
-
-        self._ra, self._dec = wcs.xy2sky(self.observed_x, self.observed_y,
-                                         float(astrom_header[astrom.CRPIX1]),
-                                         float(astrom_header[astrom.CRPIX2]),
-                                         float(astrom_header[astrom.CRVAL1]),
-                                         float(astrom_header[astrom.CRVAL2]),
-                                         wcs.parse_cd(fits_header),
-                                         wcs.parse_pv(fits_header),
-                                         wcs.parse_order_fit(fits_header))
 

@@ -7,9 +7,8 @@ from mock import patch
 
 from tests.base_tests import FileReadingTestCase
 from ossos.download.cutouts import CoordinateConverter
-from ossos.download.data import DownloadedFitsImage
+from ossos.download.data import DownloadedFitsImage, ImageReading
 from ossos.astrom import AstromParser
-from ossos.gui.models import ImageReading
 
 
 class ImageReadingIntegrationTest(FileReadingTestCase):

@@ -7,8 +7,7 @@ from mock import Mock
 
 from tests.base_tests import FileReadingTestCase
 from ossos.astrom import AstromParser
-from ossos.download.data import DownloadedFitsImage
-from ossos.gui.models import ImageReading
+from ossos.download.data import DownloadedFitsImage, ImageReading
 
 
 class ImageReadingTest(FileReadingTestCase):
