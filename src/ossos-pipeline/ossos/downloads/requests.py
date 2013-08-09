@@ -8,8 +8,11 @@ class DownloadRequest(object):
     Specifies an item (image and potentially related files) to be downloaded.
     """
 
-    def __init__(self, downloader, reading, focal_point, needs_apcor,
-                 on_finished_callback):
+    def __init__(self, downloader,
+                 reading,
+                 focal_point=None,
+                 needs_apcor=False,
+                 callback=None):
         """
         Constructor.
 
@@ -22,15 +25,25 @@ class DownloadRequest(object):
             The x, y coordinates that should be the focus of the downloaded
             image.  These coordinates should be in terms of the
             source_reading parameter's coordinate system.
+            Default value is None, in which case the source reading's x, y
+            position is used as the focus.
           needs_apcor: bool
             If True, the apcor file with data needed for photometry
             calculations is downloaded in addition to the image.
+            Defaults to False.
+          callback: callable
+            An optional callback to be called with the downloaded snapshot
+            as its argument.
         """
         self.downloader = downloader
         self.reading = reading
-        self.focal_point = focal_point
         self.needs_apcor = needs_apcor
-        self.on_finished_callback = on_finished_callback
+        self.callback = callback
+
+        if focal_point is None:
+            self.focal_point = reading.source_point
+        else:
+            self.focal_point = focal_point
 
     def execute(self):
         hdulist, converter = self.downloader.download_fits(
@@ -43,7 +56,7 @@ class DownloadRequest(object):
 
         download = SourceSnapshot(self.reading, hdulist, converter, apcor)
 
-        if self.on_finished_callback is not None:
-            self.on_finished_callback(download)
+        if self.callback is not None:
+            self.callback(download)
 
         return download
