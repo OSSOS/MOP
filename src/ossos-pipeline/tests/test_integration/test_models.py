@@ -10,14 +10,15 @@ from mock import patch, Mock
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from ossos.download.async import AsynchronousImageDownloadManager
 from ossos.download.downloads import DownloadedFitsImage
-from ossos.gui import models, events, tasks
 from ossos.gui.context import LocalDirectoryWorkingContext
+from ossos.gui import models, events, tasks
 from ossos.gui.models import ImageNotLoadedException
 from ossos.astrom import AstromParser
-from ossos.cutouts import CoordinateConverter
+from ossos.download.cutouts import CoordinateConverter
 from ossos.gui.progress import LocalProgressManager
 from ossos.gui.workload import (WorkUnitProvider, RealsWorkUnitBuilder,
                                 CandidatesWorkUnitBuilder)
+
 
 MODEL_TEST_DIR_1 = "data/model_testdir_1"
 MODEL_TEST_DIR_2 = "data/model_testdir_2"

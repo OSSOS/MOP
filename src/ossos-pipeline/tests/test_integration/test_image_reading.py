@@ -8,7 +8,7 @@ from hamcrest import assert_that, equal_to
 from mock import patch
 
 from tests.base_tests import FileReadingTestCase
-from ossos.cutouts import CoordinateConverter
+from ossos.download.cutouts import CoordinateConverter
 from ossos.astrom import AstromParser
 from ossos.gui.models import ImageReading
 
