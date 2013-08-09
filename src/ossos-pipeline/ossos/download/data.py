@@ -6,82 +6,16 @@ from ossos import astrom
 from ossos import wcs
 
 
-class DownloadedFitsImage(object):
-    """
-    A FITS file image which has been downloaded along with its apcor file.
-    """
-
-    def __init__(self, hdulist, coord_converter, apcor=None):
-        self._coord_converter = coord_converter
-        self._apcordata = apcor
-        self._hdulist = hdulist
-        self._tempfile = None
-
-    def has_apcord_data(self):
-        return self._apcordata is not None
-
-    def get_pixel_coordinates(self, point):
-        """
-        Retrieves the pixel location of a point within the image given the
-        location in the original FITS image.  This takes into account that
-        the image may be a cutout of a larger original.
-
-        Args:
-          point: tuple(float, float)
-            (x, y) in original.
-
-        Returns:
-          (x, y) pixel in this image.
-        """
-        return self._coord_converter.convert(point)
-
-    def get_observed_coordinates(self, point):
-        """
-        Retrieves the location of a point using the coordinate system of
-        the original observation, i.e. the original image before any
-        cutouts were done.
-
-        Args:
-          point: tuple(float, float)
-            The pixel coordinates.
-
-        Returns:
-          (x, y) in the original image coordinate system.
-        """
-        return self._coord_converter.get_inverse_converter().convert(point)
-
-    def as_hdulist(self):
-        return self._hdulist
-
-    def as_file(self):
-        if self._tempfile is None:
-            self._tempfile = tempfile.NamedTemporaryFile(
-                mode="r+b", suffix=".fits")
-            self._hdulist.writeto(self._tempfile.name)
-
-        return self._tempfile
-
-    def get_apcor_data(self):
-        return self._apcordata
-
-    def get_fits_header(self):
-        return self.as_hdulist()[0].header
-
-    def close(self):
-        if self._hdulist is not None:
-            self._hdulist.close()
-        if self._tempfile is not None:
-            self._tempfile.close()
-
-
 class ImageReading(object):
     """
     Associates a particular source reading with a downloaded FITS image.
     """
 
-    def __init__(self, reading, fits_image):
+    def __init__(self, reading, hdulist, coordinate_converter, apcor=None):
         self.reading = reading
-        self._fits_image = fits_image
+        self.hdulist = hdulist
+        self.coordinate_converter = coordinate_converter
+        self.apcor = apcor
 
         self.original_observed_x = self.reading.x
         self.original_observed_y = self.reading.y
@@ -97,6 +31,8 @@ class ImageReading(object):
 
         self._stale = False
         self._adjusted = False
+
+        self._tempfile = None
 
     @property
     def observed_source_point(self):
@@ -132,20 +68,52 @@ class ImageReading(object):
         self._lazy_refresh()
         return self._dec
 
-    def get_image(self):
-        return self._fits_image
+    def get_fits_header(self):
+        return self.hdulist[0].header
 
     def is_adjusted(self):
         return self._adjusted
 
     def get_pixel_location(self, observed_point):
-        return self._fits_image.get_pixel_coordinates(observed_point)
+        # TODO: inline
+        return self.get_pixel_coordinates(observed_point)
 
     def get_observed_location(self, pixel_point):
-        return self._fits_image.get_observed_coordinates(pixel_point)
+        # TODO: inline
+        return self.get_observed_coordinates(pixel_point)
+
+    def get_pixel_coordinates(self, point):
+        """
+        Retrieves the pixel location of a point within the image given the
+        location in the original FITS image.  This takes into account that
+        the image may be a cutout of a larger original.
+
+        Args:
+          point: tuple(float, float)
+            (x, y) in original.
+
+        Returns:
+          (x, y) pixel in this image.
+        """
+        return self.coordinate_converter.convert(point)
+
+    def get_observed_coordinates(self, point):
+        """
+        Retrieves the location of a point using the coordinate system of
+        the original observation, i.e. the original image before any
+        cutouts were done.
+
+        Args:
+          point: tuple(float, float)
+            The pixel coordinates.
+
+        Returns:
+          (x, y) in the original image coordinate system.
+        """
+        return self.coordinate_converter.get_inverse_converter().convert(point)
 
     def get_observed_magnitude(self):
-        if not self._fits_image.has_apcord_data():
+        if self.apcor is None:
             raise ValueError("Apcor data is required in order to calculate "
                              "observed magnitude.")
 
@@ -153,15 +121,29 @@ class ImageReading(object):
         # unnecessarily (ex: for candidates processing).
         from ossos import daophot
 
-        apcor_data = self._fits_image.get_apcor_data()
         maxcount = float(self.reading.get_observation_header()["MAXCOUNT"])
-        return daophot.phot_mag(self._fits_image.as_file().name,
+        return daophot.phot_mag(self._hdulist_on_disk(),
                                 self.pixel_x, self.pixel_y,
-                                aperture=apcor_data.aperture,
-                                sky=apcor_data.sky,
-                                swidth=apcor_data.swidth,
-                                apcor=apcor_data.apcor,
+                                aperture=self.apcor.aperture,
+                                sky=self.apcor.sky,
+                                swidth=self.apcor.swidth,
+                                apcor=self.apcor.apcor,
                                 maxcount=maxcount)
+
+    def _hdulist_on_disk(self):
+        """
+        IRAF routines such as daophot need input on disk.
+
+        Returns:
+          filename: str
+            The name of the file containing the FITS data.
+        """
+        if self._tempfile is None:
+            self._tempfile = tempfile.NamedTemporaryFile(
+                mode="r+b", suffix=".fits")
+            self.hdulist.writeto(self._tempfile.name)
+
+        return self._tempfile.name
 
     def _lazy_refresh(self):
         if self._stale:
@@ -170,7 +152,7 @@ class ImageReading(object):
 
     def _update_ra_dec(self):
         astrom_header = self.reading.get_observation_header()
-        fits_header = self.get_image().get_fits_header()
+        fits_header = self.get_fits_header()
 
         self._ra, self._dec = wcs.xy2sky(self.observed_x, self.observed_y,
                                          float(astrom_header[astrom.CRPIX1]),
@@ -211,4 +193,3 @@ class ApcorData(object):
     @property
     def swidth(self):
         return self.ap_in
-

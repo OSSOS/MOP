@@ -1,11 +1,10 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import os
 import tempfile
 import unittest
 
 from hamcrest import assert_that, equal_to, contains
-from mock import Mock, call
+from mock import Mock, call, MagicMock
 
 import vos
 
@@ -20,7 +19,11 @@ class DownloadTest(FileReadingTestCase):
         self.image_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/1584431p15.fits"
         self.apcor_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/ccd15/1584431p15.apcor"
 
-        self.reading = Mock(spec=SourceReading)
+        self.reading = MagicMock(spec=SourceReading)
+        self.reading.x = 0
+        self.reading.y = 0
+        self.reading.ra = 0
+        self.reading.dec = 0
         self.reading.get_image_uri.return_value = self.image_uri
         self.reading.get_apcor_uri.return_value = self.apcor_uri
         self.reading.get_extension.return_value = 19
@@ -67,7 +70,7 @@ class DownloadTest(FileReadingTestCase):
     def test_request_image_cutout(self):
         request = self.make_request()
 
-        fitsfile = request.execute()
+        download = request.execute()
 
         assert_that(self.vosclient.open.call_args_list, contains(
             call(self.image_uri, view="cutout", cutout="[19][50:100,30:130]"),
@@ -76,7 +79,7 @@ class DownloadTest(FileReadingTestCase):
 
         # This is just a test file, make sure we can read an expected value
         # it.  It won't have the right shape necessarily though.
-        assert_that(fitsfile.as_hdulist()[0].header["FILENAME"],
+        assert_that(download.get_fits_header()["FILENAME"],
                     equal_to("u5780205r_cvt.c0h"))
 
     def test_download_callback(self):

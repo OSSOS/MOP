@@ -4,11 +4,11 @@ import unittest
 
 from astropy.io import fits
 from hamcrest import assert_that, equal_to
-from mock import patch
+from mock import patch, ANY
 
 from tests.base_tests import FileReadingTestCase
 from ossos.download.cutouts import CoordinateConverter
-from ossos.download.data import DownloadedFitsImage, ImageReading, ApcorData
+from ossos.download.data import ImageReading, ApcorData
 from ossos.astrom import AstromParser
 
 
@@ -45,11 +45,9 @@ class ImageReadingIntegrationTest(FileReadingTestCase):
         x_offset = self.original_observed_x - self.original_pixel_x
         y_offset = self.original_observed_y - self.original_pixel_y
 
-        self.image = DownloadedFitsImage(hdulist,
-                                         CoordinateConverter(x_offset, y_offset),
-                                         apcor=apcor)
-
-        self.undertest = ImageReading(self.reading, self.image)
+        self.undertest = ImageReading(self.reading, hdulist,
+                                      CoordinateConverter(x_offset, y_offset),
+                                      apcor=apcor)
 
         assert_that(self.undertest.observed_x, equal_to(self.original_observed_x))
         assert_that(self.undertest.observed_y, equal_to(self.original_observed_y))
@@ -109,7 +107,7 @@ class ImageReadingIntegrationTest(FileReadingTestCase):
 
         # NOTE: the x and y passed in must be the PIXEL coordinates
         mock_phot_mag.assert_called_once_with(
-            self.image.as_file().name,
+            ANY,
             self.original_pixel_x,
             self.original_pixel_y,
             aperture=5.0,
