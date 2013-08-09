@@ -1,6 +1,6 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from ossos.download.data import SourceSnapshot
+from ossos.downloads.data import SourceSnapshot
 from ossos.fitsviewer.displayable import DisplayableImageSinglet
 from ossos.gui import events
 from ossos.gui import logger

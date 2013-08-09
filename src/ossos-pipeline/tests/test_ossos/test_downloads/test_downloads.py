@@ -10,8 +10,8 @@ import vos
 
 from tests.base_tests import FileReadingTestCase
 from ossos.astrom import SourceReading
-from ossos.download.cutouts import ImageCutoutDownloader
-from ossos.download.requests import DownloadRequest
+from ossos.downloads.cutouts import ImageCutoutDownloader
+from ossos.downloads.requests import DownloadRequest
 
 
 class DownloadTest(FileReadingTestCase):

@@ -7,8 +7,8 @@ from hamcrest import assert_that, equal_to
 from mock import patch, ANY
 
 from tests.base_tests import FileReadingTestCase
-from ossos.download.cutouts import CoordinateConverter
-from ossos.download.data import SourceSnapshot, ApcorData
+from ossos.downloads.cutouts import CoordinateConverter
+from ossos.downloads.data import SourceSnapshot, ApcorData
 from ossos.astrom import AstromParser
 
 

@@ -1,4 +1,4 @@
-from ossos.download.async import AsynchronousImageDownloadManager
+from ossos.downloads.async import AsynchronousImageDownloadManager
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 

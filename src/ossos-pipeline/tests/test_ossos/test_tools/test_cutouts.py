@@ -4,7 +4,7 @@ import unittest
 
 from hamcrest import assert_that, equal_to, close_to
 
-from ossos.download.cutouts import CutoutCalculator, CoordinateConverter
+from ossos.downloads.cutouts import CutoutCalculator, CoordinateConverter
 
 
 class CutoutCalculatorTest(unittest.TestCase):

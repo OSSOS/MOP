@@ -9,13 +9,13 @@ from hamcrest import (assert_that, equal_to, has_length, contains,
 from mock import patch, Mock
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
-from ossos.download.async import AsynchronousImageDownloadManager
-from ossos.download.data import ApcorData, SourceSnapshot
+from ossos.downloads.async import AsynchronousImageDownloadManager
+from ossos.downloads.data import ApcorData, SourceSnapshot
 from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui import models, events, tasks
 from ossos.gui.models import ImageNotLoadedException
 from ossos.astrom import AstromParser
-from ossos.download.cutouts import CoordinateConverter
+from ossos.downloads.cutouts import CoordinateConverter
 from ossos.gui.progress import LocalProgressManager
 from ossos.gui.workload import (WorkUnitProvider, RealsWorkUnitBuilder,
                                 CandidatesWorkUnitBuilder)

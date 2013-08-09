@@ -5,7 +5,7 @@ import cStringIO
 from astropy.io import fits
 import vos
 
-from ossos.download.data import ApcorData
+from ossos.downloads.data import ApcorData
 from ossos.gui import config
 from ossos.gui import logger
 

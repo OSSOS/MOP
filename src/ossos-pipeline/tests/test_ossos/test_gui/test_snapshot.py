@@ -7,8 +7,8 @@ from mock import Mock
 
 from tests.base_tests import FileReadingTestCase
 from ossos.astrom import AstromParser
-from ossos.download.cutouts import CoordinateConverter
-from ossos.download.data import SourceSnapshot
+from ossos.downloads.cutouts import CoordinateConverter
+from ossos.downloads.data import SourceSnapshot
 
 
 class SourceSnapshotTest(FileReadingTestCase):
