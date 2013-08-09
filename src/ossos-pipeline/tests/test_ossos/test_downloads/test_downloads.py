@@ -65,7 +65,9 @@ class DownloadTest(FileReadingTestCase):
 
     def make_request(self, callback=None):
         return DownloadRequest(self.downloader, self.reading,
-                               self.focal_point, self.needs_apcor, callback)
+                               needs_apcor=self.needs_apcor,
+                               focal_point=self.focal_point,
+                               callback=callback)
 
     def test_request_image_cutout(self):
         request = self.make_request()
