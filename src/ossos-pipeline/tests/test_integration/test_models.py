@@ -79,7 +79,7 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
         first_reading = self.model.get_current_workunit().get_sources()[0].get_readings()[0]
         self.first_image = ImageReading(
             first_reading, hdulist, CoordinateConverter(0, 0), apcor)
-        self.model._on_image_loaded(first_reading, self.first_image)
+        self.model._on_image_loaded(self.first_image)
 
 
 class AbstractRealsModelTest(GeneralModelTest):
@@ -223,23 +223,23 @@ class AbstractRealsModelTest(GeneralModelTest):
     def test_loading_images(self, mock_DisplayableImageSinglet):
         observer = Mock()
         events.subscribe(events.IMG_LOADED, observer.on_img_loaded)
-        loaded_reading1 = Mock()
         image1 = Mock()
-        loaded_reading2 = Mock()
+        loaded_reading1 = image1.reading
         image2 = Mock()
+        loaded_reading2 = image2.reading
 
         assert_that(self.download_manager.start_downloading_workunit.call_count,
                     equal_to(1))
         assert_that(self.model.get_loaded_image_count(), equal_to(0))
 
         # Simulate receiving callback
-        self.model._on_image_loaded(loaded_reading1, image1)
+        self.model._on_image_loaded(image1)
         assert_that(self.model.get_loaded_image_count(), equal_to(1))
         assert_that(observer.on_img_loaded.call_count, equal_to(1))
         assert_that(mock_DisplayableImageSinglet.call_count, equal_to(1))
 
         # Simulate receiving callback
-        self.model._on_image_loaded(loaded_reading2, image2)
+        self.model._on_image_loaded(image2)
         assert_that(self.model.get_loaded_image_count(), equal_to(2))
         assert_that(observer.on_img_loaded.call_count, equal_to(2))
         assert_that(mock_DisplayableImageSinglet.call_count, equal_to(2))

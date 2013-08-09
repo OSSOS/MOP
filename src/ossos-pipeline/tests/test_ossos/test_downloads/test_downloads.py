@@ -85,7 +85,7 @@ class DownloadTest(FileReadingTestCase):
     def test_download_callback(self):
         callback = Mock()
         download = self.make_request(callback).execute()
-        callback.assert_called_once_with(self.reading, download)
+        callback.assert_called_once_with(download)
 
 
 if __name__ == '__main__':
