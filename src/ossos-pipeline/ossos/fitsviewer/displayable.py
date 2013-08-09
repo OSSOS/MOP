@@ -39,11 +39,11 @@ class DisplayableImageSinglet(object):
 
     @property
     def image_width(self):
-        return self.image_data.shape[0]
+        return self.image_data.shape[1]
 
     @property
     def image_height(self):
-        return self.image_data.shape[1]
+        return self.image_data.shape[0]
 
     def render(self, canvas=None):
         if self.figure is None:
