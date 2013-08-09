@@ -37,11 +37,11 @@ class DisplayableImageSinglet(object):
         return _image_data(self.hdulist)
 
     @property
-    def image_width(self):
+    def width(self):
         return _image_width(self.hdulist)
 
     @property
-    def image_height(self):
+    def height(self):
         return _image_height(self.hdulist)
 
     def render(self, canvas=None):
@@ -62,8 +62,8 @@ class DisplayableImageSinglet(object):
             self._apply_event_handlers(canvas)
 
     def update_colormap(self, dx, dy):
-        contrast_diff = float(-dy) / self.image_height
-        bias_diff = float(dx) / self.image_width
+        contrast_diff = float(-dy) / self.height
+        bias_diff = float(dx) / self.width
 
         self._colormap.update_contrast(contrast_diff)
         self._colormap.update_bias(bias_diff)
@@ -131,7 +131,7 @@ class DisplayableImageSinglet(object):
 
         # Add 1 because FITS images start at pixel 1,1 while matplotlib
         # starts at 0,0
-        extent = (1, self.image_width + 1, self.image_height + 1, 1)
+        extent = (1, self.width + 1, self.height + 1, 1)
         self.axes_image = plt.imshow(zscale(self.image_data),
                                      extent=extent,
                                      cmap=self._colormap.as_mpl_cmap())
@@ -148,8 +148,8 @@ class DisplayableImageSinglet(object):
         axes = plt.Axes(self.figure, [0.025, 0.025, 0.95, 0.95])
 
         # Make the axes fit the image tightly
-        axes.set_xlim([0, self.image_width])
-        axes.set_ylim([0, self.image_height])
+        axes.set_xlim([0, self.width])
+        axes.set_ylim([0, self.height])
 
         # # Don't draw tick marks and labels
         axes.set_axis_off()
@@ -213,11 +213,11 @@ class _ImageTriplet(object):
         self._colormap = GrayscaleColorMap()
 
     @property
-    def total_width(self):
+    def width(self):
         return sum(map(_image_width, self.hdulists))
 
     @property
-    def total_height(self):
+    def height(self):
         return _image_height(self.hdulists[0])
 
     def render(self, figure, position):
@@ -233,7 +233,7 @@ class _ImageTriplet(object):
         # TODO: this knowledge should exist in only one place
         # Add 1 because FITS images start at pixel 1,1 while matplotlib
         # starts at 0,0
-        extent = (1, self.total_width + 1, self.total_height + 1, 1)
+        extent = (1, self.width + 1, self.height + 1, 1)
         self.axes_image = self.axes.imshow(full_image,
                                            extent=extent,
                                            cmap=self._colormap.as_mpl_cmap())
@@ -248,8 +248,8 @@ class _ImageTriplet(object):
         self.axes = figure.add_axes([border, bottom, width, height])
 
         # Make the axes fit the image tightly
-        self.axes.set_xlim([0, self.total_width])
-        self.axes.set_ylim([0, self.total_height])
+        self.axes.set_xlim([0, self.width])
+        self.axes.set_ylim([0, self.height])
 
         # Don't draw tick marks and labels
         self.axes.set_axis_off()
