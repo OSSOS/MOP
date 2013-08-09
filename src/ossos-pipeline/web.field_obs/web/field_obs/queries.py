@@ -45,7 +45,7 @@ class ImagesQuery(object):
 			errors = self.collate_errors(proc_keys)
 			ordered_errors = self.order_errors_in_pipeline(errors)
 
-			retrow.append(order)
+			retrow.append(ordered_errors)
 			retval.append(retrow)
 
 		return retval
