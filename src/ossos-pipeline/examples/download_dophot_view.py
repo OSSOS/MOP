@@ -8,8 +8,8 @@ from ossos import fitsviewer
 from ossos.downloads import cutouts
 from ossos.downloads import requests
 
-astrom_data = astrom.AstromParser().parse("../tests/data/astromdir/realstest2.measure3.reals.astrom")
-reading = astrom_data.get_sources()[0].get_reading(0)
+sources = astrom.parse_sources("../tests/data/astromdir/realstest2.measure3.reals.astrom")
+reading = sources[0].get_reading(0)
 
 downloader = cutouts.ImageCutoutDownloader(slice_rows=50, slice_cols=50)
 request = requests.DownloadRequest(downloader, reading, needs_apcor=True)
