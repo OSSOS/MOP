@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import Queue
 import threading
 
-from ossos.download.downloads import DownloadableItem
+from ossos.download.downloads import DownloadRequest
 from ossos.download.focus import SingletFocalPointCalculator
 from ossos.gui import logger
 
@@ -51,7 +51,7 @@ class AsynchronousImageDownloadManager(object):
                 self._focal_point_calculator.calculate_focal_points(source))
 
         for focal_point in focal_points:
-            self._work_queue.put(DownloadableItem(focal_point.reading,
+            self._work_queue.put(DownloadRequest(focal_point.reading,
                                                   focal_point.point,
                                                   needs_apcor,
                                                   image_loaded_callback))
