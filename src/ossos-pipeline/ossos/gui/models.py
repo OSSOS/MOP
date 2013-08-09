@@ -1,6 +1,6 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from ossos.download.data import ImageReading
+from ossos.download.data import SourceSnapshot
 from ossos.fitsviewer.displayable import DisplayableImageSinglet
 from ossos.gui import events
 from ossos.gui import logger
@@ -31,7 +31,7 @@ class UIModel(object):
         self.num_processed = 0
 
         # Maps each reading to its image-reading model (once downloaded)
-        self._image_reading_models = {}
+        self._snapshots = {}
 
         # Maps each reading to its displayable item (once downloaded)
         self._displayable_items = {}
@@ -123,7 +123,7 @@ class UIModel(object):
         return self.get_current_workunit().is_current_source_finished()
 
     def is_current_source_adjusted(self):
-        return self._get_current_image_reading().is_adjusted()
+        return self.get_current_snapshot().is_adjusted()
 
     def get_num_items_processed(self):
         return self.num_processed
@@ -183,13 +183,13 @@ class UIModel(object):
 
     def get_current_ra(self):
         try:
-            return self._get_current_image_reading().ra
+            return self.get_current_snapshot().ra
         except ImageNotLoadedException:
             return self.get_current_reading().ra
 
     def get_current_dec(self):
         try:
-            return self._get_current_image_reading().dec
+            return self.get_current_snapshot().dec
         except ImageNotLoadedException:
             return self.get_current_reading().dec
 
@@ -204,7 +204,7 @@ class UIModel(object):
 
     def get_current_image(self):
         # TODO: inline
-        return self._get_current_image_reading()
+        return self.get_current_snapshot()
 
     def get_current_displayable_item(self):
         try:
@@ -216,10 +216,10 @@ class UIModel(object):
         return self.get_current_fits_header()["FILTER"][0]
 
     def get_current_pixel_source_point(self):
-        return self._get_current_image_reading().pixel_source_point
+        return self.get_current_snapshot().pixel_source_point
 
     def get_current_source_observed_magnitude(self):
-        return self._get_current_image_reading().get_observed_magnitude()
+        return self.get_current_snapshot().get_observed_magnitude()
 
     def get_current_image_FWHM(self):
         return float(self.get_current_astrom_header()["FWHM"])
@@ -228,7 +228,7 @@ class UIModel(object):
         return float(self.get_current_astrom_header()["MAXCOUNT"])
 
     def get_loaded_image_count(self):
-        return len(self._image_reading_models)
+        return len(self._snapshots)
 
     def stop_loading_images(self):
         self.download_manager.stop_download()
@@ -251,10 +251,10 @@ class UIModel(object):
             The source location using pixel coordinates from the
             displayed image (may be a cutout).
         """
-        self._get_current_image_reading().update_pixel_location(new_location)
+        self.get_current_snapshot().update_pixel_location(new_location)
 
     def reset_current_source_location(self):
-        self._get_current_image_reading().reset_source_location()
+        self.get_current_snapshot().reset_source_location()
 
     def enable_synchronization(self):
         if self.synchronization_manager:
@@ -280,9 +280,9 @@ class UIModel(object):
     def is_processing_reals(self):
         return isinstance(self.get_current_workunit(), RealsWorkUnit)
 
-    def _get_current_image_reading(self):
+    def get_current_snapshot(self):
         try:
-            return self._image_reading_models[self.get_current_reading()]
+            return self._snapshots[self.get_current_reading()]
         except KeyError:
             raise ImageNotLoadedException()
 
@@ -290,11 +290,11 @@ class UIModel(object):
         self.download_manager.start_downloading_workunit(
             workunit, image_loaded_callback=self._on_image_loaded)
 
-    def _on_image_loaded(self, image_reading):
-        reading = image_reading.reading
-        self._image_reading_models[reading] = image_reading
+    def _on_image_loaded(self, snapshot):
+        reading = snapshot.reading
+        self._snapshots[reading] = snapshot
         self._displayable_items[reading] = DisplayableImageSinglet(
-            image_reading.hdulist)
+            snapshot.hdulist)
         events.send(events.IMG_LOADED, reading)
 
     def _on_finished_workunit(self, results_file_paths):

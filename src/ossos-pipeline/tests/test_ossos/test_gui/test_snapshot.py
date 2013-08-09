@@ -8,10 +8,10 @@ from mock import Mock
 from tests.base_tests import FileReadingTestCase
 from ossos.astrom import AstromParser
 from ossos.download.cutouts import CoordinateConverter
-from ossos.download.data import ImageReading
+from ossos.download.data import SourceSnapshot
 
 
-class ImageReadingTest(FileReadingTestCase):
+class SourceSnapshotTest(FileReadingTestCase):
     def setUp(self):
         test_file = "data/image_reading/realstest2.measure3.reals.astrom"
         astrom_data = AstromParser().parse(self.get_abs_path(test_file))
@@ -24,7 +24,7 @@ class ImageReadingTest(FileReadingTestCase):
         self.offset_y = 15
         coordinate_converter = CoordinateConverter(self.offset_x, self.offset_y)
 
-        self.undertest = ImageReading(self.reading, Mock(), coordinate_converter)
+        self.undertest = SourceSnapshot(self.reading, Mock(), coordinate_converter)
 
         self.mock_update_ra_dec = Mock()
         self.undertest._update_ra_dec = self.mock_update_ra_dec

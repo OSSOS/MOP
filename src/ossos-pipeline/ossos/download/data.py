@@ -6,9 +6,12 @@ from ossos import astrom
 from ossos import wcs
 
 
-class ImageReading(object):
+class SourceSnapshot(object):
     """
-    Associates a particular source reading with a downloaded FITS image.
+    A snapshot of a source.
+
+    A snapshot is comprised of a source reading, a FITS image, and
+    potentially the observation's apcor data.
     """
 
     def __init__(self, reading, hdulist, coordinate_converter, apcor=None):
