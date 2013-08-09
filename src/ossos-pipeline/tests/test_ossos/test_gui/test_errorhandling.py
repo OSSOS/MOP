@@ -8,7 +8,7 @@ from mock import Mock
 from ossos.gui.app import ValidationApplication
 from ossos.gui.errorhandling import DownloadErrorHandler
 from ossos.gui.views.app import ApplicationView
-from ossos.gui.downloads import DownloadableItem
+from ossos.download.downloads import DownloadableItem
 
 
 class VOSpaceErrorHandlerTest(unittest.TestCase):

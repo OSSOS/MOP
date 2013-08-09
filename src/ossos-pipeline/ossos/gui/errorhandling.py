@@ -21,7 +21,7 @@ class DownloadErrorHandler(object):
         Args:
           error: Exception
             The error that has occured.
-          downloadable_item: ossos.downloads.DownloadableItem
+          downloadable_item: ossos.download.DownloadableItem
             The item that was being downloaded when the error occurred.
         """
         if not hasattr(error, "errno"):

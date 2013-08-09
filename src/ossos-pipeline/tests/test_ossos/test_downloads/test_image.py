@@ -3,11 +3,11 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import unittest
 import os
 
-from mock import Mock, patch
+from mock import Mock
 from hamcrest import assert_that, not_none, none, equal_to
 
 from tests.base_tests import FileReadingTestCase
-from ossos.gui.image import DownloadedFitsImage, ApcorData
+from ossos.download.downloads import DownloadedFitsImage, ApcorData
 
 
 class DownloadedFitsImageTest(FileReadingTestCase):

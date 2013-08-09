@@ -31,14 +31,14 @@ class ObservationTest(unittest.TestCase):
         self.assertEquals(expected, actual)
 
     def test_format_line(self):
-        actual = str(mpc.Observation("12345", "A234567", "*", "M", "N", "2012 10 21.405160",
+        actual = str(mpc.Observation("12345", "A234567", "*", "H", "N", "2012 10 21.405160",
                                      "26.683336700", # 01 46 44.001
                                      "29.220353200", # +29 13 13.27
                                      "12.4",
                                      "A",
                                      "523"))
 
-        expected = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         12.4 A      523"
+        expected = "12345A234567*HN2012 10 21.40516001 46 44.001+29 13 13.27         12.4 A      523"
 
         assert_that(actual, has_length(80))
         self.assertEquals(actual, expected)
@@ -54,7 +54,7 @@ class ObservationTest(unittest.TestCase):
                           minor_planet_number="123456", # Too long
                           provisional_name="A234567",
                           discovery="*",
-                          note1="M",
+                          note1="H",
                           note2="N",
                           date="2012 10 21.405160",
                           ra="26.683336700",
@@ -69,7 +69,7 @@ class ObservationTest(unittest.TestCase):
                           minor_planet_number="12345",
                           provisional_name="A2345678", # Too long
                           discovery="*",
-                          note1="M",
+                          note1="H",
                           note2="N",
                           date="2012 10 21.405160",
                           ra="26.683336700",
@@ -84,7 +84,7 @@ class ObservationTest(unittest.TestCase):
                           minor_planet_number="12345",
                           provisional_name="", # Too short
                           discovery="*",
-                          note1="M",
+                          note1="H",
                           note2="N",
                           date="2012 10 21.405160",
                           ra="26.683336700",
@@ -99,7 +99,7 @@ class ObservationTest(unittest.TestCase):
                           minor_planet_number="12345",
                           provisional_name="9abc", # Doesn't start with letter
                           discovery="*",
-                          note1="M",
+                          note1="H",
                           note2="N",
                           date="2012 10 21.405160",
                           ra="26.683336700",
@@ -114,7 +114,7 @@ class ObservationTest(unittest.TestCase):
                           minor_planet_number="12345",
                           provisional_name="A234567",
                           discovery="**",
-                          note1="M",
+                          note1="H",
                           note2="N",
                           date="2012 10 21.405160",
                           ra="26.683336700",
@@ -129,7 +129,7 @@ class ObservationTest(unittest.TestCase):
                           minor_planet_number="12345",
                           provisional_name="A234567",
                           discovery="*",
-                          note1="MM",
+                          note1="HH",
                           note2="N",
                           date="2012 10 21.405160",
                           ra="26.683336700",
@@ -144,7 +144,7 @@ class ObservationTest(unittest.TestCase):
                           minor_planet_number="12345",
                           provisional_name="A234567",
                           discovery="*",
-                          note1="M",
+                          note1="H",
                           note2="NN",
                           date="2012 10 21.405160",
                           ra="26.683336700",
@@ -159,7 +159,7 @@ class ObservationTest(unittest.TestCase):
                           minor_planet_number="12345",
                           provisional_name="A234567",
                           discovery="*",
-                          note1="M",
+                          note1="H",
                           note2="N",
                           date="10 21.405160 2012",
                           ra="26.683336700",
@@ -174,7 +174,7 @@ class ObservationTest(unittest.TestCase):
                           minor_planet_number="12345",
                           provisional_name="A234567",
                           discovery="*",
-                          note1="M",
+                          note1="H",
                           note2="N",
                           date="2012 10 21.405160",
                           ra="26.F",
@@ -189,7 +189,7 @@ class ObservationTest(unittest.TestCase):
                           minor_planet_number="12345",
                           provisional_name="A234567",
                           discovery="*",
-                          note1="M",
+                          note1="H",
                           note2="N",
                           date="2012 10 21.405160",
                           ra="26.683336700",
@@ -204,7 +204,7 @@ class ObservationTest(unittest.TestCase):
                           minor_planet_number="12345",
                           provisional_name="A234567",
                           discovery="*",
-                          note1="M",
+                          note1="H",
                           note2="N",
                           date="2012 10 21.405160",
                           ra="26.683336700",
@@ -259,7 +259,7 @@ class MPCWriterTest(unittest.TestCase):
         obs = mpc.Observation(minor_planet_number="12345",
                               provisional_name="A234567",
                               discovery="*",
-                              note1="M",
+                              note1="H",
                               note2="N",
                               date="2012 10 21.405160",
                               ra="26.683336700", # 01 46 44.001
@@ -270,7 +270,7 @@ class MPCWriterTest(unittest.TestCase):
 
         self.undertest.write(obs)
 
-        expected = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         123.5A      523\n"
+        expected = "12345A234567*HN2012 10 21.40516001 46 44.001+29 13 13.27         123.5A      523\n"
 
         actual = self.read_outputfile()
 
@@ -282,7 +282,7 @@ class MPCWriterTest(unittest.TestCase):
         obs = mpc.Observation(minor_planet_number="12345",
                               provisional_name="A234567",
                               discovery="*",
-                              note1="M",
+                              note1="H",
                               note2="N",
                               date="2012 10 21.405160",
                               ra=26.683336700, # 01 46 44.001
@@ -293,7 +293,7 @@ class MPCWriterTest(unittest.TestCase):
 
         self.undertest.write(obs)
 
-        expected = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         123.5A      523\n"
+        expected = "12345A234567*HN2012 10 21.40516001 46 44.001+29 13 13.27         123.5A      523\n"
 
         actual = self.read_outputfile()
 
@@ -305,7 +305,7 @@ class MPCWriterTest(unittest.TestCase):
         obs = mpc.Observation(minor_planet_number="12345",
                               provisional_name="A234567",
                               discovery="*",
-                              note1="M",
+                              note1="H",
                               note2="N",
                               date="2012 10 21.405160",
                               ra=26.683336700, # 01 46 44.001
@@ -316,7 +316,7 @@ class MPCWriterTest(unittest.TestCase):
 
         self.undertest.write(obs)
 
-        expected = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         22.52A      523\n"
+        expected = "12345A234567*HN2012 10 21.40516001 46 44.001+29 13 13.27         22.52A      523\n"
 
         actual = self.read_outputfile()
 
@@ -328,7 +328,7 @@ class MPCWriterTest(unittest.TestCase):
         obs = mpc.Observation(minor_planet_number="12345",
                               provisional_name="A234567",
                               discovery="*",
-                              note1="M",
+                              note1="H",
                               note2="N",
                               date="2012 10 21.405160",
                               ra=26.683336700,
@@ -339,7 +339,7 @@ class MPCWriterTest(unittest.TestCase):
 
         self.undertest.write(obs)
 
-        expected = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         22.52A      523\n"
+        expected = "12345A234567*HN2012 10 21.40516001 46 44.001+29 13 13.27         22.52A      523\n"
 
         actual = self.read_outputfile()
 
@@ -351,7 +351,7 @@ class MPCWriterTest(unittest.TestCase):
         obs = mpc.Observation(minor_planet_number="12345",
                               provisional_name="A234567",
                               discovery="*",
-                              note1="M",
+                              note1="H",
                               note2="N",
                               date="2013 04 09.36658",
                               ra="26.683336700", # 01 46 44.001
@@ -362,7 +362,7 @@ class MPCWriterTest(unittest.TestCase):
 
         self.undertest.write(obs)
 
-        expected = "12345A234567*MN2013 04 09.36658 01 46 44.001+29 13 13.27         123.5A      523\n"
+        expected = "12345A234567*HN2013 04 09.36658 01 46 44.001+29 13 13.27         123.5A      523\n"
 
         actual = self.read_outputfile()
 
@@ -397,7 +397,7 @@ class MPCWriterTest(unittest.TestCase):
         obs = mpc.Observation(minor_planet_number="",
                               provisional_name="A234567",
                               discovery="*",
-                              note1="M",
+                              note1="H",
                               note2="N",
                               date="2012 10 21.405160",
                               ra="26.683336700", # 01 46 44.001
@@ -408,7 +408,7 @@ class MPCWriterTest(unittest.TestCase):
 
         self.undertest.write(obs)
 
-        expected = "     A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         123.5A      523\n"
+        expected = "     A234567*HN2012 10 21.40516001 46 44.001+29 13 13.27         123.5A      523\n"
 
         actual = self.read_outputfile()
 
@@ -420,7 +420,7 @@ class MPCWriterTest(unittest.TestCase):
         obs = mpc.Observation(minor_planet_number="12345",
                               provisional_name="A234567",
                               discovery="*",
-                              note1="M",
+                              note1="H",
                               note2="N",
                               date="2012 10 21.405160",
                               ra="26.683336700",
@@ -431,7 +431,7 @@ class MPCWriterTest(unittest.TestCase):
 
         self.undertest.write(obs)
 
-        expected = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         12.35A      523\n"
+        expected = "12345A234567*HN2012 10 21.40516001 46 44.001+29 13 13.27         12.35A      523\n"
         actual = self.read_outputfile()
 
         assert_that(actual.endswith("\n"))
@@ -442,7 +442,7 @@ class MPCWriterTest(unittest.TestCase):
         obs = mpc.Observation(minor_planet_number="12345",
                               provisional_name="A234567",
                               discovery="*",
-                              note1="M",
+                              note1="H",
                               note2="N",
                               date="2012 10 21.405160",
                               ra="26.683336700", # 01 46 44.001
@@ -453,7 +453,7 @@ class MPCWriterTest(unittest.TestCase):
 
         self.undertest.write(obs)
 
-        expected = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27                     523\n"
+        expected = "12345A234567*HN2012 10 21.40516001 46 44.001+29 13 13.27                     523\n"
 
         actual = self.read_outputfile()
 
@@ -466,7 +466,7 @@ class MPCWriterTest(unittest.TestCase):
         obs = mpc.Observation(minor_planet_number="",
                               provisional_name="A234567",
                               discovery="*",
-                              note1="M",
+                              note1="H",
                               note2="N",
                               date="2012 10 21.405160",
                               ra="26.683336700", # 01 46 44.001
@@ -478,7 +478,7 @@ class MPCWriterTest(unittest.TestCase):
 
         self.undertest.write(obs)
 
-        expected = ("     A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27"
+        expected = ("     A234567*HN2012 10 21.40516001 46 44.001+29 13 13.27"
                     "         123.5A      523 1234567p00 334.56 884.22 Something fishy.\n")
         assert_that(self.read_outputfile(), equal_to(expected))
 
@@ -506,7 +506,7 @@ class MPCWriterTest(unittest.TestCase):
         obs1 = mpc.Observation(minor_planet_number="12345",
                                provisional_name="A234567",
                                discovery="*",
-                               note1="M",
+                               note1="H",
                                note2="N",
                                date="2012 10 21.405160",
                                ra="26.683336700", # 01 46 44.001
@@ -530,7 +530,7 @@ class MPCWriterTest(unittest.TestCase):
 
         assert_that(self.read_outputfile(), equal_to(""))
 
-        expected_mpcline = "12345A234567*MN2012 10 21.40516001 46 44.001+29 13 13.27         123.5A      523\n"
+        expected_mpcline = "12345A234567*HN2012 10 21.40516001 46 44.001+29 13 13.27         123.5A      523\n"
         expected_reject_line = "!              2012 10 21.40516001 46 44.001+29 13 13.27         0.0  r      568\n"
 
         self.undertest.flush()
