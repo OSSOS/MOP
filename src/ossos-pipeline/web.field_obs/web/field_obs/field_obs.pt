@@ -81,7 +81,7 @@
     					<td>${obj[0].strftime('%Y-%m-%d %H:%M:%S')}</td> 
     					<td>${'%.2f' % obj[1]}</td>
               <td>
-                <a href="http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/vosui/#OSSOS/dbimages/${obj[2]}">${obj[2]}</a>
+                <a href="http://www.canfar.phys.uvic.ca/vosui/#OSSOS/dbimages/${obj[2]}">${obj[2]}</a>
               </td>
               <td>
                 <tal:block repeat="status obj[3]">
@@ -93,7 +93,7 @@
               <td>${obj[0].strftime('%Y-%m-%d %H:%M:%S')}</td> 
               <td>${'%.2f' % obj[1]}</td>
               <td>
-                <a href="http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/vosui/#OSSOS/dbimages/${obj[2]}">${obj[2]}</a>
+                <a href="http://www.canfar.phys.uvic.ca/vosui/#OSSOS/dbimages/${obj[2]}">${obj[2]}</a>
               </td>
               <td>
                 <tal:block repeat="status obj[3]">
