@@ -9,7 +9,7 @@ from mock import patch, Mock
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from ossos.download.async import AsynchronousImageDownloadManager
-from ossos.download.downloads import DownloadedFitsImage
+from ossos.download.data import DownloadedFitsImage
 from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui import models, events, tasks
 from ossos.gui.models import ImageNotLoadedException
