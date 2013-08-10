@@ -66,13 +66,10 @@ class DisplayableImageSingletTest(unittest.TestCase):
 
 class InteractionTest(unittest.TestCase):
     def setUp(self):
-        # self.app = wx.App()
-        # self.rootframe = wx.Frame(None)
         mainhdu = Mock()
         mainhdu.data.shape = (100, 100)
         self.hdulist = [mainhdu]
         self.displayable = DisplayableImageSinglet(self.hdulist)
-        # self.viewer = singletviewer.SingletViewer(self.rootframe)
         self.displayable.figure = Mock()
         self.displayable.axes = Mock()
 

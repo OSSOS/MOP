@@ -1,19 +1,18 @@
-from ossos.download.downloads import DownloadedFitsImage
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 
+from astropy.io import fits
 from hamcrest import assert_that, equal_to
-from mock import patch
+from mock import patch, ANY
 
 from tests.base_tests import FileReadingTestCase
-from ossos.cutouts import CoordinateConverter
+from ossos.downloads.cutouts import CoordinateConverter
+from ossos.downloads.data import SourceSnapshot, ApcorData
 from ossos.astrom import AstromParser
-from ossos.gui.models import ImageReading
 
 
-class ImageReadingIntegrationTest(FileReadingTestCase):
+class SourceSnapshotIntegrationTest(FileReadingTestCase):
     def path(self, relative):
         return self.get_abs_path("data/image_reading/%s" % relative)
 
@@ -24,11 +23,10 @@ class ImageReadingIntegrationTest(FileReadingTestCase):
         self.reading = astrom_data.get_sources()[0].get_reading(0)
 
         # Load the real image
-        with open(self.path("cutout-1616687p.fits")) as fh:
-            fits_str = fh.read()
+        hdulist = fits.open(self.path("cutout-1616687p.fits"))
 
         with open(self.path("1616687p10.apcor")) as fh:
-            apcor_str = fh.read()
+            apcor = ApcorData.from_raw_string(fh.read())
 
         # NOTE: the test image
         # vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1616687/1616687p.fits
@@ -47,11 +45,9 @@ class ImageReadingIntegrationTest(FileReadingTestCase):
         x_offset = self.original_observed_x - self.original_pixel_x
         y_offset = self.original_observed_y - self.original_pixel_y
 
-        self.image = DownloadedFitsImage(fits_str,
-                                         CoordinateConverter(x_offset, y_offset),
-                                         apcor_str=apcor_str)
-
-        self.undertest = ImageReading(self.reading, self.image)
+        self.undertest = SourceSnapshot(self.reading, hdulist,
+                                      CoordinateConverter(x_offset, y_offset),
+                                      apcor=apcor)
 
         assert_that(self.undertest.observed_x, equal_to(self.original_observed_x))
         assert_that(self.undertest.observed_y, equal_to(self.original_observed_y))
@@ -111,7 +107,7 @@ class ImageReadingIntegrationTest(FileReadingTestCase):
 
         # NOTE: the x and y passed in must be the PIXEL coordinates
         mock_phot_mag.assert_called_once_with(
-            self.image.as_file().name,
+            ANY,
             self.original_pixel_x,
             self.original_pixel_y,
             aperture=5.0,

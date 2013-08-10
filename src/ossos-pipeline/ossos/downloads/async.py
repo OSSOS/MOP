@@ -3,8 +3,8 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import Queue
 import threading
 
-from ossos.download.downloads import DownloadableItem
-from ossos.download.focus import SingletFocalPointCalculator
+from ossos.downloads.focus import SingletFocalPointCalculator
+from ossos.downloads.requests import DownloadRequest
 from ossos.gui import logger
 
 MAX_THREADS = 3
@@ -51,10 +51,11 @@ class AsynchronousImageDownloadManager(object):
                 self._focal_point_calculator.calculate_focal_points(source))
 
         for focal_point in focal_points:
-            self._work_queue.put(DownloadableItem(focal_point.reading,
-                                                  focal_point.point,
-                                                  needs_apcor,
-                                                  image_loaded_callback))
+            self._work_queue.put(DownloadRequest(self.downloader,
+                                                 focal_point.reading,
+                                                 needs_apcor=needs_apcor,
+                                                 focal_point=focal_point.point,
+                                                 callback=image_loaded_callback))
 
     def retry_download(self, downloadable_item):
         self._work_queue.put(downloadable_item)
@@ -107,26 +108,21 @@ class DownloadThread(threading.Thread):
 
     def run(self):
         while not self._should_stop:
-            downloadable_item = self.work_queue.get()
+            download_request = self.work_queue.get()
             self._idle = False
 
             try:
-                self.do_download(downloadable_item)
+                self.do_download(download_request)
             except Exception as error:
-                self.error_handler.handle_error(error, downloadable_item)
+                self.error_handler.handle_error(error, download_request)
             finally:
                 # It is up to the error handler to requeue the downloadable
                 # item if needed.
                 self.work_queue.task_done()
                 self._idle = True
 
-    def do_download(self, downloadable_item):
-        downloaded_item = self.downloader.download(downloadable_item)
-
-        if self._should_stop:
-            return
-
-        downloadable_item.finished_download(downloaded_item)
+    def do_download(self, download_request):
+        download_request.execute()
 
     def stop(self):
         self._should_stop = True
