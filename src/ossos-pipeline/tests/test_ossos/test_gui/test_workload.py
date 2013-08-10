@@ -9,7 +9,7 @@ from mock import Mock, call
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from tests.testutil import CopyingMock
-from ossos.download.async import AsynchronousImageDownloadManager
+from ossos.downloads.async import AsynchronousImageDownloadManager
 from ossos.gui import tasks
 from ossos.gui.context import WorkingContext, LocalDirectoryWorkingContext
 from ossos.gui.models import UIModel

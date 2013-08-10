@@ -5,6 +5,9 @@ import sys
 import wx
 import wx.lib.inspection
 
+from ossos.astrom import AstromParser
+from ossos.downloads.async import AsynchronousImageDownloadManager
+from ossos.downloads.cutouts import ImageCutoutDownloader
 from ossos.gui import config, tasks, logger
 from ossos.gui import context
 from ossos.gui.sync import SynchronizationManager
@@ -12,14 +15,11 @@ from ossos.gui.workload import (WorkUnitProvider,
                                 RealsWorkUnitBuilder,
                                 CandidatesWorkUnitBuilder,
                                 PreFetchingWorkUnitProvider)
-from ossos.astrom import AstromParser
-from ossos.download.async import AsynchronousImageDownloadManager
-from ossos.download.downloaders import ImageSliceDownloader
-from ossos.naming import ProvisionalNameGenerator, DryRunNameGenerator
 from ossos.gui.errorhandling import DownloadErrorHandler
 from ossos.gui.models import TransAckUIModel
 from ossos.gui.controllers import (ProcessRealsController,
                                    ProcessCandidatesController)
+from ossos.naming import ProvisionalNameGenerator, DryRunNameGenerator
 
 
 class AbstractTaskFactory(object):
@@ -109,7 +109,7 @@ class ValidationApplication(object):
 
         parser = AstromParser()
         error_handler = DownloadErrorHandler(self)
-        downloader = ImageSliceDownloader()
+        downloader = ImageCutoutDownloader()
         download_manager = AsynchronousImageDownloadManager(downloader,
                                                             error_handler)
 

@@ -3,21 +3,23 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 import unittest
 
+from astropy.io import fits
 from hamcrest import (assert_that, equal_to, has_length, contains,
                       same_instance, is_not, contains_inanyorder)
 from mock import patch, Mock
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
-from ossos.download.async import AsynchronousImageDownloadManager
-from ossos.download.downloads import DownloadedFitsImage
-from ossos.gui import models, events, tasks
+from ossos.downloads.async import AsynchronousImageDownloadManager
+from ossos.downloads.data import ApcorData, SourceSnapshot
 from ossos.gui.context import LocalDirectoryWorkingContext
+from ossos.gui import models, events, tasks
 from ossos.gui.models import ImageNotLoadedException
 from ossos.astrom import AstromParser
-from ossos.cutouts import CoordinateConverter
+from ossos.downloads.cutouts import CoordinateConverter
 from ossos.gui.progress import LocalProgressManager
 from ossos.gui.workload import (WorkUnitProvider, RealsWorkUnitBuilder,
                                 CandidatesWorkUnitBuilder)
+
 
 MODEL_TEST_DIR_1 = "data/model_testdir_1"
 MODEL_TEST_DIR_2 = "data/model_testdir_2"
@@ -72,12 +74,12 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
 
     def create_real_first_image(self, path="data/testimg.fits"):
         # Put a real fits image on the first source, first observation
-        apcor_str = "4 15   0.19   0.01"
-        with open(self.get_abs_path(path), "rb") as fh:
-            self.first_image = DownloadedFitsImage(
-                fh.read(), CoordinateConverter(0, 0), apcor_str, in_memory=True)
-            first_reading = self.model.get_current_workunit().get_sources()[0].get_readings()[0]
-            self.model._on_image_loaded(first_reading, self.first_image)
+        apcor = ApcorData.from_raw_string("4 15   0.19   0.01")
+        hdulist = fits.open(self.get_abs_path(path))
+        first_reading = self.model.get_current_workunit().get_sources()[0].get_readings()[0]
+        self.first_snapshot = SourceSnapshot(
+            first_reading, hdulist, CoordinateConverter(0, 0), apcor)
+        self.model._on_image_loaded(self.first_snapshot)
 
 
 class AbstractRealsModelTest(GeneralModelTest):
@@ -218,31 +220,28 @@ class AbstractRealsModelTest(GeneralModelTest):
         ))
 
     @patch("ossos.gui.models.DisplayableImageSinglet")
-    @patch("ossos.gui.models.ImageReading")
-    def test_loading_images(self, mock_ImageReading, mock_DisplayableImageSinglet):
+    def test_loading_images(self, mock_DisplayableImageSinglet):
         observer = Mock()
         events.subscribe(events.IMG_LOADED, observer.on_img_loaded)
-        loaded_reading1 = Mock()
         image1 = Mock()
-        loaded_reading2 = Mock()
+        loaded_reading1 = image1.reading
         image2 = Mock()
+        loaded_reading2 = image2.reading
 
         assert_that(self.download_manager.start_downloading_workunit.call_count,
                     equal_to(1))
         assert_that(self.model.get_loaded_image_count(), equal_to(0))
 
         # Simulate receiving callback
-        self.model._on_image_loaded(loaded_reading1, image1)
+        self.model._on_image_loaded(image1)
         assert_that(self.model.get_loaded_image_count(), equal_to(1))
         assert_that(observer.on_img_loaded.call_count, equal_to(1))
-        assert_that(mock_ImageReading.call_count, equal_to(1))
         assert_that(mock_DisplayableImageSinglet.call_count, equal_to(1))
 
         # Simulate receiving callback
-        self.model._on_image_loaded(loaded_reading2, image2)
+        self.model._on_image_loaded(image2)
         assert_that(self.model.get_loaded_image_count(), equal_to(2))
         assert_that(observer.on_img_loaded.call_count, equal_to(2))
-        assert_that(mock_ImageReading.call_count, equal_to(2))
         assert_that(mock_DisplayableImageSinglet.call_count, equal_to(2))
 
         # Check event args
@@ -314,12 +313,12 @@ class AbstractRealsModelTest(GeneralModelTest):
 
     def test_get_current_image(self):
         self.create_real_first_image()
-        assert_that(self.model.get_current_image(),
-                    same_instance(self.first_image))
+        assert_that(self.model.get_current_snapshot(),
+                    same_instance(self.first_snapshot))
 
-    def test_get_current_image_not_loaded(self):
+    def test_get_current_snapshot_not_loaded(self):
         self.model.next_source()
-        self.assertRaises(ImageNotLoadedException, self.model.get_current_image)
+        self.assertRaises(ImageNotLoadedException, self.model.get_current_snapshot)
 
     def test_get_current_reading_data(self):
         self.model.next_source()

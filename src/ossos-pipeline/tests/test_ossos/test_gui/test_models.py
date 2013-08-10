@@ -7,7 +7,7 @@ from hamcrest import assert_that, equal_to
 
 from tests.base_tests import FileReadingTestCase
 from ossos.astrom import AstromParser
-from ossos.download.async import AsynchronousImageDownloadManager
+from ossos.downloads.async import AsynchronousImageDownloadManager
 from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui import events
 from ossos.gui.models import UIModel, TransAckUIModel
