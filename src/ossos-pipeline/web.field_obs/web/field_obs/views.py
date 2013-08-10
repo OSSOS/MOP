@@ -18,10 +18,9 @@ class SimpleStatus(object):
 
 
 class ErrorStatus(object):
-	def __init__(self, error, image_id, joblogs):
+	def __init__(self, error, image_id):
 		self.error = error
-		self.image_id = image_id
-		self.joblogs = joblogs
+		self.image_id = str(image_id)
 
 	def render(self):
 		retval = ''
@@ -41,30 +40,19 @@ class ErrorStatus(object):
 		return retval
 
 	def joblog_url(self, component, ccd):
-		retval = ""
-		if self.joblogs is not None:  # Is joblog retrieval turned on?
-			if component in self.joblogs.keys():  # just to make sure
-				complogs = self.joblogs[component]
-				ccdlog = []
-				for log in complogs:
-					if ccd < 10:  # stop failure of file-matching on ccds < 10
-						ccd = str(ccd).lstrip('0')
-					if log.__contains__('_'+self.image_id+'_'+str(ccd)+'.txt'):
-						ccdlog.append(log)
-				ccdlog.sort()
-				if len(ccdlog) > 0:  # Would there ever be a case it didn't exist if an error does?
-					canfar_url = 'http://www.canfar.phys.uvic.ca/vospace/nodes/OSSOS/joblog/'
-					retval = canfar_url + component + '.py/' + ccdlog[len(ccdlog)-1] + '?view=data'
-
+		canfar_url = 'http://www.canfar.phys.uvic.ca/vospace/nodes/OSSOS/dbimages/'
+		# OSSOS/dbimages/EXPNUM/ccd##/pipeline_step.txt
+		retval = canfar_url + self.image_id +'/'+ ccd +'/'+ component + '.txt'
+	
 		return retval
 
 
-def mk_status(val, image_id, joblogs):
+def mk_status(val, image_id):
 	if isinstance(val, str):
 		retval = SimpleStatus(val)
 	else:
 		assert isinstance(val, dict)
-		retval = ErrorStatus(val, image_id, joblogs)
+		retval = ErrorStatus(val, image_id)
 
 	return retval
 
@@ -74,7 +62,6 @@ class Field(object):
 	def __init__(self, request):
 		self.request = request
 		self.imagesQuery = ImagesQuery()
-		self.joblogs = None
 
 		# BIT HACKED - FIX! Transfer to urllib parsing. More Reliable.
 		fi = request.current_route_url().rpartition('/')[2]
@@ -86,38 +73,15 @@ class Field(object):
 			self.fieldId = fi
 
 
-	def get_joblogs(self):
-		# Parse the directory listings for joblogs matching this field's images.
-		keyids = [str(n[2]) for n in self.observations]
-		# which directories do we need to list? FIXME: FAKES CURRENTLY EXCLUDED
-		steps = ['update_header', 'mkpsf', 'step1', 'step2', 'step3', 'combine', 'scramble', 'plant']#, 'fkstep1', 'fkstep2', 'fkstep3', 'fkcombine']
-		retval = {}
-		for component in steps:
-			dirpath = 'vos:OSSOS/joblog/'+component+'.py/'
-			print dirpath
-#			if storage.exists(dirpath):  # COMMAND SEEMS BROKEN
-			files = storage.listdir(dirpath, force=True)
-			for ff in files:
-				for keyid in keyids:
-					if ff.__contains__('_'+keyid+'_'):
-						jl = retval.get(component, [])
-						jl.append(ff)
-						retval[component] = jl
-
-		return retval
-
-
 	@property.Lazy
 	def observations(self):
 		rv = self.imagesQuery.field_images(self.fieldId)
-		proc_rv = self.imagesQuery.processing_status(rv, update=False)  # use this to trigger renewal
-		# setting this may be time-consuming?
-#		self.joblogs = self.get_joblogs()
+		proc_rv = self.imagesQuery.processing_status(rv, update=True)  # use this to trigger renewal
 	
 		# format the errors in html with links to their joblogs	
 		retproc = []
 		for row in proc_rv:
-			statuses = [mk_status(s, row[2], self.joblogs) for s in row[3]]
+			statuses = [mk_status(s, row[2]) for s in row[3]]
 			retrow = row[0:3]  # without the unformatted errors
 			retrow.append(statuses)
 			retproc.append(retrow)

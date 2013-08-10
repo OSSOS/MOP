@@ -44,9 +44,9 @@ class ImagesQuery(object):
 		ss = sa.select(cols)
 		ss.append_whereclause(it.c.image_id == image_id)
 		ims_query = self.conn.execute(ss)
-		for row in ims_query:  # Should just be the one, one image after all...
-			if row[1] is None: # need something better here for error catching
-				# Oh well, go and get it anew (this also adds it to the db for next time)
+		for row in ims_query:
+			if row[1] is None:
+				# Go and get it anew (this also adds it to the db for next time)
 				retval = self.check_VOSpace_for_proc_status(image_id)  
 			else:
 				retval = cPickle.loads(str(row[1]))
