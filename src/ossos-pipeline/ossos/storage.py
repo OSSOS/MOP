@@ -20,7 +20,7 @@ CERTFILE=os.path.join(os.getenv('HOME'),
 DBIMAGES='vos:OSSOS/dbimages'
 MEASURE3='vos:OSSOS/measure3'
 
-DATA_WEB_SERVICE='https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/'
+DATA_WEB_SERVICE='https://www.canfar.phys.uvic.ca/data/pub/'
 
 OSSOS_TAG_URI_BASE='ivo://canfar.uvic.ca/ossos'
 OBJECT_COUNT = "object_count"
