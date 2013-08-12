@@ -36,7 +36,7 @@ class ApcorDataTest(unittest.TestCase):
         rawstr = "4 15   0.19   0.01\n"
 
         # NOTE: not undertest
-        self.parsed = ApcorData.from_raw_string(rawstr)
+        self.parsed = ApcorData.from_string(rawstr)
 
         assert_that(self.parsed.ap_in, equal_to(self.ap_in))
         assert_that(self.parsed.ap_out, equal_to(self.ap_out))
