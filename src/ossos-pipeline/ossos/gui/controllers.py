@@ -84,6 +84,12 @@ class AbstractController(object):
             if should_exit:
                 self._do_exit()
 
+    def on_use_singlet_view(self):
+        print "Use singlet view"
+
+    def on_use_triplet_view(self):
+        print "Use triplet view"
+
     def on_enable_auto_sync(self):
         self.model.enable_synchronization()
 

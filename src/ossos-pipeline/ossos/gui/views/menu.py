@@ -31,12 +31,23 @@ class Menu(object):
         do_bind(self._on_select_exit, exit_item)
 
         display_menu = wx.Menu()
+        singlet_view_item = display_menu.Append(
+            id=wx.ID_ANY,
+            text="Single images",
+            kind=wx.ITEM_RADIO)
+        triplet_view_item = display_menu.Append(
+            id=wx.ID_ANY,
+            text="Image triplets",
+            kind=wx.ITEM_RADIO)
+        display_menu.AppendSeparator()
         auto_play_item = display_menu.Append(
             id=wx.ID_ANY,
             text="Autoplay",
             help="Automatically transition through images.",
             kind=wx.ITEM_CHECK)
 
+        do_bind(self._on_select_singlet_view, singlet_view_item)
+        do_bind(self._on_select_triplet_view, triplet_view_item)
         do_bind(self._on_select_autoplay, auto_play_item)
 
         sync_menu = wx.Menu()
@@ -77,6 +88,12 @@ class Menu(object):
             self.controller.on_enable_auto_sync()
         else:
             self.controller.on_disable_auto_sync()
+
+    def _on_select_singlet_view(self, event):
+        self.controller.on_use_singlet_view()
+
+    def _on_select_triplet_view(self, event):
+        self.controller.on_use_triplet_view()
 
     def _on_select_autoplay(self, event):
         if event.Checked():
