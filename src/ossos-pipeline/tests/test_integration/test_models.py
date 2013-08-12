@@ -9,7 +9,7 @@ from hamcrest import (assert_that, equal_to, has_length, contains,
 from mock import patch, Mock
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
-from ossos.downloads.async import AsynchronousImageDownloadManager
+from ossos.downloads.async import AsynchronousDownloadManager
 from ossos.downloads.data import ApcorData, SourceSnapshot
 from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui import models, events, tasks
@@ -46,7 +46,7 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
 
         self.workunit_provider = workunit_provider
         self.progress_manager = progress_manager
-        self.download_manager = Mock(spec=AsynchronousImageDownloadManager)
+        self.download_manager = Mock(spec=AsynchronousDownloadManager)
 
         self.model = self.get_model()
 

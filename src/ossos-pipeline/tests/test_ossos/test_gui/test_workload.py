@@ -9,7 +9,7 @@ from mock import Mock, call, MagicMock
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from tests.testutil import CopyingMock
-from ossos.downloads.async import AsynchronousImageDownloadManager
+from ossos.downloads.async import AsynchronousDownloadManager
 from ossos.gui import tasks
 from ossos.gui.context import WorkingContext, LocalDirectoryWorkingContext
 from ossos.gui.models import UIModel
@@ -507,7 +507,7 @@ class WorkloadManagementTest(unittest.TestCase):
             return workunit
 
         self.workunit_provider.get_workunit.side_effect = (get_workunit(index) for index in xrange(2))
-        download_manager = Mock(spec=AsynchronousImageDownloadManager)
+        download_manager = Mock(spec=AsynchronousDownloadManager)
 
         self.undertest = UIModel(self.workunit_provider, download_manager, None)
         self.undertest.start_work()

@@ -3,14 +3,12 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import Queue
 import threading
 
-from ossos.downloads.focus import SingletFocalPointCalculator
-from ossos.downloads.requests import DownloadRequest
 from ossos.gui import logger
 
 MAX_THREADS = 3
 
 
-class AsynchronousImageDownloadManager(object):
+class AsynchronousDownloadManager(object):
     """
     Coordinates the downloading of images asynchronously from the rest of
     the application.

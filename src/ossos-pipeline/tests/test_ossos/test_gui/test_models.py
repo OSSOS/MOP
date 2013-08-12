@@ -7,7 +7,7 @@ from hamcrest import assert_that, equal_to
 
 from tests.base_tests import FileReadingTestCase
 from ossos.astrom import AstromParser
-from ossos.downloads.async import AsynchronousImageDownloadManager
+from ossos.downloads.async import AsynchronousDownloadManager
 from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui import events
 from ossos.gui.models import UIModel, TransAckUIModel
@@ -20,7 +20,7 @@ class UIModelTest(unittest.TestCase):
     def setUp(self):
         events.unsub_all()
         self.workunit_provider = Mock(spec=PreFetchingWorkUnitProvider)
-        self.download_manager = Mock(spec=AsynchronousImageDownloadManager)
+        self.download_manager = Mock(spec=AsynchronousDownloadManager)
         self.synchronization_manager = Mock(spec=SynchronizationManager)
         self.model = UIModel(self.workunit_provider, self.download_manager,
                              self.synchronization_manager)
@@ -46,7 +46,7 @@ class TransitionAcknowledgementUIModelTest(FileReadingTestCase):
     def setUp(self):
         events.unsub_all()
         self.workunit_provider = Mock(spec=PreFetchingWorkUnitProvider)
-        self.download_manager = Mock(spec=AsynchronousImageDownloadManager)
+        self.download_manager = Mock(spec=AsynchronousDownloadManager)
         self.synchronization_manager = Mock(spec=SynchronizationManager)
         self.model = TransAckUIModel(self.workunit_provider, self.download_manager, self.synchronization_manager)
 
