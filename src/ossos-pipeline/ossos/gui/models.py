@@ -1,6 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from ossos.downloads.data import SourceSnapshot
+from ossos.downloads.focus import SingletFocalPointCalculator
+from ossos.downloads.requests import DownloadRequest
 from ossos.fitsviewer.displayable import DisplayableImageSinglet
 from ossos.gui import events
 from ossos.gui import logger
@@ -37,6 +38,8 @@ class UIModel(object):
         self._displayable_items = {}
 
         self.sources_discovered = set()
+
+        self._focal_point_calculator = SingletFocalPointCalculator()
 
     def get_working_directory(self):
         return self.workunit_provider.directory
@@ -283,8 +286,21 @@ class UIModel(object):
             raise ImageNotLoadedException()
 
     def _download_workunit_images(self, workunit):
-        self.download_manager.start_downloading_workunit(
-            workunit, image_loaded_callback=self._on_image_loaded)
+        logger.debug("Starting to download workunit: %s" %
+                     workunit.get_filename())
+
+        needs_apcor = workunit.is_apcor_needed()
+        focal_points = []
+        for source in workunit.get_unprocessed_sources():
+            focal_points.extend(
+                self._focal_point_calculator.calculate_focal_points(source))
+
+        for focal_point in focal_points:
+            self.download_manager.submit_request(
+                DownloadRequest(focal_point.reading,
+                                needs_apcor=needs_apcor,
+                                focal_point=focal_point.point,
+                                callback=self._on_image_loaded))
 
     def _on_image_loaded(self, snapshot):
         reading = snapshot.reading
