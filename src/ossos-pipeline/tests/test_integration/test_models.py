@@ -12,8 +12,9 @@ from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from ossos.downloads.async import AsynchronousDownloadManager
 from ossos.downloads.data import ApcorData, SourceSnapshot
 from ossos.gui.context import LocalDirectoryWorkingContext
-from ossos.gui import models, events, tasks
-from ossos.gui.models import ImageNotLoadedException
+from ossos.gui import events, tasks
+from ossos.gui.models.validation import UIModel
+from ossos.gui.models.validation import ImageNotLoadedException
 from ossos.astrom import AstromParser
 from ossos.downloads.cutouts import CoordinateConverter
 from ossos.gui.progress import LocalProgressManager
@@ -97,7 +98,7 @@ class AbstractRealsModelTest(GeneralModelTest):
         return ["1584431p15.measure3.reals.astrom"]
 
     def get_model(self):
-        return models.UIModel(self.workunit_provider, self.download_manager, None)
+        return UIModel(self.workunit_provider, self.download_manager, None)
 
     def test_sources_initialized(self):
         assert_that(self.model.get_current_source_number(), equal_to(0))
@@ -219,7 +220,7 @@ class AbstractRealsModelTest(GeneralModelTest):
             ("R.A.", 26.6833367), ("DEC", 29.2203532)
         ))
 
-    @patch("ossos.gui.models.DisplayableImageSinglet")
+    @patch("ossos.gui.models.validation.DisplayableImageSinglet")
     def test_loading_images(self, mock_DisplayableImageSinglet):
         observer = Mock()
         events.subscribe(events.IMG_LOADED, observer.on_img_loaded)
@@ -344,7 +345,7 @@ class ProcessRealsModelTest(GeneralModelTest):
         return ["1584431p15.measure3.reals.astrom"]
 
     def get_model(self):
-        return models.UIModel(self.workunit_provider, self.download_manager, None)
+        return UIModel(self.workunit_provider, self.download_manager, None)
 
     def test_next_item_no_validation(self):
         observer = Mock()
@@ -547,7 +548,7 @@ class ProcessCandidatesModelTest(GeneralModelTest):
         return ["1584431p15.measure3.cands.astrom", "1584431p15.measure3.reals.astrom"]
 
     def get_model(self):
-        return models.UIModel(self.workunit_provider, self.download_manager, None)
+        return UIModel(self.workunit_provider, self.download_manager, None)
 
     def test_next_item(self):
         observer = Mock()
@@ -656,7 +657,7 @@ class MultipleAstromDataModelTest(GeneralModelTest):
                                          progress_manager)
 
     def get_model(self):
-        return models.UIModel(self.workunit_provider, self.download_manager, None)
+        return UIModel(self.workunit_provider, self.download_manager, None)
 
     def _get_task(self):
         return tasks.CANDS_TASK
@@ -793,7 +794,7 @@ class MultipleAstromDataModelTest(GeneralModelTest):
 
 class RealsModelPersistenceTest(GeneralModelTest):
     def get_model(self):
-        return models.UIModel(self.workunit_provider, self.download_manager, None)
+        return UIModel(self.workunit_provider, self.download_manager, None)
 
     def setUp(self):
         super(RealsModelPersistenceTest, self).setUp()
@@ -948,7 +949,7 @@ class RealsModelPersistenceTest(GeneralModelTest):
 
 class RealsModelPersistenceLoadingTest(GeneralModelTest):
     def get_model(self):
-        return models.UIModel(self.workunit_provider, self.download_manager, None)
+        return UIModel(self.workunit_provider, self.download_manager, None)
 
     def setUp(self):
         # Have to set this up here because test cases may modify the .PART file
@@ -1001,7 +1002,7 @@ class RealsModelPersistenceLoadingTest(GeneralModelTest):
 
 class CandidatesModelPersistenceTest(GeneralModelTest):
     def get_model(self):
-        return models.UIModel(self.workunit_provider, self.download_manager, None)
+        return UIModel(self.workunit_provider, self.download_manager, None)
 
     def setUp(self):
         super(CandidatesModelPersistenceTest, self).setUp()
@@ -1078,7 +1079,7 @@ class CandidatesModelPersistenceTest(GeneralModelTest):
 
 class CandidatesModelPersistenceLoadingTest(GeneralModelTest):
     def get_model(self):
-        return models.UIModel(self.workunit_provider, self.download_manager, None)
+        return UIModel(self.workunit_provider, self.download_manager, None)
 
     def create_part_file_with_indices(self, indices):
         str_indices = ""

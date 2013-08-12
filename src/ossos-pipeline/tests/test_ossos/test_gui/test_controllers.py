@@ -8,7 +8,7 @@ from hamcrest import equal_to, assert_that
 from ossos.gui import config
 from ossos.astrom import SourceReading, Observation
 from ossos.gui.views.app import ApplicationView
-from ossos.gui.models import UIModel
+from ossos.gui.models.validation import UIModel
 from ossos.gui.controllers import AbstractController, ProcessRealsController, ImageLoadingDialogManager
 from ossos.naming import ProvisionalNameGenerator
 
