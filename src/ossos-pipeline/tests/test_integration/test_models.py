@@ -13,8 +13,8 @@ from ossos.downloads.async import AsynchronousDownloadManager
 from ossos.downloads.data import ApcorData, SourceSnapshot
 from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui import events, tasks
+from ossos.gui.models.exceptions import ImageNotLoadedException
 from ossos.gui.models.validation import UIModel
-from ossos.gui.models.validation import ImageNotLoadedException
 from ossos.astrom import AstromParser
 from ossos.downloads.cutouts import CoordinateConverter
 from ossos.gui.progress import LocalProgressManager

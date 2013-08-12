@@ -5,7 +5,8 @@ from ossos.daophot import TaskError
 from ossos.gui import config
 from ossos.gui import events
 from ossos.gui.autoplay import AutoplayManager
-from ossos.gui.models.validation import ImageNotLoadedException, NoWorkUnitException
+from ossos.gui.models.exceptions import (ImageNotLoadedException,
+                                         NoWorkUnitException)
 from ossos.gui.views.app import ApplicationView
 
 

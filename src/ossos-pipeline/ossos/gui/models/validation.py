@@ -5,16 +5,10 @@ from ossos.downloads.requests import DownloadRequest
 from ossos.fitsviewer.displayable import DisplayableImageSinglet
 from ossos.gui import events
 from ossos.gui import logger
+from ossos.gui.models.exceptions import (ImageNotLoadedException,
+                                         NoWorkUnitException)
 from ossos.gui.workload import (NoAvailableWorkException, StatefulCollection,
                                 CandidatesWorkUnit, RealsWorkUnit)
-
-
-class ImageNotLoadedException(Exception):
-    """The requested image hasn't been loaded yet."""
-
-
-class NoWorkUnitException(Exception):
-    """No data is available at the current time."""
 
 
 class UIModel(object):
