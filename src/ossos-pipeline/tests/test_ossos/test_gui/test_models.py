@@ -10,7 +10,8 @@ from ossos.astrom import AstromParser
 from ossos.downloads.async import AsynchronousDownloadManager
 from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui import events
-from ossos.gui.models.validation import UIModel, TransAckUIModel
+from ossos.gui.models.validation import UIModel
+from ossos.gui.models.transactions import TransAckUIModel
 from ossos.gui.progress import LocalProgressManager
 from ossos.gui.sync import SynchronizationManager
 from ossos.gui.workload import PreFetchingWorkUnitProvider, RealsWorkUnit, CandidatesWorkUnit

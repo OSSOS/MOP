@@ -16,9 +16,9 @@ from ossos.gui.workload import (WorkUnitProvider,
                                 CandidatesWorkUnitBuilder,
                                 PreFetchingWorkUnitProvider)
 from ossos.gui.errorhandling import DownloadErrorHandler
-from ossos.gui.models.validation import TransAckUIModel
 from ossos.gui.controllers import (ProcessRealsController,
                                    ProcessCandidatesController)
+from ossos.gui.models.transactions import TransAckUIModel
 from ossos.naming import ProvisionalNameGenerator, DryRunNameGenerator
 
 
