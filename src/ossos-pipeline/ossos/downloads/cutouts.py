@@ -16,9 +16,6 @@ class ImageCutoutDownloader(Downloader):
         Constructor.
 
         Args:
-          resolver:
-            Resolves source readings to the URI's from which they can be
-            retrieved.
           slice_rows, slice_cols: int
             The number of rows and columns (pixels) to slice out around the
             source.  Leave as None to use default configuration values.
