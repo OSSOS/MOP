@@ -18,7 +18,7 @@ from ossos.gui.workload import (WorkUnitProvider,
 from ossos.gui.errorhandling import DownloadErrorHandler
 from ossos.gui.controllers import (ProcessRealsController,
                                    ProcessCandidatesController)
-from ossos.gui.models.transactions import TransAckUIModel
+from ossos.gui.models.transactions import TransAckValidationModel
 from ossos.naming import ProvisionalNameGenerator, DryRunNameGenerator
 
 
@@ -142,9 +142,9 @@ class ValidationApplication(object):
         else:
             synchronization_manager = None
 
-        model = TransAckUIModel(prefetching_workunit_provider,
-                                download_manager,
-                                synchronization_manager)
+        model = TransAckValidationModel(prefetching_workunit_provider,
+                                        download_manager,
+                                        synchronization_manager)
         logger.debug("Created model.")
 
         controller = factory.create_controller(model, dry_run=dry_run)

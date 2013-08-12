@@ -1,9 +1,9 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from ossos.gui.models.validation import UIModel
+from ossos.gui.models.validation import ValidationModel
 
 
-class TransAckUIModel(UIModel):
+class TransAckValidationModel(ValidationModel):
     """
     This version of the UIModel requires confirmation that the view has
     been updated before it will allow further image transitions or
@@ -13,10 +13,12 @@ class TransAckUIModel(UIModel):
     are simply ignored.
     """
 
-    def __init__(self, workunit_provider, download_manager, synchronization_manager):
-        super(TransAckUIModel, self).__init__(workunit_provider,
-                                              download_manager,
-                                              synchronization_manager)
+    def __init__(self, workunit_provider,
+                 download_manager,
+                 synchronization_manager):
+        super(TransAckValidationModel, self).__init__(workunit_provider,
+                                                      download_manager,
+                                                      synchronization_manager)
         self._source_transitioning = False
         self._observation_transitioning = False
 
@@ -54,43 +56,43 @@ class TransAckUIModel(UIModel):
         if self.is_waiting_for_transition():
             return
 
-        super(TransAckUIModel, self).next_obs()
+        super(TransAckValidationModel, self).next_obs()
 
     def previous_obs(self):
         if self.is_waiting_for_transition():
             return
 
-        super(TransAckUIModel, self).previous_obs()
+        super(TransAckValidationModel, self).previous_obs()
 
     def next_source(self):
         if self.is_waiting_for_transition():
             return
 
-        super(TransAckUIModel, self).next_source()
+        super(TransAckValidationModel, self).next_source()
 
     def previous_source(self):
         if self.is_waiting_for_transition():
             return
 
-        super(TransAckUIModel, self).previous_source()
+        super(TransAckValidationModel, self).previous_source()
 
     def next_item(self):
         if self.is_waiting_for_transition():
             return
 
-        super(TransAckUIModel, self).next_item()
+        super(TransAckValidationModel, self).next_item()
 
     def accept_current_item(self):
         if self._should_disable_validation():
             return
 
-        super(TransAckUIModel, self).accept_current_item()
+        super(TransAckValidationModel, self).accept_current_item()
 
     def reject_current_item(self):
         if self._should_disable_validation():
             return
 
-        super(TransAckUIModel, self).reject_current_item()
+        super(TransAckValidationModel, self).reject_current_item()
 
     def _should_disable_validation(self):
         if self.is_waiting_for_transition() and self.is_processing_reals():

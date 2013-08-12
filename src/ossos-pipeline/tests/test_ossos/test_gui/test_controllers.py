@@ -8,14 +8,14 @@ from hamcrest import equal_to, assert_that
 from ossos.gui import config
 from ossos.astrom import SourceReading, Observation
 from ossos.gui.views.app import ApplicationView
-from ossos.gui.models.validation import UIModel
+from ossos.gui.models.validation import ValidationModel
 from ossos.gui.controllers import AbstractController, ProcessRealsController, ImageLoadingDialogManager
 from ossos.naming import ProvisionalNameGenerator
 
 
 class AbstractControllerTest(unittest.TestCase):
     def setUp(self):
-        self.model = MagicMock(spec=UIModel)
+        self.model = MagicMock(spec=ValidationModel)
 
         self.adjusted_x = 150
         self.adjusted_y = 250
@@ -51,7 +51,7 @@ class AbstractControllerTest(unittest.TestCase):
 
 class RealsControllerTest(unittest.TestCase):
     def setUp(self):
-        self.model = MagicMock(spec=UIModel)
+        self.model = MagicMock(spec=ValidationModel)
 
         # TODO: indicates refactoring needed
         with patch("ossos.gui.controllers.ApplicationView"):
