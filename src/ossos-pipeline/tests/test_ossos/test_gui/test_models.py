@@ -26,8 +26,8 @@ class UIModelTest(unittest.TestCase):
                              self.synchronization_manager)
 
     def test_all_workunits_unlocked_on_exit(self):
-        workunit1 = Mock(spec=RealsWorkUnit)
-        workunit2 = Mock(spec=RealsWorkUnit)
+        workunit1 = MagicMock(spec=RealsWorkUnit)
+        workunit2 = MagicMock(spec=RealsWorkUnit)
 
         self.model.add_workunit(workunit1)
         self.model.add_workunit(workunit2)

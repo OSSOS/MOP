@@ -34,27 +34,9 @@ class AsynchronousImageDownloadManager(object):
         self._workers = []
         self._maximize_workers()
 
-        self._focal_point_calculator = SingletFocalPointCalculator()
-
-    def start_downloading_workunit(self, workunit, image_loaded_callback=None):
-        logger.debug("Starting to download workunit: %s" %
-                     workunit.get_filename())
-
+    def submit_request(self, request):
+        self._work_queue.put(request)
         self._maximize_workers()
-
-        # Load up queue with downloadable items
-        needs_apcor = workunit.is_apcor_needed()
-
-        focal_points = []
-        for source in workunit.get_unprocessed_sources():
-            focal_points.extend(
-                self._focal_point_calculator.calculate_focal_points(source))
-
-        for focal_point in focal_points:
-            self._work_queue.put(DownloadRequest(focal_point.reading,
-                                                 needs_apcor=needs_apcor,
-                                                 focal_point=focal_point.point,
-                                                 callback=image_loaded_callback))
 
     def retry_download(self, downloadable_item):
         self._work_queue.put(downloadable_item)
