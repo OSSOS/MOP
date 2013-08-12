@@ -26,7 +26,7 @@ class SourceSnapshotIntegrationTest(FileReadingTestCase):
         hdulist = fits.open(self.path("cutout-1616687p.fits"))
 
         with open(self.path("1616687p10.apcor")) as fh:
-            apcor = ApcorData.from_raw_string(fh.read())
+            apcor = ApcorData.from_string(fh.read())
 
         # NOTE: the test image
         # vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1616687/1616687p.fits

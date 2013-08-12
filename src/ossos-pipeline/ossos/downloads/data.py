@@ -168,7 +168,7 @@ class ApcorData(object):
         self.apcor_err = apcor_err
 
     @classmethod
-    def from_raw_string(cls, rawstr):
+    def from_string(cls, rawstr):
         """
         Creates an ApcorData record from the raw string format.
 

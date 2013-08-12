@@ -67,7 +67,7 @@ class ImageCutoutDownloader(object):
 
         vofile = self.vosclient.open(apcor_uri, view="data")
 
-        return ApcorData.from_raw_string(vofile.read())
+        return ApcorData.from_string(vofile.read())
 
     def refresh_vos_client(self):
         """

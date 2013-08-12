@@ -74,7 +74,7 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
 
     def create_real_first_image(self, path="data/testimg.fits"):
         # Put a real fits image on the first source, first observation
-        apcor = ApcorData.from_raw_string("4 15   0.19   0.01")
+        apcor = ApcorData.from_string("4 15   0.19   0.01")
         hdulist = fits.open(self.get_abs_path(path))
         first_reading = self.model.get_current_workunit().get_sources()[0].get_readings()[0]
         self.first_snapshot = SourceSnapshot(
