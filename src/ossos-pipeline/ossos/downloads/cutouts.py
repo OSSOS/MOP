@@ -35,7 +35,7 @@ class ImageCutoutDownloader(Downloader):
 
     def download_cutout(self, reading, focal_point):
         image_uri = reading.get_image_uri()
-        print "Got image uri"
+
         cutout_str, converter = self.cutout_calculator.build_cutout_str(
             reading.get_extension(),
             focal_point,
@@ -45,7 +45,6 @@ class ImageCutoutDownloader(Downloader):
         logger.debug("Calculated cutout: %s for %s"
                      % (cutout_str, image_uri))
 
-        print "About to download hdulist"
         hdulist = self.download_hdulist(image_uri, view="cutout",
                                         cutout=cutout_str)
 
