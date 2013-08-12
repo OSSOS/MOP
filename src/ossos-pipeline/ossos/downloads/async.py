@@ -51,8 +51,7 @@ class AsynchronousImageDownloadManager(object):
                 self._focal_point_calculator.calculate_focal_points(source))
 
         for focal_point in focal_points:
-            self._work_queue.put(DownloadRequest(self.downloader,
-                                                 focal_point.reading,
+            self._work_queue.put(DownloadRequest(focal_point.reading,
                                                  needs_apcor=needs_apcor,
                                                  focal_point=focal_point.point,
                                                  callback=image_loaded_callback))
@@ -122,7 +121,7 @@ class DownloadThread(threading.Thread):
                 self._idle = True
 
     def do_download(self, download_request):
-        download_request.execute()
+        download_request.execute(self.downloader)
 
     def stop(self):
         self._should_stop = True

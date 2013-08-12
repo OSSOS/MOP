@@ -8,7 +8,7 @@ class DownloadRequest(object):
     Specifies an item (image and potentially related files) to be downloaded.
     """
 
-    def __init__(self, downloader,
+    def __init__(self,
                  reading,
                  focal_point=None,
                  needs_apcor=False,
@@ -17,8 +17,6 @@ class DownloadRequest(object):
         Constructor.
 
         Args:
-          downloader:
-            The downloader which will execute this request.
           source_reading: ossos.astrom.SourceReading
             The reading which will be the focus of the downloaded image.
           focal_point: tuple(int, int)
@@ -35,7 +33,6 @@ class DownloadRequest(object):
             An optional callback to be called with the downloaded snapshot
             as its argument.
         """
-        self.downloader = downloader
         self.reading = reading
         self.needs_apcor = needs_apcor
         self.callback = callback
@@ -45,12 +42,25 @@ class DownloadRequest(object):
         else:
             self.focal_point = focal_point
 
-    def execute(self):
-        hdulist, converter = self.downloader.download_fits(
-            self.reading, self.focal_point)
+    def execute(self, downloader):
+        """
+        Executes this request.
+
+        Args:
+          downloader:
+            The downloader which will perform the necessary retrieval
+            operations.
+
+        Returns:
+          download: Snapshot
+            The downloaded snapshot.  The request's callback will also be
+            executed upon completion.
+        """
+        hdulist, converter = downloader.download_fits(self.reading,
+                                                      self.focal_point)
 
         if self.needs_apcor:
-            apcor = self.downloader.download_apcor(self.reading)
+            apcor = downloader.download_apcor(self.reading)
         else:
             apcor = None
 
