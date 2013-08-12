@@ -38,9 +38,6 @@ class AsynchronousImageDownloadManager(object):
         self._work_queue.put(request)
         self._maximize_workers()
 
-    def retry_download(self, downloadable_item):
-        self._work_queue.put(downloadable_item)
-
     def stop_download(self):
         for worker in self._workers:
             worker.stop()
