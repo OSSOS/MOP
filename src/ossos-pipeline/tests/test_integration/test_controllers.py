@@ -13,7 +13,7 @@ from ossos.gui import tasks
 from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui.progress import LocalProgressManager
 from ossos.gui.controllers import ProcessRealsController
-from ossos.gui.models.validation import UIModel
+from ossos.gui.models.validation import ValidationModel
 from ossos.gui.views.app import ApplicationView
 from ossos.astrom import AstromParser
 from ossos.naming import ProvisionalNameGenerator
@@ -51,7 +51,7 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
 
         download_manager = Mock(spec=AsynchronousDownloadManager)
 
-        self.model = UIModel(workunit_provider, download_manager, None)
+        self.model = ValidationModel(workunit_provider, download_manager, None)
         self.model.start_work()
 
         # We don't actually have any images loaded, so mock this out

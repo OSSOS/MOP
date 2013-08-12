@@ -11,7 +11,7 @@ from ossos.gui.workload import (NoAvailableWorkException, StatefulCollection,
                                 CandidatesWorkUnit, RealsWorkUnit)
 
 
-class UIModel(object):
+class ValidationModel(object):
     """
     Contains the data and associated operations available to the user interface.
     """

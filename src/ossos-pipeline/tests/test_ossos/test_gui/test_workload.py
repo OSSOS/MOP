@@ -12,7 +12,7 @@ from tests.testutil import CopyingMock
 from ossos.downloads.async import AsynchronousDownloadManager
 from ossos.gui import tasks
 from ossos.gui.context import WorkingContext, LocalDirectoryWorkingContext
-from ossos.gui.models.validation import UIModel
+from ossos.gui.models.validation import ValidationModel
 from ossos.astrom import AstromParser, StreamingAstromWriter
 from ossos.mpc import MPCWriter
 from ossos.gui.progress import LocalProgressManager, InMemoryProgressManager
@@ -509,7 +509,7 @@ class WorkloadManagementTest(unittest.TestCase):
         self.workunit_provider.get_workunit.side_effect = (get_workunit(index) for index in xrange(2))
         download_manager = Mock(spec=AsynchronousDownloadManager)
 
-        self.undertest = UIModel(self.workunit_provider, download_manager, None)
+        self.undertest = ValidationModel(self.workunit_provider, download_manager, None)
         self.undertest.start_work()
 
     def test_workunits_on_demand(self):
