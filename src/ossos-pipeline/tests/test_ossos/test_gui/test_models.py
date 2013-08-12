@@ -10,7 +10,7 @@ from ossos.astrom import AstromParser
 from ossos.downloads.async import AsynchronousDownloadManager
 from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui import events
-from ossos.gui.models import UIModel, TransAckUIModel
+from ossos.gui.models.validation import UIModel, TransAckUIModel
 from ossos.gui.progress import LocalProgressManager
 from ossos.gui.sync import SynchronizationManager
 from ossos.gui.workload import PreFetchingWorkUnitProvider, RealsWorkUnit, CandidatesWorkUnit
@@ -242,7 +242,7 @@ class TransitionAcknowledgementUIModelTest(FileReadingTestCase):
         self.model.reject_current_item()
         assert_that(self.model.get_num_items_processed(), equal_to(1))
 
-    @patch("ossos.gui.models.events")
+    @patch("ossos.gui.models.validation.events")
     def test_additional_change_image_events_not_sent_when_waiting(self, events_mock):
         self.use_reals_workunit()
 

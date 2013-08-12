@@ -12,7 +12,7 @@ from tests.testutil import CopyingMock
 from ossos.downloads.async import AsynchronousDownloadManager
 from ossos.gui import tasks
 from ossos.gui.context import WorkingContext, LocalDirectoryWorkingContext
-from ossos.gui.models import UIModel
+from ossos.gui.models.validation import UIModel
 from ossos.astrom import AstromParser, StreamingAstromWriter
 from ossos.mpc import MPCWriter
 from ossos.gui.progress import LocalProgressManager, InMemoryProgressManager
