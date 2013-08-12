@@ -6,7 +6,7 @@ import wx
 import wx.lib.inspection
 
 from ossos.astrom import AstromParser
-from ossos.downloads.async import AsynchronousImageDownloadManager
+from ossos.downloads.async import AsynchronousDownloadManager
 from ossos.downloads.cutouts import ImageCutoutDownloader
 from ossos.gui import config, tasks, logger
 from ossos.gui import context
@@ -110,8 +110,8 @@ class ValidationApplication(object):
         parser = AstromParser()
         error_handler = DownloadErrorHandler(self)
         downloader = ImageCutoutDownloader()
-        download_manager = AsynchronousImageDownloadManager(downloader,
-                                                            error_handler)
+        download_manager = AsynchronousDownloadManager(downloader,
+                                                       error_handler)
 
         working_context = context.get_context(working_directory)
         output_context = context.get_context(output_directory)

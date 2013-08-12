@@ -1,4 +1,4 @@
-from ossos.downloads.async import AsynchronousImageDownloadManager
+from ossos.downloads.async import AsynchronousDownloadManager
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -49,7 +49,7 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
                                                  context,
                                                  progress_manager))
 
-        download_manager = Mock(spec=AsynchronousImageDownloadManager)
+        download_manager = Mock(spec=AsynchronousDownloadManager)
 
         self.model = UIModel(workunit_provider, download_manager, None)
         self.model.start_work()
