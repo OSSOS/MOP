@@ -64,7 +64,7 @@ class DownloadTest(FileReadingTestCase):
         self.apcorfile.close()
 
     def make_request(self, callback=None):
-        return DownloadRequest(self.downloader, self.reading,
+        return DownloadRequest(self.reading,
                                needs_apcor=self.needs_apcor,
                                focal_point=self.focal_point,
                                callback=callback)
@@ -72,7 +72,7 @@ class DownloadTest(FileReadingTestCase):
     def test_request_image_cutout(self):
         request = self.make_request()
 
-        download = request.execute()
+        download = request.execute(self.downloader)
 
         assert_that(self.vosclient.open.call_args_list, contains(
             call(self.image_uri, view="cutout", cutout="[19][50:100,30:130]"),
@@ -86,7 +86,7 @@ class DownloadTest(FileReadingTestCase):
 
     def test_download_callback(self):
         callback = Mock()
-        download = self.make_request(callback).execute()
+        download = self.make_request(callback).execute(self.downloader)
         callback.assert_called_once_with(download)
 
 

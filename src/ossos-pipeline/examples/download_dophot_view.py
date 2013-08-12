@@ -12,9 +12,9 @@ sources = astrom.parse_sources("../tests/data/astromdir/realstest2.measure3.real
 reading = sources[0].get_reading(0)
 
 downloader = cutouts.ImageCutoutDownloader(slice_rows=50, slice_cols=50)
-request = requests.DownloadRequest(downloader, reading, needs_apcor=True)
+request = requests.DownloadRequest(reading, needs_apcor=True)
 
-snapshot = request.execute()
+snapshot = request.execute(downloader)
 
 print "RA: %f" % snapshot.ra
 print "DEC: %f" % snapshot.dec
