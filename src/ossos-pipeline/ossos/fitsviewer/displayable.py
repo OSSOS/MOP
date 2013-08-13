@@ -80,10 +80,10 @@ class DisplayableImageSinglet(object):
         be on the image at a time, so any existing marker will be replaced.
         """
         if self.circle is not None:
-            self.circle.remove()
+            self.circle.remove_from_axes()
 
-        self.circle = plt.Circle((x, y), radius, color="b", fill=False)
-        self.axes.add_patch(self.circle)
+        self.circle = Marker(x, y, radius)
+        self.circle.add_to_axes(self.axes)
 
         self.display_changed.fire()
 
@@ -252,6 +252,36 @@ class _ImageTriplet(object):
 
         # Don't draw tick marks and labels
         self.axes.set_axis_off()
+
+
+class Marker(object):
+    def __init__(self, x, y, radius):
+        self.circle = plt.Circle((x, y), radius, color="b", fill=False)
+
+    @property
+    def center(self):
+        return self.circle.center
+
+    @center.setter
+    def center(self, new_center):
+        self.circle.center = new_center
+
+    @property
+    def radius(self):
+        return self.circle.radius
+
+    @radius.setter
+    def radius(self, new_radius):
+        self.circle.radius = new_radius
+
+    def add_to_axes(self, axes):
+        axes.add_patch(self.circle)
+
+    def remove_from_axes(self):
+        self.circle.remove()
+
+    def contains(self, event):
+        return self.circle.contains(event)
 
 
 def zscale(image):
