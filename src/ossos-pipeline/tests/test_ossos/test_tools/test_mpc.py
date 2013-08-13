@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import unittest
 import tempfile
 
-from hamcrest import assert_that, equal_to, has_length
+from hamcrest import assert_that, equal_to, has_length, contains
 from astropy.time.core import Time
 
 from ossos import mpc
@@ -536,6 +536,50 @@ class MPCWriterTest(unittest.TestCase):
         self.undertest.flush()
         assert_that(self.read_outputfile(),
                     equal_to(expected_mpcline + expected_reject_line))
+
+    def test_written_obs_sorted_chronologically_on_flush(self):
+        self.undertest = mpc.MPCWriter(self.outputfile, auto_flush=False)
+
+        obs1 = mpc.Observation(minor_planet_number="12345",
+                               provisional_name="A234567",
+                               discovery="*",
+                               note1="H",
+                               note2="N",
+                               date="2012 10 21.405160",
+                               ra="26.683336700", # 01 46 44.001
+                               dec="29.220353200", # +29 13 13.27
+                               mag="123.5",
+                               band="A",
+                               observatory_code="523")
+        obs2 = mpc.Observation(minor_planet_number="12345",
+                               provisional_name="A234567",
+                               discovery="*",
+                               note1="H",
+                               note2="N",
+                               date="2012 11 21.405160",
+                               ra="26.683336700", # 01 46 44.001
+                               dec="29.220353200", # +29 13 13.27
+                               mag="123.5",
+                               band="A",
+                               observatory_code="523")
+        obs3 = mpc.Observation(minor_planet_number="12345",
+                               provisional_name="A234567",
+                               discovery="*",
+                               note1="H",
+                               note2="N",
+                               date="2012 12 21.405160",
+                               ra="26.683336700", # 01 46 44.001
+                               dec="29.220353200", # +29 13 13.27
+                               mag="123.5",
+                               band="A",
+                               observatory_code="523")
+
+        self.undertest.write(obs3)
+        self.undertest.write(obs1)
+        self.undertest.write(obs2)
+
+        assert_that(self.undertest.get_chronological_buffered_observations(),
+                    contains(obs1, obs2, obs3))
 
     def test_format_ra(self):
         """
