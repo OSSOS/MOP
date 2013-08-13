@@ -106,9 +106,11 @@ def field_in_survey_footprint(header):
 	# as the fields precess according to Keplerian shear, required footprint is time-dependent.
 	# but it doesn't move that far in four years.
 
-	# make sure any data from 2004 KV18, 2008 LC18, 2009 MS9 are excluded
-
-	return True
+	verboten = ['2004 KV18', '2008 LC18', '2009 MS9']  # observed for followup on OSSOS time
+	if header['OBJECT'] != [not_ossos for not_ossos in verboten]:
+		return True
+	else:
+		return False
 
 
 def get_iq_and_zeropoint(image, header_extract):
