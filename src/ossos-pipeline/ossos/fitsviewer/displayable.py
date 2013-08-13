@@ -74,10 +74,10 @@ class DisplayableImageSinglet(object):
         self._colormap.set_defaults()
         self._refresh_displayed_colormap()
 
-    def draw_circle(self, x, y, radius):
+    def place_marker(self, x, y, radius):
         """
-        Draws a circle with the specified dimensions.  Only one circle can
-        be on the image at a time, so any existing circle will be replaced.
+        Draws a marker with the specified dimensions.  Only one marker can
+        be on the image at a time, so any existing marker will be replaced.
         """
         if self.circle is not None:
             self.circle.remove()
@@ -87,13 +87,13 @@ class DisplayableImageSinglet(object):
 
         self.display_changed.fire()
 
-    def update_circle(self, x, y, radius=None):
+    def update_marker(self, x, y, radius=None):
         if self.circle is None:
             if radius is None:
                 raise MPLViewerError("No circle to update.")
             else:
                 # For convenience go ahead and make one
-                self.draw_circle(x, y, radius)
+                self.place_marker(x, y, radius)
 
         self.circle.center = (x, y)
 

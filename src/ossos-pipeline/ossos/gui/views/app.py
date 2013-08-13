@@ -60,8 +60,8 @@ class ApplicationView(object):
         self.mainframe.display(fits_image, redraw=redraw)
 
     @guithread
-    def draw_circle(self, x, y, radius, redraw=True):
-        self.mainframe.draw_circle(x, y, radius, redraw=redraw)
+    def draw_marker(self, x, y, radius, redraw=True):
+        self.mainframe.draw_marker(x, y, radius, redraw=redraw)
 
     @guithread
     def update_displayed_data(self):
