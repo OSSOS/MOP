@@ -379,20 +379,20 @@ def set_property(node_uri, property_name, property_value, ossos_base=True):
     vospace.addProps(node)
 
 
-def build_counter_tag(epoch_field, dryrun=False):
+def build_counter_tag(epoch_field, dry_run=False):
     """
     Builds the tag for the counter of a given epoch/field,
     without the OSSOS base.
     """
     tag = epoch_field + "-" + OBJECT_COUNT
 
-    if dryrun:
+    if dry_run:
         tag += "-DRYRUN"
 
     return tag
 
 
-def read_object_counter(node_uri, epoch_field, dryrun=False):
+def read_object_counter(node_uri, epoch_field, dry_run=False):
     """
     Reads the object counter for the given epoch/field on the specified
     node.
@@ -401,11 +401,11 @@ def read_object_counter(node_uri, epoch_field, dryrun=False):
       count: str
         The current object count.
     """
-    return get_property(node_uri, build_counter_tag(epoch_field, dryrun),
+    return get_property(node_uri, build_counter_tag(epoch_field, dry_run),
                         ossos_base=True)
 
 
-def increment_object_counter(node_uri, epoch_field, dryrun=False):
+def increment_object_counter(node_uri, epoch_field, dry_run=False):
     """
     Increments the object counter for the given epoch/field on the specified
     node.
@@ -414,7 +414,7 @@ def increment_object_counter(node_uri, epoch_field, dryrun=False):
       new_count: str
         The object count AFTER incrementing.
     """
-    current_count = read_object_counter(node_uri, epoch_field, dryrun=dryrun)
+    current_count = read_object_counter(node_uri, epoch_field, dry_run=dry_run)
 
     if current_count is None:
         new_count = "01"
@@ -423,7 +423,7 @@ def increment_object_counter(node_uri, epoch_field, dryrun=False):
                                         pad_length=2)
 
     set_property(node_uri,
-                 build_counter_tag(epoch_field, dryrun=dryrun),
+                 build_counter_tag(epoch_field, dry_run=dry_run),
                  new_count,
                  ossos_base=True)
 

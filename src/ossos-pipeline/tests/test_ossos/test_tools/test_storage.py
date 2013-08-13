@@ -48,7 +48,7 @@ class ObjectCountTest(unittest.TestCase):
     def test_build_dryrun_tag(self):
         epoch_field = "13AE"
 
-        assert_that(storage.build_counter_tag(epoch_field, dryrun=True),
+        assert_that(storage.build_counter_tag(epoch_field, dry_run=True),
                     equal_to("13AE-object_count-DRYRUN"))
 
     @patch("ossos.storage.set_property")
@@ -60,15 +60,15 @@ class ObjectCountTest(unittest.TestCase):
         epoch_field = "13AE"
 
         counter = storage.increment_object_counter(node_uri, epoch_field,
-                                                   dryrun=True)
+                                                   dry_run=True)
 
-        expected_tag = storage.build_counter_tag(epoch_field, dryrun=True)
+        expected_tag = storage.build_counter_tag(epoch_field, dry_run=True)
         expected_count = "03"
 
         assert_that(counter, equal_to(expected_count))
         get_property.assert_called_once_with(
             node_uri,
-            storage.build_counter_tag(epoch_field, dryrun=True),
+            storage.build_counter_tag(epoch_field, dry_run=True),
             ossos_base=True)
         set_property.assert_called_once_with(node_uri,
                                              expected_tag,

@@ -48,7 +48,7 @@ class DryRunNameGenerator(ProvisionalNameGenerator):
         epoch_field = self.get_epoch_field(astrom_header, fits_header)
         count = storage.increment_object_counter(storage.MEASURE3,
                                                  epoch_field,
-                                                 dryrun=True)
+                                                 dry_run=True)
 
         base = "DRY"
         return base + count.zfill(7 - len(base))
