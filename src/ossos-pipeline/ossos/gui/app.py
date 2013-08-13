@@ -23,8 +23,8 @@ from ossos.naming import ProvisionalNameGenerator, DryRunNameGenerator
 
 
 class AbstractTaskFactory(object):
-    def __init__(self, dryrun=False):
-        self.dryrun = dryrun
+    def __init__(self, dry_run=False):
+        self.dry_run = dry_run
 
     def create_workunit_builder(self,
                                 parser,
@@ -41,8 +41,8 @@ class AbstractTaskFactory(object):
 
 
 class ProcessRealsTaskFactory(AbstractTaskFactory):
-    def __init__(self, dryrun=False):
-        super(ProcessRealsTaskFactory, self).__init__(dryrun=dryrun)
+    def __init__(self, dry_run=False):
+        super(ProcessRealsTaskFactory, self).__init__(dry_run=dry_run)
 
         # NOTE: Force expensive loading of libraries up front.  These are
         # libraries that the reals task needs but the candidates task
@@ -61,7 +61,7 @@ class ProcessRealsTaskFactory(AbstractTaskFactory):
             parser, input_context, output_context, progress_manager)
 
     def create_controller(self, model):
-        if self.dryrun:
+        if self.dry_run:
             name_generator = DryRunNameGenerator()
         else:
             name_generator = ProvisionalNameGenerator()
@@ -73,8 +73,8 @@ class ProcessRealsTaskFactory(AbstractTaskFactory):
 
 
 class ProcessCandidatesTaskFactory(AbstractTaskFactory):
-    def __init__(self, dryrun=False):
-        super(ProcessCandidatesTaskFactory, self).__init__(dryrun=dryrun)
+    def __init__(self, dry_run=False):
+        super(ProcessCandidatesTaskFactory, self).__init__(dry_run=dry_run)
 
     def create_workunit_builder(self,
                                 parser,
@@ -98,7 +98,7 @@ class ValidationApplication(object):
     }
 
     def __init__(self, taskname, working_directory, output_directory,
-                 dryrun=False):
+                 dry_run=False):
         logger.info("Starting %s task in %s" % (taskname, working_directory))
         logger.info("Output directory set to: %s" % output_directory)
 
@@ -109,7 +109,7 @@ class ValidationApplication(object):
             wx.lib.inspection.InspectionTool().Show()
 
         try:
-            factory = self.task_name_mapping[taskname](dryrun=dryrun)
+            factory = self.task_name_mapping[taskname](dry_run=dry_run)
         except KeyError:
             error_message = "Unknown task: %s" % taskname
             logger.critical(error_message)
@@ -124,7 +124,7 @@ class ValidationApplication(object):
         working_context = context.get_context(working_directory)
         output_context = context.get_context(output_directory)
 
-        if dryrun and working_context.is_remote():
+        if dry_run and working_context.is_remote():
             sys.stdout.write("A dry run can only be done on local files.\n")
             sys.exit(0)
 
