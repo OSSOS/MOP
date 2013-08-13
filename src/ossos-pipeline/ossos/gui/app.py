@@ -58,7 +58,8 @@ class ProcessRealsTaskFactory(AbstractTaskFactory):
                                 output_context,
                                 progress_manager):
         return RealsWorkUnitBuilder(
-            parser, input_context, output_context, progress_manager)
+            parser, input_context, output_context, progress_manager,
+            dry_run=self.dry_run)
 
     def create_controller(self, model):
         if self.dry_run:
@@ -82,7 +83,8 @@ class ProcessCandidatesTaskFactory(AbstractTaskFactory):
                                 output_context,
                                 progress_manager):
         return CandidatesWorkUnitBuilder(
-            parser, input_context, output_context, progress_manager)
+            parser, input_context, output_context, progress_manager,
+            dry_run=self.dry_run)
 
     def create_controller(self, model):
         return ProcessCandidatesController(model)
