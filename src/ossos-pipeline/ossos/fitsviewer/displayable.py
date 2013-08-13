@@ -21,7 +21,7 @@ class DisplayableImageSinglet(object):
         self.figure = None
         self.axes = None
 
-        self.circle = None
+        self.marker = None
 
         self.display_changed = Signal()
         self.xy_changed = Signal()
@@ -79,26 +79,26 @@ class DisplayableImageSinglet(object):
         Draws a marker with the specified dimensions.  Only one marker can
         be on the image at a time, so any existing marker will be replaced.
         """
-        if self.circle is not None:
-            self.circle.remove_from_axes()
+        if self.marker is not None:
+            self.marker.remove_from_axes()
 
-        self.circle = Marker(x, y, radius)
-        self.circle.add_to_axes(self.axes)
+        self.marker = Marker(x, y, radius)
+        self.marker.add_to_axes(self.axes)
 
         self.display_changed.fire()
 
     def update_marker(self, x, y, radius=None):
-        if self.circle is None:
+        if self.marker is None:
             if radius is None:
-                raise MPLViewerError("No circle to update.")
+                raise MPLViewerError("No marker to update.")
             else:
                 # For convenience go ahead and make one
                 self.place_marker(x, y, radius)
 
-        self.circle.center = (x, y)
+        self.marker.center = (x, y)
 
         if radius is not None:
-            self.circle.radius = radius
+            self.marker.radius = radius
 
         self.xy_changed.fire(x, y)
         self.display_changed.fire()
