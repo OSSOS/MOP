@@ -33,7 +33,7 @@ class DisplayableImageSingletTest(unittest.TestCase):
         cx = 1
         cy = 2
         cr = 3
-        self.displayable.draw_circle(cx, cy, cr)
+        self.displayable.place_marker(cx, cy, cr)
 
         assert_that(axes.patches, has_length(1))
         circle = axes.patches[0]
@@ -47,14 +47,14 @@ class DisplayableImageSingletTest(unittest.TestCase):
         c1x = 1
         c1y = 2
         c1r = 3
-        self.displayable.draw_circle(c1x, c1y, c1r)
+        self.displayable.place_marker(c1x, c1y, c1r)
 
         assert_that(axes.patches, has_length(1))
 
         c2x = 4
         c2y = 5
         c2r = 6
-        self.displayable.draw_circle(c2x, c2y, c2r)
+        self.displayable.place_marker(c2x, c2y, c2r)
 
         assert_that(axes.patches, has_length(1))
 
@@ -109,7 +109,7 @@ class InteractionTest(unittest.TestCase):
         y = 10
         radius = 5
 
-        self.displayable.draw_circle(x, y, radius)
+        self.displayable.place_marker(x, y, radius)
         self.fire_press_event(x + 2, y + 2)
         assert_that(self.interaction_context.state, instance_of(MoveCircleState))
 
@@ -118,7 +118,7 @@ class InteractionTest(unittest.TestCase):
         y = 10
         radius = 5
 
-        self.displayable.draw_circle(x, y, radius)
+        self.displayable.place_marker(x, y, radius)
         assert_that(not self.interaction_context.state.pressed)
         self.fire_press_event(x + 2, y + 2)
         assert_that(self.interaction_context.state.pressed)
@@ -130,7 +130,7 @@ class InteractionTest(unittest.TestCase):
         y = 10
         radius = 5
 
-        self.displayable.draw_circle(x, y, radius)
+        self.displayable.place_marker(x, y, radius)
         self.fire_press_event(x + 2, y + 2)
         assert_that(self.interaction_context.state, instance_of(MoveCircleState))
         self.fire_release_event()
@@ -164,14 +164,14 @@ class InteractionTest(unittest.TestCase):
         dx = 10
         dy = 5
 
-        self.displayable.draw_circle(x0, y0, radius)
-        assert_that(self.interaction_context.get_circle().center, equal_to((x0, y0)))
+        self.displayable.place_marker(x0, y0, radius)
+        assert_that(self.interaction_context.get_marker().center, equal_to((x0, y0)))
         self.fire_press_event(xclick, yclick)
 
         self.fire_motion_event(xclick + dx, yclick + dy)
-        assert_that(self.interaction_context.get_circle().center,
+        assert_that(self.interaction_context.get_marker().center,
                     equal_to((x0 + dx, y0 + dy)))
-        assert_that(self.interaction_context.get_circle().radius, equal_to(radius))
+        assert_that(self.interaction_context.get_marker().radius, equal_to(radius))
 
     def test_create_circle(self):
         x0 = 10
@@ -179,43 +179,43 @@ class InteractionTest(unittest.TestCase):
         dx = 10
         dy = 30
 
-        assert_that(self.interaction_context.get_circle(), none())
+        assert_that(self.interaction_context.get_marker(), none())
         self.fire_press_event(x0, y0)
         self.fire_motion_event(x0 + dx, y0 + dy)
-        assert_that(self.interaction_context.get_circle().center,
+        assert_that(self.interaction_context.get_marker().center,
                     equal_to((15, 25)))
-        assert_that(self.interaction_context.get_circle().radius, equal_to(15))
+        assert_that(self.interaction_context.get_marker().radius, equal_to(15))
 
     def test_motion_not_pressed(self):
         x = 10
         y = 10
         radius = 5
 
-        self.displayable.draw_circle(x, y, radius)
+        self.displayable.place_marker(x, y, radius)
 
         self.interaction_context.state = CreateCircleState(self.interaction_context)
         self.fire_motion_event(x + 2, y + 2)
-        assert_that(self.interaction_context.get_circle().center, equal_to((x, y)))
-        assert_that(self.interaction_context.get_circle().radius, equal_to(radius))
+        assert_that(self.interaction_context.get_marker().center, equal_to((x, y)))
+        assert_that(self.interaction_context.get_marker().radius, equal_to(radius))
 
         self.interaction_context.state = MoveCircleState(self.interaction_context)
         self.fire_motion_event(x + 2, y + 2)
-        assert_that(self.interaction_context.get_circle().center, equal_to((x, y)))
-        assert_that(self.interaction_context.get_circle().radius, equal_to(radius))
+        assert_that(self.interaction_context.get_marker().center, equal_to((x, y)))
+        assert_that(self.interaction_context.get_marker().radius, equal_to(radius))
 
     def test_click_no_drag_inside_circle(self):
         x = 10
         y = 10
         radius = 5
 
-        self.displayable.draw_circle(x, y, radius)
+        self.displayable.place_marker(x, y, radius)
 
         click_x = 12
         click_y = 13
         self.fire_press_event(click_x, click_y)
         self.fire_release_event()
 
-        assert_that(self.interaction_context.get_circle().center,
+        assert_that(self.interaction_context.get_marker().center,
                     equal_to((click_x, click_y)))
 
     def test_click_no_drag_outside_circle(self):
@@ -223,21 +223,21 @@ class InteractionTest(unittest.TestCase):
         y = 10
         radius = 5
 
-        self.displayable.draw_circle(x, y, radius)
+        self.displayable.place_marker(x, y, radius)
 
         click_x = 20
         click_y = 21
         self.fire_press_event(click_x, click_y)
         self.fire_release_event()
 
-        assert_that(self.interaction_context.get_circle().center,
+        assert_that(self.interaction_context.get_marker().center,
                     equal_to((click_x, click_y)))
 
     def test_xy_changed_event_on_click(self):
         handler = Mock()
         self.displayable.xy_changed.connect(handler)
 
-        self.displayable.draw_circle(10, 10, 5)
+        self.displayable.place_marker(10, 10, 5)
 
         x_click = 20
         y_click = 30
@@ -253,7 +253,7 @@ class InteractionTest(unittest.TestCase):
         x0 = 10
         y0 = 10
         radius = 5
-        self.displayable.draw_circle(x0, y0, radius)
+        self.displayable.place_marker(x0, y0, radius)
 
         xclick = x0 + 2
         yclick = y0 + 2
