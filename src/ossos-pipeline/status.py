@@ -96,7 +96,6 @@ def main(expnums=[]):
         for command in MOP_COMMAND_ORDER[exp_type]:
             for ccd in success_parts[command].get('ccds',range(0,36)):
                 tag = storage.tag_uri(storage.get_process_tag(command, ccd))
-                print expnum, ccd, command, tags.get(tag, None)
                 if tags.get(tag, None) != storage.SUCCESS:
                     try:
                         if checker(expnum, ccd, command):
