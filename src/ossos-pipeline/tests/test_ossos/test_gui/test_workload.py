@@ -348,7 +348,7 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         source.set_provisional_name(provisional_name)
 
         assert_that(self.workunit.get_output_filename(source),
-                    equal_to("1584431p15.measure3.reals.astromABCD123.mpc"))
+                    equal_to("1584431p15.measure3.reals.astrom.ABCD123.mpc"))
 
     def test_get_output_filename_not_dry_run(self):
         self.workunit = RealsWorkUnit(self.testfile, self.data,

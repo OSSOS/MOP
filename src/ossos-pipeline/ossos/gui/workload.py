@@ -315,7 +315,7 @@ class RealsWorkUnit(WorkUnit):
         name = source.get_provisional_name() + ".mpc"
 
         if self.dry_run:
-            name = os.path.basename(self.filename) + name
+            name = os.path.basename(self.filename) + "." + name
 
         return name
 
