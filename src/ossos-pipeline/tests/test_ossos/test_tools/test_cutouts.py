@@ -48,21 +48,21 @@ class CutoutCalculatorTest(unittest.TestCase):
         self.calculator = CutoutCalculator(100, 200)
 
         _, converter = self.calculator.calc_cutout((500, 600), self.imgsize)
-        assert_that(converter.convert((400, 550)), equal_to((0, 0)))
-        assert_that(converter.convert((600, 550)), equal_to((200, 0)))
-        assert_that(converter.convert((400, 650)), equal_to((0, 100)))
-        assert_that(converter.convert((600, 650)), equal_to((200, 100)))
-        assert_that(converter.convert((500, 600)), equal_to((100, 50)))
+        assert_that(converter.convert((400, 550)), equal_to((1, 1)))
+        assert_that(converter.convert((600, 550)), equal_to((201, 1)))
+        assert_that(converter.convert((400, 650)), equal_to((1, 101)))
+        assert_that(converter.convert((600, 650)), equal_to((201, 101)))
+        assert_that(converter.convert((500, 600)), equal_to((101, 51)))
 
     def test_build_cutout_str_converter(self):
         self.calculator = CutoutCalculator(100, 200)
 
         _, converter = self.calculator.build_cutout_str(15, (500, 600), self.imgsize)
-        assert_that(converter.convert((400, 550)), equal_to((0, 0)))
-        assert_that(converter.convert((600, 550)), equal_to((200, 0)))
-        assert_that(converter.convert((400, 650)), equal_to((0, 100)))
-        assert_that(converter.convert((600, 650)), equal_to((200, 100)))
-        assert_that(converter.convert((500, 600)), equal_to((100, 50)))
+        assert_that(converter.convert((400, 550)), equal_to((1, 1)))
+        assert_that(converter.convert((600, 550)), equal_to((201, 1)))
+        assert_that(converter.convert((400, 650)), equal_to((1, 101)))
+        assert_that(converter.convert((600, 650)), equal_to((201, 101)))
+        assert_that(converter.convert((500, 600)), equal_to((101, 51)))
 
     def test_calc_cutout_boundary_x(self):
         self.calculator = CutoutCalculator(200, 200)
@@ -86,15 +86,15 @@ class CutoutCalculatorTest(unittest.TestCase):
         self.calculator = CutoutCalculator(200, 200)
 
         _, converter = self.calculator.build_cutout_str(15, (50, 400), self.imgsize)
-        assert_that(converter.convert((51, 400)), equal_to((50, 100)))
-        assert_that(converter.convert((1, 300)), equal_to((0, 0)))
+        assert_that(converter.convert((50, 400)), equal_to((50, 101)))
+        assert_that(converter.convert((1, 300)), equal_to((1, 1)))
 
     def test_calc_cutout_boundary_x_converter(self):
         self.calculator = CutoutCalculator(200, 200)
 
         _, converter = self.calculator.build_cutout_str(15, (400, 50), self.imgsize)
-        assert_that(converter.convert((400, 51)), equal_to((100, 50)))
-        assert_that(converter.convert((300, 1)), equal_to((0, 0)))
+        assert_that(converter.convert((400, 50)), equal_to((101, 50)))
+        assert_that(converter.convert((300, 1)), equal_to((1, 1)))
 
     def test_calc_cutout_boundary_xmax(self):
         self.imgsize = (200, 200)
@@ -121,18 +121,35 @@ class CutoutCalculatorTest(unittest.TestCase):
         self.calculator = CutoutCalculator(100, 100)
 
         _, converter = self.calculator.calc_cutout((175, 100), self.imgsize)
-        assert_that(converter.convert((175, 100)), equal_to((75, 50)))
-        assert_that(converter.convert((100, 50)), equal_to((0, 0)))
-        assert_that(converter.convert((200, 150)), equal_to((100, 100)))
+        assert_that(converter.convert((175, 100)), equal_to((76, 51)))
+        assert_that(converter.convert((100, 50)), equal_to((1, 1)))
+        assert_that(converter.convert((200, 150)), equal_to((101, 101)))
+
+    def test_calc_cutout_boundary_xmin(self):
+        self.imgsize = (200, 200)
+        self.calculator = CutoutCalculator(100, 100)
+
+        (x0, x1, y0, y1), _ = self.calculator.calc_cutout((25, 100), self.imgsize)
+        assert_that(x0, equal_to(1))
+        assert_that(x1, equal_to(101))
+        assert_that(y0, equal_to(50))
+        assert_that(y1, equal_to(150))
+
+    def test_calc_cutout_boundary_xmin_converter(self):
+        self.imgsize = (200, 200)
+        self.calculator = CutoutCalculator(100, 100)
+
+        _, converter = self.calculator.calc_cutout((25, 100), self.imgsize)
+        assert_that(converter.convert((25, 100)), equal_to((25, 51)))
 
     def test_calc_cutout_boundary_ymax_converter(self):
         self.imgsize = (200, 200)
         self.calculator = CutoutCalculator(100, 100)
 
         _, converter = self.calculator.calc_cutout((100, 175), self.imgsize)
-        assert_that(converter.convert((100, 175)), equal_to((50, 75)))
-        assert_that(converter.convert((50, 100)), equal_to((0, 0)))
-        assert_that(converter.convert((150, 200)), equal_to((100, 100)))
+        assert_that(converter.convert((100, 175)), equal_to((51, 76)))
+        assert_that(converter.convert((50, 100)), equal_to((1, 1)))
+        assert_that(converter.convert((150, 200)), equal_to((101, 101)))
 
     def test_calc_cutout_inverted(self):
         self.calculator = CutoutCalculator(20, 20)
@@ -182,8 +199,9 @@ class CutoutCalculatorTest(unittest.TestCase):
         x, y = converter.convert((1970.17, 4611.65))
 
         delta = 0.01
-        assert_that(x, close_to(125, delta))
-        assert_that(y, close_to(217.65, delta))
+        # note 1-based indexing not 0
+        assert_that(x, close_to(126, delta))
+        assert_that(y, close_to(218.65, delta))
 
     def test_cutout_over_two_edges(self):
         calculator = CutoutCalculator(250, 250)
