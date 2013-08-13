@@ -17,6 +17,11 @@ class ProvisionalNameGenerator(object):
         Generates a name for an object given the information in its astrom
         observation header and FITS header.
         """
+        epoch_field = self.get_epoch_field(astrom_header, fits_header)
+        count = storage.increment_object_counter(storage.MEASURE3, epoch_field)
+        return epoch_field + count
+
+    def get_epoch_field(self, astrom_header, fits_header):
         # Format: "YYYY MM DD.dddddd"
         date = astrom_header[astrom.MJD_OBS_CENTER]
         year, month, _ = date.split()
@@ -32,24 +37,18 @@ class ProvisionalNameGenerator(object):
         else:
             field = object_header[0]
 
-        epoch_field = "O" + epoch + field
-
-        count = storage.increment_object_counter(storage.MEASURE3, epoch_field)
-
-        return epoch_field + count
+        return "O" + epoch + field
 
 
-class DryRunNameGenerator(object):
+class DryRunNameGenerator(ProvisionalNameGenerator):
     """
     Generate a fake name for dry runs so we don't increment counters.
     """
-    def __init__(self):
-        self.counter = 0
-
     def generate_name(self, astrom_header, fits_header):
+        epoch_field = self.get_epoch_field(astrom_header, fits_header)
+        count = storage.increment_object_counter(storage.MEASURE3,
+                                                 epoch_field,
+                                                 dryrun=True)
+
         base = "DRY"
-        count = str(self.counter).zfill(7 - len(base))
-
-        self.counter += 1
-
-        return base + count
+        return base + count.zfill(7 - len(base))
