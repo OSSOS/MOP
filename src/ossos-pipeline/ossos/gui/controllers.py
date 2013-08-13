@@ -251,6 +251,7 @@ class ProcessRealsController(AbstractController):
             self.model.set_current_source_name(self._generate_provisional_name())
 
         mpc_observation = mpc.Observation(
+            provisional_name=self.model.get_current_source_name(),
             date=self.model.get_current_observation_date(),
             ra=self.model.get_current_ra(),
             dec=self.model.get_current_dec(),
