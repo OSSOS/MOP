@@ -179,8 +179,8 @@ class CutoutCalculator(object):
             x1 = xmax
             y0 = ymin
             y1 = ymax
-            x_offset = xmin
-            y_offset = ymin
+            x_offset = xmin - 1
+            y_offset = ymin - 1
 
         return (x0, x1, y0, y1), CoordinateConverter(x_offset, y_offset)
 
