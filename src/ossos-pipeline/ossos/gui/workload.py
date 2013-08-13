@@ -94,11 +94,13 @@ class WorkUnit(object):
     def __init__(self, filename,
                  parsed_data,
                  progress_manager,
-                 output_context):
+                 output_context,
+                 dry_run=False):
         self.filename = filename
         self.data = parsed_data
         self.progress_manager = progress_manager
         self.output_context = output_context
+        self.dry_run = dry_run
 
         self.sources = StatefulCollection(parsed_data.get_sources())
 
@@ -249,12 +251,14 @@ class RealsWorkUnit(WorkUnit):
                  filename,
                  parsed_data,
                  progress_manager,
-                 output_context):
+                 output_context,
+                 dry_run=False):
         super(RealsWorkUnit, self).__init__(
             filename,
             parsed_data,
             progress_manager,
-            output_context)
+            output_context,
+            dry_run=dry_run)
 
         self._writers = {}
 
@@ -292,7 +296,7 @@ class RealsWorkUnit(WorkUnit):
         return True
 
     def get_writer(self):
-        filename = self._get_current_source_output_filename()
+        filename = self.get_output_filename(self.get_current_source())
         if filename in self._writers:
             return self._writers[filename]
 
@@ -304,13 +308,16 @@ class RealsWorkUnit(WorkUnit):
         return [self.output_context.get_full_path(filename)
                 for filename in self._writers]
 
-    def _get_current_source_output_filename(self):
-        source = self.get_current_source()
-
+    def get_output_filename(self, source):
         if not source.has_provisional_name():
             raise SourceNotNamedException(source)
 
-        return source.get_provisional_name() + ".mpc"
+        name = source.get_provisional_name() + ".mpc"
+
+        if self.dry_run:
+            name = os.path.basename(self.filename) + "." + name
+
+        return name
 
     def _create_writer(self, filename):
         # NOTE: this import is only here so that we don't load up secondary
@@ -348,12 +355,14 @@ class CandidatesWorkUnit(WorkUnit):
                  filename,
                  parsed_data,
                  progress_manager,
-                 output_context):
+                 output_context,
+                 dry_run=False):
         super(CandidatesWorkUnit, self).__init__(
             filename,
             parsed_data,
             progress_manager,
-            output_context)
+            output_context,
+            dry_run=dry_run)
 
         self._writer = None
 
@@ -585,11 +594,13 @@ class WorkUnitBuilder(object):
     Used to construct a WorkUnit with its necessary components.
     """
 
-    def __init__(self, parser, input_context, output_context, progress_manager):
+    def __init__(self, parser, input_context, output_context, progress_manager,
+                 dry_run=False):
         self.parser = parser
         self.input_context = input_context
         self.output_context = output_context
         self.progress_manager = progress_manager
+        self.dry_run = dry_run
 
     def build_workunit(self, input_fullpath):
         parsed_data = self.parser.parse(input_fullpath)
@@ -603,13 +614,15 @@ class WorkUnitBuilder(object):
             input_filename,
             parsed_data,
             self.progress_manager,
-            self.output_context)
+            self.output_context,
+            self.dry_run)
 
     def _do_build_workunit(self,
                            filename,
                            data,
                            progress_manager,
-                           output_context):
+                           output_context,
+                           dry_run):
         raise NotImplementedError()
 
 
@@ -619,17 +632,21 @@ class RealsWorkUnitBuilder(WorkUnitBuilder):
     Constructs RealsWorkUnits for the process reals task.
     """
 
-    def __init__(self, parser, input_context, output_context, progress_manager):
+    def __init__(self, parser, input_context, output_context, progress_manager,
+                 dry_run=False):
         super(RealsWorkUnitBuilder, self).__init__(
-            parser, input_context, output_context, progress_manager)
+            parser, input_context, output_context, progress_manager,
+            dry_run=dry_run)
 
     def _do_build_workunit(self,
                            filename,
                            data,
                            progress_manager,
-                           output_context):
+                           output_context,
+                           dry_run):
         return RealsWorkUnit(
-            filename, data, progress_manager, output_context)
+            filename, data, progress_manager, output_context,
+            dry_run=dry_run)
 
 
 class CandidatesWorkUnitBuilder(WorkUnitBuilder):
@@ -638,14 +655,18 @@ class CandidatesWorkUnitBuilder(WorkUnitBuilder):
     Constructs CandidatesWorkUnits for the process candidates task.
     """
 
-    def __init__(self, parser, input_context, output_context, progress_manager):
+    def __init__(self, parser, input_context, output_context, progress_manager,
+                 dry_run=False):
         super(CandidatesWorkUnitBuilder, self).__init__(
-            parser, input_context, output_context, progress_manager)
+            parser, input_context, output_context, progress_manager,
+            dry_run=dry_run)
 
     def _do_build_workunit(self,
                            filename,
                            data,
                            progress_manager,
-                           output_context):
+                           output_context,
+                           dry_run):
         return CandidatesWorkUnit(
-            filename, data, progress_manager, output_context)
+            filename, data, progress_manager, output_context,
+            dry_run=dry_run)
