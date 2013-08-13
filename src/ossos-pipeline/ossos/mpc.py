@@ -650,9 +650,12 @@ class MPCWriter(object):
 
     def __init__(self, filehandle, auto_flush=True):
         self.filehandle = filehandle
-        self.buffer = ""
         self.auto_flush = auto_flush
+
         self.date_regex = re.compile("\d{4} \d{2} \d{2}\.\d{5,6}")
+
+        # Holds observations that have not yet been flushed
+        self.buffer = []
 
     def get_filename(self):
         return self.filehandle.name
@@ -664,17 +667,19 @@ class MPCWriter(object):
         Minor planet number can be left empty ("").  All other fields
         should be provided.
         """
-        line = mpc_observation.to_string()
-
-        self.buffer += line + "\n"
-
+        self.buffer.append(mpc_observation)
         if self.auto_flush:
             self.flush()
 
     def flush(self):
-        self.filehandle.write(self.buffer)
+        for obs in self.get_chronological_buffered_observations():
+            self.filehandle.write(obs.to_string() + "\n")
+
         self.filehandle.flush()
-        self.buffer = ""
+        self.buffer = []
 
     def close(self):
         self.filehandle.close()
+
+    def get_chronological_buffered_observations(self):
+        return sorted(self.buffer, key=lambda obs: obs.date.unix)
