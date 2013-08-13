@@ -129,11 +129,8 @@ class DisplayableImageSinglet(object):
 
         self._interaction_context = InteractionContext(self)
 
-        # Add 1 because FITS images start at pixel 1,1 while matplotlib
-        # starts at 0,0
-        extent = (1, self.width + 1, self.height + 1, 1)
         self.axes_image = plt.imshow(zscale(self.image_data),
-                                     extent=extent,
+                                     origin="lower",
                                      cmap=self._colormap.as_mpl_cmap())
 
         # Create axes for colorbar.  Make it tightly fit the image.
@@ -147,12 +144,12 @@ class DisplayableImageSinglet(object):
         # leave 2.5% border all around
         axes = plt.Axes(self.figure, [0.025, 0.025, 0.95, 0.95])
 
-        # Make the axes fit the image tightly
-        axes.set_xlim([0, self.width])
-        axes.set_ylim([0, self.height])
-
-        # # Don't draw tick marks and labels
+        # Don't draw tick marks and labels
         axes.set_axis_off()
+
+        # FITS images start at pixel 1,1 in the bottom-left corner
+        axes.set_xlim([1, self.width + 1])
+        axes.set_ylim([1, self.height + 1])
 
         return axes
 
