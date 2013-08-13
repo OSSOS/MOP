@@ -296,7 +296,7 @@ class RealsWorkUnit(WorkUnit):
         return True
 
     def get_writer(self):
-        filename = self._get_current_source_output_filename()
+        filename = self.get_output_filename(self.get_current_source())
         if filename in self._writers:
             return self._writers[filename]
 
@@ -308,13 +308,16 @@ class RealsWorkUnit(WorkUnit):
         return [self.output_context.get_full_path(filename)
                 for filename in self._writers]
 
-    def _get_current_source_output_filename(self):
-        source = self.get_current_source()
-
+    def get_output_filename(self, source):
         if not source.has_provisional_name():
             raise SourceNotNamedException(source)
 
-        return source.get_provisional_name() + ".mpc"
+        name = source.get_provisional_name() + ".mpc"
+
+        if self.dry_run:
+            name = os.path.basename(self.filename) + name
+
+        return name
 
     def _create_writer(self, filename):
         # NOTE: this import is only here so that we don't load up secondary
