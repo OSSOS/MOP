@@ -1,6 +1,6 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from ossos.downloads.data import SourceSnapshot
+from ossos.downloads.data import SourceCutout
 from ossos.downloads.focus import TripletFocalPointCalculator
 
 

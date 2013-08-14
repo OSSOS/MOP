@@ -4,7 +4,7 @@ Compare the measured fluxes of planted sources against those returned for by dig
 import sys
 import math
 from ossos.daophot import TaskError
-from ossos.downloads.data import SourceSnapshot
+from ossos.downloads.data import SourceCutout
 
 __author__ = 'jjk'
 

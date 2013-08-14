@@ -13,13 +13,13 @@ class ImageManager(object):
         self._singlet_focal_point_calculator = SingletFocalPointCalculator()
 
         self._displayable_singlets = {}
-        self._snapshots = {}
+        self._cutouts = {}
 
     def submit_singlet_download_request(self, download_request):
         self._singlet_download_manager.submit_request(download_request)
 
     def download_singlets_for_workunit(self, workunit):
-        logger.debug("Starting to download workunit: %s" %
+        logger.debug("Starting to download singlets for workunit: %s" %
                      workunit.get_filename())
 
         needs_apcor = workunit.is_apcor_needed()
@@ -41,11 +41,15 @@ class ImageManager(object):
         except KeyError:
             raise ImageNotLoadedException()
 
-    def get_snapshot(self, reading):
+    def get_cutout(self, reading):
         try:
-            return self._snapshots[reading]
+            return self._cutouts[reading]
         except KeyError:
             raise ImageNotLoadedException()
+
+    def download_triplets_for_workunit(self, workunit):
+        logger.debug("Starting to download triplets for workunit: %s" %
+                     workunit.get_filename())
 
     def stop_downloads(self):
         self._singlet_download_manager.stop_download()
@@ -56,10 +60,10 @@ class ImageManager(object):
     def refresh_vos_clients(self):
         self._singlet_download_manager.refresh_vos_client()
 
-    def _on_singlet_image_loaded(self, snapshot):
-        reading = snapshot.reading
-        self._snapshots[reading] = snapshot
+    def _on_singlet_image_loaded(self, cutout):
+        reading = cutout.reading
+        self._cutouts[reading] = cutout
         self._displayable_singlets[reading] = DisplayableImageSinglet(
-            snapshot.hdulist)
+            cutout.hdulist)
         events.send(events.IMG_LOADED, reading)
 

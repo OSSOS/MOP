@@ -109,7 +109,7 @@ class ValidationModel(object):
         return self.get_current_workunit().is_current_source_finished()
 
     def is_current_source_adjusted(self):
-        return self.get_current_snapshot().is_adjusted()
+        return self.get_current_cutout().is_adjusted()
 
     def get_num_items_processed(self):
         return self.num_processed
@@ -149,7 +149,7 @@ class ValidationModel(object):
         return self.get_current_reading().get_observation_header()
 
     def get_current_fits_header(self):
-        return self.get_current_snapshot().get_fits_header()
+        return self.get_current_cutout().get_fits_header()
 
     def get_current_exposure_number(self):
         return int(self.get_current_reading().obs.expnum)
@@ -169,13 +169,13 @@ class ValidationModel(object):
 
     def get_current_ra(self):
         try:
-            return self.get_current_snapshot().ra
+            return self.get_current_cutout().ra
         except ImageNotLoadedException:
             return self.get_current_reading().ra
 
     def get_current_dec(self):
         try:
-            return self.get_current_snapshot().dec
+            return self.get_current_cutout().dec
         except ImageNotLoadedException:
             return self.get_current_reading().dec
 
@@ -195,10 +195,10 @@ class ValidationModel(object):
         return self.get_current_fits_header()["FILTER"][0]
 
     def get_current_pixel_source_point(self):
-        return self.get_current_snapshot().pixel_source_point
+        return self.get_current_cutout().pixel_source_point
 
     def get_current_source_observed_magnitude(self):
-        return self.get_current_snapshot().get_observed_magnitude()
+        return self.get_current_cutout().get_observed_magnitude()
 
     def get_current_image_FWHM(self):
         return float(self.get_current_astrom_header()["FWHM"])
@@ -227,10 +227,10 @@ class ValidationModel(object):
             The source location using pixel coordinates from the
             displayed image (may be a cutout).
         """
-        self.get_current_snapshot().update_pixel_location(new_location)
+        self.get_current_cutout().update_pixel_location(new_location)
 
     def reset_current_source_location(self):
-        self.get_current_snapshot().reset_source_location()
+        self.get_current_cutout().reset_source_location()
 
     def enable_synchronization(self):
         if self.synchronization_manager:
@@ -256,8 +256,8 @@ class ValidationModel(object):
     def is_processing_reals(self):
         return isinstance(self.get_current_workunit(), RealsWorkUnit)
 
-    def get_current_snapshot(self):
-        return self.image_manager.get_snapshot(self.get_current_reading())
+    def get_current_cutout(self):
+        return self.image_manager.get_cutout(self.get_current_reading())
 
     def _download_workunit_images(self, workunit):
         self.image_manager.download_singlets_for_workunit(workunit)
