@@ -9,7 +9,7 @@ import sys
 
 from ossos import astrom
 from ossos.daophot import TaskError
-from ossos.downloads.cutouts import ImageCutoutDownloader
+from ossos.downloads.cutouts.downloader import ImageCutoutDownloader
 from ossos.mpc import Time
 
 

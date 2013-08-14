@@ -2,8 +2,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import tempfile
 
-from ossos import astrom
-from ossos import wcs
+from ossos import wcs, astrom
 
 
 class SourceCutout(object):
@@ -155,5 +154,3 @@ class SourceCutout(object):
                                          wcs.parse_cd(fits_header),
                                          wcs.parse_pv(fits_header),
                                          wcs.parse_order_fit(fits_header))
-
-
