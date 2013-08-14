@@ -280,6 +280,8 @@ class Marker(object):
 
     def add_to_axes(self, axes):
         axes.add_patch(self.circle)
+        self.vline.set_transform(axes.transData)
+        self.hline.set_transform(axes.transData)
         axes.lines.extend([self.vline, self.hline])
 
     def remove_from_axes(self):
