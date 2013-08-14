@@ -261,9 +261,9 @@ class Marker(object):
         self.circle = plt.Circle((x, y), radius, color="b", fill=False)
 
         linewidth = 0.5
-        self.vline = plt.Line2D((x, x), (y - radius, y + radius),
+        self.vline = plt.Line2D(*self._get_vline_extents(),
                                 linewidth=linewidth)
-        self.hline = plt.Line2D((x - radius, x + radius), (y, y),
+        self.hline = plt.Line2D(*self._get_hline_extents(),
                                 linewidth=linewidth)
 
     @property
@@ -298,10 +298,22 @@ class Marker(object):
     def contains(self, event):
         return self.circle.contains(event)
 
+    def _get_vline_extents(self):
+        x, y = self.center
+        scaling = 3
+        return ((x, x),
+                (y - self.radius / scaling, y + self.radius / scaling))
+
+    def _get_hline_extents(self):
+        x, y = self.center
+        scaling = 3
+        return ((x - self.radius / scaling, x + self.radius / scaling),
+                (y, y))
+
     def _update_cross(self):
         x, y = self.center
-        self.vline.set_data((x, x), (y - self.radius, y + self.radius))
-        self.hline.set_data((x - self.radius, x + self.radius), (y, y))
+        self.vline.set_data(*self._get_vline_extents())
+        self.hline.set_data(*self._get_hline_extents())
 
 
 def zscale(image):
