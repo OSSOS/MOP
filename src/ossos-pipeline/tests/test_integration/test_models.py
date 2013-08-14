@@ -230,17 +230,14 @@ class AbstractRealsModelTest(GeneralModelTest):
         loaded_reading2 = image2.reading
 
         assert_that(self.download_manager.submit_request.call_count, equal_to(9))
-        assert_that(self.model.get_loaded_image_count(), equal_to(0))
 
         # Simulate receiving callback
         self.model._on_image_loaded(image1)
-        assert_that(self.model.get_loaded_image_count(), equal_to(1))
         assert_that(observer.on_img_loaded.call_count, equal_to(1))
         assert_that(mock_DisplayableImageSinglet.call_count, equal_to(1))
 
         # Simulate receiving callback
         self.model._on_image_loaded(image2)
-        assert_that(self.model.get_loaded_image_count(), equal_to(2))
         assert_that(observer.on_img_loaded.call_count, equal_to(2))
         assert_that(mock_DisplayableImageSinglet.call_count, equal_to(2))
 

@@ -220,9 +220,6 @@ class ValidationModel(object):
     def get_current_image_maxcount(self):
         return float(self.get_current_astrom_header()["MAXCOUNT"])
 
-    def get_loaded_image_count(self):
-        return len(self._snapshots)
-
     def stop_loading_images(self):
         self.download_manager.stop_download()
 
