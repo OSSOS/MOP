@@ -11,7 +11,6 @@ import vos
 from tests.base_tests import FileReadingTestCase
 from ossos.astrom import SourceReading
 from ossos.downloads.cutouts import ImageCutoutDownloader
-from ossos.downloads.requests import DownloadRequest
 
 
 class DownloadTest(FileReadingTestCase):

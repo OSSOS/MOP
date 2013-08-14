@@ -1,7 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+from ossos.downloads.async import DownloadRequest
 from ossos.downloads.focus import SingletFocalPointCalculator
-from ossos.downloads.requests import DownloadRequest
 from ossos.fitsviewer.displayable import DisplayableImageSinglet
 from ossos.gui import events, logger
 from ossos.gui.models.exceptions import ImageNotLoadedException
