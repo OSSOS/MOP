@@ -2,9 +2,6 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 from ossos.gui import events
 from ossos.gui import logger
-from ossos.downloads.focus import SingletFocalPointCalculator
-from ossos.downloads.requests import DownloadRequest
-from ossos.fitsviewer.displayable import DisplayableImageSinglet
 from ossos.gui.models.exceptions import (ImageNotLoadedException,
                                          NoWorkUnitException)
 from ossos.gui.workload import (NoAvailableWorkException, StatefulCollection,
@@ -16,24 +13,16 @@ class ValidationModel(object):
     Contains the data and associated operations available to the user interface.
     """
 
-    def __init__(self, workunit_provider, download_manager, synchronization_manager):
+    def __init__(self, workunit_provider, image_manager, synchronization_manager):
         self.workunit_provider = workunit_provider
-        self.download_manager = download_manager
+        self.image_manager = image_manager
         self.synchronization_manager = synchronization_manager
 
         self.work_units = StatefulCollection()
 
         self.num_processed = 0
 
-        # Maps each reading to its image-reading model (once downloaded)
-        self._snapshots = {}
-
-        # Maps each reading to its displayable item (once downloaded)
-        self._displayable_items = {}
-
         self.sources_discovered = set()
-
-        self._focal_point_calculator = SingletFocalPointCalculator()
 
     def get_working_directory(self):
         return self.workunit_provider.directory
@@ -200,10 +189,7 @@ class ValidationModel(object):
         return self.get_current_source().set_provisional_name(name)
 
     def get_current_displayable_item(self):
-        try:
-            return self._displayable_items[self.get_current_reading()]
-        except KeyError:
-            raise ImageNotLoadedException()
+        return self.image_manager.get_displayable_singlet(self.get_current_reading())
 
     def get_current_band(self):
         return self.get_current_fits_header()["FILTER"][0]
@@ -221,16 +207,16 @@ class ValidationModel(object):
         return float(self.get_current_astrom_header()["MAXCOUNT"])
 
     def stop_loading_images(self):
-        self.download_manager.stop_download()
+        self.image_manager.stop_downloads()
 
     def start_loading_images(self):
         self._download_workunit_images(self.get_current_workunit())
 
     def submit_download_request(self, download_request):
-        self.download_manager.submit_request(download_request)
+        self.image_manager.submit_singlet_download_request(download_request)
 
     def refresh_vos_client(self):
-        self.download_manager.refresh_vos_client()
+        self.image_manager.refresh_vos_clients()
 
     def update_current_source_location(self, new_location):
         """
@@ -260,9 +246,9 @@ class ValidationModel(object):
         for workunit in self.work_units:
             workunit.unlock()
 
-        self.download_manager.stop_download()
+        self.image_manager.stop_downloads()
         self.workunit_provider.shutdown()
-        self.download_manager.wait_for_downloads_to_stop()
+        self.image_manager.wait_for_downloads_to_stop()
 
     def is_processing_candidates(self):
         return isinstance(self.get_current_workunit(), CandidatesWorkUnit)
@@ -271,34 +257,10 @@ class ValidationModel(object):
         return isinstance(self.get_current_workunit(), RealsWorkUnit)
 
     def get_current_snapshot(self):
-        try:
-            return self._snapshots[self.get_current_reading()]
-        except KeyError:
-            raise ImageNotLoadedException()
+        return self.image_manager.get_snapshot(self.get_current_reading())
 
     def _download_workunit_images(self, workunit):
-        logger.debug("Starting to download workunit: %s" %
-                     workunit.get_filename())
-
-        needs_apcor = workunit.is_apcor_needed()
-        focal_points = []
-        for source in workunit.get_unprocessed_sources():
-            focal_points.extend(
-                self._focal_point_calculator.calculate_focal_points(source))
-
-        for focal_point in focal_points:
-            self.download_manager.submit_request(
-                DownloadRequest(focal_point.reading,
-                                needs_apcor=needs_apcor,
-                                focal_point=focal_point.point,
-                                callback=self._on_image_loaded))
-
-    def _on_image_loaded(self, snapshot):
-        reading = snapshot.reading
-        self._snapshots[reading] = snapshot
-        self._displayable_items[reading] = DisplayableImageSinglet(
-            snapshot.hdulist)
-        events.send(events.IMG_LOADED, reading)
+        self.image_manager.download_singlets_for_workunit(workunit)
 
     def _on_finished_workunit(self, results_file_paths):
         events.send(events.FINISHED_WORKUNIT, results_file_paths)

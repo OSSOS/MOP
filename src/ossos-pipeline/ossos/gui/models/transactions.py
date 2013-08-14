@@ -14,10 +14,10 @@ class TransAckValidationModel(ValidationModel):
     """
 
     def __init__(self, workunit_provider,
-                 download_manager,
+                 image_manager,
                  synchronization_manager):
         super(TransAckValidationModel, self).__init__(workunit_provider,
-                                                      download_manager,
+                                                      image_manager,
                                                       synchronization_manager)
         self._source_transitioning = False
         self._observation_transitioning = False

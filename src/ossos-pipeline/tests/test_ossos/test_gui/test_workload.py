@@ -9,12 +9,12 @@ from mock import Mock, call, MagicMock
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from tests.testutil import CopyingMock
-from ossos.downloads.async import AsynchronousDownloadManager
 from ossos.gui import tasks
 from ossos.gui.context import WorkingContext, LocalDirectoryWorkingContext
 from ossos.gui.models.validation import ValidationModel
 from ossos.astrom import AstromParser, StreamingAstromWriter
 from ossos.mpc import MPCWriter
+from ossos.gui.models.imagemanager import ImageManager
 from ossos.gui.progress import LocalProgressManager, InMemoryProgressManager
 from ossos.gui.workload import (WorkUnitProvider, WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
                                 NoAvailableWorkException,
@@ -531,9 +531,9 @@ class WorkloadManagementTest(unittest.TestCase):
             return workunit
 
         self.workunit_provider.get_workunit.side_effect = (get_workunit(index) for index in xrange(2))
-        download_manager = Mock(spec=AsynchronousDownloadManager)
+        image_manager = Mock(spec=ImageManager)
 
-        self.undertest = ValidationModel(self.workunit_provider, download_manager, None)
+        self.undertest = ValidationModel(self.workunit_provider, image_manager, None)
         self.undertest.start_work()
 
     def test_workunits_on_demand(self):
