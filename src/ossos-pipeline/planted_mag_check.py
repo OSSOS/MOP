@@ -42,7 +42,7 @@ fk_candidate_observations = astrom_file_reader.parse('vos:OSSOS/measure3/2013A-E
 
 objects_planted_uri = fk_candidate_observations.observations[0].get_object_planted_uri()
 
-objects_planted = image_slice_downloader.download_object_planted(objects_planted_uri).split('\n')
+objects_planted = image_slice_downloader.download_raw(objects_planted_uri).split('\n')
 
 planted_objects = []
 

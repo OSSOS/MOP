@@ -65,19 +65,6 @@ class Downloader(object):
         """
         return ApcorData.from_string(self.download_raw(uri, view="data"))
 
-    def download_object_planted(self, uri):
-
-        logger.debug("Starting download: %s" % uri)
-
-        vofile = self.vosclient.open(uri, view="data")
-        outstr = ''
-        while True:
-            buff = vofile.read()
-            if len(buff) == 0:
-                break
-            outstr += buff
-        return outstr
-
     def refresh_vos_client(self):
         """
         If we have gotten a new certfile we have to create a new Client
