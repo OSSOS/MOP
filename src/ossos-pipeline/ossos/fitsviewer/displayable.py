@@ -257,6 +257,8 @@ class _ImageTriplet(object):
 class Marker(object):
     def __init__(self, x, y, radius):
         self.circle = plt.Circle((x, y), radius, color="b", fill=False)
+        self.vline = plt.Line2D((x, x), (y - radius, y + radius))
+        self.hline = plt.Line2D((x - radius, x + radius), (y, y))
 
     @property
     def center(self):
@@ -265,6 +267,7 @@ class Marker(object):
     @center.setter
     def center(self, new_center):
         self.circle.center = new_center
+        self._update_cross()
 
     @property
     def radius(self):
@@ -273,15 +276,22 @@ class Marker(object):
     @radius.setter
     def radius(self, new_radius):
         self.circle.radius = new_radius
+        self._update_cross()
 
     def add_to_axes(self, axes):
         axes.add_patch(self.circle)
+        axes.lines.extend([self.vline, self.hline])
 
     def remove_from_axes(self):
         self.circle.remove()
 
     def contains(self, event):
         return self.circle.contains(event)
+
+    def _update_cross(self):
+        x, y = self.center
+        self.vline.set_data((x, x), (y - self.radius, y + self.radius))
+        self.hline.set_data((x - self.radius, x + self.radius), (y, y))
 
 
 def zscale(image):

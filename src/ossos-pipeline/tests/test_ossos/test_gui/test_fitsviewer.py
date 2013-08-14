@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from mock import Mock
 
 from ossos.fitsviewer.colormap import clip
-from ossos.fitsviewer.displayable import DisplayableImageSinglet
+from ossos.fitsviewer.displayable import DisplayableImageSinglet, Marker
 from ossos.fitsviewer.interaction import (InteractionContext,
                                               MoveMarkerState,
                                               CreateMarkerState,
@@ -263,6 +263,58 @@ class InteractionTest(unittest.TestCase):
         self.fire_motion_event(xclick + dx, yclick + dy)
 
         handler.assert_called_once_with(x0 + dx, y0 + dy)
+
+
+class MarkerTest(unittest.TestCase):
+    def test_cross_location(self):
+        x = 10
+        y = 10
+        radius = 5
+
+        marker = Marker(x, y, radius)
+
+        assert_that(marker.vline.get_xdata(), equal_to((10, 10)))
+        assert_that(marker.vline.get_ydata(), equal_to((5, 15)))
+
+        assert_that(marker.hline.get_xdata(), equal_to((5, 15)))
+        assert_that(marker.hline.get_ydata(), equal_to((10, 10)))
+
+    def test_move_marker_moves_circle_and_cross(self):
+        x = 10
+        y = 10
+        radius = 5
+
+        marker = Marker(x, y, radius)
+
+        new_x = 20
+        new_y = 30
+        marker.center = (new_x, new_y)
+
+        assert_that(marker.circle.center, equal_to((new_x, new_y)))
+
+        assert_that(marker.vline.get_xdata(), equal_to((20, 20)))
+        assert_that(marker.vline.get_ydata(), equal_to((25, 35)))
+
+        assert_that(marker.hline.get_xdata(), equal_to((15, 25)))
+        assert_that(marker.hline.get_ydata(), equal_to((30, 30)))
+
+    def test_change_radius(self):
+        x = 10
+        y = 10
+        radius = 5
+
+        marker = Marker(x, y, radius)
+
+        new_radius = 10
+        marker.radius = new_radius
+
+        assert_that(marker.circle.radius, equal_to(new_radius))
+
+        assert_that(marker.vline.get_xdata(), equal_to((10, 10)))
+        assert_that(marker.vline.get_ydata(), equal_to((0, 20)))
+
+        assert_that(marker.hline.get_xdata(), equal_to((0, 20)))
+        assert_that(marker.hline.get_ydata(), equal_to((10, 10)))
 
 
 class UtilityTest(unittest.TestCase):
