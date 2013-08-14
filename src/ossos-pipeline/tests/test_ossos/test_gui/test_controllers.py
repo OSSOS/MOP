@@ -42,7 +42,7 @@ class AbstractControllerTest(unittest.TestCase):
 
     def test_reset_source_location_redraws_circle_at_original_location(self):
         self.controller.on_reset_source_location()
-        self.view.draw_circle.assert_called_once_with(
+        self.view.draw_marker.assert_called_once_with(
             self.original_x, self.original_y, ANY, redraw=True)
 
         # Don't need to redraw whole image
