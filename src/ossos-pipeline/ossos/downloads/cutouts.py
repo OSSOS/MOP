@@ -182,6 +182,17 @@ class CutoutCalculator(object):
             ymax -= diff
             ymin -= diff
 
+        # VOSpace cutout service only accepts integer values, so round
+        # the values to the nearest int.
+
+        def round_int(num):
+            return int(round(num))
+
+        xmin = round_int(xmin)
+        xmax = round_int(xmax)
+        ymin = round_int(ymin)
+        ymax = round_int(ymax)
+
         if inverted:
             x0 = xmax
             x1 = xmin
