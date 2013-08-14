@@ -4,6 +4,7 @@ from ossos.gui import config
 from ossos.gui import logger
 
 from ossos.downloads.core import Downloader
+from ossos.downloads.data import SourceSnapshot
 
 
 class ImageCutoutDownloader(Downloader):
@@ -33,8 +34,29 @@ class ImageCutoutDownloader(Downloader):
 
         self.cutout_calculator = CutoutCalculator(slice_rows, slice_cols)
 
-    def download_cutout(self, reading, focal_point):
-        image_uri = reading.get_image_uri()
+    def download_cutout(self, reading, focal_point=None, needs_apcor=False):
+        """
+        Downloads a cutout of the FITS image for a given source reading.
+
+        Args:
+          source_reading: ossos.astrom.SourceReading
+            The reading which will be the focus of the downloaded image.
+          focal_point: tuple(int, int)
+            The x, y coordinates that should be the focus of the downloaded
+            image.  These coordinates should be in terms of the
+            source_reading parameter's coordinate system.
+            Default value is None, in which case the source reading's x, y
+            position is used as the focus.
+          needs_apcor: bool
+            If True, the apcor file with data needed for photometry
+            calculations is downloaded in addition to the image.
+            Defaults to False.
+
+        Returns:
+          cutout
+        """
+        if focal_point is None:
+            focal_point = reading.source_point
 
         cutout_str, converter = self.cutout_calculator.build_cutout_str(
             reading.get_extension(),
@@ -42,13 +64,19 @@ class ImageCutoutDownloader(Downloader):
             reading.get_original_image_size(),
             inverted=reading.is_inverted())
 
+        image_uri = reading.get_image_uri()
+
         logger.debug("Calculated cutout: %s for %s"
                      % (cutout_str, image_uri))
 
         hdulist = self.download_hdulist(image_uri, view="cutout",
                                         cutout=cutout_str)
 
-        return hdulist, converter
+        apcor = None
+        if needs_apcor:
+            apcor = self.download_apcor(reading.get_apcor_uri())
+
+        return SourceSnapshot(reading, hdulist, converter, apcor)
 
 
 class CutoutCalculator(object):

@@ -63,16 +63,10 @@ class DownloadTest(FileReadingTestCase):
         self.localfile.close()
         self.apcorfile.close()
 
-    def make_request(self, callback=None):
-        return DownloadRequest(self.reading,
-                               needs_apcor=self.needs_apcor,
-                               focal_point=self.focal_point,
-                               callback=callback)
-
     def test_request_image_cutout(self):
-        request = self.make_request()
-
-        download = request.execute(self.downloader)
+        download = self.downloader.download_cutout(self.reading,
+                                                   focal_point=self.focal_point,
+                                                   needs_apcor=self.needs_apcor)
 
         assert_that(self.vosclient.open.call_args_list, contains(
             call(self.image_uri, view="cutout", cutout="[19][50:100,30:130]"),
@@ -83,11 +77,6 @@ class DownloadTest(FileReadingTestCase):
         # it.  It won't have the right shape necessarily though.
         assert_that(download.get_fits_header()["FILENAME"],
                     equal_to("u5780205r_cvt.c0h"))
-
-    def test_download_callback(self):
-        callback = Mock()
-        download = self.make_request(callback).execute(self.downloader)
-        callback.assert_called_once_with(download)
 
 
 if __name__ == '__main__':
