@@ -185,8 +185,8 @@ class CutoutCalculatorTest(unittest.TestCase):
         (x0, x1, y0, y1), _ = calculator.calc_cutout(
             (1970.17, 4611.65), (2112, 4644), inverted=False)
 
-        assert_that(x0, equal_to(1845.17))
-        assert_that(x1, equal_to(2095.17))
+        assert_that(x0, equal_to(1845))
+        assert_that(x1, equal_to(2095))
         assert_that(y0, equal_to(4394))
         assert_that(y1, equal_to(4644))
 
@@ -200,7 +200,7 @@ class CutoutCalculatorTest(unittest.TestCase):
 
         delta = 0.01
         # note 1-based indexing not 0
-        assert_that(x, close_to(126, delta))
+        assert_that(x, close_to(126.17, delta))
         assert_that(y, close_to(218.65, delta))
 
     def test_cutout_over_two_edges(self):
