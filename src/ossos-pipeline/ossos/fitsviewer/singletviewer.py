@@ -31,12 +31,12 @@ class SingletViewer(WxMPLFitsViewer):
         if redraw:
             self.redraw()
 
-    def draw_circle(self, x, y, radius, redraw=True):
+    def draw_marker(self, x, y, radius, redraw=True):
         """
-        Draws a circle with the specified dimensions.  Only one circle can
-        be on the image at a time, so any existing circle will be replaced.
+        Draws a marker with the specified dimensions.  Only one marker can
+        be on the image at a time, so any existing marker will be replaced.
         """
-        self.current_image.draw_circle(x, y, radius)
+        self.current_image.place_marker(x, y, radius)
 
         if redraw:
             self.redraw()

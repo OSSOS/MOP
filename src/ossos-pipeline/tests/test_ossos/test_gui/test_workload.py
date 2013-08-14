@@ -338,6 +338,30 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         self.workunit.accept_current_item()
         assert_that(self.writer.flush.call_count, equal_to(1))
 
+    def test_get_output_filename_dry_run(self):
+        self.workunit = RealsWorkUnit(self.testfile, self.data,
+                                      self.progress_manager,
+                                      self.output_context,
+                                      dry_run=True)
+        source = self.data.get_sources()[0]
+        provisional_name = "ABCD123"
+        source.set_provisional_name(provisional_name)
+
+        assert_that(self.workunit.get_output_filename(source),
+                    equal_to("1584431p15.measure3.reals.astrom.ABCD123.mpc"))
+
+    def test_get_output_filename_not_dry_run(self):
+        self.workunit = RealsWorkUnit(self.testfile, self.data,
+                                      self.progress_manager,
+                                      self.output_context,
+                                      dry_run=False)
+        source = self.data.get_sources()[0]
+        provisional_name = "ABCD123"
+        source.set_provisional_name(provisional_name)
+
+        assert_that(self.workunit.get_output_filename(source),
+                    equal_to("ABCD123.mpc"))
+
 
 class CandidatesWorkUnitTest(AbstractWorkUnitTest):
     def get_input_file(self):

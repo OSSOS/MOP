@@ -9,7 +9,7 @@ from mock import patch
 from tests.base_tests import FileReadingTestCase
 from ossos import storage
 from ossos.astrom import AstromParser
-from ossos.naming import ProvisionalNameGenerator
+from ossos.naming import ProvisionalNameGenerator, DryRunNameGenerator
 
 
 class ProvisionalNameGeneratorTest(FileReadingTestCase):
@@ -45,6 +45,18 @@ class ProvisionalNameGeneratorTest(FileReadingTestCase):
 
         assert_that(self.undertest.generate_name(astrom_header, fits_header),
                     equal_to("O13AE01"))
+
+    @patch("ossos.storage.increment_object_counter")
+    def test_dry_run_generate_name(self, increment_object_counter):
+        self.undertest = DryRunNameGenerator()
+
+        increment_object_counter.return_value = "01"
+
+        astrom_header = self.parse_astrom_header()
+        fits_header = self.parse_fits_header()
+
+        assert_that(self.undertest.generate_name(astrom_header, fits_header),
+                    equal_to("DRY0001"))
 
 
 if __name__ == '__main__':
