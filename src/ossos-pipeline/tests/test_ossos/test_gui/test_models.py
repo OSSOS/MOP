@@ -4,12 +4,13 @@ import unittest
 
 from mock import Mock, MagicMock, patch
 from hamcrest import assert_that, equal_to
+from ossos.gui import events
 
 from tests.base_tests import FileReadingTestCase
 from ossos.astrom import AstromParser
 from ossos.downloads.async import AsynchronousDownloadManager
 from ossos.gui.context import LocalDirectoryWorkingContext
-from ossos.gui import events
+from ossos.gui.models.imagemanager import ImageManager
 from ossos.gui.models.validation import ValidationModel
 from ossos.gui.models.transactions import TransAckValidationModel
 from ossos.gui.progress import LocalProgressManager
@@ -21,10 +22,10 @@ class ValidationModelTest(unittest.TestCase):
     def setUp(self):
         events.unsub_all()
         self.workunit_provider = Mock(spec=PreFetchingWorkUnitProvider)
-        self.download_manager = Mock(spec=AsynchronousDownloadManager)
+        self.image_manager = Mock(spec=ImageManager)
         self.synchronization_manager = Mock(spec=SynchronizationManager)
-        self.model = ValidationModel(self.workunit_provider, self.download_manager,
-                             self.synchronization_manager)
+        self.model = ValidationModel(self.workunit_provider, self.image_manager,
+                                     self.synchronization_manager)
 
     def test_all_workunits_unlocked_on_exit(self):
         workunit1 = MagicMock(spec=RealsWorkUnit)
@@ -47,9 +48,10 @@ class TransitionAcknowledgementModelTest(FileReadingTestCase):
     def setUp(self):
         events.unsub_all()
         self.workunit_provider = Mock(spec=PreFetchingWorkUnitProvider)
-        self.download_manager = Mock(spec=AsynchronousDownloadManager)
+        self.image_manager = Mock(spec=ImageManager)
         self.synchronization_manager = Mock(spec=SynchronizationManager)
-        self.model = TransAckValidationModel(self.workunit_provider, self.download_manager, self.synchronization_manager)
+        self.model = TransAckValidationModel(self.workunit_provider, self.image_manager,
+                                             self.synchronization_manager)
 
         self.data = AstromParser().parse(
             self.get_abs_path("data/model_testdir_1/1584431p15.measure3.reals.astrom"))

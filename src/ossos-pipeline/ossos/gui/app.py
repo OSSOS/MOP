@@ -18,6 +18,7 @@ from ossos.gui.workload import (WorkUnitProvider,
 from ossos.gui.errorhandling import DownloadErrorHandler
 from ossos.gui.controllers import (ProcessRealsController,
                                    ProcessCandidatesController)
+from ossos.gui.models.imagemanager import ImageManager
 from ossos.gui.models.transactions import TransAckValidationModel
 from ossos.naming import ProvisionalNameGenerator, DryRunNameGenerator
 
@@ -122,6 +123,7 @@ class ValidationApplication(object):
         downloader = ImageCutoutDownloader()
         download_manager = AsynchronousDownloadManager(downloader,
                                                        error_handler)
+        image_manager = ImageManager(download_manager)
 
         working_context = context.get_context(working_directory)
         output_context = context.get_context(output_directory)
@@ -153,7 +155,7 @@ class ValidationApplication(object):
             synchronization_manager = None
 
         model = TransAckValidationModel(prefetching_workunit_provider,
-                                        download_manager,
+                                        image_manager,
                                         synchronization_manager)
         logger.debug("Created model.")
 
