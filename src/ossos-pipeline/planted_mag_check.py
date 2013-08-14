@@ -59,11 +59,10 @@ for source in  fk_candidate_observations.get_sources():
     third  = source.get_reading(2)
 
     download_request = requests.DownloadRequest(
-        image_slice_downloader,
         reading,
         needs_apcor=True)
 
-    snapshot = download_request.execute()
+    snapshot = download_request.execute(image_slice_downloader)
 
     try:
         mag = snapshot.get_observed_magnitude()
