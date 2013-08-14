@@ -21,7 +21,7 @@ class DisplayableImageSinglet(object):
         self.figure = None
         self.axes = None
 
-        self.circle = None
+        self.marker = None
 
         self.display_changed = Signal()
         self.xy_changed = Signal()
@@ -74,31 +74,31 @@ class DisplayableImageSinglet(object):
         self._colormap.set_defaults()
         self._refresh_displayed_colormap()
 
-    def draw_circle(self, x, y, radius):
+    def place_marker(self, x, y, radius):
         """
-        Draws a circle with the specified dimensions.  Only one circle can
-        be on the image at a time, so any existing circle will be replaced.
+        Draws a marker with the specified dimensions.  Only one marker can
+        be on the image at a time, so any existing marker will be replaced.
         """
-        if self.circle is not None:
-            self.circle.remove()
+        if self.marker is not None:
+            self.marker.remove_from_axes(self.axes)
 
-        self.circle = plt.Circle((x, y), radius, color="b", fill=False)
-        self.axes.add_patch(self.circle)
+        self.marker = Marker(x, y, radius)
+        self.marker.add_to_axes(self.axes)
 
         self.display_changed.fire()
 
-    def update_circle(self, x, y, radius=None):
-        if self.circle is None:
+    def update_marker(self, x, y, radius=None):
+        if self.marker is None:
             if radius is None:
-                raise MPLViewerError("No circle to update.")
+                raise MPLViewerError("No marker to update.")
             else:
                 # For convenience go ahead and make one
-                self.draw_circle(x, y, radius)
+                self.place_marker(x, y, radius)
 
-        self.circle.center = (x, y)
+        self.marker.center = (x, y)
 
         if radius is not None:
-            self.circle.radius = radius
+            self.marker.radius = radius
 
         self.xy_changed.fire(x, y)
         self.display_changed.fire()
@@ -129,10 +129,9 @@ class DisplayableImageSinglet(object):
 
         self._interaction_context = InteractionContext(self)
 
-        # Add 1 because FITS images start at pixel 1,1 while matplotlib
-        # starts at 0,0
-        extent = (1, self.width + 1, self.height + 1, 1)
+        extent = (1, self.width, 1, self.height)
         self.axes_image = plt.imshow(zscale(self.image_data),
+                                     origin="lower",
                                      extent=extent,
                                      cmap=self._colormap.as_mpl_cmap())
 
@@ -147,12 +146,12 @@ class DisplayableImageSinglet(object):
         # leave 2.5% border all around
         axes = plt.Axes(self.figure, [0.025, 0.025, 0.95, 0.95])
 
-        # Make the axes fit the image tightly
-        axes.set_xlim([0, self.width])
-        axes.set_ylim([0, self.height])
-
-        # # Don't draw tick marks and labels
+        # Don't draw tick marks and labels
         axes.set_axis_off()
+
+        # FITS images start at pixel 1,1 in the bottom-left corner
+        axes.set_xlim([1, self.width])
+        axes.set_ylim([1, self.height])
 
         return axes
 
@@ -255,6 +254,54 @@ class _ImageTriplet(object):
 
         # Don't draw tick marks and labels
         self.axes.set_axis_off()
+
+
+class Marker(object):
+    def __init__(self, x, y, radius):
+        self.circle = plt.Circle((x, y), radius, color="b", fill=False)
+
+        linewidth = 0.5
+        self.vline = plt.Line2D((x, x), (y - radius, y + radius),
+                                linewidth=linewidth)
+        self.hline = plt.Line2D((x - radius, x + radius), (y, y),
+                                linewidth=linewidth)
+
+    @property
+    def center(self):
+        return self.circle.center
+
+    @center.setter
+    def center(self, new_center):
+        self.circle.center = new_center
+        self._update_cross()
+
+    @property
+    def radius(self):
+        return self.circle.radius
+
+    @radius.setter
+    def radius(self, new_radius):
+        self.circle.radius = new_radius
+        self._update_cross()
+
+    def add_to_axes(self, axes):
+        axes.add_patch(self.circle)
+        self.vline.set_transform(axes.transData)
+        self.hline.set_transform(axes.transData)
+        axes.lines.extend([self.vline, self.hline])
+
+    def remove_from_axes(self, axes):
+        self.circle.remove()
+        axes.lines.remove(self.vline)
+        axes.lines.remove(self.hline)
+
+    def contains(self, event):
+        return self.circle.contains(event)
+
+    def _update_cross(self):
+        x, y = self.center
+        self.vline.set_data((x, x), (y - self.radius, y + self.radius))
+        self.hline.set_data((x - self.radius, x + self.radius), (y, y))
 
 
 def zscale(image):

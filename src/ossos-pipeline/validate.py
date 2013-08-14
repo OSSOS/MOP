@@ -36,7 +36,13 @@ def main():
 
     args = parser.parse_args()
 
-    launch_app(args.task, args.input, args.output, args.dry_run)
+    if args.dry_run and args.output == tempfile.gettempdir():
+        # Don't use tempdir as default for dry runs, use the input directory
+        output = args.input
+    else:
+        output = args.output
+
+    launch_app(args.task, args.input, output, args.dry_run)
 
 
 if __name__ == "__main__":
