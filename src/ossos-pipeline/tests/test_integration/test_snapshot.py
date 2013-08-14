@@ -8,7 +8,8 @@ from mock import patch, ANY
 
 from tests.base_tests import FileReadingTestCase
 from ossos.downloads.cutouts import CoordinateConverter
-from ossos.downloads.data import SourceCutout, ApcorData
+from ossos.downloads.core import ApcorData
+from ossos.downloads.data import SourceCutout
 from ossos.astrom import AstromParser
 
 

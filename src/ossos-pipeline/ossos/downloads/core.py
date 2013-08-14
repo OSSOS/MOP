@@ -5,7 +5,6 @@ import cStringIO
 from astropy.io import fits
 import vos
 
-from ossos.downloads.data import ApcorData
 from ossos.gui import logger
 
 
@@ -61,7 +60,7 @@ class Downloader(object):
           uri: The URI of the apcor data file.
 
         Returns:
-          apcor: ossos.downloads.data.ApcorData
+          apcor: ossos.downloads.core.ApcorData
         """
         return ApcorData.from_string(self.download_raw(uri, view="data"))
 
@@ -74,3 +73,34 @@ class Downloader(object):
 
     def _create_default_vosclient(self):
         return vos.Client(cadc_short_cut=True)
+
+
+class ApcorData(object):
+    def __init__(self, ap_in, ap_out, apcor, apcor_err):
+        self.ap_in = ap_in
+        self.ap_out = ap_out
+        self.apcor = apcor
+        self.apcor_err = apcor_err
+
+    @classmethod
+    def from_string(cls, rawstr):
+        """
+        Creates an ApcorData record from the raw string format.
+
+        Expected string format:
+        ap_in ap_out   ap_cor  apcor_err
+        """
+        args = map(float, rawstr.split())
+        return cls(*args)
+
+    @property
+    def aperture(self):
+        return self.ap_in
+
+    @property
+    def sky(self):
+        return self.ap_out + 1
+
+    @property
+    def swidth(self):
+        return self.ap_in

@@ -4,7 +4,7 @@ import unittest
 
 from hamcrest import assert_that, equal_to
 
-from ossos.downloads.data import ApcorData
+from ossos.downloads.core import ApcorData
 
 
 class ApcorDataTest(unittest.TestCase):
