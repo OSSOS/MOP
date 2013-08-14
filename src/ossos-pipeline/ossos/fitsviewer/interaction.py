@@ -16,7 +16,7 @@ class InteractionContext(object):
         self.displayable = displayable
         self._register_event_handlers()
 
-        self.state = CreateCircleState(self)
+        self.state = CreateMarkerState(self)
 
     def _register_event_handlers(self):
         """
@@ -44,17 +44,17 @@ class InteractionContext(object):
         self.state.on_press(event)
 
     def _choose_left_click_state(self, event):
-        circle = self.displayable.circle
+        marker = self.get_marker()
 
-        if circle is None:
-            in_circle = False
+        if marker is None:
+            in_marker = False
         else:
-            in_circle, _ = circle.contains(event)
+            in_marker, _ = marker.contains(event)
 
-        if in_circle:
-            return MoveCircleState(self)
+        if in_marker:
+            return MoveMarkerState(self)
         else:
-            return CreateCircleState(self)
+            return CreateMarkerState(self)
 
     def on_motion(self, event):
         if not self.displayable.is_event_in_axes(event):
@@ -67,7 +67,7 @@ class InteractionContext(object):
         self.displayable.release_focus()
 
     def get_marker(self):
-        return self.displayable.circle
+        return self.displayable.marker
 
     def update_marker(self, x, y, radius=None):
         self.displayable.update_marker(x, y, radius)
@@ -134,12 +134,12 @@ class RecenteringState(BaseInteractionState):
         super(RecenteringState, self).on_release(event)
 
 
-class MoveCircleState(RecenteringState):
+class MoveMarkerState(RecenteringState):
     def __init__(self, context):
-        super(MoveCircleState, self).__init__(context)
+        super(MoveMarkerState, self).__init__(context)
 
         if context.get_marker() is None:
-            raise MPLViewerError("Can not move a circle if it doesn't exist!")
+            raise MPLViewerError("Can not move a marker if it doesn't exist!")
 
     def on_drag(self, event):
         center_x, center_y = self.context.get_marker().center
@@ -150,9 +150,9 @@ class MoveCircleState(RecenteringState):
         self.context.update_marker(center_x + dx, center_y + dy)
 
 
-class CreateCircleState(RecenteringState):
+class CreateMarkerState(RecenteringState):
     def __init__(self, context):
-        super(CreateCircleState, self).__init__(context)
+        super(CreateMarkerState, self).__init__(context)
 
     def on_drag(self, event):
         center_x = float(self.start_x + event.xdata) / 2
