@@ -43,35 +43,6 @@ class DownloadRequest(object):
         else:
             self.focal_point = focal_point
 
-    def execute(self, downloader):
-        """
-        Executes this request.
-
-        Args:
-          downloader:
-            The downloader which will perform the necessary retrieval
-            operations.
-
-        Returns:
-          download: Snapshot
-            The downloaded snapshot.  The request's callback will also be
-            executed upon completion.
-        """
-        hdulist, converter = downloader.download_cutout(self.reading,
-                                                        self.focal_point)
-
-        if self.needs_apcor:
-            apcor = downloader.download_apcor(self.reading.get_apcor_uri())
-        else:
-            apcor = None
-
-        download = SourceSnapshot(self.reading, hdulist, converter, apcor)
-
-        if self.callback is not None:
-            self.callback(download)
-
-        return download
-
 
 class TripletDownloadRequest(object):
     """

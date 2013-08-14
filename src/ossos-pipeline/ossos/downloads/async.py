@@ -98,7 +98,12 @@ class DownloadThread(threading.Thread):
                 self._idle = True
 
     def do_download(self, download_request):
-        download_request.execute(self.downloader)
+        # TODO refactor
+        cutout = self.downloader.download_cutout(download_request.reading,
+                                                 focal_point=download_request.focal_point,
+                                                 needs_apcor=download_request.needs_apcor)
+        if download_request.callback is not None:
+            download_request.callback(cutout)
 
     def stop(self):
         self._should_stop = True
