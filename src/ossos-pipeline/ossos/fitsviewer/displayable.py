@@ -80,7 +80,7 @@ class DisplayableImageSinglet(object):
         be on the image at a time, so any existing marker will be replaced.
         """
         if self.marker is not None:
-            self.marker.remove_from_axes()
+            self.marker.remove_from_axes(self.axes)
 
         self.marker = Marker(x, y, radius)
         self.marker.add_to_axes(self.axes)
@@ -288,8 +288,10 @@ class Marker(object):
         self.hline.set_transform(axes.transData)
         axes.lines.extend([self.vline, self.hline])
 
-    def remove_from_axes(self):
+    def remove_from_axes(self, axes):
         self.circle.remove()
+        axes.lines.remove(self.vline)
+        axes.lines.remove(self.hline)
 
     def contains(self, event):
         return self.circle.contains(event)
