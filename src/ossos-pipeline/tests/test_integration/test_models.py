@@ -10,7 +10,8 @@ from mock import patch, Mock
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from ossos.downloads.async import AsynchronousDownloadManager
-from ossos.downloads.data import ApcorData, SourceCutout
+from ossos.downloads.core import ApcorData
+from ossos.downloads.data import SourceCutout
 from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui import events, tasks
 from ossos.gui.models.exceptions import ImageNotLoadedException
