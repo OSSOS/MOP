@@ -129,8 +129,10 @@ class DisplayableImageSinglet(object):
 
         self._interaction_context = InteractionContext(self)
 
+        extent = (1, self.width, 1, self.height)
         self.axes_image = plt.imshow(zscale(self.image_data),
                                      origin="lower",
+                                     extent=extent,
                                      cmap=self._colormap.as_mpl_cmap())
 
         # Create axes for colorbar.  Make it tightly fit the image.
@@ -148,8 +150,8 @@ class DisplayableImageSinglet(object):
         axes.set_axis_off()
 
         # FITS images start at pixel 1,1 in the bottom-left corner
-        axes.set_xlim([1, self.width + 1])
-        axes.set_ylim([1, self.height + 1])
+        axes.set_xlim([1, self.width])
+        axes.set_ylim([1, self.height])
 
         return axes
 
