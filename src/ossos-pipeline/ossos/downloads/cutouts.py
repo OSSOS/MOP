@@ -4,7 +4,7 @@ from ossos.gui import config
 from ossos.gui import logger
 
 from ossos.downloads.core import Downloader
-from ossos.downloads.data import SourceSnapshot
+from ossos.downloads.data import SourceCutout
 
 
 class ImageCutoutDownloader(Downloader):
@@ -53,7 +53,7 @@ class ImageCutoutDownloader(Downloader):
             Defaults to False.
 
         Returns:
-          cutout
+          cutout: ossos.downloads.data.SourceCutout
         """
         if focal_point is None:
             focal_point = reading.source_point
@@ -76,7 +76,7 @@ class ImageCutoutDownloader(Downloader):
         if needs_apcor:
             apcor = self.download_apcor(reading.get_apcor_uri())
 
-        return SourceSnapshot(reading, hdulist, converter, apcor)
+        return SourceCutout(reading, hdulist, converter, apcor)
 
 
 class CutoutCalculator(object):

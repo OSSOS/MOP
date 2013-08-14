@@ -6,12 +6,9 @@ from ossos import astrom
 from ossos import wcs
 
 
-class SourceSnapshot(object):
+class SourceCutout(object):
     """
-    A snapshot of a source.
-
-    A snapshot is comprised of a source reading, a FITS image, and
-    potentially the observation's apcor data.
+    A cutout around a source.
     """
 
     def __init__(self, reading, hdulist, coordinate_converter, apcor=None):

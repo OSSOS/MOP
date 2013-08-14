@@ -10,7 +10,7 @@ from mock import patch, Mock
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from ossos.downloads.async import AsynchronousDownloadManager
-from ossos.downloads.data import ApcorData, SourceSnapshot
+from ossos.downloads.data import ApcorData, SourceCutout
 from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui import events, tasks
 from ossos.gui.models.exceptions import ImageNotLoadedException
@@ -78,7 +78,7 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
         apcor = ApcorData.from_string("4 15   0.19   0.01")
         hdulist = fits.open(self.get_abs_path(path))
         first_reading = self.model.get_current_workunit().get_sources()[0].get_readings()[0]
-        self.first_snapshot = SourceSnapshot(
+        self.first_snapshot = SourceCutout(
             first_reading, hdulist, CoordinateConverter(0, 0), apcor)
         self.image_manager._on_singlet_image_loaded(self.first_snapshot)
 
@@ -309,12 +309,12 @@ class AbstractRealsModelTest(GeneralModelTest):
 
     def test_get_current_image(self):
         self.create_real_first_image()
-        assert_that(self.model.get_current_snapshot(),
+        assert_that(self.model.get_current_cutout(),
                     same_instance(self.first_snapshot))
 
     def test_get_current_snapshot_not_loaded(self):
         self.model.next_source()
-        self.assertRaises(ImageNotLoadedException, self.model.get_current_snapshot)
+        self.assertRaises(ImageNotLoadedException, self.model.get_current_cutout)
 
     def test_get_current_reading_data(self):
         self.model.next_source()

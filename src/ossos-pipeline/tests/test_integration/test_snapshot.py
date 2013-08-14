@@ -8,7 +8,7 @@ from mock import patch, ANY
 
 from tests.base_tests import FileReadingTestCase
 from ossos.downloads.cutouts import CoordinateConverter
-from ossos.downloads.data import SourceSnapshot, ApcorData
+from ossos.downloads.data import SourceCutout, ApcorData
 from ossos.astrom import AstromParser
 
 
@@ -45,7 +45,7 @@ class SourceSnapshotIntegrationTest(FileReadingTestCase):
         x_offset = self.original_observed_x - self.original_pixel_x
         y_offset = self.original_observed_y - self.original_pixel_y
 
-        self.undertest = SourceSnapshot(self.reading, hdulist,
+        self.undertest = SourceCutout(self.reading, hdulist,
                                       CoordinateConverter(x_offset, y_offset),
                                       apcor=apcor)
 
