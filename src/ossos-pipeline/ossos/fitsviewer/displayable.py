@@ -257,8 +257,12 @@ class _ImageTriplet(object):
 class Marker(object):
     def __init__(self, x, y, radius):
         self.circle = plt.Circle((x, y), radius, color="b", fill=False)
-        self.vline = plt.Line2D((x, x), (y - radius, y + radius))
-        self.hline = plt.Line2D((x - radius, x + radius), (y, y))
+
+        linewidth = 0.5
+        self.vline = plt.Line2D((x, x), (y - radius, y + radius),
+                                linewidth=linewidth)
+        self.hline = plt.Line2D((x - radius, x + radius), (y, y),
+                                linewidth=linewidth)
 
     @property
     def center(self):
