@@ -6,7 +6,7 @@ from hamcrest import assert_that, close_to, has_length, equal_to
 
 from tests.base_tests import FileReadingTestCase
 from ossos.astrom import AstromParser
-from ossos.downloads.focus import SingletFocalPointCalculator, TripletFocalPointCalculator
+from ossos.downloads.cutouts.focus import SingletFocalPointCalculator, TripletFocalPointCalculator
 
 
 def assert_tuples_almost_equal(actual, expected, delta=0.0000001):
