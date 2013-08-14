@@ -84,8 +84,8 @@ class MainFrame(wx.Frame):
     def display(self, fits_image, redraw=True):
         self.image_viewer.display(fits_image, redraw=redraw)
 
-    def draw_circle(self, x, y, radius, redraw=True):
-        self.image_viewer.draw_circle(x, y, radius, redraw=redraw)
+    def draw_marker(self, x, y, radius, redraw=True):
+        self.image_viewer.draw_marker(x, y, radius, redraw=redraw)
 
     def update_displayed_data(self):
         self.reading_data_panel.populate_list(self.model.get_reading_data())
