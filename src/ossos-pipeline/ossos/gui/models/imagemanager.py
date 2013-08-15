@@ -2,7 +2,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 from ossos.gui import events, logger
 from ossos.downloads.async import DownloadRequest
-from ossos.downloads.cutouts.focus import SingletFocalPointCalculator
+from ossos.downloads.cutouts.focus import SingletFocusCalculator
 from ossos.fitsviewer.displayable import DisplayableImageSinglet
 from ossos.gui.models.exceptions import ImageNotLoadedException
 
@@ -26,10 +26,10 @@ class ImageManager(object):
             self.download_singlets_for_source(source, needs_apcor=needs_apcor)
 
     def download_singlets_for_source(self, source, needs_apcor=False):
-        focus_calculator = SingletFocalPointCalculator(source)
+        focus_calculator = SingletFocusCalculator(source)
 
         for reading in source.get_readings():
-            focal_point = focus_calculator.calculate_focal_point(reading)
+            focal_point = focus_calculator.calculate_focus(reading)
             self._singlet_download_manager.submit_request(
                 DownloadRequest(reading,
                                 needs_apcor=needs_apcor,

@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import math
 
 
-class FocalPointCalculator(object):
+class FocusCalculator(object):
     def _convert_source_location(self, source_reading, reference_reading):
         """
         Converts the source (x, y) location from reading into the coordinate
@@ -13,7 +13,7 @@ class FocalPointCalculator(object):
         return source_reading.x + offset_x, source_reading.y + offset_y
 
 
-class SingletFocalPointCalculator(FocalPointCalculator):
+class SingletFocusCalculator(FocusCalculator):
     """
     Calculates focal points for display as single images.  The focal point
     will be the location of the source in the middle observation.
@@ -22,7 +22,7 @@ class SingletFocalPointCalculator(FocalPointCalculator):
     def __init__(self, source):
         self.source = source
 
-    def calculate_focal_point(self, reading):
+    def calculate_focus(self, reading):
         """
         Determines what the focal point of the downloaded image should be.
 
@@ -37,7 +37,7 @@ class SingletFocalPointCalculator(FocalPointCalculator):
         return self._convert_source_location(middle_reading, reading)
 
 
-class TripletFocalPointCalculator(FocalPointCalculator):
+class TripletFocusCalculator(FocusCalculator):
     """
     Calculates the focal points for displaying triplets.
     """
@@ -45,6 +45,6 @@ class TripletFocalPointCalculator(FocalPointCalculator):
     def __init__(self, source):
         self.source = source
 
-    def calculate_focal_point(self, reading, frame_index):
+    def calculate_focus(self, reading, frame_index):
         return self._convert_source_location(
             reading, self.source.get_reading(frame_index))
