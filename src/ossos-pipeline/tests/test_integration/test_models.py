@@ -81,7 +81,7 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
         first_reading = self.model.get_current_workunit().get_sources()[0].get_readings()[0]
         self.first_snapshot = SourceCutout(
             first_reading, hdulist, CoordinateConverter(0, 0), apcor)
-        self.image_manager._on_singlet_image_loaded(self.first_snapshot)
+        self.image_manager.on_singlet_image_loaded(self.first_snapshot)
 
 
 class AbstractRealsModelTest(GeneralModelTest):
@@ -232,12 +232,12 @@ class AbstractRealsModelTest(GeneralModelTest):
             equal_to(9))
 
         # Simulate receiving callback
-        self.image_manager._on_singlet_image_loaded(image1)
+        self.image_manager.on_singlet_image_loaded(image1)
         assert_that(observer.on_img_loaded.call_count, equal_to(1))
         assert_that(mock_DisplayableImageSinglet.call_count, equal_to(1))
 
         # Simulate receiving callback
-        self.image_manager._on_singlet_image_loaded(image2)
+        self.image_manager.on_singlet_image_loaded(image2)
         assert_that(observer.on_img_loaded.call_count, equal_to(2))
         assert_that(mock_DisplayableImageSinglet.call_count, equal_to(2))
 
