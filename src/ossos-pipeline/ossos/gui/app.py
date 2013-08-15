@@ -101,15 +101,11 @@ class ValidationApplication(object):
     }
 
     def __init__(self, taskname, working_directory, output_directory,
-                 dry_run=False):
+                 dry_run=False, debug=False):
         logger.info("Starting %s task in %s" % (taskname, working_directory))
         logger.info("Output directory set to: %s" % output_directory)
 
         wx_app = wx.App(False)
-
-        debug_mode = config.read("DEBUG")
-        if debug_mode:
-            wx.lib.inspection.InspectionTool().Show()
 
         try:
             factory = self.task_name_mapping[taskname](dry_run=dry_run)
@@ -186,6 +182,9 @@ class ValidationApplication(object):
 
         if not synchronization_manager:
             self.view.disable_sync_menu()
+
+        if debug:
+            wx.lib.inspection.InspectionTool().Show()
 
         wx_app.MainLoop()
 
