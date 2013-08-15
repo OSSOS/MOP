@@ -4,7 +4,7 @@ from ossos.gui import events, logger
 from ossos.downloads.async import DownloadRequest
 from ossos.downloads.cutouts.focus import (SingletFocusCalculator,
                                            TripletFocusCalculator)
-from ossos.downloads.cutouts.triplets import CutoutGrid
+from ossos.downloads.cutouts.grid import CutoutGrid
 from ossos.fitsviewer.displayable import (DisplayableImageSinglet,
                                           DisplayableImageTriplet)
 from ossos.gui.models.exceptions import ImageNotLoadedException
