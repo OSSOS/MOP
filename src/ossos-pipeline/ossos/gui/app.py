@@ -122,18 +122,18 @@ class ValidationApplication(object):
         error_handler = DownloadErrorHandler(self)
 
         def read(slice_config):
-            return config.read("IMG_RETRIEVAL.%s" % slice_config)
+            return config.read("CUTOUTS.%s" % slice_config)
 
         singlet_downloader = ImageCutoutDownloader(
-            slice_rows=read("SINGLETS.DEFAULT_SLICE_ROWS"),
-            slice_cols=read("SINGLETS.DEFAULT_SLICE_COLS"))
+            slice_rows=read("SINGLETS.SLICE_ROWS"),
+            slice_cols=read("SINGLETS.SLICE_COLS"))
 
         singlet_download_manager = AsynchronousDownloadManager(
             singlet_downloader, error_handler)
 
         triplet_downloader = ImageCutoutDownloader(
-            slice_rows=read("TRIPLETS.DEFAULT_SLICE_ROWS"),
-            slice_cols=read("TRIPLETS.DEFAULT_SLICE_COLS"))
+            slice_rows=read("TRIPLETS.SLICE_ROWS"),
+            slice_cols=read("TRIPLETS.SLICE_COLS"))
 
         triplet_download_manager = AsynchronousDownloadManager(
             triplet_downloader, error_handler)
