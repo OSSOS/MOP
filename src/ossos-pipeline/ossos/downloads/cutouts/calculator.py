@@ -6,7 +6,7 @@ class CutoutCalculator(object):
         self.slice_rows = slice_rows
         self.slice_cols = slice_cols
 
-    def build_cutout_str(self, extnum, point, img_size, inverted=False):
+    def build_cutout_str(self, extnum, focus, img_size, inverted=False):
         """
         Generates the cutout string needed for the vospace client's open
         with cutout feature.
@@ -15,7 +15,7 @@ class CutoutCalculator(object):
           extnum: str
             The extension number of the cutout.  See also the vospace service
             documentation at http://www.cadc.hia.nrc.gc.ca/data/
-          point: tuple(int x, int y)
+          focus: tuple(int x, int y)
             The x and y coordinates of the point which is the focus of the
             cutout.
           img_size: tuple(int xsize, int ysize)
@@ -30,18 +30,18 @@ class CutoutCalculator(object):
             Can be used to find a point in the sliced image based on its
             coordinate in the original image.
         """
-        (x0, x1, y0, y1), converter = self.calc_cutout(point, img_size, inverted)
+        (x0, x1, y0, y1), converter = self.calc_cutout(focus, img_size, inverted)
 
         cutout_str = "[%s][%d:%d,%d:%d]" % (extnum, x0, x1, y0, y1)
 
         return cutout_str, converter
 
-    def calc_cutout(self, point, img_size, inverted=False):
+    def calc_cutout(self, focus, img_size, inverted=False):
         """
         Calculates the start and stop points of the cutout around a point.
 
         Args:
-          point: (x, y)
+          focus: (x, y)
             The x and y coordinates of the point which is the focus of the
             cutout.
           img_size: tuple(int xsize, int ysize)
@@ -55,7 +55,7 @@ class CutoutCalculator(object):
               Can be used to find a point in the sliced image based on its
               coordinate in the original image.
         """
-        x, y = point
+        x, y = focus
         img_size_x, img_size_y = img_size
 
         if inverted:

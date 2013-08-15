@@ -46,11 +46,11 @@ class ImageManager(object):
         focus_calculator = SingletFocusCalculator(source)
 
         for reading in source.get_readings():
-            focal_point = focus_calculator.calculate_focus(reading)
+            focus = focus_calculator.calculate_focus(reading)
             self._singlet_download_manager.submit_request(
                 DownloadRequest(reading,
                                 needs_apcor=needs_apcor,
-                                focal_point=focal_point,
+                                focus=focus,
                                 callback=self.on_singlet_image_loaded)
             )
 
@@ -99,7 +99,7 @@ class ImageManager(object):
                 self._triplet_download_manager.submit_request(
                     DownloadRequest(reading,
                                     needs_apcor=needs_apcor,
-                                    focal_point=focus,
+                                    focus=focus,
                                     callback=callback)
                 )
 

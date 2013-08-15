@@ -78,7 +78,7 @@ class DownloadRequest(object):
 
     def __init__(self,
                  reading,
-                 focal_point=None,
+                 focus=None,
                  needs_apcor=False,
                  callback=None):
         """
@@ -87,7 +87,7 @@ class DownloadRequest(object):
         Args:
           source_reading: ossos.astrom.SourceReading
             The reading which will be the focus of the downloaded image.
-          focal_point: tuple(int, int)
+          focus: tuple(int, int)
             The x, y coordinates that should be the focus of the downloaded
             image.  These coordinates should be in terms of the
             source_reading parameter's coordinate system.
@@ -105,14 +105,14 @@ class DownloadRequest(object):
         self.needs_apcor = needs_apcor
         self.callback = callback
 
-        if focal_point is None:
-            self.focal_point = reading.source_point
+        if focus is None:
+            self.focus = reading.source_point
         else:
-            self.focal_point = focal_point
+            self.focus = focus
 
     def execute(self, downloader):
         cutout = downloader.download_cutout(self.reading,
-                                            focal_point=self.focal_point,
+                                            focus=self.focus,
                                             needs_apcor=self.needs_apcor)
 
         if self.callback is not None:
