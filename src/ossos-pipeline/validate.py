@@ -8,13 +8,14 @@ import tempfile
 from ossos.gui import tasks
 
 
-def launch_app(task, working_directory, output_directory, dry_run):
+def launch_app(task, working_directory, output_directory, dry_run, debug):
     # Put import here to avoid the delay loading them.  This allows quick
     # feedback when argparse can tell the arguments are invalid, and makes
     # getting help with the -h flag faster.
     from ossos.gui.app import ValidationApplication
 
-    ValidationApplication(task, working_directory, output_directory, dry_run)
+    ValidationApplication(task, working_directory, output_directory,
+                          dry_run=dry_run, debug=debug)
 
 
 def main():
@@ -33,6 +34,9 @@ def main():
                         action="store_true",
                         help="Do a dry run, where no results are sent to "
                              "VOSpace.")
+    parser.add_argument("--debug",
+                        action="store_true",
+                        help="wx inspection tool will be launched.")
 
     args = parser.parse_args()
 
@@ -42,7 +46,7 @@ def main():
     else:
         output = args.output
 
-    launch_app(args.task, args.input, output, args.dry_run)
+    launch_app(args.task, args.input, output, args.dry_run, args.debug)
 
 
 if __name__ == "__main__":
