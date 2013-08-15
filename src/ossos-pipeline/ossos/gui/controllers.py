@@ -5,7 +5,8 @@ from ossos.daophot import TaskError
 from ossos.gui import config
 from ossos.gui import events
 from ossos.gui.autoplay import AutoplayManager
-from ossos.gui.models import ImageNotLoadedException, NoWorkUnitException
+from ossos.gui.models.exceptions import (ImageNotLoadedException,
+                                         NoWorkUnitException)
 from ossos.gui.views.app import ApplicationView
 
 
@@ -83,6 +84,14 @@ class AbstractController(object):
             should_exit = self.view.all_processed_should_exit_prompt()
             if should_exit:
                 self._do_exit()
+
+    def on_use_singlet_view(self):
+        self.model.use_singlets()
+        self.view.use_singlets()
+
+    def on_use_triplet_view(self):
+        self.model.use_triplets()
+        self.view.use_triplets()
 
     def on_enable_auto_sync(self):
         self.model.enable_synchronization()

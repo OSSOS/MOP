@@ -7,8 +7,8 @@ from mock import Mock
 
 from tests.base_tests import FileReadingTestCase
 from ossos.astrom import AstromParser
-from ossos.downloads.cutouts import CoordinateConverter
-from ossos.downloads.data import SourceSnapshot
+from ossos.downloads.cutouts.calculator import CoordinateConverter
+from ossos.downloads.cutouts.source import SourceCutout
 
 
 class SourceSnapshotTest(FileReadingTestCase):
@@ -24,7 +24,7 @@ class SourceSnapshotTest(FileReadingTestCase):
         self.offset_y = 15
         coordinate_converter = CoordinateConverter(self.offset_x, self.offset_y)
 
-        self.undertest = SourceSnapshot(self.reading, Mock(), coordinate_converter)
+        self.undertest = SourceCutout(self.reading, Mock(), coordinate_converter)
 
         self.mock_update_ra_dec = Mock()
         self.undertest._update_ra_dec = self.mock_update_ra_dec
