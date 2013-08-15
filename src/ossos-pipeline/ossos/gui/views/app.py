@@ -6,7 +6,9 @@ from ossos.gui import logger
 from ossos.gui.views.dialogs import (should_exit_prompt,
                                      show_empty_workload_dialog)
 from ossos.gui.views.errorhandling import CertificateDialog, RetryDownloadDialog
+from ossos.gui.views.keybinds import KeybindManager
 from ossos.gui.views.mainframe import MainFrame
+from ossos.gui.views.menu import Menu
 from ossos.gui.views.validation import AcceptSourceDialog, RejectSourceDialog
 
 
@@ -40,6 +42,9 @@ class ApplicationView(object):
         self.controller = controller
 
         self.mainframe = MainFrame(model, controller)
+        self.menu = Menu(self.mainframe, controller)
+        self.keybind_manager = KeybindManager(self.mainframe, controller)
+
         # Handle user clicking on the window's "x" button
         self.mainframe.Bind(wx.EVT_CLOSE, self._on_close_window)
 
@@ -103,7 +108,7 @@ class ApplicationView(object):
 
     @guithread
     def disable_sync_menu(self):
-        self.mainframe.disable_sync_menu()
+        self.menu.disable_sync()
 
     @guithread
     def show_certificate_dialog(self, handler, error_message):
@@ -182,7 +187,7 @@ class ApplicationView(object):
 
     @guithread
     def set_autoplay(self, autoplay_enabled):
-        self.mainframe.set_autoplay(autoplay_enabled)
+        self.menu.set_autoplay(autoplay_enabled)
 
     @guithread
     def use_singlets(self):

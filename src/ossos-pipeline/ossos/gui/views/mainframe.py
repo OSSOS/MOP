@@ -6,9 +6,7 @@ from ossos.gui import config
 from ossos.fitsviewer.singletviewer import SingletViewer
 from ossos.fitsviewer.tripletviewer import TripletViewer
 from ossos.gui.views.dialogs import WaitingGaugeDialog
-from ossos.gui.views.keybinds import KeybindManager
 from ossos.gui.views.listctrls import ListCtrlPanel
-from ossos.gui.views.menu import Menu
 from ossos.gui.views.navigation import NavPanel
 from ossos.gui.views.validation import SourceValidationPanel
 
@@ -28,19 +26,14 @@ class MainFrame(wx.Frame):
                                         size=size)
 
         self.model = model
-
         self.controller = controller
 
         self._init_ui_components()
-
-        self.keybind_manager = KeybindManager(self, self.controller)
 
         # needed for keybinds to work on startup
         self.main_panel.SetFocus()
 
     def _init_ui_components(self):
-        self.menu = Menu(self, self.controller)
-
         self.main_panel = _FocusablePanel(self, style=wx.RAISED_BORDER)
         self.control_panel = wx.Panel(self.main_panel)
         self.main_panel.use_as_focus(self.control_panel)
@@ -122,12 +115,6 @@ class MainFrame(wx.Frame):
 
     def is_source_validation_enabled(self):
         return self.validation_view.is_validation_enabled()
-
-    def disable_sync_menu(self):
-        self.menu.disable_sync()
-
-    def set_autoplay(self, autoplay_enabled):
-        self.menu.set_autoplay(autoplay_enabled)
 
     def use_singlets(self):
         self.viewer_manager.use_singlets()
