@@ -11,8 +11,9 @@ from ossos.gui.models.exceptions import ImageNotLoadedException
 
 
 class ImageManager(object):
-    def __init__(self, singlet_download_manager):
+    def __init__(self, singlet_download_manager, triplet_download_manager):
         self._singlet_download_manager = singlet_download_manager
+        self._triplet_download_manager = triplet_download_manager
 
         self._cutouts = {}
         self._displayable_singlets = {}
@@ -87,12 +88,15 @@ class ImageManager(object):
 
     def stop_downloads(self):
         self._singlet_download_manager.stop_download()
+        self._triplet_download_manager.stop_download()
 
     def wait_for_downloads_to_stop(self):
         self._singlet_download_manager.wait_for_downloads_to_stop()
+        self._triplet_download_manager.wait_for_downloads_to_stop()
 
     def refresh_vos_clients(self):
         self._singlet_download_manager.refresh_vos_client()
+        self._triplet_download_manager.refresh_vos_client()
 
     def on_singlet_image_loaded(self, cutout):
         reading = cutout.reading
@@ -100,4 +104,3 @@ class ImageManager(object):
         self._displayable_singlets[reading] = DisplayableImageSinglet(
             cutout.hdulist)
         events.send(events.IMG_LOADED, reading)
-
