@@ -4,6 +4,9 @@ import math
 
 
 class FocalPointCalculator(object):
+    def __init__(self, source):
+        self.source = source
+
     def calculate_focal_points(self, source):
         raise NotImplementedError()
 
@@ -22,6 +25,9 @@ class SingletFocalPointCalculator(FocalPointCalculator):
     will be the location of the source in the middle observation.
     """
 
+    def __init__(self, source):
+        super(SingletFocalPointCalculator, self).__init__(source)
+
     def calculate_focal_points(self, source):
         """
         Determines all focal points of interest for a source.
@@ -36,7 +42,7 @@ class SingletFocalPointCalculator(FocalPointCalculator):
             focal_points.append(point)
         return focal_points
 
-    def calculate_focal_point(self, reading, source):
+    def calculate_focal_point(self, reading):
         """
         Determines what the focal point of the downloaded image should be.
 
@@ -45,8 +51,8 @@ class SingletFocalPointCalculator(FocalPointCalculator):
             The location of the source in the middle observation, in the
             coordinate system of the current source reading.
         """
-        middle_index = int(math.ceil((len(source.get_readings()) / 2)))
-        middle_reading = source.get_reading(middle_index)
+        middle_index = int(math.ceil((len(self.source.get_readings()) / 2)))
+        middle_reading = self.source.get_reading(middle_index)
 
         return self._convert_source_location(middle_reading, reading)
 
@@ -56,8 +62,11 @@ class TripletFocalPointCalculator(FocalPointCalculator):
     Calculates the focal points for displaying triplets.
     """
 
-    def __init__(self):
-        self._singlet_calculator = SingletFocalPointCalculator()
+    def __init__(self, source):
+        super(TripletFocalPointCalculator, self).__init__(source)
+
+    def calculate_focal_point(self, reading, frame_index, time_index):
+        pass
 
     def calculate_focal_points(self, source):
         """
