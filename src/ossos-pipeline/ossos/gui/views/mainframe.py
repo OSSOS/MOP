@@ -5,7 +5,6 @@ import wx
 from ossos.gui import config
 from ossos.fitsviewer.singletviewer import SingletViewer
 from ossos.fitsviewer.tripletviewer import TripletViewer
-from ossos.gui.views.dialogs import WaitingGaugeDialog
 from ossos.gui.views.listctrls import ListCtrlPanel
 from ossos.gui.views.navigation import NavPanel
 from ossos.gui.views.validation import SourceValidationPanel
@@ -45,8 +44,6 @@ class MainFrame(wx.Frame):
         self.validation_view = SourceValidationPanel(self.control_panel, self.controller)
 
         self.viewer_manager = ViewerManager(self.main_panel)
-
-        self.img_loading_dialog = WaitingGaugeDialog(self, "Image loading...")
 
         self._do_layout()
 
@@ -94,15 +91,6 @@ class MainFrame(wx.Frame):
 
     def register_xy_changed_event_handler(self, handler):
         self.image_viewer.register_xy_changed_event_handler(handler)
-
-    def show_image_loading_dialog(self):
-        if not self.img_loading_dialog.IsShown():
-            self.img_loading_dialog.CenterOnParent()
-            self.img_loading_dialog.Show()
-
-    def hide_image_loading_dialog(self):
-        if self.img_loading_dialog.IsShown():
-            self.img_loading_dialog.Hide()
 
     def set_observation_status(self, current_obs, total_obs):
         self.nav_view.set_status(current_obs, total_obs)
