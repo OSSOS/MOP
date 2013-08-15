@@ -285,6 +285,13 @@ class SingletState(object):
         self.model = model
         self.image_manager = model.image_manager
 
+        self.enter_state()
+
+    def enter_state(self):
+        self.image_manager.stop_triplet_downloads()
+        self.image_manager.download_workunit_images(
+            self.model.get_current_workunit())
+
     def get_current_displayble_item(self):
         return self.image_manager.get_displayable_singlet(
             self.model.get_current_reading())
@@ -300,6 +307,13 @@ class TripletState(object):
     def __init__(self, model):
         self.model = model
         self.image_manager = model.image_manager
+
+        self.enter_state()
+
+    def enter_state(self):
+        self.image_manager.stop_singlet_downloads()
+        self.image_manager.download_workunit_images(
+            self.model.get_current_workunit())
 
     def get_current_displayble_item(self):
         return self.image_manager.get_displayable_triplet(

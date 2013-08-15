@@ -1,16 +1,20 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from ossos.downloads.cutouts.triplets import CutoutGrid
 from ossos.gui import events, logger
 from ossos.downloads.async import DownloadRequest
 from ossos.downloads.cutouts.focus import (SingletFocusCalculator,
                                            TripletFocusCalculator)
+from ossos.downloads.cutouts.triplets import CutoutGrid
 from ossos.fitsviewer.displayable import (DisplayableImageSinglet,
                                           DisplayableImageTriplet)
 from ossos.gui.models.exceptions import ImageNotLoadedException
 
 
 class ImageManager(object):
+    """
+    TODO: refactor duplication.
+    """
+
     def __init__(self, singlet_download_manager, triplet_download_manager):
         self._singlet_download_manager = singlet_download_manager
         self._triplet_download_manager = triplet_download_manager
@@ -19,12 +23,20 @@ class ImageManager(object):
         self._displayable_singlets = {}
         self._displayable_triplets = {}
 
+        self._workunits_downloaded_for_singlets = set()
+        self._workunits_downloaded_for_triplets = set()
+
     def submit_singlet_download_request(self, download_request):
         self._singlet_download_manager.submit_request(download_request)
 
     def download_singlets_for_workunit(self, workunit):
+        if workunit in self._workunits_downloaded_for_singlets:
+            return
+
         logger.debug("Starting to download singlets for workunit: %s" %
                      workunit.get_filename())
+
+        self._workunits_downloaded_for_singlets.add(workunit)
 
         needs_apcor = workunit.is_apcor_needed()
         for source in workunit.get_unprocessed_sources():
@@ -55,8 +67,13 @@ class ImageManager(object):
             raise ImageNotLoadedException()
 
     def download_triplets_for_workunit(self, workunit):
+        if workunit in self._workunits_downloaded_for_triplets:
+            return
+
         logger.debug("Starting to download triplets for workunit: %s" %
                      workunit.get_filename())
+
+        self._workunits_downloaded_for_triplets.add(workunit)
 
         for source in workunit.get_unprocessed_sources():
             self.download_triplets_for_source(source)
@@ -87,7 +104,13 @@ class ImageManager(object):
                 )
 
     def stop_downloads(self):
+        self.stop_singlet_downloads()
+        self.stop_triplet_downloads()
+
+    def stop_singlet_downloads(self):
         self._singlet_download_manager.stop_download()
+
+    def stop_triplet_downloads(self):
         self._triplet_download_manager.stop_download()
 
     def wait_for_downloads_to_stop(self):
