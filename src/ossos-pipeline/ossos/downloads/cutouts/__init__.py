@@ -1,3 +1,3 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from downloader import ImageCutoutDownloader
+from ossos.downloads.cutouts.downloader import ImageCutoutDownloader
