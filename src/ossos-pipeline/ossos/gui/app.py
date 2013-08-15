@@ -120,7 +120,12 @@ class ValidationApplication(object):
 
         parser = AstromParser()
         error_handler = DownloadErrorHandler(self)
-        downloader = ImageCutoutDownloader()
+
+        slice_rows = config.read("IMG_RETRIEVAL.SINGLETS.DEFAULT_SLICE_ROWS")
+        slice_cols = config.read("IMG_RETRIEVAL.SINGLETS.DEFAULT_SLICE_COLS")
+        downloader = ImageCutoutDownloader(slice_rows=slice_rows,
+                                           slice_cols=slice_cols)
+
         download_manager = AsynchronousDownloadManager(downloader,
                                                        error_handler)
         image_manager = ImageManager(download_manager)

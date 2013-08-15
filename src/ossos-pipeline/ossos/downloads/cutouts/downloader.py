@@ -1,6 +1,5 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from ossos.gui import config
 from ossos.gui import logger
 
 from ossos.downloads.core import Downloader
@@ -13,7 +12,7 @@ class ImageCutoutDownloader(Downloader):
     Downloads a slice of an image relevant to examining a (potential) source.
     """
 
-    def __init__(self, slice_rows=None, slice_cols=None, vosclient=None):
+    def __init__(self, slice_rows=250, slice_cols=250, vosclient=None):
         """
         Constructor.
 
@@ -23,12 +22,6 @@ class ImageCutoutDownloader(Downloader):
             source.  Leave as None to use default configuration values.
         """
         super(ImageCutoutDownloader, self).__init__(vosclient=vosclient)
-
-        # If not provided, read defaults from application config file
-        if slice_rows is None:
-            slice_rows = config.read("IMG_RETRIEVAL.DEFAULT_SLICE_ROWS")
-        if slice_cols is None:
-            slice_cols = config.read("IMG_RETRIEVAL.DEFAULT_SLICE_COLS")
 
         self.slice_rows = slice_rows
         self.slice_cols = slice_cols
