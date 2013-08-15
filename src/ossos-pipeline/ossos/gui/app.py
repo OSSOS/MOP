@@ -6,8 +6,8 @@ import wx
 import wx.lib.inspection
 
 from ossos.astrom import AstromParser
-from ossos.downloads.async import AsynchronousImageDownloadManager
-from ossos.downloads.cutouts import ImageCutoutDownloader
+from ossos.downloads.async import AsynchronousDownloadManager
+from ossos.downloads.cutouts.downloader import ImageCutoutDownloader
 from ossos.gui import config, tasks, logger
 from ossos.gui import context
 from ossos.gui.sync import SynchronizationManager
@@ -16,9 +16,10 @@ from ossos.gui.workload import (WorkUnitProvider,
                                 CandidatesWorkUnitBuilder,
                                 PreFetchingWorkUnitProvider)
 from ossos.gui.errorhandling import DownloadErrorHandler
-from ossos.gui.models import TransAckUIModel
 from ossos.gui.controllers import (ProcessRealsController,
                                    ProcessCandidatesController)
+from ossos.gui.models.imagemanager import ImageManager
+from ossos.gui.models.transactions import TransAckValidationModel
 from ossos.naming import ProvisionalNameGenerator, DryRunNameGenerator
 
 
@@ -119,9 +120,26 @@ class ValidationApplication(object):
 
         parser = AstromParser()
         error_handler = DownloadErrorHandler(self)
-        downloader = ImageCutoutDownloader()
-        download_manager = AsynchronousImageDownloadManager(downloader,
-                                                            error_handler)
+
+        def read(slice_config):
+            return config.read("CUTOUTS.%s" % slice_config)
+
+        singlet_downloader = ImageCutoutDownloader(
+            slice_rows=read("SINGLETS.SLICE_ROWS"),
+            slice_cols=read("SINGLETS.SLICE_COLS"))
+
+        singlet_download_manager = AsynchronousDownloadManager(
+            singlet_downloader, error_handler)
+
+        triplet_downloader = ImageCutoutDownloader(
+            slice_rows=read("TRIPLETS.SLICE_ROWS"),
+            slice_cols=read("TRIPLETS.SLICE_COLS"))
+
+        triplet_download_manager = AsynchronousDownloadManager(
+            triplet_downloader, error_handler)
+
+        image_manager = ImageManager(singlet_download_manager,
+                                     triplet_download_manager)
 
         working_context = context.get_context(working_directory)
         output_context = context.get_context(output_directory)
@@ -152,9 +170,9 @@ class ValidationApplication(object):
         else:
             synchronization_manager = None
 
-        model = TransAckUIModel(prefetching_workunit_provider,
-                                download_manager,
-                                synchronization_manager)
+        model = TransAckValidationModel(prefetching_workunit_provider,
+                                        image_manager,
+                                        synchronization_manager)
         logger.debug("Created model.")
 
         controller = factory.create_controller(model)

@@ -11,7 +11,6 @@ import vos
 from tests.base_tests import FileReadingTestCase
 from ossos.astrom import SourceReading
 from ossos.downloads.cutouts import ImageCutoutDownloader
-from ossos.downloads.requests import DownloadRequest
 
 
 class DownloadTest(FileReadingTestCase):
@@ -31,7 +30,7 @@ class DownloadTest(FileReadingTestCase):
         self.reading.is_inverted.return_value = False
 
         self.needs_apcor = True
-        self.focal_point = (75, 80)
+        self.focus = (75, 80)
 
         self.vosclient = Mock(spec=vos.Client)
         self.downloader = ImageCutoutDownloader(slice_rows=100, slice_cols=50,
@@ -63,16 +62,10 @@ class DownloadTest(FileReadingTestCase):
         self.localfile.close()
         self.apcorfile.close()
 
-    def make_request(self, callback=None):
-        return DownloadRequest(self.downloader, self.reading,
-                               needs_apcor=self.needs_apcor,
-                               focal_point=self.focal_point,
-                               callback=callback)
-
     def test_request_image_cutout(self):
-        request = self.make_request()
-
-        download = request.execute()
+        download = self.downloader.download_cutout(self.reading,
+                                                   focus=self.focus,
+                                                   needs_apcor=self.needs_apcor)
 
         assert_that(self.vosclient.open.call_args_list, contains(
             call(self.image_uri, view="cutout", cutout="[19][50:100,30:130]"),
@@ -83,11 +76,6 @@ class DownloadTest(FileReadingTestCase):
         # it.  It won't have the right shape necessarily though.
         assert_that(download.get_fits_header()["FILENAME"],
                     equal_to("u5780205r_cvt.c0h"))
-
-    def test_download_callback(self):
-        callback = Mock()
-        download = self.make_request(callback).execute()
-        callback.assert_called_once_with(download)
 
 
 if __name__ == '__main__':

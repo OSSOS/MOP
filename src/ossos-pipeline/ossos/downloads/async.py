@@ -3,14 +3,12 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import Queue
 import threading
 
-from ossos.downloads.focus import SingletFocalPointCalculator
-from ossos.downloads.requests import DownloadRequest
 from ossos.gui import logger
 
 MAX_THREADS = 3
 
 
-class AsynchronousImageDownloadManager(object):
+class AsynchronousDownloadManager(object):
     """
     Coordinates the downloading of images asynchronously from the rest of
     the application.
@@ -34,31 +32,9 @@ class AsynchronousImageDownloadManager(object):
         self._workers = []
         self._maximize_workers()
 
-        self._focal_point_calculator = SingletFocalPointCalculator()
-
-    def start_downloading_workunit(self, workunit, image_loaded_callback=None):
-        logger.debug("Starting to download workunit: %s" %
-                     workunit.get_filename())
-
+    def submit_request(self, request):
+        self._work_queue.put(request)
         self._maximize_workers()
-
-        # Load up queue with downloadable items
-        needs_apcor = workunit.is_apcor_needed()
-
-        focal_points = []
-        for source in workunit.get_unprocessed_sources():
-            focal_points.extend(
-                self._focal_point_calculator.calculate_focal_points(source))
-
-        for focal_point in focal_points:
-            self._work_queue.put(DownloadRequest(self.downloader,
-                                                 focal_point.reading,
-                                                 needs_apcor=needs_apcor,
-                                                 focal_point=focal_point.point,
-                                                 callback=image_loaded_callback))
-
-    def retry_download(self, downloadable_item):
-        self._work_queue.put(downloadable_item)
 
     def stop_download(self):
         for worker in self._workers:
@@ -95,6 +71,54 @@ class AsynchronousImageDownloadManager(object):
         return True
 
 
+class DownloadRequest(object):
+    """
+    Specifies an item (image and potentially related files) to be downloaded.
+    """
+
+    def __init__(self,
+                 reading,
+                 focus=None,
+                 needs_apcor=False,
+                 callback=None):
+        """
+        Constructor.
+
+        Args:
+          source_reading: ossos.astrom.SourceReading
+            The reading which will be the focus of the downloaded image.
+          focus: tuple(int, int)
+            The x, y coordinates that should be the focus of the downloaded
+            image.  These coordinates should be in terms of the
+            source_reading parameter's coordinate system.
+            Default value is None, in which case the source reading's x, y
+            position is used as the focus.
+          needs_apcor: bool
+            If True, the apcor file with data needed for photometry
+            calculations is downloaded in addition to the image.
+            Defaults to False.
+          callback: callable
+            An optional callback to be called with the downloaded snapshot
+            as its argument.
+        """
+        self.reading = reading
+        self.needs_apcor = needs_apcor
+        self.callback = callback
+
+        if focus is None:
+            self.focus = reading.source_point
+        else:
+            self.focus = focus
+
+    def execute(self, downloader):
+        cutout = downloader.download_cutout(self.reading,
+                                            focus=self.focus,
+                                            needs_apcor=self.needs_apcor)
+
+        if self.callback is not None:
+            self.callback(cutout)
+
+
 class DownloadThread(threading.Thread):
     def __init__(self, work_queue, downloader, error_handler):
         super(DownloadThread, self).__init__()
@@ -122,7 +146,7 @@ class DownloadThread(threading.Thread):
                 self._idle = True
 
     def do_download(self, download_request):
-        download_request.execute()
+        download_request.execute(self.downloader)
 
     def stop(self):
         self._should_stop = True

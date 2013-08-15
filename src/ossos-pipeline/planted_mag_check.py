@@ -1,12 +1,17 @@
 """
 Compare the measured fluxes of planted sources against those returned for by digiphot.
 """
-import sys
-import math
-from ossos.daophot import TaskError
-from ossos.downloads.data import SourceSnapshot
 
 __author__ = 'jjk'
+
+import math
+import sys
+
+from ossos import astrom
+from ossos.daophot import TaskError
+from ossos.downloads.cutouts import ImageCutoutDownloader
+from ossos.mpc import Time
+
 
 class PlantedObject(object):
 
@@ -25,24 +30,13 @@ class PlantedObject(object):
         return self.line
 
 
-from astropy.io import ascii
+image_slice_downloader = ImageCutoutDownloader(slice_rows=100, slice_cols=100)
 
-
-from ossos.mpc import Time
-from ossos.astrom import AstromParser
-from ossos.downloads import cutouts, requests
-
-image_slice_downloader = cutouts.ImageCutoutDownloader(slice_rows=100, slice_cols=100)
-
-astrom_file_reader = AstromParser()
-
-
-
-fk_candidate_observations = astrom_file_reader.parse('vos:OSSOS/measure3/2013A-E/'+sys.argv[1])
+fk_candidate_observations = astrom.parse('vos:OSSOS/measure3/2013A-E/'+sys.argv[1])
 
 objects_planted_uri = fk_candidate_observations.observations[0].get_object_planted_uri()
 
-objects_planted = image_slice_downloader.download_object_planted(objects_planted_uri).split('\n')
+objects_planted = image_slice_downloader.download_raw(objects_planted_uri).split('\n')
 
 planted_objects = []
 
@@ -58,15 +52,10 @@ for source in  fk_candidate_observations.get_sources():
     second = source.get_reading(1)
     third  = source.get_reading(2)
 
-    download_request = requests.DownloadRequest(
-        image_slice_downloader,
-        reading,
-        needs_apcor=True)
-
-    snapshot = download_request.execute()
+    cutout = image_slice_downloader.download_cutout(reading, needs_apcor=True)
 
     try:
-        mag = snapshot.get_observed_magnitude()
+        mag = cutout.get_observed_magnitude()
     except TaskError as e:
         mag = 0.0
 
