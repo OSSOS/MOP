@@ -103,6 +103,12 @@ class ImageManager(object):
                                     callback=callback)
                 )
 
+    def get_displayable_triplet(self, source):
+        try:
+            return self._displayable_triplets[source]
+        except KeyError:
+            raise ImageNotLoadedException()
+
     def stop_downloads(self):
         self.stop_singlet_downloads()
         self.stop_triplet_downloads()
