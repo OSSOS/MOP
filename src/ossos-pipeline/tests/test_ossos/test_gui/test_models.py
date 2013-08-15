@@ -4,30 +4,32 @@ import unittest
 
 from mock import Mock, MagicMock, patch
 from hamcrest import assert_that, equal_to
+from ossos.gui import events
 
 from tests.base_tests import FileReadingTestCase
 from ossos.astrom import AstromParser
-from ossos.downloads.async import AsynchronousImageDownloadManager
+from ossos.downloads.async import AsynchronousDownloadManager
 from ossos.gui.context import LocalDirectoryWorkingContext
-from ossos.gui import events
-from ossos.gui.models import UIModel, TransAckUIModel
+from ossos.gui.models.imagemanager import ImageManager
+from ossos.gui.models.validation import ValidationModel
+from ossos.gui.models.transactions import TransAckValidationModel
 from ossos.gui.progress import LocalProgressManager
 from ossos.gui.sync import SynchronizationManager
 from ossos.gui.workload import PreFetchingWorkUnitProvider, RealsWorkUnit, CandidatesWorkUnit
 
 
-class UIModelTest(unittest.TestCase):
+class ValidationModelTest(unittest.TestCase):
     def setUp(self):
         events.unsub_all()
         self.workunit_provider = Mock(spec=PreFetchingWorkUnitProvider)
-        self.download_manager = Mock(spec=AsynchronousImageDownloadManager)
+        self.image_manager = Mock(spec=ImageManager)
         self.synchronization_manager = Mock(spec=SynchronizationManager)
-        self.model = UIModel(self.workunit_provider, self.download_manager,
-                             self.synchronization_manager)
+        self.model = ValidationModel(self.workunit_provider, self.image_manager,
+                                     self.synchronization_manager)
 
     def test_all_workunits_unlocked_on_exit(self):
-        workunit1 = Mock(spec=RealsWorkUnit)
-        workunit2 = Mock(spec=RealsWorkUnit)
+        workunit1 = MagicMock(spec=RealsWorkUnit)
+        workunit2 = MagicMock(spec=RealsWorkUnit)
 
         self.model.add_workunit(workunit1)
         self.model.add_workunit(workunit2)
@@ -42,13 +44,14 @@ class UIModelTest(unittest.TestCase):
         self.workunit_provider.shutdown.assert_called_once_with()
 
 
-class TransitionAcknowledgementUIModelTest(FileReadingTestCase):
+class TransitionAcknowledgementModelTest(FileReadingTestCase):
     def setUp(self):
         events.unsub_all()
         self.workunit_provider = Mock(spec=PreFetchingWorkUnitProvider)
-        self.download_manager = Mock(spec=AsynchronousImageDownloadManager)
+        self.image_manager = Mock(spec=ImageManager)
         self.synchronization_manager = Mock(spec=SynchronizationManager)
-        self.model = TransAckUIModel(self.workunit_provider, self.download_manager, self.synchronization_manager)
+        self.model = TransAckValidationModel(self.workunit_provider, self.image_manager,
+                                             self.synchronization_manager)
 
         self.data = AstromParser().parse(
             self.get_abs_path("data/model_testdir_1/1584431p15.measure3.reals.astrom"))
@@ -242,7 +245,7 @@ class TransitionAcknowledgementUIModelTest(FileReadingTestCase):
         self.model.reject_current_item()
         assert_that(self.model.get_num_items_processed(), equal_to(1))
 
-    @patch("ossos.gui.models.events")
+    @patch("ossos.gui.models.validation.events")
     def test_additional_change_image_events_not_sent_when_waiting(self, events_mock):
         self.use_reals_workunit()
 

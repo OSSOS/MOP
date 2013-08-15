@@ -9,13 +9,16 @@ from hamcrest import (assert_that, equal_to, has_length, contains,
 from mock import patch, Mock
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
-from ossos.downloads.async import AsynchronousImageDownloadManager
-from ossos.downloads.data import ApcorData, SourceSnapshot
+from ossos.downloads.async import AsynchronousDownloadManager
+from ossos.downloads.core import ApcorData
+from ossos.downloads.cutouts.calculator import CoordinateConverter
+from ossos.downloads.cutouts.source import SourceCutout
 from ossos.gui.context import LocalDirectoryWorkingContext
-from ossos.gui import models, events, tasks
-from ossos.gui.models import ImageNotLoadedException
+from ossos.gui import events, tasks
+from ossos.gui.models.exceptions import ImageNotLoadedException
+from ossos.gui.models.imagemanager import ImageManager
+from ossos.gui.models.validation import ValidationModel
 from ossos.astrom import AstromParser
-from ossos.downloads.cutouts import CoordinateConverter
 from ossos.gui.progress import LocalProgressManager
 from ossos.gui.workload import (WorkUnitProvider, RealsWorkUnitBuilder,
                                 CandidatesWorkUnitBuilder)
@@ -46,9 +49,13 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
 
         self.workunit_provider = workunit_provider
         self.progress_manager = progress_manager
-        self.download_manager = Mock(spec=AsynchronousImageDownloadManager)
 
-        self.model = self.get_model()
+        self.singlet_download_manager = Mock(spec=AsynchronousDownloadManager)
+        self.triplet_download_manager = Mock(spec=AsynchronousDownloadManager)
+        self.image_manager = ImageManager(self.singlet_download_manager,
+                                          self.triplet_download_manager)
+
+        self.model = ValidationModel(self.workunit_provider, self.image_manager, None)
 
         self.custom_setup()
 
@@ -56,9 +63,6 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
 
     def custom_setup(self):
         pass
-
-    def get_model(self):
-        raise NotImplementedError()
 
     def _get_task(self):
         raise NotImplementedError()
@@ -74,12 +78,12 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
 
     def create_real_first_image(self, path="data/testimg.fits"):
         # Put a real fits image on the first source, first observation
-        apcor = ApcorData.from_raw_string("4 15   0.19   0.01")
+        apcor = ApcorData.from_string("4 15   0.19   0.01")
         hdulist = fits.open(self.get_abs_path(path))
         first_reading = self.model.get_current_workunit().get_sources()[0].get_readings()[0]
-        self.first_snapshot = SourceSnapshot(
+        self.first_snapshot = SourceCutout(
             first_reading, hdulist, CoordinateConverter(0, 0), apcor)
-        self.model._on_image_loaded(self.first_snapshot)
+        self.image_manager.on_singlet_image_loaded(self.first_snapshot)
 
 
 class AbstractRealsModelTest(GeneralModelTest):
@@ -95,9 +99,6 @@ class AbstractRealsModelTest(GeneralModelTest):
 
     def get_files_to_keep(self):
         return ["1584431p15.measure3.reals.astrom"]
-
-    def get_model(self):
-        return models.UIModel(self.workunit_provider, self.download_manager, None)
 
     def test_sources_initialized(self):
         assert_that(self.model.get_current_source_number(), equal_to(0))
@@ -219,7 +220,7 @@ class AbstractRealsModelTest(GeneralModelTest):
             ("R.A.", 26.6833367), ("DEC", 29.2203532)
         ))
 
-    @patch("ossos.gui.models.DisplayableImageSinglet")
+    @patch("ossos.gui.models.imagemanager.DisplayableImageSinglet")
     def test_loading_images(self, mock_DisplayableImageSinglet):
         observer = Mock()
         events.subscribe(events.IMG_LOADED, observer.on_img_loaded)
@@ -228,19 +229,17 @@ class AbstractRealsModelTest(GeneralModelTest):
         image2 = Mock()
         loaded_reading2 = image2.reading
 
-        assert_that(self.download_manager.start_downloading_workunit.call_count,
-                    equal_to(1))
-        assert_that(self.model.get_loaded_image_count(), equal_to(0))
+        assert_that(
+            self.image_manager._singlet_download_manager.submit_request.call_count,
+            equal_to(9))
 
         # Simulate receiving callback
-        self.model._on_image_loaded(image1)
-        assert_that(self.model.get_loaded_image_count(), equal_to(1))
+        self.image_manager.on_singlet_image_loaded(image1)
         assert_that(observer.on_img_loaded.call_count, equal_to(1))
         assert_that(mock_DisplayableImageSinglet.call_count, equal_to(1))
 
         # Simulate receiving callback
-        self.model._on_image_loaded(image2)
-        assert_that(self.model.get_loaded_image_count(), equal_to(2))
+        self.image_manager.on_singlet_image_loaded(image2)
         assert_that(observer.on_img_loaded.call_count, equal_to(2))
         assert_that(mock_DisplayableImageSinglet.call_count, equal_to(2))
 
@@ -313,12 +312,12 @@ class AbstractRealsModelTest(GeneralModelTest):
 
     def test_get_current_image(self):
         self.create_real_first_image()
-        assert_that(self.model.get_current_snapshot(),
+        assert_that(self.model.get_current_cutout(),
                     same_instance(self.first_snapshot))
 
     def test_get_current_snapshot_not_loaded(self):
         self.model.next_source()
-        self.assertRaises(ImageNotLoadedException, self.model.get_current_snapshot)
+        self.assertRaises(ImageNotLoadedException, self.model.get_current_cutout)
 
     def test_get_current_reading_data(self):
         self.model.next_source()
@@ -331,9 +330,6 @@ class AbstractRealsModelTest(GeneralModelTest):
 
 
 class ProcessRealsModelTest(GeneralModelTest):
-    def _get_working_dir(self):
-        return self.get_abs_path(MODEL_TEST_DIR_1)
-
     def _get_task(self):
         return tasks.REALS_TASK
 
@@ -344,8 +340,8 @@ class ProcessRealsModelTest(GeneralModelTest):
     def get_files_to_keep(self):
         return ["1584431p15.measure3.reals.astrom"]
 
-    def get_model(self):
-        return models.UIModel(self.workunit_provider, self.download_manager, None)
+    def _get_working_dir(self):
+        return self.get_abs_path(MODEL_TEST_DIR_1)
 
     def test_next_item_no_validation(self):
         observer = Mock()
@@ -547,9 +543,6 @@ class ProcessCandidatesModelTest(GeneralModelTest):
     def get_files_to_keep(self):
         return ["1584431p15.measure3.cands.astrom", "1584431p15.measure3.reals.astrom"]
 
-    def get_model(self):
-        return models.UIModel(self.workunit_provider, self.download_manager, None)
-
     def test_next_item(self):
         observer = Mock()
         events.subscribe(events.CHANGE_IMAGE, observer.on_change_img)
@@ -655,9 +648,6 @@ class MultipleAstromDataModelTest(GeneralModelTest):
     def _get_workunit_builder(self, parser, progress_manager):
         return CandidatesWorkUnitBuilder(parser, self.context, self.context,
                                          progress_manager)
-
-    def get_model(self):
-        return models.UIModel(self.workunit_provider, self.download_manager, None)
 
     def _get_task(self):
         return tasks.CANDS_TASK
@@ -793,9 +783,6 @@ class MultipleAstromDataModelTest(GeneralModelTest):
 
 
 class RealsModelPersistenceTest(GeneralModelTest):
-    def get_model(self):
-        return models.UIModel(self.workunit_provider, self.download_manager, None)
-
     def setUp(self):
         super(RealsModelPersistenceTest, self).setUp()
 
@@ -948,9 +935,6 @@ class RealsModelPersistenceTest(GeneralModelTest):
 
 
 class RealsModelPersistenceLoadingTest(GeneralModelTest):
-    def get_model(self):
-        return models.UIModel(self.workunit_provider, self.download_manager, None)
-
     def setUp(self):
         # Have to set this up here because test cases may modify the .PART file
         partfile = os.path.join(self.get_directory_to_clean(), "xxx3.reals.astrom.PART")
@@ -1001,9 +985,6 @@ class RealsModelPersistenceLoadingTest(GeneralModelTest):
 
 
 class CandidatesModelPersistenceTest(GeneralModelTest):
-    def get_model(self):
-        return models.UIModel(self.workunit_provider, self.download_manager, None)
-
     def setUp(self):
         super(CandidatesModelPersistenceTest, self).setUp()
 
@@ -1078,9 +1059,6 @@ class CandidatesModelPersistenceTest(GeneralModelTest):
 
 
 class CandidatesModelPersistenceLoadingTest(GeneralModelTest):
-    def get_model(self):
-        return models.UIModel(self.workunit_provider, self.download_manager, None)
-
     def create_part_file_with_indices(self, indices):
         str_indices = ""
         for index in indices:

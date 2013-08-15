@@ -7,8 +7,9 @@ from hamcrest import assert_that, equal_to
 from mock import patch, ANY
 
 from tests.base_tests import FileReadingTestCase
-from ossos.downloads.cutouts import CoordinateConverter
-from ossos.downloads.data import SourceSnapshot, ApcorData
+from ossos.downloads.cutouts.calculator import CoordinateConverter
+from ossos.downloads.cutouts.source import SourceCutout
+from ossos.downloads.core import ApcorData
 from ossos.astrom import AstromParser
 
 
@@ -26,7 +27,7 @@ class SourceSnapshotIntegrationTest(FileReadingTestCase):
         hdulist = fits.open(self.path("cutout-1616687p.fits"))
 
         with open(self.path("1616687p10.apcor")) as fh:
-            apcor = ApcorData.from_raw_string(fh.read())
+            apcor = ApcorData.from_string(fh.read())
 
         # NOTE: the test image
         # vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1616687/1616687p.fits
@@ -45,7 +46,7 @@ class SourceSnapshotIntegrationTest(FileReadingTestCase):
         x_offset = self.original_observed_x - self.original_pixel_x
         y_offset = self.original_observed_y - self.original_pixel_y
 
-        self.undertest = SourceSnapshot(self.reading, hdulist,
+        self.undertest = SourceCutout(self.reading, hdulist,
                                       CoordinateConverter(x_offset, y_offset),
                                       apcor=apcor)
 
