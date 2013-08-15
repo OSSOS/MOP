@@ -23,38 +23,22 @@ class SingletFocalPointCalculatorTest(FileReadingTestCase):
         self.reading1 = self.source.get_reading(1)
         self.reading2 = self.source.get_reading(2)
 
-        self.undertest = SingletFocalPointCalculator()
+        self.undertest = SingletFocalPointCalculator(self.source)
 
     def test_get_focal_point_first_reading(self):
         assert_tuples_almost_equal(
-            self.undertest.calculate_focal_point(self.reading0, self.source),
+            self.undertest.calculate_focal_point(self.reading0),
             (583.42, 408.46))
 
     def test_get_focal_point_second_reading(self):
         assert_tuples_almost_equal(
-            self.undertest.calculate_focal_point(self.reading1, self.source),
+            self.undertest.calculate_focal_point(self.reading1),
             (586.18, 408.63))
 
     def test_get_focal_point_third_reading(self):
         assert_tuples_almost_equal(
-            self.undertest.calculate_focal_point(self.reading2, self.source),
+            self.undertest.calculate_focal_point(self.reading2),
             (587.80, 407.98))
-
-    def test_calculate_focal_points(self):
-        focal_points = self.undertest.calculate_focal_points(self.source)
-        assert_that(focal_points, has_length(3))
-
-        focal_point_0 = focal_points[0]
-        assert_that(focal_point_0.reading, equal_to(self.reading0))
-        assert_tuples_almost_equal(focal_point_0.point, (583.42, 408.46))
-
-        focal_point_1 = focal_points[1]
-        assert_that(focal_point_1.reading, equal_to(self.reading1))
-        assert_tuples_almost_equal(focal_point_1.point, (586.18, 408.63))
-
-        focal_point_2 = focal_points[2]
-        assert_that(focal_point_2.reading, equal_to(self.reading2))
-        assert_tuples_almost_equal(focal_point_2.point, (587.80, 407.98))
 
 
 class TripletFocalPointCalculatorTest(FileReadingTestCase):
@@ -66,7 +50,7 @@ class TripletFocalPointCalculatorTest(FileReadingTestCase):
         self.reading1 = self.source.get_reading(1)
         self.reading2 = self.source.get_reading(2)
 
-        self.undertest = TripletFocalPointCalculator()
+        self.undertest = TripletFocalPointCalculator(self.source)
 
     def test_calculate_focal_points(self):
         focal_points = self.undertest.calculate_focal_points(self.source)

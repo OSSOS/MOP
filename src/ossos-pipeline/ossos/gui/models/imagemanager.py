@@ -10,10 +10,9 @@ from ossos.gui.models.exceptions import ImageNotLoadedException
 class ImageManager(object):
     def __init__(self, singlet_download_manager):
         self._singlet_download_manager = singlet_download_manager
-        self._singlet_focal_point_calculator = SingletFocalPointCalculator()
 
-        self._displayable_singlets = {}
         self._cutouts = {}
+        self._displayable_singlets = {}
 
     def submit_singlet_download_request(self, download_request):
         self._singlet_download_manager.submit_request(download_request)
@@ -23,17 +22,20 @@ class ImageManager(object):
                      workunit.get_filename())
 
         needs_apcor = workunit.is_apcor_needed()
-        focal_points = []
         for source in workunit.get_unprocessed_sources():
-            focal_points.extend(
-                self._singlet_focal_point_calculator.calculate_focal_points(source))
+            self.download_singlets_for_source(source, needs_apcor=needs_apcor)
 
-        for focal_point in focal_points:
+    def download_singlets_for_source(self, source, needs_apcor=False):
+        focus_calculator = SingletFocalPointCalculator(source)
+
+        for reading in source.get_readings():
+            focal_point = focus_calculator.calculate_focal_point(reading)
             self._singlet_download_manager.submit_request(
-                DownloadRequest(focal_point.reading,
+                DownloadRequest(reading,
                                 needs_apcor=needs_apcor,
-                                focal_point=focal_point.point,
-                                callback=self.on_singlet_image_loaded))
+                                focal_point=focal_point,
+                                callback=self.on_singlet_image_loaded)
+            )
 
     def get_displayable_singlet(self, reading):
         try:
