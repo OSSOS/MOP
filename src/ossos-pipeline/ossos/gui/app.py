@@ -121,14 +121,25 @@ class ValidationApplication(object):
         parser = AstromParser()
         error_handler = DownloadErrorHandler(self)
 
-        slice_rows = config.read("IMG_RETRIEVAL.SINGLETS.DEFAULT_SLICE_ROWS")
-        slice_cols = config.read("IMG_RETRIEVAL.SINGLETS.DEFAULT_SLICE_COLS")
-        downloader = ImageCutoutDownloader(slice_rows=slice_rows,
-                                           slice_cols=slice_cols)
+        def read(slice_config):
+            return config.read("IMG_RETRIEVAL.%s" % slice_config)
 
-        download_manager = AsynchronousDownloadManager(downloader,
-                                                       error_handler)
-        image_manager = ImageManager(download_manager)
+        singlet_downloader = ImageCutoutDownloader(
+            slice_rows=read("SINGLETS.DEFAULT_SLICE_ROWS"),
+            slice_cols=read("SINGLETS.DEFAULT_SLICE_COLS"))
+
+        singlet_download_manager = AsynchronousDownloadManager(
+            singlet_downloader, error_handler)
+
+        triplet_downloader = ImageCutoutDownloader(
+            slice_rows=read("TRIPLETS.DEFAULT_SLICE_ROWS"),
+            slice_cols=read("TRIPLETS.DEFAULT_SLICE_COLS"))
+
+        triplet_download_manager = AsynchronousDownloadManager(
+            triplet_downloader, error_handler)
+
+        image_manager = ImageManager(singlet_download_manager,
+                                     triplet_download_manager)
 
         working_context = context.get_context(working_directory)
         output_context = context.get_context(output_directory)

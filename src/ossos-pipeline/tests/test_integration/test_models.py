@@ -50,8 +50,10 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
         self.workunit_provider = workunit_provider
         self.progress_manager = progress_manager
 
-        self.download_manager = Mock(spec=AsynchronousDownloadManager)
-        self.image_manager = ImageManager(self.download_manager)
+        self.singlet_download_manager = Mock(spec=AsynchronousDownloadManager)
+        self.triplet_download_manager = Mock(spec=AsynchronousDownloadManager)
+        self.image_manager = ImageManager(self.singlet_download_manager,
+                                          self.triplet_download_manager)
 
         self.model = ValidationModel(self.workunit_provider, self.image_manager, None)
 
