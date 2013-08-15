@@ -3,10 +3,10 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import unittest
 
 from hamcrest import assert_that, close_to, has_length, equal_to
+from ossos.downloads.cutouts.focus import SingletFocalPointCalculator, TripletFocalPointCalculator
 
 from tests.base_tests import FileReadingTestCase
 from ossos.astrom import AstromParser
-from ossos.downloads.cutouts.focus import SingletFocalPointCalculator, TripletFocalPointCalculator
 
 
 def assert_tuples_almost_equal(actual, expected, delta=0.0000001):
@@ -53,36 +53,41 @@ class TripletFocalPointCalculatorTest(FileReadingTestCase):
         self.undertest = TripletFocalPointCalculator(self.source)
 
     def test_calculate_focal_points(self):
-        focal_points = self.undertest.calculate_focal_points(self.source)
+        assert_tuples_almost_equal(
+            self.undertest.calculate_focal_point(self.reading0, 0),
+            (560.06, 406.51))
 
-        assert_that(focal_points, has_length(9))
+        assert_tuples_almost_equal(
+            self.undertest.calculate_focal_point(self.reading1, 0),
+            (583.42, 408.46))
 
-        assert_that(focal_points[0].reading, equal_to(self.reading0))
-        assert_tuples_almost_equal(focal_points[0].point, (560.06, 406.51))
+        assert_tuples_almost_equal(
+            self.undertest.calculate_focal_point(self.reading2, 0),
+            (608.48, 407.17))
 
-        assert_that(focal_points[1].reading, equal_to(self.reading1))
-        assert_tuples_almost_equal(focal_points[1].point, (583.42, 408.46))
+        assert_tuples_almost_equal(
+            self.undertest.calculate_focal_point(self.reading0, 1),
+            (562.82, 406.68))
 
-        assert_that(focal_points[2].reading, equal_to(self.reading2))
-        assert_tuples_almost_equal(focal_points[2].point, (608.48, 407.17))
+        assert_tuples_almost_equal(
+            self.undertest.calculate_focal_point(self.reading1, 1),
+            (586.18, 408.63))
 
-        assert_that(focal_points[3].reading, equal_to(self.reading0))
-        assert_tuples_almost_equal(focal_points[3].point, (562.82, 406.68))
+        assert_tuples_almost_equal(
+            self.undertest.calculate_focal_point(self.reading2, 1),
+            (611.24, 407.34))
 
-        assert_that(focal_points[4].reading, equal_to(self.reading1))
-        assert_tuples_almost_equal(focal_points[4].point, (586.18, 408.63))
+        assert_tuples_almost_equal(
+            self.undertest.calculate_focal_point(self.reading0, 2),
+            (564.44, 406.03))
 
-        assert_that(focal_points[5].reading, equal_to(self.reading2))
-        assert_tuples_almost_equal(focal_points[5].point, (611.24, 407.34))
+        assert_tuples_almost_equal(
+            self.undertest.calculate_focal_point(self.reading1, 2),
+            (587.80, 407.98))
 
-        assert_that(focal_points[6].reading, equal_to(self.reading0))
-        assert_tuples_almost_equal(focal_points[6].point, (564.44, 406.03))
-
-        assert_that(focal_points[7].reading, equal_to(self.reading1))
-        assert_tuples_almost_equal(focal_points[7].point, (587.80, 407.98))
-
-        assert_that(focal_points[8].reading, equal_to(self.reading2))
-        assert_tuples_almost_equal(focal_points[8].point, (612.86, 406.69))
+        assert_tuples_almost_equal(
+            self.undertest.calculate_focal_point(self.reading2, 2),
+            (612.86, 406.69))
 
 
 if __name__ == '__main__':

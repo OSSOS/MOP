@@ -45,31 +45,6 @@ class TripletFocalPointCalculator(FocalPointCalculator):
     def __init__(self, source):
         self.source = source
 
-    def calculate_focal_point(self, reading, frame_index, time_index):
-        pass
-
-    def calculate_focal_points(self, source):
-        """
-        Determines all focal points of interest for a source.
-
-        Returns:
-          focal_points: list(FocalPoint)
-        """
-        focal_points = []
-        for reference_reading in source.get_readings():
-            for source_reading in source.get_readings():
-                focal_points.append(
-                    self._get_focal_point(source_reading, reference_reading))
-
-        return focal_points
-
-    def _get_focal_point(self, source_reading, reference_reading):
-        return FocalPoint(source_reading,
-                          self._convert_source_location(
-                              source_reading, reference_reading))
-
-
-class FocalPoint(object):
-    def __init__(self, reading, point):
-        self.reading = reading
-        self.point = point
+    def calculate_focal_point(self, reading, frame_index):
+        return self._convert_source_location(
+            reading, self.source.get_reading(frame_index))
