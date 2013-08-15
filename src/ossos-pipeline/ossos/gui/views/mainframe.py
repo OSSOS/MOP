@@ -4,6 +4,7 @@ import wx
 
 from ossos.gui import config
 from ossos.fitsviewer.singletviewer import SingletViewer
+from ossos.fitsviewer.tripletviewer import TripletViewer
 from ossos.gui.views.dialogs import WaitingGaugeDialog
 from ossos.gui.views.keybinds import KeybindManager
 from ossos.gui.views.listctrls import ListCtrlPanel
@@ -50,7 +51,7 @@ class MainFrame(wx.Frame):
 
         self.validation_view = SourceValidationPanel(self.control_panel, self.controller)
 
-        self.image_viewer = SingletViewer(self.main_panel)
+        self.viewer_manager = ViewerManager(self.main_panel)
 
         self.img_loading_dialog = WaitingGaugeDialog(self, "Image loading...")
 
@@ -80,6 +81,10 @@ class MainFrame(wx.Frame):
         notebook.AddPage(self.obs_header_panel, "Observation Header")
 
         return notebook
+
+    @property
+    def image_viewer(self):
+        return self.viewer_manager.image_viewer
 
     def display(self, fits_image, redraw=True):
         self.image_viewer.display(fits_image, redraw=redraw)
@@ -123,6 +128,36 @@ class MainFrame(wx.Frame):
 
     def set_autoplay(self, autoplay_enabled):
         self.menu.set_autoplay(autoplay_enabled)
+
+    def use_singlets(self):
+        self.viewer_manager.use_singlets()
+
+    def use_triplets(self):
+        self.viewer_manager.use_triplets()
+
+
+class ViewerManager(object):
+    def __init__(self, parent):
+        self.parent = parent
+        self.singlet_viewer = SingletViewer(parent)
+        self.triplet_viewer = None
+
+        self.image_viewer = self.singlet_viewer
+
+    def use_singlets(self):
+        if self.image_viewer == self.triplet_viewer:
+            self.triplet_viewer.disable()
+            self.singlet_viewer.enable()
+            self.image_viewer = self.singlet_viewer
+
+    def use_triplets(self):
+        if self.triplet_viewer is None:
+            self.triplet_viewer = TripletViewer(self.parent)
+
+        if self.image_viewer == self.singlet_viewer:
+            self.singlet_viewer.disable()
+            self.triplet_viewer.enable()
+            self.image_viewer = self.triplet_viewer
 
 
 class _FocusablePanel(wx.Panel):

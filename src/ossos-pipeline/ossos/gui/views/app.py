@@ -184,5 +184,13 @@ class ApplicationView(object):
     def set_autoplay(self, autoplay_enabled):
         self.mainframe.set_autoplay(autoplay_enabled)
 
+    @guithread
+    def use_singlets(self):
+        self.mainframe.use_singlets()
+
+    @guithread
+    def use_triplets(self):
+        self.mainframe.use_triplets()
+
     def as_widget(self):
         return self.mainframe

@@ -26,5 +26,11 @@ class WxMPLFitsViewer(object):
     def release_focus(self):
         self.parent.SetFocus()
 
+    def enable(self):
+        self.canvas.Show(True)
+
+    def disable(self):
+        self.canvas.Show(False)
+
     def as_widget(self):
         return self.canvas
