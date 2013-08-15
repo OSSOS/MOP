@@ -71,47 +71,6 @@ class AsynchronousDownloadManager(object):
         return True
 
 
-class DownloadThread(threading.Thread):
-    def __init__(self, work_queue, downloader, error_handler):
-        super(DownloadThread, self).__init__()
-
-        self.work_queue = work_queue
-        self.downloader = downloader
-        self.error_handler = error_handler
-
-        self._should_stop = False
-        self._idle = True
-
-    def run(self):
-        while not self._should_stop:
-            download_request = self.work_queue.get()
-            self._idle = False
-
-            try:
-                self.do_download(download_request)
-            except Exception as error:
-                self.error_handler.handle_error(error, download_request)
-            finally:
-                # It is up to the error handler to requeue the downloadable
-                # item if needed.
-                self.work_queue.task_done()
-                self._idle = True
-
-    def do_download(self, download_request):
-        # TODO refactor
-        cutout = self.downloader.download_cutout(download_request.reading,
-                                                 focal_point=download_request.focal_point,
-                                                 needs_apcor=download_request.needs_apcor)
-        if download_request.callback is not None:
-            download_request.callback(cutout)
-
-    def stop(self):
-        self._should_stop = True
-
-    def is_stopped(self):
-        return self._should_stop and self._idle
-
-
 class DownloadRequest(object):
     """
     Specifies an item (image and potentially related files) to be downloaded.
@@ -150,3 +109,47 @@ class DownloadRequest(object):
             self.focal_point = reading.source_point
         else:
             self.focal_point = focal_point
+
+    def execute(self, downloader):
+        cutout = downloader.download_cutout(self.reading,
+                                            focal_point=self.focal_point,
+                                            needs_apcor=self.needs_apcor)
+
+        if self.callback is not None:
+            self.callback(cutout)
+
+
+class DownloadThread(threading.Thread):
+    def __init__(self, work_queue, downloader, error_handler):
+        super(DownloadThread, self).__init__()
+
+        self.work_queue = work_queue
+        self.downloader = downloader
+        self.error_handler = error_handler
+
+        self._should_stop = False
+        self._idle = True
+
+    def run(self):
+        while not self._should_stop:
+            download_request = self.work_queue.get()
+            self._idle = False
+
+            try:
+                self.do_download(download_request)
+            except Exception as error:
+                self.error_handler.handle_error(error, download_request)
+            finally:
+                # It is up to the error handler to requeue the downloadable
+                # item if needed.
+                self.work_queue.task_done()
+                self._idle = True
+
+    def do_download(self, download_request):
+        download_request.execute(self.downloader)
+
+    def stop(self):
+        self._should_stop = True
+
+    def is_stopped(self):
+        return self._should_stop and self._idle
