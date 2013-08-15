@@ -260,11 +260,36 @@ class Marker(object):
     def __init__(self, x, y, radius):
         self.circle = plt.Circle((x, y), radius, color="b", fill=False)
 
+        self.crosshair_scaling = 2
         linewidth = 0.5
-        self.vline = plt.Line2D(*self._get_vline_extents(),
-                                linewidth=linewidth)
-        self.hline = plt.Line2D(*self._get_hline_extents(),
-                                linewidth=linewidth)
+
+        self.left_hair = plt.Line2D(
+            self._get_left_x_extent(),
+            self._get_horizontal_y_extent(),
+            linewidth=linewidth)
+
+        self.right_hair = plt.Line2D(
+            self._get_right_x_extent(),
+            self._get_horizontal_y_extent(),
+            linewidth=linewidth)
+
+        self.top_hair = plt.Line2D(
+            self._get_vertical_x_extent(),
+            self._get_top_y_extent(),
+            linewidth=linewidth)
+
+        self.bottom_hair = plt.Line2D(
+            self._get_vertical_x_extent(),
+            self._get_bottom_y_extent(),
+            linewidth=linewidth)
+
+    @property
+    def x(self):
+        return self.circle.center[0]
+
+    @property
+    def y(self):
+        return self.circle.center[1]
 
     @property
     def center(self):
@@ -284,36 +309,73 @@ class Marker(object):
         self.circle.radius = new_radius
         self._update_cross()
 
+    @property
+    def lines(self):
+        return [self.left_hair, self.right_hair,
+                self.top_hair, self.bottom_hair]
+
     def add_to_axes(self, axes):
+        def transform(line):
+            line.set_transform(axes.transData)
+
         axes.add_patch(self.circle)
-        self.vline.set_transform(axes.transData)
-        self.hline.set_transform(axes.transData)
-        axes.lines.extend([self.vline, self.hline])
+
+        for line in self.lines:
+            transform(line)
+
+        axes.lines.extend(self.lines)
 
     def remove_from_axes(self, axes):
         self.circle.remove()
-        axes.lines.remove(self.vline)
-        axes.lines.remove(self.hline)
+
+        for line in self.lines:
+            axes.lines.remove(line)
 
     def contains(self, event):
         return self.circle.contains(event)
 
-    def _get_vline_extents(self):
-        x, y = self.center
-        scaling = 3
-        return ((x, x),
-                (y - self.radius / scaling, y + self.radius / scaling))
+    def _get_vertical_x_extent(self):
+        return self.x, self.x
 
-    def _get_hline_extents(self):
-        x, y = self.center
-        scaling = 3
-        return ((x - self.radius / scaling, x + self.radius / scaling),
-                (y, y))
+    def _get_bottom_y_extent(self):
+        bottom = self.y - self.radius
+        top = bottom + self.radius / self.crosshair_scaling
+        return bottom, top
+
+    def _get_top_y_extent(self):
+        top = self.y + self.radius
+        bottom = top - self.radius / self.crosshair_scaling
+        return bottom, top
+
+    def _get_horizontal_y_extent(self):
+        return self.y, self.y
+
+    def _get_left_x_extent(self):
+        left = self.x - self.radius
+        right = left + self.radius / self.crosshair_scaling
+        return left, right
+
+    def _get_right_x_extent(self):
+        right = self.x + self.radius
+        left = right - self.radius / self.crosshair_scaling
+        return left, right
 
     def _update_cross(self):
-        x, y = self.center
-        self.vline.set_data(*self._get_vline_extents())
-        self.hline.set_data(*self._get_hline_extents())
+        self.left_hair.set_data(
+            self._get_left_x_extent(),
+            self._get_horizontal_y_extent())
+
+        self.right_hair.set_data(
+            self._get_right_x_extent(),
+            self._get_horizontal_y_extent())
+
+        self.top_hair.set_data(
+            self._get_vertical_x_extent(),
+            self._get_top_y_extent())
+
+        self.bottom_hair.set_data(
+            self._get_vertical_x_extent(),
+            self._get_bottom_y_extent())
 
 
 def zscale(image):
