@@ -33,7 +33,7 @@ class ImageManager(object):
                 DownloadRequest(focal_point.reading,
                                 needs_apcor=needs_apcor,
                                 focal_point=focal_point.point,
-                                callback=self._on_singlet_image_loaded))
+                                callback=self.on_singlet_image_loaded))
 
     def get_displayable_singlet(self, reading):
         try:
@@ -60,7 +60,7 @@ class ImageManager(object):
     def refresh_vos_clients(self):
         self._singlet_download_manager.refresh_vos_client()
 
-    def _on_singlet_image_loaded(self, cutout):
+    def on_singlet_image_loaded(self, cutout):
         reading = cutout.reading
         self._cutouts[reading] = cutout
         self._displayable_singlets[reading] = DisplayableImageSinglet(
