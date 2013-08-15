@@ -86,10 +86,10 @@ class AbstractController(object):
                 self._do_exit()
 
     def on_use_singlet_view(self):
-        print "Use singlet view"
+        self.model.use_singlets()
 
     def on_use_triplet_view(self):
-        print "Use triplet view"
+        self.model.use_triplets()
 
     def on_enable_auto_sync(self):
         self.model.enable_synchronization()

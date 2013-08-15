@@ -264,6 +264,14 @@ class ValidationModel(object):
     def download_workunit_images(self, workunit):
         self.image_state.download_workunit_images(workunit)
 
+    def use_singlets(self):
+        logger.info("Model set to use image singlets.")
+        self.image_state = SingletState(self)
+
+    def use_triplets(self):
+        logger.info("Model set to use image triplets.")
+        self.image_state = TripletState(self)
+
     def _on_finished_workunit(self, results_file_paths):
         events.send(events.FINISHED_WORKUNIT, results_file_paths)
 
@@ -286,3 +294,19 @@ class SingletState(object):
 
     def submit_download_request(self, download_request):
         self.image_manager.submit_singlet_download_request(download_request)
+
+
+class TripletState(object):
+    def __init__(self, model):
+        self.model = model
+        self.image_manager = model.image_manager
+
+    def get_current_displayble_item(self):
+        return self.image_manager.get_displayable_triplet(
+            self.model.get_current_reading())
+
+    def download_workunit_images(self, workunit):
+        self.image_manager.download_triplets_for_workunit(workunit)
+
+    def submit_download_request(self, download_request):
+        self.image_manager.submit_triplet_download_request(download_request)
