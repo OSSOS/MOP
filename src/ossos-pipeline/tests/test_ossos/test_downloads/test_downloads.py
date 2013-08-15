@@ -30,7 +30,7 @@ class DownloadTest(FileReadingTestCase):
         self.reading.is_inverted.return_value = False
 
         self.needs_apcor = True
-        self.focal_point = (75, 80)
+        self.focus = (75, 80)
 
         self.vosclient = Mock(spec=vos.Client)
         self.downloader = ImageCutoutDownloader(slice_rows=100, slice_cols=50,
@@ -64,7 +64,7 @@ class DownloadTest(FileReadingTestCase):
 
     def test_request_image_cutout(self):
         download = self.downloader.download_cutout(self.reading,
-                                                   focal_point=self.focal_point,
+                                                   focus=self.focus,
                                                    needs_apcor=self.needs_apcor)
 
         assert_that(self.vosclient.open.call_args_list, contains(
