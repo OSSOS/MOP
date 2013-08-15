@@ -24,6 +24,8 @@ class ValidationModel(object):
 
         self.sources_discovered = set()
 
+        self.image_state = SingletState(self)
+
     def get_working_directory(self):
         return self.workunit_provider.directory
 
@@ -94,7 +96,7 @@ class ValidationModel(object):
     def add_workunit(self, new_workunit):
         new_workunit.register_finished_callback(self._on_finished_workunit)
         self.work_units.append(new_workunit)
-        self._download_workunit_images(new_workunit)
+        self.download_workunit_images(new_workunit)
 
     def _get_new_workunit(self):
         self.add_workunit(self.workunit_provider.get_workunit())
@@ -189,7 +191,7 @@ class ValidationModel(object):
         return self.get_current_source().set_provisional_name(name)
 
     def get_current_displayable_item(self):
-        return self.image_manager.get_displayable_singlet(self.get_current_reading())
+        return self.image_state.get_current_displayble_item()
 
     def get_current_band(self):
         return self.get_current_fits_header()["FILTER"][0]
@@ -210,10 +212,10 @@ class ValidationModel(object):
         self.image_manager.stop_downloads()
 
     def start_loading_images(self):
-        self._download_workunit_images(self.get_current_workunit())
+        self.download_workunit_images(self.get_current_workunit())
 
     def submit_download_request(self, download_request):
-        self.image_manager.submit_singlet_download_request(download_request)
+        self.image_state.submit_download_request(download_request)
 
     def refresh_vos_client(self):
         self.image_manager.refresh_vos_clients()
@@ -259,8 +261,8 @@ class ValidationModel(object):
     def get_current_cutout(self):
         return self.image_manager.get_cutout(self.get_current_reading())
 
-    def _download_workunit_images(self, workunit):
-        self.image_manager.download_singlets_for_workunit(workunit)
+    def download_workunit_images(self, workunit):
+        self.image_state.download_workunit_images(workunit)
 
     def _on_finished_workunit(self, results_file_paths):
         events.send(events.FINISHED_WORKUNIT, results_file_paths)
@@ -269,3 +271,18 @@ class ValidationModel(object):
             for path in results_file_paths:
                 self.synchronization_manager.add_syncable_file(path)
 
+
+class SingletState(object):
+    def __init__(self, model):
+        self.model = model
+        self.image_manager = model.image_manager
+
+    def get_current_displayble_item(self):
+        return self.image_manager.get_displayable_singlet(
+            self.model.get_current_reading())
+
+    def download_workunit_images(self, workunit):
+        self.image_manager.download_singlets_for_workunit(workunit)
+
+    def submit_download_request(self, download_request):
+        self.image_manager.submit_singlet_download_request(download_request)
