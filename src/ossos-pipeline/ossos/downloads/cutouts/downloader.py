@@ -23,9 +23,6 @@ class ImageCutoutDownloader(Downloader):
         """
         super(ImageCutoutDownloader, self).__init__(vosclient=vosclient)
 
-        self.slice_rows = slice_rows
-        self.slice_cols = slice_cols
-
         self.cutout_calculator = CutoutCalculator(slice_rows, slice_cols)
 
     def download_cutout(self, reading, focal_point=None, needs_apcor=False):
