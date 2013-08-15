@@ -73,6 +73,8 @@ class Menu(object):
         self.menubar = menubar
         self.auto_play_item = auto_play_item
 
+        triplet_view_item.Enable(False)
+
     def _on_select_keymap(self, event):
         dialog = wx.Dialog(self.frame, title="Key Mappings")
         panel = ListCtrlPanel(dialog, ("Action", "Shortcut"))
@@ -101,9 +103,12 @@ class Menu(object):
         else:
             self.controller.on_disable_autoplay()
 
-    def disable_sync(self):
+    def disable_menu_item(self, item_title):
         self.menubar.EnableTop(
-            self.menubar.FindMenu(self.sync_menu_title), False)
+            self.menubar.FindMenu(item_title), False)
+
+    def disable_sync(self):
+        self.disable_menu_item(self.sync_menu_title)
 
     def set_autoplay(self, autoplay_enabled):
         self.auto_play_item.Check(autoplay_enabled)
