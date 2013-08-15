@@ -10,8 +10,14 @@
     },
 
     "IMG_RETRIEVAL": {
-        "DEFAULT_SLICE_ROWS": 250,
-        "DEFAULT_SLICE_COLS": 250
+        "SINGLETS": {
+            "DEFAULT_SLICE_ROWS": 250,
+            "DEFAULT_SLICE_COLS": 250
+        },
+        "TRIPLETS": {
+            "DEFAULT_SLICE_ROWS": 50,
+            "DEFAULT_SLICE_COLS": 50
+        }
     },
 
     "DISPLAY" : {
