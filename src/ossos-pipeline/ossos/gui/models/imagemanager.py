@@ -1,9 +1,12 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+from ossos.downloads.cutouts.triplets import CutoutGrid
 from ossos.gui import events, logger
 from ossos.downloads.async import DownloadRequest
-from ossos.downloads.cutouts.focus import SingletFocusCalculator
-from ossos.fitsviewer.displayable import DisplayableImageSinglet
+from ossos.downloads.cutouts.focus import (SingletFocusCalculator,
+                                           TripletFocusCalculator)
+from ossos.fitsviewer.displayable import (DisplayableImageSinglet,
+                                          DisplayableImageTriplet)
 from ossos.gui.models.exceptions import ImageNotLoadedException
 
 
@@ -13,6 +16,7 @@ class ImageManager(object):
 
         self._cutouts = {}
         self._displayable_singlets = {}
+        self._displayable_triplets = {}
 
     def submit_singlet_download_request(self, download_request):
         self._singlet_download_manager.submit_request(download_request)
@@ -52,6 +56,34 @@ class ImageManager(object):
     def download_triplets_for_workunit(self, workunit):
         logger.debug("Starting to download triplets for workunit: %s" %
                      workunit.get_filename())
+
+        for source in workunit.get_unprocessed_sources():
+            self.download_triplets_for_source(source)
+
+    def download_triplets_for_source(self, source, needs_apcor=False):
+        focus_calculator = TripletFocusCalculator(source)
+        grid = CutoutGrid(source)
+
+        def create_callback(frame_index, time_index):
+            def callback(cutout):
+                grid.add_cutout(cutout, frame_index, time_index)
+
+                if grid.is_filled():
+                    self._displayable_triplets[grid.source] = DisplayableImageTriplet(grid)
+
+            return callback
+
+        for time_index, reading in enumerate(source.get_readings()):
+            for frame_index in range(source.num_readings()):
+                callback = create_callback(frame_index, time_index)
+
+                focus = focus_calculator.calculate_focus(reading, frame_index)
+                self._triplet_download_manager.submit_request(
+                    DownloadRequest(reading,
+                                    needs_apcor=needs_apcor,
+                                    focal_point=focus,
+                                    callback=callback)
+                )
 
     def stop_downloads(self):
         self._singlet_download_manager.stop_download()

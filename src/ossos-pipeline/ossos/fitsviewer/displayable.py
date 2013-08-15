@@ -162,12 +162,16 @@ class DisplayableImageSinglet(object):
 
 
 class DisplayableImageTriplet(object):
-    def __init__(self, hdulist_grid):
-        if len(hdulist_grid) != 3:
-            raise ValueError("Grid must have 3 rows (given %d)"
-                             % len(hdulist_grid))
+    def __init__(self, cutout_grid):
+        if cutout_grid.shape != (3, 3):
+            raise ValueError("Must be a 3 by 3 grid (was given %d by %d)"
+                             % (cutout_grid.shape[0], cutout_grid.shape[1]))
 
-        self.frames = map(_ImageTriplet, hdulist_grid)
+        def create_triplet(index):
+            return _ImageTriplet(cutout_grid.get_hdulists(index))
+
+        self.frames = [create_triplet(index)
+                       for index in range(cutout_grid.num_frames)]
 
         self.figure = None
         self.axes = None
