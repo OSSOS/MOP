@@ -4,9 +4,10 @@ import wx
 
 from ossos.gui import logger
 from ossos.gui.views.dialogs import (should_exit_prompt,
-                                     show_empty_workload_dialog)
+                                     show_empty_workload_dialog )
 from ossos.gui.views.errorhandling import CertificateDialog, RetryDownloadDialog
 from ossos.gui.views.keybinds import KeybindManager
+from ossos.gui.views.loading import WaitingGaugeDialog
 from ossos.gui.views.mainframe import MainFrame
 from ossos.gui.views.menu import Menu
 from ossos.gui.views.validation import AcceptSourceDialog, RejectSourceDialog
@@ -44,6 +45,9 @@ class ApplicationView(object):
         self.mainframe = MainFrame(model, controller)
         self.menu = Menu(self.mainframe, controller)
         self.keybind_manager = KeybindManager(self.mainframe, controller)
+
+        self.loading_dialog = WaitingGaugeDialog(self.mainframe,
+                                                 "Image loading...")
 
         # Handle user clicking on the window's "x" button
         self.mainframe.Bind(wx.EVT_CLOSE, self._on_close_window)
@@ -85,11 +89,14 @@ class ApplicationView(object):
 
     @guithread
     def show_image_loading_dialog(self):
-        self.mainframe.show_image_loading_dialog()
+        if not self.loading_dialog.IsShown():
+            self.loading_dialog.CenterOnParent()
+            self.loading_dialog.Show()
 
     @guithread
     def hide_image_loading_dialog(self):
-        self.mainframe.hide_image_loading_dialog()
+        if self.loading_dialog.IsShown():
+            self.loading_dialog.Hide()
 
     @guithread
     def set_observation_status(self, current_obs, total_obs):

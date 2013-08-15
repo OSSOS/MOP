@@ -6,7 +6,7 @@ from hamcrest import assert_that, equal_to
 from mock import patch
 
 from tests.base_tests import WxWidgetTestCase
-from ossos.gui.views.dialogs import WaitingGaugeDialog
+from ossos.gui.views.loading import WaitingGaugeDialog
 
 
 class WaitingGaugeDialogTest(WxWidgetTestCase):
