@@ -4,12 +4,6 @@ import math
 
 
 class FocalPointCalculator(object):
-    def __init__(self, source):
-        self.source = source
-
-    def calculate_focal_points(self, source):
-        raise NotImplementedError()
-
     def _convert_source_location(self, source_reading, reference_reading):
         """
         Converts the source (x, y) location from reading into the coordinate
@@ -26,21 +20,7 @@ class SingletFocalPointCalculator(FocalPointCalculator):
     """
 
     def __init__(self, source):
-        super(SingletFocalPointCalculator, self).__init__(source)
-
-    def calculate_focal_points(self, source):
-        """
-        Determines all focal points of interest for a source.
-
-        Returns:
-          focal_points: list(FocalPoint)
-        """
-        focal_points = []
-        for reading in source.get_readings():
-            point = FocalPoint(reading,
-                               self.calculate_focal_point(reading, source))
-            focal_points.append(point)
-        return focal_points
+        self.source = source
 
     def calculate_focal_point(self, reading):
         """
@@ -63,7 +43,7 @@ class TripletFocalPointCalculator(FocalPointCalculator):
     """
 
     def __init__(self, source):
-        super(TripletFocalPointCalculator, self).__init__(source)
+        self.source = source
 
     def calculate_focal_point(self, reading, frame_index, time_index):
         pass
