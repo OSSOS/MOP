@@ -261,26 +261,32 @@ class Marker(object):
         self.circle = plt.Circle((x, y), radius, color="b", fill=False)
 
         self.crosshair_scaling = 2
-        linewidth = 0.5
+
+        crosshair_colour = "w"
+        linewidth = 1
 
         self.left_hair = plt.Line2D(
             self._get_left_x_extent(),
             self._get_horizontal_y_extent(),
+            color=crosshair_colour,
             linewidth=linewidth)
 
         self.right_hair = plt.Line2D(
             self._get_right_x_extent(),
             self._get_horizontal_y_extent(),
+            color=crosshair_colour,
             linewidth=linewidth)
 
         self.top_hair = plt.Line2D(
             self._get_vertical_x_extent(),
             self._get_top_y_extent(),
+            color=crosshair_colour,
             linewidth=linewidth)
 
         self.bottom_hair = plt.Line2D(
             self._get_vertical_x_extent(),
             self._get_bottom_y_extent(),
+            color=crosshair_colour,
             linewidth=linewidth)
 
     @property
