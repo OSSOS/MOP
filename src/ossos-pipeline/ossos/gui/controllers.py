@@ -18,7 +18,7 @@ class AbstractController(object):
         events.subscribe(events.IMG_LOADED, self.on_image_loaded)
         events.subscribe(events.NO_AVAILABLE_WORK, self.on_no_available_work)
 
-        self.view = ApplicationView(self.model, self)
+        self.view = ApplicationView(self)
         self.view.register_xy_changed_event_handler(self.on_reposition_source)
 
         self.autoplay_manager = AutoplayManager(model)
@@ -40,7 +40,8 @@ class AbstractController(object):
 
         self.mark_current_source()
 
-        self.view.update_displayed_data()
+        self.view.update_displayed_data(self.model.get_reading_data(),
+                                        self.model.get_header_data_list())
 
         self.view.set_observation_status(
             self.model.get_current_obs_number() + 1,

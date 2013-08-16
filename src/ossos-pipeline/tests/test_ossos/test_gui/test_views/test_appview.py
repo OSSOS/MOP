@@ -14,12 +14,11 @@ class ApplicationViewTest(WxWidgetTestCase):
     def setUp(self):
         super(ApplicationViewTest, self).setUp()
 
-        self.mock_model()
         self.output_writer = Mock()
         self.name_generator = Mock()
 
         self.controller = Mock()
-        self.appview = ApplicationView(self.model, self.controller)
+        self.appview = ApplicationView(self.controller)
 
     def tearDown(self):
         self.appview.close()

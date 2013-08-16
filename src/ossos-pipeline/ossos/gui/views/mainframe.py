@@ -18,13 +18,12 @@ class MainFrame(wx.Frame):
     ApplicationView.
     """
 
-    def __init__(self, model, controller):
+    def __init__(self, controller):
         size = (config.read("UI.DIMENSIONS.WIDTH"),
                 config.read("UI.DIMENSIONS.HEIGHT"))
         super(MainFrame, self).__init__(None, title="Moving Object Pipeline",
                                         size=size)
 
-        self.model = model
         self.controller = controller
 
         self._init_ui_components()
@@ -82,9 +81,9 @@ class MainFrame(wx.Frame):
     def draw_marker(self, x, y, radius, redraw=True):
         self.image_viewer.draw_marker(x, y, radius, redraw=redraw)
 
-    def update_displayed_data(self):
-        self.reading_data_panel.populate_list(self.model.get_reading_data())
-        self.obs_header_panel.populate_list(self.model.get_header_data_list())
+    def update_displayed_data(self, reading_data, header_data_list):
+        self.reading_data_panel.populate_list(reading_data)
+        self.obs_header_panel.populate_list(header_data_list)
 
     def reset_colormap(self):
         self.image_viewer.reset_colormap()
