@@ -193,6 +193,9 @@ class ValidationModel(object):
     def get_current_displayable_item(self):
         return self.image_state.get_current_displayble_item()
 
+    def get_current_displayable_image(self):
+        return self.image_state.get_current_displayble_image()
+
     def get_current_band(self):
         return self.get_current_fits_header()["FILTER"][0]
 
@@ -292,7 +295,10 @@ class SingletState(object):
         self.download_workunit_images(
             self.model.get_current_workunit())
 
-    def get_current_displayble_item(self):
+    def get_current_displayable_item(self):
+        return self.model.get_current_reading()
+
+    def get_current_displayble_image(self):
         return self.image_manager.get_displayable_singlet(
             self.model.get_current_reading())
 
@@ -313,7 +319,10 @@ class TripletState(object):
         self.download_workunit_images(
             self.model.get_current_workunit())
 
-    def get_current_displayble_item(self):
+    def get_current_displayable_item(self):
+        return self.model.get_current_source()
+
+    def get_current_displayble_image(self):
         return self.image_manager.get_displayable_triplet(
             self.model.get_current_source())
 
