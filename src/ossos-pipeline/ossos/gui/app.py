@@ -205,6 +205,8 @@ class ValidationApplication(object):
         if not synchronization_manager:
             self.view.disable_sync_menu()
 
+        self.view.show()
+
         if debug:
             wx.lib.inspection.InspectionTool().Show()
 
