@@ -2,7 +2,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
 
-from ossos.gui.views.dialogs import WaitingGaugeDialog
+from ossos.gui.views.loading import WaitingGaugeDialog
 
 
 def main():

@@ -7,19 +7,16 @@ from ossos.gui import events
 from ossos.gui.autoplay import AutoplayManager
 from ossos.gui.models.exceptions import (ImageNotLoadedException,
                                          NoWorkUnitException)
-from ossos.gui.views.app import ApplicationView
 
 
 class AbstractController(object):
-    def __init__(self, model):
+    def __init__(self, model, view):
         self.model = model
+        self.view = view
 
         events.subscribe(events.CHANGE_IMAGE, self.on_change_image)
         events.subscribe(events.IMG_LOADED, self.on_image_loaded)
         events.subscribe(events.NO_AVAILABLE_WORK, self.on_no_available_work)
-
-        self.view = ApplicationView(self.model, self)
-        self.view.register_xy_changed_event_handler(self.on_reposition_source)
 
         self.autoplay_manager = AutoplayManager(model)
         self.image_loading_dialog_manager = ImageLoadingDialogManager(self.view)
@@ -40,7 +37,8 @@ class AbstractController(object):
 
         self.mark_current_source()
 
-        self.view.update_displayed_data()
+        self.view.update_displayed_data(self.model.get_reading_data(),
+                                        self.model.get_header_data_list())
 
         self.view.set_observation_status(
             self.model.get_current_obs_number() + 1,
@@ -78,7 +76,8 @@ class AbstractController(object):
         self.view.hide_image_loading_dialog()
 
         if self.model.get_num_items_processed() == 0:
-            self.view.show_empty_workload_dialog()
+            self.view.show_empty_workload_dialog(
+                self.model.get_working_directory())
             self._do_exit()
         else:
             should_exit = self.view.all_processed_should_exit_prompt()
@@ -150,8 +149,8 @@ class ProcessRealsController(AbstractController):
     handles user interactions.
     """
 
-    def __init__(self, model, name_generator):
-        super(ProcessRealsController, self).__init__(model)
+    def __init__(self, model, view, name_generator):
+        super(ProcessRealsController, self).__init__(model, view)
 
         self.name_generator = name_generator
 
@@ -283,9 +282,6 @@ class ProcessRealsController(AbstractController):
 
 
 class ProcessCandidatesController(AbstractController):
-    def __init__(self, model):
-        super(ProcessCandidatesController, self).__init__(model)
-
     def on_accept(self):
         writer = self.model.get_writer()
         writer.write_source(self.model.get_current_source())
