@@ -3,8 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import wx
 
 from ossos.gui import config
-from ossos.fitsviewer.singletviewer import SingletViewer
-from ossos.fitsviewer.tripletviewer import TripletViewer
+from ossos.gui.views.imageview import ImageViewManager
 from ossos.gui.views.listctrls import ListCtrlPanel
 from ossos.gui.views.navigation import NavPanel
 from ossos.gui.views.validation import SourceValidationPanel
@@ -42,7 +41,7 @@ class MainFrame(wx.Frame):
 
         self.validation_view = SourceValidationPanel(self.control_panel, self.controller)
 
-        self.viewer_manager = ViewerManager(self.main_panel)
+        self.viewer_manager = ImageViewManager(self.main_panel)
 
         self._do_layout()
 
@@ -108,30 +107,6 @@ class MainFrame(wx.Frame):
 
     def use_triplets(self):
         self.viewer_manager.use_triplets()
-
-
-class ViewerManager(object):
-    def __init__(self, parent):
-        self.parent = parent
-        self.singlet_viewer = SingletViewer(parent)
-        self.triplet_viewer = None
-
-        self.image_viewer = self.singlet_viewer
-
-    def use_singlets(self):
-        if self.image_viewer == self.triplet_viewer:
-            self.triplet_viewer.disable()
-            self.singlet_viewer.enable()
-            self.image_viewer = self.singlet_viewer
-
-    def use_triplets(self):
-        if self.triplet_viewer is None:
-            self.triplet_viewer = TripletViewer(self.parent)
-
-        if self.image_viewer == self.singlet_viewer:
-            self.singlet_viewer.disable()
-            self.triplet_viewer.enable()
-            self.image_viewer = self.triplet_viewer
 
 
 class _FocusablePanel(wx.Panel):
