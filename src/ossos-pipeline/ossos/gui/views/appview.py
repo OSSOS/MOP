@@ -1,6 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
+import wx.lib.inspection
 
 from ossos.gui import logger
 from ossos.gui.views import dialogs
@@ -37,8 +38,11 @@ class ApplicationView(object):
     Provides the view's external interface.
     """
 
-    def __init__(self, controller_factory):
+    def __init__(self, controller_factory, debug=False):
         self.controller = controller_factory.create_controller(self)
+
+        self.wx_app = wx.App(False)
+        self.debug = debug
 
         self.mainframe = MainFrame(self.controller)
         self.menu = Menu(self.mainframe, self.controller)
@@ -66,6 +70,10 @@ class ApplicationView(object):
     @guithread
     def show(self):
         self.mainframe.Show()
+        self.wx_app.MainLoop()
+
+        if self.debug:
+            wx.lib.inspection.InspectionTool().Show()
 
     @guithread
     def display(self, fits_image, redraw=True):

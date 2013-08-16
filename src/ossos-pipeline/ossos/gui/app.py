@@ -2,9 +2,6 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import sys
 
-import wx
-import wx.lib.inspection
-
 from ossos.astrom import AstromParser
 from ossos.downloads.async import AsynchronousDownloadManager
 from ossos.downloads.cutouts.downloader import ImageCutoutDownloader
@@ -136,8 +133,6 @@ class ValidationApplication(object):
             sys.stdout.write("The output directory must be local.\n")
             sys.exit(0)
 
-        wx_app = wx.App(False)
-
         try:
             factory = self.task_name_mapping[taskname](dry_run=dry_run)
         except KeyError:
@@ -191,8 +186,8 @@ class ValidationApplication(object):
                                         synchronization_manager)
         logger.debug("Created model.")
 
-        view = ApplicationView(factory.create_controller_factory(model))
-        logger.debug("Created controller.")
+        view = ApplicationView(factory.create_controller_factory(model),
+                               debug=debug)
 
         model.start_work()
 
@@ -206,11 +201,6 @@ class ValidationApplication(object):
             self.view.disable_sync_menu()
 
         self.view.show()
-
-        if debug:
-            wx.lib.inspection.InspectionTool().Show()
-
-        wx_app.MainLoop()
 
     def get_model(self):
         return self.model
