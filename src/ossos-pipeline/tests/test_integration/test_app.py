@@ -6,8 +6,7 @@ from hamcrest import assert_that, equal_to
 from mock import patch
 
 from tests.base_tests import FileReadingTestCase
-from ossos.gui import tasks
-from ossos.gui.app import ValidationApplication
+from ossos.gui.app import ProcessRealsApplication
 
 
 class ValidationApplicationTest(FileReadingTestCase):
@@ -15,8 +14,7 @@ class ValidationApplicationTest(FileReadingTestCase):
     def test_empty_workload_triggers_dialog(self, mock_dialog):
         working_directory = self.get_abs_path("data/empty")
         output_directory = working_directory
-        ValidationApplication(tasks.REALS_TASK, working_directory,
-                              output_directory)
+        ProcessRealsApplication(working_directory, output_directory)
 
         assert_that(mock_dialog.call_count, equal_to(1))
 
