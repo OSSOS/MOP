@@ -40,6 +40,8 @@ def create_application(taskname, working_directory, output_directory,
 class ValidationApplication(object):
     def __init__(self, working_directory, output_directory,
                  dry_run=False, debug=False):
+        self.dry_run = dry_run
+
         logger.info("Input directory set to: %s" % working_directory)
         logger.info("Output directory set to: %s" % output_directory)
 
@@ -56,18 +58,15 @@ class ValidationApplication(object):
 
         image_manager = self._create_image_manager()
 
-        factory = self._get_factory(dry_run=dry_run)
-
         progress_manager = working_context.get_progress_manager()
-        builder = factory.create_workunit_builder(AstromParser(),
-                                                  working_context,
-                                                  output_context,
-                                                  progress_manager)
+        builder = self._create_workunit_builder(working_context,
+                                                output_context,
+                                                progress_manager)
 
         workunit_provider = WorkUnitProvider(self.input_suffix,
                                              working_context,
                                              progress_manager, builder,
-                                             randomize=factory.should_randomize_workunits())
+                                             randomize=self.should_randomize_workunits)
 
         prefetching_workunit_provider = PreFetchingWorkUnitProvider(workunit_provider, 1)
 
@@ -81,7 +80,7 @@ class ValidationApplication(object):
                                         synchronization_manager)
         logger.debug("Created model.")
 
-        view = ApplicationView(factory.create_controller_factory(model),
+        view = ApplicationView(self._create_controller_factory(model),
                                debug=debug)
 
         model.start_work()
@@ -125,11 +124,21 @@ class ValidationApplication(object):
     def get_view(self):
         return self.view
 
-    def _get_factory(self, dry_run=False):
+    @property
+    def input_suffix(self):
         raise NotImplementedError()
 
     @property
-    def input_suffix(self):
+    def should_randomize_workunits(self):
+        raise NotImplementedError()
+
+    def _create_workunit_builder(self,
+                                 input_context,
+                                 output_context,
+                                 progress_manager):
+        raise NotImplementedError()
+
+    def _create_controller_factory(self, model):
         raise NotImplementedError()
 
 
@@ -138,83 +147,48 @@ class ProcessCandidatesApplication(ValidationApplication):
     def input_suffix(self):
         return tasks.suffixes[tasks.CANDS_TASK]
 
-    def _get_factory(self, dry_run=False):
-        return ProcessCandidatesTaskFactory(dry_run=dry_run)
+    @property
+    def should_randomize_workunits(self):
+        return True
+
+    def _create_workunit_builder(self,
+                                 input_context,
+                                 output_context,
+                                 progress_manager):
+        return CandidatesWorkUnitBuilder(
+            AstromParser(), input_context, output_context, progress_manager,
+            dry_run=self.dry_run)
+
+    def _create_controller_factory(self, model):
+        return CandidatesControllerFactory(model, dry_run=self.dry_run)
 
 
 class ProcessRealsApplication(ValidationApplication):
+    def __init__(self, working_directory, output_directory,
+                 dry_run=False, debug=False):
+        preload_iraf()
+
+        super(ProcessRealsApplication, self).__init__(
+            working_directory, output_directory, dry_run=dry_run, debug=debug)
+
     @property
     def input_suffix(self):
         return tasks.suffixes[tasks.REALS_TASK]
 
-    def _get_factory(self, dry_run=False):
-        return ProcessRealsTaskFactory(dry_run=dry_run)
-
-
-class AbstractTaskFactory(object):
-    def __init__(self, dry_run=False):
-        self.dry_run = dry_run
-
-    def create_workunit_builder(self,
-                                parser,
-                                input_context,
-                                output_context,
-                                progress_manager):
-        pass
-
-    def create_controller_factory(self, model):
-        pass
-
-    def should_randomize_workunits(self):
-        pass
-
-
-class ProcessRealsTaskFactory(AbstractTaskFactory):
-    def __init__(self, dry_run=False):
-        super(ProcessRealsTaskFactory, self).__init__(dry_run=dry_run)
-
-        # NOTE: Force expensive loading of libraries up front.  These are
-        # libraries that the reals task needs but the candidates task
-        # doesn't.  To make sure the candidates task doesn't load them, we
-        # import them directly in the functions/methods where they are used.
-        # TODO: find out what the best practice is for handling this sort of
-        # situation and refactor.
-        from pyraf import iraf
-
-    def create_workunit_builder(self,
-                                parser,
-                                input_context,
-                                output_context,
-                                progress_manager):
-        return RealsWorkUnitBuilder(
-            parser, input_context, output_context, progress_manager,
-            dry_run=self.dry_run)
-
-    def create_controller_factory(self, model):
-        return RealsControllerFactory(model)
-
+    @property
     def should_randomize_workunits(self):
         return False
 
-
-class ProcessCandidatesTaskFactory(AbstractTaskFactory):
-    def __init__(self, dry_run=False):
-        super(ProcessCandidatesTaskFactory, self).__init__(dry_run=dry_run)
-
-    def create_workunit_builder(self,
-                                parser,
-                                input_context,
-                                output_context,
-                                progress_manager):
-        return CandidatesWorkUnitBuilder(
-            parser, input_context, output_context, progress_manager,
+    def _create_workunit_builder(self,
+                                 input_context,
+                                 output_context,
+                                 progress_manager):
+        return RealsWorkUnitBuilder(
+            AstromParser(), input_context, output_context, progress_manager,
             dry_run=self.dry_run)
 
-    def create_controller_factory(self, model):
-        return CandidatesControllerFactory(model)
-
-    def should_randomize_workunits(self):
-        return True
+    def _create_controller_factory(self, model):
+        return RealsControllerFactory(model, dry_run=self.dry_run)
 
 
 class ControllerFactory(object):
@@ -239,3 +213,15 @@ class RealsControllerFactory(ControllerFactory):
             name_generator = ProvisionalNameGenerator()
 
         return ProcessRealsController(self.model, view, name_generator)
+
+
+def preload_iraf():
+    logger.info("Preloading IRAF")
+
+    # NOTE: Force expensive loading of libraries up front.  These are
+    # libraries that the reals task needs but the candidates task
+    # doesn't.  To make sure the candidates task doesn't load them, we
+    # import them directly in the functions/methods where they are used.
+    # TODO: find out what the best practice is for handling this sort of
+    # situation and refactor.
+    from pyraf import iraf
