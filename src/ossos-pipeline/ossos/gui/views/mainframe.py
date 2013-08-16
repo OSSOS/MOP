@@ -5,10 +5,7 @@ import wx
 from ossos.gui import config
 from ossos.fitsviewer.singletviewer import SingletViewer
 from ossos.fitsviewer.tripletviewer import TripletViewer
-from ossos.gui.views.dialogs import WaitingGaugeDialog
-from ossos.gui.views.keybinds import KeybindManager
 from ossos.gui.views.listctrls import ListCtrlPanel
-from ossos.gui.views.menu import Menu
 from ossos.gui.views.navigation import NavPanel
 from ossos.gui.views.validation import SourceValidationPanel
 
@@ -21,26 +18,20 @@ class MainFrame(wx.Frame):
     ApplicationView.
     """
 
-    def __init__(self, model, controller):
+    def __init__(self, controller):
         size = (config.read("UI.DIMENSIONS.WIDTH"),
                 config.read("UI.DIMENSIONS.HEIGHT"))
         super(MainFrame, self).__init__(None, title="Moving Object Pipeline",
                                         size=size)
 
-        self.model = model
-
         self.controller = controller
 
         self._init_ui_components()
-
-        self.keybind_manager = KeybindManager(self, self.controller)
 
         # needed for keybinds to work on startup
         self.main_panel.SetFocus()
 
     def _init_ui_components(self):
-        self.menu = Menu(self, self.controller)
-
         self.main_panel = _FocusablePanel(self, style=wx.RAISED_BORDER)
         self.control_panel = wx.Panel(self.main_panel)
         self.main_panel.use_as_focus(self.control_panel)
@@ -52,8 +43,6 @@ class MainFrame(wx.Frame):
         self.validation_view = SourceValidationPanel(self.control_panel, self.controller)
 
         self.viewer_manager = ViewerManager(self.main_panel)
-
-        self.img_loading_dialog = WaitingGaugeDialog(self, "Image loading...")
 
         self._do_layout()
 
@@ -92,24 +81,15 @@ class MainFrame(wx.Frame):
     def draw_marker(self, x, y, radius, redraw=True):
         self.image_viewer.draw_marker(x, y, radius, redraw=redraw)
 
-    def update_displayed_data(self):
-        self.reading_data_panel.populate_list(self.model.get_reading_data())
-        self.obs_header_panel.populate_list(self.model.get_header_data_list())
+    def update_displayed_data(self, reading_data, header_data_list):
+        self.reading_data_panel.populate_list(reading_data)
+        self.obs_header_panel.populate_list(header_data_list)
 
     def reset_colormap(self):
         self.image_viewer.reset_colormap()
 
     def register_xy_changed_event_handler(self, handler):
         self.image_viewer.register_xy_changed_event_handler(handler)
-
-    def show_image_loading_dialog(self):
-        if not self.img_loading_dialog.IsShown():
-            self.img_loading_dialog.CenterOnParent()
-            self.img_loading_dialog.Show()
-
-    def hide_image_loading_dialog(self):
-        if self.img_loading_dialog.IsShown():
-            self.img_loading_dialog.Hide()
 
     def set_observation_status(self, current_obs, total_obs):
         self.nav_view.set_status(current_obs, total_obs)
@@ -122,12 +102,6 @@ class MainFrame(wx.Frame):
 
     def is_source_validation_enabled(self):
         return self.validation_view.is_validation_enabled()
-
-    def disable_sync_menu(self):
-        self.menu.disable_sync()
-
-    def set_autoplay(self, autoplay_enabled):
-        self.menu.set_autoplay(autoplay_enabled)
 
     def use_singlets(self):
         self.viewer_manager.use_singlets()

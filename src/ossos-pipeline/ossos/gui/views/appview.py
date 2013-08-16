@@ -1,12 +1,15 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
+import wx.lib.inspection
 
 from ossos.gui import logger
-from ossos.gui.views.dialogs import (should_exit_prompt,
-                                     show_empty_workload_dialog)
+from ossos.gui.views import dialogs
 from ossos.gui.views.errorhandling import CertificateDialog, RetryDownloadDialog
+from ossos.gui.views.keybinds import KeybindManager
+from ossos.gui.views.loading import WaitingGaugeDialog
 from ossos.gui.views.mainframe import MainFrame
+from ossos.gui.views.menu import Menu
 from ossos.gui.views.validation import AcceptSourceDialog, RejectSourceDialog
 
 
@@ -35,11 +38,19 @@ class ApplicationView(object):
     Provides the view's external interface.
     """
 
-    def __init__(self, model, controller):
-        self.model = model
-        self.controller = controller
+    def __init__(self, controller_factory, debug=False):
+        self.controller = controller_factory.create_controller(self)
 
-        self.mainframe = MainFrame(model, controller)
+        self.wx_app = wx.App(False)
+        self.debug = debug
+
+        self.mainframe = MainFrame(self.controller)
+        self.menu = Menu(self.mainframe, self.controller)
+        self.keybind_manager = KeybindManager(self.mainframe, self.controller)
+
+        self.loading_dialog = WaitingGaugeDialog(self.mainframe,
+                                                 "Image loading...")
+
         # Handle user clicking on the window's "x" button
         self.mainframe.Bind(wx.EVT_CLOSE, self._on_close_window)
 
@@ -48,12 +59,21 @@ class ApplicationView(object):
         self.certificate_dialog = None
         self.retry_downloads_dialog = None
 
-        self.mainframe.Show()
+        # TODO refactor
+        self.register_xy_changed_event_handler(self.controller.on_reposition_source)
 
         logger.debug("View created.")
 
     def _on_close_window(self, event):
         self.close()
+
+    @guithread
+    def show(self):
+        self.mainframe.Show()
+        self.wx_app.MainLoop()
+
+        if self.debug:
+            wx.lib.inspection.InspectionTool().Show()
 
     @guithread
     def display(self, fits_image, redraw=True):
@@ -64,8 +84,8 @@ class ApplicationView(object):
         self.mainframe.draw_marker(x, y, radius, redraw=redraw)
 
     @guithread
-    def update_displayed_data(self):
-        self.mainframe.update_displayed_data()
+    def update_displayed_data(self, reading_data, header_data_list):
+        self.mainframe.update_displayed_data(reading_data, header_data_list)
 
     @guithread
     def reset_colormap(self):
@@ -80,11 +100,14 @@ class ApplicationView(object):
 
     @guithread
     def show_image_loading_dialog(self):
-        self.mainframe.show_image_loading_dialog()
+        if not self.loading_dialog.IsShown():
+            self.loading_dialog.CenterOnParent()
+            self.loading_dialog.Show()
 
     @guithread
     def hide_image_loading_dialog(self):
-        self.mainframe.hide_image_loading_dialog()
+        if self.loading_dialog.IsShown():
+            self.loading_dialog.Hide()
 
     @guithread
     def set_observation_status(self, current_obs, total_obs):
@@ -103,7 +126,7 @@ class ApplicationView(object):
 
     @guithread
     def disable_sync_menu(self):
-        self.mainframe.disable_sync_menu()
+        self.menu.disable_sync()
 
     @guithread
     def show_certificate_dialog(self, handler, error_message):
@@ -173,16 +196,16 @@ class ApplicationView(object):
             self.reject_source_dialog = None
 
     @guithread
-    def show_empty_workload_dialog(self):
-        show_empty_workload_dialog(self.mainframe, self.model)
+    def show_empty_workload_dialog(self, directory):
+        dialogs.show_empty_workload_dialog(self.mainframe, directory)
 
     @guithread
     def all_processed_should_exit_prompt(self):
-        return should_exit_prompt(self.mainframe)
+        return dialogs.should_exit_prompt(self.mainframe)
 
     @guithread
     def set_autoplay(self, autoplay_enabled):
-        self.mainframe.set_autoplay(autoplay_enabled)
+        self.menu.set_autoplay(autoplay_enabled)
 
     @guithread
     def use_singlets(self):
