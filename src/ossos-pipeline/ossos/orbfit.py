@@ -41,22 +41,74 @@ class Orbfit(object):
         """
 
         # call fitradec with mpcfile, abgfile, resfile
-        self.orbfit.fitradec.restype = ctypes.c_int
-        self.orbfit.fitradec.argtypes = [ ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p ]
+        self.orbfit.fitradec.restype = ctypes.POINTER(ctypes.c_double * 2)
+        self.orbfit.fitradec.argtypes = [ ctypes.c_char_p, ctypes.c_char_p ]
 
         mpc_file = tempfile.NamedTemporaryFile(suffix='.mpc')
         for observation in self.observations:
             mpc_file.write("{}\n".format(str(observation)))
         mpc_file.seek(0)
 
-        abg_file = tempfile.NamedTemporaryFile()
-        res_file = tempfile.NamedTemporaryFile()
+        self._abg = tempfile.NamedTemporaryFile()
 
-        self.orbfit.fitradec(ctypes.c_char_p(mpc_file.name),
-                             ctypes.c_char_p(abg_file.name),
-                             ctypes.c_char_p(res_file.name))
+        result = self.orbfit.fitradec(ctypes.c_char_p(mpc_file.name),
+                                      ctypes.c_char_p(self._abg.name))
 
-        self._abg = abg_file
+        self.distance = result.contents[0]
+        self.distance_uncertainty = result.contents[1]
+
+        self.orbfit.abg_to_aei.restype = ctypes.POINTER(ctypes.c_double * 12)
+        self.orbfit.abg_to_aei.argtypes = [ ctypes.c_char_p ]
+        result = self.orbfit.abg_to_aei(ctypes.c_char_p(self._abg.name))
+        self.a = result.contents[0]
+        self.da = result.contents[6]
+        self.e = result.contents[1]
+        self.de = result.contents[7]
+        self.inc = result.contents[2]
+        self.dinc = result.contents[8]
+        self.Node = result.contents[3]
+        self.dNode = result.contents[9]
+        self.om = result.contents[4]
+        self.dom = result.contents[10]
+        self.T = result.contents[5]
+        self.dT = result.contents[11]
+        self._residuals()
+
+    def _residuals(self):
+        for observation in self.observations:
+            self.predict(observation.date)
+            dra = coordinates.Angle(self.coordinate.ra - observation.coordinate.ra )
+            if dra.degrees > 180 :
+                dra = dra - coordinates.Angle(360, unit=units.degree )
+            ddec = coordinates.Angle(self.coordinate.dec - observation.coordinate.dec )
+            if ddec.degrees > 180:
+                dra = ddec - coordinates.Angle(360, unit=units.degree)
+            observation.ra_residual = dra.degrees*3600.0
+            observation.dec_residual = ddec.degrees*3600.0
+
+    def __str__(self):
+        """
+
+        """
+        res = "{:>10s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s}\n".format(self.observations[0].provisional_name.strip(' '),
+                                                            "a (AU)",
+                                                            "e",
+                                                            "Inc.",
+                                                            "Node",
+                                                            "peri.")
+        res += "{:>10s} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format("fit",
+                                                   self.a,
+                                                   self.e,
+                                                   self.inc,
+                                                   self.Node,
+                                                   self.om)
+        res += "{:>10s} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format("uncert",
+                                                               self.da,
+                                                               self.de,
+                                                               self.dinc,
+                                                               self.dNode,
+                                                               self.dom)
+        return res
 
     def predict(self, date, obs_code=568):
         """

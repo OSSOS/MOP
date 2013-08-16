@@ -1,6 +1,6 @@
 __author__ = 'jjk'
 import unittest
-import tempfile
+import sys
 
 from hamcrest import assert_that, equal_to, has_length, contains
 
@@ -26,23 +26,23 @@ class OrbfitTest(unittest.TestCase):
         os.environ['ORBIT_EPHEMERIS']='/Users/jjk/MOP/config/binEphem.405'
         os.environ['ORBIT_OBSERVATORIES']='/Users/jjk/MOP/config/observatories.dat'
         HL7j2 = orbfit.Orbfit(observations=observations)
-        for observation in observations:
-            HL7j2.predict(observation.date)
-            dra = coordinates.Angle(HL7j2.coordinate.ra - observation.coordinate.ra)
-            if dra.degrees > 180 :
-                dra = dra - coordinates.Angle(360, unit=units.degree)
-            ddec = coordinates.Angle(HL7j2.coordinate.dec - observation.coordinate.dec)
-            if ddec.degrees > 180:
-                dra = ddec - coordinates.Angle(360, unit=units.degree)
+        print str(HL7j2)
 
-            print "Input  : {} {} {} [ {:+4.2f} {:+4.2f} ]".format(observation.date,
+        pm = '+/-'
+        for observation in observations:
+            HL7j2.predict(observation.date, 568)
+            print "Input  : {} {} {} [ {:+4.2f} {:+4.2f} {}{:4.2f} {}{:4.2f} {:5.1f}]".format(observation.date,
                                                    observation.ra,
                                                    observation.dec,
-                                                   dra.degrees*3600.0,
-                                                   ddec.degrees*3600.0)
-            self.assertEquals(HL7j2.date, str(observation.date))
-            self.assertLess(dra.degrees, 0.3)
-            self.assertLess(ddec.degrees, 0.3)
+                                                   observation.ra_residual,
+                                                   observation.dec_residual,
+                                                   pm,
+                                                   HL7j2.dra,
+                                                   pm,
+                                                   HL7j2.ddec,
+                                                   HL7j2.pa)
+            self.assertLess(observation.ra_residual, 0.3)
+            self.assertLess(observation.dec_residual, 0.3)
 
 
 
