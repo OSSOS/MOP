@@ -679,7 +679,7 @@ class MPCComment(object):
         comm += '%f %f ' % (self.X, self.Y)
         comm += '%f %f ' % (self.magnitude, self.mag_uncertainty)
         comm += '%f '.format(self.plate_uncertainty)
-        comm += '% ' + ((comment is None and "") or '%s' % comment)
+        comm += '% ' + ((self.comment is None and "") or '%s' % self.comment)
 
         return comm
 
@@ -799,7 +799,6 @@ class Orbfit(object):
         """
         self._abg.seek(0)
         return self._abg.readlines()
-            abg.append(line.)
 
     def _fit_radec(self):
         """
@@ -836,8 +835,8 @@ class Orbfit(object):
         self.orbfit.predict.restype = ctypes.POINTER(ctypes.c_double * 5)
         self.orbfit.predict.argtypes = [ ctypes.c_char_p, ctypes.c_double, ctypes.c_int ]
         predict = self.orbfit.predict(ctypes.c_char_p(self.abg.name),
-                       jd,
-                       ctypes.c_int(obs_code))
+                                      jd,
+                                      ctypes.c_int(obs_code))
         self.coordinate = coordinates.ICRSCoordinates(predict.contents[0],
                                                       predict.contents[1],
                                                       unit=(units.degree, units.degree))
