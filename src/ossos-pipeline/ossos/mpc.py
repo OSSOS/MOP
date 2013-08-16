@@ -6,6 +6,7 @@ import struct
 import time
 from datetime import datetime
 import numpy
+import urllib
 
 from astropy import coordinates
 from astropy import units
@@ -13,6 +14,12 @@ from astropy.time import sofa_time
 from astropy.time import TimeString
 from astropy.time import Time
 
+import ctypes
+import tempfile
+
+LIBORBFIT='/usr/local/lib/liborbfit.so'
+
+__author__ = 'jjk'
 
 MPCNOTES = {'Note1':
                 {" ": " ",
@@ -72,6 +79,12 @@ MPCNOTES = {'Note1':
                 "H": "Hipparcos geocentric observations",
                 "N": "Normal place",
                 "n": "Mini-normal place derived from averaging observations from video frames"
+            },
+            'PhotometryNote': {
+                " ": " ",
+                "": " ",
+                "Y": "Photometry measured successfully",   # not used by MPC 
+                "Z": "Photometry measurement failed."      # not used by MPC 
             }}
 
 
@@ -597,6 +610,7 @@ class Observation(object):
             self._mag = None
         else:
             self._mag = float(mag)
+            # CHECK: precision calculator says it is for sexagesimal rather than decimal info!
             self._mag_precision = min(2,self._compute_precision(str(mag)))
 
     @property
@@ -620,6 +634,54 @@ class Observation(object):
                                       "must be 3 characters or less",
                                       observatory_code)
         self._observatory_code = str(observatory_code)
+
+
+class MPCComment(object):
+    """
+    Parses an OSSOS observation's metadata into a format that can be stored in the 
+    an Observation.comment and written out in the same MPC line.
+    """
+
+    def __init__(self,
+                 image_id,
+                 ccd,
+                 observation,
+                 X,
+                 Y,
+                 MPCnotes = None,
+                 magnitude = 0.0,
+                 mag_uncertainty = 0.,
+                 plate_uncertainty = 0.,
+                 comment = None):
+
+        self.image_id = image_id
+        self.ccd = ccd
+        self.observation = observation
+        self.MPCnotes = MPCnotes  # should always contain at least the photometry result, Y or Z
+        self.X = X
+        self.Y = Y
+        self.magnitude = magnitude
+        self.mag_uncertainty = mag_uncertainty
+        self.plate_uncertainty = plate_uncertainty
+        self.comment = comment
+
+    def __str__(self):
+        """
+        Format comment as required for storing OSSOS metadata
+        odonum p ccd object_name MPCnotes X Y mag mag_uncertainty plate_uncertainty % comment
+        """
+        # The astrometric uncertainty should be set to higher when hand measurements are made.
+
+        comm = '%s '.format(self.image_id)
+        comm += 'p%s '.format(self.ccd)
+        comm += str(self.observation)[0:12].strip(" ")  # want only whatever name info is present
+        comm += '{%%}'.format(str(self.note1), str(self.note2)) + '{% }'.format(self.MPCnotes)
+        comm += '%f %f ' % (self.X, self.Y)
+        comm += '%f %f ' % (self.magnitude, self.mag_uncertainty)
+        comm += '%f '.format(self.plate_uncertainty)
+        comm += '%' + ((self.comment is None and "") or '%s' % self.comment)  # % denotes comment start
+
+        return comm
 
 
 class MPCWriter(object):
@@ -683,3 +745,121 @@ class MPCWriter(object):
 
     def get_chronological_buffered_observations(self):
         return sorted(self.buffer, key=lambda obs: obs.date.unix)
+
+
+class TNOdbWriter(MPCWriter):
+    """
+    Write out MPC lines in format that tnodb can accept.
+    """
+
+    def __init__(self, filehandle, auto_flush=True):
+        super(MPCWriter, self).__init__(filehandle, auto_flush=True)
+
+    def flush(self):
+        """
+        Format for tnodb.
+        Comment line and observation line have to be kept together.
+        """
+        for obs in self.get_chronological_buffered_observations():
+            # tnodb requires all lines to be MPC roving observer line length
+            comment_line = ('#O ' + obs.comment)[:80] # #O indicates OSSOS survey
+            mpc_observation = obs.to_string()[:80]
+            output_line = comment_line + '\n' + mpc_observation + '\n'
+            self.filehandle.write(output_line)
+
+        self.filehandle.flush()
+        self.buffer = []
+
+
+class URLWriter(MPCWriter):
+    """
+    Write out MPC lines without the metadata, in URL-ready format.
+    """
+    def __init__(self, filehandle, auto_flush=True):
+        super(MPCWriter, self).__init__(filehandle, auto_flush=True)
+
+    def flush(self):
+        """
+        Write out MPC lines without any metadata, eg. for passing to a URL.
+        """
+        for obs in self.get_chronological_buffered_observations():
+            mpc_observation = obs.to_string()[:80].replace(' ', '+') + urllib.quote('\r\n')
+            self.filehandle.write(output_line)
+
+        self.filehandle.flush()
+        self.buffer = []
+
+
+class Orbfit(object):
+    """
+    This class provides orbital information derived by calling 'fit_radec'.
+    """
+
+    def __init__(self, observations=[]):
+        """
+        Given a set of observations compute the orbit using fit_radec and provide methods for
+        accessing that orbit.
+
+        Requires at least 3 observations.
+        """
+        if len(observations) < 3:
+            raise Exception("Insufficent enough observations for an orbit.")
+        self.orbfit = ctypes.CDLL(LIBORBFIT)
+        self.observations = observations
+        self._fit_radec()
+
+    @property
+    def abg(self):
+        """
+        A print out the abg file.
+
+        abg is stored in a temporary file and is deleted on code exit.  This is the content of that file.
+        """
+        self._abg.seek(0)
+        return self._abg.readlines()
+
+    def _fit_radec(self):
+        """
+        call fit_radec of BK passing in the observations.
+
+        """
+
+        # call fitradec with mpcfile, abgfile, resfile
+        self.orbfit.fitradec.restype = ctypes.c_int
+        self.orbfit.fitradec.argtypes = [ ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p ]
+
+        mpc_file = tempfile.NamedTemporaryFile(suffix='.mpc')
+        for observation in self.observations:
+            mpc_file.write("{}\n".format(str(observation)))
+        mpc_file.seek(0)
+
+        abg_file = tempfile.NamedTemporaryFile()
+        res_file = tempfile.NamedTemporaryFile()
+
+        self.orbfit.fitradec(ctypes.c_char_p(mpc_file.name),
+                             ctypes.c_char_p(abg_file.name),
+                             ctypes.c_char_p(res_file.name))
+
+        self._abg = abg_file
+        self.abg.seek(0)
+
+    def predict(self, date, obs_code=568):
+        """
+        use the bk predict method to compute the location of the source on the given date.
+        """
+        time = Time(date, scale='utc', precision=6)
+        jd = ctypes.c_double(time.jd)
+        # call predict with agbfile, jdate, obscode
+        self.orbfit.predict.restype = ctypes.POINTER(ctypes.c_double * 5)
+        self.orbfit.predict.argtypes = [ ctypes.c_char_p, ctypes.c_double, ctypes.c_int ]
+        predict = self.orbfit.predict(ctypes.c_char_p(self.abg.name),
+                                      jd,
+                                      ctypes.c_int(obs_code))
+        self.coordinate = coordinates.ICRSCoordinates(predict.contents[0],
+                                                      predict.contents[1],
+                                                      unit=(units.degree, units.degree))
+        self.dra = predict.contents[2]
+        self.ddec = predict.contents[3]
+        self.pa = predict.contents[4]
+        self.date = str(time)
+
