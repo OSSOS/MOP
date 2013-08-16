@@ -60,8 +60,8 @@ class ApplicationView(object):
         self.mainframe.display(fits_image, redraw=redraw)
 
     @guithread
-    def draw_circle(self, x, y, radius, redraw=True):
-        self.mainframe.draw_circle(x, y, radius, redraw=redraw)
+    def draw_marker(self, x, y, radius, redraw=True):
+        self.mainframe.draw_marker(x, y, radius, redraw=redraw)
 
     @guithread
     def update_displayed_data(self):
@@ -183,6 +183,14 @@ class ApplicationView(object):
     @guithread
     def set_autoplay(self, autoplay_enabled):
         self.mainframe.set_autoplay(autoplay_enabled)
+
+    @guithread
+    def use_singlets(self):
+        self.mainframe.use_singlets()
+
+    @guithread
+    def use_triplets(self):
+        self.mainframe.use_triplets()
 
     def as_widget(self):
         return self.mainframe

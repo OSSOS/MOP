@@ -24,8 +24,8 @@ def main():
 
     viewer.display(fits_image)
 
-    viewer.draw_circle(50, 50, 10)
-    viewer.draw_circle(20, 70, 5)
+    viewer.draw_marker(50, 50, 10)
+    viewer.draw_marker(20, 70, 5)
 
     rootframe.Show()
     app.MainLoop()

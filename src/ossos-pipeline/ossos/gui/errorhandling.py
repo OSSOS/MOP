@@ -14,15 +14,15 @@ class DownloadErrorHandler(object):
 
         self._failed_downloads = []
 
-    def handle_error(self, error, downloadable_item):
+    def handle_error(self, error, download_request):
         """
         Checks what error occured and looks for an appropriate solution.
 
         Args:
           error: Exception
             The error that has occured.
-          downloadable_item: ossos.download.DownloadableItem
-            The item that was being downloaded when the error occurred.
+          download_request:
+            The request which resulted in the error.
         """
         if not hasattr(error, "errno"):
             logger.critical("Unresolvable download error: %s" % str(error))
@@ -31,7 +31,7 @@ class DownloadErrorHandler(object):
         if error.errno == errno.EACCES:
             self.handle_certificate_problem(str(error))
         elif error.errno == errno.ECONNREFUSED:
-            self.handle_connection_refused(str(error), downloadable_item)
+            self.handle_connection_refused(str(error), download_request)
         else:
             logger.critical("Unresolvable download error: %s" % str(error))
             raise error
@@ -56,16 +56,16 @@ class DownloadErrorHandler(object):
         self.app.get_view().show_image_loading_dialog()
         model.start_loading_images()
 
-    def handle_connection_refused(self, error_message, downloadable_item):
+    def handle_connection_refused(self, error_message, download_request):
         logger.warning("Connection refused when downloading")
 
-        self._failed_downloads.append(downloadable_item)
+        self._failed_downloads.append(download_request)
         self.app.get_view().show_retry_download_dialog(self, error_message)
 
     def retry_downloads(self):
         model = self.app.get_model()
-        for downloadable_item in self._failed_downloads:
-            model.retry_download(downloadable_item)
+        for download_request in self._failed_downloads:
+            model.submit_download_request(download_request)
 
 
 def download_certificate(username, password):

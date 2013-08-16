@@ -1,17 +1,21 @@
 """
 Compare the measured fluxes of planted sources against those returned for by digiphot.
 """
+
+__author__ = 'jjk'
+
 import math
+import sys
+
+from ossos import astrom
 from ossos.daophot import TaskError
 from ossos.gui import logger
 from ossos.mpc import Time
 from ossos.astrom import AstromParser
 from ossos.astrom import StreamingAstromWriter
-from ossos.downloads import cutouts, requests
+from ossos.downloads.cutouts import ImageCutoutDownloader
 
 import argparse
-
-__author__ = 'jjk'
 
 class PlantedObject(object):
 
@@ -44,17 +48,18 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
     :param false_positive_filename: .astrom format output containing input objects that had no match in planted
 
     """
-    image_slice_downloader = cutouts.ImageCutoutDownloader(slice_rows=100, slice_cols=100)
+    image_slice_downloader = ImageCutoutDownloader(slice_rows=100, slice_cols=100)
 
     astrom_file_reader = AstromParser()
 
 
-    fk_candidate_observations = astrom_file_reader.parse(astrom_filename)
+    fk_candidate_observations = astrom.parse(astrom_filename)
     matches_ftpr = open(match_filename,'w')
 
     objects_planted_uri = fk_candidate_observations.observations[0].get_object_planted_uri()
 
-    objects_planted = image_slice_downloader.download_object_planted(objects_planted_uri).split('\n')
+
+    objects_planted = image_slice_downloader.download_raw(objects_planted_uri).split('\n')
 
     planted_objects = []
 
@@ -74,16 +79,10 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
     for source in  fk_candidate_observations.get_sources():
         reading = source.get_reading(0)
         third  = source.get_reading(2)
-
-        download_request = requests.DownloadRequest(
-            image_slice_downloader,
-            reading,
-            needs_apcor=True)
-
-        snapshot = download_request.execute()
+        cutout = image_slice_downloader.download_cutout(reading, needs_apcor=True)
 
         try:
-            mag = snapshot.get_observed_magnitude()
+            mag = cutout.get_observed_magnitude()
         except TaskError as e:
             logger.warning(str(e))
             mag = 0.0

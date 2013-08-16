@@ -5,7 +5,8 @@ from ossos.daophot import TaskError
 from ossos.gui import config
 from ossos.gui import events
 from ossos.gui.autoplay import AutoplayManager
-from ossos.gui.models import ImageNotLoadedException, NoWorkUnitException
+from ossos.gui.models.exceptions import (ImageNotLoadedException,
+                                         NoWorkUnitException)
 from ossos.gui.views.app import ApplicationView
 
 
@@ -37,7 +38,7 @@ class AbstractController(object):
         except NoWorkUnitException:
             return
 
-        self.circle_current_source()
+        self.mark_current_source()
 
         self.view.update_displayed_data()
 
@@ -47,10 +48,10 @@ class AbstractController(object):
 
         self.model.acknowledge_image_displayed()
 
-    def circle_current_source(self):
+    def mark_current_source(self):
         image_x, image_y = self.model.get_current_pixel_source_point()
         radius = 2 * round(self.model.get_current_image_FWHM())
-        self.view.draw_circle(image_x, image_y, radius, redraw=True)
+        self.view.draw_marker(image_x, image_y, radius, redraw=True)
 
     def on_reposition_source(self, new_x, new_y):
         try:
@@ -83,6 +84,14 @@ class AbstractController(object):
             should_exit = self.view.all_processed_should_exit_prompt()
             if should_exit:
                 self._do_exit()
+
+    def on_use_singlet_view(self):
+        self.model.use_singlets()
+        self.view.use_singlets()
+
+    def on_use_triplet_view(self):
+        self.model.use_triplets()
+        self.view.use_triplets()
 
     def on_enable_auto_sync(self):
         self.model.enable_synchronization()
@@ -130,7 +139,7 @@ class AbstractController(object):
     def on_reset_source_location(self):
         try:
             self.model.reset_current_source_location()
-            self.circle_current_source()
+            self.mark_current_source()
         except ImageNotLoadedException:
             pass
 
