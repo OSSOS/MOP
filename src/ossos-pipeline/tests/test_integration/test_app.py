@@ -6,23 +6,17 @@ from hamcrest import assert_that, equal_to
 from mock import patch
 
 from tests.base_tests import FileReadingTestCase
-from ossos.gui import tasks
-from ossos.gui.app import ValidationApplication
+from ossos.gui.app import ProcessRealsApplication
 
 
 class ValidationApplicationTest(FileReadingTestCase):
-    @patch("ossos.gui.controllers.ApplicationView")
-    def test_empty_workload_triggers_dialog(self, mock_class):
-        # XXX have to patch where the class is invoked, and the controller
-        # currently creates the view.  TODO Refactor.
-
+    @patch("ossos.gui.views.dialogs.show_empty_workload_dialog")
+    def test_empty_workload_triggers_dialog(self, mock_dialog):
         working_directory = self.get_abs_path("data/empty")
         output_directory = working_directory
-        app = ValidationApplication(tasks.REALS_TASK, working_directory,
-                                    output_directory)
+        ProcessRealsApplication(working_directory, output_directory)
 
-        assert_that(app.get_view().show_empty_workload_dialog.call_count,
-                    equal_to(1))
+        assert_that(mock_dialog.call_count, equal_to(1))
 
 
 if __name__ == '__main__':

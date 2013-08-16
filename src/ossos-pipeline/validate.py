@@ -12,10 +12,10 @@ def launch_app(task, working_directory, output_directory, dry_run, debug):
     # Put import here to avoid the delay loading them.  This allows quick
     # feedback when argparse can tell the arguments are invalid, and makes
     # getting help with the -h flag faster.
-    from ossos.gui.app import ValidationApplication
+    from ossos.gui.app import create_application
 
-    ValidationApplication(task, working_directory, output_directory,
-                          dry_run=dry_run, debug=debug)
+    create_application(task, working_directory, output_directory,
+                       dry_run=dry_run, debug=debug)
 
 
 def main():
