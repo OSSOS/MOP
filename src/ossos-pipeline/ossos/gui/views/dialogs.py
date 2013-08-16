@@ -2,12 +2,12 @@
 This module contains various dialogs used in the application.
 The accept/reject source dialogs are in validation.py.
 """
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
 
 from ossos.gui import config
+from ossos.gui.views.listctrls import ListCtrlPanel
 
 
 def should_exit_prompt(parent):
@@ -33,3 +33,11 @@ def show_empty_workload_dialog(parent, directory):
 
     dialog.ShowModal()
     dialog.Destroy()
+
+
+def show_keymappings_dialog(parent, keybind_manager):
+    dialog = wx.Dialog(parent, title="Key Mappings")
+    panel = ListCtrlPanel(dialog, ("Action", "Shortcut"))
+    panel.populate_list(keybind_manager.get_keymappings())
+
+    dialog.Show()

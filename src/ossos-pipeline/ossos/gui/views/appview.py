@@ -198,6 +198,10 @@ class ApplicationView(object):
             self.reject_source_dialog = None
 
     @guithread
+    def show_keymappings(self):
+        dialogs.show_keymappings_dialog(self.mainframe, self.keybind_manager)
+
+    @guithread
     def show_empty_workload_dialog(self, directory):
         dialogs.show_empty_workload_dialog(self.mainframe, directory)
 
