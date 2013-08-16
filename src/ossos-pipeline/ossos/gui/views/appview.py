@@ -58,12 +58,14 @@ class ApplicationView(object):
         # TODO refactor
         self.register_xy_changed_event_handler(self.controller.on_reposition_source)
 
-        self.mainframe.Show()
-
         logger.debug("View created.")
 
     def _on_close_window(self, event):
         self.close()
+
+    @guithread
+    def show(self):
+        self.mainframe.Show()
 
     @guithread
     def display(self, fits_image, redraw=True):
