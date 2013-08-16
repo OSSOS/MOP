@@ -88,6 +88,7 @@ class ImageManager(object):
 
                 if grid.is_filled():
                     self._displayable_triplets[grid.source] = DisplayableImageTriplet(grid)
+                    logger.info("Triplet grid finished downloading.")
 
             return callback
 
