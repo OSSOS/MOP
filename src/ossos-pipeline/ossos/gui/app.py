@@ -21,102 +21,7 @@ from ossos.gui.views.appview import ApplicationView
 from ossos.naming import ProvisionalNameGenerator, DryRunNameGenerator
 
 
-class AbstractTaskFactory(object):
-    def __init__(self, dry_run=False):
-        self.dry_run = dry_run
-
-    def create_workunit_builder(self,
-                                parser,
-                                input_context,
-                                output_context,
-                                progress_manager):
-        pass
-
-    def create_controller_factory(self, model):
-        pass
-
-    def should_randomize_workunits(self):
-        pass
-
-
-class ProcessRealsTaskFactory(AbstractTaskFactory):
-    def __init__(self, dry_run=False):
-        super(ProcessRealsTaskFactory, self).__init__(dry_run=dry_run)
-
-        # NOTE: Force expensive loading of libraries up front.  These are
-        # libraries that the reals task needs but the candidates task
-        # doesn't.  To make sure the candidates task doesn't load them, we
-        # import them directly in the functions/methods where they are used.
-        # TODO: find out what the best practice is for handling this sort of
-        # situation and refactor.
-        from pyraf import iraf
-
-    def create_workunit_builder(self,
-                                parser,
-                                input_context,
-                                output_context,
-                                progress_manager):
-        return RealsWorkUnitBuilder(
-            parser, input_context, output_context, progress_manager,
-            dry_run=self.dry_run)
-
-    def create_controller_factory(self, model):
-        return RealsControllerFactory(model)
-
-    def should_randomize_workunits(self):
-        return False
-
-
-class ProcessCandidatesTaskFactory(AbstractTaskFactory):
-    def __init__(self, dry_run=False):
-        super(ProcessCandidatesTaskFactory, self).__init__(dry_run=dry_run)
-
-    def create_workunit_builder(self,
-                                parser,
-                                input_context,
-                                output_context,
-                                progress_manager):
-        return CandidatesWorkUnitBuilder(
-            parser, input_context, output_context, progress_manager,
-            dry_run=self.dry_run)
-
-    def create_controller_factory(self, model):
-        return CandidatesControllerFactory(model)
-
-    def should_randomize_workunits(self):
-        return True
-
-
-class ControllerFactory(object):
-    def __init__(self, model, dry_run=False):
-        self.model= model
-        self.dry_run = dry_run
-
-    def create_controller(self, view):
-        raise NotImplementedError()
-
-
-class CandidatesControllerFactory(ControllerFactory):
-    def create_controller(self, view):
-        return ProcessCandidatesController(self.model, view)
-
-
-class RealsControllerFactory(ControllerFactory):
-    def create_controller(self, view):
-        if self.dry_run:
-            name_generator = DryRunNameGenerator()
-        else:
-            name_generator = ProvisionalNameGenerator()
-
-        return ProcessRealsController(self.model, view, name_generator)
-
-
 class ValidationApplication(object):
-    task_name_mapping = {
-        tasks.CANDS_TASK: ProcessCandidatesTaskFactory,
-        tasks.REALS_TASK: ProcessRealsTaskFactory
-    }
-
     def __init__(self, taskname, working_directory, output_directory,
                  dry_run=False, debug=False):
         logger.info("Starting %s task in %s" % (taskname, working_directory))
@@ -133,9 +38,11 @@ class ValidationApplication(object):
             sys.stdout.write("The output directory must be local.\n")
             sys.exit(0)
 
-        try:
-            factory = self.task_name_mapping[taskname](dry_run=dry_run)
-        except KeyError:
+        if taskname == tasks.CANDS_TASK:
+            factory = ProcessCandidatesTaskFactory(dry_run=dry_run)
+        elif taskname == tasks.REALS_TASK:
+            factory = ProcessRealsTaskFactory(dry_run=dry_run)
+        else:
             error_message = "Unknown task: %s" % taskname
             logger.critical(error_message)
             raise ValueError(error_message)
@@ -208,3 +115,92 @@ class ValidationApplication(object):
     def get_view(self):
         return self.view
 
+
+class AbstractTaskFactory(object):
+    def __init__(self, dry_run=False):
+        self.dry_run = dry_run
+
+    def create_workunit_builder(self,
+                                parser,
+                                input_context,
+                                output_context,
+                                progress_manager):
+        pass
+
+    def create_controller_factory(self, model):
+        pass
+
+    def should_randomize_workunits(self):
+        pass
+
+
+class ProcessRealsTaskFactory(AbstractTaskFactory):
+    def __init__(self, dry_run=False):
+        super(ProcessRealsTaskFactory, self).__init__(dry_run=dry_run)
+
+        # NOTE: Force expensive loading of libraries up front.  These are
+        # libraries that the reals task needs but the candidates task
+        # doesn't.  To make sure the candidates task doesn't load them, we
+        # import them directly in the functions/methods where they are used.
+        # TODO: find out what the best practice is for handling this sort of
+        # situation and refactor.
+        from pyraf import iraf
+
+    def create_workunit_builder(self,
+                                parser,
+                                input_context,
+                                output_context,
+                                progress_manager):
+        return RealsWorkUnitBuilder(
+            parser, input_context, output_context, progress_manager,
+            dry_run=self.dry_run)
+
+    def create_controller_factory(self, model):
+        return RealsControllerFactory(model)
+
+    def should_randomize_workunits(self):
+        return False
+
+
+class ProcessCandidatesTaskFactory(AbstractTaskFactory):
+    def __init__(self, dry_run=False):
+        super(ProcessCandidatesTaskFactory, self).__init__(dry_run=dry_run)
+
+    def create_workunit_builder(self,
+                                parser,
+                                input_context,
+                                output_context,
+                                progress_manager):
+        return CandidatesWorkUnitBuilder(
+            parser, input_context, output_context, progress_manager,
+            dry_run=self.dry_run)
+
+    def create_controller_factory(self, model):
+        return CandidatesControllerFactory(model)
+
+    def should_randomize_workunits(self):
+        return True
+
+
+class ControllerFactory(object):
+    def __init__(self, model, dry_run=False):
+        self.model = model
+        self.dry_run = dry_run
+
+    def create_controller(self, view):
+        raise NotImplementedError()
+
+
+class CandidatesControllerFactory(ControllerFactory):
+    def create_controller(self, view):
+        return ProcessCandidatesController(self.model, view)
+
+
+class RealsControllerFactory(ControllerFactory):
+    def create_controller(self, view):
+        if self.dry_run:
+            name_generator = DryRunNameGenerator()
+        else:
+            name_generator = ProvisionalNameGenerator()
+
+        return ProcessRealsController(self.model, view, name_generator)
