@@ -2,8 +2,6 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
 
-from ossos.gui.views.listctrls import ListCtrlPanel
-
 
 class Menu(object):
     def __init__(self, frame, controller):
@@ -76,11 +74,7 @@ class Menu(object):
         triplet_view_item.Enable(False)
 
     def _on_select_keymap(self, event):
-        dialog = wx.Dialog(self.frame, title="Key Mappings")
-        panel = ListCtrlPanel(dialog, ("Action", "Shortcut"))
-        panel.populate_list(self.frame.keybind_manager.get_keymappings())
-
-        dialog.Show()
+        self.controller.on_show_keymappings()
 
     def _on_select_exit(self, event):
         self.controller.on_exit()
