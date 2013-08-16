@@ -6,6 +6,7 @@ import struct
 import time
 from datetime import datetime
 import numpy
+import urllib
 
 from astropy import coordinates
 from astropy import units
@@ -76,8 +77,8 @@ MPCNOTES = {'Note1':
             'PhotometryNote': {
                 " ": " ",
                 "": " ",
-                "Y": "Photometry measured successfully",
-                "Q": "Photometry measurement failed."
+                "Y": "Photometry measured successfully",   # not used by MPC 
+                "Z": "Photometry measurement failed."      # not used by MPC 
             }}
 
 
@@ -650,7 +651,7 @@ class MPCComment(object):
         self.image_id = image_id
         self.ccd = ccd
         self.observation = observation
-        self.MPCnotes = MPCnotes
+        self.MPCnotes = MPCnotes  # should always contain at least the photometry result, Y or Z
         self.X = X
         self.Y = Y
         self.magnitude = magnitude
@@ -672,7 +673,7 @@ class MPCComment(object):
         comm += '%f %f ' % (self.X, self.Y)
         comm += '%f %f ' % (self.magnitude, self.mag_uncertainty)
         comm += '%f '.format(self.plate_uncertainty)
-        comm += '% ' + ((comment is None and "") or '%s' % comment)
+        comm += '%' + ((self.comment is None and "") or '%s' % self.comment)  # % denotes comment start
 
         return comm
 
@@ -754,8 +755,9 @@ class TNOdbWriter(MPCWriter):
         Comment line and observation line have to be kept together.
         """
         for obs in self.get_chronological_buffered_observations():
-            comment_line = '#O ' + obs.comment      # indicates OSSOS survey
-            mpc_observation = obs.to_string()[:80]  # MPC roving observer line length
+            # tnodb requires all lines to be MPC roving observer line length
+            comment_line = ('#O ' + obs.comment)[:80] # #O indicates OSSOS survey
+            mpc_observation = obs.to_string()[:80]
             output_line = comment_line + '\n' + mpc_observation + '\n'
             self.filehandle.write(output_line)
 
@@ -763,5 +765,22 @@ class TNOdbWriter(MPCWriter):
         self.buffer = []
 
 
+class URLWriter(MPCWriter):
+    """
+    Write out MPC lines without the metadata, in URL-ready format.
+    """
+    def __init__(self, filehandle, auto_flush=True):
+        super(MPCWriter, self).__init__(filehandle, auto_flush=True)
+
+    def flush(self):
+        """
+        Write out MPC lines without any metadata, eg. for passing to a URL.
+        """
+        for obs in self.get_chronological_buffered_observations():
+            mpc_observation = obs.to_string()[:80].replace(' ', '+') + urllib.quote('\r\n')
+            self.filehandle.write(output_line)
+
+        self.filehandle.flush()
+        self.buffer = []
 
 
