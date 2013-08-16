@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 from mock import Mock
 
 from ossos.fitsviewer.colormap import clip
-from ossos.fitsviewer.displayable import DisplayableImageSinglet
+from ossos.fitsviewer.displayable import DisplayableImageSinglet, Marker
 from ossos.fitsviewer.interaction import (InteractionContext,
-                                              MoveCircleState,
-                                              CreateCircleState,
+                                              MoveMarkerState,
+                                              CreateMarkerState,
                                               AdjustColormapState)
 
 
@@ -33,7 +33,7 @@ class DisplayableImageSingletTest(unittest.TestCase):
         cx = 1
         cy = 2
         cr = 3
-        self.displayable.draw_circle(cx, cy, cr)
+        self.displayable.place_marker(cx, cy, cr)
 
         assert_that(axes.patches, has_length(1))
         circle = axes.patches[0]
@@ -47,14 +47,14 @@ class DisplayableImageSingletTest(unittest.TestCase):
         c1x = 1
         c1y = 2
         c1r = 3
-        self.displayable.draw_circle(c1x, c1y, c1r)
+        self.displayable.place_marker(c1x, c1y, c1r)
 
         assert_that(axes.patches, has_length(1))
 
         c2x = 4
         c2y = 5
         c2r = 6
-        self.displayable.draw_circle(c2x, c2y, c2r)
+        self.displayable.place_marker(c2x, c2y, c2r)
 
         assert_that(axes.patches, has_length(1))
 
@@ -109,41 +109,41 @@ class InteractionTest(unittest.TestCase):
         y = 10
         radius = 5
 
-        self.displayable.draw_circle(x, y, radius)
+        self.displayable.place_marker(x, y, radius)
         self.fire_press_event(x + 2, y + 2)
-        assert_that(self.interaction_context.state, instance_of(MoveCircleState))
+        assert_that(self.interaction_context.state, instance_of(MoveMarkerState))
 
     def test_press_release(self):
         x = 10
         y = 10
         radius = 5
 
-        self.displayable.draw_circle(x, y, radius)
+        self.displayable.place_marker(x, y, radius)
         assert_that(not self.interaction_context.state.pressed)
         self.fire_press_event(x + 2, y + 2)
         assert_that(self.interaction_context.state.pressed)
         self.fire_release_event()
         assert_that(not self.interaction_context.state.pressed)
 
-    def test_state_click_outside_circle(self):
+    def test_state_click_outside_marker(self):
         x = 10
         y = 10
         radius = 5
 
-        self.displayable.draw_circle(x, y, radius)
+        self.displayable.place_marker(x, y, radius)
         self.fire_press_event(x + 2, y + 2)
-        assert_that(self.interaction_context.state, instance_of(MoveCircleState))
+        assert_that(self.interaction_context.state, instance_of(MoveMarkerState))
         self.fire_release_event()
-        assert_that(self.interaction_context.state, instance_of(MoveCircleState))
+        assert_that(self.interaction_context.state, instance_of(MoveMarkerState))
         self.fire_press_event(x + 6, y + 6)
-        assert_that(self.interaction_context.state, instance_of(CreateCircleState))
+        assert_that(self.interaction_context.state, instance_of(CreateMarkerState))
 
     def test_state_right_click(self):
         x = 10
         y = 10
 
         self.fire_press_event(x, y, button=InteractionContext.MOUSE_BUTTON_LEFT)
-        assert_that(self.interaction_context.state, instance_of(CreateCircleState))
+        assert_that(self.interaction_context.state, instance_of(CreateMarkerState))
         self.fire_release_event(button=InteractionContext.MOUSE_BUTTON_LEFT)
 
         self.fire_press_event(x, y, button=InteractionContext.MOUSE_BUTTON_RIGHT)
@@ -151,10 +151,10 @@ class InteractionTest(unittest.TestCase):
         self.fire_release_event(button=InteractionContext.MOUSE_BUTTON_RIGHT)
 
         self.fire_press_event(x, y, button=InteractionContext.MOUSE_BUTTON_LEFT)
-        assert_that(self.interaction_context.state, instance_of(CreateCircleState))
+        assert_that(self.interaction_context.state, instance_of(CreateMarkerState))
         self.fire_release_event(button=InteractionContext.MOUSE_BUTTON_LEFT)
 
-    def test_drag_circle(self):
+    def test_drag_marker(self):
         x0 = 10
         y0 = 10
         radius = 5
@@ -164,80 +164,80 @@ class InteractionTest(unittest.TestCase):
         dx = 10
         dy = 5
 
-        self.displayable.draw_circle(x0, y0, radius)
-        assert_that(self.interaction_context.get_circle().center, equal_to((x0, y0)))
+        self.displayable.place_marker(x0, y0, radius)
+        assert_that(self.interaction_context.get_marker().center, equal_to((x0, y0)))
         self.fire_press_event(xclick, yclick)
 
         self.fire_motion_event(xclick + dx, yclick + dy)
-        assert_that(self.interaction_context.get_circle().center,
+        assert_that(self.interaction_context.get_marker().center,
                     equal_to((x0 + dx, y0 + dy)))
-        assert_that(self.interaction_context.get_circle().radius, equal_to(radius))
+        assert_that(self.interaction_context.get_marker().radius, equal_to(radius))
 
-    def test_create_circle(self):
+    def test_create_marker(self):
         x0 = 10
         y0 = 10
         dx = 10
         dy = 30
 
-        assert_that(self.interaction_context.get_circle(), none())
+        assert_that(self.interaction_context.get_marker(), none())
         self.fire_press_event(x0, y0)
         self.fire_motion_event(x0 + dx, y0 + dy)
-        assert_that(self.interaction_context.get_circle().center,
+        assert_that(self.interaction_context.get_marker().center,
                     equal_to((15, 25)))
-        assert_that(self.interaction_context.get_circle().radius, equal_to(15))
+        assert_that(self.interaction_context.get_marker().radius, equal_to(15))
 
     def test_motion_not_pressed(self):
         x = 10
         y = 10
         radius = 5
 
-        self.displayable.draw_circle(x, y, radius)
+        self.displayable.place_marker(x, y, radius)
 
-        self.interaction_context.state = CreateCircleState(self.interaction_context)
+        self.interaction_context.state = CreateMarkerState(self.interaction_context)
         self.fire_motion_event(x + 2, y + 2)
-        assert_that(self.interaction_context.get_circle().center, equal_to((x, y)))
-        assert_that(self.interaction_context.get_circle().radius, equal_to(radius))
+        assert_that(self.interaction_context.get_marker().center, equal_to((x, y)))
+        assert_that(self.interaction_context.get_marker().radius, equal_to(radius))
 
-        self.interaction_context.state = MoveCircleState(self.interaction_context)
+        self.interaction_context.state = MoveMarkerState(self.interaction_context)
         self.fire_motion_event(x + 2, y + 2)
-        assert_that(self.interaction_context.get_circle().center, equal_to((x, y)))
-        assert_that(self.interaction_context.get_circle().radius, equal_to(radius))
+        assert_that(self.interaction_context.get_marker().center, equal_to((x, y)))
+        assert_that(self.interaction_context.get_marker().radius, equal_to(radius))
 
-    def test_click_no_drag_inside_circle(self):
+    def test_click_no_drag_inside_marker(self):
         x = 10
         y = 10
         radius = 5
 
-        self.displayable.draw_circle(x, y, radius)
+        self.displayable.place_marker(x, y, radius)
 
         click_x = 12
         click_y = 13
         self.fire_press_event(click_x, click_y)
         self.fire_release_event()
 
-        assert_that(self.interaction_context.get_circle().center,
+        assert_that(self.interaction_context.get_marker().center,
                     equal_to((click_x, click_y)))
 
-    def test_click_no_drag_outside_circle(self):
+    def test_click_no_drag_outside_marker(self):
         x = 10
         y = 10
         radius = 5
 
-        self.displayable.draw_circle(x, y, radius)
+        self.displayable.place_marker(x, y, radius)
 
         click_x = 20
         click_y = 21
         self.fire_press_event(click_x, click_y)
         self.fire_release_event()
 
-        assert_that(self.interaction_context.get_circle().center,
+        assert_that(self.interaction_context.get_marker().center,
                     equal_to((click_x, click_y)))
 
     def test_xy_changed_event_on_click(self):
         handler = Mock()
         self.displayable.xy_changed.connect(handler)
 
-        self.displayable.draw_circle(10, 10, 5)
+        self.displayable.place_marker(10, 10, 5)
 
         x_click = 20
         y_click = 30
@@ -253,7 +253,7 @@ class InteractionTest(unittest.TestCase):
         x0 = 10
         y0 = 10
         radius = 5
-        self.displayable.draw_circle(x0, y0, radius)
+        self.displayable.place_marker(x0, y0, radius)
 
         xclick = x0 + 2
         yclick = y0 + 2
@@ -263,6 +263,76 @@ class InteractionTest(unittest.TestCase):
         self.fire_motion_event(xclick + dx, yclick + dy)
 
         handler.assert_called_once_with(x0 + dx, y0 + dy)
+
+
+class MarkerTest(unittest.TestCase):
+    def test_cross_location(self):
+        x = 10
+        y = 10
+        radius = 6
+
+        marker = Marker(x, y, radius)
+
+        assert_that(marker.left_hair.get_xdata(), equal_to((4, 7)))
+        assert_that(marker.left_hair.get_ydata(), equal_to((10, 10)))
+
+        assert_that(marker.right_hair.get_xdata(), equal_to((13, 16)))
+        assert_that(marker.right_hair.get_ydata(), equal_to((10, 10)))
+
+        assert_that(marker.top_hair.get_xdata(), equal_to((10, 10)))
+        assert_that(marker.top_hair.get_ydata(), equal_to((13, 16)))
+
+        assert_that(marker.bottom_hair.get_xdata(), equal_to((10, 10)))
+        assert_that(marker.bottom_hair.get_ydata(), equal_to((4, 7)))
+
+    def test_move_marker_moves_circle_and_cross(self):
+        x = 10
+        y = 10
+        radius = 6
+
+        marker = Marker(x, y, radius)
+
+        new_x = 20
+        new_y = 30
+        marker.center = (new_x, new_y)
+
+        assert_that(marker.circle.center, equal_to((new_x, new_y)))
+
+        assert_that(marker.left_hair.get_xdata(), equal_to((14, 17)))
+        assert_that(marker.left_hair.get_ydata(), equal_to((30, 30)))
+
+        assert_that(marker.right_hair.get_xdata(), equal_to((23, 26)))
+        assert_that(marker.right_hair.get_ydata(), equal_to((30, 30)))
+
+        assert_that(marker.top_hair.get_xdata(), equal_to((20, 20)))
+        assert_that(marker.top_hair.get_ydata(), equal_to((33, 36)))
+
+        assert_that(marker.bottom_hair.get_xdata(), equal_to((20, 20)))
+        assert_that(marker.bottom_hair.get_ydata(), equal_to((24, 27)))
+
+    def test_change_radius(self):
+        x = 20
+        y = 20
+        radius = 6
+
+        marker = Marker(x, y, radius)
+
+        new_radius = 12
+        marker.radius = new_radius
+
+        assert_that(marker.circle.radius, equal_to(new_radius))
+
+        assert_that(marker.left_hair.get_xdata(), equal_to((8, 14)))
+        assert_that(marker.left_hair.get_ydata(), equal_to((20, 20)))
+
+        assert_that(marker.right_hair.get_xdata(), equal_to((26, 32)))
+        assert_that(marker.right_hair.get_ydata(), equal_to((20, 20)))
+
+        assert_that(marker.top_hair.get_xdata(), equal_to((20, 20)))
+        assert_that(marker.top_hair.get_ydata(), equal_to((26, 32)))
+
+        assert_that(marker.bottom_hair.get_xdata(), equal_to((20, 20)))
+        assert_that(marker.bottom_hair.get_ydata(), equal_to((8, 14)))
 
 
 class UtilityTest(unittest.TestCase):

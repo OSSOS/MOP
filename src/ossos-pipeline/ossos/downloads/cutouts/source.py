@@ -2,16 +2,12 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import tempfile
 
-from ossos import astrom
-from ossos import wcs
+from ossos import wcs, astrom
 
 
-class SourceSnapshot(object):
+class SourceCutout(object):
     """
-    A snapshot of a source.
-
-    A snapshot is comprised of a source reading, a FITS image, and
-    potentially the observation's apcor data.
+    A cutout around a source.
     """
 
     def __init__(self, reading, hdulist, coordinate_converter, apcor=None):
@@ -158,34 +154,3 @@ class SourceSnapshot(object):
                                          wcs.parse_cd(fits_header),
                                          wcs.parse_pv(fits_header),
                                          wcs.parse_order_fit(fits_header))
-
-
-class ApcorData(object):
-    def __init__(self, ap_in, ap_out, apcor, apcor_err):
-        self.ap_in = ap_in
-        self.ap_out = ap_out
-        self.apcor = apcor
-        self.apcor_err = apcor_err
-
-    @classmethod
-    def from_raw_string(cls, rawstr):
-        """
-        Creates an ApcorData record from the raw string format.
-
-        Expected string format:
-        ap_in ap_out   ap_cor  apcor_err
-        """
-        args = map(float, rawstr.split())
-        return cls(*args)
-
-    @property
-    def aperture(self):
-        return self.ap_in
-
-    @property
-    def sky(self):
-        return self.ap_out + 1
-
-    @property
-    def swidth(self):
-        return self.ap_in

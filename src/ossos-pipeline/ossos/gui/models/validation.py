@@ -1,42 +1,30 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from ossos.downloads.data import SourceSnapshot
-from ossos.fitsviewer.displayable import DisplayableImageSinglet
 from ossos.gui import events
 from ossos.gui import logger
+from ossos.gui.models.exceptions import (ImageNotLoadedException,
+                                         NoWorkUnitException)
 from ossos.gui.workload import (NoAvailableWorkException, StatefulCollection,
                                 CandidatesWorkUnit, RealsWorkUnit)
 
 
-class ImageNotLoadedException(Exception):
-    """The requested image hasn't been loaded yet."""
-
-
-class NoWorkUnitException(Exception):
-    """No data is available at the current time."""
-
-
-class UIModel(object):
+class ValidationModel(object):
     """
     Contains the data and associated operations available to the user interface.
     """
 
-    def __init__(self, workunit_provider, download_manager, synchronization_manager):
+    def __init__(self, workunit_provider, image_manager, synchronization_manager):
         self.workunit_provider = workunit_provider
-        self.download_manager = download_manager
+        self.image_manager = image_manager
         self.synchronization_manager = synchronization_manager
 
         self.work_units = StatefulCollection()
 
         self.num_processed = 0
 
-        # Maps each reading to its image-reading model (once downloaded)
-        self._snapshots = {}
-
-        # Maps each reading to its displayable item (once downloaded)
-        self._displayable_items = {}
-
         self.sources_discovered = set()
+
+        self.image_state = SingletState(self)
 
     def get_working_directory(self):
         return self.workunit_provider.directory
@@ -108,7 +96,7 @@ class UIModel(object):
     def add_workunit(self, new_workunit):
         new_workunit.register_finished_callback(self._on_finished_workunit)
         self.work_units.append(new_workunit)
-        self._download_workunit_images(new_workunit)
+        self.download_workunit_images(new_workunit)
 
     def _get_new_workunit(self):
         self.add_workunit(self.workunit_provider.get_workunit())
@@ -123,7 +111,7 @@ class UIModel(object):
         return self.get_current_workunit().is_current_source_finished()
 
     def is_current_source_adjusted(self):
-        return self.get_current_snapshot().is_adjusted()
+        return self.get_current_cutout().is_adjusted()
 
     def get_num_items_processed(self):
         return self.num_processed
@@ -163,7 +151,7 @@ class UIModel(object):
         return self.get_current_reading().get_observation_header()
 
     def get_current_fits_header(self):
-        return self.get_current_snapshot().get_fits_header()
+        return self.get_current_cutout().get_fits_header()
 
     def get_current_exposure_number(self):
         return int(self.get_current_reading().obs.expnum)
@@ -183,13 +171,13 @@ class UIModel(object):
 
     def get_current_ra(self):
         try:
-            return self.get_current_snapshot().ra
+            return self.get_current_cutout().ra
         except ImageNotLoadedException:
             return self.get_current_reading().ra
 
     def get_current_dec(self):
         try:
-            return self.get_current_snapshot().dec
+            return self.get_current_cutout().dec
         except ImageNotLoadedException:
             return self.get_current_reading().dec
 
@@ -203,19 +191,16 @@ class UIModel(object):
         return self.get_current_source().set_provisional_name(name)
 
     def get_current_displayable_item(self):
-        try:
-            return self._displayable_items[self.get_current_reading()]
-        except KeyError:
-            raise ImageNotLoadedException()
+        return self.image_state.get_current_displayble_item()
 
     def get_current_band(self):
         return self.get_current_fits_header()["FILTER"][0]
 
     def get_current_pixel_source_point(self):
-        return self.get_current_snapshot().pixel_source_point
+        return self.get_current_cutout().pixel_source_point
 
     def get_current_source_observed_magnitude(self):
-        return self.get_current_snapshot().get_observed_magnitude()
+        return self.get_current_cutout().get_observed_magnitude()
 
     def get_current_image_FWHM(self):
         return float(self.get_current_astrom_header()["FWHM"])
@@ -223,20 +208,17 @@ class UIModel(object):
     def get_current_image_maxcount(self):
         return float(self.get_current_astrom_header()["MAXCOUNT"])
 
-    def get_loaded_image_count(self):
-        return len(self._snapshots)
-
     def stop_loading_images(self):
-        self.download_manager.stop_download()
+        self.image_manager.stop_downloads()
 
     def start_loading_images(self):
-        self._download_workunit_images(self.get_current_workunit())
+        self.download_workunit_images(self.get_current_workunit())
 
-    def retry_download(self, downloadable_item):
-        self.download_manager.retry_download(downloadable_item)
+    def submit_download_request(self, download_request):
+        self.image_state.submit_download_request(download_request)
 
     def refresh_vos_client(self):
-        self.download_manager.refresh_vos_client()
+        self.image_manager.refresh_vos_clients()
 
     def update_current_source_location(self, new_location):
         """
@@ -247,10 +229,10 @@ class UIModel(object):
             The source location using pixel coordinates from the
             displayed image (may be a cutout).
         """
-        self.get_current_snapshot().update_pixel_location(new_location)
+        self.get_current_cutout().update_pixel_location(new_location)
 
     def reset_current_source_location(self):
-        self.get_current_snapshot().reset_source_location()
+        self.get_current_cutout().reset_source_location()
 
     def enable_synchronization(self):
         if self.synchronization_manager:
@@ -266,9 +248,9 @@ class UIModel(object):
         for workunit in self.work_units:
             workunit.unlock()
 
-        self.download_manager.stop_download()
+        self.image_manager.stop_downloads()
         self.workunit_provider.shutdown()
-        self.download_manager.wait_for_downloads_to_stop()
+        self.image_manager.wait_for_downloads_to_stop()
 
     def is_processing_candidates(self):
         return isinstance(self.get_current_workunit(), CandidatesWorkUnit)
@@ -276,22 +258,21 @@ class UIModel(object):
     def is_processing_reals(self):
         return isinstance(self.get_current_workunit(), RealsWorkUnit)
 
-    def get_current_snapshot(self):
-        try:
-            return self._snapshots[self.get_current_reading()]
-        except KeyError:
-            raise ImageNotLoadedException()
+    def get_current_cutout(self):
+        return self.image_manager.get_cutout(self.get_current_reading())
 
-    def _download_workunit_images(self, workunit):
-        self.download_manager.start_downloading_workunit(
-            workunit, image_loaded_callback=self._on_image_loaded)
+    def download_workunit_images(self, workunit):
+        self.image_state.download_workunit_images(workunit)
 
-    def _on_image_loaded(self, snapshot):
-        reading = snapshot.reading
-        self._snapshots[reading] = snapshot
-        self._displayable_items[reading] = DisplayableImageSinglet(
-            snapshot.hdulist)
-        events.send(events.IMG_LOADED, reading)
+    def use_singlets(self):
+        logger.info("Model set to use image singlets.")
+        self.image_state = SingletState(self)
+        self.image_state.enter_state()
+
+    def use_triplets(self):
+        logger.info("Model set to use image triplets.")
+        self.image_state = TripletState(self)
+        self.image_state.enter_state()
 
     def _on_finished_workunit(self, results_file_paths):
         events.send(events.FINISHED_WORKUNIT, results_file_paths)
@@ -301,102 +282,43 @@ class UIModel(object):
                 self.synchronization_manager.add_syncable_file(path)
 
 
-class TransAckUIModel(UIModel):
-    """
-    This version of the UIModel requires confirmation that the view has
-    been updated before it will allow further image transitions or
-    accepting/rejecting.
+class SingletState(object):
+    def __init__(self, model):
+        self.model = model
+        self.image_manager = model.image_manager
 
-    Any requests for further transitions while waiting for acknowledgement
-    are simply ignored.
-    """
+    def enter_state(self):
+        self.image_manager.stop_triplet_downloads()
+        self.download_workunit_images(
+            self.model.get_current_workunit())
 
-    def __init__(self, workunit_provider, download_manager, synchronization_manager):
-        super(TransAckUIModel, self).__init__(workunit_provider,
-                                              download_manager,
-                                              synchronization_manager)
-        self._source_transitioning = False
-        self._observation_transitioning = False
+    def get_current_displayble_item(self):
+        return self.image_manager.get_displayable_singlet(
+            self.model.get_current_reading())
 
-    def is_waiting_for_source_transition(self):
-        return self._source_transitioning
+    def download_workunit_images(self, workunit):
+        self.image_manager.download_singlets_for_workunit(workunit)
 
-    def is_waiting_for_observation_transition(self):
-        return self._observation_transitioning
+    def submit_download_request(self, download_request):
+        self.image_manager.submit_singlet_download_request(download_request)
 
-    def is_waiting_for_transition(self):
-        return (self.is_waiting_for_source_transition() or
-                self.is_waiting_for_observation_transition())
 
-    def expect_source_transition(self):
-        if self.is_waiting_for_transition():
-            # Don't allow additional events to be generated
-            return
+class TripletState(object):
+    def __init__(self, model):
+        self.model = model
+        self.image_manager = model.image_manager
 
-        self._source_transitioning = True
-        self.expect_image_transition()
+    def enter_state(self):
+        self.image_manager.stop_singlet_downloads()
+        self.download_workunit_images(
+            self.model.get_current_workunit())
 
-    def expect_observation_transition(self):
-        if self.is_waiting_for_transition():
-            # Don't allow additional events to be generated
-            return
+    def get_current_displayble_item(self):
+        return self.image_manager.get_displayable_triplet(
+            self.model.get_current_source())
 
-        self._observation_transitioning = True
-        self.expect_image_transition()
+    def download_workunit_images(self, workunit):
+        self.image_manager.download_triplets_for_workunit(workunit)
 
-    def acknowledge_image_displayed(self):
-        self._source_transitioning = False
-        self._observation_transitioning = False
-
-    def next_obs(self):
-        if self.is_waiting_for_transition():
-            return
-
-        super(TransAckUIModel, self).next_obs()
-
-    def previous_obs(self):
-        if self.is_waiting_for_transition():
-            return
-
-        super(TransAckUIModel, self).previous_obs()
-
-    def next_source(self):
-        if self.is_waiting_for_transition():
-            return
-
-        super(TransAckUIModel, self).next_source()
-
-    def previous_source(self):
-        if self.is_waiting_for_transition():
-            return
-
-        super(TransAckUIModel, self).previous_source()
-
-    def next_item(self):
-        if self.is_waiting_for_transition():
-            return
-
-        super(TransAckUIModel, self).next_item()
-
-    def accept_current_item(self):
-        if self._should_disable_validation():
-            return
-
-        super(TransAckUIModel, self).accept_current_item()
-
-    def reject_current_item(self):
-        if self._should_disable_validation():
-            return
-
-        super(TransAckUIModel, self).reject_current_item()
-
-    def _should_disable_validation(self):
-        if self.is_waiting_for_transition() and self.is_processing_reals():
-            return True
-
-        if (self.is_waiting_for_source_transition() and
-                self.is_processing_candidates()):
-            return True
-
-        return False
-
+    def submit_download_request(self, download_request):
+        self.image_manager.submit_triplet_download_request(download_request)

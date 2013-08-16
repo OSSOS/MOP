@@ -5,16 +5,16 @@ import unittest
 
 from hamcrest import (assert_that, is_in, is_not, equal_to, is_, none,
                       contains_inanyorder, has_length)
-from mock import Mock, call
+from mock import Mock, call, MagicMock
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from tests.testutil import CopyingMock
-from ossos.downloads.async import AsynchronousImageDownloadManager
 from ossos.gui import tasks
 from ossos.gui.context import WorkingContext, LocalDirectoryWorkingContext
-from ossos.gui.models import UIModel
+from ossos.gui.models.validation import ValidationModel
 from ossos.astrom import AstromParser, StreamingAstromWriter
 from ossos.mpc import MPCWriter
+from ossos.gui.models.imagemanager import ImageManager
 from ossos.gui.progress import LocalProgressManager, InMemoryProgressManager
 from ossos.gui.workload import (WorkUnitProvider, WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
                                 NoAvailableWorkException,
@@ -515,11 +515,11 @@ class WorkloadManagementTest(unittest.TestCase):
         self.progress_manager = InMemoryProgressManager(Mock(spec=LocalDirectoryWorkingContext))
         self.workunit_provider = Mock(spec=WorkUnitProvider)
 
-        self.workunit1 = Mock(spec=WorkUnit)
+        self.workunit1 = MagicMock(spec=WorkUnit)
         self.file1 = "file1"
         self.workunit1.get_filename.return_value = self.file1
 
-        self.workunit2 = Mock(spec=WorkUnit)
+        self.workunit2 = MagicMock(spec=WorkUnit)
         self.file2 = "file2"
         self.workunit2.get_filename.return_value = self.file2
 
@@ -531,9 +531,9 @@ class WorkloadManagementTest(unittest.TestCase):
             return workunit
 
         self.workunit_provider.get_workunit.side_effect = (get_workunit(index) for index in xrange(2))
-        download_manager = Mock(spec=AsynchronousImageDownloadManager)
+        image_manager = Mock(spec=ImageManager)
 
-        self.undertest = UIModel(self.workunit_provider, download_manager, None)
+        self.undertest = ValidationModel(self.workunit_provider, image_manager, None)
         self.undertest.start_work()
 
     def test_workunits_on_demand(self):

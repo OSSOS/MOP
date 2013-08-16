@@ -1,10 +1,8 @@
-from ossos.downloads.async import AsynchronousImageDownloadManager
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 
-from mock import Mock, ANY
+from mock import Mock, ANY, patch
 from hamcrest import assert_that, equal_to, is_not, same_instance
 
 from tests.base_tests import FileReadingTestCase, WxWidgetTestCase, DirectoryCleaningTestCase
@@ -13,7 +11,8 @@ from ossos.gui import tasks
 from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui.progress import LocalProgressManager
 from ossos.gui.controllers import ProcessRealsController
-from ossos.gui.models import UIModel
+from ossos.gui.models.imagemanager import ImageManager
+from ossos.gui.models.validation import ValidationModel
 from ossos.gui.views.app import ApplicationView
 from ossos.astrom import AstromParser
 from ossos.naming import ProvisionalNameGenerator
@@ -49,9 +48,9 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
                                                  context,
                                                  progress_manager))
 
-        download_manager = Mock(spec=AsynchronousImageDownloadManager)
+        image_manager = Mock(spec=ImageManager)
 
-        self.model = UIModel(workunit_provider, download_manager, None)
+        self.model = ValidationModel(workunit_provider, image_manager, None)
         self.model.start_work()
 
         # We don't actually have any images loaded, so mock this out
@@ -74,7 +73,8 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
     def get_files_to_keep(self):
         return ["1584431p15.measure3.reals.astrom", "1616681p10.measure3.reals.astrom"]
 
-    def test_reject_disables_validation_controls(self):
+    @patch("ossos.gui.controllers.mpc.Observation")
+    def test_reject_disables_validation_controls(self, mock_Observation):
         comment = "test"
         view = self.controller.view
 
@@ -94,7 +94,8 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
         self.controller.on_next_obs()
         assert_that(view.is_source_validation_enabled(), equal_to(True))
 
-    def test_reject_last_item_disables_validation_controls(self):
+    @patch("ossos.gui.controllers.mpc.Observation")
+    def test_reject_last_item_disables_validation_controls(self, mock_Observation):
         comment = "test"
         view = self.controller.view
 

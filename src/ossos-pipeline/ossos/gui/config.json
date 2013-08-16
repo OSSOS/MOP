@@ -1,6 +1,4 @@
 {
-    "DEBUG": false,
-
     "KEYBINDS": {
         "ACCEPT_SRC": "a",
         "REJECT_SRC": "r",
@@ -9,9 +7,15 @@
         "AUTOPLAY": "d"
     },
 
-    "IMG_RETRIEVAL": {
-        "DEFAULT_SLICE_ROWS": 250,
-        "DEFAULT_SLICE_COLS": 250
+    "CUTOUTS": {
+        "SINGLETS": {
+            "SLICE_ROWS": 250,
+            "SLICE_COLS": 250
+        },
+        "TRIPLETS": {
+            "SLICE_ROWS": 50,
+            "SLICE_COLS": 50
+        }
     },
 
     "DISPLAY" : {

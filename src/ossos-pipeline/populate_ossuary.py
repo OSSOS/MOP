@@ -105,10 +105,15 @@ def verify_ossos_image(header):
 def field_in_survey_footprint(header):
 	# as the fields precess according to Keplerian shear, required footprint is time-dependent.
 	# but it doesn't move that far in four years.
+	retval = True
 
-	# make sure any data from 2004 KV18, 2008 LC18, 2009 MS9 are excluded
+	# do not add to database any of these objects that were observed for followup on OSSOS time
+	verboten = ['2004 KV18', '2008 LC18', '2009 MS9']
+	for obj in verboten:
+		if header['OBJECT'] == obj:
+			retval = False
 
-	return True
+	return retval
 
 
 def get_iq_and_zeropoint(image, header_extract):

@@ -72,6 +72,12 @@ MPCNOTES = {'Note1':
                 "H": "Hipparcos geocentric observations",
                 "N": "Normal place",
                 "n": "Mini-normal place derived from averaging observations from video frames"
+            },
+            'PhotometryNote': {
+                " ": " ",
+                "": " ",
+                "Y": "Photometry measured successfully",
+                "Q": "Photometry measurement failed."
             }}
 
 
@@ -597,6 +603,7 @@ class Observation(object):
             self._mag = None
         else:
             self._mag = float(mag)
+            # CHECK: precision calculator says it is for sexagesimal rather than decimal info!
             self._mag_precision = min(2,self._compute_precision(str(mag)))
 
     @property
@@ -620,6 +627,54 @@ class Observation(object):
                                       "must be 3 characters or less",
                                       observatory_code)
         self._observatory_code = str(observatory_code)
+
+
+class MPCComment(object):
+    """
+    Parses an OSSOS observation's metadata into a format that can be stored in the 
+    an Observation.comment and written out in the same MPC line.
+    """
+
+    def __init__(self,
+                 image_id,
+                 ccd,
+                 observation,
+                 X,
+                 Y,
+                 MPCnotes = None,
+                 magnitude = 0.0,
+                 mag_uncertainty = 0.,
+                 plate_uncertainty = 0.,
+                 comment = None):
+
+        self.image_id = image_id
+        self.ccd = ccd
+        self.observation = observation
+        self.MPCnotes = MPCnotes
+        self.X = X
+        self.Y = Y
+        self.magnitude = magnitude
+        self.mag_uncertainty = mag_uncertainty
+        self.plate_uncertainty = plate_uncertainty
+        self.comment = comment
+
+    def __str__(self):
+        """
+        Format comment as required for storing OSSOS metadata
+        odonum p ccd object_name MPCnotes X Y mag mag_uncertainty plate_uncertainty % comment
+        """
+        # The astrometric uncertainty should be set to higher when hand measurements are made.
+
+        comm = '%s '.format(self.image_id)
+        comm += 'p%s '.format(self.ccd)
+        comm += str(self.observation)[0:12].strip(" ")  # want only whatever name info is present
+        comm += '{%%}'.format(str(self.note1), str(self.note2)) + '{% }'.format(self.MPCnotes)
+        comm += '%f %f ' % (self.X, self.Y)
+        comm += '%f %f ' % (self.magnitude, self.mag_uncertainty)
+        comm += '%f '.format(self.plate_uncertainty)
+        comm += '% ' + ((comment is None and "") or '%s' % comment)
+
+        return comm
 
 
 class MPCWriter(object):
@@ -650,9 +705,12 @@ class MPCWriter(object):
 
     def __init__(self, filehandle, auto_flush=True):
         self.filehandle = filehandle
-        self.buffer = ""
         self.auto_flush = auto_flush
+
         self.date_regex = re.compile("\d{4} \d{2} \d{2}\.\d{5,6}")
+
+        # Holds observations that have not yet been flushed
+        self.buffer = []
 
     def get_filename(self):
         return self.filehandle.name
@@ -664,17 +722,46 @@ class MPCWriter(object):
         Minor planet number can be left empty ("").  All other fields
         should be provided.
         """
-        line = mpc_observation.to_string()
-
-        self.buffer += line + "\n"
-
+        self.buffer.append(mpc_observation)
         if self.auto_flush:
             self.flush()
 
     def flush(self):
-        self.filehandle.write(self.buffer)
+        for obs in self.get_chronological_buffered_observations():
+            self.filehandle.write(obs.to_string() + "\n")
+
         self.filehandle.flush()
-        self.buffer = ""
+        self.buffer = []
 
     def close(self):
         self.filehandle.close()
+
+    def get_chronological_buffered_observations(self):
+        return sorted(self.buffer, key=lambda obs: obs.date.unix)
+
+
+class TNOdbWriter(MPCWriter):
+    """
+    Write out MPC lines in format that tnodb can accept.
+    """
+
+    def __init__(self, filehandle, auto_flush=True):
+        super(MPCWriter, self).__init__(filehandle, auto_flush=True)
+
+    def flush(self):
+        """
+        Format for tnodb.
+        Comment line and observation line have to be kept together.
+        """
+        for obs in self.get_chronological_buffered_observations():
+            comment_line = '#O ' + obs.comment      # indicates OSSOS survey
+            mpc_observation = obs.to_string()[:80]  # MPC roving observer line length
+            output_line = comment_line + '\n' + mpc_observation + '\n'
+            self.filehandle.write(output_line)
+
+        self.filehandle.flush()
+        self.buffer = []
+
+
+
+
