@@ -31,6 +31,9 @@ def create_application(taskname, working_directory, output_directory,
     elif taskname == tasks.REALS_TASK:
         ProcessRealsApplication(working_directory, output_directory,
                                 dry_run=dry_run, debug=debug)
+    elif taskname == tasks.TRACK_TASK:
+        ProcessTrackApplication(working_directory, output_directory,
+                                dry_run=dry_run, debug=debug)
     else:
         error_message = "Unknown task: %s" % taskname
         logger.critical(error_message)
@@ -169,6 +172,35 @@ class ProcessRealsApplication(ValidationApplication):
         preload_iraf()
 
         super(ProcessRealsApplication, self).__init__(
+            working_directory, output_directory, dry_run=dry_run, debug=debug)
+
+    @property
+    def input_suffix(self):
+        return tasks.suffixes[tasks.REALS_TASK]
+
+    @property
+    def should_randomize_workunits(self):
+        return False
+
+    def _create_workunit_builder(self,
+                                 input_context,
+                                 output_context,
+                                 progress_manager):
+        return RealsWorkUnitBuilder(
+            AstromParser(), input_context, output_context, progress_manager,
+            dry_run=self.dry_run)
+
+    def _create_controller_factory(self, model):
+        return RealsControllerFactory(model, dry_run=self.dry_run)
+
+
+
+class ProcessTracksApplication(ValidationApplication):
+    def __init__(self, working_directory, output_directory,
+                 dry_run=False, debug=False):
+        preload_iraf()
+
+        super(ProcessTracksApplication, self).__init__(
             working_directory, output_directory, dry_run=dry_run, debug=debug)
 
     @property
