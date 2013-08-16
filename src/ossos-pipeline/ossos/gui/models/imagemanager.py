@@ -58,13 +58,13 @@ class ImageManager(object):
         try:
             return self._displayable_singlets[reading]
         except KeyError:
-            raise ImageNotLoadedException()
+            raise ImageNotLoadedException(reading)
 
     def get_cutout(self, reading):
         try:
             return self._cutouts[reading]
         except KeyError:
-            raise ImageNotLoadedException()
+            raise ImageNotLoadedException(reading)
 
     def download_triplets_for_workunit(self, workunit):
         if workunit in self._workunits_downloaded_for_triplets:
@@ -107,7 +107,7 @@ class ImageManager(object):
         try:
             return self._displayable_triplets[source]
         except KeyError:
-            raise ImageNotLoadedException()
+            raise ImageNotLoadedException(source)
 
     def stop_downloads(self):
         self.stop_singlet_downloads()
