@@ -13,7 +13,7 @@ from ossos.gui.progress import LocalProgressManager
 from ossos.gui.controllers import ProcessRealsController
 from ossos.gui.models.imagemanager import ImageManager
 from ossos.gui.models.validation import ValidationModel
-from ossos.gui.views.app import ApplicationView
+from ossos.gui.views.appview import ApplicationView
 from ossos.astrom import AstromParser
 from ossos.naming import ProvisionalNameGenerator
 from ossos.gui.workload import WorkUnitProvider, RealsWorkUnitBuilder

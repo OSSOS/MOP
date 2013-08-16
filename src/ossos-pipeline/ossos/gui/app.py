@@ -20,7 +20,7 @@ from ossos.gui.controllers import (ProcessRealsController,
                                    ProcessCandidatesController)
 from ossos.gui.models.imagemanager import ImageManager
 from ossos.gui.models.transactions import TransAckValidationModel
-from ossos.gui.views.app import ApplicationView
+from ossos.gui.views.appview import ApplicationView
 from ossos.naming import ProvisionalNameGenerator, DryRunNameGenerator
 
 
