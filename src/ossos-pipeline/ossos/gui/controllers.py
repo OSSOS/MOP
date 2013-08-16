@@ -57,10 +57,10 @@ class AbstractController(object):
             pass
 
     def on_image_loaded(self, event):
-        source_reading = event.data
-        self.image_loading_dialog_manager.set_item_done(source_reading)
+        displayable_item = event.data
+        self.image_loading_dialog_manager.set_item_done(displayable_item)
 
-        if source_reading == self.model.get_current_reading():
+        if displayable_item == self.model.get_current_displayable_item():
             self.display_current_image()
 
     def on_change_image(self, event):
