@@ -2,13 +2,13 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 
-from mock import Mock, MagicMock, patch, ANY
+from mock import Mock, MagicMock, ANY
 from hamcrest import equal_to, assert_that
 
-from ossos.gui import config
 from ossos.astrom import SourceReading, Observation
-from ossos.gui.views.app import ApplicationView
+from ossos.gui import config
 from ossos.gui.models.validation import ValidationModel
+from ossos.gui.views.app import ApplicationView
 from ossos.gui.controllers import AbstractController, ProcessRealsController, ImageLoadingDialogManager
 from ossos.naming import ProvisionalNameGenerator
 
@@ -30,10 +30,8 @@ class AbstractControllerTest(unittest.TestCase):
 
         self.model.reset_current_source_location.side_effect = reset_location
 
-        # TODO: indicates refactoring needed
-        with patch("ossos.gui.controllers.ApplicationView"):
-            self.controller = AbstractController(self.model)
-            self.view = self.controller.view
+        self.view = Mock(spec=ApplicationView)
+        self.controller = AbstractController(self.model, self.view)
 
     def test_reset_source_location_updates_model(self):
         self.controller.on_reset_source_location()
@@ -46,18 +44,15 @@ class AbstractControllerTest(unittest.TestCase):
             self.original_x, self.original_y, ANY, redraw=True)
 
         # Don't need to redraw whole image
-        assert_that(self.view.display_current_image.call_count, equal_to(0))
+        assert_that(self.view.display.call_count, equal_to(0))
 
 
 class RealsControllerTest(unittest.TestCase):
     def setUp(self):
         self.model = MagicMock(spec=ValidationModel)
-
-        # TODO: indicates refactoring needed
-        with patch("ossos.gui.controllers.ApplicationView"):
-            self.controller = ProcessRealsController(
-                self.model, Mock(spec=ProvisionalNameGenerator))
-            self.view = self.controller.view
+        self.view = Mock(spec=ApplicationView)
+        self.controller = ProcessRealsController(
+            self.model, self.view, Mock(spec=ProvisionalNameGenerator))
 
     def test_accept_sets_note1_to_hand_adjusted_if_current_source_adjusted(self):
         self.model.is_current_source_adjusted.return_value = True

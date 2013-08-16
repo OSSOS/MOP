@@ -3,8 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import wx
 
 from ossos.gui import logger
-from ossos.gui.views.dialogs import (should_exit_prompt,
-                                     show_empty_workload_dialog )
+from ossos.gui.views import dialogs
 from ossos.gui.views.errorhandling import CertificateDialog, RetryDownloadDialog
 from ossos.gui.views.keybinds import KeybindManager
 from ossos.gui.views.loading import WaitingGaugeDialog
@@ -38,12 +37,12 @@ class ApplicationView(object):
     Provides the view's external interface.
     """
 
-    def __init__(self, controller):
-        self.controller = controller
+    def __init__(self, controller_factory):
+        self.controller = controller_factory.create_controller(self)
 
-        self.mainframe = MainFrame(controller)
-        self.menu = Menu(self.mainframe, controller)
-        self.keybind_manager = KeybindManager(self.mainframe, controller)
+        self.mainframe = MainFrame(self.controller)
+        self.menu = Menu(self.mainframe, self.controller)
+        self.keybind_manager = KeybindManager(self.mainframe, self.controller)
 
         self.loading_dialog = WaitingGaugeDialog(self.mainframe,
                                                  "Image loading...")
@@ -55,6 +54,9 @@ class ApplicationView(object):
         self.reject_source_dialog = None
         self.certificate_dialog = None
         self.retry_downloads_dialog = None
+
+        # TODO refactor
+        self.register_xy_changed_event_handler(self.controller.on_reposition_source)
 
         self.mainframe.Show()
 
@@ -185,11 +187,11 @@ class ApplicationView(object):
 
     @guithread
     def show_empty_workload_dialog(self, directory):
-        show_empty_workload_dialog(self.mainframe, directory)
+        dialogs.show_empty_workload_dialog(self.mainframe, directory)
 
     @guithread
     def all_processed_should_exit_prompt(self):
-        return should_exit_prompt(self.mainframe)
+        return dialogs.should_exit_prompt(self.mainframe)
 
     @guithread
     def set_autoplay(self, autoplay_enabled):

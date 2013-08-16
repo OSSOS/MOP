@@ -7,6 +7,7 @@ from mock import Mock
 from hamcrest import assert_that, equal_to
 
 from tests.base_tests import WxWidgetTestCase
+from ossos.gui.controllers import AbstractController
 from ossos.gui.views.app import ApplicationView
 
 
@@ -17,8 +18,12 @@ class ApplicationViewTest(WxWidgetTestCase):
         self.output_writer = Mock()
         self.name_generator = Mock()
 
-        self.controller = Mock()
-        self.appview = ApplicationView(self.controller)
+        class TestFactory(object):
+            def create_controller(self, view):
+                return Mock(spec=AbstractController)
+
+        self.appview = ApplicationView(TestFactory())
+        self.controller = self.appview.controller
 
     def tearDown(self):
         self.appview.close()

@@ -20,6 +20,7 @@ from ossos.gui.controllers import (ProcessRealsController,
                                    ProcessCandidatesController)
 from ossos.gui.models.imagemanager import ImageManager
 from ossos.gui.models.transactions import TransAckValidationModel
+from ossos.gui.views.app import ApplicationView
 from ossos.naming import ProvisionalNameGenerator, DryRunNameGenerator
 
 
@@ -34,7 +35,7 @@ class AbstractTaskFactory(object):
                                 progress_manager):
         pass
 
-    def create_controller(self, model):
+    def create_controller_factory(self, model):
         pass
 
     def should_randomize_workunits(self):
@@ -62,13 +63,8 @@ class ProcessRealsTaskFactory(AbstractTaskFactory):
             parser, input_context, output_context, progress_manager,
             dry_run=self.dry_run)
 
-    def create_controller(self, model):
-        if self.dry_run:
-            name_generator = DryRunNameGenerator()
-        else:
-            name_generator = ProvisionalNameGenerator()
-
-        return ProcessRealsController(model, name_generator)
+    def create_controller_factory(self, model):
+        return RealsControllerFactory(model)
 
     def should_randomize_workunits(self):
         return False
@@ -87,11 +83,35 @@ class ProcessCandidatesTaskFactory(AbstractTaskFactory):
             parser, input_context, output_context, progress_manager,
             dry_run=self.dry_run)
 
-    def create_controller(self, model):
-        return ProcessCandidatesController(model)
+    def create_controller_factory(self, model):
+        return CandidatesControllerFactory(model)
 
     def should_randomize_workunits(self):
         return True
+
+
+class ControllerFactory(object):
+    def __init__(self, model, dry_run=False):
+        self.model= model
+        self.dry_run = dry_run
+
+    def create_controller(self, view):
+        raise NotImplementedError()
+
+
+class CandidatesControllerFactory(ControllerFactory):
+    def create_controller(self, view):
+        return ProcessCandidatesController(self.model, view)
+
+
+class RealsControllerFactory(ControllerFactory):
+    def create_controller(self, view):
+        if self.dry_run:
+            name_generator = DryRunNameGenerator()
+        else:
+            name_generator = ProvisionalNameGenerator()
+
+        return ProcessRealsController(self.model, view, name_generator)
 
 
 class ValidationApplication(object):
@@ -171,14 +191,16 @@ class ValidationApplication(object):
                                         synchronization_manager)
         logger.debug("Created model.")
 
-        controller = factory.create_controller(model)
+        view = ApplicationView(factory.create_controller_factory(model))
         logger.debug("Created controller.")
 
         model.start_work()
-        controller.display_current_image()
 
         self.model = model
-        self.view = controller.get_view()
+        self.view = view
+        self.controller = view.controller
+
+        self.controller.display_current_image()
 
         if not synchronization_manager:
             self.view.disable_sync_menu()
