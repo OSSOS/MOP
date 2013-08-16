@@ -13,6 +13,8 @@ import os
 
 class OrbfitTest(unittest.TestCase):
 
+      @unittest.skipIf(not os.path.exists(orbfit.LIBORBFIT),
+                       "%s not found" % orbfit.LIBORBFIT)
       def test_create_from_line(self):
         mpc_lines=("     HL7j2    C2013 04 03.62926 17 12 01.16 +04 13 33.3          24.1 R      568",
                    "     HL7j2    C2013 04 04.58296 17 11 59.80 +04 14 05.5          24.0 R      568",

@@ -19,6 +19,7 @@ TEST_DATE = "2012 01 01"
 TEST_DEC = 31.2123
 TEST_RA = 27.213
 TEST_MAG = "123.5"
+TEST_MAG_ERR = "5"
 TEST_BAND = "A"
 TEST_OBS_CODE = "523"
 TEST_COMMENT = "Test comment"
@@ -34,7 +35,7 @@ class AcceptSourceDialogTest(WxWidgetTestCase):
         return AcceptSourceDialog(self.rootframe, self.controller,
                                   TEST_PROVISIONAL_NAME, False,
                                   TEST_DATE, TEST_RA, TEST_DEC, TEST_MAG,
-                                  TEST_BAND,
+                                  TEST_MAG_ERR, TEST_BAND,
                                   note1_choices=note1_choices,
                                   note2_choices=note2_choices)
 
@@ -113,13 +114,13 @@ class AcceptSourceDialogTest(WxWidgetTestCase):
         self.controller.on_do_accept.assert_called_once_with(
             TEST_MINOR_PLANET_NUMBER, TEST_PROVISIONAL_NAME, TEST_DISCOVERY_AST,
             TEST_NOTE1, TEST_NOTE2, TEST_DATE, str(TEST_RA), str(TEST_DEC), TEST_MAG,
-            TEST_BAND, TEST_OBS_CODE, TEST_COMMENT)
+            TEST_MAG_ERR, TEST_BAND, TEST_OBS_CODE, TEST_COMMENT)
 
     def test_submit_data_phot_failure(self):
         undertest = AcceptSourceDialog(self.rootframe, self.controller,
                                        TEST_PROVISIONAL_NAME, False,
                                        TEST_DATE, TEST_RA, TEST_DEC, TEST_MAG,
-                                       TEST_BAND,
+                                       TEST_MAG_ERR, TEST_BAND,
                                        note1_choices=None,
                                        note2_choices=None,
                                        default_observatory_code=TEST_OBS_CODE,
@@ -134,12 +135,13 @@ class AcceptSourceDialogTest(WxWidgetTestCase):
 
         # Check data
         obs_mag = ""
+        obs_mag_err = -1
         band = ""
         assert_that(self.controller.on_cancel_accept.called, equal_to(False))
         self.controller.on_do_accept.assert_called_once_with(
             "", TEST_PROVISIONAL_NAME, TEST_DISCOVERY_AST,
             "", "", TEST_DATE, str(TEST_RA), str(TEST_DEC), obs_mag,
-            band, TEST_OBS_CODE, TEST_COMMENT)
+            obs_mag_err, band, TEST_OBS_CODE, TEST_COMMENT)
 
 
 class RejectSourceDialogTest(WxWidgetTestCase):
