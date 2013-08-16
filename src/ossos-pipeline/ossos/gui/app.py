@@ -21,10 +21,26 @@ from ossos.gui.views.appview import ApplicationView
 from ossos.naming import ProvisionalNameGenerator, DryRunNameGenerator
 
 
+def create_application(taskname, working_directory, output_directory,
+                       dry_run=False, debug=False):
+    logger.info("Starting %s task." % taskname)
+
+    if taskname == tasks.CANDS_TASK:
+        ProcessCandidatesApplication(working_directory, output_directory,
+                                     dry_run=dry_run, debug=debug)
+    elif taskname == tasks.REALS_TASK:
+        ProcessRealsApplication(working_directory, output_directory,
+                                dry_run=dry_run, debug=debug)
+    else:
+        error_message = "Unknown task: %s" % taskname
+        logger.critical(error_message)
+        raise ValueError(error_message)
+
+
 class ValidationApplication(object):
-    def __init__(self, taskname, working_directory, output_directory,
+    def __init__(self, working_directory, output_directory,
                  dry_run=False, debug=False):
-        logger.info("Starting %s task in %s" % (taskname, working_directory))
+        logger.info("Input directory set to: %s" % working_directory)
         logger.info("Output directory set to: %s" % output_directory)
 
         working_context = context.get_context(working_directory)
@@ -40,14 +56,7 @@ class ValidationApplication(object):
 
         image_manager = self._create_image_manager()
 
-        if taskname == tasks.CANDS_TASK:
-            factory = ProcessCandidatesTaskFactory(dry_run=dry_run)
-        elif taskname == tasks.REALS_TASK:
-            factory = ProcessRealsTaskFactory(dry_run=dry_run)
-        else:
-            error_message = "Unknown task: %s" % taskname
-            logger.critical(error_message)
-            raise ValueError(error_message)
+        factory = self._get_factory(dry_run=dry_run)
 
         progress_manager = working_context.get_progress_manager()
         builder = factory.create_workunit_builder(AstromParser(),
@@ -55,7 +64,7 @@ class ValidationApplication(object):
                                                   output_context,
                                                   progress_manager)
 
-        workunit_provider = WorkUnitProvider(tasks.get_suffix(taskname),
+        workunit_provider = WorkUnitProvider(self.input_suffix,
                                              working_context,
                                              progress_manager, builder,
                                              randomize=factory.should_randomize_workunits())
@@ -115,6 +124,31 @@ class ValidationApplication(object):
 
     def get_view(self):
         return self.view
+
+    def _get_factory(self, dry_run=False):
+        raise NotImplementedError()
+
+    @property
+    def input_suffix(self):
+        raise NotImplementedError()
+
+
+class ProcessCandidatesApplication(ValidationApplication):
+    @property
+    def input_suffix(self):
+        return tasks.suffixes[tasks.CANDS_TASK]
+
+    def _get_factory(self, dry_run=False):
+        return ProcessCandidatesTaskFactory(dry_run=dry_run)
+
+
+class ProcessRealsApplication(ValidationApplication):
+    @property
+    def input_suffix(self):
+        return tasks.suffixes[tasks.REALS_TASK]
+
+    def _get_factory(self, dry_run=False):
+        return ProcessRealsTaskFactory(dry_run=dry_run)
 
 
 class AbstractTaskFactory(object):
