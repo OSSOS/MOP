@@ -115,6 +115,9 @@ class AbstractController(object):
             self.autoplay_manager.start_autoplay()
             self.view.set_autoplay(True)
 
+    def on_show_keymappings(self):
+        self.view.show_keymappings()
+
     def on_exit(self):
         self._do_exit()
 
