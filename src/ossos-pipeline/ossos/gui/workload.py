@@ -242,6 +242,110 @@ class WorkUnit(object):
         pass
 
 
+class TrackWorkUnit(WorkUnit):
+    """
+    A unit of work when performing the process track task.
+    """
+    def __init__(self,
+                 filename,
+                 parsed_data,
+                 progress_manager,
+                 output_context,
+                 dry_run=False):
+        super(TrackWorkUnit, self).__init__(
+            filename,
+            parsed_data,
+            progress_manager,
+            output_context,
+            dry_run=dry_run )
+
+        self._writers = {}
+
+    def next_item(self):
+        assert not self.is_finished()
+
+        self.next_obs()
+        while self.is_current_item_processed():
+            self._next_sequential_item()
+
+    def _next_sequential_item(self):
+        """
+        Go to the next item to process.
+        """
+        if self.get_current_source_readings().is_on_last_item():
+            self.next_source()
+        else:
+            self.next_obs()
+
+    def get_current_item(self):
+        return self.get_current_reading()
+
+    def get_current_item_index(self):
+        return (self.get_sources().get_index() * self.get_obs_count() +
+                self.get_current_source_readings().get_index())
+
+    def is_source_finished(self, source):
+        for reading in source.get_readings():
+            if reading not in self.processed_items:
+                return False
+
+        return True
+
+    def is_apcor_needed(self):
+        return True
+
+    def get_writer(self):
+        filename = self.get_output_filename(self.get_current_source())
+        if filename in self._writers:
+            return self._writers[filename]
+
+        writer = self._create_writer(filename)
+        self._writers[filename] = writer
+        return writer
+
+    def get_results_file_paths(self):
+        return [self.output_context.get_full_path(filename)
+                for filename in self._writers]
+
+    def get_output_filename(self, source):
+        if not source.has_provisional_name():
+            raise SourceNotNamedException(source)
+
+        name = source.get_provisional_name() + ".mpc"
+
+        if self.dry_run:
+            name = os.path.basename(self.filename) + "." + name
+
+        return name
+
+    def _create_writer(self, filename):
+        # NOTE: this import is only here so that we don't load up secondary
+        # dependencies (like astropy) used in MPCWriter when they are not
+        # needed (i.e. cands task).  This is to help reduce the application
+        # startup time.
+        from ossos.mpc import MPCWriter
+
+        return MPCWriter(self.output_context.open(filename),
+                         auto_flush=False)
+
+    def _get_item_set(self):
+        all_readings = set()
+        for readings in self.readings_by_source.itervalues():
+            all_readings.update(readings)
+        return all_readings
+
+    def _mark_previously_processed_items(self):
+        processed_indices = self.progress_manager.get_processed_indices(self.get_filename())
+        for index in processed_indices:
+            for reading in self.get_sources()[index].get_readings():
+                self.processed_items.add(reading)
+
+    def _close_writers(self):
+        for writer in self._writers.values():
+            writer.close()
+
+
+
 class RealsWorkUnit(WorkUnit):
     """
     A unit of work when performing the process reals task.
@@ -624,6 +728,29 @@ class WorkUnitBuilder(object):
                            output_context,
                            dry_run):
         raise NotImplementedError()
+
+
+
+class TracksWorkUnitBuilder(WorkUnitBuilder):
+    """
+    Used to construct a WorkUnit for doing 'Track'
+    """
+
+    def __init__(self, parser, input_context, output_context, progress_manager,
+                 dry_run=False):
+        super(TracksWorkUnitBuilder, self).__init__(
+            parser, input_context, output_context, progress_manager,
+            dry_run=dry_run
+        )
+
+    def _do_build_workunit(self,
+                           filename,
+                           data,
+                           progress_manager,
+                           output_context,
+                           dry_run):
+        return TrackWorkUnit(
+            filename, data, progress_manager, output_context, dry_run=dry_run)
 
 
 class RealsWorkUnitBuilder(WorkUnitBuilder):
