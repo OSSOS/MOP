@@ -38,6 +38,8 @@ class ValidationApplication(object):
             sys.stdout.write("The output directory must be local.\n")
             sys.exit(0)
 
+        image_manager = self._create_image_manager()
+
         if taskname == tasks.CANDS_TASK:
             factory = ProcessCandidatesTaskFactory(dry_run=dry_run)
         elif taskname == tasks.REALS_TASK:
@@ -47,31 +49,8 @@ class ValidationApplication(object):
             logger.critical(error_message)
             raise ValueError(error_message)
 
-        parser = AstromParser()
-        error_handler = DownloadErrorHandler(self)
-
-        def read(slice_config):
-            return config.read("CUTOUTS.%s" % slice_config)
-
-        singlet_downloader = ImageCutoutDownloader(
-            slice_rows=read("SINGLETS.SLICE_ROWS"),
-            slice_cols=read("SINGLETS.SLICE_COLS"))
-
-        singlet_download_manager = AsynchronousDownloadManager(
-            singlet_downloader, error_handler)
-
-        triplet_downloader = ImageCutoutDownloader(
-            slice_rows=read("TRIPLETS.SLICE_ROWS"),
-            slice_cols=read("TRIPLETS.SLICE_COLS"))
-
-        triplet_download_manager = AsynchronousDownloadManager(
-            triplet_downloader, error_handler)
-
-        image_manager = ImageManager(singlet_download_manager,
-                                     triplet_download_manager)
-
         progress_manager = working_context.get_progress_manager()
-        builder = factory.create_workunit_builder(parser,
+        builder = factory.create_workunit_builder(AstromParser(),
                                                   working_context,
                                                   output_context,
                                                   progress_manager)
@@ -108,6 +87,28 @@ class ValidationApplication(object):
             self.view.disable_sync_menu()
 
         self.view.show()
+
+    def _create_image_manager(self):
+        error_handler = DownloadErrorHandler(self)
+
+        def read(slice_config):
+            return config.read("CUTOUTS.%s" % slice_config)
+
+        singlet_downloader = ImageCutoutDownloader(
+            slice_rows=read("SINGLETS.SLICE_ROWS"),
+            slice_cols=read("SINGLETS.SLICE_COLS"))
+
+        singlet_download_manager = AsynchronousDownloadManager(
+            singlet_downloader, error_handler)
+
+        triplet_downloader = ImageCutoutDownloader(
+            slice_rows=read("TRIPLETS.SLICE_ROWS"),
+            slice_cols=read("TRIPLETS.SLICE_COLS"))
+
+        triplet_download_manager = AsynchronousDownloadManager(
+            triplet_downloader, error_handler)
+
+        return ImageManager(singlet_download_manager, triplet_download_manager)
 
     def get_model(self):
         return self.model
