@@ -27,6 +27,7 @@ TEST_DATE = "2013 04 09.43325"
 TEST_DEC = 31.2123
 TEST_RA = 27.213
 TEST_MAG = "123.5"
+TEST_MAG_ERR = "5"
 TEST_BAND = "A"
 TEST_OBS_CODE = "523"
 TEST_COMMENT = "Test comment"
@@ -137,6 +138,7 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
                                      TEST_RA,
                                      TEST_DEC,
                                      TEST_MAG,
+                                     TEST_MAG_ERR,
                                      TEST_BAND,
                                      TEST_OBS_CODE,
                                      TEST_COMMENT
@@ -218,6 +220,7 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
             ANY,
             ANY,
             "", # obs_mag
+            -1, # obs_mag_err
             "", # band
             note1_choices=ANY,
             note2_choices=ANY,

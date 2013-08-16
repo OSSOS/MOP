@@ -50,6 +50,8 @@ class AbstractControllerTest(unittest.TestCase):
 class RealsControllerTest(unittest.TestCase):
     def setUp(self):
         self.model = MagicMock(spec=ValidationModel)
+        self.model.get_current_source_observed_magnitude.return_value = 100, 1
+
         self.view = Mock(spec=ApplicationView)
         self.controller = ProcessRealsController(
             self.model, self.view, Mock(spec=ProvisionalNameGenerator))
@@ -59,6 +61,7 @@ class RealsControllerTest(unittest.TestCase):
 
         self.controller.on_accept()
         self.view.show_accept_source_dialog.assert_called_once_with(
+            ANY,
             ANY,
             ANY,
             ANY,
@@ -86,6 +89,7 @@ class RealsControllerTest(unittest.TestCase):
             ANY,
             ANY,
             ANY,
+            ANY,
             note1_choices=ANY,
             note2_choices=ANY,
             note1_default=None,
@@ -93,15 +97,6 @@ class RealsControllerTest(unittest.TestCase):
             default_observatory_code=ANY,
             default_comment=ANY,
             phot_failure=ANY)
-
-    def test_generate_mpc_line(self):
-        obs = Observation("1234567", "p", "00")
-        reading = SourceReading(334.56, 884.22, 335.56, 885.22, 0, 0,
-                                335.56, 885.22, obs)
-        self.model.get_current_reading = Mock(return_value=reading)
-
-        assert_that(self.controller.generate_mpc_comment("Something fishy."),
-                    equal_to("1234567p00 334.56 884.22 Something fishy.\n"))
 
 
 class ImageLoadingDialogManagerTest(unittest.TestCase):

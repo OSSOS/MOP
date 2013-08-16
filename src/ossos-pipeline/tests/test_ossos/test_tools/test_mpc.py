@@ -246,7 +246,8 @@ class MPCNoteTest(unittest.TestCase):
 class MPCWriterTest(unittest.TestCase):
     def setUp(self):
         self.outputfile = tempfile.TemporaryFile()
-        self.undertest = mpc.MPCWriter(self.outputfile)
+        self.undertest = mpc.MPCWriter(self.outputfile, auto_flush=True,
+                                       include_comments=False)
 
     def tearDown(self):
         self.outputfile.close()
@@ -462,6 +463,8 @@ class MPCWriterTest(unittest.TestCase):
         assert_that(actual, equal_to(expected))
 
     def test_write_comment(self):
+        self.undertest = mpc.MPCWriter(self.outputfile, auto_flush=True,
+                                       include_comments=True)
         comment = "1234567p00 334.56 884.22 Something fishy."
         obs = mpc.Observation(minor_planet_number="",
                               provisional_name="A234567",
@@ -483,6 +486,8 @@ class MPCWriterTest(unittest.TestCase):
         assert_that(self.read_outputfile(), equal_to(expected))
 
     def test_write_rejection_line(self):
+        self.undertest = mpc.MPCWriter(self.outputfile, auto_flush=True,
+                                       include_comments=True)
         comment = "1234567p00 334.56 884.22 Something fishy."
         obs = mpc.Observation(date="2012 10 21.405160",
                               ra="26.683336700", # 01 46 44.001
@@ -501,7 +506,8 @@ class MPCWriterTest(unittest.TestCase):
         assert_that(actual, equal_to(expected))
 
     def test_flush(self):
-        self.undertest = mpc.MPCWriter(self.outputfile, auto_flush=False)
+        self.undertest = mpc.MPCWriter(self.outputfile, auto_flush=False,
+                                       include_comments=False)
 
         obs1 = mpc.Observation(minor_planet_number="12345",
                                provisional_name="A234567",
@@ -531,14 +537,15 @@ class MPCWriterTest(unittest.TestCase):
         assert_that(self.read_outputfile(), equal_to(""))
 
         expected_mpcline = "12345A234567*HN2012 10 21.40516001 46 44.001+29 13 13.27         123.5A      523\n"
-        expected_reject_line = "!              2012 10 21.40516001 46 44.001+29 13 13.27         0.0  r      568\n"
+        expected_reject_line = "!              2012 10 21.40516001 46 44.001+29 13 13.27         -1   r      568\n"
 
         self.undertest.flush()
         assert_that(self.read_outputfile(),
                     equal_to(expected_mpcline + expected_reject_line))
 
     def test_written_obs_sorted_chronologically_on_flush(self):
-        self.undertest = mpc.MPCWriter(self.outputfile, auto_flush=False)
+        self.undertest = mpc.MPCWriter(self.outputfile, auto_flush=False,
+                                       include_comments=False)
 
         obs1 = mpc.Observation(minor_planet_number="12345",
                                provisional_name="A234567",
