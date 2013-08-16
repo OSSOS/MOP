@@ -820,9 +820,10 @@ class MPCWriter(object):
         78 - 80       A3     Observatory code
     """
 
-    def __init__(self, filehandle, auto_flush=True):
+    def __init__(self, filehandle, auto_flush=True, include_comments=True):
         self.filehandle = filehandle
         self.auto_flush = auto_flush
+        self.include_comments = include_comments
 
         self.date_regex = re.compile("\d{4} \d{2} \d{2}\.\d{5,6}")
 
@@ -835,9 +836,6 @@ class MPCWriter(object):
     def write(self, mpc_observation):
         """
         Writes a single entry in the Minor Planet Center's format.
-
-        Minor planet number can be left empty ("").  All other fields
-        should be provided.
         """
         self.buffer.append(mpc_observation)
         if self.auto_flush:
@@ -845,7 +843,8 @@ class MPCWriter(object):
 
     def flush(self):
         for obs in self.get_chronological_buffered_observations():
-            self.filehandle.write(obs.to_string() + "\n")
+            line = obs.to_string() if self.include_comments else str(obs)
+            self.filehandle.write(line + "\n")
 
         self.filehandle.flush()
         self.buffer = []
