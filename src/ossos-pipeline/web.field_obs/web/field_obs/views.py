@@ -42,7 +42,7 @@ class ErrorStatus(object):
 	def joblog_url(self, component, ccd):
 		canfar_url = 'http://www.canfar.phys.uvic.ca/vospace/nodes/OSSOS/dbimages/'
 		# OSSOS/dbimages/EXPNUM/ccd##/pipeline_step.txt
-		retval = canfar_url + self.image_id +'/'+ ccd +'/'+ component + '.txt'
+		retval = canfar_url + self.image_id +'/'+ 'ccd'+ccd +'/'+ component + '.txt'
 	
 		return retval
 
