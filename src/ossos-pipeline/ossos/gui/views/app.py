@@ -38,11 +38,10 @@ class ApplicationView(object):
     Provides the view's external interface.
     """
 
-    def __init__(self, model, controller):
-        self.model = model
+    def __init__(self, controller):
         self.controller = controller
 
-        self.mainframe = MainFrame(model, controller)
+        self.mainframe = MainFrame(controller)
         self.menu = Menu(self.mainframe, controller)
         self.keybind_manager = KeybindManager(self.mainframe, controller)
 
@@ -73,8 +72,8 @@ class ApplicationView(object):
         self.mainframe.draw_marker(x, y, radius, redraw=redraw)
 
     @guithread
-    def update_displayed_data(self):
-        self.mainframe.update_displayed_data()
+    def update_displayed_data(self, reading_data, header_data_list):
+        self.mainframe.update_displayed_data(reading_data, header_data_list)
 
     @guithread
     def reset_colormap(self):
@@ -185,8 +184,8 @@ class ApplicationView(object):
             self.reject_source_dialog = None
 
     @guithread
-    def show_empty_workload_dialog(self):
-        show_empty_workload_dialog(self.mainframe, self.model)
+    def show_empty_workload_dialog(self, directory):
+        show_empty_workload_dialog(self.mainframe, directory)
 
     @guithread
     def all_processed_should_exit_prompt(self):
