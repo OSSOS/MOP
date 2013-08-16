@@ -18,7 +18,7 @@ from matplotlib import pyplot
 import logging
 
 
-OSSOS_RUNIDS = list(('13AP05','13AP06', '13BP05', '13PBP06'))
+OSSOS_RUNIDS = list(('13AP05','13AP06', '13BP05', '13BP06'))
 
 def query_for_observations(mjd, observable, runids):
     """Do a QUERY on the TAP service for all observations that are part of runid, 
@@ -52,7 +52,7 @@ def query_for_observations(mjd, observable, runids):
           "LANG": "ADQL",
           "FORMAT": "votable" }
 
-    url="http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/tap/sync?"+urllib.urlencode(data)
+    url=storage.TAP_WEB_SERVICE+urllib.urlencode(data)
 
 
     logging.debug("Doing TAP Query using url: %s" % ( str(url)))
@@ -93,7 +93,7 @@ def create_ascii_table(obsTable, outfile):
     t2 = None
     fout.write(bar+stamp+bar+header)
 
-    populated = vos.Client().listdir('vos:OSSOS/dbimages')
+    populated = vos.Client().listdir(storage.DBIMAGES)
     for i in range(len(obsTable)-1,-1,-1):
         row = obsTable.data[i]
         if row['dataset_name'] not in populated:
