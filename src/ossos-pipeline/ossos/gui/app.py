@@ -125,6 +125,17 @@ class ValidationApplication(object):
         logger.info("Starting %s task in %s" % (taskname, working_directory))
         logger.info("Output directory set to: %s" % output_directory)
 
+        working_context = context.get_context(working_directory)
+        output_context = context.get_context(output_directory)
+
+        if dry_run and working_context.is_remote():
+            sys.stdout.write("A dry run can only be done on local files.\n")
+            sys.exit(0)
+
+        if output_context.is_remote():
+            sys.stdout.write("The output directory must be local.\n")
+            sys.exit(0)
+
         wx_app = wx.App(False)
 
         try:
@@ -156,17 +167,6 @@ class ValidationApplication(object):
 
         image_manager = ImageManager(singlet_download_manager,
                                      triplet_download_manager)
-
-        working_context = context.get_context(working_directory)
-        output_context = context.get_context(output_directory)
-
-        if dry_run and working_context.is_remote():
-            sys.stdout.write("A dry run can only be done on local files.\n")
-            sys.exit(0)
-
-        if output_context.is_remote():
-            sys.stdout.write("The output directory must be local.\n")
-            sys.exit(0)
 
         progress_manager = working_context.get_progress_manager()
         builder = factory.create_workunit_builder(parser,
