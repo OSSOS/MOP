@@ -154,6 +154,7 @@ class AcceptSourceDialog(SourceValidationDialog):
                  ra,
                  dec,
                  obs_mag,
+                 obs_mag_err,
                  band,
                  note1_choices=None,
                  note2_choices=None,
@@ -175,8 +176,10 @@ class AcceptSourceDialog(SourceValidationDialog):
             message = "Photometry failed.  Will be left blank."
             self.obs_mag = message
             self.band = message
+            self.obs_mag_err = message
         else:
             self.obs_mag = str(obs_mag)
+            self.obs_mag_err = str(obs_mag_err)
             self.band = band
 
         self.default_observatory_code = str(default_observatory_code)
@@ -284,6 +287,7 @@ class AcceptSourceDialog(SourceValidationDialog):
         note1 = self.note1_combobox.GetValue()
         note2 = self.note2_combobox.GetValue()
         obs_mag = self.obs_mag if not self.phot_failure else ""
+        obs_mag_err = self.obs_mag_err if not self.phot_failure else -1
         band = self.band if not self.phot_failure else ""
         observatory_code = self.observatory_code_text.GetValue()
         comment = self.comment_text.GetValue()
@@ -297,6 +301,7 @@ class AcceptSourceDialog(SourceValidationDialog):
                                      self.ra_str,
                                      self.dec_str,
                                      obs_mag,
+                                     obs_mag_err,
                                      band,
                                      observatory_code,
                                      comment
@@ -342,7 +347,8 @@ class KeyboardCompleteComboBox(wx.ComboBox):
             choices = []
 
         self.choices = choices
-        super(KeyboardCompleteComboBox, self).__init__(parent, choices=choices,
+        super(KeyboardCompleteComboBox, self).__init__(parent,
+                                                       choices=choices,
                                                        style=wx.CB_READONLY,
                                                        **kwargs)
         self.Bind(wx.EVT_CHAR, self._on_char)
