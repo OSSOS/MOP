@@ -7,7 +7,7 @@ import wx
 from mock import patch
 from hamcrest import assert_that, equal_to
 
-from ossos.gui.views.app import guithread
+from ossos.gui.views.appview import guithread
 
 
 class WxUtilTest(unittest.TestCase):

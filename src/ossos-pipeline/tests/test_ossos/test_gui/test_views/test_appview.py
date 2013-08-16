@@ -8,7 +8,7 @@ from hamcrest import assert_that, equal_to
 
 from tests.base_tests import WxWidgetTestCase
 from ossos.gui.controllers import AbstractController
-from ossos.gui.views.app import ApplicationView
+from ossos.gui.views.appview import ApplicationView
 
 
 class ApplicationViewTest(WxWidgetTestCase):
