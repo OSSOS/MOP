@@ -19,7 +19,7 @@ class AbstractController(object):
         events.subscribe(events.NO_AVAILABLE_WORK, self.on_no_available_work)
 
         self.autoplay_manager = AutoplayManager(model)
-        self.image_loading_dialog_manager = ImageLoadingDialogManager(self.view)
+        self.image_loading_dialog_manager = ImageLoadingDialogManager(view)
 
     def get_view(self):
         return self.view
@@ -28,9 +28,8 @@ class AbstractController(object):
         try:
             self.view.display(self.model.get_current_displayable_item(),
                               redraw=False)
-        except ImageNotLoadedException:
-            self.image_loading_dialog_manager.wait_for_item(
-                self.model.get_current_reading())
+        except ImageNotLoadedException as ex:
+            self.image_loading_dialog_manager.wait_for_item(ex.requested_item)
             return
         except NoWorkUnitException:
             return
