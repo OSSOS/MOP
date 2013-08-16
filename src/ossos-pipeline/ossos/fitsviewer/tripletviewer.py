@@ -14,14 +14,7 @@ class TripletViewer(WxMPLFitsViewer):
         self.current_image = None
 
     def display(self, displayable, redraw=True):
-        if self.current_image is not None:
-            self.current_image.display_changed.disconnect(self.redraw)
-            self.current_image.focus_released.disconnect(self.release_focus)
-
         self.current_image = displayable
-        self.current_image.display_changed.connect(self.redraw)
-        self.current_image.focus_released.connect(self.release_focus)
-
         self.current_image.render(self.canvas)
 
         if redraw:
