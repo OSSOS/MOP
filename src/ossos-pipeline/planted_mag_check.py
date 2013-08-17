@@ -82,7 +82,7 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
         cutout = image_slice_downloader.download_cutout(reading, needs_apcor=True)
 
         try:
-            mag = cutout.get_observed_magnitude()
+            mag = cutout.get_observed_magnitude()[0]
         except TaskError as e:
             logger.warning(str(e))
             mag = 0.0
