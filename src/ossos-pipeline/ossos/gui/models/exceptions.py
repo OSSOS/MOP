@@ -15,3 +15,14 @@ class ImageNotLoadedException(Exception):
 
 class NoWorkUnitException(Exception):
     """No data is available at the current time."""
+
+
+class NoAvailableWorkException(Exception):
+    """"No more work is available."""
+
+
+class SourceNotNamedException(Exception):
+    """The source has no name."""
+
+    def __init__(self, source):
+        self.source = source
