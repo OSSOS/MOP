@@ -242,7 +242,7 @@ class WorkUnit(object):
         pass
 
 
-class TrackWorkUnit(WorkUnit):
+class TracksWorkUnit(WorkUnit):
     """
     A unit of work when performing the process track task.
     """
@@ -252,7 +252,7 @@ class TrackWorkUnit(WorkUnit):
                  progress_manager,
                  output_context,
                  dry_run=False):
-        super(TrackWorkUnit, self).__init__(
+        super(TracksWorkUnit, self).__init__(
             filename,
             parsed_data,
             progress_manager,
@@ -343,7 +343,6 @@ class TrackWorkUnit(WorkUnit):
     def _close_writers(self):
         for writer in self._writers.values():
             writer.close()
-
 
 
 class RealsWorkUnit(WorkUnit):
@@ -730,7 +729,6 @@ class WorkUnitBuilder(object):
         raise NotImplementedError()
 
 
-
 class TracksWorkUnitBuilder(WorkUnitBuilder):
     """
     Used to construct a WorkUnit for doing 'Track'
@@ -749,7 +747,7 @@ class TracksWorkUnitBuilder(WorkUnitBuilder):
                            progress_manager,
                            output_context,
                            dry_run):
-        return TrackWorkUnit(
+        return TracksWorkUnit(
             filename, data, progress_manager, output_context, dry_run=dry_run)
 
 
