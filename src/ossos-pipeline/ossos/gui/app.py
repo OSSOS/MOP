@@ -10,6 +10,7 @@ from ossos.gui import context
 from ossos.gui.sync import SynchronizationManager
 from ossos.gui.workload import (WorkUnitProvider,
                                 RealsWorkUnitBuilder,
+                                TracksWorkUnitBuilder,
                                 CandidatesWorkUnitBuilder,
                                 PreFetchingWorkUnitProvider)
 from ossos.gui.errorhandling import DownloadErrorHandler
@@ -32,7 +33,7 @@ def create_application(taskname, working_directory, output_directory,
         ProcessRealsApplication(working_directory, output_directory,
                                 dry_run=dry_run, debug=debug)
     elif taskname == tasks.TRACK_TASK:
-        ProcessTrackApplication(working_directory, output_directory,
+        ProcessTracksApplication(working_directory, output_directory,
                                 dry_run=dry_run, debug=debug)
     else:
         error_message = "Unknown task: %s" % taskname
@@ -215,12 +216,12 @@ class ProcessTracksApplication(ValidationApplication):
                                  input_context,
                                  output_context,
                                  progress_manager):
-        return RealsWorkUnitBuilder(
-            AstromParser(), input_context, output_context, progress_manager,
+        return TracksWorkUnitBuilder(
+            TasksParser(), input_context, output_context, progress_manager,
             dry_run=self.dry_run)
 
     def _create_controller_factory(self, model):
-        return RealsControllerFactory(model, dry_run=self.dry_run)
+        return TracksControllerFactory(model, dry_run=self.dry_run)
 
 
 class ControllerFactory(object):
@@ -238,6 +239,15 @@ class CandidatesControllerFactory(ControllerFactory):
 
 
 class RealsControllerFactory(ControllerFactory):
+    def create_controller(self, view):
+        if self.dry_run:
+            name_generator = DryRunNameGenerator()
+        else:
+            name_generator = ProvisionalNameGenerator()
+
+        return ProcessRealsController(self.model, view, name_generator)
+
+class TracksControllerFactory(ControllerFactory):
     def create_controller(self, view):
         if self.dry_run:
             name_generator = DryRunNameGenerator()
