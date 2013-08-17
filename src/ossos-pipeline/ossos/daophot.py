@@ -152,7 +152,7 @@ def phot_mag(*args, **kwargs):
     hdu = phot(*args, **kwargs)
 
     try:
-        return hdu["data"]["MAG"][0]
+        return hdu["data"]["MAG"][0], hdu["data"]["MERR"][0]
     except IndexError:
         raise TaskError("Photometry cannot be performed.  "
                         "No magnitude calculated.")

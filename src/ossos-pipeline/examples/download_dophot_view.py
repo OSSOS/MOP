@@ -15,6 +15,6 @@ cutout = downloader.download_cutout(reading, needs_apcor=True)
 
 print "RA: %f" % cutout.ra
 print "DEC: %f" % cutout.dec
-print "Observed magnitude: %f" % cutout.get_observed_magnitude()
+print "Observed magnitude: %f" % cutout.get_observed_magnitude()[0]
 
 fitsviewer.display_hdulist(cutout.hdulist)

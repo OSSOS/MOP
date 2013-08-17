@@ -175,10 +175,11 @@ class ProcessRealsController(AbstractController):
         phot_failure = False
 
         try:
-            obs_mag = self.model.get_current_source_observed_magnitude()
+            obs_mag, obs_mag_err = self.model.get_current_source_observed_magnitude()
         except TaskError as error:
             phot_failure = True
             obs_mag = ""
+            obs_mag_err = -1
             band = ""
             default_comment = str(error)
 
@@ -194,6 +195,7 @@ class ProcessRealsController(AbstractController):
             self.model.get_current_ra(),
             self.model.get_current_dec(),
             obs_mag,
+            obs_mag_err,
             band,
             note1_choices=config.read("MPC.NOTE1OPTIONS"),
             note2_choices=config.read("MPC.NOTE2OPTIONS"),
@@ -214,6 +216,7 @@ class ProcessRealsController(AbstractController):
                      ra,
                      dec,
                      obs_mag,
+                     obs_mag_err,
                      band,
                      observatory_code,
                      comment):
@@ -229,6 +232,8 @@ class ProcessRealsController(AbstractController):
 
         self.model.set_current_source_name(provisional_name)
 
+        reading = self.model.get_current_reading()
+
         mpc_observation = mpc.Observation(
             minor_planet_number=minor_planet_number,
             provisional_name=provisional_name,
@@ -239,9 +244,13 @@ class ProcessRealsController(AbstractController):
             ra=ra,
             dec=dec,
             mag=obs_mag,
+            mag_err=obs_mag_err,
             band=band,
             observatory_code=observatory_code,
-            comment=self.generate_mpc_comment(comment))
+            comment=comment,
+            xpos=reading.x,
+            ypos=reading.y,
+            frame=reading.obs.rawname)
 
         self.model.get_writer().write(mpc_observation)
 
@@ -265,7 +274,7 @@ class ProcessRealsController(AbstractController):
             date=self.model.get_current_observation_date(),
             ra=self.model.get_current_ra(),
             dec=self.model.get_current_dec(),
-            comment=self.generate_mpc_comment(comment))
+            comment=comment)
 
         mpc_observation.null_observation = True
 
@@ -277,10 +286,6 @@ class ProcessRealsController(AbstractController):
     def on_cancel_reject(self):
         self.view.close_reject_source_dialog()
 
-    def generate_mpc_comment(self, comment):
-        reading = self.model.get_current_reading()
-        return "%s %s %s %s\n" % (
-            reading.obs.rawname, reading.x, reading.y, comment)
 
 
 class ProcessCandidatesController(AbstractController):

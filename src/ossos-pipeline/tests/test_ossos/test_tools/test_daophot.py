@@ -63,7 +63,7 @@ class DaophotTest(FileReadingTestCase):
 
         mag = daophot.phot_mag(fits_filename, x_in, y_in, aperture=ap, sky=insky,
                                swidth=swidth, apcor=apcor, maxcount=maxcount,
-                               exptime=exptime)
+                               exptime=exptime)[0]
 
         assert_that(mag, close_to(24.769, DELTA))
 
