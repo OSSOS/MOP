@@ -16,7 +16,7 @@ from ossos.gui.models.validation import ValidationModel
 from ossos.gui.views.appview import ApplicationView
 from ossos.astrom import AstromParser
 from ossos.naming import ProvisionalNameGenerator
-from ossos.gui.workload import WorkUnitProvider, RealsWorkUnitBuilder
+from ossos.gui.models.workload import WorkUnitProvider, RealsWorkUnitBuilder
 
 TEST_MINOR_PLANET_NUMBER = "mpn01"
 TEST_PROVISIONAL_NAME = "DNZOH00"

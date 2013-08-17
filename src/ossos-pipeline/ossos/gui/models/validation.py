@@ -2,10 +2,11 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 from ossos.gui import events
 from ossos.gui import logger
+from ossos.gui.models.collections import StatefulCollection
 from ossos.gui.models.exceptions import (ImageNotLoadedException,
-                                         NoWorkUnitException)
-from ossos.gui.workload import (NoAvailableWorkException, StatefulCollection,
-                                CandidatesWorkUnit, RealsWorkUnit)
+                                         NoWorkUnitException,
+                                         NoAvailableWorkException)
+from ossos.gui.models.workload import CandidatesWorkUnit, RealsWorkUnit
 
 
 class ValidationModel(object):

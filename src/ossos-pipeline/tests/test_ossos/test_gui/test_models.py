@@ -8,14 +8,14 @@ from ossos.gui import events
 
 from tests.base_tests import FileReadingTestCase
 from ossos.astrom import AstromParser
-from ossos.downloads.async import AsynchronousDownloadManager
 from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui.models.imagemanager import ImageManager
 from ossos.gui.models.validation import ValidationModel
 from ossos.gui.models.transactions import TransAckValidationModel
 from ossos.gui.progress import LocalProgressManager
 from ossos.gui.sync import SynchronizationManager
-from ossos.gui.workload import PreFetchingWorkUnitProvider, RealsWorkUnit, CandidatesWorkUnit
+from ossos.gui.models.workload import (PreFetchingWorkUnitProvider,
+                                       RealsWorkUnit, CandidatesWorkUnit)
 
 
 class ValidationModelTest(unittest.TestCase):
