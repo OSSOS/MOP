@@ -62,18 +62,18 @@ class ApplicationView(object):
         # TODO refactor
         self.register_xy_changed_event_handler(self.controller.on_reposition_source)
 
-        logger.debug("View created.")
-
     def _on_close_window(self, event):
         self.close()
 
     @guithread
     def show(self):
         self.mainframe.Show()
-        self.wx_app.MainLoop()
 
         if self.debug:
+            logger.info("Launching view in debug mode.")
             wx.lib.inspection.InspectionTool().Show()
+
+        self.wx_app.MainLoop()
 
     @guithread
     def display(self, fits_image, redraw=True):
