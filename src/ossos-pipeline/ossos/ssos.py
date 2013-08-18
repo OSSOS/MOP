@@ -3,102 +3,111 @@ __author__ = 'Michele Bannister'
 import urllib
 import urllib2
 import cStringIO
+import datetime
 from ossos.mpc import URLWriter
 
 
 class SSOSQuery(object):
-	""" Query the CADC's Solar System Object search
-	for a given set of MPC-formatted moving object detection lines. 
-	Inputs:
-	- a list of ossos.mpc.Observation instances
-	Optional:
-	- a tuple of the start and end times to be searched between. Format '%Y-%m-%d'
-	Otherwise the temporal range defaults to spanning from the start of OSSOS surveying 
-	on 2013-02-08 to the present day.
 
-	"""
+    def __init__(self, observations,
+                 daterange=('2013-02-07', datetime.datetime.now().strftime('%Y-%m-%d'))):
+        """
+        :param observations: a list of ossos.mpc.Observation instances
+        :param daterange: a tuple of the start and end times to be searched between. Format '%Y-%m-%d'
+        """
+        self.observations = observations
+        self.date_start = daterange[0]
+        self.date_end = daterange[1]
+        self.url = None
 
-	def __init__(self, observations, 
-				 daterange=('2013-02-07', datetime.datetime.now().strftime('%Y-%m-%d'))):
-		self.observations = observations
-		self.date_start = daterange[0]
-		self.date_end = daterange[1]
+    def query(self, ossos_only=True):
+        """
+        Send the correctly formatted query to SSOS.
+        :param ossos_only: restrict the output to only images from the OSSOS survey.
+        :return: Appropriate input to ImageSlicer. Dictionary keyed by
+        ['Image', 'ccd', 'X', 'Y', 'MJD', 'Filter',
+        'Exptime', 'Object_RA', 'Object_Dec', 'Image_target',
+        'Telescope_Instrument', 'Datalink']
+        """
+        self.url = self.format_url()
+        header = {"User-Agent": 'OSSOS Target Characterisation'}
+        query = urllib2.Request(self.url, header)
 
+        try:
+            response = urllib2.urlopen(query)
+            html = response.read()
+            available_data = self.format_response(html)
+            if ossos_only:
+                self.restrict_to_ossos_data(available_data)
+            response.close()
 
-	def query(self):
-		url = self.format_url()
-		header = {'User-Agent':'OSSOS Target Characterisation'}
-		query = urllib2.Request(url, header)
-		try:
-    		response = urllib2.urlopen(query)
- 			print response.info()
-			html = response.read()
+        except urllib2.URLError as e:
+            if hasattr(e, 'reason'):
+                print 'Failed to reach the server.'
+                print 'Reason: ', e.reason
+            elif hasattr(e, 'code'):
+                print 'The server couldn\'t fulfill the request.'
+                print 'Error code: ', e.code
 
-			retval = {}
-			for line in html:
-				# If query incorrectly formatted, second line of table is
-				# 'An error occured getting the ephemeris'
-				print line
-				# formatting of the retval: let's just make a dict for now
-				if line.startswith('16'): # HACK FOR NOW
+        return retval
 
-				def format_tableline(line):
-					# table is formatted as
-					tablefields = ['Image', 'Ext', 'X', 'Y', 'MJD', 'Filter',
-								   'Exptime', 'Object_RA', 'Object_Dec', 'Image_target',
-								   'Telescope_Instrument', 'MetaData','Datalink']
- 
-					# also exclude from consideration if exposure time is < 200 sec: it's wallpaper
-					for ct, item in tablefields:
-						ln = line.split('\t')
-						if ln[ct] != '-9999': # Ext, X, Y show this when header WCS not yet updated
-							
-						else:
+    def format_url(self, verbose=False):
+        """
+        Format the URL for SSOS requirements.
+        :param self:
+        :param verbose: format=tsv loads only the table of observations; verbose=true also gets B&K orbit info.
+        :return: A URL correctly formatted for a SSOS query.
+        """
+        base = 'http://www3.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssos.pl?'
+        query_args = dict(format='tsv', verbose=verbose, epoch1=self.date_start, epoch2=self.date_end, search='bern',
+                          eunits='none', extres='yes', xyres='yes')
 
+        mpc_obs = cStringIO.StringIO()
+        writer = URLWriter(mpc_obs, auto_flush=False)
+        for obs in self.observations:
+            writer.write(obs)
+        writer.flush()
+        mpc_obs.seek(0)
+        encoded_query = urllib.urlencode(query_args)
+        retval = base + encoded_query + '&obs=' + mpc_obs.readline()
 
+        return retval
 
-			# TODO: make the output formatting of B&K data match that of JJ's pyOrbfit 
-			# https://github.com/ijiraq/pyOrbfit
-			# not needed just now because we're using pyOrbfit for the orbit fitting instead
+    def format_response(self, html):
+        retval = []
+        # file parsing for verbose=True not implemented yet.
+        for line in html[1:]: # first line is table column labels
+            if line != 'An error occured getting the ephemeris':  # query may be incorrectly formatted.
+                rr = self.format_tableline(line)
+                if len(rr.keys()) > 0:
+                    retval.append(rr)
 
-			response.close()
+        return retval
 
-	 	except URLError as e:
-		    if hasattr(e, 'reason'):
-		        print 'Failed to reach the server.'
-		        print 'Reason: ', e.reason
-		    elif hasattr(e, 'code'):
-		        print 'The server couldn\'t fulfill the request.'
-		        print 'Error code: ', e.code
-			else:
-				# all fine.
+    def format_tableline(self, line):
+        """
+        Parse table line into returnable values.
+        :param line: line from SSOS Request return
+        :return: dict of useful values. If the values don't exist, keyword won't be in dictionary.
+        """
+        table_fields = ['Image', 'Ext', 'X', 'Y', 'MJD', 'Filter',
+                        'Exptime', 'Object_RA', 'Object_Dec', 'Image_target',
+                        'Telescope_Instrument', 'Datalink']
+        retval = {}
+        for ct, item in table_fields:
+            ln = line.split('\t')
+            if ln[ct] != '-9999': # Ext, X, Y show this when the header WCS is not yet updated
+                retval[item] = line[ct]
 
-		return
+        return retval
 
+    def restrict_to_ossos_data(self, data):
+        retval = []
+        for observation in data:
+            # want our telescope, and exposures > 200 sec to keep out the wallpaper
+            assert observation.has_key('Telescope_Instrument')
+            assert observation.has_key('Exptime')
+            if observation['Telescope_Instrument'] == 'CFHT/MegaCam' and float(observation['Exptime']) > 200.:
+                retval.append(observation)
 
-	def format_url(self, verbose=False):
-		base = 'http://www3.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssos.pl?'
-
-		# http://beta.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssosclf.pl?format=tsv&verbose=true&
-		# obs=+++++DRY0002*+C2013+04+04.40583+14+02+28.179-12+57+52.71+++++++++23.43r++++++568+1615904p33+2026.46+725.35+%0D%0A+++++DRY0002++C2013+04+04.44572+14+02+27.988-12+57+51.52+++++++++23.55r++++++568+1615914p33+2037.97+731.52+%0D%0A+++++DRY0002++C2013+04+04.48637+14+02+27.800-12+57+50.15+++++++++23.68r++++++568+1615924p33+2046.68+737.95+%0D%0A&
-		# search=bern&epoch1=2013-01-01&epoch2=2013-08-13&eunits=none&extres=yes&xyres=yes
-
-		# format=tsv loads only the table of observations; verbose=true also gets B&K orbit info.
-		query_args = {'format':'tsv', 'verbose':verbose, 'epoch1':date_start, 'epoch2':date_end,
-					  'search':'bern', 'eunits':'none', 'extres':'yes', 'xyres':'yes'}
-
-		mpc_obs = URLWriter(cStringIO.StringIO(), auto_flush=False)
-		for obs in self.observations:
-			mpc_obs.write(obs)
-		obsurl = mpc_obs.flush()
-		mpc_obs.close()
-
-		encoded_query = urllib.urlencode(query_args)
-		retval = base + encoded_query + '&obs=' + obsurl
-
-		return retval
-
-
-
-
-
+        return retval
