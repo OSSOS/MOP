@@ -24,17 +24,10 @@ class DownloadErrorHandler(object):
           download_request:
             The request which resulted in the error.
         """
-        if not hasattr(error, "errno"):
-            logger.critical("Unresolvable download error: %s" % str(error))
-            raise error
-
-        if error.errno == errno.EACCES:
+        if hasattr(error, "errno") and error.errno == errno.EACCES:
             self.handle_certificate_problem(str(error))
-        elif error.errno == errno.ECONNREFUSED:
-            self.handle_connection_refused(str(error), download_request)
         else:
-            logger.critical("Unresolvable download error: %s" % str(error))
-            raise error
+            self.handle_general_download_error(str(error), download_request)
 
     def handle_certificate_problem(self, error_message):
         logger.warning("Problem with CADC certificate")
@@ -56,8 +49,8 @@ class DownloadErrorHandler(object):
         self.app.get_view().show_image_loading_dialog()
         model.start_loading_images()
 
-    def handle_connection_refused(self, error_message, download_request):
-        logger.warning("Connection refused when downloading")
+    def handle_general_download_error(self, error_message, download_request):
+        logger.warning("A problem occurred while downloading: %s" % error_message)
 
         self._failed_downloads.append(download_request)
         self.app.get_view().show_retry_download_dialog(self, error_message)
