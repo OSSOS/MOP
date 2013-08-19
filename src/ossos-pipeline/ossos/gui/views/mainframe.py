@@ -3,7 +3,6 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import wx
 
 from ossos.gui import config
-from ossos.gui.views.imageview import ImageViewManager
 from ossos.gui.views.listctrls import ListCtrlPanel
 from ossos.gui.views.navigation import NavPanel
 from ossos.gui.views.validation import SourceValidationPanel
@@ -41,8 +40,6 @@ class MainFrame(wx.Frame):
 
         self.validation_view = SourceValidationPanel(self.control_panel, self.controller)
 
-        self.viewer_manager = ImageViewManager(self.main_panel)
-
         self._do_layout()
 
     def _do_layout(self):
@@ -54,9 +51,10 @@ class MainFrame(wx.Frame):
 
         main_sizer = wx.BoxSizer(wx.HORIZONTAL)
         main_sizer.Add(self.control_panel, flag=wx.EXPAND)
-        main_sizer.Add(self.image_viewer.as_widget(), flag=wx.EXPAND)
 
         self.main_panel.SetSizerAndFit(main_sizer)
+
+        self.main_sizer = main_sizer
 
     def _create_data_notebook(self):
         notebook = wx.Notebook(self.control_panel)
@@ -70,25 +68,9 @@ class MainFrame(wx.Frame):
 
         return notebook
 
-    @property
-    def image_viewer(self):
-        return self.viewer_manager.image_viewer
-
-    def display(self, fits_image, redraw=True):
-        self.image_viewer.display(fits_image, redraw=redraw)
-
-    def draw_marker(self, x, y, radius, redraw=True):
-        self.image_viewer.draw_marker(x, y, radius, redraw=redraw)
-
     def update_displayed_data(self, reading_data, header_data_list):
         self.reading_data_panel.populate_list(reading_data)
         self.obs_header_panel.populate_list(header_data_list)
-
-    def reset_colormap(self):
-        self.image_viewer.reset_colormap()
-
-    def register_xy_changed_event_handler(self, handler):
-        self.image_viewer.register_xy_changed_event_handler(handler)
 
     def set_observation_status(self, current_obs, total_obs):
         self.nav_view.set_status(current_obs, total_obs)
@@ -102,11 +84,9 @@ class MainFrame(wx.Frame):
     def is_source_validation_enabled(self):
         return self.validation_view.is_validation_enabled()
 
-    def use_singlets(self):
-        self.viewer_manager.use_singlets()
-
-    def use_triplets(self):
-        self.viewer_manager.use_triplets()
+    def add_to_main_sizer(self, widget):
+        self.main_sizer.Add(widget, flag=wx.EXPAND)
+        self.main_sizer.Layout()
 
 
 class _FocusablePanel(wx.Panel):
