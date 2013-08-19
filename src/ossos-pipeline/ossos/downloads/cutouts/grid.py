@@ -11,7 +11,7 @@ class CutoutGrid(object):
         self.num_frames = source.num_readings()
         self.num_times = source.num_readings()
 
-        self._grid = [[None] * self.num_frames] * self.num_times
+        self._grid = [[None] * self.num_frames for _ in range(self.num_times)]
 
     @property
     def shape(self):
@@ -19,6 +19,9 @@ class CutoutGrid(object):
 
     def add_cutout(self, cutout, frame_index, time_index):
         self._grid[frame_index][time_index] = cutout
+
+    def get_cutout(self, frame_index, time_index):
+        return self._grid[frame_index][time_index]
 
     def get_hdulists(self, frame_index):
         return map(lambda cutout: cutout.hdulist, self._grid[frame_index])

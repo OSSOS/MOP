@@ -167,6 +167,8 @@ class DisplayableImageTriplet(object):
             raise ValueError("Must be a 3 by 3 grid (was given %d by %d)"
                              % (cutout_grid.shape[0], cutout_grid.shape[1]))
 
+        self.cutout_grid = cutout_grid
+
         def create_triplet(index):
             return _ImageTriplet(cutout_grid.get_hdulists(index))
 
@@ -174,7 +176,6 @@ class DisplayableImageTriplet(object):
                        for index in range(cutout_grid.num_frames)]
 
         self.figure = None
-        self.axes = None
         self._mpl_event_handlers = {}
         self._interaction_context = None
 
@@ -235,8 +236,10 @@ class _ImageTriplet(object):
     def _do_render(self, figure, position):
         self._create_axes(figure, position)
 
-        full_image = zscale(np.concatenate(map(_image_data, self.hdulists),
-                                           axis=1))
+        def zscale_image(hdulist):
+            return zscale(_image_data(hdulist))
+
+        full_image = np.concatenate(map(zscale_image, self.hdulists), axis=1)
 
         # TODO: remove duplication with singlet
         # Add 1 because FITS images start at pixel 1,1 while matplotlib
@@ -253,7 +256,7 @@ class _ImageTriplet(object):
         border = 0.025
         width = 1 - 2 * border
         height = (1 - 2 * border) / 3
-        bottom = border + position * height
+        bottom = border + (2 - position) * height
         self.axes = figure.add_axes([border, bottom, width, height])
 
         # Make the axes fit the image tightly
