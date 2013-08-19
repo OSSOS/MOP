@@ -20,8 +20,8 @@ from ossos.gui.models.imagemanager import ImageManager
 from ossos.gui.models.validation import ValidationModel
 from ossos.astrom import AstromParser
 from ossos.gui.progress import LocalProgressManager
-from ossos.gui.workload import (WorkUnitProvider, RealsWorkUnitBuilder,
-                                CandidatesWorkUnitBuilder)
+from ossos.gui.models.workload import (WorkUnitProvider, RealsWorkUnitBuilder,
+                                       CandidatesWorkUnitBuilder)
 
 
 MODEL_TEST_DIR_1 = "data/model_testdir_1"
