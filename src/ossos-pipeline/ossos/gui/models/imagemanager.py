@@ -29,6 +29,9 @@ class ImageManager(object):
     def submit_singlet_download_request(self, download_request):
         self._singlet_download_manager.submit_request(download_request)
 
+    def submit_triplet_download_request(self, download_request):
+        self._triplet_download_manager.submit_request(download_request)
+
     def download_singlets_for_workunit(self, workunit):
         if workunit in self._workunits_downloaded_for_singlets:
             return
