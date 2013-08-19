@@ -2,7 +2,7 @@ import astropy
 
 __author__ = 'jjk'
 import unittest
-from ossos import ssos
+from ossos import ssos, mpc
 from astropy.time import Time
 
 class SSOSTest(unittest.TestCase):
@@ -14,18 +14,23 @@ class SSOSTest(unittest.TestCase):
                    "     HL7j2    C2013 05 08.56725 17 10 17.39 +04 29 47.8          23.4 R      568")
 
 
-        params = ssos.ParamDictBuilder(mpc_lines).params
-        print params['obs']
-        self.assertEquals(params['obs'].split('\n')[3].strip('\n'),
-                          mpc_lines[3])
+        mpc_lines_2=("     DRY001U   2013 04 09.36658 14 14 12.656-12 49 42.67         -1   r      568 None DRY001U Z  XXXXXX YYYYYY   UUUU % ",
+                     "     DRY001U   2013 04 09.40970 14 14 11.877-12 49 37.60         -1   r      568 None DRY001U Z  XXXXXX YYYYYY   UUUU % ",
+                     "     DRY001U   2013 04 09.45271 14 14 11.053-12 49 32.04         -1   r      568 None DRY001U Z  XXXXXX YYYYYY   UUUU % ")
 
-        query = ssos.Query(mpc_lines,
-                           search_start_date=Time('2007-01-01', scale='utc'),
-                           search_end_date=Time('2008-08-07', scale='utc'))
-        query.param_dict_biulder.verbose=True
-        table = query.get_table()
+        observations = []
+        for line in mpc_lines_2:
+            observations.append(mpc.Observation.from_string(line))
 
-        print table.colnames
+        query = ssos.Query(observations,
+                           search_start_date=Time('2013-02-08', scale='utc'),
+                           search_end_date=Time('2013-09-01', scale='utc'))
+
+        ssos_result = query.get()
+
+        ssos_data = ssos.SSOSParser().parse(ssos_result)
+
+        print ssos_data.get_reading_count()
 
 
 

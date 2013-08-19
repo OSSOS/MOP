@@ -4,13 +4,16 @@ import urllib
 import urllib2
 import cStringIO
 import astropy
-from astropy.io import ascii
+from astropy.io import ascii, fits
 from astropy.time import Time
 from astropy.table import Table
+from ossos.gui import logger
+
+MAXCOUNT = 30000
 
 from mpc import URLWriter
 import requests
-from ossos import storage
+from ossos import storage, astrom, mpc
 
 __author__ = 'Michele Bannister'
 
@@ -19,7 +22,10 @@ RESPONSE_FORMAT = 'tsv'
 # was set to \r\n ?
 NEW_LINE = '\r\n'
 
-class Parser(object):
+def parse(filename):
+    return SSOSParser().parse(filename)
+
+class SSOSParser(object):
     """
     Parse the result of an SSOS query, which is stored in an astropy Table object
     """
@@ -27,7 +33,19 @@ class Parser(object):
         """
         setup the parser.
         """
-    def parse(self, ssos_result_table):
+
+    def _skip_missing_data(self, str_vals, ncols):
+        """
+        add a extra column if one is missing, else return None.
+        """
+        if len(str_vals) == ncols - 1:
+            str_vals.append('None')
+            return str_vals
+        else:
+            raise ValueError("not enough columns in table")
+
+
+    def parse(self, ssos_result_filename_or_lines):
         """
         given the result table create 'source' objects.
 
@@ -35,17 +53,130 @@ class Parser(object):
         :param ssos_result_table:
         """
 
-        ssos_result_table
 
-        for row in ssos_result_table:
+        table_reader = ascii.get_reader(Reader=ascii.Basic)
+        table_reader.inconsistent_handler = self._skip_missing_data
+        table_reader.header.splitter.delimiter = '\t'
+        table_reader.data.splitter.delimiter = '\t'
+        table = table_reader.read(ssos_result_filename_or_lines)
+
+        sources = []
+        observations = []
+        source_readings = []
+
+
+        for row in table:
             # check if a dbimages object exists
-            dbimages_uri = storage.dbimages_uri(expnum=row['Image'],
-                                                ccd=row['Ext']-1,
-                                                version='p')
-            if not storage.exists(dbimages_uri):
+            ccd = int(row['Ext']) - 1
+            expnum = row['Image'].rstrip('p')
+
+
+            image_uri = storage.dbimages_uri(expnum=expnum,
+                                             ccd=None,
+                                             version='p',
+                                             ext='.fits',
+                                             subdir=None)
+
+            if not storage.exists(image_uri):
+                image_uri = storage.dbimages_uri(expnum=expnum,
+                                                 ccd=ccd,
+                                                 version='p')
+
+                if not storage.exists(image_uri):
+                    continue
+
+            if row['X'] == -9999 or row['Y'] == -9999 :
+                logger.warning("Skipping %s as x/y not resolved." % ( row['Image']))
                 continue
-            x_ref = row['X']
-            y_ref = row['Y']
+
+            mopheader_uri = storage.dbimages_uri(expnum=expnum,
+                                                 ccd=ccd,
+                                                 version='p',
+                                                 ext='.mopheader')
+
+
+            if not storage.exists(mopheader_uri):
+                logger.warning('mopheader missing, but images exists')
+                continue
+
+
+            # raise flag if no MOPHEADER
+            mopheader_fpt = cStringIO.StringIO(storage.open_vos_or_local(mopheader_uri).read())
+            mopheader = fits.open(mopheader_fpt)
+            
+            rawname = os.path.splitext(os.path.basename(image_uri))[0]
+
+            # Build astrom.Observation
+            observation = astrom.Observation(expnum=str(expnum),
+                                             ftype='p',
+                                             ccdnum=str(ccd),
+                                             fk="")
+
+            observation.header = mopheader[0].header
+            MJD_OBS_CENTER = mpc.Time(observation.header['MJD-OBSC'], format='mjd', scale='utc', ).replicate(format='mpc')
+            observation.header['MJD-OBS-CENTER'] = str(MJD_OBS_CENTER)
+            observation.header['MAXCOUNT'] = MAXCOUNT
+            observation.header['SCALE'] = observation.header['PIXSCALE']
+            observation.header['CHIP'] = observation.header['CHIPNUM']
+            observation.header['NAX1'] = observation.header['NAXIS1']
+            observation.header['NAX2'] = observation.header['NAXIS2']
+            observation.header['MOPversion'] = observation.header['MOP_VER']
+
+
+            # Build astrom.SourceReading
+            observations.append(observation)
+            source_readings.append(astrom.SourceReading(x=row['X'], y=row['Y'],
+                                                        xref=row['X'], yref=row['Y'],
+                                                        x0=row['X'], y0=row['Y'],
+                                                        ra=row['Object_RA'], dec=row['Object_Dec'],
+                                                        obs=observation))
+
+        # build our array of SourceReading objects
+        sources.append(source_readings)
+
+        return SSOSData(observations, sources)
+
+
+
+class SSOSData(object):
+    """
+    Encapsulates data extracted from an .astrom file.
+    """
+
+    def __init__(self, observations, sources):
+        """
+        Constructs a new astronomy data set object.
+
+        Args:
+          observations: list(Observations)
+            The observations that are part of the data set.
+          sys_header: dict
+            Key-value pairs of system settings applicable to the data set.
+            Ex: RMIN, RMAX, ANGLE, AWIDTH
+          sources: list(list(SourceReading))
+            A list of point sources found in the data set.  These are
+            potential moving objects.  Each point source is itself a list
+            of source readings, one for each observation in
+            <code>observations</code>.  By convention the ordering of
+            source readings must match the ordering of the observations.
+        """
+        self.observations = observations
+        self.sys_header = None
+        self.sources = [astrom.Source(reading_list) for reading_list in sources]
+
+    def get_reading_count(self):
+        count = 0
+        for source in self.sources:
+            count += source.num_readings()
+
+        return count
+
+    def get_sources(self):
+        return self.sources
+
+    def get_source_count(self):
+        return len(self.get_sources())
+
 
 
 
@@ -233,7 +364,7 @@ class Query(object):
 
         self.headers = {'User-Agent': 'OSSOS Target Track'}
 
-    def get_table(self):
+    def get(self):
 
         """
 
@@ -244,30 +375,15 @@ class Query(object):
         params = self.param_dict_biulder.params
         self.response = requests.get(SSOS_URL, params=params, headers=self.headers)
 
+        print self.response.url
 
         assert isinstance(self.response, requests.Response)
 
+        assert(self.response.status_code == requests.codes.ok )
 
         lines = self.response.content
-        if str(lines[1]).startswith("An error occured getting the ephemeris"):
+        if len(lines) < 1 or str(lines[1]).startswith("An error occured getting the ephemeris"):
             raise IOError(os.errno.EBADRPC, "call to SSOS failed on format error")
 
-        table_reader = ascii.get_reader(Reader=ascii.Basic)
-        table_reader.inconsistent_handler = self._skip_missing_datalink
-        table_reader.header.splitter.delimiter = '\t'
-        table_reader.data.splitter.delimiter = '\t'
-        table = table_reader.read(lines)
+        return lines
 
-        return table
-
-    def _skip_missing_datalink(self, str_vals, ncols):
-        """
-        add a extra column if one is missing, else return None.
-        """
-        if len(str_vals) == 12 and not "cadc" in str(str_vals[-1]).lower():
-            # the 'DataLink' column is empty if no link available...
-            # which should not happen for CADC data.
-            str_vals.append('None')
-            return str_vals
-        else:
-            return None
