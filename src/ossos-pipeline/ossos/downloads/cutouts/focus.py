@@ -46,5 +46,5 @@ class TripletFocusCalculator(FocusCalculator):
         self.source = source
 
     def calculate_focus(self, reading, frame_index):
-        return self._convert_source_location(
-            reading, self.source.get_reading(frame_index))
+        center_target = self.source.get_reading(frame_index)
+        return self._convert_source_location(center_target, reading)
