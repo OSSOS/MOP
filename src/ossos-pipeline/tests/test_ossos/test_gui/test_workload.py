@@ -11,15 +11,17 @@ from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
 from tests.testutil import CopyingMock
 from ossos.gui import tasks
 from ossos.gui.context import WorkingContext, LocalDirectoryWorkingContext
+from ossos.gui.models.collections import StatefulCollection
+from ossos.gui.models.exceptions import NoAvailableWorkException
 from ossos.gui.models.validation import ValidationModel
 from ossos.astrom import AstromParser, StreamingAstromWriter
 from ossos.mpc import MPCWriter
 from ossos.gui.models.imagemanager import ImageManager
 from ossos.gui.progress import LocalProgressManager, InMemoryProgressManager
-from ossos.gui.workload import (WorkUnitProvider, WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
-                                NoAvailableWorkException,
-                                StatefulCollection,
-                                RealsWorkUnitBuilder, PreFetchingWorkUnitProvider)
+from ossos.gui.models.workload import (WorkUnitProvider, WorkUnit,
+                                       RealsWorkUnit, CandidatesWorkUnit,
+                                       RealsWorkUnitBuilder,
+                                       PreFetchingWorkUnitProvider)
 
 
 class TestDirectoryManager(object):
