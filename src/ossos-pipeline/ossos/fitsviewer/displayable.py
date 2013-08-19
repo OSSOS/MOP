@@ -236,8 +236,10 @@ class _ImageTriplet(object):
     def _do_render(self, figure, position):
         self._create_axes(figure, position)
 
-        full_image = zscale(np.concatenate(map(_image_data, self.hdulists),
-                                           axis=1))
+        def zscale_image(hdulist):
+            return zscale(_image_data(hdulist))
+
+        full_image = np.concatenate(map(zscale_image, self.hdulists), axis=1)
 
         # TODO: remove duplication with singlet
         # Add 1 because FITS images start at pixel 1,1 while matplotlib
