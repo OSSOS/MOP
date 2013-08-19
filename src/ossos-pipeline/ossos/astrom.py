@@ -556,6 +556,7 @@ class Observation(object):
         assert rawname == fk + expnum + ftype + ccdnum
         return Observation(expnum, ftype, ccdnum, fk)
 
+
     def __init__(self, expnum, ftype, ccdnum, fk=""):
         self.expnum = expnum
         self.ftype = ftype
