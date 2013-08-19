@@ -194,10 +194,14 @@ class DisplayableImageTriplet(object):
             self.figure.set_size_inches(parent_size[0] / figure_dpi,
                                         parent_size[1] / figure_dpi)
 
+    def place_marker(self, x, y, radius):
+        pass
+
     def _do_render(self):
         self.figure = plt.figure()
         for position, frame in enumerate(self.frames):
             frame.render(self.figure, position)
+        print "Rendered triplet"
 
 
 class _ImageTriplet(object):
