@@ -59,15 +59,15 @@ class TripletFocusCalculatorTest(FileReadingTestCase):
 
         assert_tuples_almost_equal(
             self.undertest.calculate_focus(self.reading1, 0),
-            (583.42, 408.46))
+            (562.82, 406.68))
 
         assert_tuples_almost_equal(
             self.undertest.calculate_focus(self.reading2, 0),
-            (608.48, 407.17))
+            (564.44, 406.03))
 
         assert_tuples_almost_equal(
             self.undertest.calculate_focus(self.reading0, 1),
-            (562.82, 406.68))
+            (583.42, 408.46))
 
         assert_tuples_almost_equal(
             self.undertest.calculate_focus(self.reading1, 1),
@@ -75,15 +75,15 @@ class TripletFocusCalculatorTest(FileReadingTestCase):
 
         assert_tuples_almost_equal(
             self.undertest.calculate_focus(self.reading2, 1),
-            (611.24, 407.34))
+            (587.80, 407.98))
 
         assert_tuples_almost_equal(
             self.undertest.calculate_focus(self.reading0, 2),
-            (564.44, 406.03))
+            (608.48, 407.17))
 
         assert_tuples_almost_equal(
             self.undertest.calculate_focus(self.reading1, 2),
-            (587.80, 407.98))
+            (611.24, 407.34))
 
         assert_tuples_almost_equal(
             self.undertest.calculate_focus(self.reading2, 2),
