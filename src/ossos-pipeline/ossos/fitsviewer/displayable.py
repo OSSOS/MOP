@@ -53,41 +53,18 @@ class Displayable(object):
         pass
 
 
-class DisplayableImageSinglet(Displayable):
-    def __init__(self, hdulist):
-        """
-        Args:
-          hdulist: astropy.io.fits.HDUList
-            The FITS image to be displayed.
-        """
-        super(DisplayableImageSinglet, self).__init__()
+class _AxesItem(object):
+    """
+    Corresponds to a matplotlib axes.  Intended for use as a mixin with a
+    Displayable.
+    """
 
-        self.hdulist = hdulist
-        self.figure = None
+    def __init__(self):
         self.axes = None
 
-        self.marker = None
-
-        self.display_changed = Signal()
-        self.xy_changed = Signal()
-        self.focus_released = Signal()
-
         self._colormap = GrayscaleColorMap()
-
         self._mpl_event_handlers = {}
         self._interaction_context = None
-
-    @property
-    def image_data(self):
-        return _image_data(self.hdulist)
-
-    @property
-    def width(self):
-        return _image_width(self.hdulist)
-
-    @property
-    def height(self):
-        return _image_height(self.hdulist)
 
     def update_colormap(self, dx, dy):
         contrast_diff = float(-dy) / self.height
@@ -101,6 +78,100 @@ class DisplayableImageSinglet(Displayable):
     def reset_colormap(self):
         self._colormap.set_defaults()
         self._refresh_displayed_colormap()
+
+    def is_event_in_axes(self, event):
+        return self.axes == event.inaxes
+
+    def register_mpl_event_handler(self, eventname, handler):
+        handler_id = self.figure.canvas.mpl_connect(eventname, handler)
+        self._mpl_event_handlers[handler_id] = (eventname, handler)
+        return handler_id
+
+    def deregister_mpl_event_handler(self, id_):
+        self.figure.canvas.mpl_disconnect(id_)
+        del self._mpl_event_handlers[id_]
+
+    def _apply_event_handlers(self, canvas):
+        for eventname, handler in self._mpl_event_handlers.itervalues():
+            canvas.mpl_connect(eventname, handler)
+
+    def _create_axes(self, rect):
+        """
+        Args:
+          rect: [left, bottom, width, height]
+            Used to construct the matplotlib axes.
+        """
+        axes = plt.Axes(self.figure, rect)
+
+        # Don't draw tick marks and labels
+        axes.set_axis_off()
+
+        # FITS images start at pixel 1,1 in the bottom-left corner
+        axes.set_xlim([1, self.width])
+        axes.set_ylim([1, self.height])
+
+        return axes
+
+    def _refresh_displayed_colormap(self):
+        self.axes_image.set_cmap(self._colormap.as_mpl_cmap())
+        self.axes_image.changed()
+        self.display_changed.fire()
+
+    def _show_image(self, image, colorbar=False):
+        self._interaction_context = InteractionContext(self)
+
+        extent = (1, image.shape[1], 1, image.shape[0])
+        self.axes_image = plt.imshow(image,
+                                     origin="lower",
+                                     extent=extent,
+                                     cmap=self._colormap.as_mpl_cmap())
+
+        if colorbar:
+            # Create axes for colorbar.  Make it tightly fit the image.
+            divider = make_axes_locatable(self.axes)
+            cax = divider.append_axes("bottom", size="5%", pad=0.05)
+            self.figure.colorbar(self.axes_image, orientation="horizontal",
+                                 cax=cax)
+
+
+class DisplayableImageSinglet(Displayable, _AxesItem):
+    """
+    A single displayable image.
+
+    Attributes:
+        hdulist: the FITS image being displayed.
+
+        See also Displayable's attributes.
+    """
+
+    def __init__(self, hdulist):
+        """
+        Args:
+          hdulist: astropy.io.fits.HDUList
+            The FITS image to be displayed.
+        """
+        Displayable.__init__(self)
+        _AxesItem.__init__(self)
+
+        self.hdulist = hdulist
+
+        self.marker = None
+
+        self.display_changed = Signal()
+        self.xy_changed = Signal()
+        self.focus_released = Signal()
+
+    @property
+    def image_data(self):
+        return _image_data(self.hdulist)
+
+    @property
+    def width(self):
+        return _image_width(self.hdulist)
+
+    @property
+    def height(self):
+        return _image_height(self.hdulist)
 
     def place_marker(self, x, y, radius):
         """
@@ -131,62 +202,20 @@ class DisplayableImageSinglet(Displayable):
         self.xy_changed.fire(x, y)
         self.display_changed.fire()
 
-    def is_event_in_axes(self, event):
-        return self.axes == event.inaxes
-
-    def register_mpl_event_handler(self, eventname, handler):
-        handler_id = self.figure.canvas.mpl_connect(eventname, handler)
-        self._mpl_event_handlers[handler_id] = (eventname, handler)
-        return handler_id
-
-    def deregister_mpl_event_handler(self, id_):
-        self.figure.canvas.mpl_disconnect(id_)
-        del self._mpl_event_handlers[id_]
-
     def release_focus(self):
         self.focus_released.fire()
 
-    def _apply_event_handlers(self, canvas):
-        for eventname, handler in self._mpl_event_handlers.itervalues():
-            canvas.mpl_connect(eventname, handler)
-
     def _do_render(self):
         self.figure = plt.figure()
-        self.axes = self._create_axes()
+
+        # Leave 2.5% border on all sides
+        self.axes = self._create_axes([0.025, 0.025, 0.95, 0.95])
         self.figure.add_axes(self.axes)
 
-        self._interaction_context = InteractionContext(self)
+        self._show_image(zscale(self.image_data), colorbar=True)
 
-        extent = (1, self.width, 1, self.height)
-        self.axes_image = plt.imshow(zscale(self.image_data),
-                                     origin="lower",
-                                     extent=extent,
-                                     cmap=self._colormap.as_mpl_cmap())
-
-        # Create axes for colorbar.  Make it tightly fit the image.
-        divider = make_axes_locatable(self.axes)
-        cax = divider.append_axes("bottom", size="5%", pad=0.05)
-        self.figure.colorbar(self.axes_image, orientation="horizontal",
-                             cax=cax)
-
-    def _create_axes(self):
-        # limits specified as [left, bottom, width, height]
-        # leave 2.5% border all around
-        axes = plt.Axes(self.figure, [0.025, 0.025, 0.95, 0.95])
-
-        # Don't draw tick marks and labels
-        axes.set_axis_off()
-
-        # FITS images start at pixel 1,1 in the bottom-left corner
-        axes.set_xlim([1, self.width])
-        axes.set_ylim([1, self.height])
-
-        return axes
-
-    def _refresh_displayed_colormap(self):
-        self.axes_image.set_cmap(self._colormap.as_mpl_cmap())
-        self.axes_image.changed()
-        self.display_changed.fire()
+    def _apply_event_handlers(self, canvas):
+        _AxesItem._apply_event_handlers(self, canvas)
 
 
 class DisplayableImageTriplet(Displayable):
@@ -214,19 +243,20 @@ class DisplayableImageTriplet(Displayable):
             frame.render(self.figure, position)
 
 
-class _ImageTriplet(object):
+class _ImageTriplet(_AxesItem):
     """
     A row of images that share an axes and colormap.  Does not have its
     own figure.
     """
 
     def __init__(self, hdulists):
+        super(_ImageTriplet, self).__init__()
+
         if len(hdulists) != 3:
             raise ValueError("Image triplet must contain 3 images (given %d)"
                              % len(hdulists))
 
         self.hdulists = hdulists
-        self.axes = None
 
         self._colormap = GrayscaleColorMap()
 
@@ -240,40 +270,22 @@ class _ImageTriplet(object):
 
     def render(self, figure, position):
         if self.axes is None:
-            self._do_render(figure, position)
+            self.figure = figure
 
-    def _do_render(self, figure, position):
-        self._create_axes(figure, position)
+            border = 0.025
+            width = 1 - 2 * border
+            height = (1 - 2 * border) / 3
+            bottom = border + (2 - position) * height
 
-        def zscale_image(hdulist):
-            return zscale(_image_data(hdulist))
+            self.axes = self._create_axes([border, bottom, width, height])
+            self.figure.add_axes(self.axes)
 
-        full_image = np.concatenate(map(zscale_image, self.hdulists), axis=1)
+            def zscale_image(hdulist):
+                return zscale(_image_data(hdulist))
 
-        # TODO: remove duplication with singlet
-        # Add 1 because FITS images start at pixel 1,1 while matplotlib
-        # starts at 0,0
-        extent = (1, self.width + 1, self.height + 1, 1)
-        self.axes_image = self.axes.imshow(full_image,
-                                           extent=extent,
-                                           cmap=self._colormap.as_mpl_cmap())
+            full_image = np.concatenate(map(zscale_image, self.hdulists), axis=1)
 
-    def _create_axes(self, figure, position):
-        # TODO: remove duplication with singlet
-        # limits specified as [left, bottom, width, height]
-        # leave 2.5% border all around
-        border = 0.025
-        width = 1 - 2 * border
-        height = (1 - 2 * border) / 3
-        bottom = border + (2 - position) * height
-        self.axes = figure.add_axes([border, bottom, width, height])
-
-        # Make the axes fit the image tightly
-        self.axes.set_xlim([0, self.width])
-        self.axes.set_ylim([0, self.height])
-
-        # Don't draw tick marks and labels
-        self.axes.set_axis_off()
+            self._show_image(full_image, colorbar=False)
 
 
 class Marker(object):
