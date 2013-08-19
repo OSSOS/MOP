@@ -10,13 +10,58 @@ from ossos.fitsviewer.exceptions import MPLViewerError
 from ossos.fitsviewer.interaction import InteractionContext, Signal
 
 
-class DisplayableImageSinglet(object):
+class Displayable(object):
+    """
+    An image or group of images which can be displayed.
+
+    Attributes:
+      figure: matplotlib figure the images are placed on.
+    """
+
+    def __init__(self):
+        self.figure = None
+
+    @property
+    def width(self):
+        raise NotImplementedError()
+
+    @property
+    def height(self):
+        raise NotImplementedError()
+
+    def render(self, canvas=None):
+        if self.figure is None:
+            self._do_render()
+
+        if canvas is None:
+            plt.show()
+        else:
+            canvas.figure = self.figure
+
+            parent_size = canvas.GetClientSize()
+
+            figure_dpi = self.figure.get_dpi()
+            self.figure.set_size_inches(parent_size[0] / figure_dpi,
+                                        parent_size[1] / figure_dpi)
+
+            self._apply_event_handlers(canvas)
+
+    def _do_render(self):
+        raise NotImplementedError()
+
+    def _apply_event_handlers(self, canvas):
+        pass
+
+
+class DisplayableImageSinglet(Displayable):
     def __init__(self, hdulist):
         """
         Args:
           hdulist: astropy.io.fits.HDUList
             The FITS image to be displayed.
         """
+        super(DisplayableImageSinglet, self).__init__()
+
         self.hdulist = hdulist
         self.figure = None
         self.axes = None
@@ -43,23 +88,6 @@ class DisplayableImageSinglet(object):
     @property
     def height(self):
         return _image_height(self.hdulist)
-
-    def render(self, canvas=None):
-        if self.figure is None:
-            self._do_render()
-
-        if canvas is None:
-            plt.show()
-        else:
-            canvas.figure = self.figure
-
-            parent_size = canvas.GetClientSize()
-
-            figure_dpi = self.figure.get_dpi()
-            self.figure.set_size_inches(parent_size[0] / figure_dpi,
-                                        parent_size[1] / figure_dpi)
-
-            self._apply_event_handlers(canvas)
 
     def update_colormap(self, dx, dy):
         contrast_diff = float(-dy) / self.height
@@ -161,8 +189,10 @@ class DisplayableImageSinglet(object):
         self.display_changed.fire()
 
 
-class DisplayableImageTriplet(object):
+class DisplayableImageTriplet(Displayable):
     def __init__(self, cutout_grid):
+        super(DisplayableImageTriplet, self).__init__()
+
         if cutout_grid.shape != (3, 3):
             raise ValueError("Must be a 3 by 3 grid (was given %d by %d)"
                              % (cutout_grid.shape[0], cutout_grid.shape[1]))
@@ -175,26 +205,6 @@ class DisplayableImageTriplet(object):
         self.frames = [create_triplet(index)
                        for index in range(cutout_grid.num_frames)]
 
-        self.figure = None
-        self._mpl_event_handlers = {}
-        self._interaction_context = None
-
-    def render(self, canvas=None):
-        # TODO: remove duplication with singlet
-        if self.figure is None:
-            self._do_render()
-
-        if canvas is None:
-            plt.show()
-        else:
-            canvas.figure = self.figure
-
-            parent_size = canvas.GetClientSize()
-
-            figure_dpi = self.figure.get_dpi()
-            self.figure.set_size_inches(parent_size[0] / figure_dpi,
-                                        parent_size[1] / figure_dpi)
-
     def place_marker(self, x, y, radius):
         pass
 
@@ -202,7 +212,6 @@ class DisplayableImageTriplet(object):
         self.figure = plt.figure()
         for position, frame in enumerate(self.frames):
             frame.render(self.figure, position)
-        print "Rendered triplet"
 
 
 class _ImageTriplet(object):
