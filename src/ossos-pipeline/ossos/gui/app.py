@@ -8,10 +8,10 @@ from ossos.downloads.cutouts.downloader import ImageCutoutDownloader
 from ossos.gui import config, tasks, logger
 from ossos.gui import context
 from ossos.gui.sync import SynchronizationManager
-from ossos.gui.workload import (WorkUnitProvider,
-                                RealsWorkUnitBuilder,
-                                CandidatesWorkUnitBuilder,
-                                PreFetchingWorkUnitProvider)
+from ossos.gui.models.workload import (WorkUnitProvider,
+                                       RealsWorkUnitBuilder,
+                                       CandidatesWorkUnitBuilder,
+                                       PreFetchingWorkUnitProvider)
 from ossos.gui.errorhandling import DownloadErrorHandler
 from ossos.gui.controllers import (ProcessRealsController,
                                    ProcessCandidatesController)
