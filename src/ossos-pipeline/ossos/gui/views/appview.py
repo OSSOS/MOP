@@ -6,6 +6,7 @@ import wx.lib.inspection
 from ossos.gui import logger
 from ossos.gui.views import dialogs
 from ossos.gui.views.errorhandling import CertificateDialog, RetryDownloadDialog
+from ossos.gui.views.imageview import ImageViewManager
 from ossos.gui.views.keybinds import KeybindManager
 from ossos.gui.views.loading import WaitingGaugeDialog
 from ossos.gui.views.mainframe import MainFrame
@@ -45,6 +46,7 @@ class ApplicationView(object):
         self.debug = debug
 
         self.mainframe = MainFrame(self.controller)
+        self.image_view_manager = ImageViewManager(self.mainframe)
         self.menu = Menu(self.mainframe, self.controller)
         self.keybind_manager = KeybindManager(self.mainframe, self.controller)
 
@@ -65,6 +67,10 @@ class ApplicationView(object):
     def _on_close_window(self, event):
         self.close()
 
+    @property
+    def image_viewer(self):
+        return self.image_view_manager.image_viewer
+
     @guithread
     def show(self):
         self.mainframe.Show()
@@ -77,26 +83,19 @@ class ApplicationView(object):
 
     @guithread
     def display(self, fits_image, redraw=True):
-        self.mainframe.display(fits_image, redraw=redraw)
+        self.image_viewer.display(fits_image, redraw=redraw)
 
     @guithread
     def draw_marker(self, x, y, radius, redraw=True):
-        self.mainframe.draw_marker(x, y, radius, redraw=redraw)
-
-    @guithread
-    def update_displayed_data(self, reading_data, header_data_list):
-        self.mainframe.update_displayed_data(reading_data, header_data_list)
+        self.image_viewer.draw_marker(x, y, radius, redraw=redraw)
 
     @guithread
     def reset_colormap(self):
-        self.mainframe.reset_colormap()
+        self.image_viewer.reset_colormap()
 
     @guithread
     def register_xy_changed_event_handler(self, handler):
-        self.mainframe.register_xy_changed_event_handler(handler)
-
-    def close(self):
-        self.mainframe.Destroy()
+        self.image_viewer.register_xy_changed_event_handler(handler)
 
     @guithread
     def show_image_loading_dialog(self):
@@ -108,6 +107,18 @@ class ApplicationView(object):
     def hide_image_loading_dialog(self):
         if self.loading_dialog.IsShown():
             self.loading_dialog.Hide()
+
+    @guithread
+    def use_singlets(self):
+        self.image_view_manager.use_singlets()
+
+    @guithread
+    def use_triplets(self):
+        self.image_view_manager.use_triplets()
+
+    @guithread
+    def update_displayed_data(self, reading_data, header_data_list):
+        self.mainframe.update_displayed_data(reading_data, header_data_list)
 
     @guithread
     def set_observation_status(self, current_obs, total_obs):
@@ -213,13 +224,8 @@ class ApplicationView(object):
     def set_autoplay(self, autoplay_enabled):
         self.menu.set_autoplay(autoplay_enabled)
 
-    @guithread
-    def use_singlets(self):
-        self.mainframe.use_singlets()
-
-    @guithread
-    def use_triplets(self):
-        self.mainframe.use_triplets()
-
     def as_widget(self):
         return self.mainframe
+
+    def close(self):
+        self.mainframe.Destroy()
