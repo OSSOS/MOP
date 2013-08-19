@@ -2,66 +2,12 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 
-from hamcrest import assert_that, equal_to, has_length, instance_of, none
+from hamcrest import assert_that, instance_of, equal_to, none
 from matplotlib.backend_bases import MouseEvent as MPLMouseEvent
-import matplotlib.pyplot as plt
 from mock import Mock
 
-from ossos.fitsviewer.colormap import clip
-from ossos.fitsviewer.displayable import DisplayableImageSinglet, Marker
-from ossos.fitsviewer.interaction import (InteractionContext,
-                                              MoveMarkerState,
-                                              CreateMarkerState,
-                                              AdjustColormapState)
-
-
-class DisplayableImageSingletTest(unittest.TestCase):
-    def setUp(self):
-        mainhdu = Mock()
-        mainhdu.data.shape = (100, 100)
-        self.hdulist = [mainhdu]
-        self.displayable = DisplayableImageSinglet(self.hdulist)
-
-        fig = plt.figure()
-        axes = plt.Axes(fig, [0, 0, 1, 1])
-        self.displayable.axes = axes
-
-    def test_draw_one_circle(self):
-        axes = self.displayable.axes
-
-        assert_that(axes.patches, has_length(0))
-        cx = 1
-        cy = 2
-        cr = 3
-        self.displayable.place_marker(cx, cy, cr)
-
-        assert_that(axes.patches, has_length(1))
-        circle = axes.patches[0]
-
-        assert_that(circle.center, equal_to((cx, cy)))
-        assert_that(circle.radius, equal_to(cr))
-
-    def test_draw_second_circle_removes_first(self):
-        axes = self.displayable.axes
-
-        c1x = 1
-        c1y = 2
-        c1r = 3
-        self.displayable.place_marker(c1x, c1y, c1r)
-
-        assert_that(axes.patches, has_length(1))
-
-        c2x = 4
-        c2y = 5
-        c2r = 6
-        self.displayable.place_marker(c2x, c2y, c2r)
-
-        assert_that(axes.patches, has_length(1))
-
-        circle = axes.patches[0]
-
-        assert_that(circle.center, equal_to((c2x, c2y)))
-        assert_that(circle.radius, equal_to(c2r))
+from ossos.fitsviewer.displayable import DisplayableImageSinglet
+from ossos.fitsviewer.interaction import InteractionContext, MoveMarkerState, CreateMarkerState, AdjustColormapState
 
 
 class InteractionTest(unittest.TestCase):
@@ -263,87 +209,6 @@ class InteractionTest(unittest.TestCase):
         self.fire_motion_event(xclick + dx, yclick + dy)
 
         handler.assert_called_once_with(x0 + dx, y0 + dy)
-
-
-class MarkerTest(unittest.TestCase):
-    def test_cross_location(self):
-        x = 10
-        y = 10
-        radius = 6
-
-        marker = Marker(x, y, radius)
-
-        assert_that(marker.left_hair.get_xdata(), equal_to((4, 7)))
-        assert_that(marker.left_hair.get_ydata(), equal_to((10, 10)))
-
-        assert_that(marker.right_hair.get_xdata(), equal_to((13, 16)))
-        assert_that(marker.right_hair.get_ydata(), equal_to((10, 10)))
-
-        assert_that(marker.top_hair.get_xdata(), equal_to((10, 10)))
-        assert_that(marker.top_hair.get_ydata(), equal_to((13, 16)))
-
-        assert_that(marker.bottom_hair.get_xdata(), equal_to((10, 10)))
-        assert_that(marker.bottom_hair.get_ydata(), equal_to((4, 7)))
-
-    def test_move_marker_moves_circle_and_cross(self):
-        x = 10
-        y = 10
-        radius = 6
-
-        marker = Marker(x, y, radius)
-
-        new_x = 20
-        new_y = 30
-        marker.center = (new_x, new_y)
-
-        assert_that(marker.circle.center, equal_to((new_x, new_y)))
-
-        assert_that(marker.left_hair.get_xdata(), equal_to((14, 17)))
-        assert_that(marker.left_hair.get_ydata(), equal_to((30, 30)))
-
-        assert_that(marker.right_hair.get_xdata(), equal_to((23, 26)))
-        assert_that(marker.right_hair.get_ydata(), equal_to((30, 30)))
-
-        assert_that(marker.top_hair.get_xdata(), equal_to((20, 20)))
-        assert_that(marker.top_hair.get_ydata(), equal_to((33, 36)))
-
-        assert_that(marker.bottom_hair.get_xdata(), equal_to((20, 20)))
-        assert_that(marker.bottom_hair.get_ydata(), equal_to((24, 27)))
-
-    def test_change_radius(self):
-        x = 20
-        y = 20
-        radius = 6
-
-        marker = Marker(x, y, radius)
-
-        new_radius = 12
-        marker.radius = new_radius
-
-        assert_that(marker.circle.radius, equal_to(new_radius))
-
-        assert_that(marker.left_hair.get_xdata(), equal_to((8, 14)))
-        assert_that(marker.left_hair.get_ydata(), equal_to((20, 20)))
-
-        assert_that(marker.right_hair.get_xdata(), equal_to((26, 32)))
-        assert_that(marker.right_hair.get_ydata(), equal_to((20, 20)))
-
-        assert_that(marker.top_hair.get_xdata(), equal_to((20, 20)))
-        assert_that(marker.top_hair.get_ydata(), equal_to((26, 32)))
-
-        assert_that(marker.bottom_hair.get_xdata(), equal_to((20, 20)))
-        assert_that(marker.bottom_hair.get_ydata(), equal_to((8, 14)))
-
-
-class UtilityTest(unittest.TestCase):
-    def test_clip_in_range(self):
-        assert_that(clip(0.5, 0, 1), equal_to(0.5))
-
-    def test_clip_below_range(self):
-        assert_that(clip(-0.5, 0, 1), equal_to(0.0))
-
-    def test_clip_above_range(self):
-        assert_that(clip(1.5, 0, 1), equal_to(1.0))
 
 
 if __name__ == '__main__':
