@@ -6,83 +6,9 @@ import threading
 
 from ossos.gui import tasks, logger
 from ossos.astrom import StreamingAstromWriter
+from ossos.gui.models.collections import StatefulCollection
+from ossos.gui.models.exceptions import NoAvailableWorkException, SourceNotNamedException
 from ossos.gui.progress import FileLockedException
-
-
-class NoAvailableWorkException(Exception):
-    """"No more work is available."""
-
-
-class SourceNotNamedException(Exception):
-    """The source has no name."""
-
-    def __init__(self, source):
-        self.source = source
-
-
-class StatefulCollection(object):
-    """
-    An ordered collection of objects which have the notion of one of them
-    being the 'current' object.
-    """
-
-    def __init__(self, items=None):
-        if items is None:
-            self.items = []
-            self.index = -1
-        else:
-            self.items = items
-            self.index = 0
-
-    def __len__(self):
-        return len(self.items)
-
-    def __iter__(self):
-        return iter(self.items)
-
-    def __getitem__(self, index):
-        return self.items[index]
-
-    def append(self, item):
-        """Adds a new item to the end of the collection."""
-        if len(self) == 0:
-            # Special case, we make this the current item
-            self.index = 0
-
-        self.items.append(item)
-
-    def get_index(self):
-        """Returns the index of the current item."""
-        return self.index
-
-    def get_current_item(self):
-        if self.items:
-            return self.items[self.index]
-        else:
-            return None
-
-    def next(self):
-        """
-        Make the next item in the collection the current item.  Wraps around
-        to the beginning after reaching the end.
-        """
-        self._move(1)
-
-    def previous(self):
-        """
-        Make the previous item in the collection the current item.  Wraps
-        around to the end after reaching the beginning.
-        """
-        self._move(-1)
-
-    def is_on_last_item(self):
-        """
-        Returns True if the current item is the last item in the collection.
-        """
-        return self.index == len(self) - 1
-
-    def _move(self, delta):
-        self.index = (self.index + delta) % len(self)
 
 
 class WorkUnit(object):

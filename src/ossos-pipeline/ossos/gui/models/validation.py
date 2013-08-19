@@ -2,10 +2,11 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 from ossos.gui import events
 from ossos.gui import logger
+from ossos.gui.models.collections import StatefulCollection
 from ossos.gui.models.exceptions import (ImageNotLoadedException,
-                                         NoWorkUnitException)
-from ossos.gui.workload import (NoAvailableWorkException, StatefulCollection,
-                                CandidatesWorkUnit, RealsWorkUnit)
+                                         NoWorkUnitException,
+                                         NoAvailableWorkException)
+from ossos.gui.models.workload import CandidatesWorkUnit, RealsWorkUnit
 
 
 class ValidationModel(object):
@@ -191,7 +192,10 @@ class ValidationModel(object):
         return self.get_current_source().set_provisional_name(name)
 
     def get_current_displayable_item(self):
-        return self.image_state.get_current_displayble_item()
+        return self.image_state.get_current_displayable_item()
+
+    def get_current_displayable_image(self):
+        return self.image_state.get_current_displayable_image()
 
     def get_current_band(self):
         return self.get_current_fits_header()["FILTER"][0]
@@ -292,7 +296,10 @@ class SingletState(object):
         self.download_workunit_images(
             self.model.get_current_workunit())
 
-    def get_current_displayble_item(self):
+    def get_current_displayable_item(self):
+        return self.model.get_current_reading()
+
+    def get_current_displayable_image(self):
         return self.image_manager.get_displayable_singlet(
             self.model.get_current_reading())
 
@@ -313,7 +320,10 @@ class TripletState(object):
         self.download_workunit_images(
             self.model.get_current_workunit())
 
-    def get_current_displayble_item(self):
+    def get_current_displayable_item(self):
+        return self.model.get_current_source()
+
+    def get_current_displayable_image(self):
         return self.image_manager.get_displayable_triplet(
             self.model.get_current_source())
 

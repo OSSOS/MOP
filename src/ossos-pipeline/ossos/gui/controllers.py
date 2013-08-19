@@ -19,18 +19,17 @@ class AbstractController(object):
         events.subscribe(events.NO_AVAILABLE_WORK, self.on_no_available_work)
 
         self.autoplay_manager = AutoplayManager(model)
-        self.image_loading_dialog_manager = ImageLoadingDialogManager(self.view)
+        self.image_loading_dialog_manager = ImageLoadingDialogManager(view)
 
     def get_view(self):
         return self.view
 
     def display_current_image(self):
         try:
-            self.view.display(self.model.get_current_displayable_item(),
+            self.view.display(self.model.get_current_displayable_image(),
                               redraw=False)
-        except ImageNotLoadedException:
-            self.image_loading_dialog_manager.wait_for_item(
-                self.model.get_current_reading())
+        except ImageNotLoadedException as ex:
+            self.image_loading_dialog_manager.wait_for_item(ex.requested_item)
             return
         except NoWorkUnitException:
             return
@@ -58,10 +57,10 @@ class AbstractController(object):
             pass
 
     def on_image_loaded(self, event):
-        source_reading = event.data
-        self.image_loading_dialog_manager.set_item_done(source_reading)
+        displayable_item = event.data
+        self.image_loading_dialog_manager.set_item_done(displayable_item)
 
-        if source_reading == self.model.get_current_reading():
+        if displayable_item == self.model.get_current_displayable_item():
             self.display_current_image()
 
     def on_change_image(self, event):
@@ -87,10 +86,12 @@ class AbstractController(object):
     def on_use_singlet_view(self):
         self.model.use_singlets()
         self.view.use_singlets()
+        self.display_current_image()
 
     def on_use_triplet_view(self):
         self.model.use_triplets()
         self.view.use_triplets()
+        self.display_current_image()
 
     def on_enable_auto_sync(self):
         self.model.enable_synchronization()

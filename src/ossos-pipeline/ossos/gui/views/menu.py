@@ -71,8 +71,6 @@ class Menu(object):
         self.menubar = menubar
         self.auto_play_item = auto_play_item
 
-        triplet_view_item.Enable(False)
-
     def _on_select_keymap(self, event):
         self.controller.on_show_keymappings()
 
