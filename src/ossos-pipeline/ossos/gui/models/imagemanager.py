@@ -29,6 +29,9 @@ class ImageManager(object):
     def submit_singlet_download_request(self, download_request):
         self._singlet_download_manager.submit_request(download_request)
 
+    def submit_triplet_download_request(self, download_request):
+        self._triplet_download_manager.submit_request(download_request)
+
     def download_singlets_for_workunit(self, workunit):
         if workunit in self._workunits_downloaded_for_singlets:
             return
@@ -58,13 +61,13 @@ class ImageManager(object):
         try:
             return self._displayable_singlets[reading]
         except KeyError:
-            raise ImageNotLoadedException()
+            raise ImageNotLoadedException(reading)
 
     def get_cutout(self, reading):
         try:
             return self._cutouts[reading]
         except KeyError:
-            raise ImageNotLoadedException()
+            raise ImageNotLoadedException(reading)
 
     def download_triplets_for_workunit(self, workunit):
         if workunit in self._workunits_downloaded_for_triplets:
@@ -88,6 +91,8 @@ class ImageManager(object):
 
                 if grid.is_filled():
                     self._displayable_triplets[grid.source] = DisplayableImageTriplet(grid)
+                    events.send(events.IMG_LOADED, grid.source)
+                    logger.info("Triplet grid finished downloading.")
 
             return callback
 
@@ -107,7 +112,7 @@ class ImageManager(object):
         try:
             return self._displayable_triplets[source]
         except KeyError:
-            raise ImageNotLoadedException()
+            raise ImageNotLoadedException(source)
 
     def stop_downloads(self):
         self.stop_singlet_downloads()

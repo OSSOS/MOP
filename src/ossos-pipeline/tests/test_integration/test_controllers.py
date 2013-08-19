@@ -16,7 +16,7 @@ from ossos.gui.models.validation import ValidationModel
 from ossos.gui.views.appview import ApplicationView
 from ossos.astrom import AstromParser
 from ossos.naming import ProvisionalNameGenerator
-from ossos.gui.workload import WorkUnitProvider, RealsWorkUnitBuilder
+from ossos.gui.models.workload import WorkUnitProvider, RealsWorkUnitBuilder
 
 TEST_MINOR_PLANET_NUMBER = "mpn01"
 TEST_PROVISIONAL_NAME = "DNZOH00"
@@ -55,7 +55,7 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
         self.model.start_work()
 
         # We don't actually have any images loaded, so mock this out
-        self.model.get_current_displayable_item = Mock()
+        self.model.get_current_displayable_image = Mock()
         self.model.is_current_source_adjusted = Mock(return_value=False)
         self.model.get_current_fits_header = Mock()
 

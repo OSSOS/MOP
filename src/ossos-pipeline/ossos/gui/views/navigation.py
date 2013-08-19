@@ -16,7 +16,7 @@ class NavPanel(wx.Panel):
         self._bind_events()
 
     def _init_ui(self):
-        self.sbox = wx.StaticBox(self, label="Navigate observations for this source")
+        self.sbox = wx.StaticBox(self, label="Source Observations")
 
         self.status_text = wx.StaticText(self, label="Loading...")
         self.next_button = wx.Button(self, wx.ID_FORWARD, label=self.NEXT_LABEL)
@@ -57,4 +57,7 @@ class NavPanel(wx.Panel):
 
     def set_status(self, current_obs, total_obs):
         assert 0 <= current_obs <= total_obs
-        self.status_text.SetLabel("Observation %s of %s" % (current_obs, total_obs))
+        self.status_text.SetLabel("%s of %s" % (current_obs, total_obs))
+
+        # Re-center text
+        self.Layout()
