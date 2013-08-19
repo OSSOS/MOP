@@ -9,8 +9,8 @@ class SingletViewer(WxMPLFitsViewer):
     Displays a single FITS image at a time.
     """
 
-    def __init__(self, parent):
-        super(SingletViewer, self).__init__(parent)
+    def __init__(self, parent, canvas):
+        super(SingletViewer, self).__init__(parent, canvas)
 
         self.current_image = None
         self.xy_changed = Signal()
