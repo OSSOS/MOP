@@ -183,9 +183,9 @@ class TracksWorkUnit(WorkUnit):
             parsed_data,
             progress_manager,
             output_context,
-            dry_run=dry_run )
+            dry_run=dry_run)
 
-        self._writers = {}
+        self._writer = None
 
     def next_item(self):
         assert not self.is_finished()
@@ -221,28 +221,16 @@ class TracksWorkUnit(WorkUnit):
         return True
 
     def get_writer(self):
-        filename = self.get_output_filename(self.get_current_source())
-        if filename in self._writers:
-            return self._writers[filename]
+        if self._writer is None:
+            self._writer = self._create_writer(self.filename.replace(".track", ".mpc"))
 
-        writer = self._create_writer(filename)
-        self._writers[filename] = writer
-        return writer
+        return self._writer
 
     def get_results_file_paths(self):
-        return [self.output_context.get_full_path(filename)
-                for filename in self._writers]
+        if self._writer is None:
+            return []
 
-    def get_output_filename(self, source):
-        if not source.has_provisional_name():
-            raise SourceNotNamedException(source)
-
-        name = source.get_provisional_name() + ".mpc"
-
-        if self.dry_run:
-            name = os.path.basename(self.filename) + "." + name
-
-        return name
+        return [self.output_context.get_full_path(self._writer.get_filename())]
 
     def _create_writer(self, filename):
         # NOTE: this import is only here so that we don't load up secondary
@@ -267,8 +255,8 @@ class TracksWorkUnit(WorkUnit):
                 self.processed_items.add(reading)
 
     def _close_writers(self):
-        for writer in self._writers.values():
-            writer.close()
+        if self._writer is not None:
+            self._writer.close()
 
 
 class RealsWorkUnit(WorkUnit):
