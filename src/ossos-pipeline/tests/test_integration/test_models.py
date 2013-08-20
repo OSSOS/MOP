@@ -3,21 +3,26 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 import unittest
 
+from astropy.io import fits
 from hamcrest import (assert_that, equal_to, has_length, contains,
                       same_instance, is_not, contains_inanyorder)
 from mock import patch, Mock
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
-from ossos.gui import models, events, tasks
+from ossos.downloads.async import AsynchronousDownloadManager
+from ossos.downloads.core import ApcorData
+from ossos.downloads.cutouts.calculator import CoordinateConverter
+from ossos.downloads.cutouts.source import SourceCutout
 from ossos.gui.context import LocalDirectoryWorkingContext
-from ossos.gui.models import ImageNotLoadedException
-from ossos.gui.downloads import AsynchronousImageDownloadManager
+from ossos.gui import events, tasks
+from ossos.gui.models.exceptions import ImageNotLoadedException
+from ossos.gui.models.imagemanager import ImageManager
+from ossos.gui.models.validation import ValidationModel
 from ossos.astrom import AstromParser
-from ossos.cutouts import CoordinateConverter
-from ossos.gui.persistence import LocalProgressManager
-from ossos.gui.image import DownloadedFitsImage
-from ossos.gui.workload import (WorkUnitProvider, RealsWorkUnitBuilder,
-                                CandidatesWorkUnitBuilder)
+from ossos.gui.progress import LocalProgressManager
+from ossos.gui.models.workload import (WorkUnitProvider, RealsWorkUnitBuilder,
+                                       CandidatesWorkUnitBuilder)
+
 
 MODEL_TEST_DIR_1 = "data/model_testdir_1"
 MODEL_TEST_DIR_2 = "data/model_testdir_2"
@@ -26,6 +31,8 @@ EMPTY_DIR = "data/empty"
 
 FRESH_TEST_DIR = "data/model_persistence_fresh"
 TEST_FILES = ["xxx1.cands.astrom", "xxx2.cands.astrom", "xxx3.reals.astrom", "xxx4.reals.astrom"]
+
+TEST_OBJECT_NAME = "O13AE0Z"
 
 
 class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
@@ -42,9 +49,13 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
 
         self.workunit_provider = workunit_provider
         self.progress_manager = progress_manager
-        self.download_manager = Mock(spec=AsynchronousImageDownloadManager)
 
-        self.model = self.get_model()
+        self.singlet_download_manager = Mock(spec=AsynchronousDownloadManager)
+        self.triplet_download_manager = Mock(spec=AsynchronousDownloadManager)
+        self.image_manager = ImageManager(self.singlet_download_manager,
+                                          self.triplet_download_manager)
+
+        self.model = ValidationModel(self.workunit_provider, self.image_manager, None)
 
         self.custom_setup()
 
@@ -52,9 +63,6 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
 
     def custom_setup(self):
         pass
-
-    def get_model(self):
-        raise NotImplementedError()
 
     def _get_task(self):
         raise NotImplementedError()
@@ -70,12 +78,12 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
 
     def create_real_first_image(self, path="data/testimg.fits"):
         # Put a real fits image on the first source, first observation
-        apcor_str = "4 15   0.19   0.01"
-        with open(self.get_abs_path(path), "rb") as fh:
-            self.first_image = DownloadedFitsImage(
-                fh.read(), CoordinateConverter(0, 0), apcor_str, in_memory=True)
-            first_reading = self.model.get_current_workunit().get_sources()[0].get_readings()[0]
-            self.model._on_image_loaded(first_reading, self.first_image)
+        apcor = ApcorData.from_string("4 15   0.19   0.01")
+        hdulist = fits.open(self.get_abs_path(path))
+        first_reading = self.model.get_current_workunit().get_sources()[0].get_readings()[0]
+        self.first_snapshot = SourceCutout(
+            first_reading, hdulist, CoordinateConverter(0, 0), apcor)
+        self.image_manager.on_singlet_image_loaded(self.first_snapshot)
 
 
 class AbstractRealsModelTest(GeneralModelTest):
@@ -91,10 +99,6 @@ class AbstractRealsModelTest(GeneralModelTest):
 
     def get_files_to_keep(self):
         return ["1584431p15.measure3.reals.astrom"]
-
-    def get_model(self):
-        return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
 
     def test_sources_initialized(self):
         assert_that(self.model.get_current_source_number(), equal_to(0))
@@ -216,30 +220,28 @@ class AbstractRealsModelTest(GeneralModelTest):
             ("R.A.", 26.6833367), ("DEC", 29.2203532)
         ))
 
-    @patch("ossos.gui.models.ImageReading")
-    def test_loading_images(self, mock_ImageReading):
+    @patch("ossos.gui.models.imagemanager.DisplayableImageSinglet")
+    def test_loading_images(self, mock_DisplayableImageSinglet):
         observer = Mock()
         events.subscribe(events.IMG_LOADED, observer.on_img_loaded)
-        loaded_reading1 = Mock()
         image1 = Mock()
-        loaded_reading2 = Mock()
+        loaded_reading1 = image1.reading
         image2 = Mock()
+        loaded_reading2 = image2.reading
 
-        assert_that(self.download_manager.start_downloading_workunit.call_count,
-                    equal_to(1))
-        assert_that(self.model.get_loaded_image_count(), equal_to(0))
+        assert_that(
+            self.image_manager._singlet_download_manager.submit_request.call_count,
+            equal_to(9))
 
         # Simulate receiving callback
-        self.model._on_image_loaded(loaded_reading1, image1)
-        assert_that(self.model.get_loaded_image_count(), equal_to(1))
+        self.image_manager.on_singlet_image_loaded(image1)
         assert_that(observer.on_img_loaded.call_count, equal_to(1))
-        assert_that(mock_ImageReading.call_count, equal_to(1))
+        assert_that(mock_DisplayableImageSinglet.call_count, equal_to(1))
 
         # Simulate receiving callback
-        self.model._on_image_loaded(loaded_reading2, image2)
-        assert_that(self.model.get_loaded_image_count(), equal_to(2))
+        self.image_manager.on_singlet_image_loaded(image2)
         assert_that(observer.on_img_loaded.call_count, equal_to(2))
-        assert_that(mock_ImageReading.call_count, equal_to(2))
+        assert_that(mock_DisplayableImageSinglet.call_count, equal_to(2))
 
         # Check event args
         call_args_list = observer.on_img_loaded.call_args_list
@@ -310,12 +312,12 @@ class AbstractRealsModelTest(GeneralModelTest):
 
     def test_get_current_image(self):
         self.create_real_first_image()
-        assert_that(self.model.get_current_image(),
-                    same_instance(self.first_image))
+        assert_that(self.model.get_current_cutout(),
+                    same_instance(self.first_snapshot))
 
-    def test_get_current_image_not_loaded(self):
+    def test_get_current_snapshot_not_loaded(self):
         self.model.next_source()
-        self.assertRaises(ImageNotLoadedException, self.model.get_current_image)
+        self.assertRaises(ImageNotLoadedException, self.model.get_current_cutout)
 
     def test_get_current_reading_data(self):
         self.model.next_source()
@@ -328,9 +330,6 @@ class AbstractRealsModelTest(GeneralModelTest):
 
 
 class ProcessRealsModelTest(GeneralModelTest):
-    def _get_working_dir(self):
-        return self.get_abs_path(MODEL_TEST_DIR_1)
-
     def _get_task(self):
         return tasks.REALS_TASK
 
@@ -341,9 +340,8 @@ class ProcessRealsModelTest(GeneralModelTest):
     def get_files_to_keep(self):
         return ["1584431p15.measure3.reals.astrom"]
 
-    def get_model(self):
-        return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
+    def _get_working_dir(self):
+        return self.get_abs_path(MODEL_TEST_DIR_1)
 
     def test_next_item_no_validation(self):
         observer = Mock()
@@ -370,6 +368,8 @@ class ProcessRealsModelTest(GeneralModelTest):
         assert_that(observer.on_change_img.call_count, equal_to(3))
 
     def test_next_item_after_validate_last(self):
+        self.model.set_current_source_name(TEST_OBJECT_NAME)
+
         assert_that(self.model.get_current_source_number(), equal_to(0))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
 
@@ -432,6 +432,8 @@ class ProcessRealsModelTest(GeneralModelTest):
         assert_that(self.model.get_current_obs_number(), equal_to(2))
 
     def test_is_source_discovered(self):
+        self.model.set_current_source_name(TEST_OBJECT_NAME)
+
         assert_that(self.model.is_current_source_discovered(), equal_to(False))
         self.model.reject_current_item()
         assert_that(self.model.is_current_source_discovered(), equal_to(False))
@@ -495,6 +497,7 @@ class ProcessRealsModelTest(GeneralModelTest):
         total_items = 9
         item = 0
         while item < total_items - 1:
+            self.model.set_current_source_name(TEST_OBJECT_NAME)
             self.model.accept_current_item()
             assert_that(observer.on_all_processed.call_count, equal_to(0))
             self.model.next_item()
@@ -513,6 +516,7 @@ class ProcessRealsModelTest(GeneralModelTest):
         total_items = 9
         item = 0
         while item < total_items - 1:
+            self.model.set_current_source_name(TEST_OBJECT_NAME)
             self.model.accept_current_item()
             assert_that(observer.on_all_processed.call_count, equal_to(0))
             self.model.next_item()
@@ -538,10 +542,6 @@ class ProcessCandidatesModelTest(GeneralModelTest):
 
     def get_files_to_keep(self):
         return ["1584431p15.measure3.cands.astrom", "1584431p15.measure3.reals.astrom"]
-
-    def get_model(self):
-        return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
 
     def test_next_item(self):
         observer = Mock()
@@ -648,10 +648,6 @@ class MultipleAstromDataModelTest(GeneralModelTest):
     def _get_workunit_builder(self, parser, progress_manager):
         return CandidatesWorkUnitBuilder(parser, self.context, self.context,
                                          progress_manager)
-
-    def get_model(self):
-        return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
 
     def _get_task(self):
         return tasks.CANDS_TASK
@@ -787,10 +783,6 @@ class MultipleAstromDataModelTest(GeneralModelTest):
 
 
 class RealsModelPersistenceTest(GeneralModelTest):
-    def get_model(self):
-        return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
-
     def setUp(self):
         super(RealsModelPersistenceTest, self).setUp()
 
@@ -819,6 +811,8 @@ class RealsModelPersistenceTest(GeneralModelTest):
         assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
                     has_length(0))
 
+        self.model.set_current_source_name(TEST_OBJECT_NAME)
+
         self.model.accept_current_item()
         assert_that(self.concurrent_progress_manager.is_done(first_file),
                     equal_to(False))
@@ -845,6 +839,8 @@ class RealsModelPersistenceTest(GeneralModelTest):
         assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
                     has_length(0))
 
+        self.model.set_current_source_name(TEST_OBJECT_NAME)
+
         # source 1 of 3, reading 1 of 3
         self.model.accept_current_item()
         self.model.next_item()
@@ -860,6 +856,8 @@ class RealsModelPersistenceTest(GeneralModelTest):
                     equal_to(False))
         assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
                     contains_inanyorder(0))
+
+        self.model.set_current_source_name(TEST_OBJECT_NAME)
 
         # source 2 of 3 reading 1 of 3
         self.model.accept_current_item()
@@ -880,6 +878,8 @@ class RealsModelPersistenceTest(GeneralModelTest):
                     equal_to(False))
         assert_that(self.concurrent_progress_manager.get_processed_indices(first_file),
                     contains_inanyorder(0, 1))
+
+        self.model.set_current_source_name(TEST_OBJECT_NAME)
 
         # source 3 of 3 reading 1 of 3
         self.model.next_item()
@@ -905,10 +905,11 @@ class RealsModelPersistenceTest(GeneralModelTest):
         observer = Mock()
         events.subscribe(events.FINISHED_WORKUNIT, observer.on_file_processed)
 
-        filename = self.model.get_current_filename()
+        workunit = self.model.get_current_workunit()
         accepts_before_next_file = 9
 
         while accepts_before_next_file > 1:
+            self.model.set_current_source_name(TEST_OBJECT_NAME)
             self.model.accept_current_item()
             self.model.next_item()
             assert_that(observer.on_file_processed.call_count, equal_to(0))
@@ -923,7 +924,7 @@ class RealsModelPersistenceTest(GeneralModelTest):
 
         msg = args[0]
         assert_that(msg.topic, equal_to(events.FINISHED_WORKUNIT))
-        assert_that(msg.data, equal_to(filename))
+        assert_that(msg.data, equal_to(workunit.get_results_file_paths()))
 
     def test_unlock_on_exit(self):
         current_file = self.model.get_current_filename()
@@ -934,10 +935,6 @@ class RealsModelPersistenceTest(GeneralModelTest):
 
 
 class RealsModelPersistenceLoadingTest(GeneralModelTest):
-    def get_model(self):
-        return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
-
     def setUp(self):
         # Have to set this up here because test cases may modify the .PART file
         partfile = os.path.join(self.get_directory_to_clean(), "xxx3.reals.astrom.PART")
@@ -963,11 +960,13 @@ class RealsModelPersistenceLoadingTest(GeneralModelTest):
         return ["xxx1.cands.astrom", "xxx3.reals.astrom"]
 
     def test_load_partially_processed(self):
+        self.model.set_current_source_name(TEST_OBJECT_NAME)
+
         observer = Mock()
         events.subscribe(events.FINISHED_WORKUNIT, observer)
 
-        assert_that(self.model.get_current_workunit().get_unprocessed_sources(),
-                    has_length(1))
+        workunit = self.model.get_current_workunit()
+        assert_that(workunit.get_unprocessed_sources(), has_length(1))
 
         assert_that(self.model.get_current_source_number(), equal_to(2))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
@@ -982,14 +981,10 @@ class RealsModelPersistenceLoadingTest(GeneralModelTest):
         assert_that(observer.call_count, equal_to(1))
 
         msg = observer.call_args_list[0][0][0]
-        assert_that(msg.data, equal_to("xxx3.reals.astrom"))
+        assert_that(msg.data, equal_to(workunit.get_results_file_paths()))
 
 
 class CandidatesModelPersistenceTest(GeneralModelTest):
-    def get_model(self):
-        return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
-
     def setUp(self):
         super(CandidatesModelPersistenceTest, self).setUp()
 
@@ -1064,10 +1059,6 @@ class CandidatesModelPersistenceTest(GeneralModelTest):
 
 
 class CandidatesModelPersistenceLoadingTest(GeneralModelTest):
-    def get_model(self):
-        return models.UIModel(
-            self.workunit_provider, self.progress_manager, self.download_manager)
-
     def create_part_file_with_indices(self, indices):
         str_indices = ""
         for index in indices:
@@ -1101,8 +1092,8 @@ class CandidatesModelPersistenceLoadingTest(GeneralModelTest):
         observer = Mock()
         events.subscribe(events.FINISHED_WORKUNIT, observer)
 
-        assert_that(self.model.get_current_workunit().get_unprocessed_sources(),
-                    has_length(1))
+        workunit = self.model.get_current_workunit()
+        assert_that(workunit.get_unprocessed_sources(), has_length(1))
 
         assert_that(self.model.get_current_source_number(), equal_to(1))
         assert_that(self.model.get_current_obs_number(), equal_to(0))
@@ -1111,7 +1102,7 @@ class CandidatesModelPersistenceLoadingTest(GeneralModelTest):
         assert_that(observer.call_count, equal_to(1))
 
         msg = observer.call_args_list[0][0][0]
-        assert_that(msg.data, equal_to("xxx1.cands.astrom"))
+        assert_that(msg.data, equal_to(workunit.get_results_file_paths()))
 
     def test_load_fast_forward_through_sources(self):
         self.create_part_file_with_indices([0, 1])

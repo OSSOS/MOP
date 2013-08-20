@@ -9,6 +9,9 @@ MANIFEST
 build
 dist
 .DS_Store
-src/ossos-pipeline/ossos_submit/payload.bsx
-src/ossos-pipeline/ossos_submit/payload.tgz
-src/ossos-pipeline/ossos_submit/payload/cadcproxy.pem
+*/payload.bsx
+*/payload.tgz
+*/cadcproxy.pem
+*.xml
+.idea/*
+.idea

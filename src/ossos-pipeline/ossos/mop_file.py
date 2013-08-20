@@ -10,7 +10,7 @@ FILE_SCHEME = 'file'
 MJD_OFFSET = 2400000.5
 
 class Parser(object):
-    """Read in a MOP formated file"""
+    """Read in a MOP formatted file"""
 
     def __init__(self):
         """does nothing"""

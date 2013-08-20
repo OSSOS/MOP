@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 
 from ossos import storage
-from ossos.gui.persistence import LocalProgressManager, VOSpaceProgressManager
+from ossos.gui.progress import LocalProgressManager, VOSpaceProgressManager
 
 
 def get_context(directory):
@@ -16,6 +16,9 @@ def get_context(directory):
 class WorkingContext(object):
     def __init__(self, directory):
         self.directory = directory
+
+    def is_remote(self):
+        raise NotImplementedError()
 
     def get_full_path(self, filename):
         return os.path.join(self.directory, filename)
@@ -49,6 +52,9 @@ class LocalDirectoryWorkingContext(WorkingContext):
     def __init__(self, directory):
         super(LocalDirectoryWorkingContext, self).__init__(directory)
 
+    def is_remote(self):
+        return False
+
     def listdir(self):
         return os.listdir(self.directory)
 
@@ -59,7 +65,15 @@ class LocalDirectoryWorkingContext(WorkingContext):
         return os.path.exists(self.get_full_path(filename))
 
     def open(self, filename):
-        return open(self.get_full_path(filename), "a+b")
+        filehandle = open(self.get_full_path(filename), "a+b")
+
+        # Note: Linux starts the file position at 0, but on MacOSX it
+        # starts at the end of the file, so this makes things consistent
+        # and allows us to subsequently call a read with the expected
+        # results.
+        filehandle.seek(0)
+
+        return filehandle
 
     def rename(self, old_name, new_name):
         os.rename(self.get_full_path(old_name), self.get_full_path(new_name))
@@ -75,9 +89,12 @@ class VOSpaceWorkingContext(WorkingContext):
     def __init__(self, directory):
         super(VOSpaceWorkingContext, self).__init__(directory)
 
+    def is_remote(self):
+        return True
+
     def listdir(self):
-        # force to make sure we don't get cached results
-        return storage.listdir(self.directory, force=True)
+        # Don't force because it causes a HUGE performance hit.
+        return storage.listdir(self.directory, force=False)
 
     def get_file_size(self, filename):
         length_property = storage.get_property(
@@ -99,8 +116,7 @@ class VOSpaceWorkingContext(WorkingContext):
         return storage.exists(self.get_full_path(filename))
 
     def open(self, filename):
-        return storage.SyncingVOFile(self.get_full_path(filename),
-                                     sync_enabled=False)
+        return storage.vofile(self.get_full_path(filename), os.O_RDONLY)
 
     def rename(self, old_name, new_name):
         storage.move(old_name, new_name)

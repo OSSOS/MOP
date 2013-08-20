@@ -11,155 +11,23 @@ import errno
 from astropy.io import fits
 import urlparse
 
+from ossos import coding
+
 CERTFILE=os.path.join(os.getenv('HOME'),
                       '.ssl',
                       'cadcproxy.pem')
 
 DBIMAGES='vos:OSSOS/dbimages'
-DATA_WEB_SERVICE='https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/'
+MEASURE3='vos:OSSOS/measure3'
+
+DATA_WEB_SERVICE='https://www.canfar.phys.uvic.ca/data/pub/'
+
 OSSOS_TAG_URI_BASE='ivo://canfar.uvic.ca/ossos'
+OBJECT_COUNT = "object_count"
+
 vospace = vos.Client(cadc_short_cut=True, certFile=CERTFILE)
+
 SUCCESS = 'success'
-
-
-class PropertyError(object):
-    """"An error occurred accessing a VOSpace property."""
-
-
-class InvalidURIError(Exception):
-    """An invalid URI was provided."""
-
-
-class SyncingVOFile(object):
-    """
-    A file-like object which allows creating, reading and writing files in
-    VOSpace while maintaining a local backup copy.
-
-    Changes made to the file are saved locally, only being written to VOSpace
-    when flushed.
-    """
-
-    def __init__(self, uri, sync_enabled=True, vosclient=vospace):
-        """
-        Contstructor.
-
-        If a file does not exist at the specified URI, it will not be created
-        right away.  Only a local file will be created, until the first flush
-        (sync) which will create the VOSpace file.
-
-        If a file already exists at the specified URI, it will be opened for
-        reading and writing.  It's contents will be copied to a local file.
-
-        Local files are created in the temp directory with the same basename
-        as the VOFile.  If a file already exists locally, it is first
-        removed.
-
-        Args:
-          uri: str
-            The URI of the file in VOSpace.  Raises an InvalidUriError if
-            this isn't recognizable as a VOSpace URI.
-          sync_enabled: bool
-            Defaults to True, in which case flushing causes the local file
-            to be synced with VOSpace.  If set to False, no syncing will
-            occur with VOSPace.
-        """
-        self.sync_enabled = sync_enabled
-
-        if not uri.startswith("vos:"):
-            raise InvalidURIError("URI must point to VOSpace.")
-
-        self.uri = uri
-        self.vosclient = vosclient
-
-        basename = os.path.basename(uri)
-        self.local_filename = os.path.join(tempfile.gettempdir(), basename)
-
-        if exists(uri):
-            # Download any existing content.
-            self.vosclient.copy(uri, self.local_filename)
-        elif os.path.exists(self.local_filename):
-            # Make sure we clear any existing local data or we could be
-            # surprised when it shows up in the VOFile.
-            os.remove(self.local_filename)
-
-        self.local_filehandle = open(self.local_filename, "a+b")
-
-    def read(self):
-        """
-        Reads the contents of the file.
-
-        Reading is done from the local file which the VOSpace file is being
-        synced from, so it will always have the most up-to-date content
-        (which may not actually have been written to VOSpace yet).
-
-        IMPORTANT NOTE: this read behaves differently than standard file
-        objects because it always reads from the beginning of the file
-        without needing to seek back there.
-
-        Returns:
-          content: str
-            The contents of the file.
-        """
-        self.local_filehandle.seek(0)
-        return self.local_filehandle.read()
-
-    def write(self, content):
-        """
-        Writes some content to the file.
-
-        IMPORTANT NOTE: this write behaves differently than standard file
-        objects because new content is always appended to the existing
-        content.
-
-        IMPORTANT NOTE: content written to the file are not sent to VOSpace
-        until flush is called.
-
-        Args:
-          content: str
-            The content to be appended to the file.
-
-        Returns:
-          void
-        """
-        self.local_filehandle.write(content)
-
-    def flush(self):
-        """
-        Flushes the local file and then syncs it to VOSpace by copying
-        (unless syncing has been disabled).
-
-        Returns:
-          void
-        """
-        self.local_filehandle.flush()
-
-        if self.sync_enabled:
-            self.vosclient.copy(self.get_local_filename(), self.uri)
-
-    def close(self):
-        """
-        Closes all resources.
-
-        Returns:
-          void
-        """
-        self.flush()
-        self.local_filehandle.close()
-
-    def get_local_filename(self):
-        """
-        Returns:
-          filename: str
-            The path to the local file backing the VOFile.
-        """
-        return self.local_filename
-
-    def seek(self, offset):
-        """
-        This is a no-op since this is an append only file where all reads
-        start from the beginning and all writes append to the end.
-        """
-        pass
 
 
 def populate(dataset_name,
@@ -176,7 +44,6 @@ def populate(dataset_name,
     try:
         c.mkdir(os.path.dirname(data_dest))
     except IOError as e:
-        print e
         if e.errno == errno.EEXIST:
             pass
         else:
@@ -185,7 +52,6 @@ def populate(dataset_name,
     try: 
         c.link(data_source, data_dest)
     except IOError as e:
-        print e
         if e.errno == errno.EEXIST:
             pass
         else:
@@ -197,7 +63,6 @@ def populate(dataset_name,
     try:
         c.link(header_source, header_dest)
     except IOError as e:
-        print e
         if e.errno == errno.EEXIST:
             pass
         else:
@@ -278,18 +143,19 @@ def tag_uri(key):
 def get_tag(expnum, key):
     '''given a key, return the vospace tag value.'''
 
-    uri = os.path.join(DBIMAGES, str(expnum))
-
-    node = vospace.getNode(uri)
-    if tag_uri(key) not in node.props.keys():
-        node = vospace.getNode(uri, force=True)
+    if tag_uri(key) not in get_tags(expnum):
+        get_tags(expnum, force=True)
     logging.debug("%s # %s -> %s"  % (
-        uri, tag_uri(key), node.props.get(tag_uri(key), None)))
-    return node.props.get(tag_uri(key), None)
+        expnum, tag_uri(key), get_tags(expnum).get(tag_uri(key), None)))
+    return get_tags(expnum).get(tag_uri(key), None)
 
 def get_process_tag(program, ccd):
     """make a process tag have a suffix indicating which ccd its for"""
     return "%s_%s" % ( program, str(ccd).zfill(2))
+
+def get_tags(expnum, force=False):
+    uri = os.path.join(DBIMAGES,str(expnum))
+    return vospace.getNode(uri, force=force).props
 
 def get_status(expnum, ccd, program, return_message=False):
     '''Report back status of the given program'''
@@ -332,7 +198,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
         copy(uri, filename)
     except Exception as e:
         logging.debug(str(e))
-        if e.errno != errno.ENOENT or ccd is None:
+        if getattr(e,'errno',0) != errno.ENOENT or ccd is None:
             raise e
         ## try doing a cutout from MEF in VOSpace
         uri = get_uri(expnum,
@@ -463,10 +329,6 @@ def exists(uri):
     return vospace.access(uri)
 
 
-def create(uri):
-    vospace.create(uri)
-
-
 def move(old_uri, new_uri):
     vospace.move(old_uri, new_uri)
 
@@ -508,9 +370,61 @@ def set_property(node_uri, property_name, property_value, ossos_base=True):
     node = vospace.getNode(node_uri)
     property_uri = tag_uri(property_name) if ossos_base else property_name
 
-    # First clear any existing value
-    node.props[property_uri] = None
-    vospace.addProps(node)
+    # If there is an existing value, clear it first
+    if property_uri in node.props:
+        node.props[property_uri] = None
+        vospace.addProps(node)
 
     node.props[property_uri] = property_value
     vospace.addProps(node)
+
+
+def build_counter_tag(epoch_field, dry_run=False):
+    """
+    Builds the tag for the counter of a given epoch/field,
+    without the OSSOS base.
+    """
+    tag = epoch_field + "-" + OBJECT_COUNT
+
+    if dry_run:
+        tag += "-DRYRUN"
+
+    return tag
+
+
+def read_object_counter(node_uri, epoch_field, dry_run=False):
+    """
+    Reads the object counter for the given epoch/field on the specified
+    node.
+
+    Returns:
+      count: str
+        The current object count.
+    """
+    return get_property(node_uri, build_counter_tag(epoch_field, dry_run),
+                        ossos_base=True)
+
+
+def increment_object_counter(node_uri, epoch_field, dry_run=False):
+    """
+    Increments the object counter for the given epoch/field on the specified
+    node.
+
+    Returns:
+      new_count: str
+        The object count AFTER incrementing.
+    """
+    current_count = read_object_counter(node_uri, epoch_field, dry_run=dry_run)
+
+    if current_count is None:
+        new_count = "01"
+    else:
+        new_count = coding.base36encode(coding.base36decode(current_count) + 1,
+                                        pad_length=2)
+
+    set_property(node_uri,
+                 build_counter_tag(epoch_field, dry_run=dry_run),
+                 new_count,
+                 ossos_base=True)
+
+    return new_count

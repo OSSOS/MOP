@@ -9,6 +9,9 @@ from ossos import storage
 
 DATASET_ROOT = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages"
 
+# Images from CCDs < 18 have their coordinates flipped
+MAX_INVERTED_CCD = 17
+
 HEADER_LINE_LENGTH = 80
 
 FAKE_PREFIX = "fk"
@@ -43,6 +46,14 @@ RMIN = "RMIN"
 RMAX = "RMAX"
 ANGLE = "ANGLE"
 AWIDTH = "AWIDTH"
+
+
+def parse(filename):
+    return AstromParser().parse(filename)
+
+
+def parse_sources(filename):
+    return parse(filename).get_sources()
 
 
 class AstromFormatError(Exception):
@@ -200,6 +211,9 @@ class BaseAstromWriter(object):
         self.output_file = filehandle
 
         self._header_written = False
+
+    def get_filename(self):
+        return self.output_file.name
 
     def _write_line(self, line, ljust=True):
         if ljust:
@@ -385,6 +399,7 @@ class Source(object):
 
     def __init__(self, readings):
         self.readings = readings
+        self.provisional_name = None
 
     def get_reading(self, index):
         return self.readings[index]
@@ -394,6 +409,15 @@ class Source(object):
 
     def num_readings(self):
         return len(self.readings)
+
+    def has_provisional_name(self):
+        return self.provisional_name is not None
+
+    def get_provisional_name(self):
+        return self.provisional_name
+
+    def set_provisional_name(self, provisional_name):
+        self.provisional_name = provisional_name
 
 
 class SourceReading(object):
@@ -480,6 +504,42 @@ class SourceReading(object):
     def get_apcor_uri(self):
         return self.obs.get_apcor_uri()
 
+    def get_ccd_num(self):
+        """
+        Returns:
+          ccdnum: int
+            The number of the CCD that the image is on.
+        """
+        return int(self.obs.ccdnum)
+
+    def get_extension(self):
+        """
+        Returns:
+          extension: str
+            The FITS file extension.
+        """
+        if self.obs.is_fake():
+            # We get the image from the CCD directory and it is not
+            # multi-extension.
+            return 0
+
+        # NOTE: ccd number is the extension, BUT Fits file extensions start at 1
+        # Therefore ccd n = extension n + 1
+        return str(self.get_ccd_num() + 1)
+
+    def is_inverted(self):
+        """
+        Returns:
+          inverted: bool
+            True if the stored image is inverted.
+        """
+        if self.obs.is_fake():
+            # We get the image from the CCD directory and it has already
+            # been corrected for inversion.
+            return False
+
+        return True if self.get_ccd_num() <= MAX_INVERTED_CCD else False
+
 
 class Observation(object):
     """
@@ -522,6 +582,10 @@ class Observation(object):
             uri += "%s%s.fits" % (self.expnum, self.ftype)
 
         return uri
+
+    def get_object_planted_uri(self):
+        return "%s/%s/ccd%s/Object.planted" % (DATASET_ROOT, self.expnum,
+                                               self.ccdnum)
 
     def get_apcor_uri(self):
         return "%s/%s/ccd%s/%s.apcor" % (DATASET_ROOT, self.expnum,

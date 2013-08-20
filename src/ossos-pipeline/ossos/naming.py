@@ -1,25 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import collections
-import re
-
-
-def to_base26(number):
-    if number < 0:
-        raise ValueError("Must be a number >= 0")
-
-    converted = ""
-
-    should_continue = True
-    while should_continue:
-        remainder = number % 26
-        converted = chr(remainder + ord('A')) + converted
-        number = (number - remainder) / 26
-
-        if number <= 0:
-            should_continue = False
-
-    return converted
+from ossos import astrom
+from ossos import storage
 
 
 class ProvisionalNameGenerator(object):
@@ -30,55 +12,43 @@ class ProvisionalNameGenerator(object):
     http://www.minorplanetcenter.net/iau/info/PackedDes.html
     """
 
-    def __init__(self):
-        self.valid_expnum_reg = re.compile("^\d{7}$")
-        self._processed_expnums = collections.defaultdict(int)
-        self._processed_sources = {}
-
-    def name_source(self, source):
+    def generate_name(self, astrom_header, fits_header):
         """
-        Generates a name for a source.
+        Generates a name for an object given the information in its astrom
+        observation header and FITS header.
         """
-        if source in self._processed_sources:
-            return self._processed_sources[source]
+        epoch_field = self.get_epoch_field(astrom_header, fits_header)
+        count = storage.increment_object_counter(storage.MEASURE3, epoch_field)
+        return epoch_field + count
 
-        exposure_numbers = [int(reading.get_exposure_number())
-                            for reading in source.get_readings()]
-        min_expnum = min(exposure_numbers)
+    def get_epoch_field(self, astrom_header, fits_header):
+        # Format: "YYYY MM DD.dddddd"
+        date = astrom_header[astrom.MJD_OBS_CENTER]
+        year, month, _ = date.split()
 
-        base = self.compress_exposure_number(min_expnum)
-        extension = self._get_extension(min_expnum)
-        name = base + extension
+        semester = "A" if 2 <= int(month) <= 7 else "B"
 
-        self._processed_expnums[min_expnum] += 1
-        self._processed_sources[source] = name
+        epoch = year[-2:] + semester
 
-        return name
+        object_header = fits_header["OBJECT"]
 
-    def compress_exposure_number(self, exposure_number):
-        """
-        Compresses an exposure number for use as part of naming a source.
-        In order to compress it to the required number of characters, some
-        assumptions have to be made about the range that exposure_number is
-        in.  A ValueError will be raised if the exposure number does not
-        meet these expectations.
-        """
-        exp_str = str(exposure_number)
+        if object_header.startswith(epoch):
+            field = object_header[len(epoch)]
+        else:
+            field = object_header[0]
 
-        if not self.valid_expnum_reg.match(exp_str):
-            raise ValueError(
-                "Exposure number (%s) does not meet required format (%s)" % (
-                    exp_str, self.valid_expnum_reg.pattern))
+        return "O" + epoch + field
 
-        return to_base26(int(exposure_number))
 
-    def _get_extension(self, min_expnum):
-        ext = self._processed_expnums[min_expnum]
-        ext_str = "%02d" % ext
+class DryRunNameGenerator(ProvisionalNameGenerator):
+    """
+    Generate a fake name for dry runs so we don't increment counters.
+    """
+    def generate_name(self, astrom_header, fits_header):
+        epoch_field = self.get_epoch_field(astrom_header, fits_header)
+        count = storage.increment_object_counter(storage.MEASURE3,
+                                                 epoch_field,
+                                                 dry_run=True)
 
-        if len(ext_str) > 2:
-            raise ValueError("Source with min exposure number %d has had %s "
-                             "names generated, which has length > 2." % (
-                                 min_expnum, ext_str))
-
-        return ext_str
+        base = "DRY"
+        return base + count.zfill(7 - len(base))

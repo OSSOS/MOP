@@ -1,0 +1,133 @@
+<?xml version="1.0" charset="UTF-8"?>
+<!DOCTYPE html>
+<html>
+  <head>
+  	<title>OSSOS Survey Overview</title>
+  	<!-- No indexing by search engines, for now -->
+  	<meta http-equiv="Content-Type" name="robots" 
+  			content="noindex; text/html; charset=utf-8" />
+    <link rel="stylesheet" type="text/css" href="/css/bootstrap.css" />
+    <!--[if IE]><script language="javascript" type="text/javascript" src="./flot/excanvas.js"></script><![endif]-->
+    <script language="javascript" type="text/javascript" src="./flot/jquery.js"></script>
+    <script language="javascript" type="text/javascript" src="./flot/jquery.flot.js"></script>
+    <script language="javascript" type="text/javascript" src="./flot/jquery.flot.errorbars.js"></script>
+    <script language="javascript" type="text/javascript" src="./flot/jquery.flot.navigate.js"></script>
+    <script language="javascript" type="text/javascript" src="./flot/jquery.flot.axislabels.js"></script>
+    <script language="javascript" type="text/javascript" src="./flot/jquery.flot.togglelegend.js"></script>
+  </head>
+
+  <body>
+    <div class="container-fluid">
+      <div class="page-header">
+        <h1>OSSOS <small>Outer Solar System Origins Survey</small></h1>
+      </div><!--page-header-->
+      <div class="well">
+          <div class="span6" role="region" 
+                id="overview-overview" aria-labelledby="overview-overview-h">
+          	<h2 id="overview-overview-h">Overview</h2>
+            <dl class="dl-horizontal">
+              <dt>Survey completion:</dt> 
+            	<dd>
+                <abbr class = "val"
+            		      title = "0/8 blocks observed, processed and checked for discoveries.">${propor_complete} %</abbr>
+              </dd>
+              <dt>Observed:</dt>
+              <dd> 
+            	${'%.2f' % surveyed[0]} deg&#xb2; (${surveyed[1]} fields)
+              <!-- observed for precovery, discovery triplet and follow-up tracking. Completed = at least one precovery, the discovery triplet, and two nailing recovery observations. -->
+              </dd>
+              <dt>Fully processed<dt>
+              <dd> 
+            	 <abbr class = "val"
+            		    title = "Blocks run entirely through the processing pipeline.">${processed_sqdeg}</abbr> 
+                deg&#xb2;
+              </dd>
+              <!-- (ie. area awaiting processing: difference between those two) -->
+              <dt>Objects <a href="discoveries">discovered</a>:</dt>
+              <dd>${num_discoveries}</dd>
+              <dt>Reported to MPC:</dt>
+              <dd>${mpc_told}</dd>
+              <dt>Survey efficiency:</dt>
+              <dd>${efficiency}%</dd>
+            </dl>
+          </div>
+          <div class="span6">
+            <h2>Observations</h2>
+            <dl>
+              <dt>Most recent observations: </dt>
+            	<dd><span class = "val"
+            	       	title = "Most recent observations available on VOSpace (ie. have been preprocessed for IQ but not run through Elixir).">
+            	${most_recent_obs}
+            	 </span>
+              </dd>
+            </dl>
+            <p>
+              <strong>Next observations</strong> anticipated
+            	<span class = "val"
+            	       	title = "We observe if the near-new moon is down, or if the moon is up but we are within 3 days of new moon.">${next_obs} </span><br/>
+            	moon-dark UTC: ${next_moondark.strftime('%Y-%m-%d')}.
+            	<strong>MegaCam</strong> on telescope ${nearest_megacam_run}
+            </p>
+            <p>
+              QSO status: <a href="http://qso.cfht.hawaii.edu:2001/Instruments/Queue/NR/exp.cfm?Type=PS&RunID=13AP05">13AP05</a>, <a href="http://qso.cfht.hawaii.edu:2001/Instruments/Queue/NR/exp.cfm?Type=PS&RunID=13BP05">13BP05</a>. 
+              CFHT schedule <a href="http://cal.cfht.hawaii.edu/instrument_schedule/current_instrument_schedule.html">2013B</a>.
+            </p>
+            <p>
+              <a href="http://www.canfar.phys.uvic.ca/data/auth/vospace/OSSOS/ObservingStatus/obsList.txt">raw Observing Status page</a>
+              <a href="http://www.canfar.phys.uvic.ca/data/pub/vospace/OSSOS/ObservingStatus/obsList.pdf">(plots pdf)
+              </a>
+            </p>
+            <p>
+            	<a href="http://hokukea.soest.hawaii.edu/forecast/mko/">Mauna Kea weather</a>
+            </p>
+          </div>  <!-- row-region -->
+
+      <div id="placeholder" style="width:600px;height:300px"></div>
+
+      </div><!--well-->
+
+
+
+      <table class="table table-striped table-condensed table-hover">
+        <thead>
+          <tr>
+            <th>Block</th>
+            <th>Observations</th>
+            <th>Precoveries</th>
+            <th>Nailings</th>
+            <th>Doubles</th>
+            <th>Discoveries</th>
+            <th>Processing status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tal:block tal:repeat="obj blocks['blocks']">
+            <tr>
+              <tal:block tal:condition="obj">
+                <td><a href="blocks/${obj[0]}">${obj[0]}</a></td> <!-- fix URL -->
+                <td>${obj[1]}</td>
+                <td>${obj[2]}</td>
+                <td>${obj[3]}</td>
+                <td>${obj[4]}</td>
+                <td>${obj[5]}</td>
+                <td></td>
+                <!-- add a td here for block processing status (overview level) -->
+              </tal:block>
+              <td tal:condition="not(obj)" colspan="7">
+                &mdash;
+              </td>
+            </tr>
+          </tal:block>  <!-- repeat block -->
+        </tbody>
+      </table>
+
+    </div> <!-- container-fluid -->
+
+  </body>
+</html>
+
+
+
+
+
+
