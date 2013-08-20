@@ -7,13 +7,14 @@ import astropy
 from astropy.io import ascii, fits
 from astropy.time import Time
 from astropy.table import Table
+from ossos.downloads.core import Downloader
 from ossos.gui import logger
 
 MAXCOUNT = 30000
 
 from mpc import URLWriter
 import requests
-from ossos import storage, astrom, mpc
+from ossos import storage, astrom, mpc, wcs
 
 __author__ = 'Michele Bannister'
 
@@ -65,6 +66,9 @@ class SSOSParser(object):
         source_readings = []
 
 
+        ref_pvwcs = None
+        downloader = Downloader()
+
         for row in table:
             # check if a dbimages object exists
             ccd = int(row['Ext']) - 1
@@ -100,9 +104,10 @@ class SSOSParser(object):
                 continue
 
 
+
             # raise flag if no MOPHEADER
             mopheader_fpt = cStringIO.StringIO(storage.open_vos_or_local(mopheader_uri).read())
-            mopheader = fits.open(mopheader_fpt)
+            mopheader = astropy.io.fits.open(mopheader_fpt)
             
             rawname = os.path.splitext(os.path.basename(image_uri))[0]
 
@@ -113,7 +118,9 @@ class SSOSParser(object):
                                              fk="")
 
             observation.header = mopheader[0].header
-            MJD_OBS_CENTER = mpc.Time(observation.header['MJD-OBSC'], format='mjd', scale='utc', ).replicate(format='mpc')
+            MJD_OBS_CENTER = mpc.Time(observation.header['MJD-OBSC'],
+                                      format='mjd',
+                                      scale='utc', ).replicate(format='mpc')
             observation.header['MJD-OBS-CENTER'] = str(MJD_OBS_CENTER)
             observation.header['MAXCOUNT'] = MAXCOUNT
             observation.header['SCALE'] = observation.header['PIXSCALE']
@@ -123,14 +130,32 @@ class SSOSParser(object):
             observation.header['MOPversion'] = observation.header['MOP_VER']
 
 
+            # a download pixel 1,1 of this data to due offsets with.
+            x_cen = int(min(max(1,row['X']),observation.header['NAX1']))
+            y_cen = int(min(max(1,row['Y']),observation.header['NAX2']))
+            hdulist = downloader.download_hdulist(uri=image_uri,
+                                                  view='cutout',
+                                                  cutout='[{}][{}:{},{}:{}]'.format(ccd+1, x_cen, x_cen, y_cen, y_cen))
+
+
+            pvwcs = wcs.WCS(hdulist[0].header)
+            (ra,dec)  = pvwcs.xy2sky(x_cen, y_cen)
+            if ref_pvwcs is None:
+                ref_pvwcs = pvwcs
+                xref = row['X']
+                yref = row['Y']
+            (x0, y0) = ref_pvwcs.sky2xy(ra,dec)
+            x0 += row['X'] - x_cen
+            y0 += row['Y'] - y_cen
+
             # Build astrom.SourceReading
             observations.append(observation)
             source_readings.append(astrom.SourceReading(x=row['X'], y=row['Y'],
-                                                        xref=row['X'], yref=row['Y'],
-                                                        x0=row['X'], y0=row['Y'],
+                                                        xref=xref, yref=yref,
+                                                        x0=x0, y0=y0,
                                                         ra=row['Object_RA'], dec=row['Object_Dec'],
                                                         obs=observation))
-
+            print row['X'], row['Y'], x0, y0, xref, yref
         # build our array of SourceReading objects
         sources.append(source_readings)
 
