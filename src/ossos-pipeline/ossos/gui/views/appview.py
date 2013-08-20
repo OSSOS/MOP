@@ -82,8 +82,8 @@ class ApplicationView(object):
         self.wx_app.MainLoop()
 
     @guithread
-    def display(self, fits_image, redraw=True):
-        self.image_viewer.display(fits_image, redraw=redraw)
+    def display(self, cutout, redraw=True):
+        self.image_viewer.display(cutout, redraw=redraw)
 
     @guithread
     def draw_marker(self, x, y, radius, redraw=True):

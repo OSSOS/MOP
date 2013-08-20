@@ -10,19 +10,18 @@ from ossos import astrom
 from ossos.downloads.cutouts.source import SourceCutout
 from ossos.downloads.cutouts.grid import CutoutGrid
 from ossos.fitsviewer.colormap import clip
-from ossos.fitsviewer.displayable import DisplayableImageSinglet, DisplayableImageTriplet
+from ossos.fitsviewer.displayable import DisplayableImageTriplet, ImageSinglet
+from ossos.fitsviewer import displayable
 
 
-class DisplayableImageSingletTest(unittest.TestCase):
+class ImageSingletTest(unittest.TestCase):
     def setUp(self):
         mainhdu = Mock()
         mainhdu.data.shape = (100, 100)
         self.hdulist = [mainhdu]
-        self.displayable = DisplayableImageSinglet(self.hdulist)
-
         fig = plt.figure()
-        axes = plt.Axes(fig, [0, 0, 1, 1])
-        self.displayable.axes = axes
+
+        self.displayable = ImageSinglet(self.hdulist, fig, [0, 0, 1, 1])
 
     def test_draw_one_circle(self):
         axes = self.displayable.axes
@@ -115,6 +114,34 @@ class UtilityTest(unittest.TestCase):
 
     def test_clip_above_range(self):
         assert_that(clip(1.5, 0, 1), equal_to(1.0))
+
+    def test_get_rect_first_frame_first_time_top_left(self):
+        [left, bottom, width, height] = displayable.get_rect((3, 3), 0, 0, border=0)
+        assert_that(left, equal_to(0))
+        assert_that(bottom, equal_to(2./3))
+        assert_that(width, equal_to(1./3))
+        assert_that(height, equal_to(1./3))
+
+    def test_get_rect_last_frame_last_time_bottom_right(self):
+        [left, bottom, width, height] = displayable.get_rect((3, 3), 2, 2, border=0)
+        assert_that(left, equal_to(2./3))
+        assert_that(bottom, equal_to(0))
+        assert_that(width, equal_to(1./3))
+        assert_that(height, equal_to(1./3))
+
+    def test_get_rect_last_frame_first_time_bottom_left(self):
+        [left, bottom, width, height] = displayable.get_rect((3, 3), 2, 0, border=0)
+        assert_that(left, equal_to(0))
+        assert_that(bottom, equal_to(0))
+        assert_that(width, equal_to(1./3))
+        assert_that(height, equal_to(1./3))
+
+    def test_get_rect_last_frame_first_time_with_border(self):
+        [left, bottom, width, height] = displayable.get_rect((3, 3), 2, 0, border=0.05)
+        assert_that(left, equal_to(0.05))
+        assert_that(bottom, equal_to(0.05))
+        assert_that(width, equal_to(0.3))
+        assert_that(height, equal_to(0.3))
 
 
 if __name__ == '__main__':

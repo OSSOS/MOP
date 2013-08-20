@@ -4,9 +4,9 @@ import unittest
 
 from hamcrest import assert_that, instance_of, equal_to, none
 from matplotlib.backend_bases import MouseEvent as MPLMouseEvent
-from mock import Mock
+from mock import Mock, patch
 
-from ossos.fitsviewer.displayable import DisplayableImageSinglet
+from ossos.fitsviewer.displayable import ImageSinglet
 from ossos.fitsviewer.interaction import InteractionContext, MoveMarkerState, CreateMarkerState, AdjustColormapState
 
 
@@ -15,11 +15,14 @@ class InteractionTest(unittest.TestCase):
         mainhdu = Mock()
         mainhdu.data.shape = (100, 100)
         self.hdulist = [mainhdu]
-        self.displayable = DisplayableImageSinglet(self.hdulist)
-        self.displayable.figure = Mock()
-        self.displayable.axes = Mock()
+        self.figure = Mock()
 
-        self.interaction_context = InteractionContext(self.displayable)
+        with patch.object(ImageSinglet, "_create_axes"):
+            self.image = ImageSinglet(self.hdulist, self.figure, [0, 0, 1, 1])
+
+        self.image.axes = Mock()
+
+        self.interaction_context = InteractionContext(self.image)
 
     def _create_mouse_event(self, x, y, button, inaxes=True):
         event = Mock(spec=MPLMouseEvent)
@@ -30,7 +33,7 @@ class InteractionTest(unittest.TestCase):
         event.button = button
 
         if inaxes:
-            event.inaxes = self.displayable.axes
+            event.inaxes = self.image.axes
         else:
             event.inaxes = Mock()  # a new, different axes
 
@@ -55,7 +58,7 @@ class InteractionTest(unittest.TestCase):
         y = 10
         radius = 5
 
-        self.displayable.place_marker(x, y, radius)
+        self.image.place_marker(x, y, radius)
         self.fire_press_event(x + 2, y + 2)
         assert_that(self.interaction_context.state, instance_of(MoveMarkerState))
 
@@ -64,7 +67,7 @@ class InteractionTest(unittest.TestCase):
         y = 10
         radius = 5
 
-        self.displayable.place_marker(x, y, radius)
+        self.image.place_marker(x, y, radius)
         assert_that(not self.interaction_context.state.pressed)
         self.fire_press_event(x + 2, y + 2)
         assert_that(self.interaction_context.state.pressed)
@@ -76,7 +79,7 @@ class InteractionTest(unittest.TestCase):
         y = 10
         radius = 5
 
-        self.displayable.place_marker(x, y, radius)
+        self.image.place_marker(x, y, radius)
         self.fire_press_event(x + 2, y + 2)
         assert_that(self.interaction_context.state, instance_of(MoveMarkerState))
         self.fire_release_event()
@@ -110,7 +113,7 @@ class InteractionTest(unittest.TestCase):
         dx = 10
         dy = 5
 
-        self.displayable.place_marker(x0, y0, radius)
+        self.image.place_marker(x0, y0, radius)
         assert_that(self.interaction_context.get_marker().center, equal_to((x0, y0)))
         self.fire_press_event(xclick, yclick)
 
@@ -137,7 +140,7 @@ class InteractionTest(unittest.TestCase):
         y = 10
         radius = 5
 
-        self.displayable.place_marker(x, y, radius)
+        self.image.place_marker(x, y, radius)
 
         self.interaction_context.state = CreateMarkerState(self.interaction_context)
         self.fire_motion_event(x + 2, y + 2)
@@ -154,7 +157,7 @@ class InteractionTest(unittest.TestCase):
         y = 10
         radius = 5
 
-        self.displayable.place_marker(x, y, radius)
+        self.image.place_marker(x, y, radius)
 
         click_x = 12
         click_y = 13
@@ -169,7 +172,7 @@ class InteractionTest(unittest.TestCase):
         y = 10
         radius = 5
 
-        self.displayable.place_marker(x, y, radius)
+        self.image.place_marker(x, y, radius)
 
         click_x = 20
         click_y = 21
@@ -181,9 +184,9 @@ class InteractionTest(unittest.TestCase):
 
     def test_xy_changed_event_on_click(self):
         handler = Mock()
-        self.displayable.xy_changed.connect(handler)
+        self.image.xy_changed.connect(handler)
 
-        self.displayable.place_marker(10, 10, 5)
+        self.image.place_marker(10, 10, 5)
 
         x_click = 20
         y_click = 30
@@ -194,12 +197,12 @@ class InteractionTest(unittest.TestCase):
 
     def test_xy_changed_event_on_drag(self):
         handler = Mock()
-        self.displayable.xy_changed.connect(handler)
+        self.image.xy_changed.connect(handler)
 
         x0 = 10
         y0 = 10
         radius = 5
-        self.displayable.place_marker(x0, y0, radius)
+        self.image.place_marker(x0, y0, radius)
 
         xclick = x0 + 2
         yclick = y0 + 2
