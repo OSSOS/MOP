@@ -195,87 +195,6 @@ class ImageSinglet(object):
         self.display_changed.fire()
 
 
-class _AxesItem(object):
-    """
-    Corresponds to a matplotlib axes.  Intended for use as a mixin with a
-    Displayable.
-    """
-
-    def __init__(self):
-        self.axes = None
-
-        self._colormap = GrayscaleColorMap()
-        self._mpl_event_handlers = {}
-        self._interaction_context = None
-
-    def update_colormap(self, dx, dy):
-        contrast_diff = float(-dy) / self.height
-        bias_diff = float(dx) / self.width
-
-        self._colormap.update_contrast(contrast_diff)
-        self._colormap.update_bias(bias_diff)
-
-        self._refresh_displayed_colormap()
-
-    def reset_colormap(self):
-        self._colormap.set_defaults()
-        self._refresh_displayed_colormap()
-
-    def is_event_in_axes(self, event):
-        return self.axes == event.inaxes
-
-    def register_mpl_event_handler(self, eventname, handler):
-        handler_id = self.figure.canvas.mpl_connect(eventname, handler)
-        self._mpl_event_handlers[handler_id] = (eventname, handler)
-        return handler_id
-
-    def deregister_mpl_event_handler(self, id_):
-        self.figure.canvas.mpl_disconnect(id_)
-        del self._mpl_event_handlers[id_]
-
-    def _apply_event_handlers(self, canvas):
-        for eventname, handler in self._mpl_event_handlers.itervalues():
-            canvas.mpl_connect(eventname, handler)
-
-    def _create_axes(self, rect):
-        """
-        Args:
-          rect: [left, bottom, width, height]
-            Used to construct the matplotlib axes.
-        """
-        axes = plt.Axes(self.figure, rect)
-
-        # Don't draw tick marks and labels
-        axes.set_axis_off()
-
-        # FITS images start at pixel 1,1 in the bottom-left corner
-        axes.set_xlim([1, self.width])
-        axes.set_ylim([1, self.height])
-
-        return axes
-
-    def _refresh_displayed_colormap(self):
-        self.axes_image.set_cmap(self._colormap.as_mpl_cmap())
-        self.axes_image.changed()
-        self.display_changed.fire()
-
-    def _show_image(self, image, colorbar=False):
-        self._interaction_context = InteractionContext(self)
-
-        extent = (1, image.shape[1], 1, image.shape[0])
-        self.axes_image = plt.imshow(image,
-                                     origin="lower",
-                                     extent=extent,
-                                     cmap=self._colormap.as_mpl_cmap())
-
-        if colorbar:
-            # Create axes for colorbar.  Make it tightly fit the image.
-            divider = make_axes_locatable(self.axes)
-            cax = divider.append_axes("bottom", size="5%", pad=0.05)
-            self.figure.colorbar(self.axes_image, orientation="horizontal",
-                                 cax=cax)
-
-
 class DisplayableImageSinglet(Displayable):
     """
     A single displayable image.
@@ -362,51 +281,6 @@ def get_rect(shape, frame_index, time_index, border=0.025):
     bottom = border + height * (rows - frame_index - 1)
 
     return [left, bottom, width, height]
-
-
-class _ImageTriplet(_AxesItem):
-    """
-    A row of images that share an axes and colormap.  Does not have its
-    own figure.
-    """
-
-    def __init__(self, hdulists):
-        super(_ImageTriplet, self).__init__()
-
-        if len(hdulists) != 3:
-            raise ValueError("Image triplet must contain 3 images (given %d)"
-                             % len(hdulists))
-
-        self.hdulists = hdulists
-
-        self._colormap = GrayscaleColorMap()
-
-    @property
-    def width(self):
-        return sum(map(_image_width, self.hdulists))
-
-    @property
-    def height(self):
-        return _image_height(self.hdulists[0])
-
-    def render(self, figure, position):
-        if self.axes is None:
-            self.figure = figure
-
-            border = 0.025
-            width = 1 - 2 * border
-            height = (1 - 2 * border) / 3
-            bottom = border + (2 - position) * height
-
-            self.axes = self._create_axes([border, bottom, width, height])
-            self.figure.add_axes(self.axes)
-
-            def zscale_image(hdulist):
-                return zscale(_image_data(hdulist))
-
-            full_image = np.concatenate(map(zscale_image, self.hdulists), axis=1)
-
-            self._show_image(full_image, colorbar=False)
 
 
 class Marker(object):
