@@ -939,9 +939,9 @@ class MPCConverter(object):
         with open(mpc_file, 'r') as infile:
             for line in infile.readlines():
      #           writer.write(Observation().from_string(line))
-                comment_line = ('#O ' + line[80:])[:80] # #O indicates OSSOS survey
+                comment_line = ('#O ' + line[80:])[:80].rstrip('\n') # #O indicates OSSOS survey
                 mpc_observation = line[:80]
-                output_line = comment_line + mpc_observation + '\n'
+                output_line = comment_line + '\n' + mpc_observation + '\n'
                 outfile.write(output_line)
 
     #    writer.flush()
@@ -949,9 +949,9 @@ class MPCConverter(object):
     def batch_convert(self, path):
         for fn in os.listdir(path):
             if fn.endswith('.mpc') or fn.endswith('.track'):
-                with open(fn, 'r') as f:
+                with open(path+fn, 'r') as f:
                     if not f.readline().startswith('!'):
-                        output = path + file.rpartition('.')[0] + '.tnodb'
+                        output = path + fn.rpartition('.')[0] + '.tnodb'
                         outfile = open(output, 'w')
                         self.convert(path+fn, outfile)
-
+        # then cat them with for f in *.tnodb; do (cat "${f}"; echo) >> allmpc.txt; done
