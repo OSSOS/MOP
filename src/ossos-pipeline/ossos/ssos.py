@@ -7,8 +7,10 @@ import astropy
 from astropy.io import ascii, fits
 from astropy.time import Time
 from astropy.table import Table
+import math
 from ossos.downloads.core import Downloader
 from ossos.gui import logger
+from ossos.orbfit import Orbfit
 
 MAXCOUNT = 30000
 
@@ -45,6 +47,8 @@ class TracksParser(object):
         observations.sort(key=lambda obs: obs.date.jd)
         # pass down the provisional name so the table lines are linked to this TNO
         self.ssos_parser=SSOSParser(observations[0].provisional_name)
+
+        self.orbit = Orbfit(observations)
 
         length_of_observation_arc = observations[-1].date.jd - observations[0].date.jd
 
@@ -94,6 +98,15 @@ class TracksParser(object):
                       search_end_date=search_end_date)
 
         tracks_data = self.ssos_parser.parse(query.get())
+
+        for source in tracks_data.get_sources():
+            observations = tracks_data.observations
+            for source_reading in source.get_readings():
+                observation = observations.pop(0)
+                self.orbit.date = observation.header['MJD-OBS-CENTER']
+                source_reading.pa = self.orbit.pa
+                source_reading.dra = self.orbit.dra / observation.haeder['SCALE']
+                source_reading.ddec = self.orbit.ddec / observation.header['SCALE']
 
         return tracks_data  # an TracksData with .sources and .observations only
 

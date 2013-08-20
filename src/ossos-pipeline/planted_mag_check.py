@@ -6,6 +6,7 @@ __author__ = 'jjk'
 
 import math
 import sys
+import os
 
 from ossos import astrom
 from ossos.daophot import TaskError
