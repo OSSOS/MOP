@@ -33,7 +33,7 @@ for ccd in {0..35}; do
   step1.py $1 $2 $3 --ccd $ccd -v 
   step2.py $1 $2 $3 --ccd $ccd -v 
   step3.py $1 $2 $3 --ccd $ccd -v 
-  combine.py $3 -v 
+  combine.py $1 -v 
 
 ## Now build a scramble set and search
   scramble.py $1 $2 $3 --ccd $ccd -v 

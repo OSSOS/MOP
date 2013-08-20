@@ -1,4 +1,5 @@
-#!/Users/jjk/Library/Enthought/Canopy_64bit/User/bin/python
+#!/usr/bin/env python
+# Copyright 2012, 2013 JJ Kavelaars
 
 import argparse
 import urllib, datetime, tempfile, math, ephem
@@ -16,8 +17,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib import pyplot
 import logging
 
-saturn = ephem.Saturn()
 
+OSSOS_RUNIDS = list(('13AP05','13AP06', '13BP05', '13BP06'))
 
 def query_for_observations(mjd, observable, runids):
     """Do a QUERY on the TAP service for all observations that are part of runid, 
@@ -25,7 +26,7 @@ def query_for_observations(mjd, observable, runids):
 
     mjd : float 
     observable: str ( CAL or RAW)
-    runid: tuple ('13AP05', '13AP06')
+    runid: tuple eg. ('13AP05', '13AP06')
 
     """
 
@@ -51,7 +52,7 @@ def query_for_observations(mjd, observable, runids):
           "LANG": "ADQL",
           "FORMAT": "votable" }
 
-    url="http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/tap/sync?"+urllib.urlencode(data)
+    url=storage.TAP_WEB_SERVICE+urllib.urlencode(data)
 
 
     logging.debug("Doing TAP Query using url: %s" % ( str(url)))
@@ -92,7 +93,7 @@ def create_ascii_table(obsTable, outfile):
     t2 = None
     fout.write(bar+stamp+bar+header)
 
-    populated = vos.Client().listdir('vos:OSSOS/dbimages')
+    populated = vos.Client().listdir(storage.DBIMAGES)
     for i in range(len(obsTable)-1,-1,-1):
         row = obsTable.data[i]
         if row['dataset_name'] not in populated:
@@ -144,6 +145,8 @@ def create_sky_plot(obstable, outfile, night_count=1, stack=True):
     dec_max = obstable['DEC'].max() + 1.5
 
     saturn = ephem.Saturn()
+    uranus = ephem.Uranus()
+
     subplots = []
     t2 = None
     count = 0
@@ -151,9 +154,13 @@ def create_sky_plot(obstable, outfile, night_count=1, stack=True):
     for row in reversed(obstable.data):
         date = ephem.date(row.StartDate + 2400000.5 - ephem.julian_date(ephem.date(0)))
         sDate = str(date)
+        # Saturn only a problem in 2013A fields
         saturn.compute(date)
         sra= math.degrees(saturn.ra)
         sdec = math.degrees(saturn.dec)
+        uranus.compute(date)
+        ura = math.degrees(uranus.ra)
+        udec = math.degrees(uranus.dec)
         t1 = time.strptime(sDate,"%Y/%m/%d %H:%M:%S")
         if t2 is None or ( math.fabs(time.mktime(t2)-time.mktime(t1)) > 3*3600.0 and opt.stack):
             if fig is not None:
@@ -162,7 +169,7 @@ def create_sky_plot(obstable, outfile, night_count=1, stack=True):
             fig = figure(figsize=(7,2))
             ax = fig.add_subplot(111,aspect='equal')
             ax.set_title("Data taken on %s-%s-%s" % ( t1.tm_year, t1.tm_mon, t1.tm_mday), fontdict={'fontsize': 8} )
-            ax.axis((245,200,-20,0))
+            ax.axis((245,200,-20,0))  # appropriate only for 2013A fields
             ax.grid()
             ax.set_xlabel("RA (deg)", fontdict={'fontsize': 8} )
             ax.set_ylabel("DEC (deg)", fontdict={'fontsize': 8} )
@@ -179,6 +186,10 @@ def create_sky_plot(obstable, outfile, night_count=1, stack=True):
                                 edgecolor='r', 
                                 facecolor='r',
                                 lw=0.5, fill='k', alpha=0.33))
+        ax.add_artist(Rectangle(xy=(ura,udec), height=0.3, width=0.3, 
+                                edgecolor='b', 
+                                facecolor='b',
+                                lw=0.5, fill='b', alpha=0.33))
 
     if ax is not None:
         ax.axis((270,215,-20,0))
@@ -201,7 +212,7 @@ if __name__ == '__main__':
                         default='2013-01-01')
 
     parser.add_argument('--runid', nargs='*', action='store', 
-                        default= list(('13AP05','13AP06')))
+                        default=OSSOS_RUNIDS)
 
     parser.add_argument('--cal', action='store', default="RAW")
 

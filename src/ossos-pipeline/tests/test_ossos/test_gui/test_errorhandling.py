@@ -5,10 +5,10 @@ import unittest
 
 from mock import Mock
 
+from ossos.downloads.async import DownloadRequest
 from ossos.gui.app import ValidationApplication
 from ossos.gui.errorhandling import DownloadErrorHandler
-from ossos.gui.views import ApplicationView
-from ossos.gui.downloads import DownloadableItem
+from ossos.gui.views.appview import ApplicationView
 
 
 class VOSpaceErrorHandlerTest(unittest.TestCase):
@@ -17,7 +17,7 @@ class VOSpaceErrorHandlerTest(unittest.TestCase):
         view = Mock(spec=ApplicationView)
         app.get_view.return_value = view
 
-        self.downloadable_item = Mock(spec=DownloadableItem)
+        self.downloadable_item = Mock(spec=DownloadRequest)
 
         self.error_handler = DownloadErrorHandler(app)
         self.view = view

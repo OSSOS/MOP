@@ -5,6 +5,6 @@ for expnum in `vls vos:OSSOS/dbimages` ; do
     tagstr=`vtag ${uri} | grep canfar | grep -v ossos | awk -F\' '{ printf("%s= ", $2) } ' `
     len=${#tagstr}
     if [ "$len" -gt 0 ]; then 
-	vtag ${uri} ${tagstr}
+	echo vtag ${uri} ${tagstr}
     fi
 done

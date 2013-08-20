@@ -1,5 +1,20 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import copy
+
+from mock import Mock
+
+
+class CopyingMock(Mock):
+    """
+    Useful when you want to make assertions about mutable call parameters.
+    """
+
+    def __call__(self, *args, **kwargs):
+        args = copy.deepcopy(args)
+        kwargs = copy.deepcopy(kwargs)
+        return super(CopyingMock, self).__call__(*args, **kwargs)
+
 
 class Dummy(object):
     """

@@ -9,8 +9,8 @@ from mock import patch
 from tests.base_tests import FileReadingTestCase
 from ossos import storage
 from ossos.gui.context import VOSpaceWorkingContext
-from ossos.gui import persistence
-from ossos.gui.persistence import VOSpaceProgressManager, FileLockedException, RequiresLockException
+from ossos.gui import progress
+from ossos.gui.progress import VOSpaceProgressManager, FileLockedException, RequiresLockException
 
 # TODO: don't use my own VOSpace
 # BASE_TEST_DIR = "vos:OSSOS/tests/"
@@ -25,10 +25,8 @@ TEST_FILE_3 = "3.cands.astrom"
 TEST_USER = "testuser"
 
 
-class AbstractVOSpaceProgressManagerTest(FileReadingTestCase):
+class AbstractVOSpaceProgressManagerTestCase(object):
     # Do not run this class directly; run its subclasses
-    # (which must set __test__ = True)
-    __test__ = False
 
     def create_vofile(self, destination):
         # Just copy a prototype file until I figure out how to do this
@@ -36,9 +34,11 @@ class AbstractVOSpaceProgressManagerTest(FileReadingTestCase):
         storage.copy(self.get_abs_path(PROTOTYPE_FILE), destination)
 
     def setUp(self):
+        self.main_user_id = "main_user"
         self.context = VOSpaceWorkingContext(PERSISTENCE_TEST_DIR)
         self.undertest = VOSpaceProgressManager(
-            self.context, track_partial_progress=self._tracks_partial_progress())
+            self.context, userid=self.main_user_id,
+            track_partial_progress=self._tracks_partial_progress())
 
         self.create_vofile(self.context.get_full_path(TEST_FILE_1))
         self.create_vofile(self.context.get_full_path(TEST_FILE_2))
@@ -57,9 +57,10 @@ class AbstractVOSpaceProgressManagerTest(FileReadingTestCase):
         for filename in self.context.listdir():
             storage.delete_uri(self.context.get_full_path(filename))
 
-    def create_independent_manager(self):
+    def create_independent_manager(self, userid="test_user"):
         return VOSpaceProgressManager(
-            self.context, track_partial_progress=self._tracks_partial_progress())
+            self.context, userid=userid,
+            track_partial_progress=self._tracks_partial_progress())
 
     def _tracks_partial_progress(self):
         raise NotImplementedError()
@@ -113,73 +114,56 @@ class AbstractVOSpaceProgressManagerTest(FileReadingTestCase):
                     contains_inanyorder(TEST_FILE_1, TEST_FILE_3))
         assert_that(self.undertest.get_done(".reals.astrom"), contains(TEST_FILE_2))
 
-    @patch.object(getpass, "getuser")
-    def test_lock_file(self, getuser_mock):
-        lock_holding_user = "lock_holding_user"
+    def test_lock_file(self):
         lock_requesting_user = "lock_requesting_user"
 
-        getuser_mock.return_value = lock_holding_user
         self.undertest.lock(TEST_FILE_1)
 
         # No-one else should be able to acquire the lock...
-        manager2 = VOSpaceProgressManager(self.context)
-        getuser_mock.return_value = lock_requesting_user
+        manager2 = self.create_independent_manager(userid=lock_requesting_user)
         self.assertRaises(FileLockedException, manager2.lock, TEST_FILE_1)
 
         # ... until we unlock it
-        getuser_mock.return_value = lock_holding_user
         self.undertest.unlock(TEST_FILE_1)
-
-        getuser_mock.return_value = lock_requesting_user
         manager2.lock(TEST_FILE_1)
 
-    @patch.object(getpass, "getuser")
-    def test_lock_holder_no_file_locked_exception(self, getuser_mock):
-        lock_holding_user = "lock_holding_user"
+    def test_lock_holder_no_file_locked_exception(self):
+        lock_holding_user = self.main_user_id
         lock_requesting_user = "lock_requesting_user"
 
-        getuser_mock.return_value = lock_holding_user
         self.undertest.lock(TEST_FILE_1)
 
         # No-one else should be able to acquire the lock...
-        manager2 = VOSpaceProgressManager(self.context)
-        getuser_mock.return_value = lock_requesting_user
+        manager2 = self.create_independent_manager(userid=lock_requesting_user)
         self.assertRaises(FileLockedException, manager2.lock, TEST_FILE_1)
 
         # ... but we should be able to without getting a FileLockedException
-        getuser_mock.return_value = lock_holding_user
         self.undertest.lock(TEST_FILE_1)
 
-    @patch.object(getpass, "getuser")
-    def test_lock_has_locker_id(self, getuser_mock):
-        lock_holding_user = "lock_holding_user"
+    def test_lock_has_locker_id(self):
+        lock_holding_user = self.main_user_id
         lock_requesting_user = "lock_requesting_user"
 
-        getuser_mock.return_value = lock_holding_user
         file1 = TEST_FILE_1
         self.undertest.lock(file1)
 
-        manager2 = VOSpaceProgressManager(self.context)
+        manager2 = self.create_independent_manager(userid=lock_requesting_user)
 
         try:
-            getuser_mock.return_value = lock_requesting_user
             manager2.lock(file1)
             self.fail("Should have thrown FileLockedExcecption")
         except FileLockedException as ex:
             assert_that(ex.filename, equal_to(file1))
             assert_that(ex.locker, equal_to(lock_holding_user))
 
-    @patch.object(getpass, "getuser")
-    def test_record_done_puts_username_in_property(self, mock_getuser):
-        mock_getuser.return_value = TEST_USER
-
+    def test_record_done_puts_username_in_property(self):
         filename = TEST_FILE_1
         self.undertest.lock(filename)
         self.undertest.record_done(filename)
         self.undertest.unlock(filename)
 
-        assert_that(self.get_property(filename, persistence.DONE_PROPERTY),
-                    equal_to(TEST_USER))
+        assert_that(self.get_property(filename, progress.DONE_PROPERTY),
+                    equal_to(self.main_user_id))
 
     def test_unlock_after_record_done_no_error(self):
         file1 = TEST_FILE_1
@@ -202,9 +186,7 @@ class AbstractVOSpaceProgressManagerTest(FileReadingTestCase):
         assert_that(manager2.owns_lock(file2), equal_to(False))
 
 
-class PartialProgressTrackingTest(AbstractVOSpaceProgressManagerTest):
-    __test__ = True
-
+class PartialProgressTrackingTest(AbstractVOSpaceProgressManagerTestCase, FileReadingTestCase):
     def _tracks_partial_progress(self):
         return True
 
@@ -260,9 +242,7 @@ class PartialProgressTrackingTest(AbstractVOSpaceProgressManagerTest):
                     contains_inanyorder(0, 1, 2))
 
 
-class NoTrackingTest(AbstractVOSpaceProgressManagerTest):
-    __test__ = True
-
+class NoTrackingTest(AbstractVOSpaceProgressManagerTestCase, FileReadingTestCase):
     def _tracks_partial_progress(self):
         return False
 
@@ -273,7 +253,7 @@ class NoTrackingTest(AbstractVOSpaceProgressManagerTest):
         self.undertest.record_index(TEST_FILE_1, 0)
         self.undertest.unlock(TEST_FILE_1)
 
-        assert_that(self.has_property(TEST_FILE_1, persistence.PROCESSED_INDICES_PROPERTY),
+        assert_that(self.has_property(TEST_FILE_1, progress.PROCESSED_INDICES_PROPERTY),
                     equal_to(False))
 
     def test_get_processed_indices_empty(self):

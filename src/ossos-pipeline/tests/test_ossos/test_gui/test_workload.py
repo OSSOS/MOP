@@ -5,19 +5,23 @@ import unittest
 
 from hamcrest import (assert_that, is_in, is_not, equal_to, is_, none,
                       contains_inanyorder, has_length)
-from mock import Mock
+from mock import Mock, call, MagicMock
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
+from tests.testutil import CopyingMock
 from ossos.gui import tasks
-from ossos.gui.context import LocalDirectoryWorkingContext
-from ossos.gui.downloads import AsynchronousImageDownloadManager
-from ossos.gui.models import UIModel
-from ossos.astrom import AstromParser
-from ossos.gui.persistence import LocalProgressManager, InMemoryProgressManager
-from ossos.gui.workload import (WorkUnitProvider, WorkUnit, RealsWorkUnit, CandidatesWorkUnit,
-                                NoAvailableWorkException,
-                                StatefulCollection,
-                                RealsWorkUnitBuilder)
+from ossos.gui.context import WorkingContext, LocalDirectoryWorkingContext
+from ossos.gui.models.collections import StatefulCollection
+from ossos.gui.models.exceptions import NoAvailableWorkException
+from ossos.gui.models.validation import ValidationModel
+from ossos.astrom import AstromParser, StreamingAstromWriter
+from ossos.mpc import MPCWriter
+from ossos.gui.models.imagemanager import ImageManager
+from ossos.gui.progress import LocalProgressManager, InMemoryProgressManager
+from ossos.gui.models.workload import (WorkUnitProvider, WorkUnit,
+                                       RealsWorkUnit, CandidatesWorkUnit,
+                                       RealsWorkUnitBuilder,
+                                       PreFetchingWorkUnitProvider)
 
 
 class TestDirectoryManager(object):
@@ -28,7 +32,7 @@ class TestDirectoryManager(object):
         self.listings[suffix] = listing[:]
 
     def get_listing(self, suffix):
-        return self.listings[suffix]
+        return self.listings[suffix][:]
 
     def get_full_path(self, filename):
         return filename
@@ -45,77 +49,31 @@ class TestWorkUnitBuilder(object):
         return workunit
 
 
-class WorkUnitFactoryTest(unittest.TestCase):
-    def setUp(self):
-        self.taskid = "id"
-        self.file1 = "file1"
-        self.file2 = "file2"
-        self.test_files = [self.file1, self.file2]
-
-        directory_manager = TestDirectoryManager()
-        progress_manager = InMemoryProgressManager(directory_manager)
-        builder = TestWorkUnitBuilder()
-
-        self.undertest = WorkUnitProvider(self.taskid, directory_manager,
-                                          progress_manager, builder)
-        self.directory_manager = directory_manager
-        self.progress_manager = progress_manager
-        self.directory_manager.set_listing(self.taskid, self.test_files)
-
-    def test_create_workload_acquires_lock(self):
-        self.directory_manager.set_listing(self.taskid, self.test_files)
-        workunit1 = self.undertest.get_workunit()
-        assert_that(self.progress_manager.owns_lock(workunit1.get_filename()),
-                    equal_to(True))
-
-    def test_create_workload_fresh_directory(self):
-        workunit1 = self.undertest.get_workunit()
-        assert_that(workunit1.get_filename(), is_in(self.test_files))
-        self.progress_manager.record_done(workunit1.get_filename())
-
-        workunit2 = self.undertest.get_workunit()
-        assert_that(workunit2.get_filename(), is_in(self.test_files))
-        assert_that(workunit2.get_filename(),
-                    is_not(equal_to(workunit1.get_filename())))
-        self.progress_manager.record_done(workunit2.get_filename())
-
-        self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
-
-    def test_create_workload_one_file_already_done(self):
-        self.progress_manager.done.add(self.file1)
-
-        workunit = self.undertest.get_workunit()
-        assert_that(workunit.get_filename(), equal_to(self.file2))
-        self.progress_manager.record_done(self.file2)
-
-        self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
-
-    def test_create_workload_locked_files(self):
-        self.progress_manager.add_external_lock(self.file2)
-
-        workunit = self.undertest.get_workunit()
-        assert_that(workunit.get_filename(), equal_to(self.file1))
-        self.progress_manager.record_done(self.file1)
-
-        self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
-
-
 class AbstractWorkUnitTest(FileReadingTestCase):
     def setUp(self):
-        self.testfile = "data/1584431p15.measure3.cands.astrom"
+        self.testfile = self.get_input_file()
         parser = AstromParser()
         self.data = parser.parse(self.get_abs_path(self.testfile))
         self.progress_manager = Mock(spec=LocalProgressManager)
         self.progress_manager.get_processed_indices.return_value = []
-        self.writer = Mock()
+        self.output_context = Mock(spec=WorkingContext)
+
+    def get_input_file(self):
+        raise NotImplementedError()
 
 
 class WorkUnitTest(AbstractWorkUnitTest):
+    def get_input_file(self):
+        return "data/1584431p15.measure3.reals.astrom"
+
     def setUp(self):
         super(WorkUnitTest, self).setUp()
 
         self.workunit = RealsWorkUnit(self.testfile, self.data,
-                                      self.progress_manager, self.writer)
+                                      self.progress_manager,
+                                      self.output_context)
+        self.writer = Mock(spec=MPCWriter)
+        self.workunit.get_writer = Mock(return_value=self.writer)
 
     def test_initialization(self):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
@@ -176,11 +134,17 @@ class WorkUnitTest(AbstractWorkUnitTest):
 
 
 class RealsWorkUnitTest(AbstractWorkUnitTest):
+    def get_input_file(self):
+        return "data/1584431p15.measure3.reals.astrom"
+
     def setUp(self):
         super(RealsWorkUnitTest, self).setUp()
 
         self.workunit = RealsWorkUnit(self.testfile, self.data,
-                                      self.progress_manager, self.writer)
+                                      self.progress_manager,
+                                      self.output_context)
+        self.writer = Mock(spec=MPCWriter)
+        self.workunit.get_writer = Mock(return_value=self.writer)
 
     def test_next_vettable_item_no_validation(self):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
@@ -346,13 +310,77 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         assert_that(self.workunit.get_unprocessed_sources(),
                     has_length(0))
 
+    def test_finish_workunit_unlocks_file(self):
+        num_items = 9
+        while num_items > 1:
+            self.workunit.accept_current_item()
+            self.workunit.next_item()
+            num_items -= 1
+
+        assert_that(self.progress_manager.unlock.called, equal_to(False))
+
+        self.workunit.accept_current_item()
+
+        self.progress_manager.unlock.assert_called_once_with(
+            self.testfile, async=True)
+
+    def test_flush_only_after_source_finished(self):
+        assert_that(self.writer.flush.called, equal_to(False))
+
+        self.workunit.accept_current_item()
+        self.workunit.next_item()
+
+        assert_that(self.writer.flush.called, equal_to(False))
+
+        self.workunit.reject_current_item()
+        self.workunit.next_item()
+
+        assert_that(self.writer.flush.called, equal_to(False))
+
+        self.workunit.accept_current_item()
+        assert_that(self.writer.flush.call_count, equal_to(1))
+
+    def test_get_output_filename_dry_run(self):
+        self.workunit = RealsWorkUnit(self.testfile, self.data,
+                                      self.progress_manager,
+                                      self.output_context,
+                                      dry_run=True)
+        source = self.data.get_sources()[0]
+        provisional_name = "ABCD123"
+        source.set_provisional_name(provisional_name)
+
+        assert_that(self.workunit.get_output_filename(source),
+                    equal_to("1584431p15.measure3.reals.astrom.ABCD123.mpc"))
+
+    def test_get_output_filename_not_dry_run(self):
+        self.workunit = RealsWorkUnit(self.testfile, self.data,
+                                      self.progress_manager,
+                                      self.output_context,
+                                      dry_run=False)
+        source = self.data.get_sources()[0]
+        provisional_name = "ABCD123"
+        source.set_provisional_name(provisional_name)
+
+        assert_that(self.workunit.get_output_filename(source),
+                    equal_to("ABCD123.mpc"))
+
 
 class CandidatesWorkUnitTest(AbstractWorkUnitTest):
+    def get_input_file(self):
+        return "data/1584431p15.measure3.cands.astrom"
+
     def setUp(self):
         super(CandidatesWorkUnitTest, self).setUp()
 
         self.workunit = CandidatesWorkUnit(self.testfile, self.data,
-                                           self.progress_manager, self.writer)
+                                           self.progress_manager,
+                                           self.output_context)
+        self.writer = Mock(spec=StreamingAstromWriter)
+        self.workunit.get_writer = Mock(return_value=self.writer)
+
+    def test_output_filename(self):
+        assert_that(self.workunit.get_output_filename(),
+                    equal_to(self.testfile.replace(".cands", ".reals")))
 
     def test_next_vettable_item(self):
         assert_that(self.workunit.get_current_source_number(), equal_to(0))
@@ -429,6 +457,16 @@ class CandidatesWorkUnitTest(AbstractWorkUnitTest):
         assert_that(self.workunit.get_unprocessed_sources(),
                     has_length(0))
 
+    def test_finish_workunit_unlocks_file(self):
+        self.workunit.accept_current_item()
+        self.workunit.next_item()
+        self.workunit.accept_current_item()
+        self.workunit.next_item()
+        self.workunit.accept_current_item()
+
+        self.progress_manager.unlock.assert_called_once_with(
+            self.testfile, async=True)
+
 
 class StatefulCollectionTest(unittest.TestCase):
     def test_basics(self):
@@ -452,27 +490,8 @@ class StatefulCollectionTest(unittest.TestCase):
         assert_that(undertest.get_index(), equal_to(0))
         assert_that(undertest.get_current_item(), equal_to(items[0]))
 
-    def test_callbacks(self):
-        first_callback = Mock()
-        second_callback = Mock()
-
-        items = [1, 2, 3]
-        undertest = StatefulCollection(items)
-        undertest.register_change_item_callback(first_callback)
-
-        undertest.next()
-        first_callback.assert_called_once_with(items[0], items[1])
-
-        undertest.register_change_item_callback(second_callback)
-        undertest.previous()
-        second_callback.assert_called_once_with(items[1], items[0])
-
-        assert_that(first_callback.call_count, equal_to(2))
-
     def test_start_empty(self):
-        callback = Mock()
         undertest = StatefulCollection()
-        undertest.register_change_item_callback(callback)
 
         assert_that(undertest, has_length(0))
 
@@ -485,8 +504,6 @@ class StatefulCollectionTest(unittest.TestCase):
         assert_that(undertest.get_current_item(), equal_to(item1))
         assert_that(undertest.get_index(), equal_to(0))
 
-        assert_that(callback.call_count, equal_to(0))
-
         item2 = 2
         undertest.append(item2)
 
@@ -494,19 +511,17 @@ class StatefulCollectionTest(unittest.TestCase):
         assert_that(undertest.get_index(), equal_to(1))
         assert_that(undertest.get_current_item(), equal_to(item2))
 
-        callback.assert_called_once_with(item1, item2)
-
 
 class WorkloadManagementTest(unittest.TestCase):
     def setUp(self):
         self.progress_manager = InMemoryProgressManager(Mock(spec=LocalDirectoryWorkingContext))
         self.workunit_provider = Mock(spec=WorkUnitProvider)
 
-        self.workunit1 = Mock(spec=WorkUnit)
+        self.workunit1 = MagicMock(spec=WorkUnit)
         self.file1 = "file1"
         self.workunit1.get_filename.return_value = self.file1
 
-        self.workunit2 = Mock(spec=WorkUnit)
+        self.workunit2 = MagicMock(spec=WorkUnit)
         self.file2 = "file2"
         self.workunit2.get_filename.return_value = self.file2
 
@@ -518,10 +533,9 @@ class WorkloadManagementTest(unittest.TestCase):
             return workunit
 
         self.workunit_provider.get_workunit.side_effect = (get_workunit(index) for index in xrange(2))
-        download_manager = Mock(spec=AsynchronousImageDownloadManager)
+        image_manager = Mock(spec=ImageManager)
 
-        self.undertest = UIModel(self.workunit_provider, self.progress_manager,
-                                 download_manager)
+        self.undertest = ValidationModel(self.workunit_provider, image_manager, None)
         self.undertest.start_work()
 
     def test_workunits_on_demand(self):
@@ -539,15 +553,246 @@ class WorkloadManagementTest(unittest.TestCase):
 
         self.undertest.next_workunit()
         assert_that(self.undertest.get_current_workunit(), equal_to(self.workunit2))
-        assert_that(self.progress_manager.owns_lock(self.file1), equal_to(False))
+
+        # Note we don't give up lock just by going to next workunit.  It is
+        # released once it is done processing.
+        assert_that(self.progress_manager.owns_lock(self.file1), equal_to(True))
         assert_that(self.progress_manager.owns_lock(self.file2), equal_to(True))
 
-        self.undertest.previous_workunit()
-        assert_that(self.progress_manager.owns_lock(self.file1), equal_to(True))
-        assert_that(self.progress_manager.owns_lock(self.file2), equal_to(False))
+
+class WorkUnitProviderTest(unittest.TestCase):
+    def setUp(self):
+        self.taskid = "id"
+        self.file1 = "file1"
+        self.file2 = "file2"
+        self.file3 = "file3"
+        self.file4 = "file4"
+        self.test_files = [self.file1, self.file2]
+
+        directory_manager = TestDirectoryManager()
+        progress_manager = InMemoryProgressManager(directory_manager)
+        builder = TestWorkUnitBuilder()
+
+        self.undertest = WorkUnitProvider(self.taskid, directory_manager,
+                                          progress_manager, builder)
+        self.directory_manager = directory_manager
+        self.progress_manager = progress_manager
+        self.directory_manager.set_listing(self.taskid, self.test_files)
+
+    def test_create_workload_acquires_lock(self):
+        self.directory_manager.set_listing(self.taskid, self.test_files)
+        workunit1 = self.undertest.get_workunit()
+        assert_that(self.progress_manager.owns_lock(workunit1.get_filename()),
+                    equal_to(True))
+
+    def test_create_workload_fresh_directory(self):
+        workunit1 = self.undertest.get_workunit()
+        assert_that(workunit1.get_filename(), is_in(self.test_files))
+        self.progress_manager.record_done(workunit1.get_filename())
+
+        workunit2 = self.undertest.get_workunit()
+        assert_that(workunit2.get_filename(), is_in(self.test_files))
+        assert_that(workunit2.get_filename(),
+                    is_not(equal_to(workunit1.get_filename())))
+        self.progress_manager.record_done(workunit2.get_filename())
+
+        self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
+
+    def test_create_workload_one_file_already_done(self):
+        self.progress_manager.done.add(self.file1)
+
+        workunit = self.undertest.get_workunit()
+        assert_that(workunit.get_filename(), equal_to(self.file2))
+        self.progress_manager.record_done(self.file2)
+
+        self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
+
+    def test_create_workload_locked_files(self):
+        self.progress_manager.add_external_lock(self.file2)
+
+        workunit = self.undertest.get_workunit()
+        assert_that(workunit.get_filename(), equal_to(self.file1))
+        self.progress_manager.record_done(self.file1)
+
+        self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
+
+    def test_items_in_ignore_list_ignored(self):
+        workunit = self.undertest.get_workunit(ignore_list=[self.file1])
+
+        assert_that(workunit.get_filename(), equal_to(self.file2))
+        self.progress_manager.record_done(self.file2)
+
+        self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit,
+                          ignore_list=[self.file1])
+
+    def test_file_found_to_be_done_not_checked_again(self):
+        test_files = [self.file1, self.file2, self.file3, self.file4]
+        self.directory_manager.set_listing(self.taskid, test_files)
+
+        self.progress_manager.lock(self.file2)
+        self.progress_manager.record_done(self.file2)
+        self.progress_manager.unlock(self.file2)
+
+        # We don't yet know file1 is done.
+        assert_that(self.undertest.get_potential_files([]),
+                    contains_inanyorder(self.file1, self.file2, self.file3,
+                                        self.file4))
+        assert_that(self.undertest.get_workunit().get_filename(), equal_to(self.file1))
+
+        # We have not yet discovered file2 is done because we found file 1
+        # right away.  However, we should remember we already returned file1.
+        assert_that(self.undertest.get_potential_files([]),
+                    contains_inanyorder(self.file2, self.file3, self.file4))
+
+        # Here we should discover file2 is done and skip over it
+        assert_that(self.undertest.get_workunit().get_filename(), equal_to(self.file3))
+
+        # So the next time we know not to check file2 again
+        assert_that(self.undertest.get_potential_files([]),
+                    contains_inanyorder(self.file4))
 
 
-class WorkUnitProviderTest(FileReadingTestCase, DirectoryCleaningTestCase):
+class PreFetchingWorkUnitProviderTest(unittest.TestCase):
+    def setUp(self):
+        self.prefetch_quantity = 2
+        self.workunit_provider = CopyingMock(spec=WorkUnitProvider)
+        self.undertest = PreFetchingWorkUnitProvider(self.workunit_provider,
+                                                     self.prefetch_quantity)
+        self._workunit_number = 0
+
+    def create_workunit(self):
+        workunit = Mock(spec=WorkUnit)
+        workunit.get_filename.return_value = "Workunit%d" % self._workunit_number
+        self._workunit_number += 1
+        return workunit
+
+    def set_workunit_provider_return_values(self, return_values):
+        def side_effect(*args, **kwargs):
+            result = return_values.pop(0)
+            if isinstance(result, Exception):
+                raise result
+            return result
+
+        self.workunit_provider.get_workunit.side_effect = side_effect
+
+    def mock_prefetch_workunit(self, bypass_threading=False):
+        prefetch_workunit_mock = Mock()
+
+        if bypass_threading:
+            def do_prefetch():
+                self.undertest._do_prefetch_workunit()
+
+            prefetch_workunit_mock.side_effect = do_prefetch
+
+        else:
+            def generate_mocked_workunit():
+                self.undertest.workunits.append(self.create_workunit())
+
+            prefetch_workunit_mock.side_effect = generate_mocked_workunit
+
+        self.undertest.prefetch_workunit = prefetch_workunit_mock
+
+        return prefetch_workunit_mock
+
+    def test_get_first_workunit_also_prefetches_configured_quantity(self):
+        prefetch_workunit_mock = self.mock_prefetch_workunit()
+
+        self.undertest.get_workunit()
+        assert_that(prefetch_workunit_mock.call_count,
+                    equal_to(self.prefetch_quantity))
+
+    def test_get_second_workunit_prefetches_one_more(self):
+        prefetch_workunit_mock = self.mock_prefetch_workunit()
+
+        self.undertest.get_workunit()
+        self.undertest.get_workunit()
+        assert_that(prefetch_workunit_mock.call_count,
+                    equal_to(self.prefetch_quantity + 1))
+
+    def test_all_prefetched_doesnt_raise_no_available_work_until_all_retrieved(self):
+        prefetch_workunit_mock = self.mock_prefetch_workunit(bypass_threading=True)
+
+        workunit1 = self.create_workunit()
+        workunit2 = self.create_workunit()
+        workunit3 = self.create_workunit()
+
+        self.set_workunit_provider_return_values(
+            [workunit1, workunit2, workunit3, NoAvailableWorkException()])
+
+        assert_that(self.undertest.get_workunit(), equal_to(workunit1))
+
+        assert_that(prefetch_workunit_mock.call_count,
+                    equal_to(self.prefetch_quantity))
+
+        assert_that(self.undertest.get_workunit(), equal_to(workunit2))
+
+        # This call to fetch will raise a NoAvailableWorkException
+        assert_that(prefetch_workunit_mock.call_count,
+                    equal_to(self.prefetch_quantity + 1))
+
+        assert_that(self.undertest.get_workunit(), equal_to(workunit3))
+
+        # Note we don't try to fetch anymore
+        assert_that(prefetch_workunit_mock.call_count,
+                    equal_to(self.prefetch_quantity + 1))
+
+        self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
+
+    def test_prefetch_excludes_already_fetched(self):
+        prefetch_workunit_mock = self.mock_prefetch_workunit(bypass_threading=True)
+
+        workunit1 = self.create_workunit()
+        workunit2 = self.create_workunit()
+        workunit3 = self.create_workunit()
+
+        self.set_workunit_provider_return_values(
+            [workunit1, workunit2, workunit3, NoAvailableWorkException()])
+
+        self.undertest.get_workunit()
+        self.undertest.get_workunit()
+        self.undertest.get_workunit()
+        self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
+
+        expected_calls = [
+            call(ignore_list=[]),
+            call(ignore_list=[workunit1.get_filename()]),
+            call(ignore_list=[workunit1.get_filename(), workunit2.get_filename()]),
+            call(ignore_list=[workunit1.get_filename(), workunit2.get_filename(),
+                              workunit3.get_filename()])
+        ]
+
+        self.workunit_provider.get_workunit.assert_has_calls(expected_calls)
+
+    def test_get_workunit_no_prefetch(self):
+        self.prefetch_quantity = 0
+        self.workunit_provider = Mock(spec=WorkUnitProvider)
+        self.undertest = PreFetchingWorkUnitProvider(self.workunit_provider,
+                                                     self.prefetch_quantity)
+        prefetch_workunit_mock = self.mock_prefetch_workunit(bypass_threading=True)
+
+        workunit1 = self.create_workunit()
+        workunit2 = self.create_workunit()
+        workunit3 = self.create_workunit()
+
+        self.set_workunit_provider_return_values(
+            [workunit1, workunit2, workunit3, NoAvailableWorkException()])
+
+        assert_that(self.undertest.get_workunit(), equal_to(workunit1))
+
+        assert_that(prefetch_workunit_mock.call_count, equal_to(0))
+
+        assert_that(self.undertest.get_workunit(), equal_to(workunit2))
+
+        assert_that(prefetch_workunit_mock.call_count, equal_to(0))
+
+        assert_that(self.undertest.get_workunit(), equal_to(workunit3))
+
+        assert_that(prefetch_workunit_mock.call_count, equal_to(0))
+
+        self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
+
+
+class WorkUnitProviderRealFilesTest(FileReadingTestCase, DirectoryCleaningTestCase):
     def setUp(self):
         working_directory = self.get_directory_to_clean()
         context = LocalDirectoryWorkingContext(working_directory)
