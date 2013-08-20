@@ -1,3 +1,5 @@
+from ossos.gui import logger
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import itertools
@@ -83,6 +85,7 @@ MPCNOTES = {'Note1':
             'PhotometryNote': {
                 " ": " ",
                 "": " ",
+                "L": "Photometry uncertainty lacking",     # not used by MPC
                 "Y": "Photometry measured successfully",   # not used by MPC 
                 "Z": "Photometry measurement failed."      # not used by MPC 
             }}
@@ -368,10 +371,10 @@ class Observation(object):
                  ra="00 00 00.000",
                  dec="+00 00 00.00",
                  mag=-1,
-                 mag_err=-1,
                  band='r',
                  observatory_code=568,
                  comment="",
+                 mag_err=-1,
                  xpos=None,
                  ypos=None,
                  frame=None,
@@ -408,9 +411,11 @@ class Observation(object):
         """
         mpc_format = '5s7s1s1s1s17s12s12s9x5s1s6x3s'
         mpc_line = mpc_line.strip('\n')
-        comment = mpc_line[80:]
+        comment = mpc_line[81:]
         mpc_line = mpc_line[0:80]
-        return cls(*struct.unpack(mpc_format, mpc_line), comment=comment)
+        obsrec = cls(*struct.unpack(mpc_format, mpc_line))
+        obsrec.comment = MPCComment.from_string(comment)
+        return obsrec
 
     def to_string(self):
         as_string = str(self)
@@ -582,7 +587,7 @@ class Observation(object):
 
 
         """
-        coord = str(coord)
+        coord = str(coord).strip(' ')
         idx = coord.rfind('.')
         if idx < 0 :
             return 0
@@ -696,6 +701,26 @@ class MPCComment(object):
         self.plate_uncertainty = plate_uncertainty
         self.comment = comment
 
+    @classmethod
+    def from_string(cls, comment):
+        """
+        Build an MPC Comment from a string.
+        """
+        values = comment.split(' ')
+        if len(values) < 8:
+            logger.warning("non-OSSOS format MPC line read")
+            return comment
+        comment = comment.split('%')[-1]
+        return MPCComment(source_name = values[1],
+                   frame=values[0],
+                   X=values[3],
+                   Y=values[4],
+                   MPCNote=values[2][1:],
+                   magnitude=values[5],
+                   mag_uncertainty=values[6],
+                   plate_uncertainty=values[7],
+                   comment=comment)
+
     @property
     def mag(self):
         return self._mag
@@ -724,7 +749,10 @@ class MPCComment(object):
                 self._mag_uncertainty = "{:4.2f}".format(float(mag_uncertainty))
             else:
                 self._mag_uncertainty = ""
-                self.PNote = "Z"
+                if len(str(self.mag)) > 0:
+                    self.PNote = "L"
+                else:
+                    self.PNote = "Z"
         except:
             self._mag_uncertainty = ""
             self.PNote = "Z"
@@ -868,7 +896,7 @@ class TNOdbWriter(MPCWriter):
     """
 
     def __init__(self, filehandle, auto_flush=True):
-        super(TNOdbWriter, self).__init__(filehandle, auto_flush=auto_flush)
+        super(MPCWriter, self).__init__(filehandle, auto_flush=True)
 
     def flush(self):
         """
@@ -877,7 +905,7 @@ class TNOdbWriter(MPCWriter):
         """
         for obs in self.get_chronological_buffered_observations():
             # tnodb requires all lines to be MPC roving observer line length
-            comment_line = ('#O ' + obs.to_string()[80:])[:80] # #O indicates OSSOS survey
+            comment_line = ('#O ' + obs.comment)[:80] # #O indicates OSSOS survey
             mpc_observation = obs.to_string()[:80]
             output_line = comment_line + '\n' + mpc_observation + '\n'
             self.filehandle.write(output_line)
@@ -886,21 +914,23 @@ class TNOdbWriter(MPCWriter):
         self.buffer = []
 
 
-class MPCConverter(object):
+class URLWriter(MPCWriter):
     """
-    Converts an MPC formatted file to a TNOdb one.
-    :param mpc_file The input filename, of MPC lines.
-    :param output   if required; else will use root of provided MPC file.
+    Write out MPC lines without the metadata, in URL-ready format.
     """
+    def __init__(self, filehandle, auto_flush=True):
+        super(MPCWriter, self).__init__(filehandle, auto_flush=True)
 
-    def __init__(self, mpc_file, output=None):
-        if output is None:
-            output = mpc_file.rpartition('.')[0] + '.tnodb'
-        outfile = open(output, 'w')
-        writer = TNOdbWriter(outfile, auto_flush=False)
+    def flush(self):
+        """
+        Write out MPC lines without any metadata, eg. for passing to a URL.
+        """
+        for obs in self.get_chronological_buffered_observations():
+            mpc_observation = obs.to_string()[:80].replace(' ', '+') + urllib.quote('\r\n')
+            self.filehandle.write(mpc_observation)
 
-        with open(mpc_file, 'r') as infile:
-            for line in infile.readlines():
-                writer.write(Observation().from_string(line))
+        self.filehandle.flush()
+        self.buffer = []
 
-        writer.flush()
+
+
