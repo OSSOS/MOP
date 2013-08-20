@@ -335,6 +335,7 @@ class DisplayableImageTriplet(Displayable):
                 singlet = ImageSinglet(cutout_grid.get_hdulist(frame_index, time_index),
                                        self.figure,
                                        get_rect(cutout_grid.shape, frame_index, time_index))
+                singlet.display_changed.connect(self.redraw)
                 frame.append(singlet)
 
             self.frames.append(frame)

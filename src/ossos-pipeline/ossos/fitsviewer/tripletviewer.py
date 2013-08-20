@@ -24,7 +24,7 @@ class TripletViewer(WxMPLFitsViewer):
         self.current_grid = displayable
         self.current_grid.render(self.canvas)
 
-        self._mark_sources(cutout_grid)
+        self.mark_sources(cutout_grid)
 
         if redraw:
             self.redraw()
@@ -36,8 +36,26 @@ class TripletViewer(WxMPLFitsViewer):
 
         self.current_grid.get_singlet(frame_index, time_index).place_marker(x, y, radius)
 
-    def _mark_sources(self, cutout_grid):
-        cutout_grid.apply(self.mark_source)
+    def mark_frame(self, cutout_grid, frame_index):
+
+        focus_cutout = cutout_grid.get_cutout(frame_index, frame_index)
+
+        for time_index in range(cutout_grid.num_times):
+            cutout = cutout_grid.get_cutout(frame_index, time_index)
+
+            offset_x, offset_y = focus_cutout.reading.get_coordinate_offset(cutout.reading)
+            x, y = focus_cutout.pixel_source_point
+            x += offset_x
+            y += offset_y
+
+            fwhm = float(cutout.reading.get_observation_header()["FWHM"])
+            radius = 2 * round(fwhm)
+
+            self.current_grid.get_singlet(frame_index, time_index).place_marker(x, y, radius)
+
+    def mark_sources(self, cutout_grid):
+        for frame_index in range(cutout_grid.num_frames):
+            self.mark_frame(cutout_grid, frame_index)
 
     def draw_marker(self, x, y, radius, redraw=True):
         """
