@@ -17,6 +17,12 @@ class CutoutGrid(object):
     def shape(self):
         return self.num_frames, self.num_times
 
+    def apply(self, function):
+        for frame_index in range(self.num_frames):
+            for time_index in range(self.num_times):
+                function(self.get_cutout(frame_index, time_index),
+                         frame_index, time_index)
+
     def add_cutout(self, cutout, frame_index, time_index):
         self._grid[frame_index][time_index] = cutout
 
