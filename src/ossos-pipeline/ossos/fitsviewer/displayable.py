@@ -1,3 +1,5 @@
+from matplotlib.patches import Ellipse
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import numpy as np
@@ -85,6 +87,15 @@ class DisplayableImageSinglet(object):
         self.marker = Marker(x, y, radius)
         self.marker.add_to_axes(self.axes)
 
+        self.display_changed.fire()
+
+    def place_error_ellipse(self, x, y, a, b, pa):
+        """
+        Draws an ErrorEllipse with the given dimensions.  Can not be moved later.
+        """
+        self.error_ellipse = ErrEllipse(x, y, a, b, pa)
+        self.axes.add_artist(self.error_ellipse)
+        self.error_ellipse.set_clip_box(self.axes.bbox)
         self.display_changed.fire()
 
     def update_marker(self, x, y, radius=None):
@@ -265,6 +276,28 @@ class _ImageTriplet(object):
 
         # Don't draw tick marks and labels
         self.axes.set_axis_off()
+
+class ErrEllipse(object):
+    """
+    A class for creating and drawing an ellipse in matplotlib.
+    """
+    def __init__(self, x_cen, y_cen, a, b, pa):
+        """
+
+
+        :param x_cen: x coordinate at center of the ellipse
+        :param y_cen: y coordinate at center of the ellipse
+        :param a: size of semi-major axes of the ellipse
+        :param b: size of semi-minor axes of the ellipse
+        :param pa: position angle of a to x  (90 ==> a is same orientation as x)
+
+        """
+
+        self.center = (x_cen, y_cen)
+        self.a = a
+        self.b = b
+        self.pa = pa
+        self.artist = Ellipse(self.center, self.a, self.b, self.pa, edgecolor='b', facecolor='g', alpha=0.2)
 
 
 class Marker(object):

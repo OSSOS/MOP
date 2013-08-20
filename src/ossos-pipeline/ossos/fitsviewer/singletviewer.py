@@ -41,6 +41,15 @@ class SingletViewer(WxMPLFitsViewer):
         if redraw:
             self.redraw()
 
+    def draw_error_ellipse(self, x, y, a, b, pa, redraw=True):
+        """
+        Draws an ErrEllipse with the spcified dimensions.  Only one ErrEllipse can be drawn and
+        only once (not movable).
+        """
+        self.current_image.place_error_ellipse(x, y, a, b, pa)
+        if redraw:
+            self.redraw()
+
     def reset_colormap(self):
         if self.current_image is not None:
             self.current_image.reset_colormap()

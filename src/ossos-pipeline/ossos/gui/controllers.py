@@ -1,3 +1,5 @@
+from ossos.fitsviewer.singletviewer import SingletViewer
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 from ossos import mpc
@@ -49,6 +51,7 @@ class AbstractController(object):
         image_x, image_y = self.model.get_current_pixel_source_point()
         radius = 2 * round(self.model.get_current_image_FWHM())
         self.view.draw_marker(image_x, image_y, radius, redraw=True)
+
 
     def on_reposition_source(self, new_x, new_y):
         try:
@@ -342,4 +345,13 @@ class ProcessTracksController(ProcessRealsController):
     """
 
     ## we might need this later for plotting the orbits...  and adding some actions.
-    pass
+    def mark_current_source(self):
+        image_x, image_y = self.model.get_current_pixel_source_point()
+        radius = 2 * round(self.model.get_current_image_FWHM())
+        self.view.draw_marker(image_x, image_y, radius, redraw=True)
+
+        ## Also draw an error ellipse, since this is a tracks controller.
+        reading = self.model.get_current_reading()
+        assert isinstance(self.view, SingletViewer)
+        if hasattr(reading, 'a') and hasattr(reading, 'b') and hasattr(reading,'pa'):
+            self.view.draw_error_ellipse(reading.a, reading.b, reading.pa)
