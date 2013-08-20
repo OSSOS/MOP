@@ -104,13 +104,9 @@ class TracksParser(object):
             for source_reading in source.get_readings():
                 observation = observations.pop(0)
                 self.orbit.date = observation.header['MJD-OBS-CENTER']
-                dra = self.orbit.dra
-                ddec = self.orbit.ddec
-                pa = self.orbit.pa
-                source_reading.dx = dra*math.cos(math.radians(pa)) - ddec*math.sin(math.radians(pa))
-                source_reading.dy = dra*math.sin(math.radians(pa)) + ddec*math.cos(math.radians(pa))
-                source_reading.dx /= observation.header['SCALE']
-                source_reading.dy /= observation.haeder['SCALE']
+                source_reading.pa = self.orbit.pa
+                source_reading.dra = self.orbit.dra / observation.haeder['SCALE']
+                source_reading.ddec = self.orbit.ddec / observation.header['SCALE']
 
         return tracks_data  # an TracksData with .sources and .observations only
 
