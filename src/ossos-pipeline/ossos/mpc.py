@@ -375,7 +375,8 @@ class Observation(object):
                  xpos=None,
                  ypos=None,
                  frame=None,
-                 plate_uncertainty=None):
+                 plate_uncertainty=None,
+                 null_observation=False):
 
         self.minor_planet_number = minor_planet_number
         self.provisional_name = provisional_name
@@ -388,6 +389,7 @@ class Observation(object):
         self.mag_err = mag_err
         self.band = band
         self.observatory_code = observatory_code
+        self.null_observation=null_observation
         self.comment = MPCComment(source_name=provisional_name,
                                   frame=frame,
                                   MPCNote=self.note1,
@@ -575,13 +577,17 @@ class Observation(object):
 
     def _compute_precision(self, coord):
         """
-        Compute the number of decimal places in the last part of a sexagesimal string
+        Returns the number of digits after the last '.' in a given number or string.
+
+
+
         """
-        parts = str(coord).replace('/', ' ').split('.')
-        if len(parts) < 2:
+        coord = str(coord)
+        idx = coord.rfind('.')
+        if idx < 0 :
             return 0
         else:
-            return len(parts[-1])
+            return len(coord) - idx -1
 
     @coordinate.setter
     def coordinate(self, coord_pair):
