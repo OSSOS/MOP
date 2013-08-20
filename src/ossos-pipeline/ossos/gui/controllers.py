@@ -33,8 +33,6 @@ class AbstractController(object):
         except NoWorkUnitException:
             return
 
-        # self.mark_current_source()
-
         self.view.update_displayed_data(self.model.get_reading_data(),
                                         self.model.get_header_data_list())
 
@@ -43,11 +41,6 @@ class AbstractController(object):
             self.model.get_obs_count())
 
         self.model.acknowledge_image_displayed()
-
-    def mark_current_source(self):
-        image_x, image_y = self.model.get_current_pixel_source_point()
-        radius = 2 * round(self.model.get_current_image_FWHM())
-        self.view.draw_marker(image_x, image_y, radius, redraw=True)
 
     def on_reposition_source(self, new_x, new_y):
         try:
@@ -141,7 +134,7 @@ class AbstractController(object):
     def on_reset_source_location(self):
         try:
             self.model.reset_current_source_location()
-            self.mark_current_source()
+            self.view.refresh_markers()()
         except ImageNotLoadedException:
             pass
 

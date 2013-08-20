@@ -86,6 +86,10 @@ class ApplicationView(object):
         self.image_viewer.display(cutout, redraw=redraw)
 
     @guithread
+    def refresh_markers(self):
+        self.image_viewer.refresh_markers()
+
+    @guithread
     def draw_marker(self, x, y, radius, redraw=True):
         self.image_viewer.draw_marker(x, y, radius, redraw=redraw)
 
