@@ -26,15 +26,14 @@ class AbstractController(object):
 
     def display_current_image(self):
         try:
-            self.view.display(self.model.get_current_displayable_image(),
-                              redraw=False)
+            self.view.display(self.model.get_current_cutout(), redraw=True)
         except ImageNotLoadedException as ex:
             self.image_loading_dialog_manager.wait_for_item(ex.requested_item)
             return
         except NoWorkUnitException:
             return
 
-        self.mark_current_source()
+        # self.mark_current_source()
 
         self.view.update_displayed_data(self.model.get_reading_data(),
                                         self.model.get_header_data_list())

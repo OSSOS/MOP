@@ -263,7 +263,7 @@ class ValidationModel(object):
         return isinstance(self.get_current_workunit(), RealsWorkUnit)
 
     def get_current_cutout(self):
-        return self.image_manager.get_cutout(self.get_current_reading())
+        return self.image_state.get_current_cutout()
 
     def download_workunit_images(self, workunit):
         self.image_state.download_workunit_images(workunit)
@@ -296,12 +296,12 @@ class SingletState(object):
         self.download_workunit_images(
             self.model.get_current_workunit())
 
+    def get_current_cutout(self):
+        return self.image_manager.get_cutout(
+            self.get_current_displayable_item())
+
     def get_current_displayable_item(self):
         return self.model.get_current_reading()
-
-    def get_current_displayable_image(self):
-        return self.image_manager.get_displayable_singlet(
-            self.model.get_current_reading())
 
     def download_workunit_images(self, workunit):
         self.image_manager.download_singlets_for_workunit(workunit)
@@ -320,12 +320,12 @@ class TripletState(object):
         self.download_workunit_images(
             self.model.get_current_workunit())
 
+    def get_current_cutout(self):
+        return self.image_manager.get_cutout_grid(
+            self.get_current_displayable_item())
+
     def get_current_displayable_item(self):
         return self.model.get_current_source()
-
-    def get_current_displayable_image(self):
-        return self.image_manager.get_displayable_triplet(
-            self.model.get_current_source())
 
     def download_workunit_images(self, workunit):
         self.image_manager.download_triplets_for_workunit(workunit)

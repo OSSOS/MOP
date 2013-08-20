@@ -19,7 +19,9 @@ class Displayable(object):
     """
 
     def __init__(self):
-        self.figure = None
+        self.figure = plt.figure()
+        self.canvas = None
+        self.rendered = False
 
     @property
     def width(self):
@@ -30,12 +32,13 @@ class Displayable(object):
         raise NotImplementedError()
 
     def render(self, canvas=None):
-        if self.figure is None:
+        if not self.rendered:
             self._do_render()
 
         if canvas is None:
             plt.show()
         else:
+            self.canvas = canvas
             canvas.figure = self.figure
 
             parent_size = canvas.GetClientSize()
@@ -46,11 +49,150 @@ class Displayable(object):
 
             self._apply_event_handlers(canvas)
 
+    def redraw(self):
+        if self.canvas is not None:
+            self.canvas.draw()
+
     def _do_render(self):
         raise NotImplementedError()
 
     def _apply_event_handlers(self, canvas):
         pass
+
+
+class ImageSinglet(object):
+    """
+    A single image on a matplotlib axes.  Provides interaction and is
+    markable.
+    """
+
+    def __init__(self, hdulist, figure, rect):
+        self.hdulist = hdulist
+
+        self.figure = figure
+        self.axes = self._create_axes(rect)
+        self.figure.add_axes(self.axes)
+
+        self.marker = None
+
+        self.display_changed = Signal()
+        self.xy_changed = Signal()
+        self.focus_released = Signal()
+
+        self._colormap = GrayscaleColorMap()
+        self._mpl_event_handlers = {}
+        self._interaction_context = None
+
+    @property
+    def image_data(self):
+        return _image_data(self.hdulist)
+
+    @property
+    def width(self):
+        return _image_width(self.hdulist)
+
+    @property
+    def height(self):
+        return _image_height(self.hdulist)
+
+    def show_image(self, colorbar=False):
+        self._interaction_context = InteractionContext(self)
+
+        extent = (1, self.width, 1, self.height)
+        self.axes_image = self.axes.imshow(zscale(self.image_data),
+                                           origin="lower",
+                                           extent=extent,
+                                           cmap=self._colormap.as_mpl_cmap())
+
+        if colorbar:
+            # Create axes for colorbar.  Make it tightly fit the image.
+            divider = make_axes_locatable(self.axes)
+            cax = divider.append_axes("bottom", size="5%", pad=0.05)
+            self.figure.colorbar(self.axes_image, orientation="horizontal",
+                                 cax=cax)
+
+    def place_marker(self, x, y, radius):
+        """
+        Draws a marker with the specified dimensions.  Only one marker can
+        be on the image at a time, so any existing marker will be replaced.
+        """
+        if self.marker is not None:
+            self.marker.remove_from_axes(self.axes)
+
+        self.marker = Marker(x, y, radius)
+        self.marker.add_to_axes(self.axes)
+
+        self.display_changed.fire()
+
+    def update_marker(self, x, y, radius=None):
+        if self.marker is None:
+            if radius is None:
+                raise MPLViewerError("No marker to update.")
+            else:
+                # For convenience go ahead and make one
+                self.place_marker(x, y, radius)
+
+        self.marker.center = (x, y)
+
+        if radius is not None:
+            self.marker.radius = radius
+
+        self.xy_changed.fire(x, y)
+        self.display_changed.fire()
+
+    def release_focus(self):
+        self.focus_released.fire()
+
+    def update_colormap(self, dx, dy):
+        contrast_diff = float(-dy) / self.height
+        bias_diff = float(dx) / self.width
+
+        self._colormap.update_contrast(contrast_diff)
+        self._colormap.update_bias(bias_diff)
+
+        self._refresh_displayed_colormap()
+
+    def reset_colormap(self):
+        self._colormap.set_defaults()
+        self._refresh_displayed_colormap()
+
+    def is_event_in_axes(self, event):
+        return self.axes == event.inaxes
+
+    def register_mpl_event_handler(self, eventname, handler):
+        handler_id = self.figure.canvas.mpl_connect(eventname, handler)
+        self._mpl_event_handlers[handler_id] = (eventname, handler)
+        return handler_id
+
+    def deregister_mpl_event_handler(self, id_):
+        self.figure.canvas.mpl_disconnect(id_)
+        del self._mpl_event_handlers[id_]
+
+    def apply_event_handlers(self, canvas):
+        for eventname, handler in self._mpl_event_handlers.itervalues():
+            canvas.mpl_connect(eventname, handler)
+
+    def _create_axes(self, rect):
+        """
+        Args:
+          rect: [left, bottom, width, height]
+            Used to construct the matplotlib axes.
+        """
+        axes = plt.Axes(self.figure, rect)
+
+        # Don't draw tick marks and labels
+        axes.set_axis_off()
+
+        # FITS images start at pixel 1,1 in the bottom-left corner
+        axes.set_xlim([1, self.width])
+        axes.set_ylim([1, self.height])
+
+        return axes
+
+    def _refresh_displayed_colormap(self):
+        self.axes_image.set_cmap(self._colormap.as_mpl_cmap())
+        self.axes_image.changed()
+        self.display_changed.fire()
 
 
 class _AxesItem(object):
@@ -134,7 +276,7 @@ class _AxesItem(object):
                                  cax=cax)
 
 
-class DisplayableImageSinglet(Displayable, _AxesItem):
+class DisplayableImageSinglet(Displayable):
     """
     A single displayable image.
 
@@ -150,72 +292,29 @@ class DisplayableImageSinglet(Displayable, _AxesItem):
           hdulist: astropy.io.fits.HDUList
             The FITS image to be displayed.
         """
-        Displayable.__init__(self)
-        _AxesItem.__init__(self)
+        super(DisplayableImageSinglet, self).__init__()
 
         self.hdulist = hdulist
-
-        self.marker = None
-
-        self.display_changed = Signal()
-        self.xy_changed = Signal()
-        self.focus_released = Signal()
+        self.image_singlet = ImageSinglet(self.hdulist, self.figure,
+                                          [0.025, 0.025, 0.95, 0.95])
+        self.image_singlet.display_changed.connect(self.redraw)
 
     @property
-    def image_data(self):
-        return _image_data(self.hdulist)
+    def xy_changed(self):
+        return self.image_singlet.xy_changed
 
     @property
-    def width(self):
-        return _image_width(self.hdulist)
-
-    @property
-    def height(self):
-        return _image_height(self.hdulist)
+    def focus_released(self):
+        return self.image_singlet.focus_released
 
     def place_marker(self, x, y, radius):
-        """
-        Draws a marker with the specified dimensions.  Only one marker can
-        be on the image at a time, so any existing marker will be replaced.
-        """
-        if self.marker is not None:
-            self.marker.remove_from_axes(self.axes)
-
-        self.marker = Marker(x, y, radius)
-        self.marker.add_to_axes(self.axes)
-
-        self.display_changed.fire()
-
-    def update_marker(self, x, y, radius=None):
-        if self.marker is None:
-            if radius is None:
-                raise MPLViewerError("No marker to update.")
-            else:
-                # For convenience go ahead and make one
-                self.place_marker(x, y, radius)
-
-        self.marker.center = (x, y)
-
-        if radius is not None:
-            self.marker.radius = radius
-
-        self.xy_changed.fire(x, y)
-        self.display_changed.fire()
-
-    def release_focus(self):
-        self.focus_released.fire()
+        self.image_singlet.place_marker(x, y, radius)
 
     def _do_render(self):
-        self.figure = plt.figure()
-
-        # Leave 2.5% border on all sides
-        self.axes = self._create_axes([0.025, 0.025, 0.95, 0.95])
-        self.figure.add_axes(self.axes)
-
-        self._show_image(zscale(self.image_data), colorbar=True)
+        self.image_singlet.show_image(colorbar=True)
 
     def _apply_event_handlers(self, canvas):
-        _AxesItem._apply_event_handlers(self, canvas)
+        self.image_singlet.apply_event_handlers(canvas)
 
 
 class DisplayableImageTriplet(Displayable):
@@ -228,19 +327,33 @@ class DisplayableImageTriplet(Displayable):
 
         self.cutout_grid = cutout_grid
 
-        def create_triplet(index):
-            return _ImageTriplet(cutout_grid.get_hdulists(index))
-
-        self.frames = [create_triplet(index)
-                       for index in range(cutout_grid.num_frames)]
+        self.singlets = []
+        num_frames, num_times = cutout_grid.shape
+        for frame_index in range(num_frames):
+            for time_index in range(num_times):
+                singlet = ImageSinglet(cutout_grid.get_hdulist(frame_index, time_index),
+                                       self.figure,
+                                       get_rect(cutout_grid.shape, frame_index, time_index))
+                self.singlets.append(singlet)
 
     def place_marker(self, x, y, radius):
         pass
 
     def _do_render(self):
-        self.figure = plt.figure()
-        for position, frame in enumerate(self.frames):
-            frame.render(self.figure, position)
+        for singlet in self.singlets:
+            singlet.show_image(colorbar=False)
+
+
+def get_rect(shape, frame_index, time_index, border=0.025):
+    rows, cols = shape
+
+    width = (1.0 - 2 * border) / cols
+    height = (1.0 - 2 * border) / rows
+
+    left = border + width * time_index
+    bottom = border + height * (rows - frame_index - 1)
+
+    return [left, bottom, width, height]
 
 
 class _ImageTriplet(_AxesItem):

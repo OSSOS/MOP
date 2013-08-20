@@ -23,6 +23,9 @@ class CutoutGrid(object):
     def get_cutout(self, frame_index, time_index):
         return self._grid[frame_index][time_index]
 
+    def get_hdulist(self, frame_index, time_index):
+        return self.get_cutout(frame_index, time_index).hdulist
+
     def get_hdulists(self, frame_index):
         return map(lambda cutout: cutout.hdulist, self._grid[frame_index])
 
