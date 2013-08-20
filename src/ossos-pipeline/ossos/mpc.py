@@ -375,7 +375,8 @@ class Observation(object):
                  xpos=None,
                  ypos=None,
                  frame=None,
-                 plate_uncertainty=None):
+                 plate_uncertainty=None,
+                 null_observation=False):
 
         self.minor_planet_number = minor_planet_number
         self.provisional_name = provisional_name
@@ -388,6 +389,7 @@ class Observation(object):
         self.mag_err = mag_err
         self.band = band
         self.observatory_code = observatory_code
+        self.null_observation=null_observation
         self.comment = MPCComment(source_name=provisional_name,
                                   frame=frame,
                                   MPCNote=self.note1,
