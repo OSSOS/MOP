@@ -65,7 +65,7 @@ def plant(expnums, ccd, rmin, rmax, ang, width, version='s'):
                     'fwhm',
                     'apcor', 'zeropoint.used', 'trans.jmp']:
             storage.delete(expnum, ccd, 's', ext, prefix='fk')
-            storage.vlink(expnum, ccd, 'p', ext,
+            storage.vlink(expnum, ccd, 's', ext,
                           expnum, ccd, 's', ext, l_prefix='fk')
                           
 
