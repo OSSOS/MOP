@@ -21,6 +21,7 @@ class SSOSTest(unittest.TestCase):
         observations = []
         for line in mpc_lines_2:
             observations.append(mpc.Observation.from_string(line))
+        name = observations[0].provisional_name
 
         query = ssos.Query(observations,
                            search_start_date=Time('2013-02-08', scale='utc'),
@@ -28,7 +29,7 @@ class SSOSTest(unittest.TestCase):
 
         ssos_result = query.get()
 
-        ssos_data = ssos.SSOSParser().parse(ssos_result)
+        ssos_data = ssos.SSOSParser(name).parse(ssos_result)
 
         print ssos_data.get_reading_count()
 
