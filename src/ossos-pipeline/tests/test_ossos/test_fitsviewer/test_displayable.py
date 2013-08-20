@@ -2,9 +2,10 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 
+from astropy.io.fits.hdu.hdulist import HDUList
 import matplotlib.pyplot as plt
 from hamcrest import assert_that, close_to, equal_to, has_length, contains
-from mock import Mock
+from mock import Mock, MagicMock
 
 from ossos import astrom
 from ossos.downloads.cutouts.source import SourceCutout
@@ -66,16 +67,19 @@ class DisplayableImageTripletTest(unittest.TestCase):
         source = Mock(spec=astrom.Source)
         source.num_readings.return_value = 3
 
+        def mock_hdulist():
+            return MagicMock(spec=HDUList)
+
         grid = CutoutGrid(source)
-        self.hdulist00 = Mock()
-        self.hdulist01 = Mock()
-        self.hdulist02 = Mock()
-        self.hdulist10 = Mock()
-        self.hdulist11 = Mock()
-        self.hdulist12 = Mock()
-        self.hdulist20 = Mock()
-        self.hdulist21 = Mock()
-        self.hdulist22 = Mock()
+        self.hdulist00 = mock_hdulist()
+        self.hdulist01 = mock_hdulist()
+        self.hdulist02 = mock_hdulist()
+        self.hdulist10 = mock_hdulist()
+        self.hdulist11 = mock_hdulist()
+        self.hdulist12 = mock_hdulist()
+        self.hdulist20 = mock_hdulist()
+        self.hdulist21 = mock_hdulist()
+        self.hdulist22 = mock_hdulist()
 
         def mock_cutout(hdulist):
             cutout = Mock(spec=SourceCutout)
@@ -97,12 +101,20 @@ class DisplayableImageTripletTest(unittest.TestCase):
     def test_frames_have_correct_hdulists(self):
         displayable = DisplayableImageTriplet(self.grid)
 
-        assert_that(displayable.frames[0].hdulists,
-                    contains(self.hdulist00, self.hdulist01, self.hdulist02))
-        assert_that(displayable.frames[1].hdulists,
-                    contains(self.hdulist10, self.hdulist11, self.hdulist12))
-        assert_that(displayable.frames[2].hdulists,
-                    contains(self.hdulist20, self.hdulist21, self.hdulist22))
+        def get_hdulist(frame_index, time_index):
+            return displayable.get_singlet(frame_index, time_index).hdulist
+
+        assert_that(get_hdulist(0, 0), equal_to(self.hdulist00))
+        assert_that(get_hdulist(0, 1), equal_to(self.hdulist01))
+        assert_that(get_hdulist(0, 2), equal_to(self.hdulist02))
+
+        assert_that(get_hdulist(1, 0), equal_to(self.hdulist10))
+        assert_that(get_hdulist(1, 1), equal_to(self.hdulist11))
+        assert_that(get_hdulist(1, 2), equal_to(self.hdulist12))
+
+        assert_that(get_hdulist(2, 0), equal_to(self.hdulist20))
+        assert_that(get_hdulist(2, 1), equal_to(self.hdulist21))
+        assert_that(get_hdulist(2, 2), equal_to(self.hdulist22))
 
 
 class UtilityTest(unittest.TestCase):
