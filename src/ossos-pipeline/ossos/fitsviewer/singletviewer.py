@@ -39,6 +39,10 @@ class SingletViewer(WxMPLFitsViewer):
         if redraw:
             self.redraw()
 
+    def refresh_markers(self):
+        # TODO
+        pass
+
     def mark_source(self, cutout):
         x, y = cutout.pixel_source_point
         fwhm = float(cutout.reading.get_observation_header()["FWHM"])

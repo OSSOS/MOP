@@ -29,15 +29,15 @@ class TripletViewer(WxMPLFitsViewer):
         if redraw:
             self.redraw()
 
-    def mark_source(self, cutout, frame_index, time_index):
-        x, y = cutout.pixel_source_point
-        fwhm = float(cutout.reading.get_observation_header()["FWHM"])
-        radius = 2 * round(fwhm)
+    def refresh_markers(self):
+        # TODO
+        pass
 
-        self.current_grid.get_singlet(frame_index, time_index).place_marker(x, y, radius)
+    def mark_sources(self, cutout_grid):
+        for frame_index in range(cutout_grid.num_frames):
+            self.mark_frame(cutout_grid, frame_index)
 
     def mark_frame(self, cutout_grid, frame_index):
-
         focus_cutout = cutout_grid.get_cutout(frame_index, frame_index)
 
         for time_index in range(cutout_grid.num_times):
@@ -52,20 +52,6 @@ class TripletViewer(WxMPLFitsViewer):
             radius = 2 * round(fwhm)
 
             self.current_grid.get_singlet(frame_index, time_index).place_marker(x, y, radius)
-
-    def mark_sources(self, cutout_grid):
-        for frame_index in range(cutout_grid.num_frames):
-            self.mark_frame(cutout_grid, frame_index)
-
-    def draw_marker(self, x, y, radius, redraw=True):
-        """
-        Draws a marker with the specified dimensions.  Only one marker can
-        be on the image at a time, so any existing marker will be replaced.
-        """
-        self.current_grid.place_marker(x, y, radius)
-
-        if redraw:
-            self.redraw()
 
     def reset_colormap(self):
         if self.current_grid is not None:
