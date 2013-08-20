@@ -209,7 +209,7 @@ class ProcessTracksApplication(ValidationApplication):
 
     @property
     def input_suffix(self):
-        return tasks.suffixes[tasks.REALS_TASK]
+        return tasks.suffixes[tasks.TRACK_TASK]
 
     @property
     def should_randomize_workunits(self):
