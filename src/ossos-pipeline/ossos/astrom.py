@@ -397,9 +397,9 @@ class Source(object):
     A collection of source readings.
     """
 
-    def __init__(self, readings):
+    def __init__(self, readings, provisional_name=None):
         self.readings = readings
-        self.provisional_name = None
+        self.provisional_name = provisional_name
 
     def get_reading(self, index):
         return self.readings[index]

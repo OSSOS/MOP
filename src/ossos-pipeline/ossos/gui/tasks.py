@@ -4,7 +4,7 @@ CANDS_TASK = "cands"
 REALS_TASK = "reals"
 TRACK_TASK = "track"
 
-task_list = [CANDS_TASK, REALS_TASK]
+task_list = [CANDS_TASK, REALS_TASK, TRACK_TASK]
 
 suffixes = {
     CANDS_TASK: ".cands.astrom",

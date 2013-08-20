@@ -1,3 +1,4 @@
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import sys
@@ -8,18 +9,20 @@ from ossos.downloads.cutouts.downloader import ImageCutoutDownloader
 from ossos.gui import config, tasks, logger
 from ossos.gui import context
 from ossos.gui.sync import SynchronizationManager
-from ossos.gui.workload import (WorkUnitProvider,
+from ossos.gui.models.workload import (WorkUnitProvider,
                                 RealsWorkUnitBuilder,
                                 TracksWorkUnitBuilder,
                                 CandidatesWorkUnitBuilder,
                                 PreFetchingWorkUnitProvider)
 from ossos.gui.errorhandling import DownloadErrorHandler
-from ossos.gui.controllers import (ProcessRealsController,
+from ossos.gui.controllers import (ProcessTracksController,
+                                   ProcessRealsController,
                                    ProcessCandidatesController)
 from ossos.gui.models.imagemanager import ImageManager
 from ossos.gui.models.transactions import TransAckValidationModel
 from ossos.gui.views.appview import ApplicationView
 from ossos.naming import ProvisionalNameGenerator, DryRunNameGenerator
+from ossos.ssos import TracksParser
 
 
 def create_application(taskname, working_directory, output_directory,
@@ -217,7 +220,7 @@ class ProcessTracksApplication(ValidationApplication):
                                  output_context,
                                  progress_manager):
         return TracksWorkUnitBuilder(
-            TasksParser(), input_context, output_context, progress_manager,
+            TracksParser(), input_context, output_context, progress_manager,
             dry_run=self.dry_run)
 
     def _create_controller_factory(self, model):
@@ -254,7 +257,7 @@ class TracksControllerFactory(ControllerFactory):
         else:
             name_generator = ProvisionalNameGenerator()
 
-        return ProcessRealsController(self.model, view, name_generator)
+        return ProcessTracksController(self.model, view, name_generator)
 
 
 def preload_iraf():

@@ -23,6 +23,80 @@ RESPONSE_FORMAT = 'tsv'
 # was set to \r\n ?
 NEW_LINE = '\r\n'
 
+
+class TracksParser(object):
+
+    def __init__(self):
+        self.ssos_parser=SSOSParser()
+
+        self._nights_per_darkrun = 18
+        self._nights_separating_darkruns = 14
+
+    def parser(self, filename):
+
+        filehandle = storage.open_vos_or_local(filename, "rb")
+        filestr = filehandle.read()
+        filehandle.close()
+
+        input_mpc_lines = filestr.split('\n')
+
+        observations = []
+        for line in input_mpc_lines:
+            observations.append(mpc.Observation.from_string(line))
+
+        observations.sort(key=lambda obs: obs.date.jd)
+
+        length_of_observation_arc = observations[-1].date.jd - observations[0].date.jd
+
+        if  length_of_observation_arc < 1:
+            # data from the same dark run.
+            lunation_count = 0
+        elif length_of_observation_arc > 1 and length_of_observation_arc < self._nights_per_darkrun :
+            # data from neighbouring darkruns.
+            lunation_count = 1
+        else:
+            # data from the entire project.
+            lunation_count = None
+
+        # loop over the query until some new observations are found, or raise assert error.
+        while True:
+            tracks_data = self.query_ssos(observations, lunation_count)
+            if tracks_data.get_arc_length() > length_of_observation_arc or (
+                tracks_data.get_reading_count() > len(observations) ) :
+                return tracks_data
+            assert lunation_count is not None, "No new observations available."
+            lunation_count = ( lunation_count > 2 and None ) or lunation_count + 1
+
+
+    def query_ssos(self, observations, lunation_count):
+        # we observe ~ a week either side of new moon
+        # but we don't know when in the dark run the discovery happened
+        # so be generous with the search boundaries, add extra 2 weeks
+        # current date just has to be the night of the triplet,
+
+
+        if lunation_count is None:
+            search_start_date = Time('2013-02-08', scale='utc')
+            search_end_date = Time(datetime.datetime.now().strftime('%Y-%m-%d'), scale='utc')
+        else:
+            search_start_date = Time((observations[0].date.jd - (
+                self._nights_per_darkrun +
+                lunation_count*self._nights_separating_darkruns) ),
+                                     format='jd')
+            search_end_date = Time((observations[0].date.jd + (
+                self._nights_per_darkrun +
+                lunation_count*self._nights_separating_darkruns) ),
+                                   format='jd')
+
+
+        query = Query(observations,
+                      search_start_date=search_start_date,
+                      search_end_date=search_end_date)
+
+        tracks_data = self.ssos_parser.parse(query.get())
+
+        return tracks_data  # an TracksData with .sources and .observations only
+
 def parse(filename):
     return SSOSParser().parse(filename)
 
@@ -30,10 +104,11 @@ class SSOSParser(object):
     """
     Parse the result of an SSOS query, which is stored in an astropy Table object
     """
-    def __init__(self):
+    def __init__(self, provisional_name):
         """
         setup the parser.
         """
+        self.provisional_name = provisional_name
 
     def _skip_missing_data(self, str_vals, ncols):
         """
@@ -159,7 +234,7 @@ class SSOSParser(object):
         # build our array of SourceReading objects
         sources.append(source_readings)
 
-        return SSOSData(observations, sources)
+        return SSOSData(observations, sources, self.provisional_name)
 
 
 
@@ -168,7 +243,7 @@ class SSOSData(object):
     Encapsulates data extracted from an .astrom file.
     """
 
-    def __init__(self, observations, sources):
+    def __init__(self, observations, sources, provisional_name):
         """
         Constructs a new astronomy data set object.
 
@@ -187,7 +262,8 @@ class SSOSData(object):
         """
         self.observations = observations
         self.sys_header = None
-        self.sources = [astrom.Source(reading_list) for reading_list in sources]
+        self.sources = [astrom.Source(reading_list, provisional_name) for reading_list in sources]
+
 
     def get_reading_count(self):
         count = 0
@@ -201,6 +277,14 @@ class SSOSData(object):
 
     def get_source_count(self):
         return len(self.get_sources())
+
+    def get_arc_length(self):
+        mjds = []
+        for obs in self.observations:
+            mjds.append(float(obs.header['MJD-OBS-CENTER']))
+        return max(mjds)-min(mjds)
+
+
 
 
 

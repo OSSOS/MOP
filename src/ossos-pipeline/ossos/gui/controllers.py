@@ -221,7 +221,8 @@ class ProcessRealsController(AbstractController):
                      obs_mag_err,
                      band,
                      observatory_code,
-                     comment):
+                     comment,
+                     ):
         """
         Final acceptance with collected data.
         """
@@ -333,67 +334,12 @@ class ImageLoadingDialogManager(object):
             self._dialog_showing = False
 
 
-class TrackController(AbstractController):
+class ProcessTracksController(ProcessRealsController):
     """
     The main controller of the 'track' task.  Sets up the view and
     handles user interactions. This task extends orbit linkages from
     three out to more observations.
     """
-    # TODO: build all the rest of this class...
-    # most will be the same as ProcessRealsController
 
-    def __init__(self, model, view, name_generator):
-        super(TrackController, self).__init__(model, view)
-
-        # FIXME: should this be done by the TrackWorkUnit?
-        observations = []
-        for line in input_mpc_lines:
-            observations.append(mpc.Observation.from_string(line))
-
-        # initially want just the first lunation, if we're only starting on a triplet
-        # eventually have a dialogue asking which lunation search range to start with (future)
-        self.lunation = 42 # 28 + 14 = 42
-        self.lunation_ct = 1
-        if len(observations) == 3:
-            lun_ct = 1
-        else:
-            lun_ct  = self.lunation_ct
-
-        ssos_data = self.query_ssos(observations, lun_ct)
-        if ssos_data.get_reading_count() == 0:  # nothing here to try to link to
-            # show some dialogue box to indicate this happened
-            self.model.next_obs()  # think this is the right one: go to next TNO.
-        # else proceed to allowing examination of each of the returned sources.
-
-    def query_ssos(self, observations, lunations):
-        # we observe ~ a week either side of new moon
-        # but we don't know when in the dark run the discovery happened
-        # so be generous with the search boundaries, add extra 2 weeks
-        # current date just has to be the night of the triplet,
-        start = Time(self.model.get_current_observation_date() - self.lunation*lunations, scale='utc')
-        end = Time(self.model.get_current_observation_date() + self.lunation*lunations, scale='utc')
-        query = ssos.Query(observations,
-                           search_start_date=start,
-                           search_end_date=end)
-        ssos_data = ssos.SSOSParser().parse(query.get())
-
-        return ssos_data  # an AstromData with .sources and .observations only
-
-    def on_accept(self):
-        """
-        Initiates acceptance procedure, gathering required data.
-        """
-        # this is a known object; its designation applies to all subsequent sources
-        assert self.model.is_current_source_named()
-        provisional_name = self.model.get_current_source_name()
-
-        # otherwise same as ProcessRealsController: want to measure current position
-        # people may move around the location by hand to locate it more precisely
-
-
-    # TODO:
-    # on_do_accept is the same as that for ProcessRealsController
-    # but after writing out the mpc file, uses it as the new input to
-    # rerun ssos.SSOSQuery with the next widest lunation window
-    # ie. self.model.next_item() shouldn't be the 'go to next TNO'
-    # but 'try this again with another source added'
+    ## we might need this later for plotting the orbits...  and adding some actions.
+    pass
