@@ -271,11 +271,17 @@ class ProcessRealsController(AbstractController):
         if not self.model.is_current_source_named():
             self.model.set_current_source_name(self._generate_provisional_name())
 
+        reading = self.model.get_current_reading()
+
+
         mpc_observation = mpc.Observation(
             provisional_name=self.model.get_current_source_name(),
             date=self.model.get_current_observation_date(),
             ra=self.model.get_current_ra(),
             dec=self.model.get_current_dec(),
+            xpos=reading.x,
+            ypos=reading.y,
+            frame=reading.obs.rawname,
             comment=comment)
 
         mpc_observation.null_observation = True
