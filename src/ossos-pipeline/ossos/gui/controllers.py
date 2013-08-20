@@ -26,7 +26,7 @@ class AbstractController(object):
 
     def display_current_image(self):
         try:
-            self.view.display(self.model.get_current_cutout(), redraw=True)
+            self.view.display(self.model.get_current_cutout())
         except ImageNotLoadedException as ex:
             self.image_loading_dialog_manager.wait_for_item(ex.requested_item)
             return
