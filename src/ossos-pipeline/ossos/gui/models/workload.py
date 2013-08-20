@@ -222,7 +222,7 @@ class TracksWorkUnit(WorkUnit):
 
     def get_writer(self):
         if self._writer is None:
-            self._writer = self._create_writer(self.filename)
+            self._writer = self._create_writer(self.filename.replace(".track", ".mpc"))
 
         return self._writer
 
