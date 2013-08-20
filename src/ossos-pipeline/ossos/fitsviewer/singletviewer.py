@@ -34,12 +34,12 @@ class SingletViewer(WxMPLFitsViewer):
 
         self.current_cutout.render(self.canvas)
 
-        self._mark_source(cutout)
+        self.mark_source(cutout)
 
         if redraw:
             self.redraw()
 
-    def _mark_source(self, cutout):
+    def mark_source(self, cutout):
         x, y = cutout.pixel_source_point
         fwhm = float(cutout.reading.get_observation_header()["FWHM"])
         radius = 2 * round(fwhm)
