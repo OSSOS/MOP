@@ -12,7 +12,6 @@ from ossos.gui import logger
 
 MAXCOUNT = 30000
 
-from mpc import URLWriter
 import requests
 from ossos import storage, astrom, mpc, wcs
 
@@ -31,7 +30,7 @@ class TracksParser(object):
         self._nights_per_darkrun = 18
         self._nights_separating_darkruns = 14
 
-    def parser(self, filename):
+    def parse(self, filename):
 
         filehandle = storage.open_vos_or_local(filename, "rb")
         filestr = filehandle.read()
