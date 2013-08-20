@@ -577,13 +577,17 @@ class Observation(object):
 
     def _compute_precision(self, coord):
         """
-        Compute the number of decimal places in the last part of a sexagesimal string
+        Returns the number of digits after the last '.' in a given number or string.
+
+
+
         """
-        parts = str(coord).replace('/', ' ').split('.')
-        if len(parts) < 2:
+        coord = str(coord)
+        idx = coord.rfind('.')
+        if idx < 0 :
             return 0
         else:
-            return len(parts[-1])
+            return len(coord) - idx -1
 
     @coordinate.setter
     def coordinate(self, coord_pair):
