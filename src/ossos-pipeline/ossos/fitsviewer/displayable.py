@@ -294,8 +294,8 @@ class ErrEllipse(object):
         """
 
         self.center = (x_cen, y_cen)
-        self.a = a
-        self.b = b
+        self.a = max(a, 10)
+        self.b = max(b, 10)
         self.pa = pa
         self.artist = Ellipse(self.center, self.a, self.b, self.pa, edgecolor='b', facecolor='g', alpha=0.2)
 
