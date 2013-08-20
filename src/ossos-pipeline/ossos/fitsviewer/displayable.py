@@ -327,21 +327,28 @@ class DisplayableImageTriplet(Displayable):
 
         self.cutout_grid = cutout_grid
 
-        self.singlets = []
+        self.frames = []
         num_frames, num_times = cutout_grid.shape
         for frame_index in range(num_frames):
+            frame = []
             for time_index in range(num_times):
                 singlet = ImageSinglet(cutout_grid.get_hdulist(frame_index, time_index),
                                        self.figure,
                                        get_rect(cutout_grid.shape, frame_index, time_index))
-                self.singlets.append(singlet)
+                frame.append(singlet)
+
+            self.frames.append(frame)
 
     def place_marker(self, x, y, radius):
         pass
 
+    def get_singlet(self, frame_index, time_index):
+        return self.frames[frame_index][time_index]
+
     def _do_render(self):
-        for singlet in self.singlets:
-            singlet.show_image(colorbar=False)
+        for frame in self.frames:
+            for singlet in frame:
+                singlet.show_image(colorbar=False)
 
 
 def get_rect(shape, frame_index, time_index, border=0.025):
