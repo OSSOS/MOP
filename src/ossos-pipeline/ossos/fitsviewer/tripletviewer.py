@@ -15,7 +15,7 @@ class TripletViewer(WxMPLFitsViewer):
         self.current_grid = None
         self._displayed_grids = {}
 
-    def display(self, cutout_grid, redraw=True):
+    def display(self, cutout_grid):
         if cutout_grid in self._displayed_grids:
             displayable = self._displayed_grids[cutout_grid]
         else:
@@ -25,9 +25,6 @@ class TripletViewer(WxMPLFitsViewer):
         self.current_grid.render(self.canvas)
 
         self.mark_sources(cutout_grid)
-
-        if redraw:
-            self.redraw()
 
     def refresh_markers(self):
         # TODO

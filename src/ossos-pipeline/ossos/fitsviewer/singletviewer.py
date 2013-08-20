@@ -18,7 +18,7 @@ class SingletViewer(WxMPLFitsViewer):
 
         self._displayed_cutouts = {}
 
-    def display(self, cutout, redraw=True):
+    def display(self, cutout):
         if cutout in self._displayed_cutouts:
             displayable = self._displayed_cutouts[cutout]
         else:
@@ -36,9 +36,6 @@ class SingletViewer(WxMPLFitsViewer):
 
         self.mark_source(cutout)
 
-        if redraw:
-            self.redraw()
-
     def refresh_markers(self):
         # TODO
         pass
@@ -48,16 +45,6 @@ class SingletViewer(WxMPLFitsViewer):
         fwhm = float(cutout.reading.get_observation_header()["FWHM"])
         radius = 2 * round(fwhm)
         self.current_cutout.place_marker(x, y, radius)
-
-    def draw_marker(self, x, y, radius, redraw=True):
-        """
-        Draws a marker with the specified dimensions.  Only one marker can
-        be on the image at a time, so any existing marker will be replaced.
-        """
-        self.current_cutout.place_marker(x, y, radius)
-
-        if redraw:
-            self.redraw()
 
     def reset_colormap(self):
         if self.current_cutout is not None:
