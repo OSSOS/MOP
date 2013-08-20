@@ -12,7 +12,6 @@ from ossos.gui import logger
 
 MAXCOUNT = 30000
 
-from mpc import URLWriter
 import requests
 from ossos import storage, astrom, mpc, wcs
 
