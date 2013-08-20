@@ -27,7 +27,6 @@ NEW_LINE = '\r\n'
 class TracksParser(object):
 
     def __init__(self):
-        self.ssos_parser=SSOSParser()
 
         self._nights_per_darkrun = 18
         self._nights_separating_darkruns = 14
@@ -45,6 +44,8 @@ class TracksParser(object):
             observations.append(mpc.Observation.from_string(line))
 
         observations.sort(key=lambda obs: obs.date.jd)
+        # pass down the provisional name so the table lines are linked to this TNO
+        self.ssos_parser=SSOSParser(observations[0].provisional_name)
 
         length_of_observation_arc = observations[-1].date.jd - observations[0].date.jd
 
@@ -97,8 +98,6 @@ class TracksParser(object):
 
         return tracks_data  # an TracksData with .sources and .observations only
 
-def parse(filename):
-    return SSOSParser().parse(filename)
 
 class SSOSParser(object):
     """

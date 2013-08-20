@@ -894,43 +894,28 @@ class TNOdbWriter(MPCWriter):
     """
     Write out MPC lines in format that tnodb can accept.
     """
+   def __init__(self, mpc_file, output=None):
+        if output is None:
+            output = mpc_file.rpartition('.')[0] + '.tnodb'
+            self.outfile = open(output, 'w')
+    #    writer = TNOdbWriter(outfile, auto_flush=False)
 
-    def __init__(self, filehandle, auto_flush=True):
-        super(MPCWriter, self).__init__(filehandle, auto_flush=True)
+    def convert(self, mpc_file, outfile):
+        with open(mpc_file, 'r') as infile:
+            for line in infile.readlines():
+     #           writer.write(Observation().from_string(line))
+                comment_line = ('#O ' + line[80:])[:80] # #O indicates OSSOS survey
+                mpc_observation = line[:80]
+                output_line = comment_line + mpc_observation + '\n'
+                outfile.write(output_line)
 
-    def flush(self):
-        """
-        Format for tnodb.
-        Comment line and observation line have to be kept together.
-        """
-        for obs in self.get_chronological_buffered_observations():
-            # tnodb requires all lines to be MPC roving observer line length
-            comment_line = ('#O ' + obs.comment)[:80] # #O indicates OSSOS survey
-            mpc_observation = obs.to_string()[:80]
-            output_line = comment_line + '\n' + mpc_observation + '\n'
-            self.filehandle.write(output_line)
+    #    writer.flush()
 
-        self.filehandle.flush()
-        self.buffer = []
-
-
-class URLWriter(MPCWriter):
-    """
-    Write out MPC lines without the metadata, in URL-ready format.
-    """
-    def __init__(self, filehandle, auto_flush=True):
-        super(MPCWriter, self).__init__(filehandle, auto_flush=True)
-
-    def flush(self):
-        """
-        Write out MPC lines without any metadata, eg. for passing to a URL.
-        """
-        for obs in self.get_chronological_buffered_observations():
-            mpc_observation = obs.to_string()[:80].replace(' ', '+') + urllib.quote('\r\n')
-            self.filehandle.write(mpc_observation)
-
-        self.filehandle.flush()
-        self.buffer = []
-
+    def batch_convert(self, path):
+        for file in os.listdir(path):
+            if file.endswith('.mpc') or file.endswith('.track'):
+                output = path + file.rpartition('.')[0] + '.tnodb'
+                outfile = open(output, 'w')
+                self.convert(path+file, outfile)
 
 
