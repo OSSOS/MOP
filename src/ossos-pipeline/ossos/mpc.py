@@ -8,6 +8,7 @@ import struct
 import time
 from datetime import datetime
 import numpy
+import os
 import urllib
 
 from astropy import coordinates
@@ -894,7 +895,7 @@ class TNOdbWriter(MPCWriter):
     """
     Write out MPC lines in format that tnodb can accept.
     """
-   def __init__(self, mpc_file, output=None):
+    def __init__(self, mpc_file, output=None):
         if output is None:
             output = mpc_file.rpartition('.')[0] + '.tnodb'
             self.outfile = open(output, 'w')
@@ -917,5 +918,3 @@ class TNOdbWriter(MPCWriter):
                 output = path + file.rpartition('.')[0] + '.tnodb'
                 outfile = open(output, 'w')
                 self.convert(path+file, outfile)
-
-
