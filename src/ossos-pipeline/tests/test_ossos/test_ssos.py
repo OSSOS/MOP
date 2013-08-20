@@ -6,7 +6,7 @@ from ossos import ssos, mpc
 from astropy.time import Time
 
 class SSOSTest(unittest.TestCase):
-
+    @unittest.skip("TODO: fix this test so it doesn't do an actual request")
     def test_query_with_inputlist(self):
         mpc_lines=("     HL7j2    C2013 04 03.62926 17 12 01.16 +04 13 33.3          24.1 R      568",
                    "     HL7j2    C2013 04 04.58296 17 11 59.80 +04 14 05.5          24.0 R      568",
