@@ -259,9 +259,6 @@ class DisplayableImageTriplet(Displayable):
 
             self.frames.append(frame)
 
-    def place_marker(self, x, y, radius):
-        pass
-
     def get_singlet(self, frame_index, time_index):
         return self.frames[frame_index][time_index]
 
@@ -274,8 +271,8 @@ class DisplayableImageTriplet(Displayable):
 def get_rect(shape, frame_index, time_index, border=0.025, spacing=0.01):
     rows, cols = shape
 
-    width = (1.0 - 2 * border - 2 * spacing) / cols
-    height = (1.0 - 2 * border - 2 * spacing) / rows
+    width = (1.0 - 2 * border - (cols - 1) * spacing) / cols
+    height = (1.0 - 2 * border - (rows - 1) * spacing) / rows
 
     left = border + (width + spacing) * time_index
     bottom = border + (height + spacing) * (rows - frame_index - 1)
