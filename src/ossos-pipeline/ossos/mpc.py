@@ -868,7 +868,7 @@ class TNOdbWriter(MPCWriter):
     """
 
     def __init__(self, filehandle, auto_flush=True):
-        super(MPCWriter, self).__init__(filehandle, auto_flush=True)
+        super(TNOdbWriter, self).__init__(filehandle, auto_flush=auto_flush)
 
     def flush(self):
         """
@@ -877,7 +877,7 @@ class TNOdbWriter(MPCWriter):
         """
         for obs in self.get_chronological_buffered_observations():
             # tnodb requires all lines to be MPC roving observer line length
-            comment_line = ('#O ' + obs.comment)[:80] # #O indicates OSSOS survey
+            comment_line = ('#O ' + obs.to_string()[80:])[:80] # #O indicates OSSOS survey
             mpc_observation = obs.to_string()[:80]
             output_line = comment_line + '\n' + mpc_observation + '\n'
             self.filehandle.write(output_line)
@@ -886,23 +886,21 @@ class TNOdbWriter(MPCWriter):
         self.buffer = []
 
 
-class URLWriter(MPCWriter):
+class MPCConverter(object):
     """
-    Write out MPC lines without the metadata, in URL-ready format.
+    Converts an MPC formatted file to a TNOdb one.
+    :param mpc_file The input filename, of MPC lines.
+    :param output   if required; else will use root of provided MPC file.
     """
-    def __init__(self, filehandle, auto_flush=True):
-        super(MPCWriter, self).__init__(filehandle, auto_flush=True)
 
-    def flush(self):
-        """
-        Write out MPC lines without any metadata, eg. for passing to a URL.
-        """
-        for obs in self.get_chronological_buffered_observations():
-            mpc_observation = obs.to_string()[:80].replace(' ', '+') + urllib.quote('\r\n')
-            self.filehandle.write(mpc_observation)
+    def __init__(self, mpc_file, output=None):
+        if output is None:
+            output = mpc_file.rpartition('.')[0] + '.tnodb'
+        outfile = open(output, 'w')
+        writer = TNOdbWriter(outfile, auto_flush=False)
 
-        self.filehandle.flush()
-        self.buffer = []
+        with open(mpc_file, 'r') as infile:
+            for line in infile.readlines():
+                writer.write(Observation().from_string(line))
 
-
-
+        writer.flush()
