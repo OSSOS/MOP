@@ -271,14 +271,14 @@ class DisplayableImageTriplet(Displayable):
                 singlet.show_image(colorbar=False)
 
 
-def get_rect(shape, frame_index, time_index, border=0.025):
+def get_rect(shape, frame_index, time_index, border=0.025, spacing=0.01):
     rows, cols = shape
 
-    width = (1.0 - 2 * border) / cols
-    height = (1.0 - 2 * border) / rows
+    width = (1.0 - 2 * border - 2 * spacing) / cols
+    height = (1.0 - 2 * border - 2 * spacing) / rows
 
-    left = border + width * time_index
-    bottom = border + height * (rows - frame_index - 1)
+    left = border + (width + spacing) * time_index
+    bottom = border + (height + spacing) * (rows - frame_index - 1)
 
     return [left, bottom, width, height]
 
