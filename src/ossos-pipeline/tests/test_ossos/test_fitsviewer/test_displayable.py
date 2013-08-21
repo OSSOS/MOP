@@ -4,7 +4,7 @@ import unittest
 
 from astropy.io.fits.hdu.hdulist import HDUList
 import matplotlib.pyplot as plt
-from hamcrest import assert_that, close_to, equal_to, has_length, contains
+from hamcrest import assert_that, close_to, equal_to, none
 from mock import Mock, MagicMock
 
 from ossos import astrom
@@ -25,41 +25,32 @@ class ImageSingletTest(unittest.TestCase):
         self.displayable = ImageSinglet(self.hdulist, fig, [0, 0, 1, 1])
 
     def test_draw_one_circle(self):
-        axes = self.displayable.axes
+        assert_that(self.displayable.marker, none())
 
-        assert_that(axes.patches, has_length(0))
         cx = 1
         cy = 2
         cr = 3
         self.displayable.place_marker(cx, cy, cr)
 
-        assert_that(axes.patches, has_length(1))
-        circle = axes.patches[0]
-
-        assert_that(circle.center, equal_to((cx, cy)))
-        assert_that(circle.radius, equal_to(cr))
+        assert_that(self.displayable.marker.center, equal_to((cx, cy)))
+        assert_that(self.displayable.marker.radius, equal_to(cr))
 
     def test_draw_second_circle_removes_first(self):
-        axes = self.displayable.axes
-
         c1x = 1
         c1y = 2
         c1r = 3
         self.displayable.place_marker(c1x, c1y, c1r)
 
-        assert_that(axes.patches, has_length(1))
+        assert_that(self.displayable.marker.center, equal_to((c1x, c1y)))
+        assert_that(self.displayable.marker.radius, equal_to(c1r))
 
         c2x = 4
         c2y = 5
         c2r = 6
         self.displayable.place_marker(c2x, c2y, c2r)
 
-        assert_that(axes.patches, has_length(1))
-
-        circle = axes.patches[0]
-
-        assert_that(circle.center, equal_to((c2x, c2y)))
-        assert_that(circle.radius, equal_to(c2r))
+        assert_that(self.displayable.marker.center, equal_to((c2x, c2y)))
+        assert_that(self.displayable.marker.radius, equal_to(c2r))
 
 
 class DisplayableImageTripletTest(unittest.TestCase):
