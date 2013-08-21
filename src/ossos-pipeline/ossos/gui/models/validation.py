@@ -152,7 +152,7 @@ class ValidationModel(object):
         return self.get_current_reading().get_observation_header()
 
     def get_current_fits_header(self):
-        return self.get_current_cutout().get_fits_header()
+        return self.get_current_cutout().fits_header
 
     def get_current_exposure_number(self):
         return int(self.get_current_reading().obs.expnum)
