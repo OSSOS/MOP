@@ -425,7 +425,7 @@ class SourceReading(object):
     Data for a detected point source (which is a potential moving objects).
     """
 
-    def __init__(self, x, y, x0, y0, ra, dec, xref, yref, obs):
+    def __init__(self, x, y, x0, y0, ra, dec, xref, yref, obs, ssos=False):
         """
         Args:
           x, y: the coordinates of the source in this reading.
@@ -450,6 +450,7 @@ class SourceReading(object):
         self.y_ref_offset = self.y - self.y0
 
         self.obs = obs
+        self.ssos = ssos
 
     def __repr__(self):
         return "<SourceReading x=%s, y=%s, x0=%s, y0=%s, ra=%s, dec=%s, obs=%s" % (
@@ -533,7 +534,7 @@ class SourceReading(object):
           inverted: bool
             True if the stored image is inverted.
         """
-        if self.obs.is_fake():
+        if self.ssos or self.obs.is_fake():
             # We get the image from the CCD directory and it has already
             # been corrected for inversion.
             return False
