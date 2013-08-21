@@ -109,7 +109,7 @@ class TracksParser(object):
                 source_reading = source_readings[idx]
                 observation = observations[idx]
                 logger.info("About to call orbfit predict")
-                self.orbit.predict(observation.header['MJD-OBS-CENTER'])
+                self.orbit.predict(observation.header['MJD_OBS_CENTER'])
                 logger.info("Finished predict")
                 source_reading.pa = self.orbit.pa
                 source_reading.dra = self.orbit.dra / observation.header['SCALE']
@@ -214,7 +214,7 @@ class SSOSParser(object):
             MJD_OBS_CENTER = mpc.Time(observation.header['MJD-OBSC'],
                                       format='mjd',
                                       scale='utc', ).replicate(format='mpc')
-            observation.header['MJD-OBS-CENTER'] = str(MJD_OBS_CENTER)
+            observation.header['MJD_OBS_CENTER'] = str(MJD_OBS_CENTER)
             observation.header['MAXCOUNT'] = MAXCOUNT
             observation.header['SCALE'] = observation.header['PIXSCALE']
             observation.header['CHIP'] = observation.header['CHIPNUM']
@@ -305,7 +305,7 @@ class SSOSData(object):
 
         for obs in self.observations:
 
-            mjds.append(Time(obs.header['MJD-OBS-CENTER'], format='mpc', scale='utc').jd)
+            mjds.append(Time(obs.header['MJD_OBS_CENTER'], format='mpc', scale='utc').jd)
         arc = (len(mjds) > 0 and max(mjds) - min(mjds) ) or 0
         return arc
 
