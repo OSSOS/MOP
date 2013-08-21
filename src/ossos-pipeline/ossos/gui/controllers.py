@@ -352,6 +352,5 @@ class ProcessTracksController(ProcessRealsController):
 
         ## Also draw an error ellipse, since this is a tracks controller.
         reading = self.model.get_current_reading()
-        assert isinstance(self.view, SingletViewer)
         if hasattr(reading, 'a') and hasattr(reading, 'b') and hasattr(reading,'pa'):
             self.view.draw_error_ellipse(reading.a, reading.b, reading.pa)
