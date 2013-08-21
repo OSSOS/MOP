@@ -11,7 +11,9 @@ from ossos import astrom
 from ossos.downloads.cutouts.source import SourceCutout
 from ossos.downloads.cutouts.grid import CutoutGrid
 from ossos.fitsviewer.colormap import clip
-from ossos.fitsviewer.displayable import DisplayableImageTriplet, ImageSinglet
+from ossos.fitsviewer.displayable import (DisplayableImageSinglet,
+                                          DisplayableImageTriplet,
+                                          ImageSinglet)
 from ossos.fitsviewer import displayable
 
 
@@ -51,6 +53,18 @@ class ImageSingletTest(unittest.TestCase):
 
         assert_that(self.displayable.marker.center, equal_to((c2x, c2y)))
         assert_that(self.displayable.marker.radius, equal_to(c2r))
+
+
+class DisplayableImageSingletTest(unittest.TestCase):
+    def setUp(self):
+        self.singlet = DisplayableImageSinglet(MagicMock())
+
+    def test_reset_colormap(self):
+        image_singlet = Mock(spec=ImageSinglet)
+        self.singlet.image_singlet = image_singlet
+
+        self.singlet.reset_colormap()
+        image_singlet.reset_colormap.assert_called_once_with()
 
 
 class DisplayableImageTripletTest(unittest.TestCase):

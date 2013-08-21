@@ -134,9 +134,12 @@ class AbstractController(object):
     def on_reset_source_location(self):
         try:
             self.model.reset_current_source_location()
-            self.view.refresh_markers()()
+            self.view.refresh_markers()
         except ImageNotLoadedException:
             pass
+
+    def on_reset_colormap(self):
+        self.view.reset_colormap()
 
 
 class ProcessRealsController(AbstractController):
@@ -279,7 +282,6 @@ class ProcessRealsController(AbstractController):
 
     def on_cancel_reject(self):
         self.view.close_reject_source_dialog()
-
 
 
 class ProcessCandidatesController(AbstractController):
