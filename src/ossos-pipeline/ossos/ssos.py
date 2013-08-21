@@ -42,7 +42,9 @@ class TracksParser(object):
 
         observations = []
         for line in input_mpc_lines:
-            observations.append(mpc.Observation.from_string(line))
+            observation = mpc.Observation.from_string(line)
+            if observation is not None:
+                observations.append(observation)
 
         observations.sort(key=lambda obs: obs.date.jd)
         # pass down the provisional name so the table lines are linked to this TNO
@@ -65,6 +67,7 @@ class TracksParser(object):
         # loop over the query until some new observations are found, or raise assert error.
         while True:
             tracks_data = self.query_ssos(observations, lunation_count)
+
             if tracks_data.get_arc_length() > length_of_observation_arc or (
                 tracks_data.get_reading_count() > len(observations) ) :
                 return tracks_data
@@ -86,11 +89,11 @@ class TracksParser(object):
             search_start_date = Time((observations[0].date.jd - (
                 self._nights_per_darkrun +
                 lunation_count*self._nights_separating_darkruns) ),
-                                     format='jd')
+                                     format='jd', scale='utc')
             search_end_date = Time((observations[0].date.jd + (
                 self._nights_per_darkrun +
                 lunation_count*self._nights_separating_darkruns) ),
-                                   format='jd')
+                                   format='jd', scale='utc')
 
 
         query = Query(observations,
@@ -101,11 +104,13 @@ class TracksParser(object):
 
         for source in tracks_data.get_sources():
             observations = tracks_data.observations
-            for source_reading in source.get_readings():
-                observation = observations.pop(0)
+            source_readings = source.get_readings()
+            for idx in range(len(source_readings)):
+                source_reading = source_readings[idx]
+                observation = observations[idx]
                 self.orbit.date = observation.header['MJD-OBS-CENTER']
                 source_reading.pa = self.orbit.pa
-                source_reading.dra = self.orbit.dra / observation.haeder['SCALE']
+                source_reading.dra = self.orbit.dra / observation.header['SCALE']
                 source_reading.ddec = self.orbit.ddec / observation.header['SCALE']
 
         return tracks_data  # an TracksData with .sources and .observations only
@@ -236,14 +241,15 @@ class SSOSParser(object):
 
             # Build astrom.SourceReading
             observations.append(observation)
+
             source_readings.append(astrom.SourceReading(x=row['X'], y=row['Y'],
                                                         xref=xref, yref=yref,
                                                         x0=x0, y0=y0,
                                                         ra=row['Object_RA'], dec=row['Object_Dec'],
                                                         obs=observation))
-            print row['X'], row['Y'], x0, y0, xref, yref
         # build our array of SourceReading objects
         sources.append(source_readings)
+
 
         return SSOSData(observations, sources, self.provisional_name)
 
@@ -291,9 +297,12 @@ class SSOSData(object):
 
     def get_arc_length(self):
         mjds = []
+
         for obs in self.observations:
-            mjds.append(float(obs.header['MJD-OBS-CENTER']))
-        return max(mjds)-min(mjds)
+
+            mjds.append(Time(obs.header['MJD-OBS-CENTER'], format='mpc', scale='utc').jd)
+        arc = (len(mjds) > 0 and max(mjds) - min(mjds) ) or 0
+        return arc
 
 
 
@@ -495,7 +504,6 @@ class Query(object):
         params = self.param_dict_biulder.params
         self.response = requests.get(SSOS_URL, params=params, headers=self.headers)
 
-        print self.response.url
 
         assert isinstance(self.response, requests.Response)
 
