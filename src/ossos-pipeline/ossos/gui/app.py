@@ -87,8 +87,8 @@ class ValidationApplication(object):
                                         synchronization_manager)
         logger.debug("Created model.")
 
-        view = ApplicationView(self._create_controller_factory(model),
-                               debug=debug)
+        view = self._create_view(model, debug=debug)
+
         logger.debug("Created view.")
         model.start_work()
 
@@ -138,6 +138,10 @@ class ValidationApplication(object):
     @property
     def should_randomize_workunits(self):
         raise NotImplementedError()
+
+    def _create_view(self, model, debug=False):
+        return ApplicationView(self._create_controller_factory(model),
+                               debug=debug)
 
     def _create_workunit_builder(self,
                                  input_context,
@@ -225,6 +229,10 @@ class ProcessTracksApplication(ValidationApplication):
 
     def _create_controller_factory(self, model):
         return TracksControllerFactory(model, dry_run=self.dry_run)
+
+    def _create_view(self, model, debug=False):
+        return ApplicationView(self._create_controller_factory(model),
+                               track_mode=True, debug=debug)
 
 
 class ControllerFactory(object):

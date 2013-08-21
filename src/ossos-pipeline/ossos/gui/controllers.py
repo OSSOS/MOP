@@ -354,3 +354,6 @@ class ProcessTracksController(ProcessRealsController):
         reading = self.model.get_current_reading()
         if hasattr(reading, 'a') and hasattr(reading, 'b') and hasattr(reading,'pa'):
             self.view.draw_error_ellipse(reading.a, reading.b, reading.pa)
+
+    def on_ssos_query(self):
+        print "Now we should re-run the SSOS query with the observations we have accepted."
