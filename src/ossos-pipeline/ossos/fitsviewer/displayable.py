@@ -187,6 +187,10 @@ class ImageSinglet(object):
         axes.set_xlim([1, self.width])
         axes.set_ylim([1, self.height])
 
+        # Add a border around the image.
+        axes.add_patch(plt.Rectangle((1, 1), self.width - 1, self.height - 1,
+                       linewidth=5, edgecolor="black", fill=False))
+
         return axes
 
     def _refresh_displayed_colormap(self):
@@ -253,7 +257,8 @@ class DisplayableImageTriplet(Displayable):
             for time_index in range(num_times):
                 singlet = ImageSinglet(cutout_grid.get_hdulist(frame_index, time_index),
                                        self.figure,
-                                       get_rect(cutout_grid.shape, frame_index, time_index))
+                                       get_rect(cutout_grid.shape, frame_index, time_index,
+                                                spacing=0))
                 singlet.display_changed.connect(self.redraw)
                 frame.append(singlet)
 
