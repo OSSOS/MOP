@@ -38,3 +38,9 @@ class CutoutGrid(object):
     def is_filled(self):
         return all(element is not None
                    for frame in self._grid for element in frame)
+
+    def reset_source_location(self):
+        def reset_cutout(cutout, frame_index, time_index):
+            cutout.reset_source_location()
+
+        self.apply(reset_cutout)
