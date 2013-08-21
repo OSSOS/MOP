@@ -194,9 +194,6 @@ class ValidationModel(object):
     def get_current_displayable_item(self):
         return self.image_state.get_current_displayable_item()
 
-    def get_current_displayable_image(self):
-        return self.image_state.get_current_displayable_image()
-
     def get_current_band(self):
         return self.get_current_fits_header()["FILTER"][0]
 

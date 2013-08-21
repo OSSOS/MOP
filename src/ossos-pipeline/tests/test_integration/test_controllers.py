@@ -55,7 +55,6 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
         self.model.start_work()
 
         # We don't actually have any images loaded, so mock this out
-        self.model.get_current_displayable_image = Mock()
         self.model.is_current_source_adjusted = Mock(return_value=False)
         self.model.get_current_fits_header = Mock()
 
