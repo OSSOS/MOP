@@ -16,12 +16,13 @@ class MainFrame(wx.Frame):
     ApplicationView.
     """
 
-    def __init__(self, controller):
+    def __init__(self, controller, track_mode=False):
         size = (config.read("UI.DIMENSIONS.WIDTH"),
                 config.read("UI.DIMENSIONS.HEIGHT"))
         super(MainFrame, self).__init__(None, title="Moving Object Pipeline",
                                         size=size)
 
+        self.track_mode = track_mode
         self.controller = controller
 
         self._init_ui_components()
@@ -40,6 +41,10 @@ class MainFrame(wx.Frame):
 
         self.validation_view = SourceValidationPanel(self.control_panel, self.controller)
 
+        if self.track_mode:
+            self.ssos_query_button = wx.Button(self.control_panel, label="Query SSOS")
+            self.Bind(wx.EVT_BUTTON, self._on_ssos_query)
+
         self._do_layout()
 
     def _do_layout(self):
@@ -47,6 +52,10 @@ class MainFrame(wx.Frame):
         control_sizer.Add(self.nav_view, 1, flag=wx.EXPAND)
         control_sizer.Add(self.data_view, 2, flag=wx.EXPAND)
         control_sizer.Add(self.validation_view, 1, flag=wx.EXPAND)
+
+        if self.track_mode:
+            control_sizer.Add(self.ssos_query_button, 0, flag=wx.ALIGN_CENTER)
+
         self.control_panel.SetSizerAndFit(control_sizer)
 
         main_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -87,6 +96,9 @@ class MainFrame(wx.Frame):
     def add_to_main_sizer(self, widget):
         self.main_sizer.Add(widget, flag=wx.EXPAND)
         self.main_sizer.Layout()
+
+    def _on_ssos_query(self, event):
+        self.controller.on_ssos_query()
 
 
 class _FocusablePanel(wx.Panel):

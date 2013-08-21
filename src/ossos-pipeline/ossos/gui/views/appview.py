@@ -39,13 +39,13 @@ class ApplicationView(object):
     Provides the view's external interface.
     """
 
-    def __init__(self, controller_factory, debug=False):
+    def __init__(self, controller_factory, track_mode=False, debug=False):
         self.controller = controller_factory.create_controller(self)
 
         self.wx_app = wx.App(False)
         self.debug = debug
 
-        self.mainframe = MainFrame(self.controller)
+        self.mainframe = MainFrame(self.controller, track_mode=track_mode)
         self.image_view_manager = ImageViewManager(self.mainframe)
         self.menu = Menu(self.mainframe, self.controller)
         self.keybind_manager = KeybindManager(self.mainframe, self.controller)
