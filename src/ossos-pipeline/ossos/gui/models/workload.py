@@ -240,7 +240,7 @@ class TracksWorkUnit(WorkUnit):
         from ossos.mpc import MPCWriter
 
         return MPCWriter(self.output_context.open(filename),
-                         auto_flush=False)
+                         auto_flush=True)
 
     def _get_item_set(self):
         all_readings = set()
