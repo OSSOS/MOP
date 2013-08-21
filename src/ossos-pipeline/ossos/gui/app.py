@@ -89,7 +89,7 @@ class ValidationApplication(object):
 
         view = ApplicationView(self._create_controller_factory(model),
                                debug=debug)
-
+        logger.debug("Created view.")
         model.start_work()
 
         self.model = model
