@@ -14,41 +14,50 @@ class SingletViewer(WxMPLFitsViewer):
         super(SingletViewer, self).__init__(parent, canvas)
 
         self.current_cutout = None
+        self.current_displayable = None
         self.xy_changed = Signal()
 
-        self._displayed_cutouts = {}
+        self._displayables_by_cutout = {}
 
-    def display(self, cutout):
-        if cutout in self._displayed_cutouts:
-            displayable = self._displayed_cutouts[cutout]
+    def display(self, cutout, mark_source=True):
+        if cutout in self._displayables_by_cutout:
+            displayable = self._displayables_by_cutout[cutout]
         else:
             displayable = DisplayableImageSinglet(cutout.hdulist)
+            self._displayables_by_cutout[cutout] = displayable
 
-        if self.current_cutout is not None:
-            self.current_cutout.xy_changed.disconnect(self.xy_changed.fire)
-            self.current_cutout.focus_released.disconnect(self.release_focus)
+        if self.current_displayable is not None:
+            self.current_displayable.xy_changed.disconnect(self.xy_changed.fire)
+            self.current_displayable.focus_released.disconnect(self.release_focus)
 
-        self.current_cutout = displayable
-        self.current_cutout.xy_changed.connect(self.xy_changed.fire)
-        self.current_cutout.focus_released.connect(self.release_focus)
+        self.current_cutout = cutout
+        self.current_displayable = displayable
 
-        self.current_cutout.render(self.canvas)
+        self.current_displayable.xy_changed.connect(self.xy_changed.fire)
+        self.current_displayable.focus_released.connect(self.release_focus)
 
-        self.mark_source(cutout)
+        self._do_render(self.current_displayable)
+
+        if mark_source:
+            self.mark_source(cutout)
+
+    def _do_render(self, displayable):
+        displayable.render(self.canvas)
 
     def refresh_markers(self):
-        # TODO
-        pass
+        self.mark_source(self.current_cutout)
 
     def mark_source(self, cutout):
+        assert cutout in self._displayables_by_cutout
+
         x, y = cutout.pixel_source_point
-        fwhm = float(cutout.reading.get_observation_header()["FWHM"])
+        fwhm = float(cutout.astrom_header["FWHM"])
         radius = 2 * round(fwhm)
-        self.current_cutout.place_marker(x, y, radius)
+        self._displayables_by_cutout[cutout].place_marker(x, y, radius)
 
     def reset_colormap(self):
-        if self.current_cutout is not None:
-            self.current_cutout.reset_colormap()
+        if self.current_displayable is not None:
+            self.current_displayable.reset_colormap()
 
     def register_xy_changed_event_handler(self, handler):
         self.xy_changed.connect(handler)
