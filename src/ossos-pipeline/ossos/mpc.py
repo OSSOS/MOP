@@ -414,6 +414,8 @@ class Observation(object):
         mpc_line = mpc_line.strip('\n')
         comment = mpc_line[81:]
         mpc_line = mpc_line[0:80]
+        if len(mpc_line) != 80:
+            return None
         obsrec = cls(*struct.unpack(mpc_format, mpc_line))
         obsrec.comment = MPCComment.from_string(comment)
         return obsrec
