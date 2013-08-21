@@ -590,8 +590,7 @@ class Observation(object):
                                                self.ccdnum)
 
     def get_apcor_uri(self):
-        print self.ccdnum
         ccd = "ccd{:02d}".format(int(self.ccdnum))
-        print ccd
+        print ccd, self.rawname
         return "%s/%s/%s/%s.apcor" % (DATASET_ROOT, self.expnum,
                                          ccd, self.rawname)
