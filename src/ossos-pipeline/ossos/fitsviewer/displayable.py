@@ -53,6 +53,9 @@ class Displayable(object):
         if self.canvas is not None:
             self.canvas.draw()
 
+    def reset_colormap(self):
+        pass
+
     def _do_render(self):
         raise NotImplementedError()
 
@@ -232,6 +235,9 @@ class DisplayableImageSinglet(Displayable):
 
     def place_marker(self, x, y, radius):
         self.image_singlet.place_marker(x, y, radius)
+
+    def reset_colormap(self):
+        self.image_singlet.reset_colormap()
 
     def _do_render(self):
         self.image_singlet.show_image(colorbar=True)

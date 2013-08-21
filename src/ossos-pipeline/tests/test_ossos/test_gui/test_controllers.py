@@ -45,6 +45,10 @@ class AbstractControllerTest(unittest.TestCase):
         # Don't need to redraw whole image
         assert_that(self.view.display.call_count, equal_to(0))
 
+    def test_reset_colormap(self):
+        self.controller.on_reset_colormap()
+        self.view.reset_colormap.assert_called_once_with()
+
 
 class RealsControllerTest(unittest.TestCase):
     def setUp(self):
