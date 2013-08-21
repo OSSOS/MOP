@@ -114,7 +114,14 @@ class TracksParser(object):
                 source_reading.pa = self.orbit.pa
                 source_reading.dra = self.orbit.dra / observation.header['SCALE']
                 source_reading.ddec = self.orbit.ddec / observation.header['SCALE']
-
+                print observation.header
+                print "Source info:  {} {} {} {} {} {} {}".format(observation.header['EXPNUM'],
+                                                                  observation.header['CHIPNUM'],
+                                                                  source_reading.x,
+                                                                  source_reading.y,
+                                                                  source_reading.dra,
+                                                                  source_reading.ddec,
+                                                                  source_reading.pa)
         return tracks_data  # an TracksData with .sources and .observations only
 
 
@@ -202,8 +209,8 @@ class SSOSParser(object):
             mopheader_fpt = cStringIO.StringIO(storage.open_vos_or_local(mopheader_uri).read())
             mopheader = astropy.io.fits.open(mopheader_fpt)
             
-            rawname = os.path.splitext(os.path.basename(image_uri))[0]
-
+            rawname = os.path.splitext(os.path.basename(image_uri))[0]+str(ccd).zfill(2)
+            print rawname, image_uri
             # Build astrom.Observation
             observation = astrom.Observation(expnum=str(expnum),
                                              ftype='p',
@@ -213,11 +220,11 @@ class SSOSParser(object):
             observation.header = mopheader[0].header
             MJD_OBS_CENTER = mpc.Time(observation.header['MJD-OBSC'],
                                       format='mjd',
-                                      scale='utc', ).replicate(format='mpc')
+                                      scale='utc', precision=5 ).replicate(format='mpc')
             observation.header['MJD_OBS_CENTER'] = str(MJD_OBS_CENTER)
             observation.header['MAXCOUNT'] = MAXCOUNT
             observation.header['SCALE'] = observation.header['PIXSCALE']
-            observation.header['CHIP'] = observation.header['CHIPNUM']
+            #observation.header['CHIP'] = str(observation.header['CHIPNUM']).zfill(2)
             observation.header['NAX1'] = observation.header['NAXIS1']
             observation.header['NAX2'] = observation.header['NAXIS2']
             observation.header['MOPversion'] = observation.header['MOP_VER']
