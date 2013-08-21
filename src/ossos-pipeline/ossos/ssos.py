@@ -108,7 +108,9 @@ class TracksParser(object):
             for idx in range(len(source_readings)):
                 source_reading = source_readings[idx]
                 observation = observations[idx]
-                self.orbit.date = observation.header['MJD-OBS-CENTER']
+                logger.info("About to call orbfit predict")
+                self.orbit.predict(observation.header['MJD-OBS-CENTER'])
+                logger.info("Finished predict")
                 source_reading.pa = self.orbit.pa
                 source_reading.dra = self.orbit.dra / observation.header['SCALE']
                 source_reading.ddec = self.orbit.ddec / observation.header['SCALE']
@@ -219,6 +221,8 @@ class SSOSParser(object):
             observation.header['NAX1'] = observation.header['NAXIS1']
             observation.header['NAX2'] = observation.header['NAXIS2']
             observation.header['MOPversion'] = observation.header['MOP_VER']
+            observation.header['FWHM'] = 4
+
 
 
             # a download pixel 1,1 of this data to due offsets with.
@@ -246,7 +250,8 @@ class SSOSParser(object):
                                                         xref=xref, yref=yref,
                                                         x0=x0, y0=y0,
                                                         ra=row['Object_RA'], dec=row['Object_Dec'],
-                                                        obs=observation))
+                                                        obs=observation,
+                                                        ssos=True))
         # build our array of SourceReading objects
         sources.append(source_readings)
 
