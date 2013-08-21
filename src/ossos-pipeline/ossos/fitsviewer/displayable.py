@@ -94,8 +94,7 @@ class DisplayableImageSinglet(object):
         Draws an ErrorEllipse with the given dimensions.  Can not be moved later.
         """
         self.error_ellipse = ErrEllipse(x, y, a, b, pa)
-        self.axes.add_artist(self.error_ellipse)
-        self.error_ellipse.set_clip_box(self.axes.bbox)
+        self.error_ellipse.add_to_axes(self.axes)
         self.display_changed.fire()
 
     def update_marker(self, x, y, radius=None):
@@ -277,6 +276,7 @@ class _ImageTriplet(object):
         # Don't draw tick marks and labels
         self.axes.set_axis_off()
 
+
 class ErrEllipse(object):
     """
     A class for creating and drawing an ellipse in matplotlib.
@@ -298,6 +298,10 @@ class ErrEllipse(object):
         self.b = max(b, 10)
         self.pa = pa
         self.artist = Ellipse(self.center, self.a, self.b, self.pa, edgecolor='b', facecolor='g', alpha=0.2)
+
+    def add_to_axes(self, axes):
+        self.artist.set_clip_box(axes.bbox)
+        axes.add_patch(self.artist)
 
 
 class Marker(object):
