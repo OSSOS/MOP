@@ -6,6 +6,7 @@ __author__ = 'jjk'
 
 import math
 import sys
+import os
 
 from ossos import astrom
 from ossos.daophot import TaskError
@@ -50,8 +51,6 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
     """
     image_slice_downloader = ImageCutoutDownloader(slice_rows=100, slice_cols=100)
 
-    astrom_file_reader = AstromParser()
-
 
     fk_candidate_observations = astrom.parse(astrom_filename)
     matches_ftpr = open(match_filename,'w')
@@ -59,7 +58,7 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
     objects_planted_uri = fk_candidate_observations.observations[0].get_object_planted_uri()
 
 
-    objects_planted = image_slice_downloader.download_raw(objects_planted_uri).split('\n')
+    objects_planted = image_slice_downloader.download_raw(objects_planted_uri, view='data').split('\n')
 
     planted_objects = []
 
@@ -151,13 +150,16 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('astrom_filename',
                         help=".astrom containing objects to match with Object.planted list.")
-    parser.add_argument('match_filename',
-                        help="name of file to start matched objects into.")
-    parser.add_argument('false_positive_filename',
-                        help='name of file to send false positives into')
+    #parser.add_argument('match_filename',
+    #                    help="name of file to start matched objects into.")
+    #parser.add_argument('false_positive_filename',
+    #                    help='name of file to send false positives into')
 
     args  = parser.parse_args()
 
-    match_planted(args.astrom_filename,args.match_filename, args.false_positive_filename)
+    match_filename = os.path.splitext(args.astrom_filename)[0]+".match"
+    false_positive_filename = args.astrom_filename.replace('reals','cands')
+
+    match_planted(args.astrom_filename, match_filename, false_positive_filename)
 
 
