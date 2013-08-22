@@ -82,12 +82,12 @@ class ApplicationView(object):
         self.wx_app.MainLoop()
 
     @guithread
-    def display(self, fits_image, redraw=True):
-        self.image_viewer.display(fits_image, redraw=redraw)
+    def display(self, cutout):
+        self.image_viewer.display(cutout)
 
     @guithread
-    def draw_marker(self, x, y, radius, redraw=True):
-        self.image_viewer.draw_marker(x, y, radius, redraw=redraw)
+    def refresh_markers(self):
+        self.image_viewer.refresh_markers()
 
     @guithread
     def draw_error_ellipse(self, x, y, a, b, pa, redraw=True):

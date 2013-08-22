@@ -2,7 +2,8 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import copy
 
-from mock import Mock
+from astropy.io.fits.hdu.hdulist import HDUList
+from mock import Mock, MagicMock
 
 
 class CopyingMock(Mock):
@@ -43,3 +44,7 @@ class Dummy(object):
             print "Called %s on %s" % (name, self._dummyname)
 
         return dummy_function
+
+
+def mock_hdulist():
+    return MagicMock(spec=HDUList)

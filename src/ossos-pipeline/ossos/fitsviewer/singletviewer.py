@@ -1,6 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 from ossos.fitsviewer.baseviewer import WxMPLFitsViewer
+from ossos.fitsviewer.displayable import DisplayableImageSinglet
 from ossos.fitsviewer.interaction import Signal
 
 
@@ -12,34 +13,47 @@ class SingletViewer(WxMPLFitsViewer):
     def __init__(self, parent, canvas):
         super(SingletViewer, self).__init__(parent, canvas)
 
-        self.current_image = None
+        self.current_cutout = None
+        self.current_displayable = None
         self.xy_changed = Signal()
 
-    def display(self, displayable, redraw=True):
-        if self.current_image is not None:
-            self.current_image.display_changed.disconnect(self.redraw)
-            self.current_image.xy_changed.disconnect(self.xy_changed.fire)
-            self.current_image.focus_released.disconnect(self.release_focus)
+        self._displayables_by_cutout = {}
 
-        self.current_image = displayable
-        self.current_image.display_changed.connect(self.redraw)
-        self.current_image.xy_changed.connect(self.xy_changed.fire)
-        self.current_image.focus_released.connect(self.release_focus)
+    def display(self, cutout, mark_source=True):
+        if cutout in self._displayables_by_cutout:
+            displayable = self._displayables_by_cutout[cutout]
+        else:
+            displayable = DisplayableImageSinglet(cutout.hdulist)
+            self._displayables_by_cutout[cutout] = displayable
 
-        self.current_image.render(self.canvas)
+        if self.current_displayable is not None:
+            self.current_displayable.xy_changed.disconnect(self.xy_changed.fire)
+            self.current_displayable.focus_released.disconnect(self.release_focus)
 
-        if redraw:
-            self.redraw()
+        self.current_cutout = cutout
+        self.current_displayable = displayable
 
-    def draw_marker(self, x, y, radius, redraw=True):
-        """
-        Draws a marker with the specified dimensions.  Only one marker can
-        be on the image at a time, so any existing marker will be replaced.
-        """
-        self.current_image.place_marker(x, y, radius)
+        self.current_displayable.xy_changed.connect(self.xy_changed.fire)
+        self.current_displayable.focus_released.connect(self.release_focus)
 
-        if redraw:
-            self.redraw()
+        self._do_render(self.current_displayable)
+
+        if mark_source:
+            self.mark_source(cutout)
+
+    def _do_render(self, displayable):
+        displayable.render(self.canvas)
+
+    def refresh_markers(self):
+        self.mark_source(self.current_cutout)
+
+    def mark_source(self, cutout):
+        assert cutout in self._displayables_by_cutout
+
+        x, y = cutout.pixel_source_point
+        fwhm = float(cutout.astrom_header["FWHM"])
+        radius = 2 * round(fwhm)
+        self._displayables_by_cutout[cutout].place_marker(x, y, radius)
 
     def draw_error_ellipse(self, x, y, a, b, pa, redraw=True):
         """
@@ -51,8 +65,8 @@ class SingletViewer(WxMPLFitsViewer):
             self.redraw()
 
     def reset_colormap(self):
-        if self.current_image is not None:
-            self.current_image.reset_colormap()
+        if self.current_displayable is not None:
+            self.current_displayable.reset_colormap()
 
     def register_xy_changed_event_handler(self, handler):
         self.xy_changed.connect(handler)
