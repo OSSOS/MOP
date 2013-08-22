@@ -283,21 +283,18 @@ class ErrEllipse(object):
     """
     def __init__(self, x_cen, y_cen, a, b, pa):
         """
-
-
         :param x_cen: x coordinate at center of the ellipse
         :param y_cen: y coordinate at center of the ellipse
         :param a: size of semi-major axes of the ellipse
         :param b: size of semi-minor axes of the ellipse
         :param pa: position angle of a to x  (90 ==> a is same orientation as x)
-
         """
 
         self.center = (x_cen, y_cen)
         self.a = max(a, 10)
         self.b = max(b, 10)
         self.pa = pa
-        self.artist = Ellipse(self.center, self.a, self.b, self.pa, edgecolor='b', facecolor='g', alpha=0.2)
+        self.artist = Ellipse(self.center, self.a, self.b, self.pa, edgecolor='b', linewidth=3, facecolor='#E47833', alpha=0.1)
 
     def add_to_axes(self, axes):
         self.artist.set_clip_box(axes.bbox)
