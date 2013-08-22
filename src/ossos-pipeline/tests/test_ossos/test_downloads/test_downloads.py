@@ -74,7 +74,7 @@ class DownloadTest(FileReadingTestCase):
 
         # This is just a test file, make sure we can read an expected value
         # it.  It won't have the right shape necessarily though.
-        assert_that(download.get_fits_header()["FILENAME"],
+        assert_that(download.fits_header["FILENAME"],
                     equal_to("u5780205r_cvt.c0h"))
 
 

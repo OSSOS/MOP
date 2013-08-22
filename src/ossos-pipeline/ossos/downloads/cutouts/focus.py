@@ -4,7 +4,7 @@ import math
 
 
 class FocusCalculator(object):
-    def _convert_source_location(self, source_reading, reference_reading):
+    def convert_source_location(self, source_reading, reference_reading):
         """
         Converts the source (x, y) location from reading into the coordinate
         system of reference_reading.
@@ -34,7 +34,7 @@ class SingletFocusCalculator(FocusCalculator):
         middle_index = int(math.ceil((len(self.source.get_readings()) / 2)))
         middle_reading = self.source.get_reading(middle_index)
 
-        return self._convert_source_location(middle_reading, reading)
+        return self.convert_source_location(middle_reading, reading)
 
 
 class TripletFocusCalculator(FocusCalculator):
@@ -47,4 +47,4 @@ class TripletFocusCalculator(FocusCalculator):
 
     def calculate_focus(self, reading, frame_index):
         center_target = self.source.get_reading(frame_index)
-        return self._convert_source_location(center_target, reading)
+        return self.convert_source_location(center_target, reading)

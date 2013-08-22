@@ -26,15 +26,12 @@ class AbstractController(object):
 
     def display_current_image(self):
         try:
-            self.view.display(self.model.get_current_displayable_image(),
-                              redraw=False)
+            self.view.display(self.model.get_current_cutout())
         except ImageNotLoadedException as ex:
             self.image_loading_dialog_manager.wait_for_item(ex.requested_item)
             return
         except NoWorkUnitException:
             return
-
-        self.mark_current_source()
 
         self.view.update_displayed_data(self.model.get_reading_data(),
                                         self.model.get_header_data_list())
@@ -44,11 +41,6 @@ class AbstractController(object):
             self.model.get_obs_count())
 
         self.model.acknowledge_image_displayed()
-
-    def mark_current_source(self):
-        image_x, image_y = self.model.get_current_pixel_source_point()
-        radius = 2 * round(self.model.get_current_image_FWHM())
-        self.view.draw_marker(image_x, image_y, radius, redraw=True)
 
     def on_reposition_source(self, new_x, new_y):
         try:
@@ -142,9 +134,12 @@ class AbstractController(object):
     def on_reset_source_location(self):
         try:
             self.model.reset_current_source_location()
-            self.mark_current_source()
+            self.view.refresh_markers()
         except ImageNotLoadedException:
             pass
+
+    def on_reset_colormap(self):
+        self.view.reset_colormap()
 
 
 class ProcessRealsController(AbstractController):

@@ -72,7 +72,7 @@ class KeybindManager(object):
         self.controller.on_reject()
 
     def on_reset_cmap_keybind(self, event):
-        self.view.reset_colormap()
+        self.controller.on_reset_colormap()
 
     def on_reset_source_location_keybind(self, event):
         self.controller.on_reset_source_location()

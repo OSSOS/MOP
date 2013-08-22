@@ -12,16 +12,71 @@ from ossos.fitsviewer.exceptions import MPLViewerError
 from ossos.fitsviewer.interaction import InteractionContext, Signal
 
 
-class DisplayableImageSinglet(object):
-    def __init__(self, hdulist):
-        """
-        Args:
-          hdulist: astropy.io.fits.HDUList
-            The FITS image to be displayed.
-        """
+class Displayable(object):
+    """
+    An image or group of images which can be displayed.
+
+    Attributes:
+      figure: matplotlib figure the images are placed on.
+    """
+
+    def __init__(self):
+        self.figure = plt.figure()
+        self.canvas = None
+        self.rendered = False
+
+    @property
+    def width(self):
+        raise NotImplementedError()
+
+    @property
+    def height(self):
+        raise NotImplementedError()
+
+    def render(self, canvas=None):
+        if not self.rendered:
+            self._do_render()
+
+        if canvas is None:
+            plt.show()
+        else:
+            self.canvas = canvas
+            canvas.figure = self.figure
+
+            parent_size = canvas.GetClientSize()
+
+            figure_dpi = self.figure.get_dpi()
+            self.figure.set_size_inches(parent_size[0] / figure_dpi,
+                                        parent_size[1] / figure_dpi)
+
+            self._apply_event_handlers(canvas)
+
+    def redraw(self):
+        if self.canvas is not None:
+            self.canvas.draw()
+
+    def reset_colormap(self):
+        pass
+
+    def _do_render(self):
+        raise NotImplementedError()
+
+    def _apply_event_handlers(self, canvas):
+        pass
+
+
+class ImageSinglet(object):
+    """
+    A single image on a matplotlib axes.  Provides interaction and is
+    markable.
+    """
+
+    def __init__(self, hdulist, figure, rect):
         self.hdulist = hdulist
-        self.figure = None
-        self.axes = None
+
+        self.figure = figure
+        self.axes = self._create_axes(rect)
+        self.figure.add_axes(self.axes)
 
         self.marker = None
 
@@ -30,7 +85,6 @@ class DisplayableImageSinglet(object):
         self.focus_released = Signal()
 
         self._colormap = GrayscaleColorMap()
-
         self._mpl_event_handlers = {}
         self._interaction_context = None
 
@@ -46,35 +100,21 @@ class DisplayableImageSinglet(object):
     def height(self):
         return _image_height(self.hdulist)
 
-    def render(self, canvas=None):
-        if self.figure is None:
-            self._do_render()
+    def show_image(self, colorbar=False):
+        self._interaction_context = InteractionContext(self)
 
-        if canvas is None:
-            plt.show()
-        else:
-            canvas.figure = self.figure
+        extent = (1, self.width, 1, self.height)
+        self.axes_image = self.axes.imshow(zscale(self.image_data),
+                                           origin="lower",
+                                           extent=extent,
+                                           cmap=self._colormap.as_mpl_cmap())
 
-            parent_size = canvas.GetClientSize()
-
-            figure_dpi = self.figure.get_dpi()
-            self.figure.set_size_inches(parent_size[0] / figure_dpi,
-                                        parent_size[1] / figure_dpi)
-
-            self._apply_event_handlers(canvas)
-
-    def update_colormap(self, dx, dy):
-        contrast_diff = float(-dy) / self.height
-        bias_diff = float(dx) / self.width
-
-        self._colormap.update_contrast(contrast_diff)
-        self._colormap.update_bias(bias_diff)
-
-        self._refresh_displayed_colormap()
-
-    def reset_colormap(self):
-        self._colormap.set_defaults()
-        self._refresh_displayed_colormap()
+        if colorbar:
+            # Create axes for colorbar.  Make it tightly fit the image.
+            divider = make_axes_locatable(self.axes)
+            cax = divider.append_axes("bottom", size="5%", pad=0.05)
+            self.figure.colorbar(self.axes_image, orientation="horizontal",
+                                 cax=cax)
 
     def place_marker(self, x, y, radius):
         """
@@ -113,6 +153,22 @@ class DisplayableImageSinglet(object):
         self.xy_changed.fire(x, y)
         self.display_changed.fire()
 
+    def release_focus(self):
+        self.focus_released.fire()
+
+    def update_colormap(self, dx, dy):
+        contrast_diff = float(-dy) / self.height
+        bias_diff = float(dx) / self.width
+
+        self._colormap.update_contrast(contrast_diff)
+        self._colormap.update_bias(bias_diff)
+
+        self._refresh_displayed_colormap()
+
+    def reset_colormap(self):
+        self._colormap.set_defaults()
+        self._refresh_displayed_colormap()
+
     def is_event_in_axes(self, event):
         return self.axes == event.inaxes
 
@@ -125,36 +181,17 @@ class DisplayableImageSinglet(object):
         self.figure.canvas.mpl_disconnect(id_)
         del self._mpl_event_handlers[id_]
 
-    def release_focus(self):
-        self.focus_released.fire()
-
-    def _apply_event_handlers(self, canvas):
+    def apply_event_handlers(self, canvas):
         for eventname, handler in self._mpl_event_handlers.itervalues():
             canvas.mpl_connect(eventname, handler)
 
-    def _do_render(self):
-        self.figure = plt.figure()
-        self.axes = self._create_axes()
-        self.figure.add_axes(self.axes)
-
-        self._interaction_context = InteractionContext(self)
-
-        extent = (1, self.width, 1, self.height)
-        self.axes_image = plt.imshow(zscale(self.image_data),
-                                     origin="lower",
-                                     extent=extent,
-                                     cmap=self._colormap.as_mpl_cmap())
-
-        # Create axes for colorbar.  Make it tightly fit the image.
-        divider = make_axes_locatable(self.axes)
-        cax = divider.append_axes("bottom", size="5%", pad=0.05)
-        self.figure.colorbar(self.axes_image, orientation="horizontal",
-                             cax=cax)
-
-    def _create_axes(self):
-        # limits specified as [left, bottom, width, height]
-        # leave 2.5% border all around
-        axes = plt.Axes(self.figure, [0.025, 0.025, 0.95, 0.95])
+    def _create_axes(self, rect):
+        """
+        Args:
+          rect: [left, bottom, width, height]
+            Used to construct the matplotlib axes.
+        """
+        axes = plt.Axes(self.figure, rect)
 
         # Don't draw tick marks and labels
         axes.set_axis_off()
@@ -162,6 +199,10 @@ class DisplayableImageSinglet(object):
         # FITS images start at pixel 1,1 in the bottom-left corner
         axes.set_xlim([1, self.width])
         axes.set_ylim([1, self.height])
+
+        # Add a border around the image.
+        axes.add_patch(plt.Rectangle((1, 1), self.width - 1, self.height - 1,
+                       linewidth=3, edgecolor="black", fill=False))
 
         return axes
 
@@ -171,110 +212,105 @@ class DisplayableImageSinglet(object):
         self.display_changed.fire()
 
 
-class DisplayableImageTriplet(object):
+class DisplayableImageSinglet(Displayable):
+    """
+    A single displayable image.
+
+    Attributes:
+        hdulist: the FITS image being displayed.
+
+        See also Displayable's attributes.
+    """
+
+    def __init__(self, hdulist):
+        """
+        Args:
+          hdulist: astropy.io.fits.HDUList
+            The FITS image to be displayed.
+        """
+        super(DisplayableImageSinglet, self).__init__()
+
+        self.hdulist = hdulist
+        self.image_singlet = ImageSinglet(self.hdulist, self.figure,
+                                          [0.025, 0.025, 0.95, 0.95])
+        self.image_singlet.display_changed.connect(self.redraw)
+
+    @property
+    def xy_changed(self):
+        return self.image_singlet.xy_changed
+
+    @property
+    def focus_released(self):
+        return self.image_singlet.focus_released
+
+    def place_marker(self, x, y, radius):
+        self.image_singlet.place_marker(x, y, radius)
+
+    def reset_colormap(self):
+        self.image_singlet.reset_colormap()
+
+    def _do_render(self):
+        self.image_singlet.show_image(colorbar=True)
+
+    def _apply_event_handlers(self, canvas):
+        self.image_singlet.apply_event_handlers(canvas)
+
+
+class DisplayableImageTriplet(Displayable):
     def __init__(self, cutout_grid):
+        super(DisplayableImageTriplet, self).__init__()
+
         if cutout_grid.shape != (3, 3):
             raise ValueError("Must be a 3 by 3 grid (was given %d by %d)"
                              % (cutout_grid.shape[0], cutout_grid.shape[1]))
 
         self.cutout_grid = cutout_grid
 
-        def create_triplet(index):
-            return _ImageTriplet(cutout_grid.get_hdulists(index))
+        self.frames = []
+        num_frames, num_times = cutout_grid.shape
+        for frame_index in range(num_frames):
+            frame = []
+            for time_index in range(num_times):
+                singlet = ImageSinglet(cutout_grid.get_hdulist(frame_index, time_index),
+                                       self.figure,
+                                       get_rect(cutout_grid.shape, frame_index, time_index,
+                                                spacing=0))
+                singlet.display_changed.connect(self.redraw)
+                frame.append(singlet)
 
-        self.frames = [create_triplet(index)
-                       for index in range(cutout_grid.num_frames)]
+            self.frames.append(frame)
 
-        self.figure = None
-        self._mpl_event_handlers = {}
-        self._interaction_context = None
+    def get_singlet(self, frame_index, time_index):
+        return self.frames[frame_index][time_index]
 
-    def render(self, canvas=None):
-        # TODO: remove duplication with singlet
-        if self.figure is None:
-            self._do_render()
+    def iter_singlets(self):
+        for frame in self.frames:
+            for singlet in frame:
+                yield singlet
 
-        if canvas is None:
-            plt.show()
-        else:
-            canvas.figure = self.figure
-
-            parent_size = canvas.GetClientSize()
-
-            figure_dpi = self.figure.get_dpi()
-            self.figure.set_size_inches(parent_size[0] / figure_dpi,
-                                        parent_size[1] / figure_dpi)
-
-    def place_marker(self, x, y, radius):
-        pass
+    def reset_colormap(self):
+        for singlet in self.iter_singlets():
+            singlet.reset_colormap()
 
     def _do_render(self):
-        self.figure = plt.figure()
-        for position, frame in enumerate(self.frames):
-            frame.render(self.figure, position)
-        print "Rendered triplet"
+        for singlet in self.iter_singlets():
+            singlet.show_image(colorbar=False)
+
+    def _apply_event_handlers(self, canvas):
+        for singlet in self.iter_singlets():
+            singlet.apply_event_handlers(canvas)
 
 
-class _ImageTriplet(object):
-    """
-    A row of images that share an axes and colormap.  Does not have its
-    own figure.
-    """
+def get_rect(shape, frame_index, time_index, border=0.025, spacing=0.01):
+    rows, cols = shape
 
-    def __init__(self, hdulists):
-        if len(hdulists) != 3:
-            raise ValueError("Image triplet must contain 3 images (given %d)"
-                             % len(hdulists))
+    width = (1.0 - 2 * border - (cols - 1) * spacing) / cols
+    height = (1.0 - 2 * border - (rows - 1) * spacing) / rows
 
-        self.hdulists = hdulists
-        self.axes = None
+    left = border + (width + spacing) * time_index
+    bottom = border + (height + spacing) * (rows - frame_index - 1)
 
-        self._colormap = GrayscaleColorMap()
-
-    @property
-    def width(self):
-        return sum(map(_image_width, self.hdulists))
-
-    @property
-    def height(self):
-        return _image_height(self.hdulists[0])
-
-    def render(self, figure, position):
-        if self.axes is None:
-            self._do_render(figure, position)
-
-    def _do_render(self, figure, position):
-        self._create_axes(figure, position)
-
-        def zscale_image(hdulist):
-            return zscale(_image_data(hdulist))
-
-        full_image = np.concatenate(map(zscale_image, self.hdulists), axis=1)
-
-        # TODO: remove duplication with singlet
-        # Add 1 because FITS images start at pixel 1,1 while matplotlib
-        # starts at 0,0
-        extent = (1, self.width + 1, self.height + 1, 1)
-        self.axes_image = self.axes.imshow(full_image,
-                                           extent=extent,
-                                           cmap=self._colormap.as_mpl_cmap())
-
-    def _create_axes(self, figure, position):
-        # TODO: remove duplication with singlet
-        # limits specified as [left, bottom, width, height]
-        # leave 2.5% border all around
-        border = 0.025
-        width = 1 - 2 * border
-        height = (1 - 2 * border) / 3
-        bottom = border + (2 - position) * height
-        self.axes = figure.add_axes([border, bottom, width, height])
-
-        # Make the axes fit the image tightly
-        self.axes.set_xlim([0, self.width])
-        self.axes.set_ylim([0, self.height])
-
-        # Don't draw tick marks and labels
-        self.axes.set_axis_off()
+    return [left, bottom, width, height]
 
 
 class ErrEllipse(object):

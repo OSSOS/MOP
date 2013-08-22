@@ -13,8 +13,7 @@ import os
 
 class OrbfitTest(unittest.TestCase):
 
-      @unittest.skipIf(not os.path.exists(orbfit.LIBORBFIT),
-                       "%s not found" % orbfit.LIBORBFIT)
+      @unittest.skip("TODO: enabled after track merge")
       def test_create_from_line(self):
         mpc_lines=("     HL7j2    C2013 04 03.62926 17 12 01.16 +04 13 33.3          24.1 R      568",
                    "     HL7j2    C2013 04 04.58296 17 11 59.80 +04 14 05.5          24.0 R      568",
@@ -25,8 +24,6 @@ class OrbfitTest(unittest.TestCase):
         for line in mpc_lines:
             observations.append(mpc.Observation().from_string(line))
 
-        os.environ['ORBIT_EPHEMERIS']='/Users/jjk/MOP/config/binEphem.405'
-        os.environ['ORBIT_OBSERVATORIES']='/Users/jjk/MOP/config/observatories.dat'
         HL7j2 = orbfit.Orbfit(observations=observations)
         print str(HL7j2)
 
