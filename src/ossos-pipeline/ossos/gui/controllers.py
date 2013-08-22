@@ -348,9 +348,14 @@ class ProcessTracksController(ProcessRealsController):
 
         ## Also draw an error ellipse, since this is a tracks controller.
         reading = self.model.get_current_reading()
-        if hasattr(reading, 'dra') and hasattr(reading, 'ddec') and hasattr(reading,'pa'):
+        if not hasattr(reading, 'redraw_ellipse'):
+            reading.redraw_ellipse = True
+
+        if hasattr(reading, 'dra') and hasattr(reading, 'ddec') and hasattr(reading,'pa') and reading.redraw_ellipse:
             self.view.draw_error_ellipse(image_x, image_y,
-                                         reading.dra, reading.ddec, reading.pa)
+                                         reading.dra, reading.ddec, reading.pa,
+                                         redraw=True)
+        reading.redraw_ellipse = False
 
     def on_ssos_query(self):
         new_workunit = self.model.get_current_workunit().query_ssos()
