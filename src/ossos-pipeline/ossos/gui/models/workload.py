@@ -173,6 +173,7 @@ class TracksWorkUnit(WorkUnit):
     A unit of work when performing the process track task.
     """
     def __init__(self,
+                 builder,
                  filename,
                  parsed_data,
                  progress_manager,
@@ -185,7 +186,21 @@ class TracksWorkUnit(WorkUnit):
             output_context,
             dry_run=dry_run)
 
+        self.builder = builder
         self._writer = None
+        self._ssos_queried = False
+
+    def query_ssos(self):
+        """
+        Use the MPC file that has been built up in processing this work
+        unit to generate another workunit.
+        """
+        self._ssos_queried = True
+        return self.builder.build_workunit(
+            self.output_context.get_full_path(self._writer.get_filename()))
+
+    def is_finished(self):
+        return self._ssos_queried or super(TracksWorkUnit, self).is_finished()
 
     def next_item(self):
         assert not self.is_finished()
@@ -661,7 +676,7 @@ class TracksWorkUnitBuilder(WorkUnitBuilder):
                            progress_manager,
                            output_context,
                            dry_run):
-        return TracksWorkUnit(
+        return TracksWorkUnit(self,
             filename, data, progress_manager, output_context, dry_run=dry_run)
 
 
