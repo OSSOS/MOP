@@ -76,7 +76,7 @@ class DisplayableImageSinglet(object):
         self._colormap.set_defaults()
         self._refresh_displayed_colormap()
 
-    def place_marker(self, x, y, radius):
+    def place_marker(self, x, y, radius, colour='b'):
         """
         Draws a marker with the specified dimensions.  Only one marker can
         be on the image at a time, so any existing marker will be replaced.
@@ -84,7 +84,7 @@ class DisplayableImageSinglet(object):
         if self.marker is not None:
             self.marker.remove_from_axes(self.axes)
 
-        self.marker = Marker(x, y, radius)
+        self.marker = Marker(x, y, radius, colour=colour)
         self.marker.add_to_axes(self.axes)
 
         self.display_changed.fire()
@@ -205,7 +205,7 @@ class DisplayableImageTriplet(object):
             self.figure.set_size_inches(parent_size[0] / figure_dpi,
                                         parent_size[1] / figure_dpi)
 
-    def place_marker(self, x, y, radius):
+    def place_marker(self, x, y, radius, colour='b'):
         pass
 
     def _do_render(self):
@@ -305,8 +305,8 @@ class ErrEllipse(object):
 
 
 class Marker(object):
-    def __init__(self, x, y, radius):
-        self.circle = plt.Circle((x, y), radius, color="b", fill=False)
+    def __init__(self, x, y, radius, colour='b'):
+        self.circle = plt.Circle((x, y), radius, color=colour, fill=False)
 
         self.crosshair_scaling = 2
 

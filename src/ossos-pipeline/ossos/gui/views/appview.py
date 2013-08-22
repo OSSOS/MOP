@@ -86,8 +86,8 @@ class ApplicationView(object):
         self.image_viewer.display(fits_image, redraw=redraw)
 
     @guithread
-    def draw_marker(self, x, y, radius, redraw=True):
-        self.image_viewer.draw_marker(x, y, radius, redraw=redraw)
+    def draw_marker(self, x, y, radius, redraw=True, colour='b'):
+        self.image_viewer.draw_marker(x, y, radius, redraw=redraw, colour=colour)
 
     @guithread
     def draw_error_ellipse(self, x, y, a, b, pa, redraw=False):

@@ -31,12 +31,12 @@ class SingletViewer(WxMPLFitsViewer):
         if redraw:
             self.redraw()
 
-    def draw_marker(self, x, y, radius, redraw=True):
+    def draw_marker(self, x, y, radius, redraw=True, colour='b'):
         """
         Draws a marker with the specified dimensions.  Only one marker can
         be on the image at a time, so any existing marker will be replaced.
         """
-        self.current_image.place_marker(x, y, radius)
+        self.current_image.place_marker(x, y, radius, colour=colour)
 
         if redraw:
             self.redraw()
