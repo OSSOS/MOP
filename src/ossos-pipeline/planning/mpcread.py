@@ -42,11 +42,12 @@ def getKBOs(mpc_file, cond='a > 30'):
     lines=f.readlines()
     f.close()
 
-    line=lines.pop(0)
-    while (line[0:3]!="---") : 
-        line=lines.pop(0)
+    # line=lines.pop(0)
+    # while (line[0:3]!="---") :
+    #     line=lines.pop(0)
+    #
+    # lines.append(line)
 
-    lines.append(line)
     nobj=0
     lineCount=0
     kbos = []
