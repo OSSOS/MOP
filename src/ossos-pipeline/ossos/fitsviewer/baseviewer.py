@@ -10,8 +10,5 @@ class WxMPLFitsViewer(object):
         self.parent = parent
         self.canvas = canvas
 
-    def redraw(self):
-        self.canvas.draw()
-
     def release_focus(self):
         self.parent.SetFocus()
