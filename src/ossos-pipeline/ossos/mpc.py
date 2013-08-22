@@ -1,3 +1,5 @@
+from ossos.gui import logger
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import itertools
@@ -6,6 +8,7 @@ import struct
 import time
 from datetime import datetime
 import numpy
+import os
 import urllib
 
 from astropy import coordinates
@@ -83,6 +86,7 @@ MPCNOTES = {'Note1':
             'PhotometryNote': {
                 " ": " ",
                 "": " ",
+                "L": "Photometry uncertainty lacking",     # not used by MPC
                 "Y": "Photometry measured successfully",   # not used by MPC 
                 "Z": "Photometry measurement failed."      # not used by MPC 
             }}
@@ -368,14 +372,15 @@ class Observation(object):
                  ra="00 00 00.000",
                  dec="+00 00 00.00",
                  mag=-1,
-                 mag_err=-1,
                  band='r',
                  observatory_code=568,
                  comment="",
+                 mag_err=-1,
                  xpos=None,
                  ypos=None,
                  frame=None,
-                 plate_uncertainty=None):
+                 plate_uncertainty=None,
+                 null_observation=False):
 
         self.minor_planet_number = minor_planet_number
         self.provisional_name = provisional_name
@@ -388,6 +393,7 @@ class Observation(object):
         self.mag_err = mag_err
         self.band = band
         self.observatory_code = observatory_code
+        self.null_observation=null_observation
         self.comment = MPCComment(source_name=provisional_name,
                                   frame=frame,
                                   MPCNote=self.note1,
@@ -406,9 +412,13 @@ class Observation(object):
         """
         mpc_format = '5s7s1s1s1s17s12s12s9x5s1s6x3s'
         mpc_line = mpc_line.strip('\n')
-        comment = mpc_line[80:]
+        comment = mpc_line[81:]
         mpc_line = mpc_line[0:80]
-        return cls(*struct.unpack(mpc_format, mpc_line), comment=comment)
+        if len(mpc_line) != 80:
+            return None
+        obsrec = cls(*struct.unpack(mpc_format, mpc_line))
+        obsrec.comment = MPCComment.from_string(comment)
+        return obsrec
 
     def to_string(self):
         as_string = str(self)
@@ -575,13 +585,17 @@ class Observation(object):
 
     def _compute_precision(self, coord):
         """
-        Compute the number of decimal places in the last part of a sexagesimal string
+        Returns the number of digits after the last '.' in a given number or string.
+
+
+
         """
-        parts = str(coord).replace('/', ' ').split('.')
-        if len(parts) < 2:
+        coord = str(coord).strip(' ')
+        idx = coord.rfind('.')
+        if idx < 0 :
             return 0
         else:
-            return len(parts[-1])
+            return len(coord) - idx -1
 
     @coordinate.setter
     def coordinate(self, coord_pair):
@@ -690,6 +704,26 @@ class MPCComment(object):
         self.plate_uncertainty = plate_uncertainty
         self.comment = comment
 
+    @classmethod
+    def from_string(cls, comment):
+        """
+        Build an MPC Comment from a string.
+        """
+        values = comment.split(' ')
+        if len(values) < 8:
+            logger.warning("non-OSSOS format MPC line read")
+            return comment
+        comment = comment.split('%')[-1]
+        return MPCComment(source_name = values[1],
+                   frame=values[0],
+                   X=values[3],
+                   Y=values[4],
+                   MPCNote=values[2][1:],
+                   magnitude=values[5],
+                   mag_uncertainty=values[6],
+                   plate_uncertainty=values[7],
+                   comment=comment)
+
     @property
     def mag(self):
         return self._mag
@@ -718,7 +752,10 @@ class MPCComment(object):
                 self._mag_uncertainty = "{:4.2f}".format(float(mag_uncertainty))
             else:
                 self._mag_uncertainty = ""
-                self.PNote = "Z"
+                if len(str(self.mag)) > 0:
+                    self.PNote = "L"
+                else:
+                    self.PNote = "Z"
         except:
             self._mag_uncertainty = ""
             self.PNote = "Z"
@@ -862,16 +899,19 @@ class TNOdbWriter(MPCWriter):
     """
 
     def __init__(self, filehandle, auto_flush=True):
-        super(MPCWriter, self).__init__(filehandle, auto_flush=True)
+        super(TNOdbWriter, self).__init__(filehandle, auto_flush=auto_flush)
 
     def flush(self):
         """
         Format for tnodb.
         Comment line and observation line have to be kept together.
         """
+        # FIXME: need to add header in tnodb format at the top of the file
+        self.filehandle.write(self.header())
+
         for obs in self.get_chronological_buffered_observations():
             # tnodb requires all lines to be MPC roving observer line length
-            comment_line = ('#O ' + obs.comment)[:80] # #O indicates OSSOS survey
+            comment_line = ('#O ' + obs.to_string()[80:])[:80] # #O indicates OSSOS survey
             mpc_observation = obs.to_string()[:80]
             output_line = comment_line + '\n' + mpc_observation + '\n'
             self.filehandle.write(output_line)
@@ -879,24 +919,41 @@ class TNOdbWriter(MPCWriter):
         self.filehandle.flush()
         self.buffer = []
 
+    def header(self):
+        retval = None
+        return retval
 
-class URLWriter(MPCWriter):
+
+class MPCConverter(object):
     """
-    Write out MPC lines without the metadata, in URL-ready format.
+    Converts an MPC formatted file to a TNOdb one.
+    :param mpc_file The input filename, of MPC lines.
+    :param output   if required; else will use root of provided MPC file.
     """
-    def __init__(self, filehandle, auto_flush=True):
-        super(MPCWriter, self).__init__(filehandle, auto_flush=True)
 
-    def flush(self):
-        """
-        Write out MPC lines without any metadata, eg. for passing to a URL.
-        """
-        for obs in self.get_chronological_buffered_observations():
-            mpc_observation = obs.to_string()[:80].replace(' ', '+') + urllib.quote('\r\n')
-            self.filehandle.write(mpc_observation)
+    def __init__(self, mpc_file, output=None):
+        if output is None:
+            output = mpc_file.rpartition('.')[0] + '.tnodb'
+            self.outfile = open(output, 'w')
+        #   self.writer = TNOdbWriter(outfile, auto_flush=False)
 
-        self.filehandle.flush()
-        self.buffer = []
+    def convert(self, mpc_file, outfile):
+        with open(mpc_file, 'r') as infile:
+            for line in infile.readlines():
+     #           writer.write(Observation().from_string(line))
+                comment_line = ('#O ' + line[80:])[:80].rstrip('\n') # #O indicates OSSOS survey
+                mpc_observation = line[:80]
+                output_line = comment_line + '\n' + mpc_observation + '\n'
+                outfile.write(output_line)
 
+    #    writer.flush()
 
-
+    def batch_convert(self, path):
+        for fn in os.listdir(path):
+            if fn.endswith('.mpc') or fn.endswith('.track'):
+                with open(path+fn, 'r') as f:
+                    if not f.readline().startswith('!'):
+                        output = path + fn.rpartition('.')[0] + '.tnodb'
+                        outfile = open(output, 'w')
+                        self.convert(path+fn, outfile)
+        # then cat them with for f in *.tnodb; do (cat "${f}"; echo) >> allmpc.txt; done

@@ -48,7 +48,13 @@ class ImageManager(object):
         focus_calculator = SingletFocusCalculator(source)
 
         for reading in source.get_readings():
-            focus = focus_calculator.calculate_focus(reading)
+            if reading.ssos:
+                # For track the objects have moved too far to center on
+                # the mid point.  Centre each image on its source reading.
+                # TODO: refactor.
+                focus = reading.source_point
+            else:
+                focus = focus_calculator.calculate_focus(reading)
             self._singlet_download_manager.submit_request(
                 DownloadRequest(reading,
                                 needs_apcor=needs_apcor,

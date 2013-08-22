@@ -6,7 +6,8 @@ from ossos.gui.models.collections import StatefulCollection
 from ossos.gui.models.exceptions import (ImageNotLoadedException,
                                          NoWorkUnitException,
                                          NoAvailableWorkException)
-from ossos.gui.models.workload import CandidatesWorkUnit, RealsWorkUnit
+from ossos.gui.models.workload import (CandidatesWorkUnit, RealsWorkUnit,
+                                       TracksWorkUnit)
 
 
 class ValidationModel(object):
@@ -58,7 +59,7 @@ class ValidationModel(object):
 
             if self.is_processing_candidates():
                 self.expect_source_transition()
-            elif self.is_processing_reals():
+            elif self.is_processing_reals() or self.is_processing_tracks():
                 self.expect_observation_transition()
 
     def accept_current_item(self):
@@ -258,6 +259,9 @@ class ValidationModel(object):
 
     def is_processing_reals(self):
         return isinstance(self.get_current_workunit(), RealsWorkUnit)
+
+    def is_processing_tracks(self):
+        return isinstance(self.get_current_workunit(), TracksWorkUnit)
 
     def get_current_cutout(self):
         return self.image_state.get_current_cutout()

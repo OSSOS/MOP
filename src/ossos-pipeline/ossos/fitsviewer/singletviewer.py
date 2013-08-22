@@ -55,6 +55,15 @@ class SingletViewer(WxMPLFitsViewer):
         radius = 2 * round(fwhm)
         self._displayables_by_cutout[cutout].place_marker(x, y, radius)
 
+    def draw_error_ellipse(self, x, y, a, b, pa, redraw=True):
+        """
+        Draws an ErrEllipse with the spcified dimensions.  Only one ErrEllipse can be drawn and
+        only once (not movable).
+        """
+        self.current_image.place_error_ellipse(x, y, a, b, pa)
+        if redraw:
+            self.redraw()
+
     def reset_colormap(self):
         if self.current_displayable is not None:
             self.current_displayable.reset_colormap()

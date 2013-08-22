@@ -216,7 +216,8 @@ class ProcessRealsController(AbstractController):
                      obs_mag_err,
                      band,
                      observatory_code,
-                     comment):
+                     comment,
+                     ):
         """
         Final acceptance with collected data.
         """
@@ -266,11 +267,17 @@ class ProcessRealsController(AbstractController):
         if not self.model.is_current_source_named():
             self.model.set_current_source_name(self._generate_provisional_name())
 
+        reading = self.model.get_current_reading()
+
+
         mpc_observation = mpc.Observation(
             provisional_name=self.model.get_current_source_name(),
             date=self.model.get_current_observation_date(),
             ra=self.model.get_current_ra(),
             dec=self.model.get_current_dec(),
+            xpos=reading.x,
+            ypos=reading.y,
+            frame=reading.obs.rawname,
             comment=comment)
 
         mpc_observation.null_observation = True
@@ -319,3 +326,28 @@ class ImageLoadingDialogManager(object):
         if len(self._wait_items) == 0 and self._dialog_showing:
             self.view.hide_image_loading_dialog()
             self._dialog_showing = False
+
+
+class ProcessTracksController(ProcessRealsController):
+    """
+    The main controller of the 'track' task.  Sets up the view and
+    handles user interactions. This task extends orbit linkages from
+    three out to more observations.
+    """
+
+    ## we might need this later for plotting the orbits...  and adding some actions.
+    def mark_current_source(self):
+        image_x, image_y = self.model.get_current_pixel_source_point()
+        radius = 2 * round(self.model.get_current_image_FWHM())
+        self.view.draw_marker(image_x, image_y, radius, redraw=True)
+
+        ## Also draw an error ellipse, since this is a tracks controller.
+        reading = self.model.get_current_reading()
+        if hasattr(reading, 'dra') and hasattr(reading, 'ddec') and hasattr(reading,'pa'):
+            self.view.draw_error_ellipse(image_x, image_y,
+                                         reading.dra, reading.ddec, reading.pa)
+
+    def on_ssos_query(self):
+        new_workunit = self.model.get_current_workunit().query_ssos()
+        self.model.add_workunit(new_workunit)
+        self.model.next_item()
