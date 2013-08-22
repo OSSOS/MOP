@@ -273,10 +273,18 @@ class DisplayableImageTriplet(Displayable):
     def get_singlet(self, frame_index, time_index):
         return self.frames[frame_index][time_index]
 
-    def _do_render(self):
+    def iter_singlets(self):
         for frame in self.frames:
             for singlet in frame:
-                singlet.show_image(colorbar=False)
+                yield singlet
+
+    def _do_render(self):
+        for singlet in self.iter_singlets():
+            singlet.show_image(colorbar=False)
+
+    def _apply_event_handlers(self, canvas):
+        for singlet in self.iter_singlets():
+            singlet.apply_event_handlers(canvas)
 
 
 def get_rect(shape, frame_index, time_index, border=0.025, spacing=0.01):
