@@ -192,7 +192,7 @@ class ImageSinglet(object):
 
         # Add a border around the image.
         axes.add_patch(plt.Rectangle((1, 1), self.width - 1, self.height - 1,
-                       linewidth=5, edgecolor="black", fill=False))
+                       linewidth=3, edgecolor="black", fill=False))
 
         return axes
 
