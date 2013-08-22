@@ -1,5 +1,3 @@
-from ossos.fitsviewer.singletviewer import SingletViewer
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 from ossos import mpc
@@ -51,7 +49,6 @@ class AbstractController(object):
         image_x, image_y = self.model.get_current_pixel_source_point()
         radius = 2 * round(self.model.get_current_image_FWHM())
         self.view.draw_marker(image_x, image_y, radius, redraw=True)
-
 
     def on_reposition_source(self, new_x, new_y):
         try:
@@ -299,7 +296,6 @@ class ProcessRealsController(AbstractController):
         self.view.close_reject_source_dialog()
 
 
-
 class ProcessCandidatesController(AbstractController):
     def on_accept(self):
         writer = self.model.get_writer()
@@ -357,4 +353,6 @@ class ProcessTracksController(ProcessRealsController):
                                          reading.dra, reading.ddec, reading.pa)
 
     def on_ssos_query(self):
-        print "Now we should re-run the SSOS query with the observations we have accepted."
+        new_workunit = self.model.get_current_workunit().query_ssos()
+        self.model.add_workunit(new_workunit)
+        self.model.next_item()
