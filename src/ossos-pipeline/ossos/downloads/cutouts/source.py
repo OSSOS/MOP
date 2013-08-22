@@ -145,7 +145,7 @@ class SourceCutout(object):
     def _update_ra_dec(self):
         fits_header = self.get_fits_header()
 
-        self._ra, self._dec = wcs.xy2sky(self.observed_x, self.observed_y,
+        self._ra, self._dec = wcs.xy2sky(self.pixel_x, self.pixel_y,
                                          float(fits_header[astrom.CRPIX1]),
                                          float(fits_header[astrom.CRPIX2]),
                                          float(fits_header[astrom.CRVAL1]),
