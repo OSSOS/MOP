@@ -278,6 +278,10 @@ class DisplayableImageTriplet(Displayable):
             for singlet in frame:
                 yield singlet
 
+    def reset_colormap(self):
+        for singlet in self.iter_singlets():
+            singlet.reset_colormap()
+
     def _do_render(self):
         for singlet in self.iter_singlets():
             singlet.show_image(colorbar=False)
