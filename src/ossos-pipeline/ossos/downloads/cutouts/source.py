@@ -143,14 +143,13 @@ class SourceCutout(object):
             self._stale = False
 
     def _update_ra_dec(self):
-        astrom_header = self.reading.get_observation_header()
         fits_header = self.get_fits_header()
 
         self._ra, self._dec = wcs.xy2sky(self.observed_x, self.observed_y,
-                                         float(astrom_header[astrom.CRPIX1]),
-                                         float(astrom_header[astrom.CRPIX2]),
-                                         float(astrom_header[astrom.CRVAL1]),
-                                         float(astrom_header[astrom.CRVAL2]),
+                                         float(fits_header[astrom.CRPIX1]),
+                                         float(fits_header[astrom.CRPIX2]),
+                                         float(fits_header[astrom.CRVAL1]),
+                                         float(fits_header[astrom.CRVAL2]),
                                          wcs.parse_cd(fits_header),
                                          wcs.parse_pv(fits_header),
                                          wcs.parse_order_fit(fits_header))

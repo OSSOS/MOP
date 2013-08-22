@@ -136,6 +136,11 @@ class WorkUnit(object):
         return len(self.get_current_source_readings())
 
     def get_current_reading(self):
+        """
+
+
+        :return: SourceReading
+        """
         return self.get_current_source_readings().get_current_item()
 
     def get_current_obs_number(self):

@@ -342,12 +342,16 @@ class ProcessTracksController(ProcessRealsController):
 
     ## we might need this later for plotting the orbits...  and adding some actions.
     def mark_current_source(self):
+        reading = self.model.get_current_reading()
         image_x, image_y = self.model.get_current_pixel_source_point()
         radius = 2 * round(self.model.get_current_image_FWHM())
-        self.view.draw_marker(image_x, image_y, radius, redraw=True)
+        if reading.from_input_file:
+            colour='g'
+        else:
+            colour='b'
+        self.view.draw_marker(image_x, image_y, radius, redraw=True, colour=colour)
 
         ## Also draw an error ellipse, since this is a tracks controller.
-        reading = self.model.get_current_reading()
         if not hasattr(reading, 'redraw_ellipse'):
             reading.redraw_ellipse = True
 

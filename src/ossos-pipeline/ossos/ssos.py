@@ -49,8 +49,10 @@ class TracksParser(object):
                 observations.append(observation)
 
         observations.sort(key=lambda obs: obs.date.jd)
+
+
         # pass down the provisional name so the table lines are linked to this TNO
-        self.ssos_parser=SSOSParser(observations[0].provisional_name)
+        self.ssos_parser=SSOSParser(observations[0].provisional_name, input_observations=observations)
 
         self.orbit = Orbfit(observations)
 
@@ -130,11 +132,14 @@ class SSOSParser(object):
     """
     Parse the result of an SSOS query, which is stored in an astropy Table object
     """
-    def __init__(self, provisional_name):
+    def __init__(self, provisional_name, input_observations=[]):
         """
         setup the parser.
         """
         self.provisional_name = provisional_name
+        self.input_rawnames = []
+        for observation in input_observations:
+            self.input_rawnames.append(observation.comment.frame)
 
     def _skip_missing_data(self, str_vals, ncols):
         """
@@ -216,6 +221,7 @@ class SSOSParser(object):
                                              ftype='p',
                                              ccdnum=str(ccd),
                                              fk="")
+
             observation.rawname = os.path.splitext(os.path.basename(image_uri))[0]+str(ccd).zfill(2)
 
             observation.header = mopheader[0].header
@@ -240,7 +246,6 @@ class SSOSParser(object):
                                                   view='cutout',
                                                   cutout='[{}][{}:{},{}:{}]'.format(ccd+1, x_cen, x_cen, y_cen, y_cen))
 
-
             pvwcs = wcs.WCS(hdulist[0].header)
             (ra,dec)  = pvwcs.xy2sky(x_cen, y_cen)
             if ref_pvwcs is None:
@@ -254,12 +259,18 @@ class SSOSParser(object):
             # Build astrom.SourceReading
             observations.append(observation)
             print observation.rawname, MJD_OBS_CENTER
-            source_readings.append(astrom.SourceReading(x=row['X'], y=row['Y'],
+
+            source_reading = astrom.SourceReading(x=row['X'], y=row['Y'],
                                                         xref=xref, yref=yref,
                                                         x0=x0, y0=y0,
                                                         ra=row['Object_RA'], dec=row['Object_Dec'],
                                                         obs=observation,
-                                                        ssos=True))
+                                                        ssos=True,
+                                                        from_input_file=(observation.rawname in self.input_rawnames))
+            #if observation.rawname in  self.input_rawnames:
+            #    source_readings.insert(0, source_reading)
+            #else:
+            source_readings.append(source_reading)
         # build our array of SourceReading objects
         sources.append(source_readings)
 
