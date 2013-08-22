@@ -11,6 +11,8 @@ import math
 from ossos.downloads.core import Downloader
 from ossos.gui import logger
 from ossos.orbfit import Orbfit
+import warnings
+
 
 MAXCOUNT = 30000
 
@@ -30,7 +32,7 @@ class TracksParser(object):
     def __init__(self):
 
         self._nights_per_darkrun = 18
-        self._nights_separating_darkruns = 14
+        self._nights_separating_darkruns = 30
 
     def parse(self, filename):
 
@@ -52,6 +54,10 @@ class TracksParser(object):
 
         self.orbit = Orbfit(observations)
 
+        print self.orbit
+        print self.orbit.residuals
+
+
         length_of_observation_arc = observations[-1].date.jd - observations[0].date.jd
 
         if  length_of_observation_arc < 1:
@@ -68,11 +74,13 @@ class TracksParser(object):
         while True:
             tracks_data = self.query_ssos(observations, lunation_count)
 
-            if tracks_data.get_arc_length() > length_of_observation_arc or (
-                tracks_data.get_reading_count() > len(observations) ) :
+            print len(observations), tracks_data.get_reading_count(), lunation_count
+            if tracks_data.get_arc_length() <= length_of_observation_arc or (
+                tracks_data.get_reading_count() <= len(observations) ) :
+                assert lunation_count is not None, "No new observations available."
+                lunation_count = ( lunation_count > 2 and None ) or lunation_count + 1
+            else:
                 return tracks_data
-            assert lunation_count is not None, "No new observations available."
-            lunation_count = ( lunation_count > 2 and None ) or lunation_count + 1
 
 
     def query_ssos(self, observations, lunation_count):
@@ -114,14 +122,7 @@ class TracksParser(object):
                 source_reading.pa = self.orbit.pa
                 source_reading.dra = self.orbit.dra / observation.header['SCALE']
                 source_reading.ddec = self.orbit.ddec / observation.header['SCALE']
-                print observation.header
-                print "Source info:  {} {} {} {} {} {} {}".format(observation.header['EXPNUM'],
-                                                                  observation.header['CHIPNUM'],
-                                                                  source_reading.x,
-                                                                  source_reading.y,
-                                                                  source_reading.dra,
-                                                                  source_reading.ddec,
-                                                                  source_reading.pa)
+
         return tracks_data  # an TracksData with .sources and .observations only
 
 
@@ -168,6 +169,7 @@ class SSOSParser(object):
 
         ref_pvwcs = None
         downloader = Downloader()
+        warnings.filterwarnings('ignore')
 
         for row in table:
             # check if a dbimages object exists
@@ -209,13 +211,12 @@ class SSOSParser(object):
             mopheader_fpt = cStringIO.StringIO(storage.open_vos_or_local(mopheader_uri).read())
             mopheader = astropy.io.fits.open(mopheader_fpt)
             
-            rawname = os.path.splitext(os.path.basename(image_uri))[0]+str(ccd).zfill(2)
-            print rawname, image_uri
             # Build astrom.Observation
             observation = astrom.Observation(expnum=str(expnum),
                                              ftype='p',
                                              ccdnum=str(ccd),
                                              fk="")
+            observation.rawname = os.path.splitext(os.path.basename(image_uri))[0]+str(ccd).zfill(2)
 
             observation.header = mopheader[0].header
             MJD_OBS_CENTER = mpc.Time(observation.header['MJD-OBSC'],
@@ -252,7 +253,7 @@ class SSOSParser(object):
 
             # Build astrom.SourceReading
             observations.append(observation)
-
+            print observation.rawname, MJD_OBS_CENTER
             source_readings.append(astrom.SourceReading(x=row['X'], y=row['Y'],
                                                         xref=xref, yref=yref,
                                                         x0=x0, y0=y0,
@@ -262,6 +263,7 @@ class SSOSParser(object):
         # build our array of SourceReading objects
         sources.append(source_readings)
 
+        warnings.filterwarnings('once')
 
         return SSOSData(observations, sources, self.provisional_name)
 
