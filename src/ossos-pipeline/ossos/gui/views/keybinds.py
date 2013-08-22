@@ -18,14 +18,16 @@ class KeybindManager(object):
         reset_src_kb_id = wx.NewId()
         autoplay_kb_id = wx.NewId()
 
-        view.Bind(wx.EVT_MENU, self.on_next_obs_keybind, id=next_obs_kb_id)
-        view.Bind(wx.EVT_MENU, self.on_prev_obs_keybind, id=prev_obs_kb_id)
-        view.Bind(wx.EVT_MENU, self.on_accept_src_keybind, id=accept_src_kb_id)
-        view.Bind(wx.EVT_MENU, self.on_reject_src_keybind, id=reject_src_kb_id)
-        view.Bind(wx.EVT_MENU, self.on_reset_cmap_keybind, id=reset_cmap_kb_id)
-        view.Bind(wx.EVT_MENU, self.on_reset_source_location_keybind,
-                  id=reset_src_kb_id)
-        view.Bind(wx.EVT_MENU, self.on_toggle_autoplay, id=autoplay_kb_id)
+        def bind(handler, kb_id):
+            view.Bind(wx.EVT_MENU, handler, id=kb_id)
+
+        bind(self.on_next_obs_keybind, next_obs_kb_id)
+        bind(self.on_prev_obs_keybind, prev_obs_kb_id)
+        bind(self.on_accept_src_keybind, accept_src_kb_id)
+        bind(self.on_reject_src_keybind, reject_src_kb_id)
+        bind(self.on_reset_cmap_keybind, reset_cmap_kb_id)
+        bind(self.on_reset_source_location_keybind, reset_src_kb_id)
+        bind(self.on_toggle_autoplay, autoplay_kb_id)
 
         self.accept_key = config.read("KEYBINDS.ACCEPT_SRC")
         self.reject_key = config.read("KEYBINDS.REJECT_SRC")
