@@ -349,7 +349,12 @@ class ErrEllipse(object):
         self.a = max(a, 10)
         self.b = max(b, 10)
         self.pa = pa
-        self.artist = Ellipse(self.center, self.a, self.b, self.pa, edgecolor='b', linewidth=3, facecolor='#E47833', alpha=0.1)
+
+        angle = 90 - self.pa
+
+        self.artist = Ellipse(self.center, self.a, self.b, angle=angle,
+                              linewidth=3, edgecolor='b', facecolor='#E47833',
+                              alpha=0.1)
 
     def add_to_axes(self, axes):
         self.artist.set_clip_box(axes.bbox)
