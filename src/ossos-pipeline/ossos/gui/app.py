@@ -1,4 +1,3 @@
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import sys
@@ -10,10 +9,10 @@ from ossos.gui import config, tasks, logger
 from ossos.gui import context
 from ossos.gui.sync import SynchronizationManager
 from ossos.gui.models.workload import (WorkUnitProvider,
-                                RealsWorkUnitBuilder,
-                                TracksWorkUnitBuilder,
-                                CandidatesWorkUnitBuilder,
-                                PreFetchingWorkUnitProvider)
+                                       RealsWorkUnitBuilder,
+                                       TracksWorkUnitBuilder,
+                                       CandidatesWorkUnitBuilder,
+                                       PreFetchingWorkUnitProvider)
 from ossos.gui.errorhandling import DownloadErrorHandler
 from ossos.gui.controllers import (ProcessTracksController,
                                    ProcessRealsController,
@@ -37,7 +36,7 @@ def create_application(taskname, working_directory, output_directory,
                                 dry_run=dry_run, debug=debug)
     elif taskname == tasks.TRACK_TASK:
         ProcessTracksApplication(working_directory, output_directory,
-                                dry_run=dry_run, debug=debug)
+                                 dry_run=dry_run, debug=debug)
     else:
         error_message = "Unknown task: %s" % taskname
         logger.critical(error_message)
@@ -202,7 +201,6 @@ class ProcessRealsApplication(ValidationApplication):
         return RealsControllerFactory(model, dry_run=self.dry_run)
 
 
-
 class ProcessTracksApplication(ValidationApplication):
     def __init__(self, working_directory, output_directory,
                  dry_run=False, debug=False):
@@ -236,6 +234,11 @@ class ProcessTracksApplication(ValidationApplication):
 
 
 class ControllerFactory(object):
+    """
+    Allows the view to create the controller without direct knowledge
+    of the model.
+    """
+
     def __init__(self, model, dry_run=False):
         self.model = model
         self.dry_run = dry_run
@@ -257,6 +260,7 @@ class RealsControllerFactory(ControllerFactory):
             name_generator = ProvisionalNameGenerator()
 
         return ProcessRealsController(self.model, view, name_generator)
+
 
 class TracksControllerFactory(ControllerFactory):
     def create_controller(self, view):

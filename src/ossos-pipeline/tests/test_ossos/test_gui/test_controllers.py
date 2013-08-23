@@ -5,11 +5,15 @@ import unittest
 from mock import Mock, MagicMock, ANY
 from hamcrest import equal_to, assert_that
 
-from ossos.astrom import SourceReading, Observation
+from ossos.astrom import SourceReading
+from ossos.downloads.cutouts.source import SourceCutout
+from ossos.gui.autoplay import AutoplayManager
 from ossos.gui import config
 from ossos.gui.models.validation import ValidationModel
 from ossos.gui.views.appview import ApplicationView
-from ossos.gui.controllers import AbstractController, ProcessRealsController, ImageLoadingDialogManager
+from ossos.gui.controllers import (AbstractController, ProcessRealsController,
+                                   ProcessTracksController,
+                                   ImageLoadingDialogManager)
 from ossos.naming import ProvisionalNameGenerator
 
 
@@ -32,6 +36,8 @@ class AbstractControllerTest(unittest.TestCase):
 
         self.view = Mock(spec=ApplicationView)
         self.controller = AbstractController(self.model, self.view)
+        self.autoplay_manager = Mock(spec=AutoplayManager)
+        self.controller.autoplay_manager = self.autoplay_manager
 
     def test_reset_source_location_updates_model(self):
         self.controller.on_reset_source_location()
@@ -52,6 +58,45 @@ class AbstractControllerTest(unittest.TestCase):
     def test_toggle_reticule(self):
         self.controller.on_toggle_reticule_key()
         self.view.toggle_reticule.assert_called_once_with()
+
+    def test_enable_disable_autoplay(self):
+        self.controller.on_enable_autoplay()
+        self.autoplay_manager.start_autoplay.assert_called_once_with()
+
+        self.controller.on_disable_autoplay()
+        self.autoplay_manager.stop_autoplay.assert_called_once_with()
+
+    def test_display_current_image(self):
+        cutout = Mock(spec=SourceCutout)
+        self.model.get_current_cutout.return_value = cutout
+
+        self.controller.display_current_image()
+        self.view.display.assert_called_once_with(cutout)
+        self.view.update_displayed_data.assert_called_once_with(
+            self.model.get_reading_data(), self.model.get_header_data_list()
+        )
+
+        self.model.acknowledge_image_displayed.assert_called_once_with()
+
+    def test_stop_waiting_for_item_when_loaded(self):
+        image_loading_dialog_manager = Mock(spec=ImageLoadingDialogManager)
+        self.controller.image_loading_dialog_manager = image_loading_dialog_manager
+
+        displayable_item = Mock()
+        event = Mock()
+        event.data = displayable_item
+
+        self.controller.on_image_loaded(event)
+
+        image_loading_dialog_manager.set_item_done.assert_called_once_with(
+            displayable_item)
+
+    def test_enable_disable_autosync(self):
+        self.controller.on_enable_auto_sync()
+        self.model.enable_synchronization.assert_called_once_with()
+
+        self.controller.on_disable_auto_sync()
+        self.model.disable_synchronization.assert_called_once_with()
 
 
 class RealsControllerTest(unittest.TestCase):

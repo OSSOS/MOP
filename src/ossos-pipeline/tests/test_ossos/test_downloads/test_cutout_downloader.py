@@ -13,7 +13,7 @@ from ossos.astrom import SourceReading
 from ossos.downloads.cutouts import ImageCutoutDownloader
 
 
-class DownloadTest(FileReadingTestCase):
+class CutoutDownloaderTest(FileReadingTestCase):
     def setUp(self):
         self.image_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/1584431p15.fits"
         self.apcor_uri = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages/1584431/ccd15/1584431p15.apcor"
