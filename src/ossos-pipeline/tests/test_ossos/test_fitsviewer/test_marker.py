@@ -80,6 +80,7 @@ class MarkerTest(unittest.TestCase):
         marker = Marker(10, 10, 10)
 
         def assert_visible(visible):
+            assert_that(marker.circle.get_visible(), equal_to(visible))
             for line in marker.lines:
                 assert_that(line.get_visible(), equal_to(visible))
 
