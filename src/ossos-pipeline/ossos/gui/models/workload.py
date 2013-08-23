@@ -4,10 +4,12 @@ import os
 import random
 import threading
 
-from ossos.gui import tasks, logger
 from ossos.astrom import StreamingAstromWriter
+from ossos.gui import tasks
+from ossos.gui import logger
 from ossos.gui.models.collections import StatefulCollection
-from ossos.gui.models.exceptions import NoAvailableWorkException, SourceNotNamedException
+from ossos.gui.models.exceptions import (NoAvailableWorkException,
+                                         SourceNotNamedException)
 from ossos.gui.progress import FileLockedException
 
 
@@ -137,8 +139,6 @@ class WorkUnit(object):
 
     def get_current_reading(self):
         """
-
-
         :return: SourceReading
         """
         return self.get_current_source_readings().get_current_item()
@@ -171,112 +171,6 @@ class WorkUnit(object):
 
     def _close_writers(self):
         pass
-
-
-class TracksWorkUnit(WorkUnit):
-    """
-    A unit of work when performing the process track task.
-    """
-    def __init__(self,
-                 builder,
-                 filename,
-                 parsed_data,
-                 progress_manager,
-                 output_context,
-                 dry_run=False):
-        super(TracksWorkUnit, self).__init__(
-            filename,
-            parsed_data,
-            progress_manager,
-            output_context,
-            dry_run=dry_run)
-
-        self.builder = builder
-        self._writer = None
-        self._ssos_queried = False
-
-    def query_ssos(self):
-        """
-        Use the MPC file that has been built up in processing this work
-        unit to generate another workunit.
-        """
-        self._ssos_queried = True
-        return self.builder.build_workunit(
-            self.output_context.get_full_path(self._writer.get_filename()))
-
-    def is_finished(self):
-        return self._ssos_queried or super(TracksWorkUnit, self).is_finished()
-
-    def next_item(self):
-        assert not self.is_finished()
-
-        self.next_obs()
-        while self.is_current_item_processed():
-            self._next_sequential_item()
-
-    def _next_sequential_item(self):
-        """
-        Go to the next item to process.
-        """
-        if self.get_current_source_readings().is_on_last_item():
-            self.next_source()
-        else:
-            self.next_obs()
-
-    def get_current_item(self):
-        return self.get_current_reading()
-
-    def get_current_item_index(self):
-        return (self.get_sources().get_index() * self.get_obs_count() +
-                self.get_current_source_readings().get_index())
-
-    def is_source_finished(self, source):
-        for reading in source.get_readings():
-            if reading not in self.processed_items:
-                return False
-
-        return True
-
-    def is_apcor_needed(self):
-        return True
-
-    def get_writer(self):
-        if self._writer is None:
-            self._writer = self._create_writer(self.filename.replace(".track", ".mpc"))
-
-        return self._writer
-
-    def get_results_file_paths(self):
-        if self._writer is None:
-            return []
-
-        return [self.output_context.get_full_path(self._writer.get_filename())]
-
-    def _create_writer(self, filename):
-        # NOTE: this import is only here so that we don't load up secondary
-        # dependencies (like astropy) used in MPCWriter when they are not
-        # needed (i.e. cands task).  This is to help reduce the application
-        # startup time.
-        from ossos.mpc import MPCWriter
-
-        return MPCWriter(self.output_context.open(filename),
-                         auto_flush=True)
-
-    def _get_item_set(self):
-        all_readings = set()
-        for readings in self.readings_by_source.itervalues():
-            all_readings.update(readings)
-        return all_readings
-
-    def _mark_previously_processed_items(self):
-        processed_indices = self.progress_manager.get_processed_indices(self.get_filename())
-        for index in processed_indices:
-            for reading in self.get_sources()[index].get_readings():
-                self.processed_items.add(reading)
-
-    def _close_writers(self):
-        if self._writer is not None:
-            self._writer.close()
 
 
 class RealsWorkUnit(WorkUnit):
@@ -450,6 +344,113 @@ class CandidatesWorkUnit(WorkUnit):
         processed_indices = self.progress_manager.get_processed_indices(self.get_filename())
         for index in processed_indices:
             self.processed_items.add(self.get_sources()[index])
+
+    def _close_writers(self):
+        if self._writer is not None:
+            self._writer.close()
+
+
+class TracksWorkUnit(WorkUnit):
+    """
+    A unit of work when performing the process track task.
+    """
+
+    def __init__(self,
+                 builder,
+                 filename,
+                 parsed_data,
+                 progress_manager,
+                 output_context,
+                 dry_run=False):
+        super(TracksWorkUnit, self).__init__(
+            filename,
+            parsed_data,
+            progress_manager,
+            output_context,
+            dry_run=dry_run)
+
+        self.builder = builder
+        self._writer = None
+        self._ssos_queried = False
+
+    def query_ssos(self):
+        """
+        Use the MPC file that has been built up in processing this work
+        unit to generate another workunit.
+        """
+        self._ssos_queried = True
+        return self.builder.build_workunit(
+            self.output_context.get_full_path(self._writer.get_filename()))
+
+    def is_finished(self):
+        return self._ssos_queried or super(TracksWorkUnit, self).is_finished()
+
+    def next_item(self):
+        assert not self.is_finished()
+
+        self.next_obs()
+        while self.is_current_item_processed():
+            self._next_sequential_item()
+
+    def _next_sequential_item(self):
+        """
+        Go to the next item to process.
+        """
+        if self.get_current_source_readings().is_on_last_item():
+            self.next_source()
+        else:
+            self.next_obs()
+
+    def get_current_item(self):
+        return self.get_current_reading()
+
+    def get_current_item_index(self):
+        return (self.get_sources().get_index() * self.get_obs_count() +
+                self.get_current_source_readings().get_index())
+
+    def is_source_finished(self, source):
+        for reading in source.get_readings():
+            if reading not in self.processed_items:
+                return False
+
+        return True
+
+    def is_apcor_needed(self):
+        return True
+
+    def get_writer(self):
+        if self._writer is None:
+            self._writer = self._create_writer(self.filename.replace(".track", ".mpc"))
+
+        return self._writer
+
+    def get_results_file_paths(self):
+        if self._writer is None:
+            return []
+
+        return [self.output_context.get_full_path(self._writer.get_filename())]
+
+    def _create_writer(self, filename):
+        # NOTE: this import is only here so that we don't load up secondary
+        # dependencies (like astropy) used in MPCWriter when they are not
+        # needed (i.e. cands task).  This is to help reduce the application
+        # startup time.
+        from ossos.mpc import MPCWriter
+
+        return MPCWriter(self.output_context.open(filename),
+                         auto_flush=True)
+
+    def _get_item_set(self):
+        all_readings = set()
+        for readings in self.readings_by_source.itervalues():
+            all_readings.update(readings)
+        return all_readings
+
+    def _mark_previously_processed_items(self):
+        processed_indices = self.progress_manager.get_processed_indices(self.get_filename())
+        for index in processed_indices:
+            for reading in self.get_sources()[index].get_readings():
+                self.processed_items.add(reading)
 
     def _close_writers(self):
         if self._writer is not None:
