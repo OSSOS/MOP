@@ -12,7 +12,6 @@ class TripletViewer(WxMPLFitsViewer):
     def __init__(self, parent, canvas):
         super(TripletViewer, self).__init__(parent, canvas)
 
-        self.current_displayable = None
         self._displayables_by_grid = {}
 
     def display(self, cutout_grid):
@@ -49,10 +48,3 @@ class TripletViewer(WxMPLFitsViewer):
             radius = 2 * round(fwhm)
 
             self.current_displayable.get_singlet(frame_index, time_index).place_marker(x, y, radius)
-
-    def reset_colormap(self):
-        if self.current_displayable is not None:
-            self.current_displayable.reset_colormap()
-
-    def toggle_reticule(self):
-        self.current_displayable.toggle_reticule()
