@@ -852,14 +852,21 @@ class MPCWriter(object):
         # Holds observations that have not yet been flushed
         self.buffer = []
 
+        self.written_mpc_observations = []
+
     def get_filename(self):
         return self.filehandle.name
+
+    def get_written_mpc_observations(self):
+        return self.written_mpc_observations
 
     def write(self, mpc_observation):
         """
         Writes a single entry in the Minor Planet Center's format.
         """
         self.buffer.append(mpc_observation)
+        self.written_mpc_observations.append(mpc_observation)
+
         if self.auto_flush:
             self.flush()
 
