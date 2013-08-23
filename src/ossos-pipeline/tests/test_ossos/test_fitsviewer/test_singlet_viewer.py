@@ -34,7 +34,7 @@ class SingletViewerTest(WxWidgetTestCase):
         mock_place_marker = Mock()
         current_displayable.place_marker = mock_place_marker
 
-        self.viewer.mark_source(cutout)
+        self.viewer.mark_sources(cutout)
         mock_place_marker.assert_called_once_with(x, y, 2 * fwhm)
 
     def test_refresh_marker(self):
@@ -42,7 +42,7 @@ class SingletViewerTest(WxWidgetTestCase):
         cutout.hdulist = mock_hdulist()
 
         mark_source = Mock()
-        self.viewer.mark_source = mark_source
+        self.viewer.mark_sources = mark_source
 
         self.viewer.display(cutout, mark_source=False)
 
@@ -54,7 +54,7 @@ class SingletViewerTest(WxWidgetTestCase):
         cutout.hdulist = mock_hdulist()
 
         mark_source = Mock()
-        self.viewer.mark_source = mark_source
+        self.viewer.mark_sources = mark_source
 
         self.viewer.display(cutout)
 
