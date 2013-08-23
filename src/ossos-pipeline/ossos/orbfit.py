@@ -12,7 +12,9 @@ LIBORBFIT = "/usr/local/lib/liborbfit.so"
 
 
 class OrbfitError(Exception):
-    "Insufficent enough observations for an orbit."
+    def __init__(self):
+        super(OrbfitError, self).__init__(
+            "Insufficent enough observations for an orbit.")
 
 
 class Orbfit(object):

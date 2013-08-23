@@ -11,6 +11,7 @@ from ossos.gui.models.collections import StatefulCollection
 from ossos.gui.models.exceptions import (NoAvailableWorkException,
                                          SourceNotNamedException)
 from ossos.gui.progress import FileLockedException
+from ossos.orbfit import Orbfit
 
 
 class WorkUnit(object):
@@ -372,6 +373,12 @@ class TracksWorkUnit(WorkUnit):
         self.builder = builder
         self._writer = None
         self._ssos_queried = False
+
+    def print_orbfit_info(self):
+        orbfit = Orbfit(self.get_writer().get_written_mpc_observations())
+
+        print orbfit
+        print orbfit.residuals
 
     def query_ssos(self):
         """
