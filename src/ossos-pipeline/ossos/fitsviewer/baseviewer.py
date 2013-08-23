@@ -33,6 +33,13 @@ class WxMPLFitsViewer(object):
         if mark_source:
             self.mark_sources(cutout)
 
+    def draw_marker(self, x, y, radius, colour="b"):
+        """
+        Draws a marker with the specified dimensions.  Only one marker can
+        be on the image at a time, so any existing marker will be replaced.
+        """
+        self.current_displayable.place_marker(x, y, radius, colour=colour)
+
     def mark_sources(self, cutout):
         pass
 

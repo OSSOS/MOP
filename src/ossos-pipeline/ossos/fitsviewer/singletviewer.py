@@ -13,7 +13,6 @@ class SingletViewer(WxMPLFitsViewer):
     def __init__(self, parent, canvas):
         super(SingletViewer, self).__init__(parent, canvas)
 
-        self.current_cutout = None
         self.xy_changed = Signal()
 
     def mark_sources(self, cutout):
@@ -24,14 +23,12 @@ class SingletViewer(WxMPLFitsViewer):
         radius = 2 * round(fwhm)
         self._displayables_by_cutout[cutout].place_marker(x, y, radius)
 
-    def draw_error_ellipse(self, x, y, a, b, pa, redraw=True):
+    def draw_error_ellipse(self, x, y, a, b, pa):
         """
         Draws an ErrEllipse with the spcified dimensions.  Only one ErrEllipse can be drawn and
         only once (not movable).
         """
-        self.current_image.place_error_ellipse(x, y, a, b, pa)
-        if redraw:
-            self.redraw()
+        self.current_displayable.place_error_ellipse(x, y, a, b, pa)
 
     def register_xy_changed_event_handler(self, handler):
         self.xy_changed.connect(handler)
