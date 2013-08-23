@@ -1,25 +1,25 @@
+__author__ = 'Michele Bannister'
+
+import cStringIO
 import datetime
 import os
-import urllib
-import urllib2
-import cStringIO
-import astropy
-from astropy.io import ascii, fits
-from astropy.time import Time
-from astropy.table import Table
-import math
-from ossos.downloads.core import Downloader
-from ossos.gui import logger
-from ossos.orbfit import Orbfit
 import warnings
 
+import astropy
+from astropy.io import ascii, fits
+from astropy.table import Table
+from astropy.time import Time
+import requests
+
+from ossos import astrom
+from ossos.downloads.core import Downloader
+from ossos.gui import logger
+from ossos import mpc
+from ossos.orbfit import Orbfit
+from ossos import storage
+from ossos import wcs
 
 MAXCOUNT = 30000
-
-import requests
-from ossos import storage, astrom, mpc, wcs
-
-__author__ = 'Michele Bannister'
 
 SSOS_URL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssos.pl"
 RESPONSE_FORMAT = 'tsv'
@@ -30,12 +30,10 @@ NEW_LINE = '\r\n'
 class TracksParser(object):
 
     def __init__(self):
-
         self._nights_per_darkrun = 18
         self._nights_separating_darkruns = 30
 
     def parse(self, filename):
-
         filehandle = storage.open_vos_or_local(filename, "rb")
         filestr = filehandle.read()
         filehandle.close()
@@ -58,7 +56,6 @@ class TracksParser(object):
 
         print self.orbit
         print self.orbit.residuals
-
 
         length_of_observation_arc = observations[-1].date.jd - observations[0].date.jd
 
@@ -84,13 +81,11 @@ class TracksParser(object):
             else:
                 return tracks_data
 
-
     def query_ssos(self, observations, lunation_count):
         # we observe ~ a week either side of new moon
         # but we don't know when in the dark run the discovery happened
         # so be generous with the search boundaries, add extra 2 weeks
         # current date just has to be the night of the triplet,
-
 
         if lunation_count is None:
             search_start_date = Time('2013-02-08', scale='utc')
@@ -104,7 +99,6 @@ class TracksParser(object):
                 self._nights_per_darkrun +
                 lunation_count*self._nights_separating_darkruns) ),
                                    format='jd', scale='utc')
-
 
         query = Query(observations,
                       search_start_date=search_start_date,
@@ -151,7 +145,6 @@ class SSOSParser(object):
         else:
             raise ValueError("not enough columns in table")
 
-
     def parse(self, ssos_result_filename_or_lines):
         """
         given the result table create 'source' objects.
@@ -159,8 +152,6 @@ class SSOSParser(object):
         :type ssos_result_table: Table
         :param ssos_result_table:
         """
-
-
         table_reader = ascii.get_reader(Reader=ascii.Basic)
         table_reader.inconsistent_handler = self._skip_missing_data
         table_reader.header.splitter.delimiter = '\t'
@@ -171,7 +162,6 @@ class SSOSParser(object):
         observations = []
         source_readings = []
 
-
         ref_pvwcs = None
         downloader = Downloader()
         warnings.filterwarnings('ignore')
@@ -180,7 +170,6 @@ class SSOSParser(object):
             # check if a dbimages object exists
             ccd = int(row['Ext']) - 1
             expnum = row['Image'].rstrip('p')
-
 
             image_uri = storage.dbimages_uri(expnum=expnum,
                                              ccd=None,
@@ -279,7 +268,6 @@ class SSOSParser(object):
         return SSOSData(observations, sources, self.provisional_name)
 
 
-
 class SSOSData(object):
     """
     Encapsulates data extracted from an .astrom file.
@@ -306,7 +294,6 @@ class SSOSData(object):
         self.sys_header = None
         self.sources = [astrom.Source(reading_list, provisional_name) for reading_list in sources]
 
-
     def get_reading_count(self):
         count = 0
         for source in self.sources:
@@ -328,10 +315,6 @@ class SSOSData(object):
             mjds.append(Time(obs.header['MJD_OBS_CENTER'], format='mpc', scale='utc').jd)
         arc = (len(mjds) > 0 and max(mjds) - min(mjds) ) or 0
         return arc
-
-
-
-
 
 
 class ParamDictBuilder(object):
@@ -370,7 +353,6 @@ class ParamDictBuilder(object):
     @observations.setter
     def observations(self, observations):
         self._observations = observations
-
 
     @property
     def verbose(self):
@@ -494,7 +476,6 @@ class ParamDictBuilder(object):
         )
 
 
-
 class Query(object):
     """
     Query the CADC's Solar System Object search for a given set of MPC-formatted moving object detection lines.
@@ -508,7 +489,6 @@ class Query(object):
 
     """
 
-
     def __init__(self, observations, search_start_date=Time('2013-01-01', scale='utc'),
                  search_end_date = Time('2017-01-01', scale='utc')):
 
@@ -519,16 +499,12 @@ class Query(object):
         self.headers = {'User-Agent': 'OSSOS Target Track'}
 
     def get(self):
-
         """
-
-
         :return: astropy.table.table
         :raise: AssertionError
         """
         params = self.param_dict_biulder.params
         self.response = requests.get(SSOS_URL, params=params, headers=self.headers)
-
 
         assert isinstance(self.response, requests.Response)
 

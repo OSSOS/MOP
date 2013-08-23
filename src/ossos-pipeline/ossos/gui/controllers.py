@@ -309,6 +309,36 @@ class ProcessCandidatesController(AbstractController):
         self.model.next_item()
 
 
+class ProcessTracksController(ProcessRealsController):
+    """
+    The main controller of the 'track' task.  Sets up the view and
+    handles user interactions. This task extends orbit linkages from
+    three out to more observations.
+    """
+
+    def display_current_image(self):
+        successful = super(ProcessTracksController, self).display_current_image()
+
+        if successful:
+            ## Also draw an error ellipse, since this is a tracks controller.
+            reading = self.model.get_current_reading()
+
+            if not hasattr(reading, 'redraw_ellipse'):
+                reading.redraw_ellipse = True
+
+            if hasattr(reading, 'dra') and hasattr(reading, 'ddec') and hasattr(reading,
+                                                                                'pa') and reading.redraw_ellipse:
+                x, y = self.model.get_current_pixel_source_point()
+                self.view.draw_error_ellipse(x, y, reading.dra, reading.ddec, reading.pa)
+
+            reading.redraw_ellipse = False
+
+    def on_ssos_query(self):
+        new_workunit = self.model.get_current_workunit().query_ssos()
+        self.model.add_workunit(new_workunit)
+        self.model.next_item()
+
+
 class ImageLoadingDialogManager(object):
     def __init__(self, view):
         self.view = view
@@ -331,32 +361,3 @@ class ImageLoadingDialogManager(object):
         if len(self._wait_items) == 0 and self._dialog_showing:
             self.view.hide_image_loading_dialog()
             self._dialog_showing = False
-
-
-class ProcessTracksController(ProcessRealsController):
-    """
-    The main controller of the 'track' task.  Sets up the view and
-    handles user interactions. This task extends orbit linkages from
-    three out to more observations.
-    """
-
-    def display_current_image(self):
-        successful = super(ProcessTracksController, self).display_current_image()
-
-        if successful:
-            ## Also draw an error ellipse, since this is a tracks controller.
-            reading = self.model.get_current_reading()
-
-            if not hasattr(reading, 'redraw_ellipse'):
-                reading.redraw_ellipse = True
-
-            if hasattr(reading, 'dra') and hasattr(reading, 'ddec') and hasattr(reading,'pa') and reading.redraw_ellipse:
-                x, y = self.model.get_current_pixel_source_point()
-                self.view.draw_error_ellipse(x, y, reading.dra, reading.ddec, reading.pa)
-
-            reading.redraw_ellipse = False
-
-    def on_ssos_query(self):
-        new_workunit = self.model.get_current_workunit().query_ssos()
-        self.model.add_workunit(new_workunit)
-        self.model.next_item()

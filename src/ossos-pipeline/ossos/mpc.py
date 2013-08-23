@@ -1,28 +1,22 @@
-from ossos.gui import logger
-
 __author__ = "David Rusk <drusk@uvic.ca>"
+__author__ = 'jjk'
 
+from datetime import datetime
 import itertools
+import os
 import re
 import struct
 import time
-from datetime import datetime
-import numpy
-import os
-import urllib
 
 from astropy import coordinates
-from astropy import units
 from astropy.time import sofa_time
 from astropy.time import TimeString
 from astropy.time import Time
+from astropy import units
+import numpy
 
-import ctypes
-import tempfile
+from ossos.gui import logger
 
-LIBORBFIT='/usr/local/lib/liborbfit.so'
-
-__author__ = 'jjk'
 
 MPCNOTES = {'Note1':
                 {" ": " ",
@@ -136,14 +130,6 @@ def format_ra_dec(ra_deg, dec_deg):
                                       pad=True)
 
     return formatted_ra, formatted_dec
-
-
-def _is_numeric(string):
-    try:
-        float(string)
-        return True
-    except ValueError:
-        return False
 
 
 class MPCNote(object):
@@ -354,7 +340,6 @@ class TimeMPC(TimeString):
 
 
 Time.FORMATS[TimeMPC.name] = TimeMPC
-
 
 
 class Observation(object):

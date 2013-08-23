@@ -1,10 +1,11 @@
-import numpy
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import math
 
+import numpy
+
 PI180 = 57.2957795130823208767981548141052
+
 
 class WCS(object):
 
@@ -14,7 +15,6 @@ class WCS(object):
         """
 
         self.header = header
-
 
     @property
     def cd(self):
