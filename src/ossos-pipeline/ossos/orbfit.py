@@ -11,6 +11,12 @@ from ossos.mpc import Time
 LIBORBFIT = "/usr/local/lib/liborbfit.so"
 
 
+class OrbfitError(Exception):
+    def __init__(self):
+        super(OrbfitError, self).__init__(
+            "Insufficent enough observations for an orbit.")
+
+
 class Orbfit(object):
     """
     This class provides orbital information derived by calling 'fit_radec'.
@@ -24,7 +30,8 @@ class Orbfit(object):
         Requires at least 3 observations.
         """
         if len(observations) < 3:
-            raise Exception("Insufficent enough observations for an orbit.")
+            raise OrbfitError()
+
         self.orbfit = ctypes.CDLL(LIBORBFIT)
         self.observations = observations
         self._fit_radec()

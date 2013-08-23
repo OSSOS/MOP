@@ -1,12 +1,13 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from ossos import mpc
 from ossos.daophot import TaskError
+from ossos.gui.autoplay import AutoplayManager
 from ossos.gui import config
 from ossos.gui import events
-from ossos.gui.autoplay import AutoplayManager
 from ossos.gui.models.exceptions import (ImageNotLoadedException,
                                          NoWorkUnitException)
+from ossos import mpc
+from ossos.orbfit import OrbfitError
 
 
 class AbstractController(object):
@@ -222,7 +223,7 @@ class ProcessRealsController(AbstractController):
                      band,
                      observatory_code,
                      comment,
-                     ):
+    ):
         """
         Final acceptance with collected data.
         """
@@ -274,7 +275,6 @@ class ProcessRealsController(AbstractController):
 
         reading = self.model.get_current_reading()
 
-
         mpc_observation = mpc.Observation(
             provisional_name=self.model.get_current_source_name(),
             date=self.model.get_current_observation_date(),
@@ -315,6 +315,41 @@ class ProcessTracksController(ProcessRealsController):
     handles user interactions. This task extends orbit linkages from
     three out to more observations.
     """
+
+    def on_do_accept(self,
+                     minor_planet_number,
+                     provisional_name,
+                     discovery_asterisk,
+                     note1,
+                     note2,
+                     date_of_obs,
+                     ra,
+                     dec,
+                     obs_mag,
+                     obs_mag_err,
+                     band,
+                     observatory_code,
+                     comment,
+    ):
+        super(ProcessTracksController, self).on_do_accept(
+            minor_planet_number,
+            provisional_name,
+            discovery_asterisk,
+            note1,
+            note2,
+            date_of_obs,
+            ra,
+            dec,
+            obs_mag,
+            obs_mag_err,
+            band,
+            observatory_code,
+            comment)
+
+        try:
+            self.model.get_current_workunit().print_orbfit_info()
+        except OrbfitError as error:
+            print str(error)
 
     def display_current_image(self):
         successful = super(ProcessTracksController, self).display_current_image()
