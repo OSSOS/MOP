@@ -58,6 +58,9 @@ class Displayable(object):
     def reset_colormap(self):
         pass
 
+    def toggle_reticule(self):
+        pass
+
     def _do_render(self):
         raise NotImplementedError()
 
@@ -169,6 +172,10 @@ class ImageSinglet(object):
         self._colormap.set_defaults()
         self._refresh_displayed_colormap()
 
+    def toggle_reticule(self):
+        self.marker.toggle_reticule()
+        self.display_changed.fire()
+
     def is_event_in_axes(self, event):
         return self.axes == event.inaxes
 
@@ -249,6 +256,9 @@ class DisplayableImageSinglet(Displayable):
     def reset_colormap(self):
         self.image_singlet.reset_colormap()
 
+    def toggle_reticule(self):
+        self.image_singlet.toggle_reticule()
+
     def _do_render(self):
         self.image_singlet.show_image(colorbar=True)
 
@@ -291,6 +301,10 @@ class DisplayableImageTriplet(Displayable):
     def reset_colormap(self):
         for singlet in self.iter_singlets():
             singlet.reset_colormap()
+
+    def toggle_reticule(self):
+        for singlet in self.iter_singlets():
+            singlet.toggle_reticule()
 
     def _do_render(self):
         for singlet in self.iter_singlets():
@@ -423,6 +437,10 @@ class Marker(object):
 
     def contains(self, event):
         return self.circle.contains(event)
+
+    def toggle_reticule(self):
+        for line in self.lines:
+            line.set_visible(not line.get_visible())
 
     def _get_vertical_x_extent(self):
         return self.x, self.x

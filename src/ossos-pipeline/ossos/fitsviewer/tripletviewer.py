@@ -53,3 +53,6 @@ class TripletViewer(WxMPLFitsViewer):
     def reset_colormap(self):
         if self.current_displayable is not None:
             self.current_displayable.reset_colormap()
+
+    def toggle_reticule(self):
+        self.current_displayable.toggle_reticule()

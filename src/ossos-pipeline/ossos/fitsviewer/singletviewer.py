@@ -70,3 +70,6 @@ class SingletViewer(WxMPLFitsViewer):
 
     def register_xy_changed_event_handler(self, handler):
         self.xy_changed.connect(handler)
+
+    def toggle_reticule(self):
+        self.current_displayable.toggle_reticule()
