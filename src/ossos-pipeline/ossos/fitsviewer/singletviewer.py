@@ -14,7 +14,6 @@ class SingletViewer(WxMPLFitsViewer):
         super(SingletViewer, self).__init__(parent, canvas)
 
         self.current_cutout = None
-        self.current_displayable = None
         self.xy_changed = Signal()
 
         self._displayables_by_cutout = {}
@@ -64,12 +63,5 @@ class SingletViewer(WxMPLFitsViewer):
         if redraw:
             self.redraw()
 
-    def reset_colormap(self):
-        if self.current_displayable is not None:
-            self.current_displayable.reset_colormap()
-
     def register_xy_changed_event_handler(self, handler):
         self.xy_changed.connect(handler)
-
-    def toggle_reticule(self):
-        self.current_displayable.toggle_reticule()
