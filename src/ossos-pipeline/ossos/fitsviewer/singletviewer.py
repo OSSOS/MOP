@@ -14,40 +14,9 @@ class SingletViewer(WxMPLFitsViewer):
         super(SingletViewer, self).__init__(parent, canvas)
 
         self.current_cutout = None
-        self.current_displayable = None
         self.xy_changed = Signal()
 
-        self._displayables_by_cutout = {}
-
-    def display(self, cutout, mark_source=True):
-        if cutout in self._displayables_by_cutout:
-            displayable = self._displayables_by_cutout[cutout]
-        else:
-            displayable = DisplayableImageSinglet(cutout.hdulist)
-            self._displayables_by_cutout[cutout] = displayable
-
-        if self.current_displayable is not None:
-            self.current_displayable.xy_changed.disconnect(self.xy_changed.fire)
-            self.current_displayable.focus_released.disconnect(self.release_focus)
-
-        self.current_cutout = cutout
-        self.current_displayable = displayable
-
-        self.current_displayable.xy_changed.connect(self.xy_changed.fire)
-        self.current_displayable.focus_released.connect(self.release_focus)
-
-        self._do_render(self.current_displayable)
-
-        if mark_source:
-            self.mark_source(cutout)
-
-    def _do_render(self, displayable):
-        displayable.render(self.canvas)
-
-    def refresh_markers(self):
-        self.mark_source(self.current_cutout)
-
-    def mark_source(self, cutout):
+    def mark_sources(self, cutout):
         assert cutout in self._displayables_by_cutout
 
         x, y = cutout.pixel_source_point
@@ -64,9 +33,17 @@ class SingletViewer(WxMPLFitsViewer):
         if redraw:
             self.redraw()
 
-    def reset_colormap(self):
-        if self.current_displayable is not None:
-            self.current_displayable.reset_colormap()
-
     def register_xy_changed_event_handler(self, handler):
         self.xy_changed.connect(handler)
+
+    def _create_displayable(self, cutout):
+        return DisplayableImageSinglet(cutout.hdulist)
+
+    def _attach_handlers(self, displayable):
+        displayable.xy_changed.connect(self.xy_changed.fire)
+        displayable.focus_released.connect(self.release_focus)
+
+    def _detach_handlers(self, displayable):
+        if displayable is not None:
+            displayable.xy_changed.disconnect(self.xy_changed.fire)
+            displayable.focus_released.disconnect(self.release_focus)

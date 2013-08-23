@@ -9,27 +9,6 @@ class TripletViewer(WxMPLFitsViewer):
     Displays a single FITS image at a time.
     """
 
-    def __init__(self, parent, canvas):
-        super(TripletViewer, self).__init__(parent, canvas)
-
-        self.current_displayable = None
-        self._displayables_by_grid = {}
-
-    def display(self, cutout_grid):
-        if cutout_grid in self._displayables_by_grid:
-            displayable = self._displayables_by_grid[cutout_grid]
-        else:
-            displayable = DisplayableImageTriplet(cutout_grid)
-            self._displayables_by_grid[cutout_grid] = displayable
-
-        self.current_displayable = displayable
-        self.current_displayable.render(self.canvas)
-
-        self.mark_sources(cutout_grid)
-
-    def refresh_markers(self):
-        self.mark_sources(self.current_displayable.cutout_grid)
-
     def mark_sources(self, cutout_grid):
         for frame_index in range(cutout_grid.num_frames):
             self.mark_frame(cutout_grid, frame_index)
@@ -50,6 +29,5 @@ class TripletViewer(WxMPLFitsViewer):
 
             self.current_displayable.get_singlet(frame_index, time_index).place_marker(x, y, radius)
 
-    def reset_colormap(self):
-        if self.current_displayable is not None:
-            self.current_displayable.reset_colormap()
+    def _create_displayable(self, cutout_grid):
+        return DisplayableImageTriplet(cutout_grid)
