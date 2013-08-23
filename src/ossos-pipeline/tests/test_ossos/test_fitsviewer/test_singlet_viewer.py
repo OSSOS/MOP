@@ -6,6 +6,7 @@ from mock import Mock, MagicMock
 
 from tests.base_tests import WxWidgetTestCase
 from tests.testutil import mock_hdulist
+from ossos.astrom import SourceReading
 from ossos.downloads.cutouts.source import SourceCutout
 from ossos.fitsviewer.singletviewer import SingletViewer
 
@@ -24,9 +25,12 @@ class SingletViewerTest(WxWidgetTestCase):
         fwhm = 4
 
         cutout = Mock(spec=SourceCutout)
+        reading = Mock(spec=SourceReading)
         cutout.hdulist = mock_hdulist()
         cutout.pixel_source_point = x, y
         cutout.astrom_header = {"FWHM": fwhm}
+        reading.from_input_file = False
+        cutout.reading = reading
 
         self.viewer.display(cutout, mark_source=False)
 
@@ -35,7 +39,8 @@ class SingletViewerTest(WxWidgetTestCase):
         current_displayable.place_marker = mock_place_marker
 
         self.viewer.mark_sources(cutout)
-        mock_place_marker.assert_called_once_with(x, y, 2 * fwhm)
+        mock_place_marker.assert_called_once_with(x, y, 2 * fwhm,
+                                                  colour="b")
 
     def test_refresh_marker(self):
         cutout = Mock(spec=SourceCutout)
