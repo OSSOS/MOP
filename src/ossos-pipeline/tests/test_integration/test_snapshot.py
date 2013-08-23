@@ -77,6 +77,12 @@ class SourceSnapshotIntegrationTest(FileReadingTestCase):
 
         # These values from FITS header:
 
+        crpix1 = 6.779623933420000E+03
+        crpix2 = -3.343209710100000E+03
+
+        crval1 = 211.828420000
+        crval2 = -11.8333100000
+
         # CD1_1, CD1_2, CD2_1, CD2_2
         cd = [[-5.156837193510000E-05, -3.588985558218000E-07],
               [-1.674871346376000E-07, 5.178515755263000E-05]]
@@ -96,10 +102,8 @@ class SourceSnapshotIntegrationTest(FileReadingTestCase):
 
         # NOTE: the x and y passed in must be the updated OBSERVED coordinates
         mock_xy2sky.assert_called_once_with(
-            self.original_observed_x + diff_x,
-            self.original_observed_y + diff_y,
-            # These next values are from the Astrom header
-            7442.65, -128.69, 211.82842, -11.83331,
+            new_pixel_x, new_pixel_y,
+            crpix1, crpix2, crval1, crval2,
             cd, pv, nord)
 
     @patch("ossos.daophot.phot_mag")

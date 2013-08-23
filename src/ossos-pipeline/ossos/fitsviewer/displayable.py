@@ -1,9 +1,8 @@
-from matplotlib.patches import Ellipse
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Ellipse
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from stsci import numdisplay
 
@@ -54,6 +53,9 @@ class Displayable(object):
     def redraw(self):
         if self.canvas is not None:
             self.canvas.draw()
+
+    def place_error_ellipse(self, x, y, a, b, pa):
+        pass
 
     def reset_colormap(self):
         pass
@@ -119,7 +121,7 @@ class ImageSinglet(object):
             self.figure.colorbar(self.axes_image, orientation="horizontal",
                                  cax=cax)
 
-    def place_marker(self, x, y, radius):
+    def place_marker(self, x, y, radius, colour="b"):
         """
         Draws a marker with the specified dimensions.  Only one marker can
         be on the image at a time, so any existing marker will be replaced.
@@ -127,7 +129,7 @@ class ImageSinglet(object):
         if self.marker is not None:
             self.marker.remove_from_axes(self.axes)
 
-        self.marker = Marker(x, y, radius)
+        self.marker = Marker(x, y, radius, colour=colour)
         self.marker.add_to_axes(self.axes)
 
         self.display_changed.fire()
@@ -250,8 +252,11 @@ class DisplayableImageSinglet(Displayable):
     def focus_released(self):
         return self.image_singlet.focus_released
 
-    def place_marker(self, x, y, radius):
-        self.image_singlet.place_marker(x, y, radius)
+    def place_marker(self, x, y, radius, colour="b"):
+        self.image_singlet.place_marker(x, y, radius, colour=colour)
+
+    def place_error_ellipse(self, x, y, a, b, pa):
+        self.image_singlet.place_error_ellipse(x, y, a, b, pa)
 
     def reset_colormap(self):
         self.image_singlet.reset_colormap()
@@ -333,21 +338,18 @@ class ErrEllipse(object):
     """
     def __init__(self, x_cen, y_cen, a, b, pa):
         """
-
-
         :param x_cen: x coordinate at center of the ellipse
         :param y_cen: y coordinate at center of the ellipse
         :param a: size of semi-major axes of the ellipse
         :param b: size of semi-minor axes of the ellipse
         :param pa: position angle of a to x  (90 ==> a is same orientation as x)
-
         """
 
         self.center = (x_cen, y_cen)
         self.a = max(a, 10)
         self.b = max(b, 10)
         self.pa = pa
-        self.artist = Ellipse(self.center, self.a, self.b, self.pa, edgecolor='b', facecolor='g', alpha=0.2)
+        self.artist = Ellipse(self.center, self.a, self.b, self.pa, edgecolor='b', linewidth=3, facecolor='#E47833', alpha=0.1)
 
     def add_to_axes(self, axes):
         self.artist.set_clip_box(axes.bbox)
@@ -355,8 +357,8 @@ class ErrEllipse(object):
 
 
 class Marker(object):
-    def __init__(self, x, y, radius):
-        self.circle = plt.Circle((x, y), radius, color="b", fill=False)
+    def __init__(self, x, y, radius, colour="b"):
+        self.circle = plt.Circle((x, y), radius, color=colour, fill=False)
 
         self.crosshair_scaling = 2
 
