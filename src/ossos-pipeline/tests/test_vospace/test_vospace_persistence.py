@@ -12,9 +12,7 @@ from ossos.gui.context import VOSpaceWorkingContext
 from ossos.gui import progress
 from ossos.gui.progress import VOSpaceProgressManager, FileLockedException, RequiresLockException
 
-# TODO: don't use my own VOSpace
-# BASE_TEST_DIR = "vos:OSSOS/tests/"
-BASE_TEST_DIR = "vos:drusk/OSSOS/tests/"
+BASE_TEST_DIR = "vos:OSSOS/integration_tests/"
 PROTOTYPE_FILE = "data/prototype"
 PERSISTENCE_TEST_DIR = BASE_TEST_DIR + "persistence_tests"
 
