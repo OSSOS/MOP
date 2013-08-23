@@ -33,12 +33,12 @@ class WxMPLFitsViewer(object):
         if mark_source:
             self.mark_sources(cutout)
 
-    def draw_marker(self, x, y, radius, colour="b"):
+    def draw_error_ellipse(self, x, y, a, b, pa):
         """
-        Draws a marker with the specified dimensions.  Only one marker can
-        be on the image at a time, so any existing marker will be replaced.
+        Draws an ErrEllipse with the spcified dimensions.  Only one ErrEllipse can be drawn and
+        only once (not movable).
         """
-        self.current_displayable.place_marker(x, y, radius, colour=colour)
+        self.current_displayable.place_error_ellipse(x, y, a, b, pa)
 
     def mark_sources(self, cutout):
         pass

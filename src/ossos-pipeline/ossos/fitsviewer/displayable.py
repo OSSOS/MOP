@@ -54,6 +54,9 @@ class Displayable(object):
         if self.canvas is not None:
             self.canvas.draw()
 
+    def place_error_ellipse(self, x, y, a, b, pa):
+        pass
+
     def reset_colormap(self):
         pass
 
@@ -251,6 +254,9 @@ class DisplayableImageSinglet(Displayable):
 
     def place_marker(self, x, y, radius, colour="b"):
         self.image_singlet.place_marker(x, y, radius, colour=colour)
+
+    def place_error_ellipse(self, x, y, a, b, pa):
+        self.image_singlet.place_error_ellipse(x, y, a, b, pa)
 
     def reset_colormap(self):
         self.image_singlet.reset_colormap()
