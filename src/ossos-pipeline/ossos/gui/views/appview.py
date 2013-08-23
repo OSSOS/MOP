@@ -98,6 +98,10 @@ class ApplicationView(object):
         self.image_viewer.reset_colormap()
 
     @guithread
+    def toggle_reticule(self):
+        self.image_viewer.toggle_reticule()
+
+    @guithread
     def register_xy_changed_event_handler(self, handler):
         self.image_viewer.register_xy_changed_event_handler(handler)
 

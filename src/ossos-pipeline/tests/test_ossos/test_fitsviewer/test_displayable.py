@@ -54,17 +54,37 @@ class ImageSingletTest(unittest.TestCase):
         assert_that(self.displayable.marker.center, equal_to((c2x, c2y)))
         assert_that(self.displayable.marker.radius, equal_to(c2r))
 
+    def test_toggle_reticule_notifies_display_changed(self):
+        self.displayable.place_marker(10, 10, 10)
+
+        refresh_handler = Mock()
+        self.displayable.display_changed.connect(refresh_handler)
+
+        self.displayable.toggle_reticule()
+
+        refresh_handler.assert_called_once_with()
+
 
 class DisplayableImageSingletTest(unittest.TestCase):
     def setUp(self):
         self.singlet = DisplayableImageSinglet(MagicMock())
 
-    def test_reset_colormap(self):
+    def mock_image_singlet(self):
         image_singlet = Mock(spec=ImageSinglet)
         self.singlet.image_singlet = image_singlet
+        return image_singlet
+
+    def test_reset_colormap(self):
+        image_singlet = self.mock_image_singlet()
 
         self.singlet.reset_colormap()
         image_singlet.reset_colormap.assert_called_once_with()
+
+    def test_toggle_reticule(self):
+        image_singlet = self.mock_image_singlet()
+
+        self.singlet.toggle_reticule()
+        image_singlet.toggle_reticule.assert_called_once_with()
 
 
 class DisplayableImageTripletTest(unittest.TestCase):

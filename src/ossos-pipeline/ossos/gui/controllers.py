@@ -108,6 +108,9 @@ class AbstractController(object):
             self.autoplay_manager.start_autoplay()
             self.view.set_autoplay(True)
 
+    def on_toggle_reticule_key(self):
+        self.view.toggle_reticule()
+
     def on_show_keymappings(self):
         self.view.show_keymappings()
 
