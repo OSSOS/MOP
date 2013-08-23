@@ -90,12 +90,8 @@ class ApplicationView(object):
         self.image_viewer.refresh_markers()
 
     @guithread
-    def draw_marker(self, x, y, radius, colour="b"):
-        self.image_viewer.draw_marker(x, y, radius, colour=colour)
-
-    @guithread
-    def draw_error_ellipse(self, x, y, a, b, pa, redraw=False):
-        self.image_viewer.draw_error_ellipse(x, y, a, b, pa, redraw=redraw)
+    def draw_error_ellipse(self, x, y, a, b, pa):
+        self.image_viewer.draw_error_ellipse(x, y, a, b, pa)
 
     @guithread
     def reset_colormap(self):

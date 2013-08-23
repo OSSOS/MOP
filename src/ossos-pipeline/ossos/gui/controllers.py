@@ -29,9 +29,9 @@ class AbstractController(object):
             self.view.display(self.model.get_current_cutout())
         except ImageNotLoadedException as ex:
             self.image_loading_dialog_manager.wait_for_item(ex.requested_item)
-            return
+            return False
         except NoWorkUnitException:
-            return
+            return False
 
         self.view.update_displayed_data(self.model.get_reading_data(),
                                         self.model.get_header_data_list())
@@ -41,6 +41,8 @@ class AbstractController(object):
             self.model.get_obs_count())
 
         self.model.acknowledge_image_displayed()
+
+        return True
 
     def on_reposition_source(self, new_x, new_y):
         try:
@@ -338,26 +340,21 @@ class ProcessTracksController(ProcessRealsController):
     three out to more observations.
     """
 
-    ## we might need this later for plotting the orbits...  and adding some actions.
-    def mark_current_source(self):
-        reading = self.model.get_current_reading()
-        image_x, image_y = self.model.get_current_pixel_source_point()
-        radius = 2 * round(self.model.get_current_image_FWHM())
-        if reading.from_input_file:
-            colour='g'
-        else:
-            colour='b'
-        self.view.draw_marker(image_x, image_y, radius, colour=colour)
+    def display_current_image(self):
+        successful = super(ProcessTracksController, self).display_current_image()
 
-        ## Also draw an error ellipse, since this is a tracks controller.
-        if not hasattr(reading, 'redraw_ellipse'):
-            reading.redraw_ellipse = True
+        if successful:
+            ## Also draw an error ellipse, since this is a tracks controller.
+            reading = self.model.get_current_reading()
 
-        if hasattr(reading, 'dra') and hasattr(reading, 'ddec') and hasattr(reading,'pa') and reading.redraw_ellipse:
-            self.view.draw_error_ellipse(image_x, image_y,
-                                         reading.dra, reading.ddec, reading.pa,
-                                         redraw=True)
-        reading.redraw_ellipse = False
+            if not hasattr(reading, 'redraw_ellipse'):
+                reading.redraw_ellipse = True
+
+            if hasattr(reading, 'dra') and hasattr(reading, 'ddec') and hasattr(reading,'pa') and reading.redraw_ellipse:
+                x, y = self.model.get_current_pixel_source_point()
+                self.view.draw_error_ellipse(x, y, reading.dra, reading.ddec, reading.pa)
+
+            reading.redraw_ellipse = False
 
     def on_ssos_query(self):
         new_workunit = self.model.get_current_workunit().query_ssos()

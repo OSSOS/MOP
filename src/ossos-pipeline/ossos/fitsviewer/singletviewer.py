@@ -21,14 +21,14 @@ class SingletViewer(WxMPLFitsViewer):
         x, y = cutout.pixel_source_point
         fwhm = float(cutout.astrom_header["FWHM"])
         radius = 2 * round(fwhm)
-        self._displayables_by_cutout[cutout].place_marker(x, y, radius)
 
-    def draw_error_ellipse(self, x, y, a, b, pa):
-        """
-        Draws an ErrEllipse with the spcified dimensions.  Only one ErrEllipse can be drawn and
-        only once (not movable).
-        """
-        self.current_displayable.place_error_ellipse(x, y, a, b, pa)
+        if cutout.reading.from_input_file:
+            colour = "g"
+        else:
+            colour = "b"
+
+        self._displayables_by_cutout[cutout].place_marker(x, y, radius,
+                                                          colour=colour)
 
     def register_xy_changed_event_handler(self, handler):
         self.xy_changed.connect(handler)
