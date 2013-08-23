@@ -49,6 +49,23 @@ class SingletViewerTest(WxWidgetTestCase):
         self.viewer.refresh_markers()
         mark_source.assert_called_once_with(cutout)
 
+    def test_toggle_reticule(self):
+        cutout = Mock(spec=SourceCutout)
+        cutout.hdulist = mock_hdulist()
+
+        mark_source = Mock()
+        self.viewer.mark_source = mark_source
+
+        self.viewer.display(cutout)
+
+        toggle_reticule = Mock()
+        current_displayable = self.viewer.current_displayable
+        current_displayable.toggle_reticule = toggle_reticule
+
+        self.viewer.toggle_reticule()
+
+        toggle_reticule.assert_called_once_with()
+
 
 if __name__ == '__main__':
     unittest.main()

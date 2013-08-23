@@ -17,6 +17,7 @@ class KeybindManager(object):
         reset_cmap_kb_id = wx.NewId()
         reset_src_kb_id = wx.NewId()
         autoplay_kb_id = wx.NewId()
+        toggle_reticule_kb_id = wx.NewId()
 
         def bind(handler, kb_id):
             view.Bind(wx.EVT_MENU, handler, id=kb_id)
@@ -28,12 +29,14 @@ class KeybindManager(object):
         bind(self.on_reset_cmap_keybind, reset_cmap_kb_id)
         bind(self.on_reset_source_location_keybind, reset_src_kb_id)
         bind(self.on_toggle_autoplay, autoplay_kb_id)
+        bind(self.on_toggle_reticule, toggle_reticule_kb_id)
 
         self.accept_key = config.read("KEYBINDS.ACCEPT_SRC")
         self.reject_key = config.read("KEYBINDS.REJECT_SRC")
         self.reset_cmap_key = config.read("KEYBINDS.RESET_CMAP")
         self.reset_source_key = config.read("KEYBINDS.RESET_SOURCE_LOCATION")
         self.autoplay_key = config.read("KEYBINDS.AUTOPLAY")
+        self.toggle_reticule_key = config.read("KEYBINDS.TOGGLE_RETICULE")
 
         accelerators = wx.AcceleratorTable(
             [
@@ -44,6 +47,8 @@ class KeybindManager(object):
                 (wx.ACCEL_NORMAL, ord(self.reset_cmap_key), reset_cmap_kb_id),
                 (wx.ACCEL_NORMAL, ord(self.reset_source_key), reset_src_kb_id),
                 (wx.ACCEL_NORMAL, ord(self.autoplay_key), autoplay_kb_id),
+                (wx.ACCEL_NORMAL, ord(self.toggle_reticule_key),
+                 toggle_reticule_kb_id),
             ]
         )
 
@@ -56,7 +61,8 @@ class KeybindManager(object):
                 ("Reject", self.reject_key),
                 ("Reset colourmap", self.reset_cmap_key),
                 ("Reset source location", self.reset_source_key),
-                ("Autoplay", self.autoplay_key)]
+                ("Autoplay", self.autoplay_key),
+                ("Toggle reticule", self.toggle_reticule_key)]
 
     def on_next_obs_keybind(self, event):
         self.controller.on_next_obs()
@@ -81,3 +87,6 @@ class KeybindManager(object):
 
     def on_toggle_autoplay(self, event):
         self.controller.on_toggle_autoplay_key()
+
+    def on_toggle_reticule(self, event):
+        self.controller.on_toggle_reticule_key()

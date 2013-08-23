@@ -49,6 +49,10 @@ class AbstractControllerTest(unittest.TestCase):
         self.controller.on_reset_colormap()
         self.view.reset_colormap.assert_called_once_with()
 
+    def test_toggle_reticule(self):
+        self.controller.on_toggle_reticule_key()
+        self.view.toggle_reticule.assert_called_once_with()
+
 
 class RealsControllerTest(unittest.TestCase):
     def setUp(self):
