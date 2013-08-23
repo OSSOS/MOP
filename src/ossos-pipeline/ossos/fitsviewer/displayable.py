@@ -439,6 +439,7 @@ class Marker(object):
         return self.circle.contains(event)
 
     def toggle_reticule(self):
+        self.circle.set_visible(not self.circle.get_visible())
         for line in self.lines:
             line.set_visible(not line.get_visible())
 
