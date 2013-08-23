@@ -1,10 +1,15 @@
 __author__ = 'jjk'
+
 import ctypes
-LIBORBFIT = "/usr/local/lib/liborbfit.so"
 import tempfile
-from mpc import Time
+
 from astropy import coordinates
 from astropy import units
+
+from ossos.mpc import Time
+
+LIBORBFIT = "/usr/local/lib/liborbfit.so"
+
 
 class Orbfit(object):
     """

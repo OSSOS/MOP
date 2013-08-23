@@ -1,15 +1,11 @@
 """OSSOS VOSpace storage convenience package"""
 
-
-import subprocess
-import os
-import tempfile
-import vos
-import logging
-import urllib
 import errno
+import logging
+import os
+
 from astropy.io import fits
-import urlparse
+import vos
 
 from ossos import coding
 
