@@ -465,7 +465,11 @@ class MPCWriterTest(unittest.TestCase):
     def test_write_comment(self):
         self.undertest = mpc.MPCWriter(self.outputfile, auto_flush=True,
                                        include_comments=True)
-        comment = "1234567p00 334.56 884.22 Something fishy."
+        frame = "1234567p00"
+        xpos = 334.56
+        ypos = 884.22
+        comment = "Something fishy."
+        comment = "Something fishy."
         obs = mpc.Observation(minor_planet_number="",
                               provisional_name="A234567",
                               discovery="*",
@@ -477,28 +481,41 @@ class MPCWriterTest(unittest.TestCase):
                               mag="123.5",
                               band="A",
                               observatory_code="523",
-                              comment=comment)
+                              comment=comment,
+                              frame=frame,
+                              xpos=xpos,
+                              ypos=ypos)
 
         self.undertest.write(obs)
 
         expected = ("     A234567*HN2012 10 21.40516001 46 44.001+29 13 13.27"
-                    "         123.5A      523 1234567p00 334.56 884.22 Something fishy.\n")
+                    "         123.5A      523 1234567p00 A234567 LH"
+                    "  334.6  884.2 123.50  UUUU % Something fishy.\n")
         assert_that(self.read_outputfile(), equal_to(expected))
 
     def test_write_rejection_line(self):
         self.undertest = mpc.MPCWriter(self.outputfile, auto_flush=True,
                                        include_comments=True)
-        comment = "1234567p00 334.56 884.22 Something fishy."
-        obs = mpc.Observation(date="2012 10 21.405160",
+        frame = "1234567p00"
+        xpos = 334.56
+        ypos = 884.22
+        comment = "Something fishy."
+        obs = mpc.Observation(provisional_name="A234567",
+                              date="2012 10 21.405160",
                               ra="26.683336700", # 01 46 44.001
                               dec="29.220353200", # +29 13 13.27
-                              comment=comment)
+                              comment=comment,
+                              frame=frame,
+                              xpos=xpos,
+                              ypos=ypos)
 
         obs.null_observation = True
 
         self.undertest.write(obs)
 
-        expected = "!              2012 10 21.40516001 46 44.001+29 13 13.27         0.0  r      568 1234567p00 334.56 884.22 Something fishy.\n"
+        expected = ("!    A234567   2012 10 21.40516001 46 44.001+29 13 13.27"
+                    "         -1   r      568 1234567p00 A234567 Z"
+                    "   334.6  884.2   UUUU % Something fishy.\n")
 
         actual = self.read_outputfile()
 

@@ -1,6 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 from ossos.fitsviewer.baseviewer import WxMPLFitsViewer
+from ossos.fitsviewer.displayable import DisplayableImageTriplet
 
 
 class TripletViewer(WxMPLFitsViewer):
@@ -8,28 +9,25 @@ class TripletViewer(WxMPLFitsViewer):
     Displays a single FITS image at a time.
     """
 
-    def __init__(self, parent, canvas):
-        super(TripletViewer, self).__init__(parent, canvas)
+    def mark_sources(self, cutout_grid):
+        for frame_index in range(cutout_grid.num_frames):
+            self.mark_frame(cutout_grid, frame_index)
 
-        self.current_image = None
+    def mark_frame(self, cutout_grid, frame_index):
+        focus_cutout = cutout_grid.get_cutout(frame_index, frame_index)
 
-    def display(self, displayable, redraw=True):
-        self.current_image = displayable
-        self.current_image.render(self.canvas)
+        for time_index in range(cutout_grid.num_times):
+            cutout = cutout_grid.get_cutout(frame_index, time_index)
 
-        if redraw:
-            self.redraw()
+            x, y = focus_cutout.pixel_source_point
+            offset_x, offset_y = focus_cutout.reading.get_coordinate_offset(cutout.reading)
+            x += offset_x
+            y += offset_y
 
-    def draw_marker(self, x, y, radius, redraw=True):
-        """
-        Draws a marker with the specified dimensions.  Only one marker can
-        be on the image at a time, so any existing marker will be replaced.
-        """
-        self.current_image.place_marker(x, y, radius)
+            fwhm = float(cutout.reading.get_observation_header()["FWHM"])
+            radius = 2 * round(fwhm)
 
-        if redraw:
-            self.redraw()
+            self.current_displayable.get_singlet(frame_index, time_index).place_marker(x, y, radius)
 
-    def reset_colormap(self):
-        if self.current_image is not None:
-            self.current_image.reset_colormap()
+    def _create_displayable(self, cutout_grid):
+        return DisplayableImageTriplet(cutout_grid)

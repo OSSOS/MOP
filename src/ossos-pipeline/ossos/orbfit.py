@@ -1,10 +1,21 @@
 __author__ = 'jjk'
+
 import ctypes
-LIBORBFIT = "/usr/local/lib/liborbfit.so"
 import tempfile
-from mpc import Time
+
 from astropy import coordinates
 from astropy import units
+
+from ossos.mpc import Time
+
+LIBORBFIT = "/usr/local/lib/liborbfit.so"
+
+
+class OrbfitError(Exception):
+    def __init__(self):
+        super(OrbfitError, self).__init__(
+            "Insufficent enough observations for an orbit.")
+
 
 class Orbfit(object):
     """
@@ -19,7 +30,8 @@ class Orbfit(object):
         Requires at least 3 observations.
         """
         if len(observations) < 3:
-            raise Exception("Insufficent enough observations for an orbit.")
+            raise OrbfitError()
+
         self.orbfit = ctypes.CDLL(LIBORBFIT)
         self.observations = observations
         self._fit_radec()
@@ -75,6 +87,7 @@ class Orbfit(object):
         self._residuals()
 
     def _residuals(self):
+        residuals = ""
         for observation in self.observations:
             self.predict(observation.date)
             dra = coordinates.Angle(self.coordinate.ra - observation.coordinate.ra )
@@ -85,6 +98,8 @@ class Orbfit(object):
                 dra = ddec - coordinates.Angle(360, unit=units.degree)
             observation.ra_residual = dra.degrees*3600.0
             observation.dec_residual = ddec.degrees*3600.0
+            residuals += "{:12s} {:+05.2f} {:+05.2f}\n".format(observation.date, observation.ra_residual, observation.dec_residual)
+        self.residuals = residuals
 
     def __str__(self):
         """

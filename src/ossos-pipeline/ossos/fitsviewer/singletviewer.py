@@ -1,6 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 from ossos.fitsviewer.baseviewer import WxMPLFitsViewer
+from ossos.fitsviewer.displayable import DisplayableImageSinglet
 from ossos.fitsviewer.interaction import Signal
 
 
@@ -12,38 +13,34 @@ class SingletViewer(WxMPLFitsViewer):
     def __init__(self, parent, canvas):
         super(SingletViewer, self).__init__(parent, canvas)
 
-        self.current_image = None
         self.xy_changed = Signal()
 
-    def display(self, displayable, redraw=True):
-        if self.current_image is not None:
-            self.current_image.display_changed.disconnect(self.redraw)
-            self.current_image.xy_changed.disconnect(self.xy_changed.fire)
-            self.current_image.focus_released.disconnect(self.release_focus)
+    def mark_sources(self, cutout):
+        assert cutout in self._displayables_by_cutout
 
-        self.current_image = displayable
-        self.current_image.display_changed.connect(self.redraw)
-        self.current_image.xy_changed.connect(self.xy_changed.fire)
-        self.current_image.focus_released.connect(self.release_focus)
+        x, y = cutout.pixel_source_point
+        fwhm = float(cutout.astrom_header["FWHM"])
+        radius = 2 * round(fwhm)
 
-        self.current_image.render(self.canvas)
+        if cutout.reading.from_input_file:
+            colour = "g"
+        else:
+            colour = "b"
 
-        if redraw:
-            self.redraw()
-
-    def draw_marker(self, x, y, radius, redraw=True):
-        """
-        Draws a marker with the specified dimensions.  Only one marker can
-        be on the image at a time, so any existing marker will be replaced.
-        """
-        self.current_image.place_marker(x, y, radius)
-
-        if redraw:
-            self.redraw()
-
-    def reset_colormap(self):
-        if self.current_image is not None:
-            self.current_image.reset_colormap()
+        self._displayables_by_cutout[cutout].place_marker(x, y, radius,
+                                                          colour=colour)
 
     def register_xy_changed_event_handler(self, handler):
         self.xy_changed.connect(handler)
+
+    def _create_displayable(self, cutout):
+        return DisplayableImageSinglet(cutout.hdulist)
+
+    def _attach_handlers(self, displayable):
+        displayable.xy_changed.connect(self.xy_changed.fire)
+        displayable.focus_released.connect(self.release_focus)
+
+    def _detach_handlers(self, displayable):
+        if displayable is not None:
+            displayable.xy_changed.disconnect(self.xy_changed.fire)
+            displayable.focus_released.disconnect(self.release_focus)

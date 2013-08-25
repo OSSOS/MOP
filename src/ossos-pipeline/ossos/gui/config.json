@@ -4,7 +4,8 @@
         "REJECT_SRC": "r",
         "RESET_CMAP": "s",
         "RESET_SOURCE_LOCATION": "c",
-        "AUTOPLAY": "d"
+        "AUTOPLAY": "d",
+        "TOGGLE_RETICULE": "t"
     },
 
     "CUTOUTS": {

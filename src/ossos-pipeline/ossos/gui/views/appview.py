@@ -39,13 +39,13 @@ class ApplicationView(object):
     Provides the view's external interface.
     """
 
-    def __init__(self, controller_factory, debug=False):
+    def __init__(self, controller_factory, track_mode=False, debug=False):
         self.controller = controller_factory.create_controller(self)
 
         self.wx_app = wx.App(False)
         self.debug = debug
 
-        self.mainframe = MainFrame(self.controller)
+        self.mainframe = MainFrame(self.controller, track_mode=track_mode)
         self.image_view_manager = ImageViewManager(self.mainframe)
         self.menu = Menu(self.mainframe, self.controller)
         self.keybind_manager = KeybindManager(self.mainframe, self.controller)
@@ -82,16 +82,24 @@ class ApplicationView(object):
         self.wx_app.MainLoop()
 
     @guithread
-    def display(self, fits_image, redraw=True):
-        self.image_viewer.display(fits_image, redraw=redraw)
+    def display(self, cutout):
+        self.image_viewer.display(cutout)
 
     @guithread
-    def draw_marker(self, x, y, radius, redraw=True):
-        self.image_viewer.draw_marker(x, y, radius, redraw=redraw)
+    def refresh_markers(self):
+        self.image_viewer.refresh_markers()
+
+    @guithread
+    def draw_error_ellipse(self, x, y, a, b, pa):
+        self.image_viewer.draw_error_ellipse(x, y, a, b, pa)
 
     @guithread
     def reset_colormap(self):
         self.image_viewer.reset_colormap()
+
+    @guithread
+    def toggle_reticule(self):
+        self.image_viewer.toggle_reticule()
 
     @guithread
     def register_xy_changed_event_handler(self, handler):

@@ -37,7 +37,7 @@
                 <input type="hidden" name="next" value="${ next }">
                 <button type="submit" class="btn" name="submit">Sign in</button>
                 <a style="margin-left: 40px;s"
-                   href="http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/auth/userID.pl">Reset password</a>
+                   href="http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/auth/forgot.html">Reset password</a>
               </div>
             </div> <!-- control-group -->
           </form>

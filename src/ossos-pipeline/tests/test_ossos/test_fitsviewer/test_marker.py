@@ -76,6 +76,24 @@ class MarkerTest(unittest.TestCase):
         assert_that(marker.bottom_hair.get_xdata(), equal_to((20, 20)))
         assert_that(marker.bottom_hair.get_ydata(), equal_to((8, 14)))
 
+    def test_toggle_reticule(self):
+        marker = Marker(10, 10, 10)
+
+        def assert_visible(visible):
+            assert_that(marker.circle.get_visible(), equal_to(visible))
+            for line in marker.lines:
+                assert_that(line.get_visible(), equal_to(visible))
+
+        assert_visible(True)
+
+        marker.toggle_reticule()
+
+        assert_visible(False)
+
+        marker.toggle_reticule()
+
+        assert_visible(True)
+
 
 if __name__ == '__main__':
     unittest.main()
