@@ -220,8 +220,7 @@ class AbstractRealsModelTest(GeneralModelTest):
             ("R.A.", 26.6833367), ("DEC", 29.2203532)
         ))
 
-    @patch("ossos.gui.models.imagemanager.DisplayableImageSinglet")
-    def test_loading_images(self, mock_DisplayableImageSinglet):
+    def test_loading_images(self):
         observer = Mock()
         events.subscribe(events.IMG_LOADED, observer.on_img_loaded)
         image1 = Mock()
@@ -236,12 +235,10 @@ class AbstractRealsModelTest(GeneralModelTest):
         # Simulate receiving callback
         self.image_manager.on_singlet_image_loaded(image1)
         assert_that(observer.on_img_loaded.call_count, equal_to(1))
-        assert_that(mock_DisplayableImageSinglet.call_count, equal_to(1))
 
         # Simulate receiving callback
         self.image_manager.on_singlet_image_loaded(image2)
         assert_that(observer.on_img_loaded.call_count, equal_to(2))
-        assert_that(mock_DisplayableImageSinglet.call_count, equal_to(2))
 
         # Check event args
         call_args_list = observer.on_img_loaded.call_args_list

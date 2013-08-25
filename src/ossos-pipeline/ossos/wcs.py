@@ -2,7 +2,98 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import math
 
+import numpy
+
 PI180 = 57.2957795130823208767981548141052
+
+
+class WCS(object):
+
+    def __init__(self, header):
+        """
+        Create the bits needed for working with sky2xy
+        """
+
+        self.header = header
+
+    @property
+    def cd(self):
+        """
+        CD Rotation matrix values.
+        """
+        return parse_cd(self.header)
+
+    @property
+    def dc(self):
+        """
+        CD Rotation matrix INVERTED i.e.  []^-1
+        """
+
+        return numpy.array(numpy.mat(self.cd).I)
+
+    @property
+    def pv(self):
+        """
+        Array of PV keywords used for hi-odered astrogwyn mapping
+        """
+        return parse_pv(self.header)
+
+    @property
+    def crpix1(self):
+        """
+        1st reference coordinate
+        """
+        return self.header['CRPIX1']
+
+    @property
+    def crpix2(self):
+        """
+        2nd reference coordinate
+        """
+        return self.header['CRPIX2']
+
+    @property
+    def crval1(self):
+        """
+        Reference Coordinate of 1st reference pixel
+        """
+        return self.header['CRVAL1']
+
+    @property
+    def crval2(self):
+        """
+        Reference Coordinate of 2nd reference pixel
+        """
+        return self.header['CRVAL2']
+
+    @property
+    def nord(self):
+        """
+        The order of the PV fit, provided by astgwyn
+        """
+        return self.header['NORDFIT']
+
+    def xy2sky(self, x, y):
+        return xy2sky(x=x, y=y,
+                      crpix1=self.crpix1,
+                      crpix2=self.crpix2,
+                      crval1=self.crval1,
+                      crval2=self.crval2,
+                      cd=self.cd,
+                      pv=self.pv,
+                      nord=self.nord)
+
+    def sky2xy(self, ra, dec):
+        return sky2xy(ra=ra,
+                      dec=dec,
+                      crpix1=self.crpix1,
+                      crpix2=self.crpix2,
+                      crval1=self.crval1,
+                      crval2=self.crval2,
+                      dc=self.dc,
+                      pv=self.pv,
+                      nord=self.nord
+                      )
 
 
 def xy2sky(x, y, crpix1, crpix2, crval1, crval2, cd, pv, nord):

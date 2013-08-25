@@ -6,7 +6,8 @@ from ossos.gui.models.collections import StatefulCollection
 from ossos.gui.models.exceptions import (ImageNotLoadedException,
                                          NoWorkUnitException,
                                          NoAvailableWorkException)
-from ossos.gui.models.workload import CandidatesWorkUnit, RealsWorkUnit
+from ossos.gui.models.workload import (CandidatesWorkUnit, RealsWorkUnit,
+                                       TracksWorkUnit)
 
 
 class ValidationModel(object):
@@ -58,7 +59,7 @@ class ValidationModel(object):
 
             if self.is_processing_candidates():
                 self.expect_source_transition()
-            elif self.is_processing_reals():
+            elif self.is_processing_reals() or self.is_processing_tracks():
                 self.expect_observation_transition()
 
     def accept_current_item(self):
@@ -152,7 +153,7 @@ class ValidationModel(object):
         return self.get_current_reading().get_observation_header()
 
     def get_current_fits_header(self):
-        return self.get_current_cutout().get_fits_header()
+        return self.get_current_cutout().fits_header
 
     def get_current_exposure_number(self):
         return int(self.get_current_reading().obs.expnum)
@@ -193,9 +194,6 @@ class ValidationModel(object):
 
     def get_current_displayable_item(self):
         return self.image_state.get_current_displayable_item()
-
-    def get_current_displayable_image(self):
-        return self.image_state.get_current_displayable_image()
 
     def get_current_band(self):
         return self.get_current_fits_header()["FILTER"][0]
@@ -262,8 +260,11 @@ class ValidationModel(object):
     def is_processing_reals(self):
         return isinstance(self.get_current_workunit(), RealsWorkUnit)
 
+    def is_processing_tracks(self):
+        return isinstance(self.get_current_workunit(), TracksWorkUnit)
+
     def get_current_cutout(self):
-        return self.image_manager.get_cutout(self.get_current_reading())
+        return self.image_state.get_current_cutout()
 
     def download_workunit_images(self, workunit):
         self.image_state.download_workunit_images(workunit)
@@ -296,12 +297,12 @@ class SingletState(object):
         self.download_workunit_images(
             self.model.get_current_workunit())
 
+    def get_current_cutout(self):
+        return self.image_manager.get_cutout(
+            self.get_current_displayable_item())
+
     def get_current_displayable_item(self):
         return self.model.get_current_reading()
-
-    def get_current_displayable_image(self):
-        return self.image_manager.get_displayable_singlet(
-            self.model.get_current_reading())
 
     def download_workunit_images(self, workunit):
         self.image_manager.download_singlets_for_workunit(workunit)
@@ -320,12 +321,12 @@ class TripletState(object):
         self.download_workunit_images(
             self.model.get_current_workunit())
 
+    def get_current_cutout(self):
+        return self.image_manager.get_cutout_grid(
+            self.get_current_displayable_item())
+
     def get_current_displayable_item(self):
         return self.model.get_current_source()
-
-    def get_current_displayable_image(self):
-        return self.image_manager.get_displayable_triplet(
-            self.model.get_current_source())
 
     def download_workunit_images(self, workunit):
         self.image_manager.download_triplets_for_workunit(workunit)

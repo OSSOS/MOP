@@ -6,9 +6,7 @@ from hamcrest import assert_that, equal_to, contains_inanyorder
 
 from ossos.gui.context import VOSpaceWorkingContext
 
-# TODO: don't use my own VOSpace
-# BASE_TEST_DIR = "vos:OSSOS/tests/"
-BASE_TEST_DIR = "vos:drusk/OSSOS/tests/"
+BASE_TEST_DIR = "vos:OSSOS/integration_tests/"
 LISTING_TEST_DIR = BASE_TEST_DIR + "listing_test"
 
 

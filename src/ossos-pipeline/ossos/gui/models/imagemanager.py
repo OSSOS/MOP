@@ -20,8 +20,7 @@ class ImageManager(object):
         self._triplet_download_manager = triplet_download_manager
 
         self._cutouts = {}
-        self._displayable_singlets = {}
-        self._displayable_triplets = {}
+        self._cutout_grids = {}
 
         self._workunits_downloaded_for_singlets = set()
         self._workunits_downloaded_for_triplets = set()
@@ -49,19 +48,19 @@ class ImageManager(object):
         focus_calculator = SingletFocusCalculator(source)
 
         for reading in source.get_readings():
-            focus = focus_calculator.calculate_focus(reading)
+            if reading.ssos:
+                # For track the objects have moved too far to center on
+                # the mid point.  Centre each image on its source reading.
+                # TODO: refactor.
+                focus = reading.source_point
+            else:
+                focus = focus_calculator.calculate_focus(reading)
             self._singlet_download_manager.submit_request(
                 DownloadRequest(reading,
                                 needs_apcor=needs_apcor,
                                 focus=focus,
                                 callback=self.on_singlet_image_loaded)
             )
-
-    def get_displayable_singlet(self, reading):
-        try:
-            return self._displayable_singlets[reading]
-        except KeyError:
-            raise ImageNotLoadedException(reading)
 
     def get_cutout(self, reading):
         try:
@@ -90,7 +89,7 @@ class ImageManager(object):
                 grid.add_cutout(cutout, frame_index, time_index)
 
                 if grid.is_filled():
-                    self._displayable_triplets[grid.source] = DisplayableImageTriplet(grid)
+                    self._cutout_grids[grid.source] = grid
                     events.send(events.IMG_LOADED, grid.source)
                     logger.info("Triplet grid finished downloading.")
 
@@ -108,9 +107,9 @@ class ImageManager(object):
                                     callback=callback)
                 )
 
-    def get_displayable_triplet(self, source):
+    def get_cutout_grid(self, source):
         try:
-            return self._displayable_triplets[source]
+            return self._cutout_grids[source]
         except KeyError:
             raise ImageNotLoadedException(source)
 
@@ -135,6 +134,4 @@ class ImageManager(object):
     def on_singlet_image_loaded(self, cutout):
         reading = cutout.reading
         self._cutouts[reading] = cutout
-        self._displayable_singlets[reading] = DisplayableImageSinglet(
-            cutout.hdulist)
         events.send(events.IMG_LOADED, reading)

@@ -1,12 +1,13 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from ossos import mpc
 from ossos.daophot import TaskError
+from ossos.gui.autoplay import AutoplayManager
 from ossos.gui import config
 from ossos.gui import events
-from ossos.gui.autoplay import AutoplayManager
 from ossos.gui.models.exceptions import (ImageNotLoadedException,
                                          NoWorkUnitException)
+from ossos import mpc
+from ossos.orbfit import OrbfitError
 
 
 class AbstractController(object):
@@ -26,15 +27,12 @@ class AbstractController(object):
 
     def display_current_image(self):
         try:
-            self.view.display(self.model.get_current_displayable_image(),
-                              redraw=False)
+            self.view.display(self.model.get_current_cutout())
         except ImageNotLoadedException as ex:
             self.image_loading_dialog_manager.wait_for_item(ex.requested_item)
-            return
+            return False
         except NoWorkUnitException:
-            return
-
-        self.mark_current_source()
+            return False
 
         self.view.update_displayed_data(self.model.get_reading_data(),
                                         self.model.get_header_data_list())
@@ -45,10 +43,7 @@ class AbstractController(object):
 
         self.model.acknowledge_image_displayed()
 
-    def mark_current_source(self):
-        image_x, image_y = self.model.get_current_pixel_source_point()
-        radius = 2 * round(self.model.get_current_image_FWHM())
-        self.view.draw_marker(image_x, image_y, radius, redraw=True)
+        return True
 
     def on_reposition_source(self, new_x, new_y):
         try:
@@ -116,6 +111,9 @@ class AbstractController(object):
             self.autoplay_manager.start_autoplay()
             self.view.set_autoplay(True)
 
+    def on_toggle_reticule_key(self):
+        self.view.toggle_reticule()
+
     def on_show_keymappings(self):
         self.view.show_keymappings()
 
@@ -142,9 +140,12 @@ class AbstractController(object):
     def on_reset_source_location(self):
         try:
             self.model.reset_current_source_location()
-            self.mark_current_source()
+            self.view.refresh_markers()
         except ImageNotLoadedException:
             pass
+
+    def on_reset_colormap(self):
+        self.view.reset_colormap()
 
 
 class ProcessRealsController(AbstractController):
@@ -221,7 +222,8 @@ class ProcessRealsController(AbstractController):
                      obs_mag_err,
                      band,
                      observatory_code,
-                     comment):
+                     comment,
+    ):
         """
         Final acceptance with collected data.
         """
@@ -273,7 +275,6 @@ class ProcessRealsController(AbstractController):
 
         reading = self.model.get_current_reading()
 
-
         mpc_observation = mpc.Observation(
             provisional_name=self.model.get_current_source_name(),
             date=self.model.get_current_observation_date(),
@@ -295,7 +296,6 @@ class ProcessRealsController(AbstractController):
         self.view.close_reject_source_dialog()
 
 
-
 class ProcessCandidatesController(AbstractController):
     def on_accept(self):
         writer = self.model.get_writer()
@@ -306,6 +306,71 @@ class ProcessCandidatesController(AbstractController):
 
     def on_reject(self):
         self.model.reject_current_item()
+        self.model.next_item()
+
+
+class ProcessTracksController(ProcessRealsController):
+    """
+    The main controller of the 'track' task.  Sets up the view and
+    handles user interactions. This task extends orbit linkages from
+    three out to more observations.
+    """
+
+    def on_do_accept(self,
+                     minor_planet_number,
+                     provisional_name,
+                     discovery_asterisk,
+                     note1,
+                     note2,
+                     date_of_obs,
+                     ra,
+                     dec,
+                     obs_mag,
+                     obs_mag_err,
+                     band,
+                     observatory_code,
+                     comment,
+    ):
+        super(ProcessTracksController, self).on_do_accept(
+            minor_planet_number,
+            provisional_name,
+            discovery_asterisk,
+            note1,
+            note2,
+            date_of_obs,
+            ra,
+            dec,
+            obs_mag,
+            obs_mag_err,
+            band,
+            observatory_code,
+            comment)
+
+        try:
+            self.model.get_current_workunit().print_orbfit_info()
+        except OrbfitError as error:
+            print str(error)
+
+    def display_current_image(self):
+        successful = super(ProcessTracksController, self).display_current_image()
+
+        if successful:
+            ## Also draw an error ellipse, since this is a tracks controller.
+            reading = self.model.get_current_reading()
+
+            if not hasattr(reading, 'redraw_ellipse'):
+                reading.redraw_ellipse = True
+
+            if hasattr(reading, 'dra') and hasattr(reading, 'ddec') and hasattr(reading,
+                                                                                'pa') and reading.redraw_ellipse:
+                x, y = self.model.get_current_pixel_source_point()
+                self.view.draw_error_ellipse(x, y, reading.dra, reading.ddec, reading.pa)
+
+            reading.redraw_ellipse = False
+
+    def on_ssos_query(self):
+        new_workunit = self.model.get_current_workunit().query_ssos()
+        self.model.add_workunit(new_workunit)
         self.model.next_item()
 
 

@@ -34,6 +34,14 @@ class SourceCutout(object):
         self._tempfile = None
 
     @property
+    def astrom_header(self):
+        return self.reading.get_observation_header()
+
+    @property
+    def fits_header(self):
+        return self.hdulist[0].header
+
+    @property
     def observed_source_point(self):
         return self.observed_x, self.observed_y
 
@@ -67,9 +75,6 @@ class SourceCutout(object):
     def dec(self):
         self._lazy_refresh()
         return self._dec
-
-    def get_fits_header(self):
-        return self.hdulist[0].header
 
     def is_adjusted(self):
         return self._adjusted
@@ -113,7 +118,7 @@ class SourceCutout(object):
         # unnecessarily (ex: for candidates processing).
         from ossos import daophot
 
-        maxcount = float(self.reading.get_observation_header()["MAXCOUNT"])
+        maxcount = float(self.astrom_header["MAXCOUNT"])
         return daophot.phot_mag(self._hdulist_on_disk(),
                                 self.pixel_x, self.pixel_y,
                                 aperture=self.apcor.aperture,
@@ -143,14 +148,12 @@ class SourceCutout(object):
             self._stale = False
 
     def _update_ra_dec(self):
-        astrom_header = self.reading.get_observation_header()
-        fits_header = self.get_fits_header()
-
-        self._ra, self._dec = wcs.xy2sky(self.observed_x, self.observed_y,
-                                         float(astrom_header[astrom.CRPIX1]),
-                                         float(astrom_header[astrom.CRPIX2]),
-                                         float(astrom_header[astrom.CRVAL1]),
-                                         float(astrom_header[astrom.CRVAL2]),
+        fits_header = self.fits_header
+        self._ra, self._dec = wcs.xy2sky(self.pixel_x, self.pixel_y,
+                                         float(fits_header[astrom.CRPIX1]),
+                                         float(fits_header[astrom.CRPIX2]),
+                                         float(fits_header[astrom.CRVAL1]),
+                                         float(fits_header[astrom.CRVAL2]),
                                          wcs.parse_cd(fits_header),
                                          wcs.parse_pv(fits_header),
                                          wcs.parse_order_fit(fits_header))

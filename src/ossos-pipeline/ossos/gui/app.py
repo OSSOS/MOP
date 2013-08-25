@@ -10,15 +10,18 @@ from ossos.gui import context
 from ossos.gui.sync import SynchronizationManager
 from ossos.gui.models.workload import (WorkUnitProvider,
                                        RealsWorkUnitBuilder,
+                                       TracksWorkUnitBuilder,
                                        CandidatesWorkUnitBuilder,
                                        PreFetchingWorkUnitProvider)
 from ossos.gui.errorhandling import DownloadErrorHandler
-from ossos.gui.controllers import (ProcessRealsController,
+from ossos.gui.controllers import (ProcessTracksController,
+                                   ProcessRealsController,
                                    ProcessCandidatesController)
 from ossos.gui.models.imagemanager import ImageManager
 from ossos.gui.models.transactions import TransAckValidationModel
 from ossos.gui.views.appview import ApplicationView
 from ossos.naming import ProvisionalNameGenerator, DryRunNameGenerator
+from ossos.ssos import TracksParser
 
 
 def create_application(taskname, working_directory, output_directory,
@@ -31,6 +34,9 @@ def create_application(taskname, working_directory, output_directory,
     elif taskname == tasks.REALS_TASK:
         ProcessRealsApplication(working_directory, output_directory,
                                 dry_run=dry_run, debug=debug)
+    elif taskname == tasks.TRACK_TASK:
+        ProcessTracksApplication(working_directory, output_directory,
+                                 dry_run=dry_run, debug=debug)
     else:
         error_message = "Unknown task: %s" % taskname
         logger.critical(error_message)
@@ -80,9 +86,9 @@ class ValidationApplication(object):
                                         synchronization_manager)
         logger.debug("Created model.")
 
-        view = ApplicationView(self._create_controller_factory(model),
-                               debug=debug)
+        view = self._create_view(model, debug=debug)
 
+        logger.debug("Created view.")
         model.start_work()
 
         self.model = model
@@ -131,6 +137,10 @@ class ValidationApplication(object):
     @property
     def should_randomize_workunits(self):
         raise NotImplementedError()
+
+    def _create_view(self, model, debug=False):
+        return ApplicationView(self._create_controller_factory(model),
+                               debug=debug)
 
     def _create_workunit_builder(self,
                                  input_context,
@@ -191,7 +201,44 @@ class ProcessRealsApplication(ValidationApplication):
         return RealsControllerFactory(model, dry_run=self.dry_run)
 
 
+class ProcessTracksApplication(ValidationApplication):
+    def __init__(self, working_directory, output_directory,
+                 dry_run=False, debug=False):
+        preload_iraf()
+
+        super(ProcessTracksApplication, self).__init__(
+            working_directory, output_directory, dry_run=dry_run, debug=debug)
+
+    @property
+    def input_suffix(self):
+        return tasks.suffixes[tasks.TRACK_TASK]
+
+    @property
+    def should_randomize_workunits(self):
+        return False
+
+    def _create_workunit_builder(self,
+                                 input_context,
+                                 output_context,
+                                 progress_manager):
+        return TracksWorkUnitBuilder(
+            TracksParser(), input_context, output_context, progress_manager,
+            dry_run=self.dry_run)
+
+    def _create_controller_factory(self, model):
+        return TracksControllerFactory(model, dry_run=self.dry_run)
+
+    def _create_view(self, model, debug=False):
+        return ApplicationView(self._create_controller_factory(model),
+                               track_mode=True, debug=debug)
+
+
 class ControllerFactory(object):
+    """
+    Allows the view to create the controller without direct knowledge
+    of the model.
+    """
+
     def __init__(self, model, dry_run=False):
         self.model = model
         self.dry_run = dry_run
@@ -213,6 +260,16 @@ class RealsControllerFactory(ControllerFactory):
             name_generator = ProvisionalNameGenerator()
 
         return ProcessRealsController(self.model, view, name_generator)
+
+
+class TracksControllerFactory(ControllerFactory):
+    def create_controller(self, view):
+        if self.dry_run:
+            name_generator = DryRunNameGenerator()
+        else:
+            name_generator = ProvisionalNameGenerator()
+
+        return ProcessTracksController(self.model, view, name_generator)
 
 
 def preload_iraf():
