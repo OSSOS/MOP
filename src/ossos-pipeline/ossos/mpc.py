@@ -369,7 +369,8 @@ class Observation(object):
 
         self.minor_planet_number = minor_planet_number
         if null_observation and not self.minor_planet_number.startswith("!"):
-            self.minor_planet_number = "!" + self.minor_planet_number
+            self.minor_planet_number = "!" + " "*4
+        self.null_observation = self.minor_planet_number.startswith("!")
         self.provisional_name = provisional_name
         self.discovery = discovery
         self.note1 = note1
@@ -450,15 +451,21 @@ class Observation(object):
         :type minor_planet_number: int
         :param minor_planet_number: the number of the minor planet
         """
-        if not len(str(minor_planet_number)) < 6:
+        self._minor_planet_number = minor_planet_number
+        if minor_planet_number is None:
+            self._minor_planet_number = 5 * " "
+        elif not len(str(minor_planet_number)) < 6:
             raise MPCFieldFormatError("Minor Planet Number",
                                       "must be 5 or less characters",
                                       minor_planet_number)
-        self._minor_planet_number = minor_planet_number
 
     @property
     def null_observation(self):
-        return str(self.minor_planet_number).startswith("!")
+        return str(self.minor_planet_number).startswith("!") or self._null_observation
+
+    @null_observation.setter
+    def null_observation(self, null_observation):
+        self._null_observation = null_observation
 
     @property
     def provisional_name(self):

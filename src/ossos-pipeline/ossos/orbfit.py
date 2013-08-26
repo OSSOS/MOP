@@ -100,6 +100,10 @@ class Orbfit(object):
                 dra = ddec - coordinates.Angle(360, unit=units.degree)
             observation.ra_residual = dra.degrees*3600.0
             observation.dec_residual = ddec.degrees*3600.0
+            if observation.null_observation :
+                residuals += "!"
+            else:
+                residuals += " "
             residuals += "{:12s} {:+05.2f} {:+05.2f}\n".format(observation.date, observation.ra_residual, observation.dec_residual)
         self.residuals = residuals
 

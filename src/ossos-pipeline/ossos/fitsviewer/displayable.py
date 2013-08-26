@@ -350,7 +350,7 @@ class ErrEllipse(object):
         self.b = max(b, 10)
         self.pa = pa
 
-        angle = 90 - self.pa
+        angle = self.pa - 90
 
         self.artist = Ellipse(self.center, self.a, self.b, angle=angle,
                               linewidth=3, edgecolor='b', facecolor='#E47833',
