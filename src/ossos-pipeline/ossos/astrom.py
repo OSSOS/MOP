@@ -425,7 +425,9 @@ class SourceReading(object):
     Data for a detected point source (which is a potential moving objects).
     """
 
-    def __init__(self, x, y, x0, y0, ra, dec, xref, yref, obs, ssos=False, from_input_file=False):
+    def __init__(self, x, y, x0, y0, ra, dec, xref, yref, obs, ssos=False,
+                 from_input_file=False,
+                 null_observation=False):
         """
         Args:
           x, y: the coordinates of the source in this reading.
@@ -452,6 +454,7 @@ class SourceReading(object):
         self.obs = obs
         self.ssos = ssos
         self.from_input_file = from_input_file
+        self.null_observation = null_observation
 
     @property
     def from_input_file(self):

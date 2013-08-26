@@ -126,14 +126,18 @@ class SSOSParser(object):
     """
     Parse the result of an SSOS query, which is stored in an astropy Table object
     """
-    def __init__(self, provisional_name, input_observations=[]):
+    def __init__(self, provisional_name, input_observations=[], null_observations=[]):
         """
         setup the parser.
         """
         self.provisional_name = provisional_name
         self.input_rawnames = []
+        self.null_observations = []
         for observation in input_observations:
-            self.input_rawnames.append(observation.comment.frame)
+            rawname = observation.comment.frame
+            self.input_rawnames.append(rawname)
+            if observation.null_observation:
+                self.null_observations.append(rawname)
 
     def _skip_missing_data(self, str_vals, ncols):
         """
@@ -247,7 +251,11 @@ class SSOSParser(object):
 
             # Build astrom.SourceReading
             observations.append(observation)
-            print observation.rawname, MJD_OBS_CENTER
+
+            from_input_file = observation.rawname in self.input_rawnames
+            null_observation = observation.rawname in self.null_observations
+
+            print observation.rawname, observation.header['MJD_OBS_CENTER'], null_observation, from_input_file
 
             source_reading = astrom.SourceReading(x=row['X'], y=row['Y'],
                                                         xref=xref, yref=yref,
@@ -255,7 +263,8 @@ class SSOSParser(object):
                                                         ra=row['Object_RA'], dec=row['Object_Dec'],
                                                         obs=observation,
                                                         ssos=True,
-                                                        from_input_file=(observation.rawname in self.input_rawnames))
+                                                        from_input_file=from_input_file,
+                                                        null_observation=null_observation)
             #if observation.rawname in  self.input_rawnames:
             #    source_readings.insert(0, source_reading)
             #else:

@@ -22,9 +22,13 @@ class SingletViewer(WxMPLFitsViewer):
         fwhm = float(cutout.astrom_header["FWHM"])
         radius = 2 * round(fwhm)
 
+        color = 'r'
         if cutout.reading.from_input_file:
-            colour = "g"
-        else:
+            if cutout.reading.null_observation:
+                colour = "r"
+            else:
+                colour = "g"
+        elif not cutout.reading.null_observation:
             colour = "b"
 
         self._displayables_by_cutout[cutout].place_marker(x, y, radius,
