@@ -86,6 +86,7 @@ if __name__ == '__main__':
                       help='store modified image back to VOSpace?')
     parser.add_argument('-v','--verbose', action='store_true')
     parser.add_argument('--debug', action='store_true')
+    parser.add_argument('--force', action='store_true', help="Re-run even if previous success recorded")
 
     args = parser.parse_args()
 
@@ -115,10 +116,15 @@ if __name__ == '__main__':
             "Swapping header for %s for contents in %s \n" % (
             image, header) )
 
+
+        expnum = fits.open(image)[0].header['EXPNUM'] or args.expnum
+
+        # skip if already succeeded and not in force mode
+        if storage.get_status(expnum, 36, 'update_header') and not args.force:
+            sys.exit(0)
+
         run_update_header(image, header)
-    
         if args.replace:
-            expnum = fits.open(image)[0].header['EXPNUM'] or args.expnum
             dest = storage.dbimages_uri(expnum)
             storage.copy(image, dest)
             storage.set_status(expnum, 36, 'update_header', message)
