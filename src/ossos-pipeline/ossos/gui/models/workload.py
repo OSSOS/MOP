@@ -244,7 +244,7 @@ class RealsWorkUnit(WorkUnit):
         if not source.has_provisional_name():
             raise SourceNotNamedException(source)
 
-        name = source.get_provisional_name() + ".mpc"
+        name = os.path.basename(self.filename) + "." + source.get_provisional_name() + ".mpc"
 
         if self.dry_run:
             name = os.path.basename(self.filename) + "." + name
