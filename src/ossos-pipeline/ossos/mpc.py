@@ -368,6 +368,8 @@ class Observation(object):
                  null_observation=False):
 
         self.minor_planet_number = minor_planet_number
+        if null_observation and not self.minor_planet_number.startswith("!"):
+            self.minor_planet_number = "!" + self.minor_planet_number
         self.provisional_name = provisional_name
         self.discovery = discovery
         self.note1 = note1
@@ -378,7 +380,6 @@ class Observation(object):
         self.mag_err = mag_err
         self.band = band
         self.observatory_code = observatory_code
-        self.null_observation=null_observation
         self.comment = MPCComment(source_name=provisional_name,
                                   frame=frame,
                                   MPCNote=self.note1,
@@ -454,23 +455,10 @@ class Observation(object):
                                       "must be 5 or less characters",
                                       minor_planet_number)
         self._minor_planet_number = minor_planet_number
-        self.null_observation = False
-        if len(str(minor_planet_number)) > 0 and str(minor_planet_number)[0] == "!":
-            self.null_observation = True
-        return
-
 
     @property
     def null_observation(self):
-        return self._null_observation
-
-    @null_observation.setter
-    def null_observation(self, null_observation):
-        if type(null_observation) != bool:
-            raise MPCFieldFormatError("null_observation",
-                                      "should be True/False",
-                                      null_observation)
-        self._null_observation = null_observation
+        return str(self.minor_planet_number).startswith("!")
 
     @property
     def provisional_name(self):

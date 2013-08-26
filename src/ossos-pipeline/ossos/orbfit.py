@@ -5,7 +5,7 @@ import tempfile
 
 from astropy import coordinates
 from astropy import units
-
+from mpc import Observation
 from ossos.mpc import Time
 
 LIBORBFIT = "/usr/local/lib/liborbfit.so"
@@ -33,6 +33,7 @@ class Orbfit(object):
             raise OrbfitError()
 
         self.orbfit = ctypes.CDLL(LIBORBFIT)
+        assert isinstance(observations[0], Observation)
         self.observations = observations
         self._fit_radec()
 
@@ -58,7 +59,8 @@ class Orbfit(object):
 
         mpc_file = tempfile.NamedTemporaryFile(suffix='.mpc')
         for observation in self.observations:
-            mpc_file.write("{}\n".format(str(observation)))
+            if not observation.null_observation:
+                mpc_file.write("{}\n".format(str(observation)))
         mpc_file.seek(0)
 
         self._abg = tempfile.NamedTemporaryFile()
