@@ -73,7 +73,7 @@ class SourceValidationDialog(wx.Dialog):
         self.comment_label = wx.StaticText(self, label=SourceValidationDialog.COMMENT)
         self.comment_text = wx.TextCtrl(self, name=SourceValidationDialog.COMMENT,
                                         style=wx.TE_MULTILINE | wx.TE_PROCESS_ENTER,
-                                        size=(250, 50))
+                                        size=(500, 100))
         self.comment_text.SetValue(self.default_comment)
         self.comment_text.Bind(wx.EVT_TEXT_ENTER, self._on_enter_comment)
 
@@ -309,6 +309,38 @@ class AcceptSourceDialog(SourceValidationDialog):
 
     def _on_cancel(self, event):
         self.controller.on_cancel_accept()
+
+
+class OffsetSourceDialog(SourceValidationDialog):
+    TITLE = "Accept Re-centroid Dialog"
+
+    def __init__(self, parent, controller, cen_coords=(0,0), pix_coords=(0,0)):
+
+        self.cen_coords = cen_coords
+        self.pix_coords = pix_coords
+        self.default_comment =  "DAOphot centroid differs from input value.\n\n"
+        self.default_comment += "{:8s} {:6.2f} {:6.2f}\n".format("mark", self.cen_coords[0], self.cen_coords[1])
+        self.default_comment += "{:8s} {:6.2f} {:6.2f}\n".format("daophot", self.pix_coords[0], self.pix_coords[1])
+        self.default_comment += "\nAccepted DAOphot centroid or Mark centroid?"
+
+        super(OffsetSourceDialog, self).__init__(parent, title=self.TITLE)
+        self.controller = controller
+
+        self.submit_button.LabelText = "DAOPhot"
+        self.cancel_button.LabelText = "Marker"
+
+    def _init_ui(self):
+        pass
+
+    def _get_vertical_widget_list(self):
+        return []
+
+    def _on_submit(self, event):
+        self.controller.on_do_offset(self.cen_coords)
+
+    def _on_cancel(self, event):
+        self.controller.on_cancel_offset(self.pix_coords)
+
 
 
 class RejectSourceDialog(SourceValidationDialog):

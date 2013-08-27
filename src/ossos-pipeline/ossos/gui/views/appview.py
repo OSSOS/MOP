@@ -11,7 +11,7 @@ from ossos.gui.views.keybinds import KeybindManager
 from ossos.gui.views.loading import WaitingGaugeDialog
 from ossos.gui.views.mainframe import MainFrame
 from ossos.gui.views.menu import Menu
-from ossos.gui.views.validation import AcceptSourceDialog, RejectSourceDialog
+from ossos.gui.views.validation import AcceptSourceDialog, RejectSourceDialog, OffsetSourceDialog
 
 
 def guithread(function):
@@ -90,8 +90,8 @@ class ApplicationView(object):
         self.image_viewer.refresh_markers()
 
     @guithread
-    def draw_error_ellipse(self, x, y, a, b, pa):
-        self.image_viewer.draw_error_ellipse(x, y, a, b, pa)
+    def draw_error_ellipse(self, x, y, a, b, pa, color='b'):
+        self.image_viewer.draw_error_ellipse(x, y, a, b, pa, color=color)
 
     @guithread
     def reset_colormap(self):
@@ -215,6 +215,20 @@ class ApplicationView(object):
         if self.reject_source_dialog is not None:
             self.reject_source_dialog.Close()
             self.reject_source_dialog = None
+
+    @guithread
+    def show_offset_source_dialog(self, cen_coords, pix_coords):
+        self.offset_source_dialog = OffsetSourceDialog(
+            self.mainframe, self.controller, cen_coords, pix_coords)
+        self.offset_source_dialog.ShowModal()
+
+    @guithread
+    def close_offset_source_dialog(self):
+        if self.offset_source_dialog is not None:
+            self.offset_source_dialog.Close()
+            self.offset_source_dialog = None
+
+
 
     @guithread
     def show_keymappings(self):

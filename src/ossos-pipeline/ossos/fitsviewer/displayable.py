@@ -54,7 +54,7 @@ class Displayable(object):
         if self.canvas is not None:
             self.canvas.draw()
 
-    def place_error_ellipse(self, x, y, a, b, pa):
+    def place_error_ellipse(self, x, y, a, b, pa, color='y'):
         pass
 
     def reset_colormap(self):
@@ -134,11 +134,11 @@ class ImageSinglet(object):
 
         self.display_changed.fire()
 
-    def place_error_ellipse(self, x, y, a, b, pa):
+    def place_error_ellipse(self, x, y, a, b, pa, color='b'):
         """
         Draws an ErrorEllipse with the given dimensions.  Can not be moved later.
         """
-        self.error_ellipse = ErrEllipse(x, y, a, b, pa)
+        self.error_ellipse = ErrEllipse(x, y, a, b, pa, color=color)
         self.error_ellipse.add_to_axes(self.axes)
         self.display_changed.fire()
 
@@ -255,8 +255,8 @@ class DisplayableImageSinglet(Displayable):
     def place_marker(self, x, y, radius, colour="b"):
         self.image_singlet.place_marker(x, y, radius, colour=colour)
 
-    def place_error_ellipse(self, x, y, a, b, pa):
-        self.image_singlet.place_error_ellipse(x, y, a, b, pa)
+    def place_error_ellipse(self, x, y, a, b, pa, color='b'):
+        self.image_singlet.place_error_ellipse(x, y, a, b, pa, color=color)
 
     def reset_colormap(self):
         self.image_singlet.reset_colormap()
@@ -336,7 +336,7 @@ class ErrEllipse(object):
     """
     A class for creating and drawing an ellipse in matplotlib.
     """
-    def __init__(self, x_cen, y_cen, a, b, pa):
+    def __init__(self, x_cen, y_cen, a, b, pa, color='b'):
         """
         :param x_cen: x coordinate at center of the ellipse
         :param y_cen: y coordinate at center of the ellipse
@@ -353,7 +353,7 @@ class ErrEllipse(object):
         angle = self.pa - 90
 
         self.artist = Ellipse(self.center, self.a, self.b, angle=angle,
-                              linewidth=3, edgecolor='b', facecolor='#E47833',
+                              linewidth=3, edgecolor=color, facecolor='#E47833',
                               alpha=0.1)
 
     def add_to_axes(self, axes):

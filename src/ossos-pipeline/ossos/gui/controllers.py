@@ -1,3 +1,6 @@
+import math
+from ossos.fitsviewer.displayable import Marker
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 from ossos.daophot import TaskError
@@ -177,14 +180,28 @@ class ProcessRealsController(AbstractController):
         default_comment = ""
         phot_failure = False
 
+        source_cutout  = self.model.get_current_cutout()
+        pixel_x = source_cutout.pixel_x
+        pixel_y = source_cutout.pixel_y
+
         try:
-            obs_mag, obs_mag_err = self.model.get_current_source_observed_magnitude()
+            cen_x, cen_y, obs_mag, obs_mag_err = self.model.get_current_source_observed_magnitude()
         except TaskError as error:
             phot_failure = True
             obs_mag = ""
+            cen_x = pixel_x
+            cen_y = pixel_y
             obs_mag_err = -1
             band = ""
             default_comment = str(error)
+
+        if math.sqrt( (cen_x - pixel_x)**2 + (cen_y - pixel_y)**2 ) > 1.5:
+            # check if the user wants to use the 'hand' coordinates or these new ones.
+            self.view.draw_error_ellipse(cen_x, cen_y, 10, 10, 0, color='r')
+            self.view.show_offset_source_dialog((cen_x, cen_y), (pixel_x,pixel_y))
+        else:
+            source_cutout.update_pixel_location((cen_x, cen_y))
+            self.model.get_current_cutout()._adjusted = False
 
         if self.model.is_current_source_adjusted():
             note1_default = config.read("MPC.NOTE1_HAND_ADJUSTED")
@@ -266,6 +283,20 @@ class ProcessRealsController(AbstractController):
 
     def on_reject(self):
         self.view.show_reject_source_dialog()
+
+    def on_do_offset(self, cen_coords):
+        self.view.close_offset_source_dialog()
+
+        source_cutout = self.model.get_current_cutout()
+        source_cutout.update_pixel_location(cen_coords)
+        source_cutout._adjusted = False
+
+    def on_cancel_offset(self, pix_coords):
+        self.view.close_offset_source_dialog()
+
+        source_cutout = self.model.get_current_cutout()
+        source_cutout.update_pixel_location(pix_coords)
+
 
     def on_do_reject(self, comment):
         self.view.close_reject_source_dialog()

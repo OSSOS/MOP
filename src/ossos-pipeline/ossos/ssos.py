@@ -74,12 +74,11 @@ class TracksParser(object):
             tracks_data = self.query_ssos(observations, lunation_count)
 
             print len(observations), tracks_data.get_reading_count(), lunation_count
-            if tracks_data.get_arc_length() <= length_of_observation_arc or (
-                tracks_data.get_reading_count() <= len(observations) ) :
-                assert lunation_count is not None, "No new observations available."
-                lunation_count = ( lunation_count > 2 and None ) or lunation_count + 1
-            else:
+            if ( tracks_data.get_arc_length() > length_of_observation_arc or
+                tracks_data.get_reading_count() > len(observations) ) :
                 return tracks_data
+            assert lunation_count is not None, "No new observations available."
+            lunation_count = ( lunation_count > 2 and None ) or lunation_count + 1
 
     def query_ssos(self, observations, lunation_count):
         # we observe ~ a week either side of new moon
