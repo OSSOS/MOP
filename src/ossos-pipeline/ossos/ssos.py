@@ -27,6 +27,7 @@ NEW_LINE = '\r\n'
 
 
 mopheaders = {}
+astheaders = {}
 
 class TracksParser(object):
 
@@ -251,9 +252,13 @@ class SSOSParser(object):
             # a download pixel 1,1 of this data to due offsets with.
             x_cen = int(min(max(1,row['X']),observation.header['NAX1']))
             y_cen = int(min(max(1,row['Y']),observation.header['NAX2']))
-            hdulist = downloader.download_hdulist(uri=image_uri,
-                                                  view='cutout',
-                                                  cutout='[{}][{}:{},{}:{}]'.format(ccd+1, x_cen, x_cen, y_cen, y_cen))
+            if image_uri not in astheaders:
+               hdulist = downloader.download_hdulist(
+                   uri=image_uri,
+                   view='cutout',
+                   cutout='[{}][{}:{},{}:{}]'.format(ccd+1, x_cen, x_cen, y_cen, y_cen))
+               astheaders[image_uri] = hdulist
+            hdulist = astheaders[image_uri]
 
             pvwcs = wcs.WCS(hdulist[0].header)
             (ra,dec)  = pvwcs.xy2sky(x_cen, y_cen)

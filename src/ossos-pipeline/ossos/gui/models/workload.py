@@ -396,9 +396,8 @@ class TracksWorkUnit(WorkUnit):
         self.get_writer().close()
         return self.builder.build_workunit(mpc_filename)
 
-
     def is_finished(self):
-        return self._ssos_queried or super(TracksWorkUnit, self).is_finished()
+        return self._ssos_queried or self.get_source_count() == 0 or super(TracksWorkUnit, self).is_finished()
 
     def next_item(self):
         assert not self.is_finished()
