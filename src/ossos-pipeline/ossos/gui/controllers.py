@@ -5,7 +5,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 from ossos.daophot import TaskError
 from ossos.gui.autoplay import AutoplayManager
-from ossos.gui import config
+from ossos.gui import config, logger
 from ossos.gui import events
 from ossos.gui.models.exceptions import (ImageNotLoadedException,
                                          NoWorkUnitException)
@@ -400,8 +400,12 @@ class ProcessTracksController(ProcessRealsController):
             reading.redraw_ellipse = False
 
     def on_ssos_query(self):
-        new_workunit = self.model.get_current_workunit().query_ssos()
-        self.model.add_workunit(new_workunit)
+        try:
+            new_workunit = self.model.get_current_workunit().query_ssos()
+            self.model.add_workunit(new_workunit)
+        except AssertionError as e:
+            logger.critical(str(e))
+            pass
         self.model.next_item()
 
 
