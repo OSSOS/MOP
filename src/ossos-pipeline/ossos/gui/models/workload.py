@@ -1,3 +1,6 @@
+from glob import glob
+import re
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import os
@@ -12,6 +15,7 @@ from ossos.gui.models.exceptions import (NoAvailableWorkException,
                                          SourceNotNamedException)
 from ossos.gui.progress import FileLockedException
 from ossos.orbfit import Orbfit
+
 
 
 class WorkUnit(object):
@@ -356,6 +360,7 @@ class TracksWorkUnit(WorkUnit):
     A unit of work when performing the process track task.
     """
 
+
     def __init__(self,
                  builder,
                  filename,
@@ -375,7 +380,7 @@ class TracksWorkUnit(WorkUnit):
         self._ssos_queried = False
 
     def print_orbfit_info(self):
-        orbfit = Orbfit(self.get_writer().get_written_mpc_observations())
+        orbfit = Orbfit(self.get_writer().get_chronological_buffered_observations())
 
         print orbfit
         print orbfit.residuals
@@ -386,8 +391,11 @@ class TracksWorkUnit(WorkUnit):
         unit to generate another workunit.
         """
         self._ssos_queried = True
-        return self.builder.build_workunit(
-            self.output_context.get_full_path(self._writer.get_filename()))
+        self.get_writer().flush()
+        mpc_filename = self.output_context.get_full_path(self.get_writer().get_filename())
+        self.get_writer().close()
+        return self.builder.build_workunit(mpc_filename)
+
 
     def is_finished(self):
         return self._ssos_queried or super(TracksWorkUnit, self).is_finished()
@@ -426,8 +434,24 @@ class TracksWorkUnit(WorkUnit):
         return True
 
     def get_writer(self):
+        """
+        Get a writer.
+
+        This method also makes the output filename be the same as the .track file but with .mpc.
+        (Currently only works on local filesystem)
+        """
         if self._writer is None:
-            self._writer = self._create_writer(self.filename.replace(".track", ".mpc"))
+            print "called with filename {}".format(self.filename)
+            base_name = re.search("(?P<base_name>.*)\.(\d+\.mpc|track)",self.filename).group('base_name')
+            print base_name
+            mpc_filename_pattern = self.output_context.get_full_path(
+                "{}.?.mpc".format(base_name))
+            print "globing with pattern {}".format(mpc_filename_pattern)
+            mpc_file_count = len(glob(mpc_filename_pattern))
+            mpc_filename = self.output_context.get_full_path(
+                "{}.{}.mpc".format(base_name, mpc_file_count))
+            print "opening file {}".format(mpc_filename)
+            self._writer = self._create_writer(mpc_filename)
 
         return self._writer
 
@@ -444,8 +468,13 @@ class TracksWorkUnit(WorkUnit):
         # startup time.
         from ossos.mpc import MPCWriter
 
-        return MPCWriter(self.output_context.open(filename),
-                         auto_flush=True)
+        writer = MPCWriter(self.output_context.open(filename),
+                         auto_flush=False)
+
+        # Load the input observations into the writer
+        for rawname in self.data.mpc_observations:
+            writer.write(self.data.mpc_observations[rawname])
+        return writer
 
     def _get_item_set(self):
         all_readings = set()

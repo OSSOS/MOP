@@ -17,6 +17,7 @@ DBIMAGES='vos:OSSOS/dbimages'
 MEASURE3='vos:OSSOS/measure3'
 
 DATA_WEB_SERVICE='https://www.canfar.phys.uvic.ca/data/pub/'
+TAP_WEB_SERVICE='http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/tap/sync?'
 
 OSSOS_TAG_URI_BASE='ivo://canfar.uvic.ca/ossos'
 OBJECT_COUNT = "object_count"
@@ -55,7 +56,7 @@ def populate(dataset_name,
 
     header_dest = get_uri(dataset_name,version='o',ext='head')
     header_source = "%s/%so.fits.fz?cutout=[0]" % (
-        data_web_service_url, dataset_name) 
+        data_web_service_url, dataset_name)
     try:
         c.link(header_source, header_dest)
     except IOError as e:
@@ -63,6 +64,18 @@ def populate(dataset_name,
             pass
         else:
             raise e
+
+    header_dest = get_uri(dataset_name,version='p',ext='head')
+    header_source = "%s/%s/%sp.head" % (
+       'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub', 'CFHTSG', dataset_name)
+    try:
+        c.link(header_source, header_dest)
+    except IOError as e:
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            raise e
+
 
     return True
         
@@ -321,8 +334,14 @@ def list_dbimages():
     return listdir(DBIMAGES)
 
 
-def exists(uri):
-    return vospace.access(uri)
+def exists(uri, force=False):
+    try:
+        return vospace.getNode(uri, force=force) is not None
+    except Exception as e:
+        if e.errno == os.errno.ENOENT:
+            return False
+        raise e
+
 
 
 def move(old_uri, new_uri):
