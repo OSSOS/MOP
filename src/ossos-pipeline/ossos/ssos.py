@@ -81,7 +81,9 @@ class TracksParser(object):
                 tracks_data.get_reading_count() > len(mpc_observations) ) :
                 return tracks_data
             assert lunation_count is not None, "No new observations available."
-            lunation_count = ( lunation_count > 2 and None ) or lunation_count + 1
+            lunation_count += 1
+            if lunation_count > 2 :
+                lunation_count = None
 
     def query_ssos(self, mpc_observations, lunation_count):
         # we observe ~ a week either side of new moon

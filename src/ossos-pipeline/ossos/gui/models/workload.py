@@ -1,5 +1,6 @@
 from glob import glob
 import re
+import sys
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -8,7 +9,7 @@ import random
 import threading
 
 from ossos.astrom import StreamingAstromWriter
-from ossos.gui import tasks
+from ossos.gui import tasks, events
 from ossos.gui import logger
 from ossos.gui.models.collections import StatefulCollection
 from ossos.gui.models.exceptions import (NoAvailableWorkException,
@@ -676,8 +677,12 @@ class WorkUnitBuilder(object):
         self.dry_run = dry_run
 
     def build_workunit(self, input_fullpath):
-        parsed_data = self.parser.parse(input_fullpath)
-
+        try:
+            parsed_data = self.parser.parse(input_fullpath)
+        except AssertionError as e:
+            logger.critical(str(e))
+            events.send(events.NO_AVAILABLE_WORK)
+            sys.exit(0)
         logger.debug("Parsed %s (%d sources)" %
                      (input_fullpath, parsed_data.get_source_count()))
 
