@@ -5,7 +5,6 @@ import datetime
 import os
 import warnings
 
-import astropy
 from astropy.io import ascii, fits
 from astropy.table import Table
 from astropy.time import Time
@@ -27,6 +26,8 @@ RESPONSE_FORMAT = 'tsv'
 NEW_LINE = '\r\n'
 
 
+mopheaders = {}
+
 class TracksParser(object):
 
     def __init__(self):
@@ -40,24 +41,25 @@ class TracksParser(object):
 
         input_mpc_lines = filestr.split('\n')
 
-        observations = []
+        mpc_observations = []
         for line in input_mpc_lines:
-            observation = mpc.Observation.from_string(line)
-            if observation is not None:
-                observations.append(observation)
+            mpc_observation = mpc.Observation.from_string(line)
+            if mpc_observation is not None:
+                mpc_observations.append(mpc_observation)
 
-        observations.sort(key=lambda obs: obs.date.jd)
+        mpc_observations.sort(key=lambda obs: obs.date.jd)
 
 
         # pass down the provisional name so the table lines are linked to this TNO
-        self.ssos_parser=SSOSParser(observations[0].provisional_name, input_observations=observations)
+        self.ssos_parser=SSOSParser(mpc_observations[0].provisional_name,
+                                    input_observations=mpc_observations)
 
-        self.orbit = Orbfit(observations)
+        self.orbit = Orbfit(mpc_observations)
 
         print self.orbit
         print self.orbit.residuals
 
-        length_of_observation_arc = observations[-1].date.jd - observations[0].date.jd
+        length_of_observation_arc = mpc_observations[-1].date.jd - mpc_observations[0].date.jd
 
         if  length_of_observation_arc < 1:
             # data from the same dark run.
@@ -71,54 +73,66 @@ class TracksParser(object):
 
         # loop over the query until some new observations are found, or raise assert error.
         while True:
-            tracks_data = self.query_ssos(observations, lunation_count)
+            tracks_data = self.query_ssos(mpc_observations, lunation_count)
 
-            print len(observations), tracks_data.get_reading_count(), lunation_count
+            print len(mpc_observations), tracks_data.get_reading_count(), lunation_count
             if ( tracks_data.get_arc_length() > length_of_observation_arc or
-                tracks_data.get_reading_count() > len(observations) ) :
+                tracks_data.get_reading_count() > len(mpc_observations) ) :
                 return tracks_data
             assert lunation_count is not None, "No new observations available."
             lunation_count = ( lunation_count > 2 and None ) or lunation_count + 1
 
-    def query_ssos(self, observations, lunation_count):
+    def query_ssos(self, mpc_observations, lunation_count):
         # we observe ~ a week either side of new moon
         # but we don't know when in the dark run the discovery happened
         # so be generous with the search boundaries, add extra 2 weeks
         # current date just has to be the night of the triplet,
 
+        """
+
+        :param mpc_observations: a list of mpc.Observations
+        :param lunation_count: how many dark runs (+ and -) to search into
+        :return: an SSOSData object
+        """
         if lunation_count is None:
             search_start_date = Time('2013-02-08', scale='utc')
             search_end_date = Time(datetime.datetime.now().strftime('%Y-%m-%d'), scale='utc')
         else:
-            search_start_date = Time((observations[0].date.jd - (
+            search_start_date = Time((mpc_observations[0].date.jd - (
                 self._nights_per_darkrun +
                 lunation_count*self._nights_separating_darkruns) ),
                                      format='jd', scale='utc')
-            search_end_date = Time((observations[0].date.jd + (
+            search_end_date = Time((mpc_observations[-1].date.jd + (
                 self._nights_per_darkrun +
                 lunation_count*self._nights_separating_darkruns) ),
                                    format='jd', scale='utc')
 
-        query = Query(observations,
+        query = Query(mpc_observations,
                       search_start_date=search_start_date,
                       search_end_date=search_end_date)
 
         tracks_data = self.ssos_parser.parse(query.get())
 
+        tracks_data.mpc_observations = {}
+        for mpc_observation in mpc_observations:
+            assert isinstance(mpc_observation,mpc.Observation)
+            tracks_data.mpc_observations[mpc_observation.comment.frame] = mpc_observation
+
+
         for source in tracks_data.get_sources():
-            observations = tracks_data.observations
+            mpc_observations = tracks_data.observations
             source_readings = source.get_readings()
             for idx in range(len(source_readings)):
                 source_reading = source_readings[idx]
-                observation = observations[idx]
+                mpc_observation = mpc_observations[idx]
                 logger.info("About to call orbfit predict")
-                self.orbit.predict(observation.header['MJD_OBS_CENTER'])
+                self.orbit.predict(mpc_observation.header['MJD_OBS_CENTER'])
                 logger.info("Finished predict")
                 source_reading.pa = self.orbit.pa
-                source_reading.dra = self.orbit.dra / observation.header['SCALE']
-                source_reading.ddec = self.orbit.ddec / observation.header['SCALE']
+                source_reading.dra = self.orbit.dra / mpc_observation.header['SCALE']
+                source_reading.ddec = self.orbit.ddec / mpc_observation.header['SCALE']
 
-        return tracks_data  # an TracksData with .sources and .observations only
+        return tracks_data  # a SSOSData with .sources and .observations only
 
 
 class SSOSParser(object):
@@ -180,12 +194,12 @@ class SSOSParser(object):
                                              ext='.fits',
                                              subdir=None)
 
-            if not storage.exists(image_uri):
+            if not storage.exists(image_uri, force=False):
                 image_uri = storage.dbimages_uri(expnum=expnum,
                                                  ccd=ccd,
                                                  version='p')
 
-                if not storage.exists(image_uri):
+                if not storage.exists(image_uri, force=False):
                     continue
 
             if row['X'] == -9999 or row['Y'] == -9999 :
@@ -197,16 +211,19 @@ class SSOSParser(object):
                                                  version='p',
                                                  ext='.mopheader')
 
+            if not mopheader_uri in mopheaders:
 
-            if not storage.exists(mopheader_uri):
-                logger.warning('mopheader missing, but images exists')
-                continue
+                if not storage.exists(mopheader_uri, force=False):
+                    logger.warning('mopheader missing, but images exists')
+                    continue
 
 
 
-            # raise flag if no MOPHEADER
-            mopheader_fpt = cStringIO.StringIO(storage.open_vos_or_local(mopheader_uri).read())
-            mopheader = astropy.io.fits.open(mopheader_fpt)
+                # raise flag if no MOPHEADER
+                mopheader_fpt = cStringIO.StringIO(storage.open_vos_or_local(mopheader_uri).read())
+                mopheader = fits.open(mopheader_fpt)
+                mopheaders[mopheader_uri] = mopheader
+            mopheader = mopheaders[mopheader_uri]
             
             # Build astrom.Observation
             observation = astrom.Observation(expnum=str(expnum),
@@ -298,6 +315,7 @@ class SSOSData(object):
             <code>observations</code>.  By convention the ordering of
             source readings must match the ordering of the observations.
         """
+        self.mpc_observations = {}
         self.observations = observations
         self.sys_header = None
         self.sources = [astrom.Source(reading_list, provisional_name) for reading_list in sources]
@@ -519,8 +537,8 @@ class Query(object):
         assert(self.response.status_code == requests.codes.ok )
 
         lines = self.response.content
-        if len(lines) < 1 or str(lines[1]).startswith("An error occured getting the ephemeris"):
-            raise IOError(os.errno.EBADRPC, "call to SSOS failed on format error")
+        if len(lines) < 1 or str(lines[1]).startswith("An error occurred getting the ephemeris"):
+            raise IOError(os.errno.EACCES, "call to SSOS failed on format error")
 
         return lines
 

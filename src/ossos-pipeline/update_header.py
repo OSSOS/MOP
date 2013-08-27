@@ -121,6 +121,7 @@ if __name__ == '__main__':
 
         # skip if already succeeded and not in force mode
         if storage.get_status(expnum, 36, 'update_header') and not args.force:
+            logging.info("Skipping {} as already done.".format(expnum))
             sys.exit(0)
 
         run_update_header(image, header)

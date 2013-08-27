@@ -508,15 +508,8 @@ def zscale(image):
     """
     # Using the default values, but listing explicitly
 #    image = np.clip(image, 1000., 3000.)
-    z1, z2 = numdisplay.zscale.zscale(image, nsamples=1000, contrast=0.25)
-    im_median = np.median(image)
-    if im_median < 0:  # catch the really weird extreme values
-        zmin = max(z1, 700.)  # this one's normally fine
-        zmax = 1000.          # zmax is the problem child
-    else:
-        zmin = max(z1, im_median-5*np.sqrt(im_median))
-        zmax = min(z2, im_median+5*np.sqrt(im_median))
-    retval = np.clip(image, zmin, zmax)  # clip against extreme values
+    z1, z2 = numdisplay.zscale.zscale(image[120:130,120:130], nsamples=2000, contrast=0.25)
+    retval = np.clip(image, z1, z2)  # clip against extreme values
     # print 'np clip max, np clip min, zmin, zmax, z1, z2, im_median, immax, immin'
     # print retval.max(), retval.min(), zmin, zmax, z1, z2, im_median, image.max(), image.min()
     return retval

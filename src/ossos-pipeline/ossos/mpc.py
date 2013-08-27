@@ -409,7 +409,7 @@ class Observation(object):
 
     def to_string(self):
         as_string = str(self)
-        if self.comment != "":
+        if self.comment is not None and str(self.comment) != "":
             as_string += " " + str(self.comment)
         return as_string
 
@@ -689,7 +689,7 @@ class MPCComment(object):
         """
         Build an MPC Comment from a string.
         """
-        values = comment.split(' ')
+        values = comment.split()
         if len(values) < 8:
             logger.warning("non-OSSOS format MPC line read")
             return comment
@@ -842,42 +842,45 @@ class MPCWriter(object):
         self.auto_flush = auto_flush
         self.include_comments = include_comments
 
-        self.date_regex = re.compile("\d{4} \d{2} \d{2}\.\d{5,6}")
-
         # Holds observations that have not yet been flushed
-        self.buffer = []
-
-        self.written_mpc_observations = []
+        self.buffer = {}
+        self._written_mpc_observations = []
 
     def get_filename(self):
         return self.filehandle.name
 
-    def get_written_mpc_observations(self):
-        return self.written_mpc_observations
-
     def write(self, mpc_observation):
         """
         Writes a single entry in the Minor Planet Center's format.
+        :param mpc_observation:
         """
-        self.buffer.append(mpc_observation)
-        self.written_mpc_observations.append(mpc_observation)
+        assert isinstance(mpc_observation, Observation)
+        key = mpc_observation.date.mjd
+        self.buffer[key]= mpc_observation
 
         if self.auto_flush:
             self.flush()
 
     def flush(self):
         for obs in self.get_chronological_buffered_observations():
-            line = obs.to_string() if self.include_comments else str(obs)
-            self.filehandle.write(line + "\n")
+            if obs.date.jd not in self._written_mpc_observations:
+                self._written_mpc_observations.append(obs.date.jd)
+                line = obs.to_string() if self.include_comments else str(obs)
+                self.filehandle.write(line + "\n")
 
         self.filehandle.flush()
-        self.buffer = []
+
 
     def close(self):
         self.filehandle.close()
 
     def get_chronological_buffered_observations(self):
-        return sorted(self.buffer, key=lambda obs: obs.date.unix)
+        jds = self.buffer.keys()
+        jds.sort()
+        sorted_obs = []
+        for jd in jds:
+            sorted_obs.append(self.buffer[jd])
+        return sorted_obs
 
 
 class TNOdbWriter(MPCWriter):
