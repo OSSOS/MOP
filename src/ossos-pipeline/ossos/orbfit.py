@@ -35,6 +35,7 @@ class Orbfit(object):
         self.orbfit = ctypes.CDLL(LIBORBFIT)
         assert isinstance(observations[0], Observation)
         self.observations = observations
+        self.arc_length = observations[-1].date.jd - observations[0].date.jd
         self._fit_radec()
 
     @property
@@ -111,24 +112,29 @@ class Orbfit(object):
         """
 
         """
-        res = "{:>10s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s}\n".format(self.observations[0].provisional_name.strip(' '),
+        res = "{:>10s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s}\n".format(self.observations[0].provisional_name.strip(' '),
+                                                            "r (AU)",
                                                             "a (AU)",
                                                             "e",
                                                             "Inc.",
                                                             "Node",
                                                             "peri.")
-        res += "{:>10s} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format("fit",
+        res += "{:>10s} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format("fit",
+                                                   self.distance,
                                                    self.a,
                                                    self.e,
                                                    self.inc,
                                                    self.Node,
                                                    self.om)
-        res += "{:>10s} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format("uncert",
+        res += "{:>10s} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format("uncert",
+                                                               self.distance_uncertainty,
                                                                self.da,
                                                                self.de,
                                                                self.dinc,
                                                                self.dNode,
                                                                self.dom)
+        res += "{:>10s} {:8.2f} days\n".format("arc:", self.arc_length)
+
         return res
 
     def predict(self, date, obs_code=568):
