@@ -133,7 +133,7 @@ class Orbfit(object):
                                                                self.dinc,
                                                                self.dNode,
                                                                self.dom)
-        res += "{:>10s} {:8.2f} days\n".format("arc:", self.arc_length)
+        res += "{:>10s} {:8.2f} days\n".format("arc", self.arc_length)
 
         return res
 

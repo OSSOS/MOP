@@ -60,6 +60,16 @@ class TracksParser(object):
         print self.orbit
         print self.orbit.residuals
 
+        self.orbit.predict('2013-04-01')  # HARDWIRING FOR E BLOCK FOR NOW
+        coord1 = self.orbit.coordinate
+        self.orbit.predict('2013-05-01')
+        coord2 = self.orbit.coordinate
+        motion_rate = coord1.separation(coord2).arcsecs/(self.orbit.arc_length*60.)  # how best to get arcsec moved between first/last?
+        print "{:>10s} {:8.2f}".format('rate ("/hr)', motion_rate)
+
+        self.orbit.predict('2014-04-04')  # hardwiring next year's prediction date for the moment
+        print "{:>10s} {:8.2f} {:8.2f}\n".format("Expected accuracy on 4 April 2014 (arcsec)", self.orbit.dra, self.orbit.ddec)
+
         length_of_observation_arc = mpc_observations[-1].date.jd - mpc_observations[0].date.jd
 
         if  length_of_observation_arc < 1:
@@ -121,7 +131,6 @@ class TracksParser(object):
             assert isinstance(mpc_observation,mpc.Observation)
             tracks_data.mpc_observations[mpc_observation.comment.frame] = mpc_observation
 
-
         for source in tracks_data.get_sources():
             mpc_observations = tracks_data.observations
             source_readings = source.get_readings()
@@ -132,6 +141,7 @@ class TracksParser(object):
                 self.orbit.predict(mpc_observation.header['MJD_OBS_CENTER'])
                 logger.info("Finished predict")
                 source_reading.pa = self.orbit.pa
+                # why are these being recorded just in pixels?
                 source_reading.dra = self.orbit.dra / mpc_observation.header['SCALE']
                 source_reading.ddec = self.orbit.ddec / mpc_observation.header['SCALE']
 
@@ -191,18 +201,26 @@ class SSOSParser(object):
             ccd = int(row['Ext']) - 1
             expnum = row['Image'].rstrip('p')
 
+            # ADDING THIS TEMPORARILY TO GET THE NON-OSSOS DATA OUT OF THE WAY WHILE DEBUGGING
+            if (row['Telescope_Insturment'] != 'CFHT/MegaCam') or (row['Filter'] != 'r.MP9601'):
+                continue
+
+            # it's fine for OSSOS, go get the image
             image_uri = storage.dbimages_uri(expnum=expnum,
                                              ccd=None,
                                              version='p',
                                              ext='.fits',
                                              subdir=None)
+            logger.info('Trying to access %s\n%s' % (row.data, image_uri))
 
             if not storage.exists(image_uri, force=False):
+                logger.warning('Image not in dbimages? Trying subdir.')
                 image_uri = storage.dbimages_uri(expnum=expnum,
                                                  ccd=ccd,
                                                  version='p')
 
                 if not storage.exists(image_uri, force=False):
+                    logger.warning("Image doesn't exist in ccd subdir. %s" % image_uri)
                     continue
 
             if row['X'] == -9999 or row['Y'] == -9999 :
@@ -215,12 +233,9 @@ class SSOSParser(object):
                                                  ext='.mopheader')
 
             if not mopheader_uri in mopheaders:
-
                 if not storage.exists(mopheader_uri, force=False):
                     logger.warning('mopheader missing, but images exists')
                     continue
-
-
 
                 # raise flag if no MOPHEADER
                 mopheader_fpt = cStringIO.StringIO(storage.open_vos_or_local(mopheader_uri).read())
@@ -352,7 +367,7 @@ class SSOSData(object):
 
 class ParamDictBuilder(object):
     """
-    Build a dictionary of parameters needed for and SSOS Query.
+    Build a dictionary of parameters needed for an SSOS Query.
 
     This should be fun!
     """
