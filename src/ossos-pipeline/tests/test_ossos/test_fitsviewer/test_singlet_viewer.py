@@ -26,6 +26,7 @@ class SingletViewerTest(WxWidgetTestCase):
 
         cutout = Mock(spec=SourceCutout)
         reading = Mock(spec=SourceReading)
+        reading.null_observation = Mock(return_value=False)
         cutout.hdulist = mock_hdulist()
         cutout.pixel_source_point = x, y
         cutout.astrom_header = {"FWHM": fwhm}
@@ -40,7 +41,7 @@ class SingletViewerTest(WxWidgetTestCase):
 
         self.viewer.mark_sources(cutout)
         mock_place_marker.assert_called_once_with(x, y, 2 * fwhm,
-                                                  colour="b")
+                                                  colour="r")
 
     def test_refresh_marker(self):
         cutout = Mock(spec=SourceCutout)
