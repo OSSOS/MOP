@@ -362,7 +362,7 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         source.set_provisional_name(provisional_name)
 
         assert_that(self.workunit.get_output_filename(source),
-                    equal_to("ABCD123.mpc"))
+                    equal_to("1584431p15.measure3.reals.astrom.ABCD123.mpc"))
 
 
 class CandidatesWorkUnitTest(AbstractWorkUnitTest):

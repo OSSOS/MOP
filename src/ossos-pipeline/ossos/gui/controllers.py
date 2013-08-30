@@ -180,7 +180,7 @@ class ProcessRealsController(AbstractController):
         default_comment = ""
         phot_failure = False
 
-        source_cutout  = self.model.get_current_cutout()
+        source_cutout = self.model.get_current_cutout()
         pixel_x = source_cutout.pixel_x
         pixel_y = source_cutout.pixel_y
 
@@ -210,7 +210,6 @@ class ProcessRealsController(AbstractController):
 
         self.view.show_accept_source_dialog(
             provisional_name,
-            self.model.is_current_source_discovered(),
             self.model.get_current_observation_date(),
             self.model.get_current_ra(),
             self.model.get_current_dec(),
@@ -229,7 +228,6 @@ class ProcessRealsController(AbstractController):
     def on_do_accept(self,
                      minor_planet_number,
                      provisional_name,
-                     discovery_asterisk,
                      note1,
                      note2,
                      date_of_obs,
@@ -258,7 +256,6 @@ class ProcessRealsController(AbstractController):
         mpc_observation = mpc.Observation(
             minor_planet_number=minor_planet_number,
             provisional_name=provisional_name,
-            discovery=discovery_asterisk,
             note1=note1_code,
             note2=note2_code,
             date=date_of_obs,
@@ -296,7 +293,6 @@ class ProcessRealsController(AbstractController):
 
         source_cutout = self.model.get_current_cutout()
         source_cutout.update_pixel_location(pix_coords)
-
 
     def on_do_reject(self, comment):
         self.view.close_reject_source_dialog()

@@ -137,7 +137,6 @@ class AcceptSourceDialog(SourceValidationDialog):
     TITLE = "Accept Source"
     MINOR_PLANET_NUMBER = "Minor planet number: "
     PROVISIONAL_NAME = "Provisional name: "
-    DISCOVERY_ASTERISK = "Discovery asterisk: "
     NOTE1 = "Note 1: "
     NOTE2 = "Note 2: "
     DATE_OF_OBS = "Date of observation: "
@@ -149,7 +148,6 @@ class AcceptSourceDialog(SourceValidationDialog):
 
     def __init__(self, parent, controller,
                  provisional_name,
-                 already_discovered,
                  date_of_obs,
                  ra,
                  dec,
@@ -167,7 +165,6 @@ class AcceptSourceDialog(SourceValidationDialog):
         self.phot_failure = phot_failure
 
         self.provisional_name = provisional_name
-        self.already_discovered = already_discovered
         self.date_of_obs = date_of_obs
         self.ra_str = str(ra)
         self.dec_str = str(dec)
@@ -206,12 +203,6 @@ class AcceptSourceDialog(SourceValidationDialog):
             self, label=AcceptSourceDialog.PROVISIONAL_NAME)
         self.provision_name_text = self._create_readonly_text(
             value=self.provisional_name, name=self.PROVISIONAL_NAME)
-
-        self.discovery_asterisk_label = wx.StaticText(
-            self, label=AcceptSourceDialog.DISCOVERY_ASTERISK)
-        discovery_asterisk = "No" if self.already_discovered else "Yes"
-        self.discovery_asterisk_text = self._create_readonly_text(
-            value=discovery_asterisk, name=AcceptSourceDialog.DISCOVERY_ASTERISK)
 
         self.note1_label = wx.StaticText(self, label=AcceptSourceDialog.NOTE1)
         self.note1_combobox = KeyboardCompleteComboBox(
@@ -259,7 +250,6 @@ class AcceptSourceDialog(SourceValidationDialog):
     def _get_vertical_widget_list(self):
         data_fields = [(self.minor_planet_num_label, self.minor_planet_num_text),
                        (self.provisional_name_label, self.provision_name_text),
-                       (self.discovery_asterisk_label, self.discovery_asterisk_text),
                        (self.note1_label, self.note1_combobox),
                        (self.note2_label, self.note2_combobox),
                        (self.date_of_obs_label, self.date_of_obs_text),
@@ -283,7 +273,6 @@ class AcceptSourceDialog(SourceValidationDialog):
         # Grab data out of the form
         # TODO validation
         minor_planet_number = self.minor_planet_num_text.GetValue()
-        discovery_asterisk = " " if self.already_discovered else "*"
         note1 = self.note1_combobox.GetValue()
         note2 = self.note2_combobox.GetValue()
         obs_mag = self.obs_mag if not self.phot_failure else ""
@@ -294,7 +283,6 @@ class AcceptSourceDialog(SourceValidationDialog):
 
         self.controller.on_do_accept(minor_planet_number,
                                      self.provisional_name,
-                                     discovery_asterisk,
                                      note1,
                                      note2,
                                      self.date_of_obs,
@@ -340,7 +328,6 @@ class OffsetSourceDialog(SourceValidationDialog):
 
     def _on_cancel(self, event):
         self.controller.on_cancel_offset(self.pix_coords)
-
 
 
 class RejectSourceDialog(SourceValidationDialog):
