@@ -22,7 +22,7 @@ class SingletViewer(WxMPLFitsViewer):
         fwhm = float(cutout.astrom_header["FWHM"])
         radius = 2 * round(fwhm)
 
-        color = 'r'
+        colour = 'r'
         if cutout.reading.from_input_file:
             if cutout.reading.null_observation:
                 colour = "r"
