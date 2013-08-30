@@ -605,6 +605,79 @@ class MPCWriterTest(unittest.TestCase):
         assert_that(self.undertest.get_chronological_buffered_observations(),
                     contains(obs1, obs2, obs3))
 
+    def test_discovery_asterisk_for_first_flushed(self):
+        self.undertest = mpc.MPCWriter(self.outputfile, auto_flush=False,
+                                       include_comments=False)
+
+        obs1 = mpc.Observation(minor_planet_number="12345",
+                               provisional_name="A234567",
+                               note1="H",
+                               note2="N",
+                               date="2012 10 21.405160",
+                               ra="26.683336700", # 01 46 44.001
+                               dec="29.220353200", # +29 13 13.27
+                               mag="123.5",
+                               band="A",
+                               observatory_code="523")
+        obs2 = mpc.Observation(minor_planet_number="12345",
+                               provisional_name="A234567",
+                               note1="H",
+                               note2="N",
+                               date="2012 11 21.405160",
+                               ra="26.683336700", # 01 46 44.001
+                               dec="29.220353200", # +29 13 13.27
+                               mag="123.5",
+                               band="A",
+                               observatory_code="523")
+
+        self.undertest.write(obs2)
+        self.undertest.write(obs1)
+
+        self.undertest.flush()
+
+        expected_first_line = ("12345A234567*HN2012 10 21.40516001 46 44.001"
+                               "+29 13 13.27         123.5A      523\n")
+        expected_second_line = ("12345A234567 HN2012 11 21.40516001 46 44.001"
+                               "+29 13 13.27         123.5A      523\n")
+
+        assert_that(self.read_outputfile(),
+                    equal_to(expected_first_line + expected_second_line))
+
+    def test_rejected_line_not_discovery_asterisk(self):
+        self.undertest = mpc.MPCWriter(self.outputfile, auto_flush=False,
+                                       include_comments=False)
+
+        obs1 = mpc.Observation(provisional_name="A234567",
+                               date="2012 10 21.405160",
+                               ra="26.683336700", # 01 46 44.001
+                               dec="29.220353200", # +29 13 13.27
+                               observatory_code="523")
+        obs1.null_observation = True
+
+        obs2 = mpc.Observation(minor_planet_number="12345",
+                               provisional_name="A234567",
+                               note1="H",
+                               note2="N",
+                               date="2012 11 21.405160",
+                               ra="26.683336700", # 01 46 44.001
+                               dec="29.220353200", # +29 13 13.27
+                               mag="123.5",
+                               band="A",
+                               observatory_code="523")
+
+        self.undertest.write(obs2)
+        self.undertest.write(obs1)
+
+        self.undertest.flush()
+
+        expected_first_line = ("!    A234567   2012 10 21.40516001 46 44.001"
+                               "+29 13 13.27         -1   r      523\n")
+        expected_second_line = ("12345A234567*HN2012 11 21.40516001 46 44.001"
+                                "+29 13 13.27         123.5A      523\n")
+
+        assert_that(self.read_outputfile(),
+                    equal_to(expected_first_line + expected_second_line))
+
     def test_format_ra(self):
         """
         Example based on:
