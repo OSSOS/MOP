@@ -120,7 +120,6 @@ class RealsControllerTest(unittest.TestCase):
             ANY,
             ANY,
             ANY,
-            ANY,
             note1_choices=ANY,
             note2_choices=ANY,
             note1_default=config.read("MPC.NOTE1_HAND_ADJUSTED"),
@@ -134,7 +133,6 @@ class RealsControllerTest(unittest.TestCase):
 
         self.controller.on_accept()
         self.view.show_accept_source_dialog.assert_called_once_with(
-            ANY,
             ANY,
             ANY,
             ANY,
