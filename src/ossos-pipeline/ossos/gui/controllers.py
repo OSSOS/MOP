@@ -180,7 +180,7 @@ class ProcessRealsController(AbstractController):
         default_comment = ""
         phot_failure = False
 
-        source_cutout  = self.model.get_current_cutout()
+        source_cutout = self.model.get_current_cutout()
         pixel_x = source_cutout.pixel_x
         pixel_y = source_cutout.pixel_y
 

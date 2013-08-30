@@ -7,6 +7,7 @@ from hamcrest import assert_that, equal_to, is_not, same_instance
 
 from tests.base_tests import FileReadingTestCase, WxWidgetTestCase, DirectoryCleaningTestCase
 from ossos.daophot import TaskError
+from ossos.downloads.cutouts.source import SourceCutout
 from ossos.gui import tasks
 from ossos.gui.context import LocalDirectoryWorkingContext
 from ossos.gui.progress import LocalProgressManager
@@ -55,6 +56,16 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
         self.model.start_work()
 
         # We don't actually have any images loaded, so mock this out
+        source_cutout = Mock(spec=SourceCutout)
+        source_cutout.pixel_x = 11
+        source_cutout.pixel_y = 50
+        self.model.get_current_cutout = Mock(return_value=source_cutout)
+
+        x_cen = 10
+        y_cen = 50
+        mag = 24.0
+        self.model.get_current_source_observed_magnitude = Mock(return_value=(x_cen, y_cen, mag))
+
         self.model.is_current_source_adjusted = Mock(return_value=False)
         self.model.get_current_fits_header = Mock()
 
