@@ -144,7 +144,6 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
     def accept_source_reading(self):
         self.controller.on_do_accept(TEST_MINOR_PLANET_NUMBER,
                                      TEST_PROVISIONAL_NAME,
-                                     TEST_DISCOVERY_AST,
                                      TEST_NOTE1,
                                      TEST_NOTE2,
                                      TEST_DATE,
@@ -227,7 +226,6 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
         self.controller.on_accept()
 
         view_mock.show_accept_source_dialog.assert_called_once_with(
-            ANY,
             ANY,
             ANY,
             ANY,
