@@ -297,7 +297,6 @@ class ProcessRealsController(AbstractController):
         source_cutout = self.model.get_current_cutout()
         source_cutout.update_pixel_location(pix_coords)
 
-
     def on_do_reject(self, comment):
         self.view.close_reject_source_dialog()
 
