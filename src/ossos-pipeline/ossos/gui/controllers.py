@@ -346,7 +346,6 @@ class ProcessTracksController(ProcessRealsController):
     def on_do_accept(self,
                      minor_planet_number,
                      provisional_name,
-                     discovery_asterisk,
                      note1,
                      note2,
                      date_of_obs,
@@ -361,7 +360,6 @@ class ProcessTracksController(ProcessRealsController):
         super(ProcessTracksController, self).on_do_accept(
             minor_planet_number,
             provisional_name,
-            discovery_asterisk,
             note1,
             note2,
             date_of_obs,
