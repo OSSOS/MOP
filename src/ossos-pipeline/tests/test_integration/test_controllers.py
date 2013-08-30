@@ -6,6 +6,7 @@ from mock import Mock, ANY, patch
 from hamcrest import assert_that, equal_to, is_not, same_instance
 
 from tests.base_tests import FileReadingTestCase, WxWidgetTestCase, DirectoryCleaningTestCase
+from ossos.astrom import AstromParser
 from ossos.daophot import TaskError
 from ossos.downloads.cutouts.source import SourceCutout
 from ossos.gui import tasks
@@ -15,7 +16,7 @@ from ossos.gui.controllers import ProcessRealsController
 from ossos.gui.models.imagemanager import ImageManager
 from ossos.gui.models.validation import ValidationModel
 from ossos.gui.views.appview import ApplicationView
-from ossos.astrom import AstromParser
+from ossos import mpc
 from ossos.naming import ProvisionalNameGenerator
 from ossos.gui.models.workload import WorkUnitProvider, RealsWorkUnitBuilder
 
@@ -54,6 +55,8 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
 
         self.model = ValidationModel(workunit_provider, image_manager, None)
         self.model.start_work()
+
+        self.model.get_writer = Mock(return_value=Mock(spec=mpc.MPCWriter))
 
         # We don't actually have any images loaded, so mock this out
         source_cutout = Mock(spec=SourceCutout)
@@ -96,7 +99,7 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
     def get_files_to_keep(self):
         return ["1584431p15.measure3.reals.astrom", "1616681p10.measure3.reals.astrom"]
 
-    @patch("ossos.gui.controllers.mpc.Observation")
+    @patch("ossos.gui.controllers.mpc.Observation", spec=mpc.Observation)
     def test_reject_disables_validation_controls(self, mock_Observation):
         comment = "test"
 
@@ -116,7 +119,7 @@ class ProcessRealsControllerTest(WxWidgetTestCase, FileReadingTestCase, Director
         self.controller.on_next_obs()
         assert_that(self.view.is_source_validation_enabled(), equal_to(True))
 
-    @patch("ossos.gui.controllers.mpc.Observation")
+    @patch("ossos.gui.controllers.mpc.Observation", spec=mpc.Observation)
     def test_reject_last_item_disables_validation_controls(self, mock_Observation):
         comment = "test"
 
