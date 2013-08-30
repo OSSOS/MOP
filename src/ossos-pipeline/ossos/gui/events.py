@@ -1,7 +1,19 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-# TODO: compatibility with both new and old versions
-from wx.lib.pubsub import setupv1
+# NOTE: we are using version 1 of the pubsub API
+# (http://pubsub.sourceforge.net/apidocs/docs4v1.html#label-api-v1-docs)
+# This is in order to maintain compatiblity with software available on older
+# systems such as ScientificLinux 5.5 on CANFAR VMs.
+
+try:
+    # On up-to-date systems this import will trigger using version 1 of
+    # the pubsub API.
+    from wx.lib.pubsub import setupv1
+except ImportError:
+    # Old systems will not be able to execute that import, but it is ok
+    # because all they have is the version 1 API.
+    pass
+
 from wx.lib.pubsub import Publisher as pub
 
 # Event ids
