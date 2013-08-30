@@ -466,11 +466,12 @@ class TracksWorkUnit(WorkUnit):
         from ossos.mpc import MPCWriter
 
         writer = MPCWriter(self.output_context.open(filename),
-                         auto_flush=False)
+                           auto_flush=False, auto_discovery=False)
 
         # Load the input observations into the writer
         for rawname in self.data.mpc_observations:
             writer.write(self.data.mpc_observations[rawname])
+        
         return writer
 
     def _get_item_set(self):

@@ -837,7 +837,8 @@ class MPCWriter(object):
         78 - 80       A3     Observatory code
     """
 
-    def __init__(self, filehandle, auto_flush=True, include_comments=True):
+    def __init__(self, filehandle, auto_flush=True, include_comments=True,
+                 auto_discovery=True):
         self.filehandle = filehandle
         self.auto_flush = auto_flush
         self.include_comments = include_comments
@@ -846,6 +847,7 @@ class MPCWriter(object):
         self.buffer = {}
         self._written_mpc_observations = []
 
+        self.auto_discovery = auto_discovery
         self._discovery_written = False
 
     def get_filename(self):
@@ -870,7 +872,9 @@ class MPCWriter(object):
         self.filehandle.flush()
 
     def _flush_observation(self, obs):
-        if not obs.null_observation and not self._discovery_written:
+        if (self.auto_discovery and
+                not obs.null_observation and
+                not self._discovery_written):
             obs.discovery = True
             self._discovery_written = True
 
