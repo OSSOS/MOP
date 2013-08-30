@@ -314,8 +314,8 @@ class OffsetSourceDialog(SourceValidationDialog):
         super(OffsetSourceDialog, self).__init__(parent, title=self.TITLE)
         self.controller = controller
 
-        self.submit_button.LabelText = "DAOPhot"
-        self.cancel_button.LabelText = "Marker"
+        self.submit_button.SetLabel("DAOPhot")
+        self.cancel_button.SetLabel("Marker")
 
     def _init_ui(self):
         pass
