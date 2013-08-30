@@ -374,7 +374,6 @@ class MPCWriterTest(unittest.TestCase):
     def test_write_line_valid_pad_empties(self):
         obs = mpc.Observation(minor_planet_number="12345",
                               provisional_name="A234567",
-                              discovery="",
                               note1="",
                               note2="",
                               date="2013 04 09.36658",
@@ -386,7 +385,7 @@ class MPCWriterTest(unittest.TestCase):
 
         self.undertest.write(obs)
 
-        expected = "12345A234567   2013 04 09.36658 01 46 44.001+29 13 13.27         123.5A      523\n"
+        expected = "12345A234567*  2013 04 09.36658 01 46 44.001+29 13 13.27         123.5A      523\n"
 
         actual = self.read_outputfile()
 
@@ -542,7 +541,7 @@ class MPCWriterTest(unittest.TestCase):
 
         assert_that(self.read_outputfile(), equal_to(""))
 
-        obs2 = mpc.Observation(date="2012 10 21.405160",
+        obs2 = mpc.Observation(date="2012 10 22.405160",
                                ra="26.683336700", # 01 46 44.001
                                dec="29.220353200", # +29 13 13.27
         )
@@ -554,7 +553,7 @@ class MPCWriterTest(unittest.TestCase):
         assert_that(self.read_outputfile(), equal_to(""))
 
         expected_mpcline = "12345A234567*HN2012 10 21.40516001 46 44.001+29 13 13.27         123.5A      523\n"
-        expected_reject_line = "!              2012 10 21.40516001 46 44.001+29 13 13.27         -1   r      568\n"
+        expected_reject_line = "!              2012 10 22.40516001 46 44.001+29 13 13.27         -1   r      568\n"
 
         self.undertest.flush()
         assert_that(self.read_outputfile(),
