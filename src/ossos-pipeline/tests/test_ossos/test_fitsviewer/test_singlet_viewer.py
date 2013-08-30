@@ -26,6 +26,7 @@ class SingletViewerTest(WxWidgetTestCase):
 
         cutout = Mock(spec=SourceCutout)
         reading = Mock(spec=SourceReading)
+        reading.null_observation = Mock(return_value=False)
         cutout.hdulist = mock_hdulist()
         cutout.pixel_source_point = x, y
         cutout.astrom_header = {"FWHM": fwhm}

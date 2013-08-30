@@ -249,12 +249,9 @@ class RealsWorkUnit(WorkUnit):
         if not source.has_provisional_name():
             raise SourceNotNamedException(source)
 
-        name = os.path.basename(self.filename) + "." + source.get_provisional_name() + ".mpc"
-
-        if self.dry_run:
-            name = os.path.basename(self.filename) + "." + name
-
-        return name
+        return ".".join((os.path.basename(self.filename),
+                         source.get_provisional_name(),
+                         "mpc"))
 
     def _create_writer(self, filename):
         # NOTE: this import is only here so that we don't load up secondary
