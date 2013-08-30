@@ -102,7 +102,7 @@ class AbstractControllerTest(unittest.TestCase):
 class RealsControllerTest(unittest.TestCase):
     def setUp(self):
         self.model = MagicMock(spec=ValidationModel)
-        self.model.get_current_source_observed_magnitude.return_value = 100, 1
+        self.model.get_current_source_observed_magnitude.return_value = 10, 20, 100, 1
 
         self.view = Mock(spec=ApplicationView)
         self.controller = ProcessRealsController(
