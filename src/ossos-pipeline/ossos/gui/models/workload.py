@@ -713,12 +713,46 @@ class TracksWorkUnitBuilder(WorkUnitBuilder):
             dry_run=dry_run
         )
 
+    def get_readings(self, data):
+        # Note: Track workunits only have 1 source
+        return data.get_sources()[0].get_readings()
+
+    def set_readings(self, data, readings):
+        # Note: Track workunits only have 1 source
+        data.get_sources()[0].readings = readings
+
+    def get_discovery_index(self, data):
+        # Note: there should only be one reading marked "discovery" amongst
+        # the data.
+        for i, reading in enumerate(self.get_readings(data)):
+            if reading.discovery:
+                return i
+
+        raise ValueError("No discovery index found in track workunit.")
+
+    def move_discovery_to_front(self, data):
+        """
+        Moves the discovery triplet to the front of the reading list.
+        Leaves everything else in the same order.
+        """
+        readings = self.get_readings(data)
+        discovery_index = self.get_discovery_index(data)
+
+        reordered_readings = (readings[discovery_index:discovery_index + 3] +
+                              readings[:discovery_index] +
+                              readings[discovery_index + 3:])
+
+        self.set_readings(data, reordered_readings)
+
     def _do_build_workunit(self,
                            filename,
                            data,
                            progress_manager,
                            output_context,
                            dry_run):
+
+        self.move_discovery_to_front(data)
+
         return TracksWorkUnit(self,
             filename, data, progress_manager, output_context, dry_run=dry_run)
 
