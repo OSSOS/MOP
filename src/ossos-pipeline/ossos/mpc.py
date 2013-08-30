@@ -846,6 +846,8 @@ class MPCWriter(object):
         self.buffer = {}
         self._written_mpc_observations = []
 
+        self._discovery_written = False
+
     def get_filename(self):
         return self.filehandle.name
 
@@ -863,13 +865,19 @@ class MPCWriter(object):
 
     def flush(self):
         for obs in self.get_chronological_buffered_observations():
-            if obs.date.jd not in self._written_mpc_observations:
-                self._written_mpc_observations.append(obs.date.jd)
-                line = obs.to_string() if self.include_comments else str(obs)
-                self.filehandle.write(line + "\n")
+            self._flush_observation(obs)
 
         self.filehandle.flush()
 
+    def _flush_observation(self, obs):
+        if not obs.null_observation and not self._discovery_written:
+            obs.discovery = True
+            self._discovery_written = True
+
+        if obs.date.jd not in self._written_mpc_observations:
+            self._written_mpc_observations.append(obs.date.jd)
+            line = obs.to_string() if self.include_comments else str(obs)
+            self.filehandle.write(line + "\n")
 
     def close(self):
         self.filehandle.close()

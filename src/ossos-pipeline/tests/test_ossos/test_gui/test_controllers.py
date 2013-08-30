@@ -102,7 +102,7 @@ class AbstractControllerTest(unittest.TestCase):
 class RealsControllerTest(unittest.TestCase):
     def setUp(self):
         self.model = MagicMock(spec=ValidationModel)
-        self.model.get_current_source_observed_magnitude.return_value = 100, 1
+        self.model.get_current_source_observed_magnitude.return_value = 10, 20, 100, 1
 
         self.view = Mock(spec=ApplicationView)
         self.controller = ProcessRealsController(
@@ -113,7 +113,6 @@ class RealsControllerTest(unittest.TestCase):
 
         self.controller.on_accept()
         self.view.show_accept_source_dialog.assert_called_once_with(
-            ANY,
             ANY,
             ANY,
             ANY,
@@ -134,7 +133,6 @@ class RealsControllerTest(unittest.TestCase):
 
         self.controller.on_accept()
         self.view.show_accept_source_dialog.assert_called_once_with(
-            ANY,
             ANY,
             ANY,
             ANY,
