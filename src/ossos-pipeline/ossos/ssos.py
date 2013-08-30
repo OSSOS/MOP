@@ -132,18 +132,22 @@ class TracksParser(object):
             tracks_data.mpc_observations[mpc_observation.comment.frame] = mpc_observation
 
         for source in tracks_data.get_sources():
-            mpc_observations = tracks_data.observations
+            astrom_observations = tracks_data.observations
             source_readings = source.get_readings()
             for idx in range(len(source_readings)):
                 source_reading = source_readings[idx]
-                mpc_observation = mpc_observations[idx]
+                astrom_observation = astrom_observations[idx]
                 logger.info("About to call orbfit predict")
-                self.orbit.predict(mpc_observation.header['MJD_OBS_CENTER'])
+                self.orbit.predict(astrom_observation.header['MJD_OBS_CENTER'])
                 logger.info("Finished predict")
                 source_reading.pa = self.orbit.pa
                 # why are these being recorded just in pixels?
-                source_reading.dra = self.orbit.dra / mpc_observation.header['SCALE']
-                source_reading.ddec = self.orbit.ddec / mpc_observation.header['SCALE']
+                source_reading.dra = self.orbit.dra / astrom_observation.header['SCALE']
+                source_reading.ddec = self.orbit.ddec / astrom_observation.header['SCALE']
+
+                frame = astrom_observation.rawname
+                if frame in tracks_data.mpc_observations:
+                    source_reading.discovery = tracks_data.mpc_observations[frame].discovery
 
         return tracks_data  # a SSOSData with .sources and .observations only
 
