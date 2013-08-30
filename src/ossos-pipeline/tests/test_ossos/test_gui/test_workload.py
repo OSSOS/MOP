@@ -4,7 +4,7 @@ import os
 import unittest
 
 from hamcrest import (assert_that, is_in, is_not, equal_to, is_, none,
-                      contains_inanyorder, has_length)
+                      contains_inanyorder, has_length, contains)
 from mock import Mock, call, MagicMock
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
@@ -14,14 +14,16 @@ from ossos.gui.context import WorkingContext, LocalDirectoryWorkingContext
 from ossos.gui.models.collections import StatefulCollection
 from ossos.gui.models.exceptions import NoAvailableWorkException
 from ossos.gui.models.validation import ValidationModel
-from ossos.astrom import AstromParser, StreamingAstromWriter
+from ossos.astrom import (AstromParser, StreamingAstromWriter, SourceReading,
+                          Source)
 from ossos.mpc import MPCWriter
 from ossos.gui.models.imagemanager import ImageManager
 from ossos.gui.progress import LocalProgressManager, InMemoryProgressManager
 from ossos.gui.models.workload import (WorkUnitProvider, WorkUnit,
                                        RealsWorkUnit, CandidatesWorkUnit,
                                        RealsWorkUnitBuilder,
-                                       PreFetchingWorkUnitProvider)
+                                       PreFetchingWorkUnitProvider, TracksWorkUnitBuilder)
+from ossos.ssos import SSOSData, SSOSParser
 
 
 class TestDirectoryManager(object):
@@ -830,6 +832,41 @@ class WorkUnitProviderRealFilesTest(FileReadingTestCase, DirectoryCleaningTestCa
         self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
 
         assert_that(actual_filenames, contains_inanyorder(*expected_filenames))
+
+
+class TracksWorkUnitBuilderTest(unittest.TestCase):
+    def test_move_discovery_to_front(self):
+        def mock_reading(discovery=False):
+            reading = Mock(spec=SourceReading)
+            reading.discovery = discovery
+            return reading
+
+        reading0 = mock_reading()
+        reading1 = mock_reading(discovery=True)
+        reading2 = mock_reading()
+        reading3 = mock_reading()
+        reading4 = mock_reading()
+
+        data = SSOSData(Mock(),
+                        [[reading0, reading1, reading2, reading3, reading4]],
+                        "123456")
+
+        builder = TracksWorkUnitBuilder(Mock(spec=SSOSParser),
+                                        Mock(spec=LocalDirectoryWorkingContext),
+                                        Mock(spec=LocalDirectoryWorkingContext),
+                                        Mock(spec=LocalProgressManager))
+
+        def get_readings(data):
+            # Note: Track workunits only have 1 source
+            return data.get_sources()[0].get_readings()
+
+        assert_that(get_readings(data),
+                    contains(reading0, reading1, reading2, reading3, reading4))
+
+        builder.move_discovery_to_front(data)
+
+        assert_that(get_readings(data),
+                    contains(reading1, reading2, reading3, reading0, reading4))
 
 
 if __name__ == '__main__':
