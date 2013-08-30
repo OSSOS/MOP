@@ -629,6 +629,9 @@ class PreFetchingWorkUnitProvider(object):
             num_to_fetch = 0
 
         while num_to_fetch > 0:
+            if self._all_fetched:
+                return
+
             self.prefetch_workunit()
             num_to_fetch -= 1
 
@@ -643,10 +646,13 @@ class PreFetchingWorkUnitProvider(object):
                 ignore_list=self.fetched_files)
             filename = workunit.get_filename()
 
-            self.fetched_files.append(filename)
-            self.workunits.append(workunit)
+            # 2 or more threads created back to back could end up
+            # retrieving the same workunit.  Only keep one of them.
+            if filename not in self.fetched_files:
+                self.fetched_files.append(filename)
+                self.workunits.append(workunit)
 
-            logger.info("%s was prefetched." % filename)
+                logger.info("%s was prefetched." % filename)
 
         except NoAvailableWorkException:
             self._all_fetched = True
