@@ -662,9 +662,12 @@ class PreFetchingWorkUnitProviderTest(unittest.TestCase):
                                                      self.prefetch_quantity)
         self._workunit_number = 0
 
-    def create_workunit(self):
+    def create_workunit(self, num=None):
+        if num is None:
+            num = self._workunit_number
+
         workunit = Mock(spec=WorkUnit)
-        workunit.get_filename.return_value = "Workunit%d" % self._workunit_number
+        workunit.get_filename.return_value = "Workunit%d" % num
         self._workunit_number += 1
         return workunit
 
@@ -790,6 +793,25 @@ class PreFetchingWorkUnitProviderTest(unittest.TestCase):
         assert_that(self.undertest.get_workunit(), equal_to(workunit3))
 
         assert_that(prefetch_workunit_mock.call_count, equal_to(0))
+
+        self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
+
+    def test_duplicate_workunit_ignored_(self):
+        # This tests the case when 2 or more threads created back to back
+        # end up retrieving the same workunit.  Only want to return it once
+        # though.
+        prefetch_workunit_mock = self.mock_prefetch_workunit(bypass_threading=True)
+
+        workunit1 = self.create_workunit(1)
+        workunit2 = self.create_workunit(2)
+        workunit3 = self.create_workunit(2)
+
+        self.set_workunit_provider_return_values(
+            [workunit1, workunit2, workunit3, NoAvailableWorkException()])
+
+        assert_that(self.undertest.get_workunit(), equal_to(workunit1))
+
+        assert_that(self.undertest.get_workunit(), equal_to(workunit2))
 
         self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
 
