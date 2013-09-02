@@ -238,6 +238,8 @@ class SSOSParser(object):
 
             if not mopheader_uri in mopheaders:
                 if not storage.exists(mopheader_uri, force=False):
+                    # ELEVATE! we need to know to go off and reprocess/include this image.
+                    print '!!! Image exists but processing incomplete. Mopheader missing. %s' % image_uri
                     logger.warning('mopheader missing, but images exists')
                     continue
 
