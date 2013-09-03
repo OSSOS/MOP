@@ -60,11 +60,11 @@ class TracksParser(object):
         print self.orbit
         print self.orbit.residuals
 
-        self.orbit.predict('2013-04-01')  # HARDWIRING FOR E BLOCK FOR NOW
+        self.orbit.predict(self.orbit.observations[0].date)
         coord1 = self.orbit.coordinate
-        self.orbit.predict('2013-05-01')
+        self.orbit.predict(self.orbit.observations[-1].date)
         coord2 = self.orbit.coordinate
-        motion_rate = coord1.separation(coord2).arcsecs/(self.orbit.arc_length*60.)  # how best to get arcsec moved between first/last?
+        motion_rate = coord1.separation(coord2).arcsecs/(self.orbit.arc_length*24)  # how best to get arcsec moved between first/last?
         print "{:>10s} {:8.2f}".format('rate ("/hr)', motion_rate)
 
         self.orbit.predict('2014-04-04')  # hardwiring next year's prediction date for the moment
