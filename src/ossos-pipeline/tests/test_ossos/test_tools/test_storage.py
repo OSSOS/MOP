@@ -1,3 +1,6 @@
+import astropy
+import numpy
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
@@ -5,8 +8,19 @@ import unittest
 from mock import patch
 from hamcrest import assert_that, equal_to
 
-from ossos import storage
+from ossos import storage, mpc
 
+
+class ConeSearchTest(unittest.TestCase):
+
+    def test_cone_search(self):
+        mpc_line="     O13AE3Y* C2013 04 04.42583 14 09 16.989-11 14 50.60         23.18r      568 1615909p27 O13AE3Y Y  1715.1 2159.5 23.18 0.10 UUUU %"
+        observation = mpc.Observation.from_string(mpc_line)
+
+        table = storage.cone_search(observation.coordinate.lonangle.degrees,
+                            observation.coordinate.latangle.degrees)
+        self.assertIsInstance(table, numpy.ndarray)
+        self.assertEquals(table['dataset_name'][0],'1607614')
 
 class ObjectCountTest(unittest.TestCase):
     @patch("ossos.storage.set_property")

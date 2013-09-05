@@ -12,7 +12,7 @@ class ImageCutoutDownloader(Downloader):
     Downloads a slice of an image relevant to examining a (potential) source.
     """
 
-    def __init__(self, slice_rows=250, slice_cols=250, vosclient=None):
+    def __init__(self, slice_rows=500, slice_cols=500, vosclient=None):
         """
         Constructor.
 
@@ -53,7 +53,8 @@ class ImageCutoutDownloader(Downloader):
             reading.get_extension(),
             focus,
             reading.get_original_image_size(),
-            inverted=reading.is_inverted())
+            inverted=reading.is_inverted(),
+            should_invert=reading.should_invert())
 
         image_uri = reading.get_image_uri()
 

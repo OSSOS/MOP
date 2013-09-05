@@ -1,3 +1,5 @@
+from ossos.downloads.cutouts import downloader
+
 __author__ = 'Michele Bannister'
 
 import cStringIO
@@ -25,9 +27,77 @@ RESPONSE_FORMAT = 'tsv'
 # was set to \r\n ?
 NEW_LINE = '\r\n'
 
-
+downloader = downloader.Downloader()
 mopheaders = {}
 astheaders = {}
+
+def get_mopheader(expnum, ccd):
+    """
+    Retrieve the mopheader, either from cache or from vospace
+    """
+    mopheader_uri = storage.dbimages_uri(expnum=expnum,
+                                         ccd=ccd,
+                                         version='p',
+                                         ext='.mopheader')
+    if mopheader_uri in mopheaders:
+        return mopheaders[mopheader_uri]
+
+    mopheader_fpt = cStringIO.StringIO(storage.open_vos_or_local(mopheader_uri).read())
+    mopheader = fits.open(mopheader_fpt)
+    ## add some values to the mopheader so it can be an astrom header too.
+    header = mopheader[0].header
+    header['FWHM'] = storage.get_fwhm(expnum, ccd)
+    header['SCALE'] = mopheader[0].header['PIXSCALE']
+    header['NAX1'] = header['NAXIS1']
+    header['NAX2'] = header['NAXIS2']
+    header['MOPversion'] = header['MOP_VER']
+    header['MJD_OBS_CENTER'] = str(mpc.Time(header['MJD-OBSC'],
+                                            format='mjd',
+                                            scale='utc', precision=5 ).replicate(format='mpc'))
+    header['MAXCOUNT'] = MAXCOUNT
+    mopheaders[mopheader_uri] = header
+
+    return mopheaders[mopheader_uri]
+
+def get_astheader(expnum, ccd):
+
+    ast_uri = storage.dbimages_uri(expnum, ccd)
+    if ast_uri in astheaders:
+        logger.debug("returning cached header for {}".format(ast_uri))
+        return astheaders[ast_uri]
+    image_uri = storage.dbimages_uri(expnum)
+    if not storage.exists(image_uri, force=False):
+        return None
+
+    logger.debug("Pulling header using image_uri {}".format(image_uri))
+    hdulist = downloader.download_hdulist(
+               uri=image_uri,
+               view='cutout',
+               cutout='[{}][{}:{},{}:{}]'.format(ccd+1, 1, 1, 1, 1))
+    astheaders[ast_uri] = hdulist[0].header
+
+    return astheaders[ast_uri]
+
+
+def summarize(orbit):
+    for observation in orbit.observations:
+            print observation.to_string()
+
+    print ""
+    print orbit
+    print orbit.residuals
+
+    orbit.predict(orbit.observations[0].date)
+    coord1 = orbit.coordinate
+    orbit.predict(orbit.observations[-1].date)
+    coord2 = orbit.coordinate
+    motion_rate = coord1.separation(coord2).arcsecs/(orbit.arc_length*24)  # how best to get arcsec moved between first/last?
+    print "{:>10s} {:8.2f}".format('rate ("/hr)', motion_rate)
+
+    orbit.predict('2014-04-04')  # hardwiring next year's prediction date for the moment
+    print "{:>10s} {:8.2f} {:8.2f}\n".format("Expected accuracy on 4 April 2014 (arcsec)", orbit.dra, orbit.ddec)
+
+    return
 
 class TracksParser(object):
 
@@ -57,6 +127,9 @@ class TracksParser(object):
 
         self.orbit = Orbfit(mpc_observations)
 
+        for observation in self.orbit.observations:
+            print observation.to_string()
+        print ""
         print self.orbit
         print self.orbit.residuals
 
@@ -87,7 +160,9 @@ class TracksParser(object):
             tracks_data = self.query_ssos(mpc_observations, lunation_count)
 
             print len(mpc_observations), tracks_data.get_reading_count(), lunation_count
-            if ( tracks_data.get_arc_length() > length_of_observation_arc or
+
+
+            if ( tracks_data.get_arc_length() > (length_of_observation_arc+2.0/86400.0) or
                 tracks_data.get_reading_count() > len(mpc_observations) ) :
                 return tracks_data
             assert lunation_count is not None, "No new observations available."
@@ -123,7 +198,6 @@ class TracksParser(object):
         query = Query(mpc_observations,
                       search_start_date=search_start_date,
                       search_end_date=search_end_date)
-
         tracks_data = self.ssos_parser.parse(query.get())
 
         tracks_data.mpc_observations = {}
@@ -179,6 +253,77 @@ class SSOSParser(object):
         else:
             raise ValueError("not enough columns in table")
 
+    def build_source_reading(self, expnum, ccd, X, Y):
+        """
+        Given the location of a source in the image, create a source reading.
+
+        """
+
+        image_uri = storage.dbimages_uri(expnum=expnum,
+                                         ccd=None,
+                                         version='p',
+                                         ext='.fits',
+                                         subdir=None)
+        logger.debug('Trying to access {}'.format(image_uri))
+
+        if not storage.exists(image_uri, force=False):
+            logger.warning('Image not in dbimages? Trying subdir.')
+            image_uri = storage.dbimages_uri(expnum=expnum,
+                                             ccd=ccd,
+                                             version='p')
+
+        if not storage.exists(image_uri, force=False):
+            logger.warning("Image doesn't exist in ccd subdir. %s" % image_uri)
+            return None
+
+        if X == -9999 or Y == -9999 :
+            logger.warning("Skipping {} as x/y not resolved.".format(image_uri))
+            return None
+
+
+        mopheader_uri = storage.dbimages_uri(expnum=expnum,
+                                             ccd=ccd,
+                                             version='p',
+                                             ext='.mopheader')
+        if not storage.exists(mopheader_uri, force=False):
+            # ELEVATE! we need to know to go off and reprocess/include this image.
+            logger.critical('Image exists but processing incomplete. Mopheader missing. {}'.format(image_uri))
+            return None
+
+
+        mopheader = get_mopheader(expnum, ccd)
+
+        # Build astrom.Observation
+        observation = astrom.Observation(expnum=str(expnum),
+                                         ftype='p',
+                                         ccdnum=str(ccd),
+                                         fk="")
+
+        observation.rawname = os.path.splitext(os.path.basename(image_uri))[0]+str(ccd).zfill(2)
+
+        observation.header = mopheader
+
+        return observation
+
+
+    def get_coord_offset(self, expnum, ccd, X, Y, ref_expnum, ref_ccd):
+        # determine offsets to reference reference frame using wcs
+
+        astheader = get_astheader(expnum, ccd)
+        ref_astheader = get_astheader(ref_expnum, ref_ccd)
+
+        ref_pvwcs = wcs.WCS(ref_astheader)
+        pvwcs = wcs.WCS(astheader)
+
+        (ra,dec)  = pvwcs.xy2sky(X, Y)
+        (x0, y0) = ref_pvwcs.sky2xy(ra,dec)
+        logger.debug("{}p{} {},{} ->  {}p{} {},{}".format(expnum,ccd,
+                                                          X,Y,
+                                                          ref_expnum, ref_ccd,
+                                                          x0,y0))
+        return (x0, y0)
+
+
     def parse(self, ssos_result_filename_or_lines):
         """
         given the result table create 'source' objects.
@@ -186,6 +331,8 @@ class SSOSParser(object):
         :type ssos_result_table: Table
         :param ssos_result_table:
         """
+
+
         table_reader = ascii.get_reader(Reader=ascii.Basic)
         table_reader.inconsistent_handler = self._skip_missing_data
         table_reader.header.splitter.delimiter = '\t'
@@ -196,123 +343,68 @@ class SSOSParser(object):
         observations = []
         source_readings = []
 
-        ref_pvwcs = None
-        downloader = Downloader()
         warnings.filterwarnings('ignore')
-
+        ref_x = None
+        ref_y = None
+        ref_mjd = None
+        ref_expnum = None
+        ref_ccd = None
         for row in table:
             # check if a dbimages object exists
             ccd = int(row['Ext']) - 1
             expnum = row['Image'].rstrip('p')
+            X = row['X']
+            Y = row['Y']
 
             # ADDING THIS TEMPORARILY TO GET THE NON-OSSOS DATA OUT OF THE WAY WHILE DEBUGGING
             if (row['Telescope_Insturment'] != 'CFHT/MegaCam') or (row['Filter'] != 'r.MP9601'):
                 continue
 
-            # it's fine for OSSOS, go get the image
-            image_uri = storage.dbimages_uri(expnum=expnum,
-                                             ccd=None,
-                                             version='p',
-                                             ext='.fits',
-                                             subdir=None)
-            logger.info('Trying to access %s\n%s' % (row.data, image_uri))
-
-            if not storage.exists(image_uri, force=False):
-                logger.warning('Image not in dbimages? Trying subdir.')
-                image_uri = storage.dbimages_uri(expnum=expnum,
-                                                 ccd=ccd,
-                                                 version='p')
-
-                if not storage.exists(image_uri, force=False):
-                    logger.warning("Image doesn't exist in ccd subdir. %s" % image_uri)
-                    continue
-
-            if row['X'] == -9999 or row['Y'] == -9999 :
-                logger.warning("Skipping %s as x/y not resolved." % ( row['Image']))
-                continue
-
-            mopheader_uri = storage.dbimages_uri(expnum=expnum,
-                                                 ccd=ccd,
-                                                 version='p',
-                                                 ext='.mopheader')
-
-            if not mopheader_uri in mopheaders:
-                if not storage.exists(mopheader_uri, force=False):
-                    # ELEVATE! we need to know to go off and reprocess/include this image.
-                    print '!!! Image exists but processing incomplete. Mopheader missing. %s' % image_uri
-                    logger.warning('mopheader missing, but images exists')
-                    continue
-
-                # raise flag if no MOPHEADER
-                mopheader_fpt = cStringIO.StringIO(storage.open_vos_or_local(mopheader_uri).read())
-                mopheader = fits.open(mopheader_fpt)
-                mopheaders[mopheader_uri] = mopheader
-            mopheader = mopheaders[mopheader_uri]
-            
-            # Build astrom.Observation
-            observation = astrom.Observation(expnum=str(expnum),
-                                             ftype='p',
-                                             ccdnum=str(ccd),
-                                             fk="")
-
-            observation.rawname = os.path.splitext(os.path.basename(image_uri))[0]+str(ccd).zfill(2)
-
-            observation.header = mopheader[0].header
-            MJD_OBS_CENTER = mpc.Time(observation.header['MJD-OBSC'],
-                                      format='mjd',
-                                      scale='utc', precision=5 ).replicate(format='mpc')
-            observation.header['MJD_OBS_CENTER'] = str(MJD_OBS_CENTER)
-            observation.header['MAXCOUNT'] = MAXCOUNT
-            observation.header['SCALE'] = observation.header['PIXSCALE']
-            #observation.header['CHIP'] = str(observation.header['CHIPNUM']).zfill(2)
-            observation.header['NAX1'] = observation.header['NAXIS1']
-            observation.header['NAX2'] = observation.header['NAXIS2']
-            observation.header['MOPversion'] = observation.header['MOP_VER']
-            observation.header['FWHM'] = 4
-
-
-
-            # a download pixel 1,1 of this data to due offsets with.
-            x_cen = int(min(max(1,row['X']),observation.header['NAX1']))
-            y_cen = int(min(max(1,row['Y']),observation.header['NAX2']))
-            if image_uri not in astheaders:
-               hdulist = downloader.download_hdulist(
-                   uri=image_uri,
-                   view='cutout',
-                   cutout='[{}][{}:{},{}:{}]'.format(ccd+1, x_cen, x_cen, y_cen, y_cen))
-               astheaders[image_uri] = hdulist
-            hdulist = astheaders[image_uri]
-
-            pvwcs = wcs.WCS(hdulist[0].header)
-            (ra,dec)  = pvwcs.xy2sky(x_cen, y_cen)
-            if ref_pvwcs is None:
-                ref_pvwcs = pvwcs
-                xref = row['X']
-                yref = row['Y']
-            (x0, y0) = ref_pvwcs.sky2xy(ra,dec)
-            x0 += row['X'] - x_cen
-            y0 += row['Y'] - y_cen
-
             # Build astrom.SourceReading
+            observation = self.build_source_reading(expnum, ccd, X, Y)
+            if observation is None:
+                continue
             observations.append(observation)
 
             from_input_file = observation.rawname in self.input_rawnames
             null_observation = observation.rawname in self.null_observations
+            mjd = Time(observation.header['MJD_OBS_CENTER'], format='mpc', scale='utc').jd
+            if ref_x is None or mjd - ref_mjd > 0.5:
+                ref_x = X
+                ref_y = Y
+                ref_expnum = expnum
+                ref_ccd = ccd
+                ref_mjd = mjd
+                x0 = X
+                y0 = Y
+            else:
+                (x0, y0) = self.get_coord_offset(expnum, ccd, X, Y, ref_expnum, ref_ccd)
 
-            print observation.rawname, observation.header['MJD_OBS_CENTER'], null_observation, from_input_file
+            # Also reset the reference point if the x/y shift is large.
+            if x0 - X > 250 or y0 - Y > 250 :
+                ref_x = X
+                ref_y = Y
+                ref_expnum = expnum
+                ref_ccd = ccd
+                ref_mjd = mjd
+                x0 = X
+                y = Y
+
+
 
             source_reading = astrom.SourceReading(x=row['X'], y=row['Y'],
-                                                        xref=xref, yref=yref,
+                                                        xref=ref_x, yref=ref_y,
                                                         x0=x0, y0=y0,
                                                         ra=row['Object_RA'], dec=row['Object_Dec'],
                                                         obs=observation,
                                                         ssos=True,
                                                         from_input_file=from_input_file,
                                                         null_observation=null_observation)
-            #if observation.rawname in  self.input_rawnames:
-            #    source_readings.insert(0, source_reading)
-            #else:
+
+
             source_readings.append(source_reading)
+
+
         # build our array of SourceReading objects
         sources.append(source_readings)
 
@@ -559,7 +651,7 @@ class Query(object):
         """
         params = self.param_dict_biulder.params
         self.response = requests.get(SSOS_URL, params=params, headers=self.headers)
-
+        logger.debug(self.response.url)
         assert isinstance(self.response, requests.Response)
 
         assert(self.response.status_code == requests.codes.ok )
