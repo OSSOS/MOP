@@ -1,6 +1,8 @@
 """
 Reads and writes .astrom files.
 """
+from ossos.gui import logger
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import re
@@ -547,12 +549,29 @@ class SourceReading(object):
           inverted: bool
             True if the stored image is inverted.
         """
+        logger.debug("Checking invert on {} {}".format(self.obs.expnum, self.obs.ccdnum))
         if self.ssos or self.obs.is_fake():
             # We get the image from the CCD directory and it has already
             # been corrected for inversion.
+            logger.debug("Logic override")
             return False
+        logger.debug("No override")
 
         return True if self.get_ccd_num() <= MAX_INVERTED_CCD else False
+
+    def should_invert(self):
+        """
+        Returns:
+          inverted: bool
+            True if the stored image should be inverted for display
+        """
+        if self.ssos or self.obs.is_fake():
+            # We get the image from the MEF so flip on display
+            return True if self.get_ccd_num() <= MAX_INVERTED_CCD else False
+
+        return False
+
+
 
 
 class Observation(object):

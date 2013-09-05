@@ -1,13 +1,15 @@
 """OSSOS VOSpace storage convenience package"""
+from cStringIO import StringIO
 
 import errno
 import logging
 import os
 
-from astropy.io import fits
+from astropy.io import fits, votable
 import vos
 
 from ossos import coding
+import requests
 
 CERTFILE=os.path.join(os.getenv('HOME'),
                       '.ssl',
@@ -25,6 +27,49 @@ OBJECT_COUNT = "object_count"
 vospace = vos.Client(cadc_short_cut=True, certFile=CERTFILE)
 
 SUCCESS = 'success'
+
+
+def cone_search(ra, dec, dra, ddec, runids=('13AP05','13AP06','13BP05')):
+    """Do a QUERY on the TAP service for all observations that are part of runid,
+    where taken after mjd and have calibration 'observable'.
+
+    :param runids:
+    :param ra:
+    :param dec:
+    mjd : float
+    observable: str ( CAL or RAW)
+    runid: tuple eg. ('13AP05', '13AP06')
+    ra: float right ascension
+    dec: float declination
+
+    """
+
+    data=  {
+        "QUERY": ( " SELECT Observation.collectionID as dataset_name "
+                   " FROM caom.Observation AS Observation "
+                   " JOIN caom.Plane AS Plane "
+                   " ON Observation.obsID = Plane.obsID "
+                   " WHERE  ( Observation.collection = 'CFHT' ) "
+                   " AND Plane.observable_ctype='CAL' "
+                   " AND Observation.proposal_id IN %s " ) % ( str(runids)),
+          "REQUEST": "doQuery",
+          "LANG": "ADQL",
+          "FORMAT": "votable" }
+
+    data["QUERY"] += ( " AND  "
+                       " CONTAINS( BOX('ICRS', {}, {}, {}, {}), "
+                       " Plane.position_bounds ) = 1 " ).format(ra,dec, dra, ddec)
+
+    result = requests.get(TAP_WEB_SERVICE, params=data)
+    assert isinstance(result,requests.Response)
+    logging.debug("Doing TAP Query using url: %s" % ( str(result.url)))
+    data = StringIO(result.text)
+
+    vot = votable.parse_single_table(data)
+    vot.array.sort(order='dataset_name')
+    t = vot.array
+    return t
+
 
 
 def populate(dataset_name,
