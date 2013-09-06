@@ -1,3 +1,5 @@
+from ossos.gui import logger
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import numpy as np
@@ -98,6 +100,10 @@ class ImageSinglet(object):
         return _image_data(self.hdulist)
 
     @property
+    def hdu_data(self):
+        return _image_data(self.hdulist, pad=False)
+
+    @property
     def width(self):
         return _image_width(self.hdulist)
 
@@ -109,7 +115,7 @@ class ImageSinglet(object):
         self._interaction_context = InteractionContext(self)
 
         extent = (1, self.width, 1, self.height)
-        self.axes_image = self.axes.imshow(zscale(self.image_data),
+        self.axes_image = self.axes.imshow(zscale(self.hdu_data),
                                            origin="lower",
                                            extent=extent,
                                            cmap=self._colormap.as_mpl_cmap())
@@ -508,16 +514,13 @@ def zscale(image):
     """
     # Using the default values, but listing explicitly
 #    image = np.clip(image, 1000., 3000.)
-    dx, dy = image.shape
-    x1 = dx/2 - dx/4
-    x2 = dx/2 + dx/4
-    y1 = dy/2 - dy/4
-    y2 = dy/2 + dy/4
-    z1, z2 = numdisplay.zscale.zscale(image[x1:x2,y1:y2], nsamples=1000, contrast=0.25)
+    z1, z2 = numdisplay.zscale.zscale(image, nsamples=500, contrast=0.25)
     retval = np.clip(image, z1, z2)  # clip against extreme values
     # print 'np clip max, np clip min, zmin, zmax, z1, z2, im_median, immax, immin'
     # print retval.max(), retval.min(), zmin, zmax, z1, z2, im_median, image.max(), image.min()
     return retval
+
+
 
 
 def _image_width(hdulist):
@@ -532,5 +535,11 @@ def _image_shape(hdulist):
     return _image_data(hdulist).shape
 
 
-def _image_data(hdulist):
-    return hdulist[0].data
+def _image_data(hdulist, pad=True):
+    image_data = hdulist[0].data
+    if pad:
+        h = hdulist[0].header
+        (xnp, xxp, ynp, yxp) = ( h.get('XMINPAD', 0), h.get('XMAXPAD', 0), h.get('YMINPAD', 0), h.get('YMAXPAD',0))
+        logger.debug("Applying the following padding: (({},{})({},{}))".format(ynp, xnp, yxp, xxp))
+        image_data = np.lib.pad(image_data, ((ynp, xnp), (yxp, xxp)), 'constant', constant_values=0)
+    return image_data
