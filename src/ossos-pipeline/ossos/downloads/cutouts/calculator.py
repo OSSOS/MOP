@@ -30,11 +30,11 @@ class CutoutCalculator(object):
             Can be used to find a point in the sliced image based on its
             coordinate in the original image.
         """
-        (x0, x1, y0, y1), converter = self.calc_cutout(focus, img_size, inverted, should_invert)
+        (x0, x1, y0, y1), converter, padding = self.calc_cutout(focus, img_size, inverted, should_invert)
 
         cutout_str = "[%s][%d:%d,%d:%d]" % (extnum, x0, x1, y0, y1)
 
-        return cutout_str, converter
+        return cutout_str, converter, padding
 
     def calc_cutout(self, focus, img_size, inverted=False, should_invert=False):
         """
@@ -69,27 +69,23 @@ class CutoutCalculator(object):
         xmax = x + x_mid_offset
         ymin = y - y_mid_offset
         ymax = y + y_mid_offset
-
+        xmin_pad = xmax_pad = ymin_pad = ymax_pad = 0
         # Make sure we don't try to slice outside the image boundaries
         if xmin < 1:
-            diff = abs(xmin - 1)
-            xmin += diff
-            xmax += diff
+            xmin_pad = abs(xmin - 1)
+            xmin = 1
 
         if ymin < 1:
-            diff = abs(ymin - 1)
-            ymin += diff
-            ymax += diff
+            ymin_pad = abs(ymin - 1)
+            ymin = 1
 
         if xmax > img_size_x:
-            diff = abs(img_size_x - xmax)
-            xmax -= diff
-            xmin -= diff
+            xmax_pad = abs(img_size_x - xmax)
+            xmax = img_size_x
 
         if ymax > img_size_y:
-            diff = abs(img_size_y - ymax)
-            ymax -= diff
-            ymin -= diff
+            ymax_pad = abs(img_size_y - ymax)
+            ymax = img_size_y
 
         # VOSpace cutout service only accepts integer values, so round
         # the values to the nearest int.
@@ -117,11 +113,12 @@ class CutoutCalculator(object):
             x_offset = xmin - 1
             y_offset = ymin - 1
 
-        if not should_invert:
-            return (x0, x1, y0, y1), CoordinateConverter(x_offset, y_offset, inverted=False)
-        else:
-            return (x1, x0, y1, y0), CoordinateConverter(x_offset+(x1-x0+1), y_offset+(x1-x0+1), inverted=True)
+        padding = (xmin_pad, xmax_pad, ymin_pad, ymax_pad)
 
+        if not should_invert:
+            return (x0, x1, y0, y1), CoordinateConverter(x_offset, y_offset, inverted=False), padding
+        else:
+            return (x1, x0, y1, y0), CoordinateConverter(x_offset+(x1-x0+1), y_offset+(x1-x0+1), inverted=True), padding
 
 
 class CoordinateConverter(object):
