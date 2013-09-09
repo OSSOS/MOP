@@ -1,5 +1,8 @@
 import math
+from ossos.downloads.async import DownloadRequest
+from ossos.downloads.cutouts import downloader
 from ossos.fitsviewer.displayable import Marker
+from ossos.gui.models.workload import WorkUnit, TracksWorkUnit
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -127,6 +130,9 @@ class AbstractController(object):
         self.autoplay_manager.stop_autoplay()
         self.view.close()
         self.model.exit()
+
+    def on_load_comparison(self):
+        raise NotImplementedError()
 
     def on_next_obs(self):
         self.model.next_obs()
@@ -386,12 +392,25 @@ class ProcessTracksController(ProcessRealsController):
             if not hasattr(reading, 'redraw_ellipse'):
                 reading.redraw_ellipse = True
 
-            if hasattr(reading, 'dra') and hasattr(reading, 'ddec') and hasattr(reading,
-                                                                                'pa') and reading.redraw_ellipse:
+            if hasattr(reading, 'dra') and hasattr(reading, 'ddec') and hasattr(
+                    reading, 'pa' )  and reading.redraw_ellipse:
                 x, y = self.model.get_current_pixel_source_point()
                 self.view.draw_error_ellipse(x, y, reading.dra, reading.ddec, reading.pa)
 
             reading.redraw_ellipse = False
+
+    def on_load_comparison(self):
+        try:
+            cutout = self.model.get_current_cutout()
+            reading = self.model.get_current_workunit().choose_comparison_image(cutout)
+            DownloadRequest(
+                reading=reading, focus=None, needs_apcor=False,
+                callback=self.view.display).execute(downloader.ImageCutoutDownloader())
+        except Exception as e:
+            logger.critical(str(e))
+            pass
+
+        self.model.acknowledge_image_displayed()
 
     def on_ssos_query(self):
         try:
