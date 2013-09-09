@@ -1,8 +1,6 @@
 import math
 from ossos.downloads.async import DownloadRequest
-from ossos.downloads.cutouts import downloader
-from ossos.fitsviewer.displayable import Marker
-from ossos.gui.models.workload import WorkUnit, TracksWorkUnit
+from ossos.downloads.cutouts import ImageCutoutDownloader
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -400,12 +398,21 @@ class ProcessTracksController(ProcessRealsController):
             reading.redraw_ellipse = False
 
     def on_load_comparison(self):
+
         try:
             cutout = self.model.get_current_cutout()
             reading = self.model.get_current_workunit().choose_comparison_image(cutout)
+            def read(slice_config):
+                return config.read("CUTOUTS.%s" % slice_config)
+
+            singlet_downloader = ImageCutoutDownloader(
+                slice_rows=read("SINGLETS.SLICE_ROWS"),
+                slice_cols=read("SINGLETS.SLICE_COLS"))
+
             DownloadRequest(
                 reading=reading, focus=None, needs_apcor=False,
-                callback=self.view.display).execute(downloader.ImageCutoutDownloader())
+                callback=self.view.display).execute(singlet_downloader)
+
         except Exception as e:
             logger.critical(str(e))
             pass
