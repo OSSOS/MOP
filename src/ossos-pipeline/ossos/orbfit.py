@@ -63,6 +63,7 @@ class Orbfit(object):
             if not observation.null_observation:
                 mpc_file.write("{}\n".format(str(observation)))
         mpc_file.seek(0)
+        self.name = self.observations[0].provisional_name.strip(' ')
 
         self._abg = tempfile.NamedTemporaryFile()
 

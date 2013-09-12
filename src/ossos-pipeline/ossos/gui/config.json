@@ -6,7 +6,8 @@
         "RESET_SOURCE_LOCATION": "c",
         "AUTOPLAY": "d",
         "TOGGLE_RETICULE": "t",
-        "LOAD_COMPARISON": "b"
+        "LOAD_COMPARISON": "b",
+        "LOAD_DIFF_COMPARISON": "n"
     },
 
     "CUTOUTS": {

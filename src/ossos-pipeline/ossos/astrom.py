@@ -582,7 +582,7 @@ class ComparisonSource(SourceReading):
     A comparison image for a previous image.
     """
 
-    def __init__(self, reference_source):
+    def __init__(self, reference_source, refs=[]):
 
         assert isinstance(reference_source, SourceCutout)
         ref_wcs = wcs.WCS(reference_source.fits_header)
@@ -594,15 +594,14 @@ class ComparisonSource(SourceReading):
 
         logger.debug("BOX({} {} {} {})".format(ref_ra, ref_dec,dra, ddec))
         query_result = storage.cone_search(ref_ra, ref_dec, dra, ddec)
-
-
+        logger.debug("Ignoring the following exposure numbers: "+str(refs))
         found = False
         comparison = ""
         x = y = -1
         ccd = -1
         for comparison in query_result['dataset_name']:
             logger.debug("Trying comparison image {}".format(comparison))
-            if comparison == str(reference_source.astrom_header['EXPNUM']):
+            if int(comparison) in refs:
                 continue
             for ccd in range(36):
                 astheader = storage.get_astheader(comparison, ccd)
@@ -636,6 +635,7 @@ class ComparisonSource(SourceReading):
                                               dec=ref_dec,
                                               obs=observation,
                                               ssos=True)
+        self.astrom_header = astheader
 
         self.reference_source = reference_source
 

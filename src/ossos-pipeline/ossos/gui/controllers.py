@@ -129,7 +129,7 @@ class AbstractController(object):
         self.view.close()
         self.model.exit()
 
-    def on_load_comparison(self):
+    def on_load_comparison(self, reasearch=False):
         raise NotImplementedError()
 
     def on_next_obs(self):
@@ -397,21 +397,14 @@ class ProcessTracksController(ProcessRealsController):
 
             reading.redraw_ellipse = False
 
-    def on_load_comparison(self):
-
+    def on_load_comparison(self, research=False):
+        logger.debug(str(research))
         try:
             cutout = self.model.get_current_cutout()
-            reading = self.model.get_current_workunit().choose_comparison_image(cutout)
-            def read(slice_config):
-                return config.read("CUTOUTS.%s" % slice_config)
+            reading = self.model.get_current_workunit().choose_comparison_image(cutout,
+                                                                                research=research)
 
-            singlet_downloader = ImageCutoutDownloader(
-                slice_rows=read("SINGLETS.SLICE_ROWS"),
-                slice_cols=read("SINGLETS.SLICE_COLS"))
-
-            DownloadRequest(
-                reading=reading, focus=None, needs_apcor=False,
-                callback=self.view.display).execute(singlet_downloader)
+            self.view.display(reading.cutout)
 
         except Exception as e:
             logger.critical(str(e))

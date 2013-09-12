@@ -56,6 +56,14 @@ class ImageManager(object):
                                 callback=self.on_singlet_image_loaded)
             )
 
+    def download_singlet_for_reading(self, reading, focus, needs_apcor=False):
+        self._singlet_download_manager.submit_request(
+                DownloadRequest(reading,
+                                needs_apcor=needs_apcor,
+                                focus=focus,
+                                callback=self.on_singlet_image_loaded)
+            )
+
     def get_cutout(self, reading):
         try:
             return self._cutouts[reading]
