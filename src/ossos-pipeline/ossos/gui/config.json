@@ -6,13 +6,14 @@
         "RESET_SOURCE_LOCATION": "c",
         "AUTOPLAY": "d",
         "TOGGLE_RETICULE": "t",
-        "LOAD_COMPARISON": "b"
+        "LOAD_COMPARISON": "b",
+        "LOAD_DIFF_COMPARISON": "n"
     },
 
     "CUTOUTS": {
         "SINGLETS": {
-            "SLICE_ROWS": 500,
-            "SLICE_COLS": 500
+            "SLICE_ROWS": 300,
+            "SLICE_COLS": 300
         },
         "TRIPLETS": {
             "SLICE_ROWS": 50,

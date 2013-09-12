@@ -1,8 +1,6 @@
 import math
 from ossos.downloads.async import DownloadRequest
-from ossos.downloads.cutouts import downloader
-from ossos.fitsviewer.displayable import Marker
-from ossos.gui.models.workload import WorkUnit, TracksWorkUnit
+from ossos.downloads.cutouts import ImageCutoutDownloader
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -131,7 +129,7 @@ class AbstractController(object):
         self.view.close()
         self.model.exit()
 
-    def on_load_comparison(self):
+    def on_load_comparison(self, reasearch=False):
         raise NotImplementedError()
 
     def on_next_obs(self):
@@ -399,13 +397,15 @@ class ProcessTracksController(ProcessRealsController):
 
             reading.redraw_ellipse = False
 
-    def on_load_comparison(self):
+    def on_load_comparison(self, research=False):
+        logger.debug(str(research))
         try:
             cutout = self.model.get_current_cutout()
-            reading = self.model.get_current_workunit().choose_comparison_image(cutout)
-            DownloadRequest(
-                reading=reading, focus=None, needs_apcor=False,
-                callback=self.view.display).execute(downloader.ImageCutoutDownloader())
+            reading = self.model.get_current_workunit().choose_comparison_image(cutout,
+                                                                                research=research)
+
+            self.view.display(reading.cutout)
+
         except Exception as e:
             logger.critical(str(e))
             pass
