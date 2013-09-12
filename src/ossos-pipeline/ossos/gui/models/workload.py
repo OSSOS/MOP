@@ -1,8 +1,9 @@
 from glob import glob
 import re
 import sys
-import math
-from ossos import astrom, storage, wcs, ssos, downloads
+from ossos import ssos, astrom
+from ossos.downloads.async import DownloadRequest
+from ossos.downloads.cutouts import ImageCutoutDownloader
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -11,7 +12,7 @@ import random
 import threading
 
 from ossos.astrom import StreamingAstromWriter
-from ossos.gui import tasks, events
+from ossos.gui import tasks, events, config
 from ossos.gui import logger
 from ossos.gui.models.collections import StatefulCollection
 from ossos.gui.models.exceptions import (NoAvailableWorkException,
@@ -378,6 +379,7 @@ class TracksWorkUnit(WorkUnit):
         self.builder = builder
         self._writer = None
         self._ssos_queried = False
+        self._comparitors = {}
 
     def print_orbfit_info(self):
         orbfit = Orbfit(self.get_writer().get_chronological_buffered_observations())
@@ -399,63 +401,41 @@ class TracksWorkUnit(WorkUnit):
     def is_finished(self):
         return self._ssos_queried or self.get_source_count() == 0 or super(TracksWorkUnit, self).is_finished()
 
-    def choose_comparison_image(self, cutout):
+    def choose_comparison_image(self, cutout, research=False):
         """
         Query TAP and get a comparison image for the currently displayed image
         :param cutout: the cutout to find a comparison for
         :type cutout: source.Source
         """
 
-        assert isinstance(cutout, downloads.cutouts.source.SourceCutout)
-        ref_wcs = wcs.WCS(cutout.fits_header)
-        (ref_ra, ref_dec) = ref_wcs.xy2sky(cutout.fits_header['NAXIS1']/2.0, cutout.fits_header['NAXIS2']/2.0)
+        # selecting comparitor when on a comparitor should load a new one.
+        if not hasattr(cutout,'bad_ref'):
+            cutout.bad_ref = []
+            cutout.bad_ref.append(cutout.astrom_header['EXPNUM'])
 
-        dra = cutout.fits_header['NAXIS1']*0.1875/3600.0
-        ddec= cutout.fits_header['NAXIS2']*0.1875/3600.0
+        if cutout not in self._comparitors:
+            self._comparitors[cutout] = astrom.ComparisonSource(cutout, refs=cutout.bad_ref)
+        elif research:
+            cutout.bad_ref.append(self._comparitors[cutout].astrom_header['EXPNUM'])
+            self._comparitors[cutout] = astrom.ComparisonSource(cutout,
+                                                                refs=cutout.bad_ref)
+        def read(slice_config):
+            return config.read("CUTOUTS.%s" % slice_config)
 
-        logger.debug("BOX({} {} {} {})".format(ref_ra, ref_dec,dra, ddec))
-        query_result = storage.cone_search(ref_ra, ref_dec, dra, ddec)
+        singlet_downloader = ImageCutoutDownloader(
+            slice_rows=read("SINGLETS.SLICE_ROWS"),
+            slice_cols=read("SINGLETS.SLICE_COLS"))
 
 
-        found = False
-        for comparison in query_result['dataset_name']:
-            logger.debug("Trying comparison image {}".format(comparison))
-            if comparison == str(cutout.astrom_header['EXPNUM']):
-                continue
-            for ccd in range(36):
-                astheader = ssos.get_astheader(comparison, ccd)
-                pvwcs = wcs.WCS(astheader)
-                (x,y) = pvwcs.sky2xy(ref_ra, ref_dec)
-                logger.debug("RA/DEC {}/{} of source at X/Y {}/{} compared to {} {}".format(
-                    ref_ra, ref_dec, x,y,
-                    2112, 4644))
-                if 0 <= x <= 2112 and 0 <= y <= 4644:
-                    found = True
-                    break
-            if found:
-                break
+        if not hasattr(self._comparitors[cutout],'cutout'):
+            focus = self._comparitors[cutout].source_point
+            self._comparitors[cutout].cutout = singlet_downloader.download_cutout(self._comparitors[cutout],
+                                                                                  focus=focus,
+                                                                                  needs_apcor=False)
 
-        if not found:
-            logger.critical("No comparison image found for {} {} -> {},{}".format(cutout.pixel_x, cutout.pixel_y,
-                                                                       ref_ra,ref_dec))
-            return
-        x0 = x
-        y0 = y
-        xref = x
-        yref= y
-        ssos_parser = ssos.SSOSParser("BLANK")
-        observation = ssos_parser.build_source_reading(comparison, ccd, x, y)
-        source_reading = astrom.SourceReading(x=x, y=y,
-                             x0=x0, y0=y0,
-                             xref=xref,
-                             yref=yref,
-                             ra=ref_ra,
-                             dec=ref_dec,
-                             obs=observation,
-                             ssos=True
-                             )
+        self.previous_obs()
 
-        return source_reading
+        return self._comparitors[cutout]
 
     def next_item(self):
         assert not self.is_finished()

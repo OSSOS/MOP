@@ -66,7 +66,10 @@ class ImageCutoutDownloader(Downloader):
 
         apcor = None
         if needs_apcor:
-            apcor = self.download_apcor(reading.get_apcor_uri())
+            try:
+                apcor = self.download_apcor(reading.get_apcor_uri())
+            except:
+                apcor = -1
 
         return SourceCutout(reading, hdulist, converter, apcor)
 

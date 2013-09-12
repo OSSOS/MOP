@@ -1,5 +1,6 @@
 """OSSOS VOSpace storage convenience package"""
 from cStringIO import StringIO
+import cStringIO
 
 import errno
 import logging
@@ -8,8 +9,11 @@ import os
 from astropy.io import fits, votable
 import vos
 
-from ossos import coding
+from ossos import coding, mpc
 import requests
+from ossos.downloads.cutouts import downloader
+from ossos.gui import logger
+MAXCOUNT=30000
 
 CERTFILE=os.path.join(os.getenv('HOME'),
                       '.ssl',
@@ -27,6 +31,11 @@ OBJECT_COUNT = "object_count"
 vospace = vos.Client(cadc_short_cut=True, certFile=CERTFILE)
 
 SUCCESS = 'success'
+
+### some cache holders.
+mopheaders = {}
+astheaders = {}
+_DOWNLOADER = downloader.Downloader()
 
 
 def cone_search(ra, dec, dra, ddec, runids=('13AP05','13AP06','13BP05')):
@@ -488,3 +497,56 @@ def increment_object_counter(node_uri, epoch_field, dry_run=False):
                  ossos_base=True)
 
     return new_count
+
+
+def get_mopheader(expnum, ccd):
+    """
+    Retrieve the mopheader, either from cache or from vospace
+    """
+    mopheader_uri = dbimages_uri(expnum=expnum,
+                                         ccd=ccd,
+                                         version='p',
+                                         ext='.mopheader')
+    if mopheader_uri in mopheaders:
+        return mopheaders[mopheader_uri]
+
+    mopheader_fpt = cStringIO.StringIO(open_vos_or_local(mopheader_uri).read())
+    mopheader = fits.open(mopheader_fpt)
+    ## add some values to the mopheader so it can be an astrom header too.
+    header = mopheader[0].header
+    try:
+        header['FWHM'] = get_fwhm(expnum, ccd)
+    except:
+        header['FWHM']  = 10
+    header['SCALE'] = mopheader[0].header['PIXSCALE']
+    header['NAX1'] = header['NAXIS1']
+    header['NAX2'] = header['NAXIS2']
+    header['MOPversion'] = header['MOP_VER']
+    header['MJD_OBS_CENTER'] = str(mpc.Time(header['MJD-OBSC'],
+                                            format='mjd',
+                                            scale='utc', precision=5 ).replicate(format='mpc'))
+    header['MAXCOUNT'] = MAXCOUNT
+    mopheaders[mopheader_uri] = header
+
+    return mopheaders[mopheader_uri]
+
+
+def get_astheader(expnum, ccd):
+
+    ast_uri = dbimages_uri(expnum, ccd)
+    if ast_uri in astheaders:
+        logger.debug("returning cached header for {}".format(ast_uri))
+        return astheaders[ast_uri]
+    image_uri = dbimages_uri(expnum)
+    if not exists(image_uri, force=False):
+        return None
+
+
+    logger.debug("Pulling header using image_uri {}".format(image_uri))
+    hdulist = _DOWNLOADER.download_hdulist(
+               uri=image_uri,
+               view='cutout',
+               cutout='[{}][{}:{},{}:{}]'.format(ccd+1, 1, 1, 1, 1))
+    astheaders[ast_uri] = hdulist[0].header
+
+    return astheaders[ast_uri]

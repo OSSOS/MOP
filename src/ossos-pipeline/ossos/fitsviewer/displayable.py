@@ -1,3 +1,5 @@
+from ossos.gui import logger
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import numpy as np
@@ -508,29 +510,17 @@ def zscale(image):
     """
     # Using the default values, but listing explicitly
 #    image = np.clip(image, 1000., 3000.)
-    dx, dy = image.shape
-    x1 = dx/2 - dx/4
-    x2 = dx/2 + dx/4
-    y1 = dy/2 - dy/4
-    y2 = dy/2 + dy/4
-    z1, z2 = numdisplay.zscale.zscale(image[x1:x2,y1:y2], nsamples=1000, contrast=0.25)
-    retval = np.clip(image, z1, z2)  # clip against extreme values
-    # print 'np clip max, np clip min, zmin, zmax, z1, z2, im_median, immax, immin'
-    # print retval.max(), retval.min(), zmin, zmax, z1, z2, im_median, image.max(), image.min()
-    return retval
-
+    z1, z2 = numdisplay.zscale.zscale(image, nsamples=1000, contrast=0.25)
+    return np.clip(image, z1, z2)  # clip against extreme values
 
 def _image_width(hdulist):
     return _image_shape(hdulist)[1]
 
-
 def _image_height(hdulist):
     return _image_shape(hdulist)[0]
 
-
 def _image_shape(hdulist):
     return _image_data(hdulist).shape
-
 
 def _image_data(hdulist):
     return hdulist[0].data

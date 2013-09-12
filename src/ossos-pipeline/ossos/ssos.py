@@ -1,20 +1,19 @@
-from ossos.downloads.cutouts import downloader
+
+from ossos.storage import get_mopheader, get_astheader
 
 __author__ = 'Michele Bannister'
 
-import cStringIO
 import datetime
 import os
 import warnings
 
-from astropy.io import ascii, fits
+from astropy.io import ascii
 from astropy.table import Table
 from astropy.time import Time
 import requests
 
-from ossos import astrom
-from ossos.downloads.core import Downloader
-from ossos.gui import logger
+from ossos import astrom, gui
+from ossos.gui import logger, config
 from ossos import mpc
 from ossos.orbfit import Orbfit
 from ossos import storage
@@ -26,57 +25,6 @@ SSOS_URL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssos.pl"
 RESPONSE_FORMAT = 'tsv'
 # was set to \r\n ?
 NEW_LINE = '\r\n'
-
-downloader = downloader.Downloader()
-mopheaders = {}
-astheaders = {}
-
-def get_mopheader(expnum, ccd):
-    """
-    Retrieve the mopheader, either from cache or from vospace
-    """
-    mopheader_uri = storage.dbimages_uri(expnum=expnum,
-                                         ccd=ccd,
-                                         version='p',
-                                         ext='.mopheader')
-    if mopheader_uri in mopheaders:
-        return mopheaders[mopheader_uri]
-
-    mopheader_fpt = cStringIO.StringIO(storage.open_vos_or_local(mopheader_uri).read())
-    mopheader = fits.open(mopheader_fpt)
-    ## add some values to the mopheader so it can be an astrom header too.
-    header = mopheader[0].header
-    header['FWHM'] = storage.get_fwhm(expnum, ccd)
-    header['SCALE'] = mopheader[0].header['PIXSCALE']
-    header['NAX1'] = header['NAXIS1']
-    header['NAX2'] = header['NAXIS2']
-    header['MOPversion'] = header['MOP_VER']
-    header['MJD_OBS_CENTER'] = str(mpc.Time(header['MJD-OBSC'],
-                                            format='mjd',
-                                            scale='utc', precision=5 ).replicate(format='mpc'))
-    header['MAXCOUNT'] = MAXCOUNT
-    mopheaders[mopheader_uri] = header
-
-    return mopheaders[mopheader_uri]
-
-def get_astheader(expnum, ccd):
-
-    ast_uri = storage.dbimages_uri(expnum, ccd)
-    if ast_uri in astheaders:
-        logger.debug("returning cached header for {}".format(ast_uri))
-        return astheaders[ast_uri]
-    image_uri = storage.dbimages_uri(expnum)
-    if not storage.exists(image_uri, force=False):
-        return None
-
-    logger.debug("Pulling header using image_uri {}".format(image_uri))
-    hdulist = downloader.download_hdulist(
-               uri=image_uri,
-               view='cutout',
-               cutout='[{}][{}:{},{}:{}]'.format(ccd+1, 1, 1, 1, 1))
-    astheaders[ast_uri] = hdulist[0].header
-
-    return astheaders[ast_uri]
 
 
 def summarize(orbit):
@@ -276,10 +224,16 @@ class SSOSParser(object):
             logger.warning("Image doesn't exist in ccd subdir. %s" % image_uri)
             return None
 
-        if X == -9999 or Y == -9999 :
+        slice_rows=config.read("CUTOUTS.SINGLETS.SLICE_ROWS")
+        slice_cols=config.read("CUTOUTS.SINGLETS.SLICE_COLS")
+
+        if X == -9999 or Y == -9999  :
             logger.warning("Skipping {} as x/y not resolved.".format(image_uri))
             return None
 
+        if not (-slice_cols/2. < X < 2048+slice_cols/2. and -slice_rows/2. < Y < 4600+slice_rows/2.0):
+            logger.warning("Central location ({},{}) off image cutout.".format(X,Y))
+            return None
 
         mopheader_uri = storage.dbimages_uri(expnum=expnum,
                                              ccd=ccd,
@@ -292,6 +246,7 @@ class SSOSParser(object):
 
 
         mopheader = get_mopheader(expnum, ccd)
+
 
         # Build astrom.Observation
         observation = astrom.Observation(expnum=str(expnum),
@@ -388,9 +343,7 @@ class SSOSParser(object):
                 ref_ccd = ccd
                 ref_mjd = mjd
                 x0 = X
-                y = Y
-
-
+                y0 = Y
 
             source_reading = astrom.SourceReading(x=row['X'], y=row['Y'],
                                                         xref=ref_x, yref=ref_y,

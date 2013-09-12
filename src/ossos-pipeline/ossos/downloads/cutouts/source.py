@@ -1,8 +1,10 @@
+from ossos.gui import logger
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import tempfile
 
-from ossos import wcs, astrom
+from ossos import wcs
 
 
 class SourceCutout(object):
@@ -32,6 +34,7 @@ class SourceCutout(object):
         self._adjusted = False
 
         self._tempfile = None
+        self.comparitor = False
 
     @property
     def astrom_header(self):
@@ -150,10 +153,10 @@ class SourceCutout(object):
     def _update_ra_dec(self):
         fits_header = self.fits_header
         self._ra, self._dec = wcs.xy2sky(self.pixel_x, self.pixel_y,
-                                         float(fits_header[astrom.CRPIX1]),
-                                         float(fits_header[astrom.CRPIX2]),
-                                         float(fits_header[astrom.CRVAL1]),
-                                         float(fits_header[astrom.CRVAL2]),
+                                         float(fits_header['CRPIX1']),
+                                         float(fits_header['CRPIX2']),
+                                         float(fits_header['CRVAL1']),
+                                         float(fits_header['CRVAL2']),
                                          wcs.parse_cd(fits_header),
                                          wcs.parse_pv(fits_header),
                                          wcs.parse_order_fit(fits_header))

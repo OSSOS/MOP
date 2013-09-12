@@ -71,8 +71,8 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
     false_positives_stream_writer = None
 
     matches_ftpr.write("#{}\n".format(fk_candidate_observations.observations[0].rawname))
-    matches_ftpr.write("{:1s}{} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s}\n".format(
-        "",objects_planted[0],"x_dao","y_dao","mag_dao","rate_mes", "ang_mes", "dr" ))
+    matches_ftpr.write("{:1s}{} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s}\n".format(
+        "",objects_planted[0],"x_dao","y_dao","mag_dao","merr_dao", "rate_mes", "ang_mes", "dr_pixels" ))
 
     found_idxs = []
     for source in  fk_candidate_observations.get_sources():
@@ -81,10 +81,11 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
         cutout = image_slice_downloader.download_cutout(reading, needs_apcor=True)
 
         try:
-            mag = cutout.get_observed_magnitude()[0]
+            (x, y, mag, merr) = cutout.get_observed_magnitude()
         except TaskError as e:
             logger.warning(str(e))
             mag = 0.0
+            merr = -1.0
 
         observation = reading.get_observation()
 
@@ -125,9 +126,9 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
 
 
 
-        matches_ftpr.write("{:1s}{} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format(
+        matches_ftpr.write("{:1s}{} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format(
             repeat,
-            str(planted_objects[matched_object_idx]), reading.x, reading.y, mag, rate, angle, matched))
+            str(planted_objects[matched_object_idx]), reading.x, reading.y, mag, merr, rate, angle, matched))
         matches_ftpr.flush()
 
 
@@ -140,8 +141,8 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
     for idx in range(len(planted_objects)):
         if idx not in found_idxs:
             planted_object = planted_objects[idx]
-            matches_ftpr.write("{:1s}{} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format("",str(planted_object),
-                                                                          0, 0, 0, 0, 0, 0))
+            matches_ftpr.write("{:1s}{} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format("",str(planted_object),
+                                                                          0, 0, 0, 0, 0, 0, 0))
     matches_ftpr.close()
 
 
