@@ -49,7 +49,7 @@ class ImageCutoutDownloader(Downloader):
         if focus is None:
             focus = reading.source_point
 
-        cutout_str, converter, padding = self.cutout_calculator.build_cutout_str(
+        cutout_str, converter = self.cutout_calculator.build_cutout_str(
             reading.get_extension(),
             focus,
             reading.get_original_image_size(),
@@ -64,14 +64,12 @@ class ImageCutoutDownloader(Downloader):
         hdulist = self.download_hdulist(image_uri, view="cutout",
                                         cutout=cutout_str)
 
-        hdulist[0].header['XMINPAD'] = padding[0]
-        hdulist[0].header['XMAXPAD'] = padding[1]
-        hdulist[0].header['YMINPAD'] = padding[2]
-        hdulist[0].header['YMAXPAD'] = padding[3]
-
         apcor = None
         if needs_apcor:
-            apcor = self.download_apcor(reading.get_apcor_uri())
+            try:
+                apcor = self.download_apcor(reading.get_apcor_uri())
+            except:
+                apcor = -1
 
         return SourceCutout(reading, hdulist, converter, apcor)
 

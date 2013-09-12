@@ -12,8 +12,8 @@ from astropy.table import Table
 from astropy.time import Time
 import requests
 
-from ossos import astrom
-from ossos.gui import logger
+from ossos import astrom, gui
+from ossos.gui import logger, config
 from ossos import mpc
 from ossos.orbfit import Orbfit
 from ossos import storage
@@ -224,10 +224,16 @@ class SSOSParser(object):
             logger.warning("Image doesn't exist in ccd subdir. %s" % image_uri)
             return None
 
-        if X == -9999 or Y == -9999 :
+        slice_rows=config.read("CUTOUTS.SINGLETS.SLICE_ROWS")
+        slice_cols=config.read("CUTOUTS.SINGLETS.SLICE_COLS")
+
+        if X == -9999 or Y == -9999  :
             logger.warning("Skipping {} as x/y not resolved.".format(image_uri))
             return None
 
+        if not (-slice_cols/2. < X < 2048+slice_cols/2. and -slice_rows/2. < Y < 4600+slice_rows/2.0):
+            logger.warning("Central location ({},{}) off image cutout.".format(X,Y))
+            return None
 
         mopheader_uri = storage.dbimages_uri(expnum=expnum,
                                              ccd=ccd,
@@ -240,6 +246,7 @@ class SSOSParser(object):
 
 
         mopheader = get_mopheader(expnum, ccd)
+
 
         # Build astrom.Observation
         observation = astrom.Observation(expnum=str(expnum),
@@ -336,9 +343,7 @@ class SSOSParser(object):
                 ref_ccd = ccd
                 ref_mjd = mjd
                 x0 = X
-                y = Y
-
-
+                y0 = Y
 
             source_reading = astrom.SourceReading(x=row['X'], y=row['Y'],
                                                         xref=ref_x, yref=ref_y,

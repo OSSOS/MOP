@@ -514,7 +514,10 @@ def get_mopheader(expnum, ccd):
     mopheader = fits.open(mopheader_fpt)
     ## add some values to the mopheader so it can be an astrom header too.
     header = mopheader[0].header
-    header['FWHM'] = get_fwhm(expnum, ccd)
+    try:
+        header['FWHM'] = get_fwhm(expnum, ccd)
+    except:
+        header['FWHM']  = 10
     header['SCALE'] = mopheader[0].header['PIXSCALE']
     header['NAX1'] = header['NAXIS1']
     header['NAX2'] = header['NAXIS2']

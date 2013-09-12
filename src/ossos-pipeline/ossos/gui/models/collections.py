@@ -32,6 +32,12 @@ class StatefulCollection(object):
 
         self.items.append(item)
 
+    def insert(self, index, item):
+        """
+        Insert item at index location.
+        """
+        self.items.insert(index, item)
+
     def get_index(self):
         """Returns the index of the current item."""
         return self.index

@@ -100,10 +100,6 @@ class ImageSinglet(object):
         return _image_data(self.hdulist)
 
     @property
-    def hdu_data(self):
-        return _image_data(self.hdulist, pad=False)
-
-    @property
     def width(self):
         return _image_width(self.hdulist)
 
@@ -515,32 +511,16 @@ def zscale(image):
     # Using the default values, but listing explicitly
 #    image = np.clip(image, 1000., 3000.)
     z1, z2 = numdisplay.zscale.zscale(image, nsamples=1000, contrast=0.25)
-    retval = np.clip(image, z1, z2)  # clip against extreme values
-    # print 'np clip max, np clip min, zmin, zmax, z1, z2, im_median, immax, immin'
-    # print retval.max(), retval.min(), zmin, zmax, z1, z2, im_median, image.max(), image.min()
-    return retval
-
-
-
+    return np.clip(image, z1, z2)  # clip against extreme values
 
 def _image_width(hdulist):
     return _image_shape(hdulist)[1]
 
-
 def _image_height(hdulist):
     return _image_shape(hdulist)[0]
-
 
 def _image_shape(hdulist):
     return _image_data(hdulist).shape
 
-
-def _image_data(hdulist, pad=False):
-    image_data = hdulist[0].data
-    if pad:
-        h = hdulist[0].header
-        (xnp, xxp, ynp, yxp) = ( h.get('XMINPAD', 0), h.get('XMAXPAD', 0), h.get('YMINPAD', 0), h.get('YMAXPAD',0))
-        logger.debug("Applying the following padding: (({},{})({},{}))".format(ynp, xnp, yxp, xxp))
-        return np.lib.pad(image_data, ((ynp, xnp), (yxp, xxp)), 'constant', constant_values=0)
-    else:
-        return image_data
+def _image_data(hdulist):
+    return hdulist[0].data
