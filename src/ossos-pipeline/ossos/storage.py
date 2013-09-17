@@ -9,7 +9,8 @@ import os
 from astropy.io import fits, votable
 import vos
 
-from ossos import coding, mpc
+from ossos.mpc_time import Time
+from ossos import coding
 import requests
 from ossos.downloads.cutouts import downloader
 from ossos.gui import logger
@@ -522,7 +523,7 @@ def get_mopheader(expnum, ccd):
     header['NAX1'] = header['NAXIS1']
     header['NAX2'] = header['NAXIS2']
     header['MOPversion'] = header['MOP_VER']
-    header['MJD_OBS_CENTER'] = str(mpc.Time(header['MJD-OBSC'],
+    header['MJD_OBS_CENTER'] = str(Time(header['MJD-OBSC'],
                                             format='mjd',
                                             scale='utc', precision=5 ).replicate(format='mpc'))
     header['MAXCOUNT'] = MAXCOUNT
