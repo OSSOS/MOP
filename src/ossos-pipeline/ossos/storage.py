@@ -1,12 +1,11 @@
 """OSSOS VOSpace storage convenience package"""
-from cStringIO import StringIO
 import cStringIO
 
 import errno
-import logging
 import os
 
 from astropy.io import fits, votable
+from astropy.io import ascii
 import vos
 
 from ossos import coding, mpc
@@ -63,7 +62,7 @@ def cone_search(ra, dec, dra, ddec, runids=('13AP05','13AP06','13BP05')):
                    " AND Observation.proposal_id IN %s " ) % ( str(runids)),
           "REQUEST": "doQuery",
           "LANG": "ADQL",
-          "FORMAT": "votable" }
+          "FORMAT": "tsv" }
 
     data["QUERY"] += ( " AND  "
                        " CONTAINS( BOX('ICRS', {}, {}, {}, {}), "
@@ -71,13 +70,20 @@ def cone_search(ra, dec, dra, ddec, runids=('13AP05','13AP06','13BP05')):
 
     result = requests.get(TAP_WEB_SERVICE, params=data)
     assert isinstance(result,requests.Response)
-    logging.debug("Doing TAP Query using url: %s" % ( str(result.url)))
-    data = StringIO(result.text)
+    logger.debug("Doing TAP Query using url: %s" % ( str(result.url)))
+    #data = StringIO(result.text)
 
-    vot = votable.parse_single_table(data)
-    vot.array.sort(order='dataset_name')
-    t = vot.array
-    return t
+    table_reader = ascii.get_reader(Reader=ascii.Basic)
+    table_reader.header.splitter.delimiter = '\t'
+    table_reader.data.splitter.delimiter = '\t'
+    table = table_reader.read(result.text)
+
+    #vot = votable.parse_single_table(data)
+    #vot.array.sort(order='dataset_name')
+    #t = vot.array
+    logger.debug(type(table))
+    logger.debug(str(table))
+    return table
 
 
 
@@ -172,7 +178,7 @@ def get_uri(expnum, ccd=None,
                            '%s%s%s%s' % (prefix, str(expnum),
                                           version,
                                           ext))
-    logging.debug("got uri: "+uri)
+    logger.debug("got uri: "+uri)
     return uri
 
 dbimages_uri = get_uri
@@ -208,7 +214,7 @@ def get_tag(expnum, key):
 
     if tag_uri(key) not in get_tags(expnum):
         get_tags(expnum, force=True)
-    logging.debug("%s # %s -> %s"  % (
+    logger.debug("%s # %s -> %s"  % (
         expnum, tag_uri(key), get_tags(expnum).get(tag_uri(key), None)))
     return get_tags(expnum).get(tag_uri(key), None)
 
@@ -224,7 +230,7 @@ def get_status(expnum, ccd, program, return_message=False):
     '''Report back status of the given program'''
     key = get_process_tag(program, ccd)
     status = get_tag(expnum, key)
-    logging.debug('%s: %s' %(key, status))
+    logger.debug('%s: %s' %(key, status))
     if return_message:
         return status
     else:
@@ -253,14 +259,14 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     filename = os.path.basename(uri)
     
     if os.access(filename, os.F_OK):
-        logging.debug("File already on disk: %s" % ( filename))
+        logger.debug("File already on disk: %s" % ( filename))
         return filename
 
     try:
-        logging.debug("trying to get file %s" % ( uri))
+        logger.debug("trying to get file %s" % ( uri))
         copy(uri, filename)
     except Exception as e:
-        logging.debug(str(e))
+        logger.debug(str(e))
         if getattr(e,'errno',0) != errno.ENOENT or ccd is None:
             raise e
         ## try doing a cutout from MEF in VOSpace
@@ -268,14 +274,14 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
                       version=version,
                       ext=ext,
                       subdir=subdir)
-        logging.debug("Using uri: %s" % ( uri))
+        logger.debug("Using uri: %s" % ( uri))
         cutout="[%d]" % ( int(ccd)+1)
         if ccd < 18 :
             cutout += "[-*,-*]"
 
-        logging.debug(uri)
+        logger.debug(uri)
         url = vospace.getNodeURL(uri,view='cutout', limit=None, cutout=cutout)
-        logging.debug(url)
+        logger.debug(url)
         fin = vospace.open(uri, URL=url)
         fout = open(filename, 'w')
         buff = fin.read(2**16)
@@ -321,7 +327,7 @@ def mkdir(root):
         dir_list.append(root)
         root = os.path.dirname(root)
     while len(dir_list)>0:
-        logging.debug("Creating directory: %s" % (dir_list[-1]))
+        logger.debug("Creating directory: %s" % (dir_list[-1]))
         vospace.mkdir(dir_list.pop())
     return
 
@@ -357,7 +363,7 @@ def copy(source, dest):
     '''
 
 
-    logging.debug("%s -> %s" % ( source, dest))
+    logger.debug("%s -> %s" % ( source, dest))
 
     return vospace.copy(source, dest)
 
@@ -391,7 +397,7 @@ def list_dbimages():
 def exists(uri, force=False):
     try:
         return vospace.getNode(uri, force=force) is not None
-    except Exception as e:
+    except IOError as e:
         if e.errno == os.errno.ENOENT:
             return False
         raise e
