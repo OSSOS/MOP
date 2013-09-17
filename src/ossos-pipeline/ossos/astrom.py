@@ -582,8 +582,9 @@ class ComparisonSource(SourceReading):
     A comparison image for a previous image.
     """
 
-    def __init__(self, reference_source, refs=[]):
+    def __init__(self, reference_source, refs=None):
 
+        if not refs: refs = []
         assert isinstance(reference_source, SourceCutout)
         ref_wcs = wcs.WCS(reference_source.fits_header)
         (ref_ra, ref_dec) = ref_wcs.xy2sky(reference_source.fits_header['NAXIS1']/2.0,
@@ -599,7 +600,9 @@ class ComparisonSource(SourceReading):
         comparison = ""
         x = y = -1
         ccd = -1
-        for comparison in query_result['dataset_name']:
+        astheader = None
+        pvwcs = None
+        for comparison in query_result['collectionID']:
             logger.debug("Trying comparison image {}".format(comparison))
             if int(comparison) in refs:
                 continue
@@ -636,9 +639,8 @@ class ComparisonSource(SourceReading):
                                               obs=observation,
                                               ssos=True)
         self.astrom_header = astheader
-
         self.reference_source = reference_source
-
+        del(pvwcs)
 
 
 
