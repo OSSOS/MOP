@@ -12,7 +12,7 @@ from astropy.table import Table
 from astropy.time import Time
 import requests
 
-from ossos import astrom, gui
+from ossos import astrom
 from ossos.gui import logger, config
 from ossos import mpc
 from ossos.orbfit import Orbfit
@@ -178,10 +178,13 @@ class SSOSParser(object):
     """
     Parse the result of an SSOS query, which is stored in an astropy Table object
     """
-    def __init__(self, provisional_name, input_observations=[], null_observations=[]):
+    def __init__(self, provisional_name, input_observations=None):
         """
         setup the parser.
+        :param provisional_name: name of KBO to assign SSOS data to
+        :param input_observations: input observations used in search
         """
+        if not input_observations: input_observations = []
         self.provisional_name = provisional_name
         self.input_rawnames = []
         self.null_observations = []
@@ -283,8 +286,7 @@ class SSOSParser(object):
         """
         given the result table create 'source' objects.
 
-        :type ssos_result_table: Table
-        :param ssos_result_table:
+        :param ssos_result_filename_or_lines:
         """
 
 
@@ -323,7 +325,9 @@ class SSOSParser(object):
 
             from_input_file = observation.rawname in self.input_rawnames
             null_observation = observation.rawname in self.null_observations
-            mjd = Time(observation.header['MJD_OBS_CENTER'], format='mpc', scale='utc').jd
+            mjd = Time(observation.header['MJD_OBS_CENTER'], 
+                       format='mpc', 
+                       scale='utc').jd
             if ref_x is None or mjd - ref_mjd > 0.5:
                 ref_x = X
                 ref_y = Y
@@ -333,7 +337,12 @@ class SSOSParser(object):
                 x0 = X
                 y0 = Y
             else:
-                (x0, y0) = self.get_coord_offset(expnum, ccd, X, Y, ref_expnum, ref_ccd)
+                (x0, y0) = self.get_coord_offset(expnum, 
+                                                 ccd, 
+                                                 X, 
+                                                 Y, 
+                                                 ref_expnum, 
+                                                 ref_ccd)
 
             # Also reset the reference point if the x/y shift is large.
             if x0 - X > 250 or y0 - Y > 250 :
@@ -345,14 +354,15 @@ class SSOSParser(object):
                 x0 = X
                 y0 = Y
 
-            source_reading = astrom.SourceReading(x=row['X'], y=row['Y'],
-                                                        xref=ref_x, yref=ref_y,
-                                                        x0=x0, y0=y0,
-                                                        ra=row['Object_RA'], dec=row['Object_Dec'],
-                                                        obs=observation,
-                                                        ssos=True,
-                                                        from_input_file=from_input_file,
-                                                        null_observation=null_observation)
+            source_reading = astrom.SourceReading(
+                x=row['X'], y=row['Y'],
+                xref=ref_x, yref=ref_y,
+                x0=x0, y0=y0,
+                ra=row['Object_RA'], dec=row['Object_Dec'],
+                obs=observation,
+                ssos=True,
+                from_input_file=from_input_file,
+                null_observation=null_observation)
 
 
             source_readings.append(source_reading)
@@ -391,7 +401,9 @@ class SSOSData(object):
         self.mpc_observations = {}
         self.observations = observations
         self.sys_header = None
-        self.sources = [astrom.Source(reading_list, provisional_name) for reading_list in sources]
+        self.sources = [astrom.Source(
+                reading_list, 
+                provisional_name) for reading_list in sources]
 
     def get_reading_count(self):
         count = 0
@@ -411,7 +423,8 @@ class SSOSData(object):
 
         for obs in self.observations:
 
-            mjds.append(Time(obs.header['MJD_OBS_CENTER'], format='mpc', scale='utc').jd)
+            mjds.append(Time(obs.header['MJD_OBS_CENTER'], 
+                             format='mpc', scale='utc').jd)
         arc = (len(mjds) > 0 and max(mjds) - min(mjds) ) or 0
         return arc
 
@@ -443,9 +456,11 @@ class ParamDictBuilder(object):
     @property
     def observations(self):
         """
-        The observtions to be used in fitting, returned as list of on the mpc format lines.
+        The observtions to be used in fitting, returned as list of on
+        the mpc format lines.
 
-        This should be set to a list of objects whose 'str' values will be valid MPC observations.
+        This should be set to a list of objects whose 'str' values
+        will be valid MPC observations.
         """
         return self._observations
 
@@ -456,7 +471,8 @@ class ParamDictBuilder(object):
     @property
     def verbose(self):
         """
-        In verbose mode the SSOS query will return diagnoistic information about how the search was done.
+        In verbose mode the SSOS query will return diagnoistic
+        information about how the search was done.
         """
         return self._verbose
 
@@ -502,7 +518,8 @@ class ParamDictBuilder(object):
     @property
     def orbit_method(self):
         """
-        What fitting method should be used to turn the observations into an orbit.
+        What fitting method should be used to turn the observations
+        into an orbit.
 
         Must be one of ['bern', 'mpc']
         """
@@ -516,7 +533,8 @@ class ParamDictBuilder(object):
     @property
     def error_ellipse(self):
         """
-        The size of the error ellipse to assign to each position, or 'bern' to use the output of the BK fit.
+        The size of the error ellipse to assign to each position, or
+        'bern' to use the output of the BK fit.
         """
         return self._error_ellipse
 
@@ -535,7 +553,8 @@ class ParamDictBuilder(object):
     @property
     def resolve_extension(self):
         """
-        Should SSOS resolve and return which extension of a frame the object would be in?
+        Should SSOS resolve and return which extension of a frame the
+        object would be in?
         """
         return self._resolve_extension
 
@@ -548,7 +567,8 @@ class ParamDictBuilder(object):
     @property
     def resolve_position(self):
         """
-        Should SSOS resolve and return the predicted X/Y location of the source?
+        Should SSOS resolve and return the predicted X/Y location of
+        the source?
         """
         return self._resolve_position
 
@@ -571,29 +591,37 @@ class ParamDictBuilder(object):
                     eunits=self.error_ellipse,
                     extres=self.resolve_extension,
                     xyres=self.resolve_position,
-                    obs=NEW_LINE.join((str(observation) for observation in self.observations))
+                    obs=NEW_LINE.join((
+                    str(observation) for observation in self.observations))
         )
 
 
 class Query(object):
     """
-    Query the CADC's Solar System Object search for a given set of MPC-formatted moving object detection lines.
+    Query the CADC's Solar System Object search for a given set of
+    MPC-formatted moving object detection lines.
 
     Inputs:
         - a list of ossos.mpc.Observation instances
+
     Optional:
-        - a tuple of the start and end times to be searched between. Format '%Y-%m-%d'
-    Otherwise the temporal range defaults to spanning from the start of OSSOS surveying on 2013-01-01 to
-    the present day.
+        - a tuple of the start and end times to be searched
+          between. Format '%Y-%m-%d'
+
+    Otherwise the temporal range defaults to spanning from the start
+    of OSSOS surveying on 2013-01-01 to the present day.
 
     """
 
-    def __init__(self, observations, search_start_date=Time('2013-01-01', scale='utc'),
+    def __init__(self, 
+                 observations, 
+                 search_start_date=Time('2013-01-01', scale='utc'),
                  search_end_date = Time('2017-01-01', scale='utc')):
 
-        self.param_dict_biulder = ParamDictBuilder(observations,
-                                                   search_start_date=search_start_date,
-                                                   search_end_date=search_end_date)
+        self.param_dict_biulder = ParamDictBuilder(
+            observations,
+            search_start_date=search_start_date,
+            search_end_date=search_end_date)
 
         self.headers = {'User-Agent': 'OSSOS Target Track'}
 
@@ -603,15 +631,19 @@ class Query(object):
         :raise: AssertionError
         """
         params = self.param_dict_biulder.params
-        self.response = requests.get(SSOS_URL, params=params, headers=self.headers)
+        self.response = requests.get(SSOS_URL, 
+                                     params=params, 
+                                     headers=self.headers)
         logger.debug(self.response.url)
         assert isinstance(self.response, requests.Response)
 
         assert(self.response.status_code == requests.codes.ok )
 
         lines = self.response.content
-        if len(lines) < 1 or str(lines[1]).startswith("An error occurred getting the ephemeris"):
-            raise IOError(os.errno.EACCES, "call to SSOS failed on format error")
+        if len(lines) < 1 or str(lines[1]).startswith((
+                "An error occurred getting the ephemeris") ):
+            raise IOError(os.errno.EACCES, 
+                          "call to SSOS failed on format error")
 
         return lines
 
