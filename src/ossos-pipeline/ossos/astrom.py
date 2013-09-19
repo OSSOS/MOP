@@ -2,6 +2,10 @@
 Reads and writes .astrom files.
 """
 import os
+import cStringIO
+from astropy.io import fits
+import ds9
+import requests
 from ossos.downloads.cutouts.source import SourceCutout
 from ossos.gui import logger
 
@@ -556,27 +560,21 @@ class SourceReading(object):
           inverted: bool
             True if the stored image is inverted.
         """
-        logger.debug("Checking invert on {} {}".format(self.obs.expnum, self.obs.ccdnum))
-        if self.ssos or self.obs.is_fake():
-            # We get the image from the CCD directory and it has already
-            # been corrected for inversion.
-            logger.debug("Logic override")
-            return False
-        logger.debug("No override")
+        astheader = storage.get_astheader(self.obs.expnum, self.obs.ccdnum)
+        pvwcs = wcs.WCS(astheader)
+        (x,y) = pvwcs.sky2xy(self.ra, self.dec)
 
-        return True if self.get_ccd_num() <= MAX_INVERTED_CCD else False
+        dr2 = ((x-self.x)**2 + (y-self.y)**2)
+        logger.debug("inverted is {}".format(dr2>2))
+        return dr2 > 2
 
-    def should_invert(self):
-        """
-        Returns:
-          inverted: bool
-            True if the stored image should be inverted for display
-        """
-        if self.ssos or self.obs.is_fake():
-            # We get the image from the MEF so flip on display
-            return True if self.get_ccd_num() <= MAX_INVERTED_CCD else False
-
-        return False
+        # if self.ssos or self.obs.is_fake():
+        #     # We get the image from the CCD directory and it has already
+        #     # been corrected for inversion.
+        #     return False
+        # logger.debug("No override")
+        #
+        # return True if self.get_ccd_num() <= MAX_INVERTED_CCD else False
 
     def get_mag(self, image_downloader=None):
         """
@@ -608,34 +606,25 @@ class ComparisonSource(SourceReading):
         logger.debug("BOX({} {} {} {})".format(ref_ra, ref_dec,dra, ddec))
         query_result = storage.cone_search(ref_ra, ref_dec, dra, ddec)
         logger.debug("Ignoring the following exposure numbers: "+str(refs))
-        found = False
-        comparison = ""
-        x = y = -1
-        ccd = -1
-        astheader = None
-        pvwcs = None
-        for comparison in query_result['collectionID']:
-            logger.debug("Trying comparison image {}".format(comparison))
-            if int(comparison) in refs:
-                continue
-            for ccd in range(36):
-                astheader = storage.get_astheader(comparison, ccd)
-                pvwcs = wcs.WCS(astheader)
-                (x,y) = pvwcs.sky2xy(ref_ra, ref_dec)
-                logger.debug("RA/DEC {}/{} of source at X/Y {}/{} compared to {} {}".format(
-                    ref_ra, ref_dec, x,y,
-                    2112, 4644))
-                if 0 <= x <= 2112 and 0 <= y <= 4644:
-                    found = True
-                    break
-            if found:
+        for collectionID in query_result['collectionID']:
+            if collectionID not in refs:
+                comparison = collectionID
                 break
+        base_url = "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/vospace/nodes/OSSOS/dbimages/{}/{}p.fits".format(comparison, comparison)
+        params = {'view': 'cutout',
+                  'cutout': 'CIRCLE ICRS {} {} {}'.format(ref_ra,ref_dec,dra/2.0)}
+        result = requests.get(base_url,cert=os.path.join(os.environ['HOME'],'.ssl','cadcproxy.pem'),
+                     params=params)
 
-        if not found:
-            logger.critical("No comparison image found for {} {} -> {},{}".format(reference_source.pixel_x,
-                                                                                  reference_source.pixel_y,
-                                                                                  ref_ra,ref_dec))
-            return
+        #uri = storage.dbimages_uri(comparison)
+        #url = storage.vospace.getNodeURL(uri, view='cutout', cutout='CIRCLE+ICRS+{}+{}+{}'.format(ref_ra,ref_dec,dra/2.0))
+        logger.debug(result.url)
+        hdulist = fits.open(cStringIO.StringIO(result.content))
+        return hdulist
+        ccd = int(hdulist[0].header.get('EXTVER',-1))
+        astheader = storage.get_astheader(comparison, ccd)
+        pvwcs = wcs.WCS(astheader)
+        (x,y) = pvwcs.sky2xy(ref_ra, ref_dec)
         x0 = x
         y0 = y
         xref = x
@@ -725,7 +714,7 @@ class Observation(object):
         return observation
 
 
-    def __init__(self, expnum, ftype, ccdnum, fk=""):
+    def __init__(self, expnum, ftype, ccdnum, fk="", image_uri=None):
         self.expnum = expnum
         self.ftype = ftype
         self.ccdnum = ccdnum
@@ -734,6 +723,8 @@ class Observation(object):
         self.rawname = fk + expnum + ftype + ccdnum
 
         self.header = {}
+        if image_uri is None:
+            self.image_uri = self._get_image_uri()
 
     def __repr__(self):
         return "<Observation rawname=%s>" % self.rawname
@@ -749,7 +740,7 @@ class Observation(object):
             uri += "ccd%s/%s.fits" % (self.ccdnum, self.rawname)
         else:
             uri += "%s%s.fits" % (self.expnum, self.ftype)
-
+        logger.debug("sending back URI: {}".format(uri))
         return uri
 
     def get_object_planted_uri(self):

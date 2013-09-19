@@ -1,4 +1,5 @@
 import math
+import ds9
 from ossos.downloads.async import DownloadRequest
 from ossos.downloads.cutouts import ImageCutoutDownloader
 
@@ -185,6 +186,14 @@ class ProcessRealsController(AbstractController):
         phot_failure = False
 
         source_cutout = self.model.get_current_cutout()
+
+        display = ds9.ds9(target='validate')
+        result = display.get('imexam key coordinate')
+        values = result.split()
+        logger.debug("IMEXAM returned {}".format(values))
+        source_cutout.pixel_x = float(values[1])
+        source_cutout.pixel_y = float(values[2])
+        logger.debug("X, Y => {} , {}".format(source_cutout.pixel_x, source_cutout.pixel_y))
         pixel_x = source_cutout.pixel_x
         pixel_y = source_cutout.pixel_y
 
@@ -389,9 +398,7 @@ class ProcessTracksController(ProcessRealsController):
 
             if not hasattr(reading, 'redraw_ellipse'):
                 reading.redraw_ellipse = True
-
-            if hasattr(reading, 'dra') and hasattr(reading, 'ddec') and hasattr(
-                    reading, 'pa' )  and reading.redraw_ellipse:
+            if hasattr(reading, 'dra') and hasattr(reading, 'ddec') and hasattr(reading, 'pa' ) and reading.redraw_ellipse:
                 x, y = self.model.get_current_pixel_source_point()
                 self.view.draw_error_ellipse(x, y, reading.dra, reading.ddec, reading.pa)
 
@@ -403,9 +410,7 @@ class ProcessTracksController(ProcessRealsController):
             cutout = self.model.get_current_cutout()
             reading = self.model.get_current_workunit().choose_comparison_image(cutout,
                                                                                 research=research)
-
             self.view.display(reading.cutout)
-
         except Exception as e:
             logger.critical(str(e))
             pass

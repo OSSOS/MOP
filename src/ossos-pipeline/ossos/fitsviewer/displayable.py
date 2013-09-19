@@ -1,3 +1,4 @@
+import ds9
 from ossos.gui import logger
 
 __author__ = "David Rusk <drusk@uvic.ca>"
@@ -95,6 +96,7 @@ class ImageSinglet(object):
         self._mpl_event_handlers = {}
         self._interaction_context = None
         self.number_of_images_displayed = 0
+        self.frame_number = None
 
     @property
     def z_image_data(self):
@@ -113,6 +115,21 @@ class ImageSinglet(object):
         return _image_height(self.hdulist)
 
     def show_image(self, colorbar=False):
+        # start xpans if needed
+        ds9.ds9_xpans()
+        # start ds9 if need, or connect to existing
+        display = ds9.ds9(target='validate')
+        if self.frame_number is None:
+            # display.set('frame delete all')
+            display.set('frame new')
+            display.set('scale zscale')
+            display.set('cmap invert yes')
+            display.set_pyfits(self.hdulist)
+            self.frame_number = display.get('frame frameno')
+            display.set('frame center {}'.format(self.frame_number))
+            display.set('zoom to fit')
+        display.set('frame frameno {}'.format(self.frame_number))
+
         self._interaction_context = InteractionContext(self)
 
         extent = (1, self.width, 1, self.height)
@@ -128,13 +145,17 @@ class ImageSinglet(object):
             cax = divider.append_axes("bottom", size="5%", pad=0.05)
             self.figure.colorbar(self.axes_image, orientation="horizontal",
                                  cax=cax)
-        plt.close()
+        #plt.close()
 
     def place_marker(self, x, y, radius, colour="b"):
         """
         Draws a marker with the specified dimensions.  Only one marker can
         be on the image at a time, so any existing marker will be replaced.
         """
+        display = ds9.ds9(target='validate')
+        display.set('regions delete all')
+        display.set('regions', 'image; circle({},{},{})'.format(x,y,radius))
+
         if self.marker is not None:
             self.marker.remove_from_axes(self.axes)
 
@@ -147,6 +168,9 @@ class ImageSinglet(object):
         """
         Draws an ErrorEllipse with the given dimensions.  Can not be moved later.
         """
+        display = ds9.ds9(target='validate')
+        display.set('regions delete all')
+        display.set('regions', 'image; ellipse({},{},{},{},{}'.format(x,y,a,b,pa+90))
         self.error_ellipse = ErrEllipse(x, y, a, b, pa, color=color)
         self.error_ellipse.add_to_axes(self.axes)
         self.display_changed.fire()
