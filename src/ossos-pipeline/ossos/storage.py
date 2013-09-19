@@ -559,7 +559,7 @@ def get_astheader(expnum, ccd):
     hdulist = _DOWNLOADER.download_hdulist(
                uri=image_uri,
                view='cutout',
-               cutout='[{}][{}:{},{}:{}]'.format(ccd+1, 1, 1, 1, 1))
+               cutout='[{}][{}:{},{}:{}]'.format(int(ccd)+1, 1, 1, 1, 1))
     astheaders[ast_uri] = hdulist[0].header
-
+    logger.debug("header pulled")
     return astheaders[ast_uri]

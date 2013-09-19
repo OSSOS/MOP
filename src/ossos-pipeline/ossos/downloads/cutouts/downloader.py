@@ -53,8 +53,7 @@ class ImageCutoutDownloader(Downloader):
             reading.get_extension(),
             focus,
             reading.get_original_image_size(),
-            inverted=reading.is_inverted(),
-            should_invert=reading.should_invert())
+            inverted=reading.is_inverted())
 
         image_uri = reading.get_image_uri()
 

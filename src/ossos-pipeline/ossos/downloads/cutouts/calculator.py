@@ -1,3 +1,5 @@
+from ossos.gui import logger
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 
@@ -6,7 +8,7 @@ class CutoutCalculator(object):
         self.slice_rows = slice_rows
         self.slice_cols = slice_cols
 
-    def build_cutout_str(self, extnum, focus, img_size, inverted=False, should_invert=False):
+    def build_cutout_str(self, extnum, focus, img_size, inverted=False,):
         """
         Generates the cutout string needed for the vospace client's open
         with cutout feature.
@@ -30,13 +32,13 @@ class CutoutCalculator(object):
             Can be used to find a point in the sliced image based on its
             coordinate in the original image.
         """
-        (x0, x1, y0, y1), converter = self.calc_cutout(focus, img_size, inverted, should_invert)
+        (x0, x1, y0, y1), converter = self.calc_cutout(focus, img_size, inverted)
 
         cutout_str = "[%s][%d:%d,%d:%d]" % (extnum, x0, x1, y0, y1)
 
         return cutout_str, converter
 
-    def calc_cutout(self, focus, img_size, inverted=False, should_invert=False):
+    def calc_cutout(self, focus, img_size, inverted=False ):
         """
         Calculates the start and stop points of the cutout around a point.
 
@@ -96,17 +98,15 @@ class CutoutCalculator(object):
             x_offset = xmin - 1
             y_offset = ymin - 1
 
-        if not should_invert:
-            return (x0, x1, y0, y1), CoordinateConverter(x_offset, y_offset, inverted=False)
-        else:
-            return (x1, x0, y1, y0), CoordinateConverter(x_offset+(x1-x0+1), y_offset+(x1-x0+1), inverted=True)
 
+        return (x0, x1, y0, y1), CoordinateConverter(x_offset, y_offset)
 
 class CoordinateConverter(object):
-    def __init__(self, x_offset, y_offset, inverted=False):
+    def __init__(self, x_offset, y_offset):
         self.x_offset = x_offset
         self.y_offset = y_offset
-        self.inverted = inverted
+        logger.debug("Convert initialized as dx,dy,inverted {},{}".format(x_offset,
+                                                                            y_offset))
 
     def convert(self, point):
         """
@@ -124,14 +124,13 @@ class CoordinateConverter(object):
           within a cutout image.
         """
         x, y = point
-        if self.inverted:
-            return self.x_offset-x, self.y_offset-y
-        else:
-            return x - self.x_offset, y - self.y_offset
+        (x1, y1) =  x - self.x_offset, y - self.y_offset
+        logger.debug("converted {} {} to {} {}".format(x,y, x1, y1))
+        return x1, y1
 
     def get_inverse_converter(self):
         """
         Returns a converter object for converting back from this converter's
         output coordinate system to its input coordinate system.
         """
-        return CoordinateConverter(-self.x_offset, -self.y_offset, inverted=self.inverted)
+        return CoordinateConverter(-self.x_offset, -self.y_offset)
