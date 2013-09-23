@@ -1,5 +1,3 @@
-__author__ = "David Rusk <drusk@uvic.ca>"
-
 from ossos.gui import logger
 
 from ossos.downloads.core import Downloader

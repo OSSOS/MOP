@@ -401,42 +401,6 @@ class TracksWorkUnit(WorkUnit):
     def is_finished(self):
         return self._ssos_queried or self.get_source_count() == 0 or super(TracksWorkUnit, self).is_finished()
 
-    def choose_comparison_image(self, cutout, research=False):
-        """
-        Query TAP and get a comparison image for the currently displayed image
-        :param cutout: the cutout to find a comparison for
-        :type cutout: source.Source
-        """
-
-        # selecting comparitor when on a comparitor should load a new one.
-        if not hasattr(cutout,'bad_ref'):
-            cutout.bad_ref = []
-            cutout.bad_ref.append(cutout.astrom_header['EXPNUM'])
-
-        if cutout not in self._comparitors:
-            self._comparitors[cutout] = astrom.ComparisonSource(cutout, refs=cutout.bad_ref)
-        elif research:
-            cutout.bad_ref.append(self._comparitors[cutout].astrom_header['EXPNUM'])
-            self._comparitors[cutout] = astrom.ComparisonSource(cutout,
-                                                                refs=cutout.bad_ref)
-        def read(slice_config):
-            return config.read("CUTOUTS.%s" % slice_config)
-
-        singlet_downloader = ImageCutoutDownloader(
-            slice_rows=read("SINGLETS.SLICE_ROWS"),
-            slice_cols=read("SINGLETS.SLICE_COLS"))
-
-
-        if not hasattr(self._comparitors[cutout],'cutout'):
-            focus = self._comparitors[cutout].source_point
-            self._comparitors[cutout].cutout = singlet_downloader.download_cutout(self._comparitors[cutout],
-                                                                                  focus=focus,
-                                                                                  needs_apcor=False)
-
-        self.previous_obs()
-
-        return self._comparitors[cutout]
-
     def next_item(self):
         assert not self.is_finished()
 

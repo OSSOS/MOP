@@ -4,13 +4,12 @@ import cStringIO
 import errno
 import os
 
-from astropy.io import fits, votable
+from astropy.io import fits
 from astropy.io import ascii
 import vos
 
 from ossos import coding, mpc
 import requests
-from ossos.downloads.cutouts import downloader
 from ossos.gui import logger
 MAXCOUNT=30000
 
@@ -34,7 +33,6 @@ SUCCESS = 'success'
 ### some cache holders.
 mopheaders = {}
 astheaders = {}
-_DOWNLOADER = downloader.Downloader()
 
 
 def cone_search(ra, dec, dra, ddec, runids=('13AP05','13AP06','13BP05','13BP06')):
@@ -554,12 +552,11 @@ def get_astheader(expnum, ccd):
     if not exists(image_uri, force=False):
         return None
 
-
-    logger.debug("Pulling header using image_uri {}".format(image_uri))
-    hdulist = _DOWNLOADER.download_hdulist(
-               uri=image_uri,
-               view='cutout',
-               cutout='[{}][{}:{},{}:{}]'.format(int(ccd)+1, 1, 1, 1, 1))
+    hdulist = fits.open(cStringIO.StringIO(vospace.open(
+        uri=image_uri,
+        view='cutout',
+        cutout='[{}][{}:{},{}:{}]'.format(int(ccd)+1, 1, 1, 1, 1)).read()))
     astheaders[ast_uri] = hdulist[0].header
     logger.debug("header pulled")
     return astheaders[ast_uri]
+

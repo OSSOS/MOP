@@ -7,6 +7,7 @@ from ossos import storage
 from ossos import auth
 from ossos.gui import tasks
 
+
 CANDS = "CANDS"
 REALS = "REALS"
 

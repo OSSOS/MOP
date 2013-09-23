@@ -2,11 +2,7 @@
 Reads and writes .astrom files.
 """
 import os
-import cStringIO
-from astropy.io import fits
-import ds9
-import requests
-from ossos.downloads.cutouts.source import SourceCutout
+
 from ossos.gui import logger
 
 __author__ = "David Rusk <drusk@uvic.ca>"
@@ -143,8 +139,8 @@ class AstromParser(object):
 
         return sys_header_match.groupdict()
 
-    def _parse_source_data(self, filestr, observations):
-        source_list_match = self.source_list_reg.search(filestr)
+    def _parse_source_data(self, file_str, observations):
+        source_list_match = self.source_list_reg.search(file_str)
 
         assert source_list_match is not None, "Could not find the source list"
 
@@ -566,6 +562,9 @@ class SourceReading(object):
 
         dr2 = ((x-self.x)**2 + (y-self.y)**2)
         logger.debug("inverted is {}".format(dr2>2))
+
+        print("some bad")
+
         return dr2 > 2
 
         # if self.ssos or self.obs.is_fake():
@@ -584,65 +583,6 @@ class SourceReading(object):
             image_downloader = ImageCutoutDownloader(slice_rows=100, slice_cols=100)
         if self._image_downloader is None:
             self._image_downloader = image_downloader
-
-
-
-class ComparisonSource(SourceReading):
-    """
-    A comparison image for a previous image.
-    """
-
-    def __init__(self, reference_source, refs=None):
-
-        if not refs: refs = []
-        assert isinstance(reference_source, SourceCutout)
-        ref_wcs = wcs.WCS(reference_source.fits_header)
-        (ref_ra, ref_dec) = ref_wcs.xy2sky(reference_source.fits_header['NAXIS1']/2.0,
-                                           reference_source.fits_header['NAXIS2']/2.0)
-
-        dra = reference_source.fits_header['NAXIS1']*0.1875/3600.0
-        ddec= reference_source.fits_header['NAXIS2']*0.1875/3600.0
-
-        logger.debug("BOX({} {} {} {})".format(ref_ra, ref_dec,dra, ddec))
-        query_result = storage.cone_search(ref_ra, ref_dec, dra, ddec)
-        logger.debug("Ignoring the following exposure numbers: "+str(refs))
-        for collectionID in query_result['collectionID']:
-            if collectionID not in refs:
-                comparison = collectionID
-                break
-        base_url = "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/vospace/nodes/OSSOS/dbimages/{}/{}p.fits".format(comparison, comparison)
-        params = {'view': 'cutout',
-                  'cutout': 'CIRCLE ICRS {} {} {}'.format(ref_ra,ref_dec,dra/2.0)}
-        result = requests.get(base_url,cert=os.path.join(os.environ['HOME'],'.ssl','cadcproxy.pem'),
-                     params=params)
-
-        #uri = storage.dbimages_uri(comparison)
-        #url = storage.vospace.getNodeURL(uri, view='cutout', cutout='CIRCLE+ICRS+{}+{}+{}'.format(ref_ra,ref_dec,dra/2.0))
-        logger.debug(result.url)
-        hdulist = fits.open(cStringIO.StringIO(result.content))
-        return hdulist
-        ccd = int(hdulist[0].header.get('EXTVER',-1))
-        astheader = storage.get_astheader(comparison, ccd)
-        pvwcs = wcs.WCS(astheader)
-        (x,y) = pvwcs.sky2xy(ref_ra, ref_dec)
-        x0 = x
-        y0 = y
-        xref = x
-        yref = y
-        observation = Observation.from_source_reference(comparison, ccd, x, y)
-
-        super(ComparisonSource,self).__init__(x=x, y=y,
-                                              x0=x0, y0=y0,
-                                              xref=xref,
-                                              yref=yref,
-                                              ra=ref_ra,
-                                              dec=ref_dec,
-                                              obs=observation,
-                                              ssos=True)
-        self.astrom_header = astheader
-        self.reference_source = reference_source
-        del(pvwcs)
-
 
 
 
@@ -724,7 +664,7 @@ class Observation(object):
 
         self.header = {}
         if image_uri is None:
-            self.image_uri = self._get_image_uri()
+            self.image_uri = self.get_image_uri()
 
     def __repr__(self):
         return "<Observation rawname=%s>" % self.rawname

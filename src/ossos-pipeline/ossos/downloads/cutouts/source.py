@@ -1,10 +1,13 @@
+import urllib
+from ossos.astrom import SourceReading, Observation
+from ossos.downloads.cutouts.calculator import CoordinateConverter
 from ossos.gui import logger
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import tempfile
 
-from ossos import wcs
+from ossos import wcs, storage
 
 
 class SourceCutout(object):
@@ -32,9 +35,10 @@ class SourceCutout(object):
 
         self._stale = False
         self._adjusted = False
-
+        self._comparison_image = None
         self._tempfile = None
-        self.comparitor = False
+
+        self._bad_comparison_images = [self.fits_header.get('EXPNUM',None)]
 
     @property
     def astrom_header(self):
@@ -160,3 +164,49 @@ class SourceCutout(object):
                                          wcs.parse_cd(fits_header),
                                          wcs.parse_pv(fits_header),
                                          wcs.parse_order_fit(fits_header))
+
+    @property
+    def comparison_image(self):
+        return self._comparison_image
+
+    def retrieve_comparison_image(self, downloader):
+        """
+        Search the DB for a comparison image for this cutout.
+        """
+        # selecting comparitor when on a comparitor should load a new one.
+
+        ref_wcs = wcs.WCS(self.fits_header)
+        ref_x = self.fits_header['NAXIS1']/2.0
+        ref_y = self.fits_header['NAXIS2']/2.0
+        (ref_ra, ref_dec) = ref_wcs.xy2sky(ref_x,ref_y)
+
+        dra = self.fits_header['CD1_1']*self.fits_header['NAXIS1']/2.0
+        ddec= self.fits_header['CD2_2']*self.fits_header['NAXIS2']/2.0
+        radius=max(dra,ddec)
+
+        logger.debug("BOX({} {} {} {})".format(ref_ra, ref_dec,dra, ddec))
+
+        query_result = storage.cone_search(ref_ra, ref_dec, dra, ddec)
+
+
+        comparison = None
+        for collectionID in query_result['collectionID']:
+            if collectionID not in self._bad_comparison_images:
+                comparison = collectionID
+                break
+
+        if comparison is None:
+            self._comparison_image = None
+            return
+
+        base_url = "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/vospace/nodes/OSSOS/dbimages/{}/{}p.fits".format(comparison, comparison)
+        cutout = 'CIRCLE ICRS {} {} {}'.format(ref_ra,ref_dec,radius)
+        url = base_url+"?"+urllib.urlencode({'view': 'cutout', 'cutout': cutout})
+
+        hdu_list = downloader.download_hdulist(uri=None, URL=url)
+
+        comp_wcs = wcs.WCS(hdu_list[-1].header)
+        (x, y) = comp_wcs.sky2xy(ref_ra, ref_dec)
+        obs = Observation(str(comparison),'p',ccdnum=str(hdu_list[-1].header.get('EXTVER',0)))
+        reading = SourceReading(x,y,ref_x, ref_y, ref_ra, ref_dec,ref_x,ref_y, obs)
+        self._comparison_image = SourceCutout(reading ,hdu_list, CoordinateConverter(0,0))
