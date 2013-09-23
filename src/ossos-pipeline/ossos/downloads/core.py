@@ -32,7 +32,9 @@ class Downloader(object):
             The data downloaded as a string.
         """
         logger.debug("Starting download: %s" % uri)
-        return self.vosclient.open(uri, **kwargs).read()
+        buff = self.vosclient.open(uri, **kwargs).read()
+        logger.debug("Got {} chars".format(len(buff)))
+        return buff
 
     def download_hdulist(self, uri, **kwargs):
         """
@@ -50,7 +52,10 @@ class Downloader(object):
             The requests FITS image as an Astropy HDUList object
             (http://docs.astropy.org/en/latest/io/fits/api/hdulists.html).
         """
-        return fits.open(cStringIO.StringIO(self.download_raw(uri, **kwargs)))
+        logger.debug(str(kwargs))
+        hdulist = fits.open(cStringIO.StringIO(self.download_raw(uri, **kwargs)))
+        logger.debug("Got fits hdulist of len {}".format(len(hdulist)))
+        return hdulist
 
     def download_apcor(self, uri):
         """

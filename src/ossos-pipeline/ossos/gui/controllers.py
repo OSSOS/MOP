@@ -1,7 +1,7 @@
 import math
 import ds9
-from ossos.downloads.async import DownloadRequest
-from ossos.downloads.cutouts import ImageCutoutDownloader
+from ossos.downloads.core import Downloader
+from ossos.gui.models.validation import ValidationModel
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -20,11 +20,14 @@ class AbstractController(object):
         self.model = model
         self.view = view
 
+
+        assert isinstance(self.model,ValidationModel)
         events.subscribe(events.CHANGE_IMAGE, self.on_change_image)
         events.subscribe(events.IMG_LOADED, self.on_image_loaded)
         events.subscribe(events.NO_AVAILABLE_WORK, self.on_no_available_work)
 
         self.autoplay_manager = AutoplayManager(model)
+        self.downloader = Downloader()
         self.image_loading_dialog_manager = ImageLoadingDialogManager(view)
 
     def get_view(self):
@@ -405,16 +408,16 @@ class ProcessTracksController(ProcessRealsController):
             reading.redraw_ellipse = False
 
     def on_load_comparison(self, research=False):
-        logger.debug(str(research))
-        try:
-            cutout = self.model.get_current_cutout()
-            reading = self.model.get_current_workunit().choose_comparison_image(cutout,
-                                                                                research=research)
-            self.view.display(reading.cutout)
-        except Exception as e:
-            logger.critical(str(e))
-            pass
+        """
+        Display the comparison image
+        """
 
+        logger.debug(str(research))
+        cutout = self.model.get_current_cutout()
+        if research or cutout.comparison_image is None:
+            cutout.retrieve_comparison_image(self.downloader)
+        self.view.display(cutout.comparison_image)
+        self.model.previous_obs()
         self.model.acknowledge_image_displayed()
 
     def on_ssos_query(self):
