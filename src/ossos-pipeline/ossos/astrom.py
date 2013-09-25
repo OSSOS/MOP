@@ -559,12 +559,9 @@ class SourceReading(object):
         astheader = storage.get_astheader(self.obs.expnum, self.obs.ccdnum)
         pvwcs = wcs.WCS(astheader)
         (x,y) = pvwcs.sky2xy(self.ra, self.dec)
-
+        logger.debug("is_inverted: X,Y {},{}  -> wcs X,Y {},{}".format(self.x, self.y, x, y))
         dr2 = ((x-self.x)**2 + (y-self.y)**2)
         logger.debug("inverted is {}".format(dr2>2))
-
-        print("some bad")
-
         return dr2 > 2
 
         # if self.ssos or self.obs.is_fake():

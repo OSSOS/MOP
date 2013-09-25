@@ -1,3 +1,5 @@
+import ds9
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 from ossos.fitsviewer.baseviewer import WxMPLFitsViewer
@@ -10,9 +12,10 @@ class SingletViewer(WxMPLFitsViewer):
     Displays a single FITS image at a time.
     """
 
-    def __init__(self, parent, canvas):
-        super(SingletViewer, self).__init__(parent, canvas)
-
+    def __init__(self, parent):
+        super(SingletViewer, self).__init__(parent)
+        self.ds9 = ds9.ds9('validate')
+        self.ds9.set('frame delete all')
         self.xy_changed = Signal()
 
     def mark_sources(self, cutout):

@@ -417,7 +417,7 @@ class ProcessTracksController(ProcessRealsController):
         if research or cutout.comparison_image is None:
             cutout.retrieve_comparison_image(self.downloader)
         self.view.display(cutout.comparison_image)
-        self.model.previous_obs()
+        self.model.get_current_workunit().previous_obs()
         self.model.acknowledge_image_displayed()
 
     def on_ssos_query(self):

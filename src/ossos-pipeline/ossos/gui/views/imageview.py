@@ -14,11 +14,11 @@ class ImageViewManager(object):
         # Note: the figure we pass in is just a temporary placeholder.
         # 'Displayable Items' provide their own figure which the canvas can
         # be made to use, but it also requires one on its creation.
-        self.canvas = FigureCanvas(mainframe.main_panel, wx.ID_ANY, plt.figure())
-        mainframe.add_to_main_sizer(self.canvas)
+        #self.canvas = FigureCanvas(mainframe.main_panel, wx.ID_ANY, plt.figure())
+        #mainframe.add_to_main_sizer(self.canvas)
 
-        self._singlet_viewer = SingletViewer(mainframe.main_panel, self.canvas)
-        self._triplet_viewer = TripletViewer(mainframe.main_panel, self.canvas)
+        self._singlet_viewer = SingletViewer(mainframe.main_panel)
+        self._triplet_viewer = TripletViewer(mainframe.main_panel)
 
         self._image_viewer = self._singlet_viewer
 
