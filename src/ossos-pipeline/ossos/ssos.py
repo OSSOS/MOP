@@ -93,7 +93,7 @@ class TracksParser(object):
 
         length_of_observation_arc = mpc_observations[-1].date.jd - mpc_observations[0].date.jd
 
-        if  length_of_observation_arc < 1:
+        if length_of_observation_arc < 1:
             # data from the same dark run.
             lunation_count = 0
         elif length_of_observation_arc > 1 and length_of_observation_arc < self._nights_per_darkrun :
@@ -118,7 +118,7 @@ class TracksParser(object):
             if lunation_count > 2 :
                 lunation_count = None
 
-    def query_ssos(self, mpc_observations, lunation_count):
+    def query_ssos(self, mpc_observations, lunation_count=None):
         # we observe ~ a week either side of new moon
         # but we don't know when in the dark run the discovery happened
         # so be generous with the search boundaries, add extra 2 weeks
@@ -150,6 +150,7 @@ class TracksParser(object):
 
         tracks_data.mpc_observations = {}
         for mpc_observation in mpc_observations:
+            # attach the input observations to the the SSOS query result.
             assert isinstance(mpc_observation,mpc.Observation)
             tracks_data.mpc_observations[mpc_observation.comment.frame] = mpc_observation
 
@@ -388,15 +389,6 @@ class SSOSData(object):
         Args:
           observations: list(Observations)
             The observations that are part of the data set.
-          sys_header: dict
-            Key-value pairs of system settings applicable to the data set.
-            Ex: RMIN, RMAX, ANGLE, AWIDTH
-          sources: list(list(SourceReading))
-            A list of point sources found in the data set.  These are
-            potential moving objects.  Each point source is itself a list
-            of source readings, one for each observation in
-            <code>observations</code>.  By convention the ordering of
-            source readings must match the ordering of the observations.
         """
         self.mpc_observations = {}
         self.observations = observations

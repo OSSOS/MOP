@@ -1,3 +1,6 @@
+from cStringIO import StringIO
+import copy
+from astropy.io import fits
 import ds9
 from ossos.gui import logger
 
@@ -40,7 +43,8 @@ class Displayable(object):
             self._do_render()
 
         if canvas is None:
-            plt.show()
+            pass
+            #plt.show()
         else:
             self.canvas = canvas
             canvas.figure = self.figure
@@ -124,7 +128,14 @@ class ImageSinglet(object):
             display.set('frame new')
             display.set('scale zscale')
             display.set('cmap invert yes')
-            display.set_pyfits(self.hdulist)
+            f = StringIO()
+            self.hdulist.writeto(f)
+            f.flush()
+            f.seek(0)
+            hdulist = fits.open(f)
+            for hdu in hdulist:
+                del(hdu.header['PV*'])
+            display.set_pyfits(hdulist)
             self.frame_number = display.get('frame frameno')
             display.set('frame center {}'.format(self.frame_number))
             display.set('zoom to fit')
@@ -133,18 +144,18 @@ class ImageSinglet(object):
         self._interaction_context = InteractionContext(self)
 
         extent = (1, self.width, 1, self.height)
-        self.axes_image = self.axes.imshow(self.z_image_data,
-                                           origin="lower",
-                                           extent=extent,
-                                           cmap=self._colormap.as_mpl_cmap())
+        #self.axes_image = self.axes.imshow(self.z_image_data,
+        #                                   origin="lower",
+        #                                   extent=extent,
+        #                                   cmap=self._colormap.as_mpl_cmap())
         self.number_of_images_displayed += 1
-        logger.debug("This imagesinglet has now displayed {} images".format(self.number_of_images_displayed))
-        if colorbar:
-            # Create axes for colorbar.  Make it tightly fit the image.
-            divider = make_axes_locatable(self.axes)
-            cax = divider.append_axes("bottom", size="5%", pad=0.05)
-            self.figure.colorbar(self.axes_image, orientation="horizontal",
-                                 cax=cax)
+        #logger.debug("This imagesinglet has now displayed {} images".format(self.number_of_images_displayed))
+        #if colorbar:
+        #    # Create axes for colorbar.  Make it tightly fit the image.
+        #    divider = make_axes_locatable(self.axes)
+        #    cax = divider.append_axes("bottom", size="5%", pad=0.05)
+        #    self.figure.colorbar(self.axes_image, orientation="horizontal",
+        #                         cax=cax)
         #plt.close()
 
     def place_marker(self, x, y, radius, colour="b"):
@@ -153,14 +164,15 @@ class ImageSinglet(object):
         be on the image at a time, so any existing marker will be replaced.
         """
         display = ds9.ds9(target='validate')
-        display.set('regions delete all')
-        display.set('regions', 'image; circle({},{},{})'.format(x,y,radius))
+        # display.set('regions delete all')
+        colour_string = {'r': 'red', 'b': 'blue'}.get(colour, 'green')
+        display.set('regions', 'image; circle({},{},{}) # color={}'.format(x,y,radius,colour_string))
 
-        if self.marker is not None:
-            self.marker.remove_from_axes(self.axes)
-
-        self.marker = Marker(x, y, radius, colour=colour)
-        self.marker.add_to_axes(self.axes)
+        #if self.marker is not None:
+        #    self.marker.remove_from_axes(self.axes)
+        #
+        #self.marker = Marker(x, y, radius, colour=colour)
+        #self.marker.add_to_axes(self.axes)
 
         self.display_changed.fire()
 
@@ -169,10 +181,10 @@ class ImageSinglet(object):
         Draws an ErrorEllipse with the given dimensions.  Can not be moved later.
         """
         display = ds9.ds9(target='validate')
-        display.set('regions delete all')
+        # display.set('regions delete all')
         display.set('regions', 'image; ellipse({},{},{},{},{}'.format(x,y,a,b,pa+90))
-        self.error_ellipse = ErrEllipse(x, y, a, b, pa, color=color)
-        self.error_ellipse.add_to_axes(self.axes)
+        #self.error_ellipse = ErrEllipse(x, y, a, b, pa, color=color)
+        #self.error_ellipse.add_to_axes(self.axes)
         self.display_changed.fire()
 
     def update_marker(self, x, y, radius=None):
@@ -314,6 +326,10 @@ class DisplayableImageTriplet(Displayable):
 
         self.cutout_grid = cutout_grid
 
+        d  = ds9.ds9('validate')
+        d.set('frame delete all')
+        d.set('tile yes')
+        d.set('tile grid layout 3 3')
         self.frames = []
         num_frames, num_times = cutout_grid.shape
         for frame_index in range(num_frames):

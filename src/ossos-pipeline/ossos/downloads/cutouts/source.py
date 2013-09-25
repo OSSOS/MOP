@@ -1,4 +1,5 @@
 import urllib
+from ossos.daophot import TaskError
 from ossos.astrom import SourceReading, Observation
 from ossos.downloads.cutouts.calculator import CoordinateConverter
 from ossos.gui import logger
@@ -118,8 +119,8 @@ class SourceCutout(object):
 
     def get_observed_magnitude(self):
         if self.apcor is None:
-            raise ValueError("Apcor data is required in order to calculate "
-                             "observed magnitude.")
+            raise TaskError("Photometry cannot be performed.  "
+                        "No magnitude calculated.")
 
         # NOTE: this import is only here so that we don't load up IRAF
         # unnecessarily (ex: for candidates processing).
@@ -193,6 +194,7 @@ class SourceCutout(object):
         for collectionID in query_result['collectionID']:
             if collectionID not in self._bad_comparison_images:
                 comparison = collectionID
+                self._bad_comparison_images.append(comparison)
                 break
 
         if comparison is None:

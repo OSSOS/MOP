@@ -6,9 +6,8 @@ class WxMPLFitsViewer(object):
     Display FITS images using matplotlib.
     """
 
-    def __init__(self, parent, canvas):
+    def __init__(self, parent):
         self.parent = parent
-        self.canvas = canvas
 
         self.current_cutout = None
         self.current_displayable = None
@@ -66,4 +65,4 @@ class WxMPLFitsViewer(object):
         raise NotImplementedError()
 
     def _do_render(self, displayable):
-        displayable.render(self.canvas)
+        displayable.render()
