@@ -80,8 +80,11 @@ def getKBOs(mpc_file, cond='a > 30'):
         kbo._epoch='2011/08/01'
         kbo._a=float(line[92:103].strip())
         kbo.compute()
+
         a = kbo._a
         q = kbo._a*(1-kbo._e)
+        H = kbo._H
+
         if eval(cond): 
             kbo.name=desig_unpack(line[0:7].strip()) 
             kbos.append(kbo)
