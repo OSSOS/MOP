@@ -194,8 +194,10 @@ class ProcessRealsController(AbstractController):
         result = display.get('imexam key coordinate')
         values = result.split()
         logger.debug("IMEXAM returned {}".format(values))
-        source_cutout.pixel_x = float(values[1])
-        source_cutout.pixel_y = float(values[2])
+        cen_coords = (float(values[1]),float(values[2]))
+        source_cutout.update_pixel_location(cen_coords)
+        #source_cutout.pixel_x = float(values[1])
+        #source_cutout.pixel_y = float(values[2])
         logger.debug("X, Y => {} , {}".format(source_cutout.pixel_x, source_cutout.pixel_y))
         pixel_x = source_cutout.pixel_x
         pixel_y = source_cutout.pixel_y
@@ -268,6 +270,8 @@ class ProcessRealsController(AbstractController):
         self.model.set_current_source_name(provisional_name)
 
         reading = self.model.get_current_reading()
+        source_cutout = self.model.get_current_cutout()
+
 
         mpc_observation = mpc.Observation(
             minor_planet_number=minor_planet_number,
@@ -282,8 +286,8 @@ class ProcessRealsController(AbstractController):
             band=band,
             observatory_code=observatory_code,
             comment=comment,
-            xpos=reading.x,
-            ypos=reading.y,
+            xpos=source_cutout.observed_x,
+            ypos=source_cutout.observed_y,
             frame=reading.obs.rawname)
 
         self.model.get_writer().write(mpc_observation)
