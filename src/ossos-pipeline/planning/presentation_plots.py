@@ -6,6 +6,7 @@ from matplotlib import rcParams
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 import numpy as np
 import math
+import sys
 import ephem
 from track_done import parse, get_names
 from ossos import storage
@@ -79,13 +80,12 @@ def clean_legend():
 
 """
 Plots to make:
-- sky map ra/dec global with field locations
 - tweaked version of 13A field_locations plot with appropriate styling for poster
 - tweaked version of 13B field_locations plot with appropriate styling for poster
 - 13AE discoveries:
     - sky location (shrunk version of field_locations, 13AE only)
     - efficiencies plot per JJ's calculations
-    - top-down Solar System with clumping vs. Neptune and RA pie overlay
+    - top-down Solar System with clumping vs. Neptune and RA pie overlay - done, yay!
     - orbital parameters per Brett's plots:
         - i vs a
         - q vs a
@@ -94,43 +94,42 @@ Plots to make:
 def top_down_SolarSystem(date="2013/04/09 08:50:00"):
     """
     Plot the OSSOS discoveries on a top-down Solar System showing the position of Neptune and model TNOs.
-    Coordinates should be polar to account for RA hours, but axes are to be labelled in AU...
+    Coordinates should be polar to account for RA hours, radial axis is in AU.
     :return: a saved plot
     """
-    fig = plt.figure(figsize=(6,6))
-    rect = [0.1, 0.1, 0.8, .8]  # setting the axis limits in [left, bottom, width, height]
-    #
-    # ax2 = fig.add_axes(rect)
-    # remove_border(axes=ax2)
-    # ax2.set_xlim(-60,60)
-    # ax2.set_ylim(-60,60)
-    # plt.xlabel('AU')
+    fig = plt.figure(figsize=(6, 6))
+    rect = [0.1, 0.1, 0.8, .8]  # the plot occupies not all the figspace
 
     ax1 = fig.add_axes(rect, polar=True, frameon=False) # theta (RA) is zero at E, increases anticlockwise
     ax1.set_aspect('equal')
-    # ax1.set_theta_zero_location('E')
 
     # plot exclusion zones due to Galactic plane: RAs indicate where bar starts, rather than its centre angle
     width = math.radians(3*15)
-    plt.bar(math.radians(16.5*15), 60, width=width, color=almost_black, alpha=0.2)
-    plt.bar(math.radians(4.5*15), 60, width=width, color=almost_black, alpha=0.2)
+    plt.bar(math.radians(16.5*15), 65, width=width, color=almost_black, alpha=0.2)
+    plt.bar(math.radians(4.5*15), 65, width=width, color=almost_black, alpha=0.2)
 
-    # plot OSSOS blocks - again RAs indicate where bar starts, so subtract half the block width from these centrepoints
+    # plot OSSOS blocks
     for block in ["14:15:28.89", "15:58:01.35", "00:54:00.00", "01:30:00.00"]:
-        # truncate these at 15 AU to show that we don't have sensitivity in close
-        plt.bar(ephem.hours(block)-math.radians(3.5), 60, width=math.radians(7), bottom=15, color='b', alpha=0.2)
+        # truncate these at 8 AU to show that we don't have sensitivity in close; detect Ijiraq at 9.80 AU
+        # again RAs indicate where bar starts, so subtract half the block width from the block centrepoints
+        plt.bar(ephem.hours(block)-math.radians(3.5), 65, width=math.radians(7), bottom=8, color='b', alpha=0.2)
 
-    ax1.set_rlim(0,60)
-    ax1.set_rgrids([20,40,60], labels=['','20 AU','40 AU','60 AU'], angle=150, alpha=0.45)
+    ax1.set_rlim(0,65)
+    ax1.set_rgrids([20,40,60], labels=['','20 AU','40 AU','60 AU'], angle=308, alpha=0.45)
     ax1.yaxis.set_major_locator(MultipleLocator(20))
     ax1.xaxis.set_major_locator(MultipleLocator(math.radians(15)))
     ax1.grid(axis='x', color='k', linestyle='--', alpha=0.2)
-    ax1.set_xticklabels(['0h','','2h','','4h','','6h',"","8h","","","","","","","","","","","","20h","","22h"],
-                        color='b', alpha=0.6)  # otherwise they get in the way of the AU labels
+    ax1.set_xticklabels(['0h','','','','4h','','',"","","","","","","","","","","","","","20h","","22h"],
+                        color='b', alpha=0.6)  # otherwise they get in the way
 
     plot_planets_plus_Pluto(ax1, date)
     plot_ossos_discoveries(ax1, blockID='O13AE', date=date)
-    plot_synthetic_model_kbos(ax1, date, kbotype='resonant')
+     # special detection in 13AE: Ijiraq at 2013-04-09 shows inner limit of sensitivity. Position from Horizons
+    ax1.scatter(ephem.hours('14 29 46.57'), 9.805,
+                marker='o', s=5, facecolor='b', edgecolor=almost_black, linewidth=0.15, alpha=0.8)
+    ax1.annotate('Ijiraq', (ephem.hours('14 29 46.57') + math.radians(7), 9.8+2), size=5)
+    ra, dist, hlat = synthetic_model_kbos(ax1, date, kbotype='resonant')
+    ax1.scatter(ra, dist, marker='o', s=2, facecolor=almost_black, edgecolor=almost_black, linewidth=0.1, alpha=0.1)
 
     plt.draw()
     outfile = 'ra_vs_au_20130409'
@@ -171,13 +170,17 @@ def plot_ossos_discoveries(ax, blockID='O13AE', date="2013/04/09 08:50:00"):
             fc = 'w'
             alph = 1.
             print kbo, mean_mag
+        # if orbit.distance > 50:   # identifying the one that's far out
+        #     print kbo, orbit.distance
+        #     sys.exit()
         ax.scatter(ra, orbit.distance, marker='o', s=4.5, facecolor=fc, edgecolor=almost_black, linewidth=0.15, alpha=alph)
 
     return
 
-def plot_synthetic_model_kbos(ax, date, maglimit=24.5, kbotype='resonant'):
+def synthetic_model_kbos(ax, date, maglimit=24.5, kbotype='resonant'):
     ra = []
     dist = []
+    hlat = []
     for line in open('L7SyntheticModel-v09.txt'):
         if line[0]=='#':
             continue
@@ -198,10 +201,29 @@ def plot_synthetic_model_kbos(ax, date, maglimit=24.5, kbotype='resonant'):
         if (kbo.mag < maglimit):# and (kbo.name == kbotype):
             ra.append(kbo.ra)
             dist.append(kbo.sun_distance)
+            hlat.append(kbo.hlat)
 
-    ax.scatter(ra, dist, marker='o', s=2, facecolor=almost_black, edgecolor=almost_black, linewidth=0.1, alpha=0.1)
+    return ra, dist, hlat
 
-    return
+def side_elevation_SolarSystem(date="2013/04/09 08:50:00"):
+    fig = plt.figure(figsize=(6, 2))
+    ax = fig.add_subplot(111)#, aspect="equal")
+
+    # viewpoint is from RA 18 hrs (have to ensure that)
+    # want to plot the L7 with their inclinations
+    # and the OSSOS blocks with the ecliptic latitudes = inclinations, again as wedges
+
+
+
+    ax.set_xlim(-60,60)
+    ax.set_ylim(-40,40)
+    plt.ylabel('inclination (degrees)')  # proxy for Ecliptic latitude (degrees)
+    plt.xlabel('AU')
+
+    plt.draw()
+    outfile = 'side_elevation_20130409'
+    plt.savefig(outfile+'.pdf', transparent=True)
+
 
 def sky_map_global():
 
@@ -211,7 +233,7 @@ def sky_map_global():
 
 def main():
     top_down_SolarSystem()
-
+    # side_elevation_SolarSystem()
 
 if __name__ == "__main__":
     main()

@@ -935,9 +935,8 @@ class MPCConverter(object):
 
     def batch_convert(self, path):
         for fn in os.listdir(path):
-            if fn.endswith('.mpc') or fn.endswith('.track'):
+            if fn.endswith('.mpc') or fn.endswith('.track') or fn.endswith('.checkup') or fn.endswith('.nailing'):
                 with open(path + fn, 'r') as f:
-                    # if not f.readline().startswith('!'):  # this wasn't going to work on .track files long-term
                     output = path + fn.rpartition('.')[0] + '.tnodb'
                     outfile = open(output, 'w')
                     self.convert(path + fn, outfile)
@@ -952,11 +951,9 @@ class MPCConverter(object):
             mindate = min(odates).iso.replace('-', '')
             maxdate = max(odates).iso.replace('-', '')
 
-        header = "OBS CFHT queue\n" + "MEA M. T. Bannister\n" + "TEL CFHT 3.5m + CCD\n" + "COD 568\n" + "NET USNO-2.0\n"
+        header = "COD 568\n" + "OBS J. J. Kavelaars and M. T. Bannister\n" + "TEL CFHT 3.6m + CCD\n" +  "NET 2MASS\n"
         header += "{:s} {:s}\n".format('STD', mindate)
         header += "{:s} {:s}\n".format('END', maxdate)
-        header += "COM OSSOS survey\n"
-
         print header
 
         return header
