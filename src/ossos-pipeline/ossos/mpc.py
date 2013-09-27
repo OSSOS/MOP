@@ -359,7 +359,7 @@ class Observation(object):
                  mag=-1,
                  band='r',
                  observatory_code=568,
-                 comment="",
+                 comment=None,
                  mag_err=-1,
                  xpos=None,
                  ypos=None,
@@ -367,6 +367,29 @@ class Observation(object):
                  plate_uncertainty=None,
                  null_observation=False):
 
+        """
+
+        :param minor_planet_number:
+        :param provisional_name:
+        :param discovery:
+        :param note1:
+        :param note2:
+        :param date:
+        :param ra:
+        :param dec:
+        :param mag:
+        :param band:
+        :param observatory_code:
+        :param comment: A comment about this observation, not sent
+        :param mag_err:
+        :param xpos:
+        :param ypos:
+        :param frame:
+        :param plate_uncertainty:
+        :param null_observation:
+
+        :type comment MPCComment
+        """
         self.minor_planet_number = minor_planet_number
         if null_observation and not self.minor_planet_number.startswith("!"):
             self.minor_planet_number = "!" + " " * 4
