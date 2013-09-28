@@ -1,10 +1,10 @@
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 __author__ = 'jjk'
 
 from datetime import datetime
 import itertools
 import os
-import re
 import struct
 import time
 
@@ -413,6 +413,8 @@ class Observation(object):
                                   magnitude=mag,
                                   plate_uncertainty=plate_uncertainty,
                                   comment=comment)
+
+
 
     @classmethod
     def from_string(cls, mpc_line):
