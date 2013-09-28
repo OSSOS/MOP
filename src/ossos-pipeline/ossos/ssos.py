@@ -49,9 +49,10 @@ def summarize(orbit):
 
 class TracksParser(object):
 
-    def __init__(self):
+    def __init__(self, inspect=True):
         self._nights_per_darkrun = 18
         self._nights_separating_darkruns = 30
+        self.inspect = inspect
 
     def parse(self, filename):
         filehandle = storage.open_vos_or_local(filename, "rb")
@@ -113,7 +114,10 @@ class TracksParser(object):
             if ( tracks_data.get_arc_length() > (length_of_observation_arc+2.0/86400.0) or
                 tracks_data.get_reading_count() > len(mpc_observations) ) :
                 return tracks_data
-            assert lunation_count is not None, "No new observations available."
+            if not self.inspect:
+                assert lunation_count is not None, "No new observations available."
+            if lunation_count is None:
+                return tracks_data
             lunation_count += 1
             if lunation_count > 2 :
                 lunation_count = None

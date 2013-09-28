@@ -10,7 +10,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from stsci import numdisplay
 
 from ossos.fitsviewer.colormap import GrayscaleColorMap
 from ossos.fitsviewer.exceptions import MPLViewerError
@@ -85,7 +84,6 @@ class ImageSinglet(object):
 
     def __init__(self, hdulist, figure, rect):
         self.hdulist = hdulist
-        self.z_image_data = hdulist[0].data
         self.figure = figure
         self.axes = self._create_axes(rect)
         self.figure.add_axes(self.axes)
@@ -101,14 +99,6 @@ class ImageSinglet(object):
         self._interaction_context = None
         self.number_of_images_displayed = 0
         self.frame_number = None
-
-    @property
-    def z_image_data(self):
-        return self._z_image_data
-
-    @z_image_data.setter
-    def z_image_data(self, data):
-        self._z_image_data = zscale(data)
 
     @property
     def width(self):
@@ -143,20 +133,7 @@ class ImageSinglet(object):
 
         self._interaction_context = InteractionContext(self)
 
-        extent = (1, self.width, 1, self.height)
-        #self.axes_image = self.axes.imshow(self.z_image_data,
-        #                                   origin="lower",
-        #                                   extent=extent,
-        #                                   cmap=self._colormap.as_mpl_cmap())
         self.number_of_images_displayed += 1
-        #logger.debug("This imagesinglet has now displayed {} images".format(self.number_of_images_displayed))
-        #if colorbar:
-        #    # Create axes for colorbar.  Make it tightly fit the image.
-        #    divider = make_axes_locatable(self.axes)
-        #    cax = divider.append_axes("bottom", size="5%", pad=0.05)
-        #    self.figure.colorbar(self.axes_image, orientation="horizontal",
-        #                         cax=cax)
-        #plt.close()
 
     def place_marker(self, x, y, radius, colour="b"):
         """
@@ -542,23 +519,6 @@ class Marker(object):
             self._get_vertical_x_extent(),
             self._get_bottom_y_extent())
 
-
-def zscale(image):
-    """
-    Performs the zscale operation on an image.
-
-    Args:
-      img: numpy.ndarray
-        The image to be scaled.
-
-    Returns:
-      scaled_img: numpy.ndarray
-        The input image after scaling.
-    """
-    # Using the default values, but listing explicitly
-#    image = np.clip(image, 1000., 3000.)
-    z1, z2 = numdisplay.zscale.zscale(image, nsamples=1000, contrast=0.25)
-    return np.clip(image, z1, z2)  # clip against extreme values
 
 def _image_width(hdulist):
     return _image_shape(hdulist)[1]

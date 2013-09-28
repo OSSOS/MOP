@@ -690,7 +690,6 @@ class WorkUnitBuilder(object):
         except AssertionError as e:
             logger.critical(str(e))
             events.send(events.NO_AVAILABLE_WORK)
-            sys.exit(0)
         logger.debug("Parsed %s (%d sources)" %
                      (input_fullpath, parsed_data.get_source_count()))
 
