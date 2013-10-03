@@ -92,13 +92,12 @@ if __name__ == '__main__':
             continue
         mpc_in = mpc.Observation.from_string(line)
         mpc_obs = remeasure(mpc_in)
-        optr.write(mpc_obs.to_string())
+        optr.write(mpc_obs.to_string()+"\n")
         if not mpc_obs.comment.PNote[0] == "Z" and str(mpc_obs.note1) not in ["I", "H"]:
             out_mags.append(mpc_obs.mag)
             in_mags.append(mpc_in.mag)
             in_merrs.append(mpc_in.mag_err)
             out_merrs.append(mpc_obs.mag_err)
-    optr.flush()
     optr.close()
     fptr.close()
     sys.stdout.write(args.mpc_file)
