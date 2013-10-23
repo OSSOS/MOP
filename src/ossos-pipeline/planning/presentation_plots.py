@@ -111,6 +111,7 @@ def top_down_SolarSystem(discoveries, date="2013/04/09 08:50:00"):
     plt.bar(math.radians(4.5*15), 65, width=width, color=almost_black, linewidth=0, alpha=0.2)
 
     # plot OSSOS blocks
+    # FIXME: should probably convert hours to ecliptic coords with a bit more finesse than just overplotting it
     for block in ["14:15:28.89", "15:58:01.35", "00:54:00.00", "01:30:00.00"]:
         # truncate these at 8 AU to show that we don't have sensitivity in close; detect Ijiraq at 9.80 AU
         # again RAs indicate where bar starts, so subtract half the block width from the block centrepoints
@@ -210,7 +211,7 @@ def side_elevation_SolarSystem(date="2013/04/09 08:50:00"):
     # want to plot the L7 with their inclinations
     # and the OSSOS blocks with the ecliptic latitudes = inclinations, again as wedges
 
-
+    # need to think about converting RA properly to ecliptic lat/lon
 
     ax.set_xlim(-60,60)
     ax.set_ylim(-40,40)
@@ -223,6 +224,12 @@ def side_elevation_SolarSystem(date="2013/04/09 08:50:00"):
 
 
 def sky_map_global():
+    subplot(111,projection='aitoff')
+    grid(True)
+    # coords in radians
+    box = Rectangle((radians(30),radians(30)),radians(15),radians(30))
+    gca().add_patch(box)
+    draw()
 
     return
 
@@ -317,3 +324,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
