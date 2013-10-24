@@ -5,13 +5,15 @@
         "RESET_CMAP": "s",
         "RESET_SOURCE_LOCATION": "c",
         "AUTOPLAY": "d",
-        "TOGGLE_RETICULE": "t"
+        "TOGGLE_RETICULE": "t",
+        "LOAD_COMPARISON": "b",
+        "LOAD_DIFF_COMPARISON": "n"
     },
 
     "CUTOUTS": {
         "SINGLETS": {
-            "SLICE_ROWS": 250,
-            "SLICE_COLS": 250
+            "SLICE_ROWS": 300,
+            "SLICE_COLS": 300
         },
         "TRIPLETS": {
             "SLICE_ROWS": 50,

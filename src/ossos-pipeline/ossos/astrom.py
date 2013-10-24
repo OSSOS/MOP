@@ -1,11 +1,15 @@
 """
 Reads and writes .astrom files.
 """
+import os
+from ossos.downloads.cutouts.source import SourceCutout
+from ossos.gui import logger
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import re
 
-from ossos import storage
+from ossos import storage, wcs
 
 DATASET_ROOT = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages"
 
@@ -46,7 +50,6 @@ RMIN = "RMIN"
 RMAX = "RMAX"
 ANGLE = "ANGLE"
 AWIDTH = "AWIDTH"
-
 
 def parse(filename):
     return AstromParser().parse(filename)
@@ -420,12 +423,19 @@ class Source(object):
         self.provisional_name = provisional_name
 
 
+
+
+
+
 class SourceReading(object):
     """
     Data for a detected point source (which is a potential moving objects).
     """
 
-    def __init__(self, x, y, x0, y0, ra, dec, xref, yref, obs, ssos=False, from_input_file=False):
+    def __init__(self, x, y, x0, y0, ra, dec, xref, yref, obs, ssos=False,
+                 from_input_file=False,
+                 null_observation=False,
+                 discovery=False):
         """
         Args:
           x, y: the coordinates of the source in this reading.
@@ -452,6 +462,8 @@ class SourceReading(object):
         self.obs = obs
         self.ssos = ssos
         self.from_input_file = from_input_file
+        self.null_observation = null_observation
+        self.discovery = discovery
 
     @property
     def from_input_file(self):
@@ -542,12 +554,95 @@ class SourceReading(object):
           inverted: bool
             True if the stored image is inverted.
         """
+        logger.debug("Checking invert on {} {}".format(self.obs.expnum, self.obs.ccdnum))
         if self.ssos or self.obs.is_fake():
             # We get the image from the CCD directory and it has already
             # been corrected for inversion.
+            logger.debug("Logic override")
             return False
+        logger.debug("No override")
 
         return True if self.get_ccd_num() <= MAX_INVERTED_CCD else False
+
+    def should_invert(self):
+        """
+        Returns:
+          inverted: bool
+            True if the stored image should be inverted for display
+        """
+        if self.ssos or self.obs.is_fake():
+            # We get the image from the MEF so flip on display
+            return True if self.get_ccd_num() <= MAX_INVERTED_CCD else False
+
+        return False
+
+
+class ComparisonSource(SourceReading):
+    """
+    A comparison image for a previous image.
+    """
+
+    def __init__(self, reference_source, refs=None):
+
+        if not refs: refs = []
+        assert isinstance(reference_source, SourceCutout)
+        ref_wcs = wcs.WCS(reference_source.fits_header)
+        (ref_ra, ref_dec) = ref_wcs.xy2sky(reference_source.fits_header['NAXIS1']/2.0,
+                                           reference_source.fits_header['NAXIS2']/2.0)
+
+        dra = reference_source.fits_header['NAXIS1']*0.1875/3600.0
+        ddec= reference_source.fits_header['NAXIS2']*0.1875/3600.0
+
+        logger.debug("BOX({} {} {} {})".format(ref_ra, ref_dec,dra, ddec))
+        query_result = storage.cone_search(ref_ra, ref_dec, dra, ddec)
+        logger.debug("Ignoring the following exposure numbers: "+str(refs))
+        found = False
+        comparison = ""
+        x = y = -1
+        ccd = -1
+        astheader = None
+        pvwcs = None
+        for comparison in query_result['collectionID']:
+            logger.debug("Trying comparison image {}".format(comparison))
+            if int(comparison) in refs:
+                continue
+            for ccd in range(36):
+                astheader = storage.get_astheader(comparison, ccd)
+                pvwcs = wcs.WCS(astheader)
+                (x,y) = pvwcs.sky2xy(ref_ra, ref_dec)
+                logger.debug("RA/DEC {}/{} of source at X/Y {}/{} compared to {} {}".format(
+                    ref_ra, ref_dec, x,y,
+                    2112, 4644))
+                if 0 <= x <= 2112 and 0 <= y <= 4644:
+                    found = True
+                    break
+            if found:
+                break
+
+        if not found:
+            logger.critical("No comparison image found for {} {} -> {},{}".format(reference_source.pixel_x,
+                                                                                  reference_source.pixel_y,
+                                                                                  ref_ra,ref_dec))
+            return
+        x0 = x
+        y0 = y
+        xref = x
+        yref = y
+        observation = Observation.from_source_reference(comparison, ccd, x, y)
+
+        super(ComparisonSource,self).__init__(x=x, y=y,
+                                              x0=x0, y0=y0,
+                                              xref=xref,
+                                              yref=yref,
+                                              ra=ref_ra,
+                                              dec=ref_dec,
+                                              obs=observation,
+                                              ssos=True)
+        self.astrom_header = astheader
+        self.reference_source = reference_source
+        del(pvwcs)
+
+
 
 
 class Observation(object):
@@ -564,6 +659,58 @@ class Observation(object):
     def from_parse_data(rawname, fk, expnum, ftype, ccdnum):
         assert rawname == fk + expnum + ftype + ccdnum
         return Observation(expnum, ftype, ccdnum, fk)
+
+    @staticmethod
+    def from_source_reference(expnum, ccd, X, Y):
+        """
+        Given the location of a source in the image, create a source reading.
+        """
+
+        image_uri = storage.dbimages_uri(expnum=expnum,
+                                         ccd=None,
+                                         version='p',
+                                         ext='.fits',
+                                         subdir=None)
+        logger.debug('Trying to access {}'.format(image_uri))
+
+        if not storage.exists(image_uri, force=False):
+            logger.warning('Image not in dbimages? Trying subdir.')
+            image_uri = storage.dbimages_uri(expnum=expnum,
+                                             ccd=ccd,
+                                             version='p')
+
+        if not storage.exists(image_uri, force=False):
+            logger.warning("Image doesn't exist in ccd subdir. %s" % image_uri)
+            return None
+
+        if X == -9999 or Y == -9999 :
+            logger.warning("Skipping {} as x/y not resolved.".format(image_uri))
+            return None
+
+
+        mopheader_uri = storage.dbimages_uri(expnum=expnum,
+                                             ccd=ccd,
+                                             version='p',
+                                             ext='.mopheader')
+        if not storage.exists(mopheader_uri, force=False):
+            # ELEVATE! we need to know to go off and reprocess/include this image.
+            logger.critical('Image exists but processing incomplete. Mopheader missing. {}'.format(image_uri))
+            return None
+
+
+        mopheader = storage.get_mopheader(expnum, ccd)
+
+        # Build astrom.Observation
+        observation = Observation(expnum=str(expnum),
+                                         ftype='p',
+                                         ccdnum=str(ccd),
+                                         fk="")
+
+        observation.rawname = os.path.splitext(os.path.basename(image_uri))[0]+str(ccd).zfill(2)
+
+        observation.header = mopheader
+
+        return observation
 
 
     def __init__(self, expnum, ftype, ccdnum, fk=""):

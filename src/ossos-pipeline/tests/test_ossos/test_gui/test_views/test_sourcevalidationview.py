@@ -33,7 +33,7 @@ class AcceptSourceDialogTest(WxWidgetTestCase):
 
     def create_undertest(self, note1_choices=None, note2_choices=None):
         return AcceptSourceDialog(self.rootframe, self.controller,
-                                  TEST_PROVISIONAL_NAME, False,
+                                  TEST_PROVISIONAL_NAME,
                                   TEST_DATE, TEST_RA, TEST_DEC, TEST_MAG,
                                   TEST_MAG_ERR, TEST_BAND,
                                   note1_choices=note1_choices,
@@ -43,7 +43,6 @@ class AcceptSourceDialogTest(WxWidgetTestCase):
         undertest = self.create_undertest()
 
         component_labels = [AcceptSourceDialog.MINOR_PLANET_NUMBER, AcceptSourceDialog.PROVISIONAL_NAME,
-                            AcceptSourceDialog.DISCOVERY_ASTERISK, AcceptSourceDialog.NOTE1,
                             AcceptSourceDialog.NOTE2, AcceptSourceDialog.DATE_OF_OBS,
                             AcceptSourceDialog.RA, AcceptSourceDialog.DEC, AcceptSourceDialog.OBS_MAG,
                             AcceptSourceDialog.BAND, AcceptSourceDialog.OBSERVATORY_CODE,
@@ -112,13 +111,13 @@ class AcceptSourceDialogTest(WxWidgetTestCase):
         # Check data
         assert_that(self.controller.on_cancel_accept.called, equal_to(False))
         self.controller.on_do_accept.assert_called_once_with(
-            TEST_MINOR_PLANET_NUMBER, TEST_PROVISIONAL_NAME, TEST_DISCOVERY_AST,
+            TEST_MINOR_PLANET_NUMBER, TEST_PROVISIONAL_NAME,
             TEST_NOTE1, TEST_NOTE2, TEST_DATE, str(TEST_RA), str(TEST_DEC), TEST_MAG,
             TEST_MAG_ERR, TEST_BAND, TEST_OBS_CODE, TEST_COMMENT)
 
     def test_submit_data_phot_failure(self):
         undertest = AcceptSourceDialog(self.rootframe, self.controller,
-                                       TEST_PROVISIONAL_NAME, False,
+                                       TEST_PROVISIONAL_NAME,
                                        TEST_DATE, TEST_RA, TEST_DEC, TEST_MAG,
                                        TEST_MAG_ERR, TEST_BAND,
                                        note1_choices=None,
@@ -139,7 +138,7 @@ class AcceptSourceDialogTest(WxWidgetTestCase):
         band = ""
         assert_that(self.controller.on_cancel_accept.called, equal_to(False))
         self.controller.on_do_accept.assert_called_once_with(
-            "", TEST_PROVISIONAL_NAME, TEST_DISCOVERY_AST,
+            "", TEST_PROVISIONAL_NAME,
             "", "", TEST_DATE, str(TEST_RA), str(TEST_DEC), obs_mag,
             obs_mag_err, band, TEST_OBS_CODE, TEST_COMMENT)
 

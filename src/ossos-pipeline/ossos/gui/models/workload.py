@@ -1,3 +1,10 @@
+from glob import glob
+import re
+import sys
+from ossos import ssos, astrom
+from ossos.downloads.async import DownloadRequest
+from ossos.downloads.cutouts import ImageCutoutDownloader
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import os
@@ -5,13 +12,14 @@ import random
 import threading
 
 from ossos.astrom import StreamingAstromWriter
-from ossos.gui import tasks
+from ossos.gui import tasks, events, config
 from ossos.gui import logger
 from ossos.gui.models.collections import StatefulCollection
 from ossos.gui.models.exceptions import (NoAvailableWorkException,
                                          SourceNotNamedException)
 from ossos.gui.progress import FileLockedException
 from ossos.orbfit import Orbfit
+
 
 
 class WorkUnit(object):
@@ -244,12 +252,9 @@ class RealsWorkUnit(WorkUnit):
         if not source.has_provisional_name():
             raise SourceNotNamedException(source)
 
-        name = source.get_provisional_name() + ".mpc"
-
-        if self.dry_run:
-            name = os.path.basename(self.filename) + "." + name
-
-        return name
+        return ".".join((os.path.basename(self.filename),
+                         source.get_provisional_name(),
+                         "mpc"))
 
     def _create_writer(self, filename):
         # NOTE: this import is only here so that we don't load up secondary
@@ -356,6 +361,7 @@ class TracksWorkUnit(WorkUnit):
     A unit of work when performing the process track task.
     """
 
+
     def __init__(self,
                  builder,
                  filename,
@@ -373,9 +379,10 @@ class TracksWorkUnit(WorkUnit):
         self.builder = builder
         self._writer = None
         self._ssos_queried = False
+        self._comparitors = {}
 
     def print_orbfit_info(self):
-        orbfit = Orbfit(self.get_writer().get_written_mpc_observations())
+        orbfit = Orbfit(self.get_writer().get_chronological_buffered_observations())
 
         print orbfit
         print orbfit.residuals
@@ -386,11 +393,49 @@ class TracksWorkUnit(WorkUnit):
         unit to generate another workunit.
         """
         self._ssos_queried = True
-        return self.builder.build_workunit(
-            self.output_context.get_full_path(self._writer.get_filename()))
+        self.get_writer().flush()
+        mpc_filename = self.output_context.get_full_path(self.get_writer().get_filename())
+        self.get_writer().close()
+        return self.builder.build_workunit(mpc_filename)
 
     def is_finished(self):
-        return self._ssos_queried or super(TracksWorkUnit, self).is_finished()
+        return self._ssos_queried or self.get_source_count() == 0 or super(TracksWorkUnit, self).is_finished()
+
+    def choose_comparison_image(self, cutout, research=False):
+        """
+        Query TAP and get a comparison image for the currently displayed image
+        :param cutout: the cutout to find a comparison for
+        :type cutout: source.Source
+        """
+
+        # selecting comparitor when on a comparitor should load a new one.
+        if not hasattr(cutout,'bad_ref'):
+            cutout.bad_ref = []
+            cutout.bad_ref.append(cutout.astrom_header['EXPNUM'])
+
+        if cutout not in self._comparitors:
+            self._comparitors[cutout] = astrom.ComparisonSource(cutout, refs=cutout.bad_ref)
+        elif research:
+            cutout.bad_ref.append(self._comparitors[cutout].astrom_header['EXPNUM'])
+            self._comparitors[cutout] = astrom.ComparisonSource(cutout,
+                                                                refs=cutout.bad_ref)
+        def read(slice_config):
+            return config.read("CUTOUTS.%s" % slice_config)
+
+        singlet_downloader = ImageCutoutDownloader(
+            slice_rows=read("SINGLETS.SLICE_ROWS"),
+            slice_cols=read("SINGLETS.SLICE_COLS"))
+
+
+        if not hasattr(self._comparitors[cutout],'cutout'):
+            focus = self._comparitors[cutout].source_point
+            self._comparitors[cutout].cutout = singlet_downloader.download_cutout(self._comparitors[cutout],
+                                                                                  focus=focus,
+                                                                                  needs_apcor=False)
+
+        self.previous_obs()
+
+        return self._comparitors[cutout]
 
     def next_item(self):
         assert not self.is_finished()
@@ -426,8 +471,24 @@ class TracksWorkUnit(WorkUnit):
         return True
 
     def get_writer(self):
+        """
+        Get a writer.
+
+        This method also makes the output filename be the same as the .track file but with .mpc.
+        (Currently only works on local filesystem)
+        """
         if self._writer is None:
-            self._writer = self._create_writer(self.filename.replace(".track", ".mpc"))
+            print "called with filename {}".format(self.filename)
+            base_name = re.search("(?P<base_name>.*)\.(\d+\.mpc|track)",self.filename).group('base_name')
+            print base_name
+            mpc_filename_pattern = self.output_context.get_full_path(
+                "{}.?.mpc".format(base_name))
+            print "globing with pattern {}".format(mpc_filename_pattern)
+            mpc_file_count = len(glob(mpc_filename_pattern))
+            mpc_filename = self.output_context.get_full_path(
+                "{}.{}.mpc".format(base_name, mpc_file_count))
+            print "opening file {}".format(mpc_filename)
+            self._writer = self._create_writer(mpc_filename)
 
         return self._writer
 
@@ -444,8 +505,14 @@ class TracksWorkUnit(WorkUnit):
         # startup time.
         from ossos.mpc import MPCWriter
 
-        return MPCWriter(self.output_context.open(filename),
-                         auto_flush=True)
+        writer = MPCWriter(self.output_context.open(filename),
+                           auto_flush=False, auto_discovery=False)
+
+        # Load the input observations into the writer
+        for rawname in self.data.mpc_observations:
+            writer.write(self.data.mpc_observations[rawname])
+        
+        return writer
 
     def _get_item_set(self):
         all_readings = set()
@@ -602,6 +669,9 @@ class PreFetchingWorkUnitProvider(object):
             num_to_fetch = 0
 
         while num_to_fetch > 0:
+            if self._all_fetched:
+                return
+
             self.prefetch_workunit()
             num_to_fetch -= 1
 
@@ -616,10 +686,13 @@ class PreFetchingWorkUnitProvider(object):
                 ignore_list=self.fetched_files)
             filename = workunit.get_filename()
 
-            self.fetched_files.append(filename)
-            self.workunits.append(workunit)
+            # 2 or more threads created back to back could end up
+            # retrieving the same workunit.  Only keep one of them.
+            if filename not in self.fetched_files:
+                self.fetched_files.append(filename)
+                self.workunits.append(workunit)
 
-            logger.info("%s was prefetched." % filename)
+                logger.info("%s was prefetched." % filename)
 
         except NoAvailableWorkException:
             self._all_fetched = True
@@ -648,8 +721,12 @@ class WorkUnitBuilder(object):
         self.dry_run = dry_run
 
     def build_workunit(self, input_fullpath):
-        parsed_data = self.parser.parse(input_fullpath)
-
+        try:
+            parsed_data = self.parser.parse(input_fullpath)
+        except AssertionError as e:
+            logger.critical(str(e))
+            events.send(events.NO_AVAILABLE_WORK)
+            sys.exit(0)
         logger.debug("Parsed %s (%d sources)" %
                      (input_fullpath, parsed_data.get_source_count()))
 
@@ -683,12 +760,46 @@ class TracksWorkUnitBuilder(WorkUnitBuilder):
             dry_run=dry_run
         )
 
+    def get_readings(self, data):
+        # Note: Track workunits only have 1 source
+        return data.get_sources()[0].get_readings()
+
+    def set_readings(self, data, readings):
+        # Note: Track workunits only have 1 source
+        data.get_sources()[0].readings = readings
+
+    def get_discovery_index(self, data):
+        # Note: there should only be one reading marked "discovery" amongst
+        # the data.
+        for i, reading in enumerate(self.get_readings(data)):
+            if reading.discovery:
+                return i
+
+        raise ValueError("No discovery index found in track workunit.")
+
+    def move_discovery_to_front(self, data):
+        """
+        Moves the discovery triplet to the front of the reading list.
+        Leaves everything else in the same order.
+        """
+        readings = self.get_readings(data)
+        discovery_index = self.get_discovery_index(data)
+
+        reordered_readings = (readings[discovery_index:discovery_index + 3] +
+                              readings[:discovery_index] +
+                              readings[discovery_index + 3:])
+
+        self.set_readings(data, reordered_readings)
+
     def _do_build_workunit(self,
                            filename,
                            data,
                            progress_manager,
                            output_context,
                            dry_run):
+
+        self.move_discovery_to_front(data)
+
         return TracksWorkUnit(self,
             filename, data, progress_manager, output_context, dry_run=dry_run)
 

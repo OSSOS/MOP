@@ -10,6 +10,7 @@ class FocusCalculator(object):
         system of reference_reading.
         """
         offset_x, offset_y = reference_reading.get_coordinate_offset(source_reading)
+
         return source_reading.x + offset_x, source_reading.y + offset_y
 
 

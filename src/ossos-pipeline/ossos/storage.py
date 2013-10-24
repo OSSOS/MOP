@@ -1,13 +1,18 @@
 """OSSOS VOSpace storage convenience package"""
+import cStringIO
 
 import errno
-import logging
 import os
 
-from astropy.io import fits
+from astropy.io import fits, votable
+from astropy.io import ascii
 import vos
 
-from ossos import coding
+from ossos import coding, mpc
+import requests
+from ossos.downloads.cutouts import downloader
+from ossos.gui import logger
+MAXCOUNT=30000
 
 CERTFILE=os.path.join(os.getenv('HOME'),
                       '.ssl',
@@ -17,6 +22,7 @@ DBIMAGES='vos:OSSOS/dbimages'
 MEASURE3='vos:OSSOS/measure3'
 
 DATA_WEB_SERVICE='https://www.canfar.phys.uvic.ca/data/pub/'
+TAP_WEB_SERVICE='http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/tap/sync?'
 
 OSSOS_TAG_URI_BASE='ivo://canfar.uvic.ca/ossos'
 OBJECT_COUNT = "object_count"
@@ -24,6 +30,61 @@ OBJECT_COUNT = "object_count"
 vospace = vos.Client(cadc_short_cut=True, certFile=CERTFILE)
 
 SUCCESS = 'success'
+
+### some cache holders.
+mopheaders = {}
+astheaders = {}
+_DOWNLOADER = downloader.Downloader()
+
+
+def cone_search(ra, dec, dra, ddec, runids=('13AP05','13AP06','13BP05')):
+    """Do a QUERY on the TAP service for all observations that are part of runid,
+    where taken after mjd and have calibration 'observable'.
+
+    :param runids:
+    :param ra:
+    :param dec:
+    mjd : float
+    observable: str ( CAL or RAW)
+    runid: tuple eg. ('13AP05', '13AP06')
+    ra: float right ascension
+    dec: float declination
+
+    """
+
+    data=  {
+        "QUERY": ( " SELECT Observation.collectionID as dataset_name "
+                   " FROM caom.Observation AS Observation "
+                   " JOIN caom.Plane AS Plane "
+                   " ON Observation.obsID = Plane.obsID "
+                   " WHERE  ( Observation.collection = 'CFHT' ) "
+                   " AND Plane.observable_ctype='CAL' "
+                   " AND Observation.proposal_id IN %s " ) % ( str(runids)),
+          "REQUEST": "doQuery",
+          "LANG": "ADQL",
+          "FORMAT": "tsv" }
+
+    data["QUERY"] += ( " AND  "
+                       " CONTAINS( BOX('ICRS', {}, {}, {}, {}), "
+                       " Plane.position_bounds ) = 1 " ).format(ra,dec, dra, ddec)
+
+    result = requests.get(TAP_WEB_SERVICE, params=data)
+    assert isinstance(result,requests.Response)
+    logger.debug("Doing TAP Query using url: %s" % ( str(result.url)))
+    #data = StringIO(result.text)
+
+    table_reader = ascii.get_reader(Reader=ascii.Basic)
+    table_reader.header.splitter.delimiter = '\t'
+    table_reader.data.splitter.delimiter = '\t'
+    table = table_reader.read(result.text)
+
+    #vot = votable.parse_single_table(data)
+    #vot.array.sort(order='dataset_name')
+    #t = vot.array
+    logger.debug(type(table))
+    logger.debug(str(table))
+    return table
+
 
 
 def populate(dataset_name,
@@ -55,7 +116,7 @@ def populate(dataset_name,
 
     header_dest = get_uri(dataset_name,version='o',ext='head')
     header_source = "%s/%so.fits.fz?cutout=[0]" % (
-        data_web_service_url, dataset_name) 
+        data_web_service_url, dataset_name)
     try:
         c.link(header_source, header_dest)
     except IOError as e:
@@ -63,6 +124,18 @@ def populate(dataset_name,
             pass
         else:
             raise e
+
+    header_dest = get_uri(dataset_name,version='p',ext='head')
+    header_source = "%s/%s/%sp.head" % (
+       'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub', 'CFHTSG', dataset_name)
+    try:
+        c.link(header_source, header_dest)
+    except IOError as e:
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            raise e
+
 
     return True
         
@@ -105,7 +178,7 @@ def get_uri(expnum, ccd=None,
                            '%s%s%s%s' % (prefix, str(expnum),
                                           version,
                                           ext))
-    logging.debug("got uri: "+uri)
+    logger.debug("got uri: "+uri)
     return uri
 
 dbimages_uri = get_uri
@@ -141,7 +214,7 @@ def get_tag(expnum, key):
 
     if tag_uri(key) not in get_tags(expnum):
         get_tags(expnum, force=True)
-    logging.debug("%s # %s -> %s"  % (
+    logger.debug("%s # %s -> %s"  % (
         expnum, tag_uri(key), get_tags(expnum).get(tag_uri(key), None)))
     return get_tags(expnum).get(tag_uri(key), None)
 
@@ -157,7 +230,7 @@ def get_status(expnum, ccd, program, return_message=False):
     '''Report back status of the given program'''
     key = get_process_tag(program, ccd)
     status = get_tag(expnum, key)
-    logging.debug('%s: %s' %(key, status))
+    logger.debug('%s: %s' %(key, status))
     if return_message:
         return status
     else:
@@ -186,14 +259,14 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     filename = os.path.basename(uri)
     
     if os.access(filename, os.F_OK):
-        logging.debug("File already on disk: %s" % ( filename))
+        logger.debug("File already on disk: %s" % ( filename))
         return filename
 
     try:
-        logging.debug("trying to get file %s" % ( uri))
+        logger.debug("trying to get file %s" % ( uri))
         copy(uri, filename)
     except Exception as e:
-        logging.debug(str(e))
+        logger.debug(str(e))
         if getattr(e,'errno',0) != errno.ENOENT or ccd is None:
             raise e
         ## try doing a cutout from MEF in VOSpace
@@ -201,14 +274,14 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
                       version=version,
                       ext=ext,
                       subdir=subdir)
-        logging.debug("Using uri: %s" % ( uri))
+        logger.debug("Using uri: %s" % ( uri))
         cutout="[%d]" % ( int(ccd)+1)
         if ccd < 18 :
             cutout += "[-*,-*]"
 
-        logging.debug(uri)
+        logger.debug(uri)
         url = vospace.getNodeURL(uri,view='cutout', limit=None, cutout=cutout)
-        logging.debug(url)
+        logger.debug(url)
         fin = vospace.open(uri, URL=url)
         fout = open(filename, 'w')
         buff = fin.read(2**16)
@@ -254,7 +327,7 @@ def mkdir(root):
         dir_list.append(root)
         root = os.path.dirname(root)
     while len(dir_list)>0:
-        logging.debug("Creating directory: %s" % (dir_list[-1]))
+        logger.debug("Creating directory: %s" % (dir_list[-1]))
         vospace.mkdir(dir_list.pop())
     return
 
@@ -290,7 +363,7 @@ def copy(source, dest):
     '''
 
 
-    logging.debug("%s -> %s" % ( source, dest))
+    logger.debug("%s -> %s" % ( source, dest))
 
     return vospace.copy(source, dest)
 
@@ -321,8 +394,14 @@ def list_dbimages():
     return listdir(DBIMAGES)
 
 
-def exists(uri):
-    return vospace.access(uri)
+def exists(uri, force=False):
+    try:
+        return vospace.getNode(uri, force=force) is not None
+    except IOError as e:
+        if e.errno == os.errno.ENOENT:
+            return False
+        raise e
+
 
 
 def move(old_uri, new_uri):
@@ -424,3 +503,56 @@ def increment_object_counter(node_uri, epoch_field, dry_run=False):
                  ossos_base=True)
 
     return new_count
+
+
+def get_mopheader(expnum, ccd):
+    """
+    Retrieve the mopheader, either from cache or from vospace
+    """
+    mopheader_uri = dbimages_uri(expnum=expnum,
+                                         ccd=ccd,
+                                         version='p',
+                                         ext='.mopheader')
+    if mopheader_uri in mopheaders:
+        return mopheaders[mopheader_uri]
+
+    mopheader_fpt = cStringIO.StringIO(open_vos_or_local(mopheader_uri).read())
+    mopheader = fits.open(mopheader_fpt)
+    ## add some values to the mopheader so it can be an astrom header too.
+    header = mopheader[0].header
+    try:
+        header['FWHM'] = get_fwhm(expnum, ccd)
+    except:
+        header['FWHM']  = 10
+    header['SCALE'] = mopheader[0].header['PIXSCALE']
+    header['NAX1'] = header['NAXIS1']
+    header['NAX2'] = header['NAXIS2']
+    header['MOPversion'] = header['MOP_VER']
+    header['MJD_OBS_CENTER'] = str(mpc.Time(header['MJD-OBSC'],
+                                            format='mjd',
+                                            scale='utc', precision=5 ).replicate(format='mpc'))
+    header['MAXCOUNT'] = MAXCOUNT
+    mopheaders[mopheader_uri] = header
+
+    return mopheaders[mopheader_uri]
+
+
+def get_astheader(expnum, ccd):
+
+    ast_uri = dbimages_uri(expnum, ccd)
+    if ast_uri in astheaders:
+        logger.debug("returning cached header for {}".format(ast_uri))
+        return astheaders[ast_uri]
+    image_uri = dbimages_uri(expnum)
+    if not exists(image_uri, force=False):
+        return None
+
+
+    logger.debug("Pulling header using image_uri {}".format(image_uri))
+    hdulist = _DOWNLOADER.download_hdulist(
+               uri=image_uri,
+               view='cutout',
+               cutout='[{}][{}:{},{}:{}]'.format(ccd+1, 1, 1, 1, 1))
+    astheaders[ast_uri] = hdulist[0].header
+
+    return astheaders[ast_uri]
