@@ -39,6 +39,8 @@ def combine(expnum, ccd, prefix=None, type='p', field=None, measure3=MEASURE3 ):
         field = "%s_%s" % ( prefix, field ) 
     field += "_%s" % ( str(ccd))
 
+    logging.info("Doing combine on field {}".format(field))
+    
     for ext in ['moving.matt','moving.jmp']:
         fname = storage.get_image(expnum,
                                   ccd=ccd,
@@ -63,6 +65,7 @@ def combine(expnum, ccd, prefix=None, type='p', field=None, measure3=MEASURE3 ):
 
     
     cmd_args = ['comb-list', prefix+str(expnum)+type+str(ccd).zfill(2)]
+    logging.info(str(cmd_args))
     util.exec_prog(cmd_args)
     ext_list = ['cands.comb']
     if prefix is not None and len(prefix) > 0 :
@@ -165,7 +168,7 @@ if __name__=='__main__':
     
     logging.basicConfig(level=level, format="%(message)s")
         
-    storage._dbimages = args.dbimages
+    storage.DBIMAGES = args.dbimages
 
     prefix = ( args.fk and 'fk' ) or ''
 
@@ -173,7 +176,7 @@ if __name__=='__main__':
 
     for ccd in ccdlist:
         message = storage.SUCCESS
-        try:
+        if 1==1:
             if not storage.get_status(args.expnum, ccd, prefix+'step3'):
                 logging.error(storage.get_status(
                         args.expnum,
@@ -190,7 +193,7 @@ if __name__=='__main__':
                               field=args.field, 
                               measure3=args.measure3
                               )
-        except Exception as e:
-            message = str(e)
-
-        storage.set_status(args.expnum, ccd, prefix+'combine', message)
+        #except Exception as e:
+        #   message = str(e)
+            
+        #storage.set_status(args.expnum, ccd, prefix+'combine', message)

@@ -145,7 +145,7 @@ if __name__=='__main__':
     
     logging.basicConfig(level=level, format="%(message)s")
         
-    storage._dbimages = args.dbimages
+    storage.DBIMAGES = args.dbimages
 
     if args.ccd is None:
         ccdlist = range(0,36)

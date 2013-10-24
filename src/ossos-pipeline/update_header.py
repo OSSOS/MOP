@@ -104,13 +104,19 @@ if __name__ == '__main__':
     try:
         
         expnum=args.expnum
-        image = (os.access(args.expnum,os.W_OK) and args.expnum ) or (
-            storage.get_image(args.expnum) )
+        # skip if already succeeded and not in force mode
+        if storage.get_status(expnum, 36, 'update_header') and not args.force:
+            logging.info("Already updated, skipping")
+            sys.exit(0)
+
     
         header = (args.header is not None and ((
             os.access(args.header, os.W_OK) and args.header ) or (
             storage.get_image(args.header, ext='head')))) or ( 
             storage.get_image(args.expnum, ext='head'))
+
+        image = (os.access(args.expnum,os.W_OK) and args.expnum ) or (
+            storage.get_image(args.expnum) )
 
         logging.info(
             "Swapping header for %s for contents in %s \n" % (
@@ -133,7 +139,5 @@ if __name__ == '__main__':
         if args.replace:
             message = str(e)
             storage.set_status(expnum, 36, 'update_header', message)
-        raise e
+        logging.error(str(e))
 
-        
-    

@@ -41,8 +41,9 @@ def scramble(expnums, ccd, version='p'):
         # now make a link between files that the plant system will need
         for ext in ['apcor', 'obj.jmp', 'mopheader', 'phot',
                     'psf.fits','trans.jmp', 'zeropoint.used', 'fwhm']:
-            storage.delete(expnums[order[idx]], ccd, 's', ext)
-            storage.vlink(expnums[idx], ccd, 'p', ext,
+            if storage.exists(storage.get_uri(expnums[order[idx]], ccd, 's', ext)):
+                storage.delete(expnums[order[idx]], ccd, 's', ext)
+                storage.vlink(expnums[idx], ccd, 'p', ext,
                          expnums[order[idx]], ccd, 's', ext)
 
     return
@@ -79,7 +80,7 @@ if __name__=='__main__':
     
     args=parser.parse_args()
 
-    storage._dbimages = args.dbimages
+    storage.DBIMAGES = args.dbimages
 
     ## setup logging
     level = logging.CRITICAL
