@@ -96,8 +96,8 @@ def create_ascii_table(obsTable, outfile):
     populated = vos.Client().listdir(storage.DBIMAGES)
     for i in range(len(obsTable)-1,-1,-1):
         row = obsTable.data[i]
-        if row['dataset_name'] not in populated:
-            storage.populate(row['dataset_name'])
+        #if row['dataset_name'] not in populated:
+        storage.populate(row['dataset_name'])
         sDate = str(ephem.date(row.StartDate + 
                                2400000.5 - 
                                ephem.julian_date(ephem.date(0))))[:20]

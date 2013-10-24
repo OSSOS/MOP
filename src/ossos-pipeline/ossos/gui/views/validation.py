@@ -73,7 +73,7 @@ class SourceValidationDialog(wx.Dialog):
         self.comment_label = wx.StaticText(self, label=SourceValidationDialog.COMMENT)
         self.comment_text = wx.TextCtrl(self, name=SourceValidationDialog.COMMENT,
                                         style=wx.TE_MULTILINE | wx.TE_PROCESS_ENTER,
-                                        size=(250, 50))
+                                        size=(500, 100))
         self.comment_text.SetValue(self.default_comment)
         self.comment_text.Bind(wx.EVT_TEXT_ENTER, self._on_enter_comment)
 
@@ -137,7 +137,6 @@ class AcceptSourceDialog(SourceValidationDialog):
     TITLE = "Accept Source"
     MINOR_PLANET_NUMBER = "Minor planet number: "
     PROVISIONAL_NAME = "Provisional name: "
-    DISCOVERY_ASTERISK = "Discovery asterisk: "
     NOTE1 = "Note 1: "
     NOTE2 = "Note 2: "
     DATE_OF_OBS = "Date of observation: "
@@ -149,7 +148,6 @@ class AcceptSourceDialog(SourceValidationDialog):
 
     def __init__(self, parent, controller,
                  provisional_name,
-                 already_discovered,
                  date_of_obs,
                  ra,
                  dec,
@@ -167,7 +165,6 @@ class AcceptSourceDialog(SourceValidationDialog):
         self.phot_failure = phot_failure
 
         self.provisional_name = provisional_name
-        self.already_discovered = already_discovered
         self.date_of_obs = date_of_obs
         self.ra_str = str(ra)
         self.dec_str = str(dec)
@@ -206,12 +203,6 @@ class AcceptSourceDialog(SourceValidationDialog):
             self, label=AcceptSourceDialog.PROVISIONAL_NAME)
         self.provision_name_text = self._create_readonly_text(
             value=self.provisional_name, name=self.PROVISIONAL_NAME)
-
-        self.discovery_asterisk_label = wx.StaticText(
-            self, label=AcceptSourceDialog.DISCOVERY_ASTERISK)
-        discovery_asterisk = "No" if self.already_discovered else "Yes"
-        self.discovery_asterisk_text = self._create_readonly_text(
-            value=discovery_asterisk, name=AcceptSourceDialog.DISCOVERY_ASTERISK)
 
         self.note1_label = wx.StaticText(self, label=AcceptSourceDialog.NOTE1)
         self.note1_combobox = KeyboardCompleteComboBox(
@@ -259,7 +250,6 @@ class AcceptSourceDialog(SourceValidationDialog):
     def _get_vertical_widget_list(self):
         data_fields = [(self.minor_planet_num_label, self.minor_planet_num_text),
                        (self.provisional_name_label, self.provision_name_text),
-                       (self.discovery_asterisk_label, self.discovery_asterisk_text),
                        (self.note1_label, self.note1_combobox),
                        (self.note2_label, self.note2_combobox),
                        (self.date_of_obs_label, self.date_of_obs_text),
@@ -283,7 +273,6 @@ class AcceptSourceDialog(SourceValidationDialog):
         # Grab data out of the form
         # TODO validation
         minor_planet_number = self.minor_planet_num_text.GetValue()
-        discovery_asterisk = " " if self.already_discovered else "*"
         note1 = self.note1_combobox.GetValue()
         note2 = self.note2_combobox.GetValue()
         obs_mag = self.obs_mag if not self.phot_failure else ""
@@ -294,7 +283,6 @@ class AcceptSourceDialog(SourceValidationDialog):
 
         self.controller.on_do_accept(minor_planet_number,
                                      self.provisional_name,
-                                     discovery_asterisk,
                                      note1,
                                      note2,
                                      self.date_of_obs,
@@ -309,6 +297,37 @@ class AcceptSourceDialog(SourceValidationDialog):
 
     def _on_cancel(self, event):
         self.controller.on_cancel_accept()
+
+
+class OffsetSourceDialog(SourceValidationDialog):
+    TITLE = "Accept Re-centroid Dialog"
+
+    def __init__(self, parent, controller, cen_coords=(0,0), pix_coords=(0,0)):
+
+        self.cen_coords = cen_coords
+        self.pix_coords = pix_coords
+        self.default_comment =  "DAOphot centroid differs from input value.\n\n"
+        self.default_comment += "{:8s} {:6.2f} {:6.2f}\n".format("mark", self.cen_coords[0], self.cen_coords[1])
+        self.default_comment += "{:8s} {:6.2f} {:6.2f}\n".format("daophot", self.pix_coords[0], self.pix_coords[1])
+        self.default_comment += "\nAccepted DAOphot centroid or Mark centroid?"
+
+        super(OffsetSourceDialog, self).__init__(parent, title=self.TITLE)
+        self.controller = controller
+
+        self.submit_button.SetLabel("DAOPhot")
+        self.cancel_button.SetLabel("Marker")
+
+    def _init_ui(self):
+        pass
+
+    def _get_vertical_widget_list(self):
+        return []
+
+    def _on_submit(self, event):
+        self.controller.on_do_offset(self.cen_coords)
+
+    def _on_cancel(self, event):
+        self.controller.on_cancel_offset(self.pix_coords)
 
 
 class RejectSourceDialog(SourceValidationDialog):

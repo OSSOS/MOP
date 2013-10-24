@@ -5,7 +5,7 @@ import tempfile
 
 from astropy import coordinates
 from astropy import units
-
+from mpc import Observation
 from ossos.mpc import Time
 
 LIBORBFIT = "/usr/local/lib/liborbfit.so"
@@ -14,7 +14,7 @@ LIBORBFIT = "/usr/local/lib/liborbfit.so"
 class OrbfitError(Exception):
     def __init__(self):
         super(OrbfitError, self).__init__(
-            "Insufficent enough observations for an orbit.")
+            "Insufficient observations for an orbit.")
 
 
 class Orbfit(object):
@@ -33,7 +33,9 @@ class Orbfit(object):
             raise OrbfitError()
 
         self.orbfit = ctypes.CDLL(LIBORBFIT)
+        assert isinstance(observations[0], Observation)
         self.observations = observations
+        self.arc_length = observations[-1].date.jd - observations[0].date.jd
         self._fit_radec()
 
     @property
@@ -58,8 +60,10 @@ class Orbfit(object):
 
         mpc_file = tempfile.NamedTemporaryFile(suffix='.mpc')
         for observation in self.observations:
-            mpc_file.write("{}\n".format(str(observation)))
+            if not observation.null_observation:
+                mpc_file.write("{}\n".format(str(observation)))
         mpc_file.seek(0)
+        self.name = self.observations[0].provisional_name.strip(' ')
 
         self._abg = tempfile.NamedTemporaryFile()
 
@@ -98,6 +102,10 @@ class Orbfit(object):
                 dra = ddec - coordinates.Angle(360, unit=units.degree)
             observation.ra_residual = dra.degrees*3600.0
             observation.dec_residual = ddec.degrees*3600.0
+            if observation.null_observation :
+                residuals += "!"
+            else:
+                residuals += " "
             residuals += "{:12s} {:+05.2f} {:+05.2f}\n".format(observation.date, observation.ra_residual, observation.dec_residual)
         self.residuals = residuals
 
@@ -105,24 +113,29 @@ class Orbfit(object):
         """
 
         """
-        res = "{:>10s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s}\n".format(self.observations[0].provisional_name.strip(' '),
+        res = "{:>10s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s}\n".format(self.observations[0].provisional_name.strip(' '),
+                                                            "r (AU)",
                                                             "a (AU)",
                                                             "e",
                                                             "Inc.",
                                                             "Node",
                                                             "peri.")
-        res += "{:>10s} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format("fit",
+        res += "{:>10s} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format("fit",
+                                                   self.distance,
                                                    self.a,
                                                    self.e,
                                                    self.inc,
                                                    self.Node,
                                                    self.om)
-        res += "{:>10s} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format("uncert",
+        res += "{:>10s} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format("uncert",
+                                                               self.distance_uncertainty,
                                                                self.da,
                                                                self.de,
                                                                self.dinc,
                                                                self.dNode,
                                                                self.dom)
+        res += "{:>10s} {:8.2f} days\n".format("arc", self.arc_length)
+
         return res
 
     def predict(self, date, obs_code=568):

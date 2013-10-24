@@ -1,3 +1,5 @@
+from ossos.gui import logger
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import numpy as np
@@ -54,7 +56,7 @@ class Displayable(object):
         if self.canvas is not None:
             self.canvas.draw()
 
-    def place_error_ellipse(self, x, y, a, b, pa):
+    def place_error_ellipse(self, x, y, a, b, pa, color='y'):
         pass
 
     def reset_colormap(self):
@@ -72,13 +74,13 @@ class Displayable(object):
 
 class ImageSinglet(object):
     """
-    A single image on a matplotlib axes.  Provides interaction and is
-    markable.
+    A single image on a matplotlib axes.  Provides interaction and is markable.
+
     """
 
     def __init__(self, hdulist, figure, rect):
         self.hdulist = hdulist
-
+        self.z_image_data = hdulist[0].data
         self.figure = figure
         self.axes = self._create_axes(rect)
         self.figure.add_axes(self.axes)
@@ -92,10 +94,15 @@ class ImageSinglet(object):
         self._colormap = GrayscaleColorMap()
         self._mpl_event_handlers = {}
         self._interaction_context = None
+        self.number_of_images_displayed = 0
 
     @property
-    def image_data(self):
-        return _image_data(self.hdulist)
+    def z_image_data(self):
+        return self._z_image_data
+
+    @z_image_data.setter
+    def z_image_data(self, data):
+        self._z_image_data = zscale(data)
 
     @property
     def width(self):
@@ -109,17 +116,19 @@ class ImageSinglet(object):
         self._interaction_context = InteractionContext(self)
 
         extent = (1, self.width, 1, self.height)
-        self.axes_image = self.axes.imshow(zscale(self.image_data),
+        self.axes_image = self.axes.imshow(self.z_image_data,
                                            origin="lower",
                                            extent=extent,
                                            cmap=self._colormap.as_mpl_cmap())
-
+        self.number_of_images_displayed += 1
+        logger.debug("This imagesinglet has now displayed {} images".format(self.number_of_images_displayed))
         if colorbar:
             # Create axes for colorbar.  Make it tightly fit the image.
             divider = make_axes_locatable(self.axes)
             cax = divider.append_axes("bottom", size="5%", pad=0.05)
             self.figure.colorbar(self.axes_image, orientation="horizontal",
                                  cax=cax)
+        plt.close()
 
     def place_marker(self, x, y, radius, colour="b"):
         """
@@ -134,11 +143,11 @@ class ImageSinglet(object):
 
         self.display_changed.fire()
 
-    def place_error_ellipse(self, x, y, a, b, pa):
+    def place_error_ellipse(self, x, y, a, b, pa, color='b'):
         """
         Draws an ErrorEllipse with the given dimensions.  Can not be moved later.
         """
-        self.error_ellipse = ErrEllipse(x, y, a, b, pa)
+        self.error_ellipse = ErrEllipse(x, y, a, b, pa, color=color)
         self.error_ellipse.add_to_axes(self.axes)
         self.display_changed.fire()
 
@@ -255,8 +264,8 @@ class DisplayableImageSinglet(Displayable):
     def place_marker(self, x, y, radius, colour="b"):
         self.image_singlet.place_marker(x, y, radius, colour=colour)
 
-    def place_error_ellipse(self, x, y, a, b, pa):
-        self.image_singlet.place_error_ellipse(x, y, a, b, pa)
+    def place_error_ellipse(self, x, y, a, b, pa, color='b'):
+        self.image_singlet.place_error_ellipse(x, y, a, b, pa, color=color)
 
     def reset_colormap(self):
         self.image_singlet.reset_colormap()
@@ -336,7 +345,7 @@ class ErrEllipse(object):
     """
     A class for creating and drawing an ellipse in matplotlib.
     """
-    def __init__(self, x_cen, y_cen, a, b, pa):
+    def __init__(self, x_cen, y_cen, a, b, pa, color='b'):
         """
         :param x_cen: x coordinate at center of the ellipse
         :param y_cen: y coordinate at center of the ellipse
@@ -350,10 +359,10 @@ class ErrEllipse(object):
         self.b = max(b, 10)
         self.pa = pa
 
-        angle = 90 - self.pa
+        angle = self.pa - 90
 
         self.artist = Ellipse(self.center, self.a, self.b, angle=angle,
-                              linewidth=3, edgecolor='b', facecolor='#E47833',
+                              linewidth=3, edgecolor=color, facecolor='#E47833',
                               alpha=0.1)
 
     def add_to_axes(self, axes):
@@ -507,21 +516,18 @@ def zscale(image):
         The input image after scaling.
     """
     # Using the default values, but listing explicitly
+#    image = np.clip(image, 1000., 3000.)
     z1, z2 = numdisplay.zscale.zscale(image, nsamples=1000, contrast=0.25)
-    return np.clip(image, z1, z2)
-
+    return np.clip(image, z1, z2)  # clip against extreme values
 
 def _image_width(hdulist):
     return _image_shape(hdulist)[1]
 
-
 def _image_height(hdulist):
     return _image_shape(hdulist)[0]
 
-
 def _image_shape(hdulist):
     return _image_data(hdulist).shape
-
 
 def _image_data(hdulist):
     return hdulist[0].data

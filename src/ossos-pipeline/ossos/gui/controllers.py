@@ -1,8 +1,12 @@
+import math
+from ossos.downloads.async import DownloadRequest
+from ossos.downloads.cutouts import ImageCutoutDownloader
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 from ossos.daophot import TaskError
 from ossos.gui.autoplay import AutoplayManager
-from ossos.gui import config
+from ossos.gui import config, logger
 from ossos.gui import events
 from ossos.gui.models.exceptions import (ImageNotLoadedException,
                                          NoWorkUnitException)
@@ -125,6 +129,9 @@ class AbstractController(object):
         self.view.close()
         self.model.exit()
 
+    def on_load_comparison(self, reasearch=False):
+        raise NotImplementedError()
+
     def on_next_obs(self):
         self.model.next_obs()
 
@@ -177,14 +184,28 @@ class ProcessRealsController(AbstractController):
         default_comment = ""
         phot_failure = False
 
+        source_cutout = self.model.get_current_cutout()
+        pixel_x = source_cutout.pixel_x
+        pixel_y = source_cutout.pixel_y
+
         try:
-            obs_mag, obs_mag_err = self.model.get_current_source_observed_magnitude()
+            cen_x, cen_y, obs_mag, obs_mag_err = self.model.get_current_source_observed_magnitude()
         except TaskError as error:
             phot_failure = True
             obs_mag = ""
+            cen_x = pixel_x
+            cen_y = pixel_y
             obs_mag_err = -1
             band = ""
             default_comment = str(error)
+
+        if math.sqrt( (cen_x - pixel_x)**2 + (cen_y - pixel_y)**2 ) > 1.5:
+            # check if the user wants to use the 'hand' coordinates or these new ones.
+            self.view.draw_error_ellipse(cen_x, cen_y, 10, 10, 0, color='r')
+            self.view.show_offset_source_dialog((cen_x, cen_y), (pixel_x,pixel_y))
+        else:
+            source_cutout.update_pixel_location((cen_x, cen_y))
+            self.model.get_current_cutout()._adjusted = False
 
         if self.model.is_current_source_adjusted():
             note1_default = config.read("MPC.NOTE1_HAND_ADJUSTED")
@@ -193,7 +214,6 @@ class ProcessRealsController(AbstractController):
 
         self.view.show_accept_source_dialog(
             provisional_name,
-            self.model.is_current_source_discovered(),
             self.model.get_current_observation_date(),
             self.model.get_current_ra(),
             self.model.get_current_dec(),
@@ -212,7 +232,6 @@ class ProcessRealsController(AbstractController):
     def on_do_accept(self,
                      minor_planet_number,
                      provisional_name,
-                     discovery_asterisk,
                      note1,
                      note2,
                      date_of_obs,
@@ -241,7 +260,6 @@ class ProcessRealsController(AbstractController):
         mpc_observation = mpc.Observation(
             minor_planet_number=minor_planet_number,
             provisional_name=provisional_name,
-            discovery=discovery_asterisk,
             note1=note1_code,
             note2=note2_code,
             date=date_of_obs,
@@ -266,6 +284,19 @@ class ProcessRealsController(AbstractController):
 
     def on_reject(self):
         self.view.show_reject_source_dialog()
+
+    def on_do_offset(self, cen_coords):
+        self.view.close_offset_source_dialog()
+
+        source_cutout = self.model.get_current_cutout()
+        source_cutout.update_pixel_location(cen_coords)
+        source_cutout._adjusted = False
+
+    def on_cancel_offset(self, pix_coords):
+        self.view.close_offset_source_dialog()
+
+        source_cutout = self.model.get_current_cutout()
+        source_cutout.update_pixel_location(pix_coords)
 
     def on_do_reject(self, comment):
         self.view.close_reject_source_dialog()
@@ -319,7 +350,6 @@ class ProcessTracksController(ProcessRealsController):
     def on_do_accept(self,
                      minor_planet_number,
                      provisional_name,
-                     discovery_asterisk,
                      note1,
                      note2,
                      date_of_obs,
@@ -334,7 +364,6 @@ class ProcessTracksController(ProcessRealsController):
         super(ProcessTracksController, self).on_do_accept(
             minor_planet_number,
             provisional_name,
-            discovery_asterisk,
             note1,
             note2,
             date_of_obs,
@@ -361,16 +390,35 @@ class ProcessTracksController(ProcessRealsController):
             if not hasattr(reading, 'redraw_ellipse'):
                 reading.redraw_ellipse = True
 
-            if hasattr(reading, 'dra') and hasattr(reading, 'ddec') and hasattr(reading,
-                                                                                'pa') and reading.redraw_ellipse:
+            if hasattr(reading, 'dra') and hasattr(reading, 'ddec') and hasattr(
+                    reading, 'pa' )  and reading.redraw_ellipse:
                 x, y = self.model.get_current_pixel_source_point()
                 self.view.draw_error_ellipse(x, y, reading.dra, reading.ddec, reading.pa)
 
             reading.redraw_ellipse = False
 
+    def on_load_comparison(self, research=False):
+        logger.debug(str(research))
+        try:
+            cutout = self.model.get_current_cutout()
+            reading = self.model.get_current_workunit().choose_comparison_image(cutout,
+                                                                                research=research)
+
+            self.view.display(reading.cutout)
+
+        except Exception as e:
+            logger.critical(str(e))
+            pass
+
+        self.model.acknowledge_image_displayed()
+
     def on_ssos_query(self):
-        new_workunit = self.model.get_current_workunit().query_ssos()
-        self.model.add_workunit(new_workunit)
+        try:
+            new_workunit = self.model.get_current_workunit().query_ssos()
+            self.model.add_workunit(new_workunit)
+        except AssertionError as e:
+            logger.critical(str(e))
+            pass
         self.model.next_item()
 
 

@@ -4,7 +4,7 @@ import os
 import unittest
 
 from hamcrest import (assert_that, is_in, is_not, equal_to, is_, none,
-                      contains_inanyorder, has_length)
+                      contains_inanyorder, has_length, contains)
 from mock import Mock, call, MagicMock
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
@@ -14,14 +14,16 @@ from ossos.gui.context import WorkingContext, LocalDirectoryWorkingContext
 from ossos.gui.models.collections import StatefulCollection
 from ossos.gui.models.exceptions import NoAvailableWorkException
 from ossos.gui.models.validation import ValidationModel
-from ossos.astrom import AstromParser, StreamingAstromWriter
+from ossos.astrom import (AstromParser, StreamingAstromWriter, SourceReading,
+                          Source)
 from ossos.mpc import MPCWriter
 from ossos.gui.models.imagemanager import ImageManager
 from ossos.gui.progress import LocalProgressManager, InMemoryProgressManager
 from ossos.gui.models.workload import (WorkUnitProvider, WorkUnit,
                                        RealsWorkUnit, CandidatesWorkUnit,
                                        RealsWorkUnitBuilder,
-                                       PreFetchingWorkUnitProvider)
+                                       PreFetchingWorkUnitProvider, TracksWorkUnitBuilder)
+from ossos.ssos import SSOSData, SSOSParser
 
 
 class TestDirectoryManager(object):
@@ -362,7 +364,7 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         source.set_provisional_name(provisional_name)
 
         assert_that(self.workunit.get_output_filename(source),
-                    equal_to("ABCD123.mpc"))
+                    equal_to("1584431p15.measure3.reals.astrom.ABCD123.mpc"))
 
 
 class CandidatesWorkUnitTest(AbstractWorkUnitTest):
@@ -660,9 +662,12 @@ class PreFetchingWorkUnitProviderTest(unittest.TestCase):
                                                      self.prefetch_quantity)
         self._workunit_number = 0
 
-    def create_workunit(self):
+    def create_workunit(self, num=None):
+        if num is None:
+            num = self._workunit_number
+
         workunit = Mock(spec=WorkUnit)
-        workunit.get_filename.return_value = "Workunit%d" % self._workunit_number
+        workunit.get_filename.return_value = "Workunit%d" % num
         self._workunit_number += 1
         return workunit
 
@@ -791,6 +796,25 @@ class PreFetchingWorkUnitProviderTest(unittest.TestCase):
 
         self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
 
+    def test_duplicate_workunit_ignored_(self):
+        # This tests the case when 2 or more threads created back to back
+        # end up retrieving the same workunit.  Only want to return it once
+        # though.
+        prefetch_workunit_mock = self.mock_prefetch_workunit(bypass_threading=True)
+
+        workunit1 = self.create_workunit(1)
+        workunit2 = self.create_workunit(2)
+        workunit3 = self.create_workunit(2)
+
+        self.set_workunit_provider_return_values(
+            [workunit1, workunit2, workunit3, NoAvailableWorkException()])
+
+        assert_that(self.undertest.get_workunit(), equal_to(workunit1))
+
+        assert_that(self.undertest.get_workunit(), equal_to(workunit2))
+
+        self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
+
 
 class WorkUnitProviderRealFilesTest(FileReadingTestCase, DirectoryCleaningTestCase):
     def setUp(self):
@@ -830,6 +854,41 @@ class WorkUnitProviderRealFilesTest(FileReadingTestCase, DirectoryCleaningTestCa
         self.assertRaises(NoAvailableWorkException, self.undertest.get_workunit)
 
         assert_that(actual_filenames, contains_inanyorder(*expected_filenames))
+
+
+class TracksWorkUnitBuilderTest(unittest.TestCase):
+    def test_move_discovery_to_front(self):
+        def mock_reading(discovery=False):
+            reading = Mock(spec=SourceReading)
+            reading.discovery = discovery
+            return reading
+
+        reading0 = mock_reading()
+        reading1 = mock_reading(discovery=True)
+        reading2 = mock_reading()
+        reading3 = mock_reading()
+        reading4 = mock_reading()
+
+        data = SSOSData(Mock(),
+                        [[reading0, reading1, reading2, reading3, reading4]],
+                        "123456")
+
+        builder = TracksWorkUnitBuilder(Mock(spec=SSOSParser),
+                                        Mock(spec=LocalDirectoryWorkingContext),
+                                        Mock(spec=LocalDirectoryWorkingContext),
+                                        Mock(spec=LocalProgressManager))
+
+        def get_readings(data):
+            # Note: Track workunits only have 1 source
+            return data.get_sources()[0].get_readings()
+
+        assert_that(get_readings(data),
+                    contains(reading0, reading1, reading2, reading3, reading4))
+
+        builder.move_discovery_to_front(data)
+
+        assert_that(get_readings(data),
+                    contains(reading1, reading2, reading3, reading0, reading4))
 
 
 if __name__ == '__main__':

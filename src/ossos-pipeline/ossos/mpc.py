@@ -58,7 +58,7 @@ MPCNOTES = {'Note1':
                  "V": "very faint image",
                  "W": "weak image",
                  "w": "weak solution"
-                 },
+                },
             'Note2': {
                 " ": " ",
                 "": " ",
@@ -80,8 +80,8 @@ MPCNOTES = {'Note1':
             'PhotometryNote': {
                 " ": " ",
                 "": " ",
-                "L": "Photometry uncertainty lacking",     # not used by MPC
-                "Y": "Photometry measured successfully",   # not used by MPC 
+                "L": "Photometry uncertainty lacking", # not used by MPC
+                "Y": "Photometry measured successfully", # not used by MPC
                 "Z": "Photometry measurement failed."      # not used by MPC 
             }}
 
@@ -368,6 +368,9 @@ class Observation(object):
                  null_observation=False):
 
         self.minor_planet_number = minor_planet_number
+        if null_observation and not self.minor_planet_number.startswith("!"):
+            self.minor_planet_number = "!" + " " * 4
+        self.null_observation = self.minor_planet_number.startswith("!")
         self.provisional_name = provisional_name
         self.discovery = discovery
         self.note1 = note1
@@ -378,7 +381,6 @@ class Observation(object):
         self.mag_err = mag_err
         self.band = band
         self.observatory_code = observatory_code
-        self.null_observation=null_observation
         self.comment = MPCComment(source_name=provisional_name,
                                   frame=frame,
                                   MPCNote=self.note1,
@@ -407,7 +409,7 @@ class Observation(object):
 
     def to_string(self):
         as_string = str(self)
-        if self.comment != "":
+        if self.comment is not None and str(self.comment) != "":
             as_string += " " + str(self.comment)
         return as_string
 
@@ -418,7 +420,7 @@ class Observation(object):
         http://www.minorplanetcenter.net/iau/info/OpticalObs.html
         """
         if self.null_observation is True:
-            mpc_str = "!" + 4*" "
+            mpc_str = "!" + 4 * " "
         else:
             mpc_str = (self.minor_planet_number is None and 5 * " ") or "%5s" % (self.minor_planet_number)
         mpc_str += (self.provisional_name is None and 7 * " ") or "%7s" % (self.provisional_name)
@@ -449,27 +451,20 @@ class Observation(object):
         :type minor_planet_number: int
         :param minor_planet_number: the number of the minor planet
         """
-        if not len(str(minor_planet_number)) < 6:
+        self._minor_planet_number = minor_planet_number
+        if minor_planet_number is None:
+            self._minor_planet_number = 5 * " "
+        elif not len(str(minor_planet_number)) < 6:
             raise MPCFieldFormatError("Minor Planet Number",
                                       "must be 5 or less characters",
                                       minor_planet_number)
-        self._minor_planet_number = minor_planet_number
-        self.null_observation = False
-        if len(str(minor_planet_number)) > 0 and str(minor_planet_number)[0] == "!":
-            self.null_observation = True
-        return
-
 
     @property
     def null_observation(self):
-        return self._null_observation
+        return str(self.minor_planet_number).startswith("!") or self._null_observation
 
     @null_observation.setter
     def null_observation(self, null_observation):
-        if type(null_observation) != bool:
-            raise MPCFieldFormatError("null_observation",
-                                      "should be True/False",
-                                      null_observation)
         self._null_observation = null_observation
 
     @property
@@ -577,10 +572,10 @@ class Observation(object):
         """
         coord = str(coord).strip(' ')
         idx = coord.rfind('.')
-        if idx < 0 :
+        if idx < 0:
             return 0
         else:
-            return len(coord) - idx -1
+            return len(coord) - idx - 1
 
     @coordinate.setter
     def coordinate(self, coord_pair):
@@ -619,13 +614,12 @@ class Observation(object):
 
     @mag.setter
     def mag(self, mag):
-        if mag is None or len(str(str(mag).strip(' ')))==0 :
+        if mag is None or len(str(str(mag).strip(' '))) == 0:
             self._mag_precision = 0
             self._mag = None
         else:
             self._mag = float(mag)
-            # CHECK: precision calculator says it is for sexagesimal rather than decimal info!
-            self._mag_precision = min(2,self._compute_precision(str(mag)))
+            self._mag_precision = min(2, self._compute_precision(str(mag)))
 
     @property
     def mag_err(self):
@@ -673,11 +667,11 @@ class MPCComment(object):
                  frame,
                  X,
                  Y,
-                 MPCNote = None,
-                 magnitude = -1,
-                 mag_uncertainty = -1,
-                 plate_uncertainty = -1,
-                 comment = None):
+                 MPCNote=None,
+                 magnitude=-1,
+                 mag_uncertainty=-1,
+                 plate_uncertainty=-1,
+                 comment=None):
 
         self.source_name = source_name
         self.frame = frame
@@ -694,27 +688,27 @@ class MPCComment(object):
         """
         Build an MPC Comment from a string.
         """
-        values = comment.split(' ')
+        values = comment.split()
         if len(values) < 8:
             logger.warning("non-OSSOS format MPC line read")
             return comment
         comment = comment.split('%')[-1]
-        return MPCComment(source_name = values[1],
-                   frame=values[0],
-                   X=values[3],
-                   Y=values[4],
-                   MPCNote=values[2][1:],
-                   magnitude=values[5],
-                   mag_uncertainty=values[6],
-                   plate_uncertainty=values[7],
-                   comment=comment)
+        return MPCComment(source_name=values[1],
+                          frame=values[0],
+                          X=values[3],
+                          Y=values[4],
+                          MPCNote=values[2][1:],
+                          magnitude=values[5],
+                          mag_uncertainty=values[6],
+                          plate_uncertainty=values[7],
+                          comment=comment)
 
     @property
     def mag(self):
         return self._mag
 
     @mag.setter
-    def mag(self,mag):
+    def mag(self, mag):
         try:
             if float(mag) > 0:
                 self._mag = "{:5.2f}".format(float(mag))
@@ -731,7 +725,7 @@ class MPCComment(object):
         return self._mag_uncertainty
 
     @mag_uncertainty.setter
-    def mag_uncertainty(self,mag_uncertainty):
+    def mag_uncertainty(self, mag_uncertainty):
         try:
             if float(mag_uncertainty) > 0:
                 self._mag_uncertainty = "{:4.2f}".format(float(mag_uncertainty))
@@ -756,36 +750,40 @@ class MPCComment(object):
     @property
     def X(self):
         return self._X
+
     @X.setter
-    def X(self,X):
+    def X(self, X):
         try:
             self._X = "{:6.1f}".format(float(X))
         except:
-            self._X = "X"*6
+            self._X = "X" * 6
 
     @property
     def Y(self):
         return self._Y
+
     @Y.setter
-    def Y(self,Y):
+    def Y(self, Y):
         try:
             self._Y = "{:6.1f}".format(float(Y))
         except:
-            self._Y = "Y"*6
+            self._Y = "Y" * 6
 
     @property
     def plate_uncertainty(self):
         return self._plate_uncertainty
+
     @plate_uncertainty.setter
     def plate_uncertainty(self, plate_uncertainty):
         try:
             self._plate_uncertainty = "{:4.2}".format(float(plate_uncertainty))
         except:
-            self._plate_uncertainty = "U"*4
+            self._plate_uncertainty = "U" * 4
 
     @property
     def comment(self):
         return self._comment
+
     @comment.setter
     def comment(self, comment):
         if comment is not None:
@@ -807,7 +805,7 @@ class MPCComment(object):
 
         comm = '{}'.format(self.frame)
         comm += ' {}'.format(self.source_name)
-        comm += ' {}{:1s}'.format(self.PNote,str(self.MPCNote))
+        comm += ' {}{:1s}'.format(self.PNote, str(self.MPCNote))
         comm += ' {} {}'.format(self.X, self.Y)
         comm += ' {} {}'.format(self.mag, self.mag_uncertainty)
         comm += ' {}'.format(self.plate_uncertainty)
@@ -842,78 +840,62 @@ class MPCWriter(object):
         78 - 80       A3     Observatory code
     """
 
-    def __init__(self, filehandle, auto_flush=True, include_comments=True):
+    def __init__(self, filehandle, auto_flush=True, include_comments=True,
+                 auto_discovery=True):
         self.filehandle = filehandle
         self.auto_flush = auto_flush
         self.include_comments = include_comments
 
-        self.date_regex = re.compile("\d{4} \d{2} \d{2}\.\d{5,6}")
-
         # Holds observations that have not yet been flushed
-        self.buffer = []
+        self.buffer = {}
+        self._written_mpc_observations = []
 
-        self.written_mpc_observations = []
+        self.auto_discovery = auto_discovery
+        self._discovery_written = False
 
     def get_filename(self):
         return self.filehandle.name
 
-    def get_written_mpc_observations(self):
-        return self.written_mpc_observations
-
     def write(self, mpc_observation):
         """
         Writes a single entry in the Minor Planet Center's format.
+        :param mpc_observation:
         """
-        self.buffer.append(mpc_observation)
-        self.written_mpc_observations.append(mpc_observation)
+        assert isinstance(mpc_observation, Observation)
+        key = mpc_observation.date.mjd
+        self.buffer[key] = mpc_observation
 
         if self.auto_flush:
             self.flush()
 
     def flush(self):
         for obs in self.get_chronological_buffered_observations():
-            line = obs.to_string() if self.include_comments else str(obs)
-            self.filehandle.write(line + "\n")
+            self._flush_observation(obs)
 
         self.filehandle.flush()
-        self.buffer = []
+
+    def _flush_observation(self, obs):
+        if (self.auto_discovery and
+                not obs.null_observation and
+                not self._discovery_written):
+            obs.discovery = True
+            self._discovery_written = True
+
+        if obs.date.jd not in self._written_mpc_observations:
+            self._written_mpc_observations.append(obs.date.jd)
+            line = obs.to_string() if self.include_comments else str(obs)
+            self.filehandle.write(line + "\n")
 
     def close(self):
         self.filehandle.close()
 
     def get_chronological_buffered_observations(self):
-        return sorted(self.buffer, key=lambda obs: obs.date.unix)
-
-
-class TNOdbWriter(MPCWriter):
-    """
-    Write out MPC lines in format that tnodb can accept.
-    """
-
-    def __init__(self, filehandle, auto_flush=True):
-        super(TNOdbWriter, self).__init__(filehandle, auto_flush=auto_flush)
-
-    def flush(self):
-        """
-        Format for tnodb.
-        Comment line and observation line have to be kept together.
-        """
-        # FIXME: need to add header in tnodb format at the top of the file
-        self.filehandle.write(self.header())
-
-        for obs in self.get_chronological_buffered_observations():
-            # tnodb requires all lines to be MPC roving observer line length
-            comment_line = ('#O ' + obs.to_string()[80:])[:80] # #O indicates OSSOS survey
-            mpc_observation = obs.to_string()[:80]
-            output_line = comment_line + '\n' + mpc_observation + '\n'
-            self.filehandle.write(output_line)
-
-        self.filehandle.flush()
-        self.buffer = []
-
-    def header(self):
-        retval = None
-        return retval
+        jds = self.buffer.keys()
+        jds.sort()
+        sorted_obs = []
+        for jd in jds:
+            sorted_obs.append(self.buffer[jd])
+        return sorted_obs
 
 
 class MPCConverter(object):
@@ -927,25 +909,51 @@ class MPCConverter(object):
         if output is None:
             output = mpc_file.rpartition('.')[0] + '.tnodb'
             self.outfile = open(output, 'w')
-        #   self.writer = TNOdbWriter(outfile, auto_flush=False)
+            self.make_header()
 
     def convert(self, mpc_file, outfile):
         with open(mpc_file, 'r') as infile:
+            observations = []
             for line in infile.readlines():
-     #           writer.write(Observation().from_string(line))
-                comment_line = ('#O ' + line[80:])[:80].rstrip('\n') # #O indicates OSSOS survey
-                mpc_observation = line[:80]
-                output_line = comment_line + '\n' + mpc_observation + '\n'
-                outfile.write(output_line)
+                obs = Observation().from_string(line)
+                observations.append(obs)
+            for obs in observations:
+                # tnodb requires all lines to be MPC roving observer line length
+                comment_line = ('#O ' + str(obs.comment))[:80].rstrip('\n') # #O indicates OSSOS survey
+                outfile.write(comment_line + '\n')
 
-    #    writer.flush()
+                if obs.mag == -1:  # write no mag and no filter for where photometry couldn't be measured
+                    obs._mag = None
+                else: # set mag precision back to 0.1 mags regardless of how good it actually is
+                    obs._mag_precision = 1
+
+                mpc_observation = obs.to_string()[:80]
+                if mpc_observation.startswith('!'):   # .null_observation doesn't have an override for the character
+                    mpc_observation = mpc_observation.replace('!', '-')  # format non-detection lines for tnodb
+
+                outfile.write(mpc_observation + '\n')
 
     def batch_convert(self, path):
         for fn in os.listdir(path):
-            if fn.endswith('.mpc') or fn.endswith('.track'):
-                with open(path+fn, 'r') as f:
-                    if not f.readline().startswith('!'):
-                        output = path + fn.rpartition('.')[0] + '.tnodb'
-                        outfile = open(output, 'w')
-                        self.convert(path+fn, outfile)
-        # then cat them with for f in *.tnodb; do (cat "${f}"; echo) >> allmpc.txt; done
+            if fn.endswith('.mpc') or fn.endswith('.track') or fn.endswith('.checkup') or fn.endswith('.nailing'):
+                with open(path + fn, 'r') as f:
+                    output = path + fn.rpartition('.')[0] + '.tnodb'
+                    outfile = open(output, 'w')
+                    self.convert(path + fn, outfile)
+
+                    # then cat them with for f in *.tnodb; do (cat "${f}"; echo) >> allmpc.txt; done
+
+    def make_header(self, observations=None, mindate='20130208', maxdate='20130901'):
+        if observations is not None:
+            odates = [obs.date for obs in observations]
+            for dd in odates:
+                dd.out_subfmt = 'date'
+            mindate = min(odates).iso.replace('-', '')
+            maxdate = max(odates).iso.replace('-', '')
+
+        header = "COD 568\n" + "OBS J. J. Kavelaars and M. T. Bannister\n" + "TEL CFHT 3.6m + CCD\n" +  "NET 2MASS\n"
+        header += "{:s} {:s}\n".format('STD', mindate)
+        header += "{:s} {:s}\n".format('END', maxdate)
+        print header
+
+        return header
