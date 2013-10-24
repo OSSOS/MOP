@@ -275,6 +275,12 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
                       ext=ext,
                       subdir=subdir)
         logger.debug("Using uri: %s" % ( uri))
+        if not exists(uri):
+            uri = get_uri(expnum,
+                      version=version,
+                      ext=ext+".fz",
+                      subdir=subdir)
+	
         cutout="[%d]" % ( int(ccd)+1)
         if ccd < 18 :
             cutout += "[-*,-*]"
@@ -375,16 +381,17 @@ def vlink(s_expnum, s_ccd, s_version, s_ext,
 
     return vospace.link(source_uri, link_uri)
 
-def delete(expnum, ccd, version, ext, prefix=None):
-    '''delete a file, no error on does not exist'''
-    uri = get_uri(expnum, ccd=ccd, version=version, ext=ext, prefix=prefix)
-
+def remove(uri):
     try:
         vospace.delete(uri)
     except IOError as e:
         if e.errno != errno.ENOENT:
             raise e
 
+def delete(expnum, ccd, version, ext, prefix=None):
+    '''delete a file, no error on does not exist'''
+    uri = get_uri(expnum, ccd=ccd, version=version, ext=ext, prefix=prefix)
+    remove(uri)
 
 def listdir(directory, force=False):
     return vospace.listdir(directory, force=force)

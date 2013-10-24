@@ -29,13 +29,13 @@ import os
 from ossos import storage
 from ossos import util 
 
-def mkpsf(expnum, ccd):
+def mkpsf(expnum, ccd, fversion):
     """Run the OSSOS makepsf script.
 
     """
 
     ## get image from the vospace storage area
-    filename = storage.get_image(expnum, ccd, version='p')
+    filename = storage.get_image(expnum, ccd, version=fversion)
     logging.info("Running mkpsf on %s %d" % (expnum, ccd))
     ## launch the makepsf script
     util.exec_prog(['jmpmakepsf.csh',
@@ -48,15 +48,17 @@ def mkpsf(expnum, ccd):
 
     ## confirm destination directory exists.
     destdir = os.path.dirname(
-        storage.dbimages_uri(expnum, ccd, version='p',ext='fits'))
+        storage.dbimages_uri(expnum, ccd, version=fversion,ext='fits'))
     logging.info("Checking that destination direcoties exist")
     storage.mkdir(destdir)
 
 
     for ext in ('mopheader', 'psf.fits',
                 'zeropoint.used', 'apcor', 'fwhm', 'phot'):
-        dest = storage.dbimages_uri(expnum, ccd, version='p', ext=ext)
+        dest = storage.dbimages_uri(expnum, ccd, version=fversion, ext=ext)
         source = basename + "." + ext
+        logging.info("Copying %s -> %s" % ( source, dest))
+        storage.remove(dest)
         storage.copy(source, dest)
 
     return
@@ -87,6 +89,7 @@ if __name__ == '__main__':
                         help="expnum(s) to process"
                         )
 
+    parser.add_argument("--type", "-t", choices=['o','p','s'], help="which type of image: o-RAW, p-ELIXIR, s-SCRAMBLE", default='p')
     parser.add_argument("--verbose", "-v",
                         action="store_true")
     parser.add_argument("--force", default=False,
@@ -118,17 +121,17 @@ if __name__ == '__main__':
                 continue
             try:
                 message = 'success'
-                mkpsf(expnum, ccd)
+                mkpsf(expnum, ccd, args.type)
                 storage.set_status(expnum,
                                          ccd,
                                          'fwhm',
                                          str(storage.get_fwhm(
-                    expnum, ccd)))
+                    expnum, ccd, version=args.type)))
                 storage.set_status(expnum,
                                          ccd,
                                          'zeropoint',
                                          str(storage.get_zeropoint(
-                    expnum, ccd)))
+                    expnum, ccd, version=args.type)))
                                          
             except Exception as e:
                 message = str(e)

@@ -21,7 +21,7 @@ def plant(expnums, ccd, rmin, rmax, ang, width, version='s'):
     ptf.write("# image fwhm plant\n")
 
     for expnum in expnums:
-        fwhm = storage.get_fwhm(expnum,ccd)
+        fwhm = storage.get_fwhm(expnum,ccd, version=version)
         filename = storage.get_image(expnum, ccd=ccd, version=version)
         ptf.write("%s %3.1f YES\n" % ( filename[0:-5],
                                     fwhm ))
@@ -32,7 +32,7 @@ def plant(expnums, ccd, rmin, rmax, ang, width, version='s'):
                     'mopheader',
                     'phot',
                     'zeropoint.used']:
-            apcor = storage.get_image(expnum, ccd=ccd, version='s',
+            apcor = storage.get_image(expnum, ccd=ccd, version=version,
                                       ext=ext)
 
     ptf.close()
@@ -124,6 +124,7 @@ if __name__=='__main__':
     if not args.no_sort:
         args.expnums.sort()
 
+    storage.DBIMAGES = args.dbimages
 
 
     logging.basicConfig(level=level, format="%(message)s")
