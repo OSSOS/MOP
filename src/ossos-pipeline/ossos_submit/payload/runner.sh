@@ -41,4 +41,6 @@ status=$?
 rm log_capture_on
 wait
 vcp ${logfile} ${log_container_node}
+
+[ -e ossos_validation.log ] && vcp ossos_validation.log ${log_container_node}/${jobid}.log
 exit $status
