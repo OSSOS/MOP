@@ -69,6 +69,9 @@ class Downloader(object):
         """
         return ApcorData.from_string(self.download_raw(uri, view="data"))
 
+    def download_zmag(self, uri):
+        return float(self.download_raw(uri, view="data"))
+
     def refresh_vos_client(self):
         """
         If we have gotten a new certfile we have to create a new Client
