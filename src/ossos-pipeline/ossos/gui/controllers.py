@@ -195,6 +195,7 @@ class ProcessRealsController(AbstractController):
         values = result.split()
         logger.debug("IMEXAM returned {}".format(values))
         cen_coords = (float(values[1]),float(values[2]))
+        key  = values[0]
         source_cutout.update_pixel_location(cen_coords)
         #source_cutout.pixel_x = float(values[1])
         #source_cutout.pixel_y = float(values[2])
@@ -223,8 +224,10 @@ class ProcessRealsController(AbstractController):
 
         if self.model.is_current_source_adjusted():
             note1_default = config.read("MPC.NOTE1_HAND_ADJUSTED")
+        elif key in mpc.MPCNOTES['Note1'].keys():
+            note1_default = key
         else:
-            note1_default = None
+            note1_default = ""
 
         self.view.show_accept_source_dialog(
             provisional_name,
