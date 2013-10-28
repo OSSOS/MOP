@@ -151,6 +151,9 @@ def create_sky_plot(obstable, outfile, night_count=1, stack=True):
     t2 = None
     count = 0
     fig = None
+    proposalID = None
+    limits = { '13A' : ( 245, 200, -20, 0),
+               '13B' : ( 0, 45, 0, 20) }
     for row in reversed(obstable.data):
         date = ephem.date(row.StartDate + 2400000.5 - ephem.julian_date(ephem.date(0)))
         sDate = str(date)
@@ -162,14 +165,15 @@ def create_sky_plot(obstable, outfile, night_count=1, stack=True):
         ura = math.degrees(uranus.ra)
         udec = math.degrees(uranus.dec)
         t1 = time.strptime(sDate,"%Y/%m/%d %H:%M:%S")
-        if t2 is None or ( math.fabs(time.mktime(t2)-time.mktime(t1)) > 3*3600.0 and opt.stack):
+        if t2 is None or ( math.fabs(time.mktime(t2)-time.mktime(t1)) > 3*3600.0 and opt.stack) or proposalID is None or proposalID != row.ProposalID:
             if fig is not None:
                 pdf.savefig()
                 close()
+            proposalID = row.ProposalID
             fig = figure(figsize=(7,2))
             ax = fig.add_subplot(111,aspect='equal')
             ax.set_title("Data taken on %s-%s-%s" % ( t1.tm_year, t1.tm_mon, t1.tm_mday), fontdict={'fontsize': 8} )
-            ax.axis((245,200,-20,0))  # appropriate only for 2013A fields
+            ax.axis(limits.get(row.ProposalID[0:3],(0,20,0,20)))  # appropriate only for 2013A fields
             ax.grid()
             ax.set_xlabel("RA (deg)", fontdict={'fontsize': 8} )
             ax.set_ylabel("DEC (deg)", fontdict={'fontsize': 8} )
