@@ -16,11 +16,12 @@ class SourceCutout(object):
     A cutout around a source.
     """
 
-    def __init__(self, reading, hdulist, coordinate_converter, apcor=None):
+    def __init__(self, reading, hdulist, coordinate_converter, apcor=None, zmag=None):
         self.reading = reading
         self.hdulist = hdulist
         self.coordinate_converter = coordinate_converter
         self.apcor = apcor
+        self.zmag = zmag
 
         self.original_observed_x = self.reading.x
         self.original_observed_y = self.reading.y

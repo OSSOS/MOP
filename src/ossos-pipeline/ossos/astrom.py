@@ -688,3 +688,7 @@ class Observation(object):
         ccd = "ccd{:02d}".format(int(self.ccdnum))
         return "%s/%s/%s/%s.apcor" % (DATASET_ROOT, self.expnum,
                                          ccd, self.rawname)
+
+    def get_zmag_uri(self):
+        ccd = "ccd{:02d}".format(int(self.ccdnum))
+        return "%s/%s/%s/%s.zeropoint.used" % ( DATASET_ROOT, self.expnum, ccd, self.rawname)

@@ -67,6 +67,11 @@ class ImageCutoutDownloader(Downloader):
                 apcor = self.download_apcor(reading.get_apcor_uri())
             except:
                 apcor = None
+        zmag = None
+        try:
+            zmag = self.download_zmag(reading.get_zmag_uri())
+        except:
+            pass
 
-        return SourceCutout(reading, hdulist, converter, apcor)
+        return SourceCutout(reading, hdulist, converter, apcor, zmag=zmag)
 

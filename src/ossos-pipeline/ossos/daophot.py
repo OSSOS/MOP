@@ -54,17 +54,24 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
     if zmag is None:
         zmag = input_hdulist[0].header.get('PHOTZP', zeropoints[filter])
 
+        ### check for the magical 'zeropoint.used' file
+        zpu_file = "zeropoint.used"
+        if os.access(zpu_file, os.R_OK):
+            with open(zpu_file) as zpu_fh:
+                zmag = float(zpu_fh.read())
+        else:
+            zpu_file = "%s.zeropoint.used" % ( fits_filename[0:-5])
+            if os.access(zpu_file, os.R_OK):
+                with open(zpu_file) as zpu_fh:
+                    zmag = float(zpu_fh.read())
+
     ### setup IRAF to do the magnitude/centroid measurements
     iraf.set(uparm="./")
     iraf.digiphot()
     iraf.apphot()
     iraf.daophot(_doprint=0)
 
-    ### check for the magical 'zeropoint.used' file
-    zpu_file = "zeropoint.used"
-    if os.access(zpu_file, os.R_OK):
-        with open(zpu_file) as zpu_fh:
-            zmag = float(zpu_fh.read())
+
 
     iraf.photpars.apertures = int(aperture)
     iraf.photpars.zmag = zmag
