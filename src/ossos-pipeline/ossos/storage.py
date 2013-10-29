@@ -8,9 +8,13 @@ from astropy.io import fits
 from astropy.io import ascii
 import vos
 
-from ossos import coding, mpc
+from ossos import coding
+from mpc import Time
 import requests
-from ossos.gui import logger
+
+import logging
+logger = logging
+
 MAXCOUNT=30000
 
 CERTFILE=os.path.join(os.getenv('HOME'),
@@ -35,13 +39,15 @@ mopheaders = {}
 astheaders = {}
 
 
-def cone_search(ra, dec, dra, ddec, runids=('13AP05','13AP06','13BP05','13BP06')):
+def cone_search(ra, dec, dra=0.01, ddec=0.01, runids=('13AP05','13AP06','13BP05')):
     """Do a QUERY on the TAP service for all observations that are part of runid,
     where taken after mjd and have calibration 'observable'.
 
     :param runids:
     :param ra:
     :param dec:
+    :param dra: degrees
+    :param ddec: degrees
     mjd : float
     observable: str ( CAL or RAW)
     runid: tuple eg. ('13AP05', '13AP06')
@@ -331,7 +337,7 @@ def mkdir(root):
         dir_list.append(root)
         root = os.path.dirname(root)
     while len(dir_list)>0:
-        logger.debug("Creating directory: %s" % (dir_list[-1]))
+        logging.debug("Creating directory: %s" % (dir_list[-1]))
         vospace.mkdir(dir_list.pop())
     return
 
@@ -533,7 +539,7 @@ def get_mopheader(expnum, ccd):
     header['NAX1'] = header['NAXIS1']
     header['NAX2'] = header['NAXIS2']
     header['MOPversion'] = header['MOP_VER']
-    header['MJD_OBS_CENTER'] = str(mpc.Time(header['MJD-OBSC'],
+    header['MJD_OBS_CENTER'] = str(Time(header['MJD-OBSC'],
                                             format='mjd',
                                             scale='utc', precision=5 ).replicate(format='mpc'))
     header['MAXCOUNT'] = MAXCOUNT
