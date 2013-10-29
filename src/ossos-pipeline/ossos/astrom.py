@@ -11,7 +11,9 @@ import re
 
 from ossos import storage, wcs
 
-DATASET_ROOT = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages"
+print storage.DBIMAGES
+DATASET_ROOT = storage.DBIMAGES
+# DATASET_ROOT = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages"
 
 # Images from CCDs < 18 have their coordinates flipped
 MAX_INVERTED_CCD = 17
@@ -20,7 +22,7 @@ HEADER_LINE_LENGTH = 80
 
 FAKE_PREFIX = "fk"
 
-OBS_LIST_PATTERN = "#\s+(?P<rawname>(?P<fk>%s)?(?P<expnum>\d{7})(?P<ftype>[ops])(?P<ccdnum>\d+))" % FAKE_PREFIX
+OBS_LIST_PATTERN = "#\s+(?P<rawname>(?P<fk>%s)?(?P<expnum>\d{6,7})(?P<ftype>[ops])(?P<ccdnum>\d+))" % FAKE_PREFIX
 
 ## Observation header keys
 MOPVERSION = "MOPversion"
