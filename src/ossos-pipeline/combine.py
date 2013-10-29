@@ -169,6 +169,7 @@ if __name__=='__main__':
     logging.basicConfig(level=level, format="%(message)s")
         
     storage.DBIMAGES = args.dbimages
+    storage.MEASURE3 = args.measure3
 
     prefix = ( args.fk and 'fk' ) or ''
 

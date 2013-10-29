@@ -13,7 +13,7 @@ class TaskError(Exception):
 
 
 def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
-         maxcount=30000.0, exptime=1.0):
+         maxcount=30000.0, exptime=1.0, zmag=None):
     """
     Compute the centroids and magnitudes of a bunch sources detected on
     CFHT-MEGAPRIME images.
@@ -51,7 +51,8 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
     if not filter in zeropoints:
         filter = "DEFAULT"
 
-    zmag = input_hdulist[0].header.get('PHOTZP', zeropoints[filter])
+    if zmag is None:
+        zmag = input_hdulist[0].header.get('PHOTZP', zeropoints[filter])
 
     ### setup IRAF to do the magnitude/centroid measurements
     iraf.set(uparm="./")

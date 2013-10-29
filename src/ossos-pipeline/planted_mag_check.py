@@ -15,6 +15,7 @@ from ossos.mpc import Time
 from ossos.astrom import AstromParser
 from ossos.astrom import StreamingAstromWriter
 from ossos.downloads.cutouts import ImageCutoutDownloader
+from ossos import storage
 
 import argparse
 
@@ -53,7 +54,7 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
 
 
     fk_candidate_observations = astrom.parse(astrom_filename)
-    matches_ftpr = open(match_filename,'w')
+    matches_ftpr = storage.open_vos_or_local(match_filename,'w')
 
     objects_planted_uri = fk_candidate_observations.observations[0].get_object_planted_uri()
 
@@ -106,7 +107,7 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
             24*(end_jd - start_jd) )
         angle = math.degrees(math.atan2(third.y - reading.y,third.x - reading.x))
 
-        if matched > 3*rate*exptime/3600.0:
+        if matched > 3*rate*exptime/3600.0 and False :
             # this is a false positive (candidate not near artificial source)
             # create a .astrom style line for feeding to validate for checking later
             if false_positives_ftpr is None or false_positives_stream_writer is None:
@@ -129,7 +130,6 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
         matches_ftpr.write("{:1s}{} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format(
             repeat,
             str(planted_objects[matched_object_idx]), reading.x, reading.y, mag, merr, rate, angle, matched))
-        matches_ftpr.flush()
 
 
 
@@ -156,11 +156,13 @@ if __name__ == '__main__':
     #parser.add_argument('false_positive_filename',
     #                    help='name of file to send false positives into')
 
+    parser.add_argument('--dbimages', default='vos:OSSOS/dbimages')
     args  = parser.parse_args()
 
-    match_filename = os.path.splitext(args.astrom_filename)[0]+".match"
+    astrom.DATASET_ROOT = args.dbimages
+
+    match_filename = astrom.DATASET_ROOT+'/'+os.path.splitext(os.path.basename(args.astrom_filename))[0]+".match"
     false_positive_filename = args.astrom_filename.replace('reals','cands')
 
     match_planted(args.astrom_filename, match_filename, false_positive_filename)
-
 

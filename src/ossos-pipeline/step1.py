@@ -73,7 +73,8 @@ def step1(expnum,
     storage.copy(obj_filename,obj_uri)
 
     ## for step1matt we need the weight image
-    flat_name = fits.open(filename)[0].header['FLAT']
+    hdulist = fits.open(filename)
+    flat_name = hdulist[0].header.get('FLAT','06Bm02.flat.r.36.01.fits')
     flat_name = flat_name[0:-5]
     flat_filename = storage.get_image(flat_name, ccd, version='', ext='fits',
                       subdir='calibrators', rescale=False)
