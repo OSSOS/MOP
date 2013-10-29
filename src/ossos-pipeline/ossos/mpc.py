@@ -14,8 +14,8 @@ from astropy.time import TimeString
 from astropy.time import Time
 from astropy import units
 import numpy
+import logging
 
-from ossos.gui import logger
 
 
 MPCNOTES = {'Note1':
@@ -715,7 +715,7 @@ class MPCComment(object):
         """
         values = comment.split()
         if len(values) < 8:
-            logger.warning("non-OSSOS format MPC line read")
+            logging.warning("non-OSSOS format MPC line read")
             return comment
         comment = comment.split('%')[-1]
         return MPCComment(source_name=values[1],
