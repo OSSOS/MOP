@@ -134,6 +134,7 @@ class SourceCutout(object):
                                 sky=self.apcor.sky,
                                 swidth=self.apcor.swidth,
                                 apcor=self.apcor.apcor,
+                                zmag=self.zmag,
                                 maxcount=maxcount)
 
     def _hdulist_on_disk(self):
