@@ -551,6 +551,7 @@ def get_mopheader(expnum, ccd):
 def get_astheader(expnum, ccd):
 
     ast_uri = dbimages_uri(expnum, ccd)
+    print ast_uri
     if ast_uri in astheaders:
         logger.debug("returning cached header for {}".format(ast_uri))
         return astheaders[ast_uri]

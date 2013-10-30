@@ -15,14 +15,13 @@ from ossos.mpc import Time
 from ossos.astrom import AstromParser
 from ossos.astrom import StreamingAstromWriter
 from ossos.downloads.cutouts import ImageCutoutDownloader
-from ossos import storage
 
 import argparse
 
 class PlantedObject(object):
 
     def __init__(self, line):
-        vals = line.strip().split()
+        vals = line.strip().split()[0:7]
         self.id = int(vals.pop())
         self.rate_arcsec = float(vals.pop())
         self.angle = float(vals.pop())
@@ -54,7 +53,8 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
 
 
     fk_candidate_observations = astrom.parse(astrom_filename)
-    matches_fptr = storage.open_vos_or_local(match_filename,'w')
+
+    matches_ftpr = open(match_filename,'r')
 
     objects_planted_uri = fk_candidate_observations.observations[0].get_object_planted_uri()
 
@@ -68,20 +68,18 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
             continue
         planted_objects.append(PlantedObject(line))
 
-    false_positives_fptr = None
+    false_positives_ftpr = None
     false_positives_stream_writer = None
 
-    matches_fptr.write("#{}\n".format(fk_candidate_observations.observations[0].rawname))
-    matches_fptr.write("{:1s}{} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s}\n".format(
+    matches_ftpr.write("#{}\n".format(fk_candidate_observations.observations[0].rawname))
+    matches_ftpr.write("{:1s}{} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s}\n".format(
         "",objects_planted[0],"x_dao","y_dao","mag_dao","merr_dao", "rate_mes", "ang_mes", "dr_pixels" ))
 
     found_idxs = []
     for source in  fk_candidate_observations.get_sources():
         reading = source.get_reading(0)
         third  = source.get_reading(2)
-
         cutout = image_slice_downloader.download_cutout(reading, needs_apcor=True)
-        print cutout.fits_header
 
         try:
             (x, y, mag, merr) = cutout.get_observed_magnitude()
@@ -90,8 +88,10 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
             mag = 0.0
             merr = -1.0
 
+        observation = reading.get_observation()
 
         matched = None
+        repeat = ''
         for idx in range(len(planted_objects)):
             planted_object = planted_objects[idx]
             dist = math.sqrt((reading.x-planted_object.x)**2 + (reading.y - planted_object.y)**2)
@@ -102,12 +102,12 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
         start_jd = Time(reading.obs.header['MJD_OBS_CENTER'],format='mpc', scale='utc').jd
         end_jd = Time(third.obs.header['MJD_OBS_CENTER'], format='mpc', scale='utc').jd
         exptime = float(reading.obs.header['EXPTIME'])
-
+        dt = end_jd - start_jd
         rate = math.sqrt((third.x - reading.x)**2 + (third.y - reading.y)**2)/(
             24*(end_jd - start_jd) )
         angle = math.degrees(math.atan2(third.y - reading.y,third.x - reading.x))
 
-        if matched > 3*rate*exptime/3600.0 and False :
+        if matched > 3*rate*exptime/3600.0:
             # this is a false positive (candidate not near artificial source)
             # create a .astrom style line for feeding to validate for checking later
             if false_positives_ftpr is None or false_positives_stream_writer is None:
@@ -118,33 +118,20 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
             false_positives_stream_writer.write_source(source)
             false_positives_ftpr.flush()
             continue
+            repeat = '#'
         elif matched_object_idx in found_idxs:
             repeat = '#'
         else:
             repeat = ' '
             found_idxs.append(matched_object_idx)
 
-        mags = []
-        merrs = []
-        for this_reading in source.get_readings()[1:]:
-            cutout = image_slice_downloader.download_cutout(this_reading, needs_apcor=True)
 
-            try:
-                (this_x, this_y, this_mag, this_merr) = cutout.get_observed_magnitude()
-            except TaskError as e:
-                logger.warning(str(e))
-                this_mag = 0.0
-                this_merr = -1.0
 
-            mags.append(this_mag)
-            merrs.append(this_merr)
-
-        matches_fptr.write("{:1s}{} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} ".format(
+        matches_ftpr.write("{:1s}{} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format(
             repeat,
             str(planted_objects[matched_object_idx]), reading.x, reading.y, mag, merr, rate, angle, matched))
-        for idx in range(len(mags)):
-            matches_fptr.write("{:8.2f} {:8.2f}".format(mags[idx], merrs[idx]))
-        matches_fptr.write("\n")
+        matches_ftpr.flush()
+
 
 
     # close the false_positives
@@ -155,9 +142,9 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
     for idx in range(len(planted_objects)):
         if idx not in found_idxs:
             planted_object = planted_objects[idx]
-            matches_fptr.write("{:1s}{} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format("",str(planted_object),
+            matches_ftpr.write("{:1s}{} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format("",str(planted_object),
                                                                           0, 0, 0, 0, 0, 0, 0))
-    matches_fptr.close()
+    matches_ftpr.close()
 
 
 if __name__ == '__main__':
@@ -170,13 +157,11 @@ if __name__ == '__main__':
     #parser.add_argument('false_positive_filename',
     #                    help='name of file to send false positives into')
 
-    parser.add_argument('--dbimages', default='vos:OSSOS/dbimages')
     args  = parser.parse_args()
 
-    astrom.DATASET_ROOT = args.dbimages
-
-    match_filename = astrom.DATASET_ROOT+'/'+os.path.splitext(os.path.basename(args.astrom_filename))[0]+".match"
+    match_filename = os.path.splitext(args.astrom_filename)[0]+".match"
     false_positive_filename = args.astrom_filename.replace('reals','cands')
 
     match_planted(args.astrom_filename, match_filename, false_positive_filename)
+
 

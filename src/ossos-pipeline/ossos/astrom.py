@@ -557,6 +557,7 @@ class SourceReading(object):
             True if the stored image is inverted.
         """
         astheader = storage.get_astheader(self.obs.expnum, self.obs.ccdnum)
+        print astheader
         pvwcs = wcs.WCS(astheader)
         (x,y) = pvwcs.sky2xy(self.ra, self.dec)
         logger.debug("is_inverted: X,Y {},{}  -> wcs X,Y {},{}".format(self.x, self.y, x, y))
