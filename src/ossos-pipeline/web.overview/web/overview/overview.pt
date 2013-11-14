@@ -26,29 +26,21 @@
                 id="overview-overview" aria-labelledby="overview-overview-h">
           	<h2 id="overview-overview-h">Overview</h2>
             <dl class="dl-horizontal">
-              <dt>Survey completion:</dt> 
-            	<dd>
-                <abbr class = "val"
-            		      title = "0/8 blocks observed, processed and checked for discoveries.">${propor_complete} %</abbr>
-              </dd>
-              <dt>Observed:</dt>
+              <dt>Observed</dt>
               <dd> 
-            	${'%.2f' % surveyed[0]} deg&#xb2; (${surveyed[1]} fields)
-              <!-- observed for precovery, discovery triplet and follow-up tracking. Completed = at least one precovery, the discovery triplet, and two nailing recovery observations. -->
+            	${'%.1f' % surveyed[0]} deg&#xb2; (${surveyed[1]}/168 fields)
+              <!-- Completed = at least one precovery, the discovery triplet, and two nailing recovery observations. -->
               </dd>
               <dt>Fully processed<dt>
               <dd> 
-            	 <abbr class = "val"
-            		    title = "Blocks run entirely through the processing pipeline.">${processed_sqdeg}</abbr> 
-                deg&#xb2;
+            	<abbr class = "val"
+            		    title = "Blocks run entirely through the processing pipeline.">
+            		    ${'%.1f' % processed_sqdeg}</abbr> deg&#xb2;
               </dd>
-              <!-- (ie. area awaiting processing: difference between those two) -->
-              <dt>Objects <a href="discoveries">discovered</a>:</dt>
+              <dt>Objects <a href="discoveries">discovered</a></dt>
               <dd>${num_discoveries}</dd>
-              <dt>Reported to MPC:</dt>
+              <dt>Reported to MPC</dt>
               <dd>${mpc_told}</dd>
-              <dt>Survey efficiency:</dt>
-              <dd>${efficiency}%</dd>
             </dl>
           </div>
           <div class="span6">
@@ -66,7 +58,7 @@
             	<span class = "val"
             	       	title = "We observe if the near-new moon is down, or if the moon is up but we are within 3 days of new moon.">${next_obs} </span><br/>
             	moon-dark UTC: ${next_moondark.strftime('%Y-%m-%d')}.
-            	<strong>MegaCam</strong> on telescope ${nearest_megacam_run}
+            	<strong>MegaPrime</strong> on telescope ${nearest_megacam_run}
             </p>
             <p>
               QSO status: <a href="http://qso.cfht.hawaii.edu:2001/Instruments/Queue/NR/exp.cfm?Type=PS&RunID=13AP05">13AP05</a>, <a href="http://qso.cfht.hawaii.edu:2001/Instruments/Queue/NR/exp.cfm?Type=PS&RunID=13BP05">13BP05</a>. 
@@ -93,11 +85,9 @@
           <tr>
             <th>Block</th>
             <th>Observations</th>
-            <th>Precoveries</th>
-            <th>Nailings</th>
-            <th>Doubles</th>
-            <th>Discoveries</th>
             <th>Processing status</th>
+            <th>Discoveries</th>
+            <th>40% detection efficiency (m_r)</th>
           </tr>
         </thead>
         <tbody>
@@ -106,14 +96,11 @@
               <tal:block tal:condition="obj">
                 <td><a href="blocks/${obj[0]}">${obj[0]}</a></td> <!-- fix URL -->
                 <td>${obj[1]}</td>
-                <td>${obj[2]}</td>
+                <td>${obj[2]}</td> <!-- block processing status (overview level) -->
                 <td>${obj[3]}</td>
-                <td>${obj[4]}</td>
-                <td>${obj[5]}</td>
-                <td></td>
-                <!-- add a td here for block processing status (overview level) -->
+                <td>${obj[4]}</td> <!-- block discovery efficiency here (hardwired per block) -->
               </tal:block>
-              <td tal:condition="not(obj)" colspan="7">
+              <td tal:condition="not(obj)" colspan="5">
                 &mdash;
               </td>
             </tr>
