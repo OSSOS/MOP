@@ -917,9 +917,13 @@ class MPCConverter(object):
             for line in infile.readlines():
                 obs = Observation().from_string(line)
                 observations.append(obs)
+
             for obs in observations:
                 # tnodb requires all lines to be MPC roving observer line length
                 comment_line = ('#O ' + str(obs.comment))[:80].rstrip('\n') # #O indicates OSSOS survey
+
+                # print comment_line
+
                 outfile.write(comment_line + '\n')
 
                 if obs.mag == -1:  # write no mag and no filter for where photometry couldn't be measured
@@ -930,6 +934,8 @@ class MPCConverter(object):
                 mpc_observation = obs.to_string()[:80]
                 if mpc_observation.startswith('!'):   # .null_observation doesn't have an override for the character
                     mpc_observation = mpc_observation.replace('!', '-')  # format non-detection lines for tnodb
+
+                # print mpc_observation
 
                 outfile.write(mpc_observation + '\n')
 
