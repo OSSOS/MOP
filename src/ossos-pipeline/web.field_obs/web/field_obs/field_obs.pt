@@ -3,12 +3,14 @@
 <html>
   <head>
   	<!-- No indexing by search engines, for now -->
-  <meta http-equiv="Content-Type" name="robots" content="noindex; text/html; charset=utf-8" />
-  <title>OSSOS: Field Inspection</title>
-  <link rel="stylesheet" type="text/css" href="/css/bootstrap.css" />
-  <style type = "text/css">
-    .normal-image {}
-  </style>
+    <meta http-equiv="Content-Type" name="robots" content="noindex; text/html; charset=utf-8" />
+    <title>OSSOS: Field Inspection</title>
+    <link rel="stylesheet" type="text/css" href="/css/bootstrap.css" />
+    <style type = "text/css">
+        .normal-image {}
+    </style>
+    <script type="text/javascript" src="jquery-1.10.1.js"></script>
+    <script type="text/javascript" src="jquery.sparkline.js"></script>
   </head>
 
   <body>

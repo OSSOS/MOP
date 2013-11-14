@@ -78,6 +78,10 @@ class Field(object):
         else:
             self.fieldId = fi
 
+    @Lazy
+    def discovery_triplet(self):
+        retval = self.imagesQuery.discovery_triplet(self.fieldId)
+        return retval
 
     @Lazy
     def observations(self):
@@ -116,11 +120,6 @@ class Field(object):
                               ephem.degrees(self.imagesQuery.field_dec(self.fieldId)))
         ec = ephem.Ecliptic(rr)
         retval = (degrees(ec.lat), str(ec.lon))  # eclat is float (deg), eclon is str in deg
-        return retval
-
-    @Lazy
-    def discovery_triplet(self):
-        retval = self.imagesQuery.discovery_triplet(self.fieldId)
         return retval
 
     @Lazy
