@@ -6,3 +6,5 @@ To submit a step3.py job, for example:
 
 
 for expnum in `vls vos:OSSOS/dbimages` ; do for ccd in $(seq -f "%02g" 0 35) ; do status=`vtag vos:OSSOS/dbimages/${expnum} ivo://canfar.uvic.ca/ossos#mkpsf_${ccd}` ; [ $status != 'success' ] || echo ${expnum}, ${ccd}, ${status} ; done ; done ;
+
+cat ~/Desktop/13Nov_ids.txt | while read exp1 ; do ./submit_job.sh `date -u +%Y-%m-%dT%H:%M:%S`_preproc_${ccd} preproc.sh ${exp1} ; done
