@@ -8,7 +8,7 @@ echo -n "Checking ${expnum}; "
 
 
 # Test that we need to do the job
-status=`vtag vos:OSSOS/dbimages/${expnum} ivo://canfar.uvic.ca/ossos#update_header_36`
+status=`vtag vos:OSSOS/dbimages/${expnum} ivo://canfar.uvic.ca/ossos#update_header_p36`
 
 echo -n " status = ${status} -> "
 if [ ${status} != "'success'" ]
