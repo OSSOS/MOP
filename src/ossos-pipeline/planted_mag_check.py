@@ -125,12 +125,27 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
             repeat = ' '
             found_idxs.append(matched_object_idx)
 
+        mags = []
+        merrs = []
+        for this_reading in source.get_readings()[1:]:
+            cutout = image_slice_downloader.download_cutout(this_reading, needs_apcor=True)
 
+           try:
+                (this_x, this_y, this_mag, this_merr) = cutout.get_observed_magnitude()
+            except TaskError as e:
+                logger.warning(str(e))
+                this_mag = 0.0
+                this_merr  = -1.0
 
-        matches_ftpr.write("{:1s}{} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format(
+            mags.append(this_mag)
+            merrs.append(this_merr)
+
+        matches_ftpr.write("{:1s}{} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} ".format(
             repeat,
             str(planted_objects[matched_object_idx]), reading.x, reading.y, mag, merr, rate, angle, matched))
-
+        for idx in range(len(mags)):
+            matches_fptr.write("{:8.2f} {:8.2f}".format(mags[idx], merrs[idx]))
+        matchs_fptr.write("\n")
 
 
     # close the false_positives
