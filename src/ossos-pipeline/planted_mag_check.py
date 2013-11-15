@@ -54,7 +54,7 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
 
 
     fk_candidate_observations = astrom.parse(astrom_filename)
-    matches_ftpr = storage.open_vos_or_local(match_filename,'w')
+    matches_fptr = storage.open_vos_or_local(match_filename,'w')
 
     objects_planted_uri = fk_candidate_observations.observations[0].get_object_planted_uri()
 
@@ -68,11 +68,11 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
             continue
         planted_objects.append(PlantedObject(line))
 
-    false_positives_ftpr = None
+    false_positives_fptr = None
     false_positives_stream_writer = None
 
-    matches_ftpr.write("#{}\n".format(fk_candidate_observations.observations[0].rawname))
-    matches_ftpr.write("{:1s}{} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s}\n".format(
+    matches_fptr.write("#{}\n".format(fk_candidate_observations.observations[0].rawname))
+    matches_fptr.write("{:1s}{} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s}\n".format(
         "",objects_planted[0],"x_dao","y_dao","mag_dao","merr_dao", "rate_mes", "ang_mes", "dr_pixels" ))
 
     found_idxs = []
@@ -88,10 +88,8 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
             mag = 0.0
             merr = -1.0
 
-        observation = reading.get_observation()
 
         matched = None
-        repeat = ''
         for idx in range(len(planted_objects)):
             planted_object = planted_objects[idx]
             dist = math.sqrt((reading.x-planted_object.x)**2 + (reading.y - planted_object.y)**2)
@@ -102,7 +100,7 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
         start_jd = Time(reading.obs.header['MJD_OBS_CENTER'],format='mpc', scale='utc').jd
         end_jd = Time(third.obs.header['MJD_OBS_CENTER'], format='mpc', scale='utc').jd
         exptime = float(reading.obs.header['EXPTIME'])
-        dt = end_jd - start_jd
+
         rate = math.sqrt((third.x - reading.x)**2 + (third.y - reading.y)**2)/(
             24*(end_jd - start_jd) )
         angle = math.degrees(math.atan2(third.y - reading.y,third.x - reading.x))
@@ -118,7 +116,6 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
             false_positives_stream_writer.write_source(source)
             false_positives_ftpr.flush()
             continue
-            repeat = '#'
         elif matched_object_idx in found_idxs:
             repeat = '#'
         else:
@@ -130,22 +127,22 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
         for this_reading in source.get_readings()[1:]:
             cutout = image_slice_downloader.download_cutout(this_reading, needs_apcor=True)
 
-           try:
+            try:
                 (this_x, this_y, this_mag, this_merr) = cutout.get_observed_magnitude()
             except TaskError as e:
                 logger.warning(str(e))
                 this_mag = 0.0
-                this_merr  = -1.0
+                this_merr = -1.0
 
             mags.append(this_mag)
             merrs.append(this_merr)
 
-        matches_ftpr.write("{:1s}{} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} ".format(
+        matches_fptr.write("{:1s}{} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} ".format(
             repeat,
             str(planted_objects[matched_object_idx]), reading.x, reading.y, mag, merr, rate, angle, matched))
         for idx in range(len(mags)):
             matches_fptr.write("{:8.2f} {:8.2f}".format(mags[idx], merrs[idx]))
-        matchs_fptr.write("\n")
+        matches_fptr.write("\n")
 
 
     # close the false_positives
@@ -156,9 +153,9 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
     for idx in range(len(planted_objects)):
         if idx not in found_idxs:
             planted_object = planted_objects[idx]
-            matches_ftpr.write("{:1s}{} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format("",str(planted_object),
+            matches_fptr.write("{:1s}{} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format("",str(planted_object),
                                                                           0, 0, 0, 0, 0, 0, 0))
-    matches_ftpr.close()
+    matches_fptr.close()
 
 
 if __name__ == '__main__':
