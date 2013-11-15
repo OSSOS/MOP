@@ -100,16 +100,16 @@ if __name__=='__main__':
     for ccd in ccds:
         expnums = args.expnums
         if storage.get_status(expnums[0], ccd,
-                              'scramble') and not args.force:
+                              'scramble', version='s') and not args.force:
             continue
         message = storage.SUCCESS
 
         try:
-            scramble(expnums=expnums, ccd=ccd, version=args.type)
+            scramble(expnums=expnums, ccd=ccd, version='p')
         except Exception as e:
             logging.error(e)
             message = str(e)
 
         storage.set_status(expnums[0], ccd,
-                           'scramble',
-                           message)
+                           'scramble', version='s',
+                           status=message)

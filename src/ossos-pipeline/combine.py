@@ -37,7 +37,7 @@ def combine(expnum, ccd, prefix=None, type='p', field=None, measure3=MEASURE3 ):
 
     if prefix is not None and len(prefix) > 0:
         field = "%s_%s" % ( prefix, field ) 
-    field += "_%s" % ( str(ccd))
+    field += "_%s%s" % ( str(type),str(ccd))
 
     logging.info("Doing combine on field {}".format(field))
     
@@ -178,14 +178,16 @@ if __name__=='__main__':
     for ccd in ccdlist:
         message = storage.SUCCESS
         if 1==1:
-            if not storage.get_status(args.expnum, ccd, prefix+'step3'):
+            if not storage.get_status(args.expnum, ccd, prefix+'step3', version=args.type):
                 logging.error(storage.get_status(
                         args.expnum,
                         ccd,
                         'step3',
                         return_message=True))
                 raise IOError(35, "need to run step3 first")
-            if storage.get_status(args.expnum, ccd, prefix+'combine') and not args.force:
+            if storage.get_status(args.expnum, ccd,
+                                  prefix+'combine',
+                                  version=args.type) and not args.force:
                 continue
             message = combine(args.expnum, 
                               ccd, 
@@ -197,4 +199,7 @@ if __name__=='__main__':
         #except Exception as e:
         #   message = str(e)
             
-        #storage.set_status(args.expnum, ccd, prefix+'combine', message)
+        storage.set_status(args.expnum, ccd,
+                           prefix+'combine',
+                           version=args.type,
+                           status=message)

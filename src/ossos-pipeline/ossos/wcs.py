@@ -1,7 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import math
-
+from astropy import wcs as astropy_wcs
 import numpy
 
 PI180 = 57.2957795130823208767981548141052
@@ -74,26 +74,34 @@ class WCS(object):
         return self.header['NORDFIT']
 
     def xy2sky(self, x, y):
-        return xy2sky(x=x, y=y,
-                      crpix1=self.crpix1,
-                      crpix2=self.crpix2,
-                      crval1=self.crval1,
-                      crval2=self.crval2,
-                      cd=self.cd,
-                      pv=self.pv,
-                      nord=self.nord)
+        try:
+            return xy2sky(x=x, y=y,
+                          crpix1=self.crpix1,
+                          crpix2=self.crpix2,
+                          crval1=self.crval1,
+                          crval2=self.crval2,
+                          cd=self.cd,
+                          pv=self.pv,
+                          nord=self.nord)
+        except:
+            pos = astropy_wcs.WCS(self.header).wcs_pix2world([[x,y]],1)
+            return pos[0][0], pos[0][1]
 
     def sky2xy(self, ra, dec):
-        return sky2xy(ra=ra,
-                      dec=dec,
-                      crpix1=self.crpix1,
-                      crpix2=self.crpix2,
-                      crval1=self.crval1,
-                      crval2=self.crval2,
-                      dc=self.dc,
-                      pv=self.pv,
-                      nord=self.nord
-                      )
+        try:
+            return sky2xy(ra=ra,
+                          dec=dec,
+                          crpix1=self.crpix1,
+                          crpix2=self.crpix2,
+                          crval1=self.crval1,
+                          crval2=self.crval2,
+                          dc=self.dc,
+                          pv=self.pv,
+                          nord=self.nord
+                          )
+        except:
+            pos = astropy_wcs.WCS(self.header).wcs_world2pix([[ra,dec]],1)
+            return pos[0][0], pos[0][1]
 
 
 def xy2sky(x, y, crpix1, crpix2, crval1, crval2, cd, pv, nord):

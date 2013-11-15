@@ -11,7 +11,6 @@ import re
 
 from ossos import storage, wcs
 
-print storage.DBIMAGES
 DATASET_ROOT = storage.DBIMAGES
 # DATASET_ROOT = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages"
 
@@ -527,6 +526,9 @@ class SourceReading(object):
     def get_apcor_uri(self):
         return self.obs.get_apcor_uri()
 
+    def get_zmag_uri(self):
+        return self.obs.get_zmag_uri()
+
     def get_ccd_num(self):
         """
         Returns:
@@ -556,8 +558,7 @@ class SourceReading(object):
           inverted: bool
             True if the stored image is inverted.
         """
-        astheader = storage.get_astheader(self.obs.expnum, self.obs.ccdnum)
-        print astheader
+        astheader = storage.get_astheader(self.obs.expnum, self.obs.ccdnum, version=self.obs.ftype)
         pvwcs = wcs.WCS(astheader)
         (x,y) = pvwcs.sky2xy(self.ra, self.dec)
         logger.debug("is_inverted: X,Y {},{}  -> wcs X,Y {},{}".format(self.x, self.y, x, y))

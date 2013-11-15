@@ -81,7 +81,6 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
         third  = source.get_reading(2)
 
         cutout = image_slice_downloader.download_cutout(reading, needs_apcor=True)
-        print cutout.fits_header
 
         try:
             (x, y, mag, merr) = cutout.get_observed_magnitude()
@@ -174,9 +173,10 @@ if __name__ == '__main__':
     args  = parser.parse_args()
 
     astrom.DATASET_ROOT = args.dbimages
+    storage.DBIMAGES = args.dbimages
 
-    match_filename = astrom.DATASET_ROOT+'/'+os.path.splitext(os.path.basename(args.astrom_filename))[0]+".match"
-    false_positive_filename = args.astrom_filename.replace('reals','cands')
+    match_filename = os.path.splitext(args.astrom_filename)[0]+'.match'
+    false_positive_filename = None
 
     match_planted(args.astrom_filename, match_filename, false_positive_filename)
 

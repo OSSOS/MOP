@@ -115,7 +115,7 @@ if __name__ == '__main__':
 
     for expnum in args.expnum:
         for ccd in ccdlist:
-            if storage.get_status(expnum, ccd, 'mkpsf_p') and not args.force:
+            if storage.get_status(expnum, ccd, 'mkpsf', version=args.type) and not args.force:
                 logging.info("Already did %s %s, skipping" %( str(expnum),
                                                                   str(ccd)))
                 continue
@@ -123,14 +123,16 @@ if __name__ == '__main__':
                 message = 'success'
                 mkpsf(expnum, ccd, args.type)
                 storage.set_status(expnum,
-                                         ccd,
-                                         'fwhm_p',
-                                         str(storage.get_fwhm(
+                                   ccd,
+                                   'fwhm',
+                                   version=args.type,
+                                   status=str(storage.get_fwhm(
                     expnum, ccd, version=args.type)))
                 storage.set_status(expnum,
-                                         ccd,
-                                         'zeropoint_p',
-                                         str(storage.get_zeropoint(
+                                   ccd,
+                                   'zeropoint',
+                                   version=args.type,
+                                   status=str(storage.get_zeropoint(
                     expnum, ccd, version=args.type)))
                                          
             except Exception as e:
@@ -138,7 +140,8 @@ if __name__ == '__main__':
 
             logging.error(message)
             storage.set_status( expnum,
-                                      ccd,
-                                      'mkpsf_p',
-                                      message)
+                                ccd,
+                                'mkpsf',
+                                version=args.type,
+                                status=message)
                        

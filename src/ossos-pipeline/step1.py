@@ -160,12 +160,12 @@ if __name__=='__main__':
         for ccd in ccdlist:
             try:
                 message = storage.SUCCESS
-                if not storage.get_status(expnum, ccd, 'mkpsf_p'):
-                    raise IOError(35, "mkpsf_p hasn't run?")
-                if storage.get_status(expnum, ccd, prefix+'step1_p') and not args.force:
+                if not storage.get_status(expnum, ccd, 'mkpsf', version=args.type):
+                    raise IOError(35, "mkpsf hasn't run?")
+                if storage.get_status(expnum, ccd, prefix+'step1', version=args.type) and not args.force:
                     logging.critical(
-                        "Already did %s %s, skipping" %(prefix+str(expnum),
-                                                        str(ccd)))
+                        "Step1 completed for %s%s, skipping" %(prefix+str(expnum),
+                                                        str(args.type)+str(ccd)))
                     continue
                 logging.info("step1_p on expnum: %s, ccd: %s" % (
                     prefix+str(expnum), str(ccd)))
@@ -176,7 +176,8 @@ if __name__=='__main__':
 
             storage.set_status(expnum,
                                ccd,
-                               prefix+'step1_p',
-                               message)
+                               prefix+'step1',
+                               version=args.type,
+                               status=message)
         
             

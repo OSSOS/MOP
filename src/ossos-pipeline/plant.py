@@ -50,7 +50,7 @@ def plant(expnums, ccd, rmin, rmax, ang, width, version='s'):
                           subdir=str(
         expnums[0])+"/ccd%s" % (str(ccd).zfill(2)))
     storage.copy('Object.planted',uri)
-    uri = os.path.join(os.path.dirname(uri), 'shifts')
+    uri = os.path.join(os.path.dirname(uri), 'plant.shifts')
     storage.copy('shifts', uri)
     for expnum in expnums:
         uri = storage.get_uri(expnum,
@@ -136,12 +136,12 @@ if __name__=='__main__':
     for ccd in ccds:
         message = storage.SUCCESS
         try:
-            if not storage.get_status(args.expnums[0], ccd,
-                                      'scramble'):
+            if not storage.get_status(args.expnums[0], ccd, 
+                                      'scramble', version=args.type):
                 raise IOError("scramble not yet run for %s ccd%s" % ( 
                     str(args.expnums), str(ccd).zfill(2)))
             if storage.get_status(args.expnums[0], ccd,
-                                  'plant') and not args.force:
+                                  'plant', version=args.type) and not args.force:
                 logging.info("plant done for %s[%s]" % ( args.expnums[0], ccd))
                 continue
             plant(args.expnums,
@@ -155,4 +155,5 @@ if __name__=='__main__':
         storage.set_status(args.expnums[0],
                            ccd,
                            'plant',
-                           message)
+                           version=args.type,
+                           status=message)

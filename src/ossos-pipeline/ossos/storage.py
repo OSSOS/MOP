@@ -222,17 +222,17 @@ def get_tag(expnum, key):
         expnum, tag_uri(key), get_tags(expnum).get(tag_uri(key), None)))
     return get_tags(expnum).get(tag_uri(key), None)
 
-def get_process_tag(program, ccd):
+def get_process_tag(program, ccd, version='p'):
     """make a process tag have a suffix indicating which ccd its for"""
-    return "%s_%s" % ( program, str(ccd).zfill(2))
+    return "%s_%s%s" % ( program, str(version),str(ccd).zfill(2))
 
 def get_tags(expnum, force=False):
     uri = os.path.join(DBIMAGES,str(expnum))
     return vospace.getNode(uri, force=force).props
 
-def get_status(expnum, ccd, program, return_message=False):
+def get_status(expnum, ccd, program, version='p', return_message=False):
     '''Report back status of the given program'''
-    key = get_process_tag(program, ccd)
+    key = get_process_tag(program, ccd, version)
     status = get_tag(expnum, key)
     logger.debug('%s: %s' %(key, status))
     if return_message:
@@ -240,10 +240,10 @@ def get_status(expnum, ccd, program, return_message=False):
     else:
         return status == SUCCESS
 
-def set_status(expnum, ccd, program, status):
+def set_status(expnum, ccd, program, status, version='p'):
     '''set the processing status of the given program'''
     
-    return set_tag(expnum, get_process_tag(program,ccd), status)
+    return set_tag(expnum, get_process_tag(program,ccd,version), status)
 
 def get_image(expnum, ccd=None, version='p', ext='fits',
               subdir=None, rescale=True, prefix=None):
@@ -374,6 +374,10 @@ def copy(source, dest):
 
 
     logger.debug("%s -> %s" % ( source, dest))
+    try:
+       vospace.delete(dest)
+    except:
+       pass
 
     return vospace.copy(source, dest)
 
@@ -548,21 +552,26 @@ def get_mopheader(expnum, ccd):
     return mopheaders[mopheader_uri]
 
 
-def get_astheader(expnum, ccd):
+def get_astheader(expnum, ccd, version='p', ext='.fits'):
 
-    ast_uri = dbimages_uri(expnum, ccd)
-    print ast_uri
+    ast_uri = dbimages_uri(expnum, ccd, version=version, ext=ext)
     if ast_uri in astheaders:
         logger.debug("returning cached header for {}".format(ast_uri))
         return astheaders[ast_uri]
-    image_uri = dbimages_uri(expnum)
-    if not exists(image_uri, force=False):
-        return None
-
-    hdulist = fits.open(cStringIO.StringIO(vospace.open(
-        uri=image_uri,
-        view='cutout',
-        cutout='[{}][{}:{},{}:{}]'.format(int(ccd)+1, 1, 1, 1, 1)).read()))
+    if not exists(ast_uri):
+        image_uri = dbimages_uri(expnum, version=version, ext=ext)
+        if not exists(image_uri, force=False):
+           return None
+        hdulist = fits.open(cStringIO.StringIO(vospace.open(
+           uri=image_uri,
+           view='cutout',
+           cutout='[{}][{}:{},{}:{}]'.format(int(ccd)+1, 1, 1, 1, 1)).read()))
+    else:
+        image_uri = ast_uri
+        hdulist = fits.open(cStringIO.StringIO(vospace.open(
+           uri=image_uri,
+           view='cutout',
+           cutout='[{}:{},{}:{}]'.format(1, 1, 1, 1)).read()))
     astheaders[ast_uri] = hdulist[0].header
     logger.debug("header pulled")
     return astheaders[ast_uri]
