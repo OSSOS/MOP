@@ -578,6 +578,16 @@ class SourceReading(object):
 
         return False
 
+    def get_mag(self, image_downloader=None):
+        """
+        Retrieve the reading cutout and do photometry on the source.
+        """
+        if image_downloader is None and self._image_downloader is None:
+            image_downloader = ImageCutoutDownloader(slice_rows=100, slice_cols=100)
+        if self._image_downloader is None:
+            self._image_downloader = image_downloader
+
+
 
 class ComparisonSource(SourceReading):
     """
