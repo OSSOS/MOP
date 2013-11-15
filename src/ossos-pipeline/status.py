@@ -62,7 +62,7 @@ def main(commands=['update_header', 'mkpsf', 'step1', 'step2', 'step3', 'combine
                             #for next_command in cmd_order[exp_type][commands.index(command)+1:]:
                             #    storage.set_status(expnum, ccd, next_command, command+" FAILED")
                         if success:
-                            storage.set_status(expnum, ccd, command, 'success')
+                            storage.set_status(expnum, ccd, command, version='p', status='success')
                 exp_type='OTHER'
 
 

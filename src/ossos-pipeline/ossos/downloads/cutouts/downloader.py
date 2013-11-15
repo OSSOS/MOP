@@ -70,7 +70,8 @@ class ImageCutoutDownloader(Downloader):
         zmag = None
         try:
             zmag = self.download_zmag(reading.get_zmag_uri())
-        except:
+        except Exception as e:
+	    logger.debug(str(e))
             pass
 
         return SourceCutout(reading, hdulist, converter, apcor, zmag=zmag)

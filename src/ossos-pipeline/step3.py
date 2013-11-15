@@ -156,9 +156,9 @@ if __name__ == '__main__':
         message = storage.SUCCESS
 
         try:
-            if not storage.get_status(args.expnums[0], ccd, prefix+'step2'):
+            if not storage.get_status(args.expnums[0], ccd, prefix+'step2', version=args.type):
                 raise IOError(35, "did step2 run on %s" % ( str(args.expnums)))
-            if storage.get_status(args.expnums[0], ccd, prefix+'step3') and not args.force:
+            if storage.get_status(args.expnums[0], ccd, prefix+'step3', version=args.type) and not args.force:
                 logging.critical("step3 alread ran on expnum :%s, ccd: %d" % (
                         str(args.expnums), ccd))
                 continue
@@ -177,7 +177,8 @@ if __name__ == '__main__':
         storage.set_status(args.expnums[0],
                            ccd,
                            prefix+'step3',
-                           message)
+                           version=args.type,
+                           status=message)
         
             
 
