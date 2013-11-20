@@ -110,8 +110,13 @@ class ImagesQuery(object):
         # {root:{error:[ccds]}}, where ccds are sorted in ascending order.
         errors = {}
         for key, val in proc_keys:
-            root, ccd = key[0:len(key)-2].strip('_'), key[-2:]  # FIXME: needs to be able to display both old & new tag styles
+            root, ccd = key[0:len(key)-2].strip('_'), key[-2:]
             tag = errors.get(root, {})
+
+            # TODO: need a collate_successes part of this that counts the successes for the tag types
+            # TODO: that would send up an error if the number of successes is < 36 in cases where it should be 36.
+            # i.e. catch incomplete processing where mkpsf or similar didn't yet finish
+
             if not val == 'success':  # not successful :(
                 err = tag.get(val, [])
                 err.append(ccd)
