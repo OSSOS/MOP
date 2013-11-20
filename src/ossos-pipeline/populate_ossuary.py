@@ -1,8 +1,9 @@
-# Initial table populating for the 'ossuary' database.
-# 
-# MTB 25 April 2013  NRC-Herzberg
+#!/usr/bin/env python
+
+__author__ = "Michele Bannister <micheleb@uvic.ca>"
 
 import sys, datetime
+import argparse
 import sqlalchemy as sa
 from astropy.io import fits
 from cStringIO import StringIO
@@ -10,7 +11,9 @@ from web.field_obs.queries import ImagesQuery
 from ossos import storage
 
 """
+Initial table populating for the 'ossuary' database.
 Currently assumes your tables are already instantiated in the database that you're connecting to.
+25 April 2013  NRC-Herzberg
 """
 
 
@@ -147,7 +150,16 @@ def retrieve_processed_images(ims):
     return retval, retval2
 
 
-def parse_unprocessed_images(dbimages):
+def iq_unmeasured_images(ims):
+    ss = sa.select([ims.images.c.image_id, ims.images.c.iq_ossos], order_by=ims.images.c.image_id)
+    ss.append_whereclause(ims.images.c.iq_ossos == None)
+    query = ims.conn.execute(ss)
+    retval = [s[0] for s in query if isinstance(s[0], long)]
+
+    return retval
+
+
+def parse_unprocessed_images(dbimages, processed_images):
     # Ensure the unprocessed list doesn't include the calibrators/moving folders
     retval = [im for im in dbimages if (im.isdigit() and long(im) not in processed_images)]
     retval.sort()
@@ -186,42 +198,63 @@ def put_image_in_database(image, ims):
 
     return
 
+def update_values(ims, image_id):
+    updating_params = get_iq_and_zeropoint(image_id, {})
+    ss = ims.images.update(ims.images.c.image_id == image_id)
+    ims.conn.execute(ss, updating_params)
 
-############################ BEGIN MAIN #######################################
-data_web_service_url = storage.DATA_WEB_SERVICE + "CFHT"
-images = ImagesQuery()
-processed_images, iqs = retrieve_processed_images(images)  # straight list of primary keys
-dbimages = storage.list_dbimages()
-unprocessed_images = parse_unprocessed_images(dbimages)
+    return
 
-# Need to add updating of existing records when fwhm etc info are added
-# unprocessed_images = []
-# for i, im in enumerate(processed_images):
-# 	if iqs[i] is None:
-# 		unprocessed_images.append(im)
+def main():
+    """
+    Update the ossuary Postgres db with images observed for OSSOS.
+    iq: Go through and check all ossuary's images for new existence of IQs/zeropoints.
 
-sys.stdout.write('%d images in ossuary; updating with %d new in VOspace.\n' %
-                 (len(processed_images), len(unprocessed_images)))
+    Then updates ossuary with new images that are at any stage of processing.
+    Constructs full image entries, including header and info in the vtags, and inserts to ossuary.
 
-# Construct a full image entry, including header and info in the vtags
-for n, image in enumerate(unprocessed_images):  # earlier ones are PlutoHazard etc
-    sys.stdout.write('%s %d/%d ' % (image, n + 1, len(unprocessed_images)))
-    try:
-        subheader, fullheader = get_header(data_web_service_url, image)
-        if subheader is not None:
-            sys.stdout.write('Header obtained. ')
-            verify_ossos_image(fullheader)
-            header = get_iq_and_zeropoint(image, subheader)
-            put_image_in_database(header, images)
-            sys.stdout.write('...added to ossuary.\n')
-        else:
-            sys.stdout.write('Header is not available: skipping.\n')
-    except Exception, e:
-        sys.stdout.write('... %s\n' % e)
+    TODO: a CLUSTER after data is inserted - maybe once a week, depending how much there is
+    CLUSTER images;   need to sqlalchemy this one
+    """
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("-iq", "--iq", action="store_true",
+                        help="Check existing images in ossuary that do not yet have "
+                             "IQ/zeropoint information; update where possible.")
+    args = parser.parse_args()
+
+    data_web_service_url = storage.DATA_WEB_SERVICE + "CFHT"
+    images = ImagesQuery()
+    processed_images, iqs = retrieve_processed_images(images)  # straight list of primary keys
+
+    if args.iq:
+        unmeasured_iqs = iq_unmeasured_images(images)
+        sys.stdout.write('%d images in ossuary; updating %d with new IQ/zeropoint information.\n' %
+                         (len(processed_images), len(unmeasured_iqs)))
+        for n, image in enumerate(unmeasured_iqs):  # it's in the db, so has already passed the other checks
+            update_values(images, image)
+            sys.stdout.write('%s %d/%d...ossuary updated.\n' % (image, n + 1, len(unmeasured_iqs)))
+
+    unprocessed_images = parse_unprocessed_images(storage.list_dbimages(), processed_images)
+    sys.stdout.write('%d images in ossuary; updating with %d new in VOspace.\n' %
+                     (len(processed_images), len(unprocessed_images)))
+
+    for n, image in enumerate(unprocessed_images):
+        sys.stdout.write('%s %d/%d ' % (image, n + 1, len(unprocessed_images)))
+        try:
+            subheader, fullheader = get_header(data_web_service_url, image)
+            if subheader is not None:
+                sys.stdout.write('Header obtained. ')
+                verify_ossos_image(fullheader)
+                header = get_iq_and_zeropoint(image, subheader)
+                put_image_in_database(header, images)
+                sys.stdout.write('...added to ossuary.\n')
+            else:
+                sys.stdout.write('Header is not available: skipping.\n')
+        except Exception, e:
+            sys.stdout.write('... %s\n' % e)
 
 
 
-# can do a CLUSTER after data is inserted - maybe once a week, depending how much there is
-
-#CLUSTER images;  # need to sqlalchemy this one
-
+if __name__ == "__main__":
+    main()
