@@ -15,3 +15,10 @@ do status=`vtag vos:OSSOS/dbimages/${expnum} ivo://canfar.uvic.ca/ossos#mkpsf_${
 
 cat ~/Desktop/13Nov_ids.txt | while read exp1 ;
 do ./submit_job.sh `date -u +%Y-%m-%dT%H:%M:%S`_preproc_${ccd} preproc.sh ${exp1} ; done
+
+ cat ~/Desktop/OSSOS\ misc/13B_ids.txt |
+ while read exp1 ;
+ do for ccd in {0..35} ;
+ do ./submit_job.sh `date -u +%Y-%m-%dT%H:%M:%S`_step1_${exp1}_${ccd} step1.py expnum ${exp1} --ccd ${ccd} ;
+ done ;
+ done
