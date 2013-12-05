@@ -263,7 +263,7 @@ def main():
         for image in commdict.keys():
             if int(image) in processed_images:
                 update_values(images, image, iq_zeropt=False, comment=True, commdict=commdict)
-                sys.stdout.write('%s comment...ossuary updated.\n' % image)
+                sys.stdout.write('%s has comment...\n' % image)
 
     unprocessed_images = parse_unprocessed_images(storage.list_dbimages(), processed_images)
     sys.stdout.write('%d images in ossuary; updating with %d new in VOspace.\n' %
@@ -277,7 +277,8 @@ def main():
                 sys.stdout.write('Header obtained. ')
                 verify_ossos_image(fullheader)
                 header = get_iq_and_zeropoint(image, subheader)
-                header = check_sgwyn_comments(commdict, image, header)
+                if image in commdict.keys():
+                    header['comment'] = commdict[image]
                 put_image_in_database(header, images)
                 sys.stdout.write('...added to ossuary.\n')
             else:
