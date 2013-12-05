@@ -5,8 +5,6 @@ __author__ = "Michele Bannister <micheleb@uvic.ca>"
 import sys, datetime
 import argparse
 import sqlalchemy as sa
-from astropy.io import fits
-from cStringIO import StringIO
 from web.field_obs.queries import ImagesQuery
 from ossos import storage
 
@@ -134,6 +132,14 @@ def get_iq_and_zeropoint(image, header_extract):
 
     return header_extract
 
+def parse_sgwn_comments():
+    retval = {}
+    lines = storage.vofile('vos:sgwyn/tkBAD', 'r').read().splitlines()
+    for line in lines:
+        ln = line.partition(' ')
+        retval[ln[0]] = ln[2]
+
+    return retval
 
 def retrieve_processed_images(ims):
     ss = sa.select([ims.images.c.image_id, ims.images.c.iq_ossos], order_by=ims.images.c.image_id)
@@ -198,8 +204,21 @@ def put_image_in_database(image, ims):
 
     return
 
-def update_values(ims, image_id):
-    updating_params = get_iq_and_zeropoint(image_id, {})
+def update_values(ims, image_id, iq_zeropt=True, comment=False, commdict=None):
+    """
+    Update a row in ossuary with
+    :param ims: an ImageQuery, contains image table and a connector
+    :param image_id: the primary key of the row to be updated
+    :param iq_zeropt: Keyword set if iq and zeropoint are to be checked for updating
+    :param comment: Keyword set if image is to have a comment of Stephen's added
+    :param commdict: The dictionary parsed from Stephen's file of comments
+    :return: No return, just updates ossuary.
+    """
+    updating_params = {}
+    if iq_zeropt:
+        updating_params = get_iq_and_zeropoint(image_id, {})
+    if comment:
+        updating_params = {'comment': commdict[str(image_id)]}
     ss = ims.images.update(ims.images.c.image_id == image_id)
     ims.conn.execute(ss, updating_params)
 
@@ -209,7 +228,7 @@ def main():
     """
     Update the ossuary Postgres db with images observed for OSSOS.
     iq: Go through and check all ossuary's images for new existence of IQs/zeropoints.
-
+    comment: Go through all ossuary and
     Then updates ossuary with new images that are at any stage of processing.
     Constructs full image entries, including header and info in the vtags, and inserts to ossuary.
 
@@ -221,11 +240,14 @@ def main():
     parser.add_argument("-iq", "--iq", action="store_true",
                         help="Check existing images in ossuary that do not yet have "
                              "IQ/zeropoint information; update where possible.")
+    parser.add_argument("-comment", action="store_true",
+                        help="Add comments on images provided by S. Gwyn to database.")
     args = parser.parse_args()
 
     data_web_service_url = storage.DATA_WEB_SERVICE + "CFHT"
     images = ImagesQuery()
     processed_images, iqs = retrieve_processed_images(images)  # straight list of primary keys
+    commdict = parse_sgwn_comments()
 
     if args.iq:
         unmeasured_iqs = iq_unmeasured_images(images)
@@ -234,6 +256,14 @@ def main():
         for n, image in enumerate(unmeasured_iqs):  # it's in the db, so has already passed the other checks
             update_values(images, image)
             sys.stdout.write('%s %d/%d...ossuary updated.\n' % (image, n + 1, len(unmeasured_iqs)))
+
+    if args.comment:
+        sys.stdout.write('%d images in ossuary; updating with new comment information.\n' %
+             len(processed_images))
+        for image in commdict.keys():
+            if int(image) in processed_images:
+                update_values(images, image, iq_zeropt=False, comment=True, commdict=commdict)
+                sys.stdout.write('%s comment...ossuary updated.\n' % image)
 
     unprocessed_images = parse_unprocessed_images(storage.list_dbimages(), processed_images)
     sys.stdout.write('%d images in ossuary; updating with %d new in VOspace.\n' %
@@ -247,6 +277,7 @@ def main():
                 sys.stdout.write('Header obtained. ')
                 verify_ossos_image(fullheader)
                 header = get_iq_and_zeropoint(image, subheader)
+                header = check_sgwyn_comments(commdict, image, header)
                 put_image_in_database(header, images)
                 sys.stdout.write('...added to ossuary.\n')
             else:
