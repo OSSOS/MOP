@@ -957,7 +957,7 @@ class MPCConverter(object):
             mindate = min(odates).iso.replace('-', '')
             maxdate = max(odates).iso.replace('-', '')
 
-        header = "COD 568\n" + "OBS J. J. Kavelaars and M. T. Bannister\n" + "TEL CFHT 3.6m + CCD\n" +  "NET 2MASS\n"
+        header = "COD 568\n" + "OBS J. J. Kavelaars and M. T. Bannister\n" + "TEL CFHT 3.6m + CCD\n" +  "NET UCAC4\n"
         header += "{:s} {:s}\n".format('STD', mindate)
         header += "{:s} {:s}\n".format('END', maxdate)
         print header
