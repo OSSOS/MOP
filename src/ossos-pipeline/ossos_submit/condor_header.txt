@@ -10,12 +10,12 @@ transfer_output_files = /dev/null
 RunAsOwner = True
 #on_exit_remove = (ExitCode == 0)
 
-Requirements = VMType =?= "MOP"  && \
+Requirements = VMType =?= "MOP3"  && \
                Arch == "x86_64" && \
 	       Memory >= 4000 && \
                Cpus >= 1 
 
-+VMLoc         = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/vospace/jkavelaars/MOP.img.gz"
++VMLoc         = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/vospace/jkavelaars/vmstore/MOP3.img.gz"
 +VMMem         = "4096"
 +VMCPUCores    = "1"
 +VMStorage     = "20"

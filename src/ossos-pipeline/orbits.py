@@ -27,11 +27,11 @@ NEW_LINE = '\r\n'
 
 astDir = 'vos:OSSOS/measure3/2013A-E/track/submitted'
 
-def getList():
+def getList(name = None):
 
     for filename in storage.listdir(astDir):
-        print filename
-        build(os.path.join(astDir,filename))
+        if name is None or name in filename:
+            build(os.path.join(astDir,filename))
 
 
 def summarize(orbit):
@@ -77,14 +77,17 @@ def build(filename):
     mpc_observations.sort(key=lambda obs: obs.date.jd)
     orbit = Orbfit(mpc_observations)
 
-    print ""
-    print orbit
     mag = numpy.array(mag)
+    print orbit.residuals
 
+    print "{:10s} {:7.2f} {:7.2f} {:7.3f} {:7.3f} {:7.3f} {:7.3f} {:7.3f} {:7.3f} {:7.3f}".format(orbit.name, orbit.a, orbit.da, orbit.e, orbit.de, orbit.inc, orbit.dinc, orbit.distance, mag.mean(), mag.std())
 
-    sys.stderr.write("{} {} {} {:.2f} {:.2f}\n".format(orbit.name,orbit.coordinate.ra.format(decimal=True, precision=8), orbit.coordinate.dec.format(decimal=True, precision=8), mag.mean(), mag.std()))
 
 
 
 if __name__ == '__main__':
-    getList()
+    name = None
+    if len(sys.argv) > 1:
+	name = sys.argv[1]
+    print "{:10s} {:7s} {:7s} {:7s} {:7s} {:7s} {:7s} {:7s} {:7s} {:7s}".format("NAME","a(AU)","da(AU)","e","de","Inc(d)","dInc","D(AU)","mag_r","merr")
+    getList(name)

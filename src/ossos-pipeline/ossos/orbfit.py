@@ -2,6 +2,7 @@ __author__ = 'jjk'
 
 import ctypes
 import tempfile
+import sys
 
 from astropy import coordinates
 from astropy import units
@@ -61,7 +62,13 @@ class Orbfit(object):
         mpc_file = tempfile.NamedTemporaryFile(suffix='.mpc')
         for observation in self.observations:
             if not observation.null_observation:
-                mpc_file.write("{}\n".format(str(observation)))
+                obs = observation
+                ra = obs.ra.replace(" ",":")
+                dec = obs.dec.replace(" ",":")
+                res = 0.3
+                mpc_file.write("{} {} {} {} {}\n".format(obs.date.jd, ra, dec, res, 568,))
+                sys.stderr.write("{} {} {} {} {}\n".format(obs.date.jd, ra, dec, res, 568,))
+#                mpc_file.write("{}\n".format(str(observation)))))
         mpc_file.seek(0)
         self.name = self.observations[0].provisional_name.strip(' ')
 
