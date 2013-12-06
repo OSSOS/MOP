@@ -86,6 +86,10 @@ class ApplicationView(object):
         self.image_viewer.display(cutout)
 
     @guithread
+    def clear(self):
+        self.image_viewer.clear()
+
+    @guithread
     def refresh_markers(self):
         self.image_viewer.refresh_markers()
 

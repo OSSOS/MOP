@@ -130,6 +130,7 @@ if __name__=='__main__':
                         version='%(prog)s 1.0')
     parser.add_argument('--type', default='p',
                         choices=['o','p','s'], help="which type of image")
+    parser.add_argument('--log', default=None, help="Write standard out to this file")
     parser.add_argument("--verbose","-v",
                         action="store_true")
     parser.add_argument("--debug",'-d',

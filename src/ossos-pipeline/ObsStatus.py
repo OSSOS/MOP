@@ -54,10 +54,9 @@ def query_for_observations(mjd, observable, runids):
 
     url=storage.TAP_WEB_SERVICE+urllib.urlencode(data)
 
-
-    logging.debug("Doing TAP Query using url: %s" % ( str(url)))
-
     tmpFile = tempfile.NamedTemporaryFile()
+
+    logging.debug("QUERY: {}".format(data['QUERY']))
 
     urllib.urlretrieve(url,tmpFile.name)
 
@@ -65,6 +64,7 @@ def query_for_observations(mjd, observable, runids):
     vot.array.sort(order='StartDate')
     t = vot.array
     tmpFile.close()
+    logging.debug("Got {} lines from tap query".format(len(t)))
     return t
 
 
@@ -86,7 +86,8 @@ def create_ascii_table(obsTable, outfile):
     bar = "="*(len(header)-1)+"\n"
 
     if outfile[0:4] == "vos:":
-        fout = vos.Client().open(outfile, mode=os.O_WRONLY)
+        tmpFile = tempfile.NamedTemporaryFile(suffix='.txt')
+        fout = tmpFile
     else:
         fout = open(outfile, 'w')
 
@@ -96,8 +97,8 @@ def create_ascii_table(obsTable, outfile):
     populated = vos.Client().listdir(storage.DBIMAGES)
     for i in range(len(obsTable)-1,-1,-1):
         row = obsTable.data[i]
-        #if row['dataset_name'] not in populated:
-        storage.populate(row['dataset_name'])
+        if row['dataset_name'] not in populated:
+            storage.populate(row['dataset_name'])
         sDate = str(ephem.date(row.StartDate + 
                                2400000.5 - 
                                ephem.julian_date(ephem.date(0))))[:20]
@@ -116,6 +117,9 @@ def create_ascii_table(obsTable, outfile):
         fout.write(line)
 
     fout.write(bar)
+
+    if outfile[0:4] == "vos:":
+        vos.Client().copy(tmpFile.name,outfile)
     fout.close()
 
     return 
@@ -139,17 +143,10 @@ def create_sky_plot(obstable, outfile, night_count=1, stack=True):
     else:
         pdf = PdfPages(outfile)
 
-    ra_min = obstable['RA'].max() + 1.5
-    ra_max = obstable['RA'].min() - 1.5
-    dec_min = obstable['DEC'].min() - 1.5
-    dec_max = obstable['DEC'].max() + 1.5
-
     saturn = ephem.Saturn()
     uranus = ephem.Uranus()
 
-    subplots = []
     t2 = None
-    count = 0
     fig = None
     proposalID = None
     limits = { '13A' : ( 245, 200, -20, 0),

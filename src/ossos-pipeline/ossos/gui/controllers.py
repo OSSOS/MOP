@@ -352,10 +352,12 @@ class ProcessCandidatesController(AbstractController):
         writer.write_source(self.model.get_current_source())
 
         self.model.accept_current_item()
+        self.view.clear()
         self.model.next_item()
 
     def on_reject(self):
         self.model.reject_current_item()
+        self.view.clear()
         self.model.next_item()
 
 

@@ -1,5 +1,6 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import ds9
 
 class WxMPLFitsViewer(object):
     """
@@ -31,6 +32,9 @@ class WxMPLFitsViewer(object):
 
         if mark_source:
             self.mark_sources(cutout)
+
+    def clear(self):
+        ds9.ds9('validate').set("frame delete all")
 
     def draw_error_ellipse(self, x, y, a, b, pa, color='y'):
         """
