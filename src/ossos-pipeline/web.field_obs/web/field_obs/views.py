@@ -91,8 +91,8 @@ class Field(object):
         # format the errors in html with links to their joblogs
         retproc = []
         for row in proc_rv:
-            statuses = [mk_status(s, row[2]) for s in row[3]]
-            retrow = row[0:3]  # without the unformatted errors
+            statuses = [mk_status(s, row[2]) for s in row[6]]
+            retrow = row[:-1]  # without the unformatted errors
             retrow.append(statuses)
             retproc.append(retrow)
 
@@ -109,6 +109,7 @@ class Field(object):
     @Lazy
     def dec(self):
         ret = self.imagesQuery.field_dec(self.fieldId)
+        # FIXME: need these to catch the ones that are being stored as ints and parse them properly
         dec = ret.split(':')[0]
         dec2 = ret.split(':')[1] + "'"
         retval = (dec, dec2)

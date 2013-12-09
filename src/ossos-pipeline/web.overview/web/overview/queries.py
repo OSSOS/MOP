@@ -25,7 +25,7 @@ class SurveyQuery(object):
         return retval
 
     def fields_processed(self):
-        retval = 21 * self.field_area  # FIXME: currently hardwired for field 13AE only
+        retval = 42 * self.field_area  # FIXME: currently hardwired for field 13AE & 13AO only
         return retval
 
     def most_recent_observation(self):

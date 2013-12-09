@@ -20,7 +20,7 @@ class BlockQuery(object):
         retval = {}
         bks = retval.get('blocks', [])
         status = {'E':['complete', '52', '24.05'], 'O':['blinking', '', ''],
-            '13BL':['fully observed!', '', ''], '13BH':['partial observations','', '']}
+            '13BL':['triplets observed!', '', ''], '13BH':['partial observations','', '']}
         for block in OSSOS_BLOCKS:
             bk = []
             bk.append(block)
