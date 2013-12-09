@@ -15,22 +15,25 @@ class ImagesQuery(object):
 
     def field_images(self, field):
         it = self.images
-        cols = [it.c.cfht_field, it.c.obs_end, it.c.iq_ossos, it.c.image_id]
+        cols = [it.c.cfht_field, it.c.obs_end, it.c.iq_ossos, it.c.image_id, it.c.zeropt, it.c.exptime, it.c.comment]
         ss = sa.select(cols, order_by=it.c.obs_end)
         ss.append_whereclause(it.c.cfht_field == field)
         ims_query = self.conn.execute(ss)
-        ret_images = self.format_imquery_return(ims_query)
+        ret_images = self.marshall_imquery_return(ims_query)
 
         return ret_images
 
 
-    def format_imquery_return(self, ims_query):
+    def marshall_imquery_return(self, ims_query):
         ret_images = []
         for row in ims_query:
-            if row[2] is not None:  # CATCHES NONE FWHM FROM UNPROCESSED IMAGES (GRRR)
-                ret_images.append([row[1], row[2], (row[3])])  # obs_end, iq_ossos, image_id
-            else:
-                ret_images.append([row[1], -1., (row[3])])
+            retrow = [r for r in row[1:]]
+            if row[2] is None:  # catch None fwhm, zeropoint from unprocessed images.
+                retrow[1] = -1. # displaced by one as retrow starts after field_id
+                retrow[3] = -1.
+            if row[6] is None:
+                retrow[5] = ''  # comment can be an empty string for display
+            ret_images.append(retrow)
         ims_query.close()
 
         return ret_images
@@ -248,7 +251,7 @@ class ImagesQuery(object):
             """select cfht_field, extract(year from obs_end) as year,
 				extract(month from obs_end) as month, 
 				extract(day from obs_end) as day, image_id, obs_end, 
-				iq_ossos from images
+				iq_ossos, zeropt from images
 				where (cfht_field = :field
 				and extract(year from obs_end) = :year
 				and extract(month from obs_end) = :month
@@ -263,6 +266,7 @@ class ImagesQuery(object):
             rr = list(row[1:])
             if row[6] is None: # iq_ossos hasn't been calculated yet
                 rr[5] = -1.
+                rr[6] = -1.
             ret_images.append(rr)
 
         return ret_images
