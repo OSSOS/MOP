@@ -119,6 +119,7 @@ def create_ascii_table(obsTable, outfile):
     fout.write(bar)
 
     if outfile[0:4] == "vos:":
+        fout.flush()
         vos.Client().copy(tmpFile.name,outfile)
     fout.close()
 
