@@ -105,7 +105,7 @@ if __name__ == '__main__':
         
         expnum=args.expnum
         # skip if already succeeded and not in force mode
-        if storage.get_status(expnum, 36, 'update_header') and not args.force:
+        if storage.get_status(expnum, 36, 'update_header_p') and not args.force:
             logging.info("Already updated, skipping")
             sys.exit(0)
 
@@ -126,7 +126,7 @@ if __name__ == '__main__':
         expnum = fits.open(image)[0].header['EXPNUM'] or args.expnum
 
         # skip if already succeeded and not in force mode
-        if storage.get_status(expnum, 36, 'update_header') and not args.force:
+        if storage.get_status(expnum, 36, 'update_header_p') and not args.force:
             logging.info("Skipping {} as already done.".format(expnum))
             sys.exit(0)
 
@@ -134,10 +134,10 @@ if __name__ == '__main__':
         if args.replace:
             dest = storage.dbimages_uri(expnum)
             storage.copy(image, dest)
-            storage.set_status(expnum, 36, 'update_header', message)
+            storage.set_status(expnum, 36, 'update_header_p', message)
     except Exception as e:
         if args.replace:
             message = str(e)
-            storage.set_status(expnum, 36, 'update_header', message)
+            storage.set_status(expnum, 36, 'update_header_p', message)
         logging.error(str(e))
 

@@ -9,16 +9,10 @@ class Overview(object):
 	def __init__(self, request):
 		self.request = request
 		self.surveyQuery = SurveyQuery()
-		
-
-	@property.Lazy
-	def percentComplete(self):
-		retval = self.surveyQuery.survey_proportion_complete()
-		return retval
 
 	@property.Lazy
 	def fractionSurveyed(self):
-		retval = self.surveyQuery.fields_observed()   # remember to also do fields_observed_to_completion
+		retval = self.surveyQuery.fields_observed()
 		return retval
 
 	@property.Lazy
@@ -34,11 +28,6 @@ class Overview(object):
 	@property.Lazy
 	def mpcTold(self):
 		retval = self.surveyQuery.disc.mpc_informed()
-		return retval
-	
-	@property.Lazy
-	def surveyEfficiency(self):
-		retval = self.surveyQuery.survey_efficiency()
 		return retval
 
 	@property.Lazy
@@ -69,12 +58,10 @@ class Overview(object):
 
 	@view_config(route_name='overview', renderer='overview.pt', permission='ossos')
 	def general_overview(self):
-		retval = {'propor_complete': self.percentComplete,
-					'surveyed': self.fractionSurveyed,
+		retval = {'surveyed': self.fractionSurveyed,
 					'processed_sqdeg': self.fractionProcessed,
 					'num_discoveries': self.numDiscoveries,
 					'mpc_told': self.mpcTold,
-					'efficiency': self.surveyEfficiency,
 					'most_recent_obs': self.most_recent_obs,
 					'next_obs': self.nextScheduledObservations,
 					'next_moondark': self.next_moondark,

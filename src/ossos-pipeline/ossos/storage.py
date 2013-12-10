@@ -37,7 +37,7 @@ astheaders = {}
 _DOWNLOADER = downloader.Downloader()
 
 
-def cone_search(ra, dec, dra, ddec, runids=('13AP05','13AP06','13BP05')):
+def cone_search(ra, dec, dra, ddec, runids=('13AP05','13AP06','13BP05','13BP06')):
     """Do a QUERY on the TAP service for all observations that are part of runid,
     where taken after mjd and have calibration 'observable'.
 

@@ -3,12 +3,14 @@
 <html>
   <head>
   	<!-- No indexing by search engines, for now -->
-  <meta http-equiv="Content-Type" name="robots" content="noindex; text/html; charset=utf-8" />
-  <title>OSSOS: Field Inspection</title>
-  <link rel="stylesheet" type="text/css" href="/css/bootstrap.css" />
-  <style type = "text/css">
-    .normal-image {}
-  </style>
+    <meta http-equiv="Content-Type" name="robots" content="noindex; text/html; charset=utf-8" />
+    <title>OSSOS: Field Inspection</title>
+    <link rel="stylesheet" type="text/css" href="/css/bootstrap.css" />
+    <style type = "text/css">
+        .normal-image {}
+    </style>
+    <script type="text/javascript" src="jquery-1.10.1.js"></script>
+    <script type="text/javascript" src="jquery.sparkline.js"></script>
   </head>
 
   <body>
@@ -68,40 +70,50 @@
       		Images forming the discovery triplet are <b>highlighted</b>
       	</caption>
       	<thead>
-      		<tr>
-      			<th>observation endtime</th>
-      			<th>IQ</th>
+            <tr>
+            <th>observation endtime</th>
+            <th>IQ</th>
+            <th>zeropoint</th>
+            <th>integration (s)</th>
             <th>image ID</th>
-            <th>Processing status</th>
-      		</tr>
+            <th>comment</th>
+            <th>processing status</th>
+            </tr>
       	</thead>
       	<tbody>
-      		<tal:block repeat="obj observations['obs']">
-        		<tr tal:condition="discovery_triplet" tal:attributes = "class 'success' if obj[2] in discovery_triplet[0] else 'normal-image'">
-    					<td>${obj[0].strftime('%Y-%m-%d %H:%M:%S')}</td> 
-    					<td>${'%.2f' % obj[1]}</td>
-              <td>
-                <a href="http://www.canfar.phys.uvic.ca/vosui/#OSSOS/dbimages/${obj[2]}">${obj[2]}</a>
-              </td>
-              <td>
-                <tal:block repeat="status obj[3]">
-                  <span tal:content="structure status.render()"></span>
-                </tal:block>
-              </td>
-            </tr>
-            <tr tal:condition="not(discovery_triplet)"> <!-- wallpaper has no triplet -->
-              <td>${obj[0].strftime('%Y-%m-%d %H:%M:%S')}</td> 
+        <tal:block repeat="obj observations['obs']">
+          <tr tal:condition="discovery_triplet" tal:attributes = "class 'success' if obj[2] in discovery_triplet[0] else 'normal-image'">
+              <td>${obj[0].strftime('%Y-%m-%d %H:%M:%S')}</td>
               <td>${'%.2f' % obj[1]}</td>
+              <td>${'%.2f' % obj[3]}</td>
+              <td>${'%.1f' % obj[4].seconds}</td>
               <td>
                 <a href="http://www.canfar.phys.uvic.ca/vosui/#OSSOS/dbimages/${obj[2]}">${obj[2]}</a>
+                <a href="">&#128247;</a> <!-- will link to .gifs once JJ generates them -->
               </td>
+              <td>${obj[5]}</td>
               <td>
-                <tal:block repeat="status obj[3]">
+                <tal:block repeat="status obj[6]">
                   <span tal:content="structure status.render()"></span>
                 </tal:block>
               </td>
-      			</tr>
-      		</tal:block>  <!-- tal:repeat obj observations -->
+          </tr>
+        <tr tal:condition="not(discovery_triplet)"> <!-- wallpaper has no triplet -->
+          <td>${obj[0].strftime('%Y-%m-%d %H:%M:%S')}</td>
+          <td>${'%.2f' % obj[1]}</td>
+          <td>${'%.2f' % obj[3]}</td>
+          <td>${'%.1f' % obj[4].seconds}</td>
+          <td>
+            <a href="http://www.canfar.phys.uvic.ca/vosui/#OSSOS/dbimages/${obj[2]}">${obj[2]}</a>
+          </td>
+          <td>${obj[5]}</td>
+          <td>
+            <tal:block repeat="status obj[6]">
+              <span tal:content="structure status.render()"></span>
+            </tal:block>
+          </td>
+        </tr>
+        </tal:block>  <!-- tal:repeat obj observations -->
       	</tbody>
       </table>
 
