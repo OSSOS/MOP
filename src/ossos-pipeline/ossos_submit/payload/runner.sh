@@ -19,13 +19,19 @@ args=$@
 
 # setup the logger output area
 log_container_node="vos:OSSOS/joblog/${script}"
+logfile=${jobid}.txt
+
 echo ${log_container_node}
 vmkdir -p ${log_container_node}
 
-logfile=${jobid}.txt
+vcp ${log_container_node} ${logfile} >> /dev/null  2>&1
 
+touch ${logfile}
+echo "============================================================" >> ${logfile} 2>&1
+date >> ${logfile} 2>&1
 # log the start of the processing
-echo "Running $script on $args sending stdout/stderr to ${logfile}" > ${logfile}
+echo "Running $script on $args sending stdout/stderr to ${logfile}" >> ${logfile} 2>&1
+echo "============================================================" >> ${logfile} 2>&1
 
 # launch syn.sh to continously copy logfile to VOSpace in background
 # sync.sh  will copy logfile to VOspace as long as log_capture_on exists
@@ -34,7 +40,7 @@ touch log_capture_on
 
 # launch the job (check if maybe its in local dir first)
 [ -e ${script} ] && script="./${script}"
-${script} $args >& ${logfile}
+${script} $args >> ${logfile}  2>&1
 status=$?
 
 # job is done, delete log_capture_on and then wait until sync.sh returns
