@@ -14,9 +14,11 @@ class SingletViewer(WxMPLFitsViewer):
 
     def __init__(self, parent):
         super(SingletViewer, self).__init__(parent)
-        self.ds9 = ds9.ds9('validate')
-        self.ds9.set('frame delete all')
         self.xy_changed = Signal()
+
+    def _refresh_markers(self,cutout):
+        self._displayables_by_cutout[cutout].clear_markers()
+        self.mark_sources(self.current_cutout)
 
     def mark_sources(self, cutout):
         assert cutout in self._displayables_by_cutout
