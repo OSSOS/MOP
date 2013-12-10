@@ -39,17 +39,15 @@ class ErrorStatus(object):
         return retval
 
     def joblog_url(self, component, ccd):
-        canfar_url = 'http://www.canfar.phys.uvic.ca/vospace/nodes/OSSOS/dbimages/'
-        # OSSOS/dbimages/EXPNUM/ccd##/pipeline_step.txt
-        if component == 'plant':  # this job type doesn't produce plant.txt files...FIXME
-            component = 'Object.planted'  # this file doesn't actually have a .txt at the end, either
-        if component.startswith('fk'):
-            component = 'fk_'+ component.lstrip('fk')
-
-        if component != 'plant':  # grr getting convoluted...
-            retval = canfar_url + self.image_id + '/' + 'ccd' + ccd + '/' + component + '.txt'
-        else:
-            retval = canfar_url + self.image_id + '/' + 'ccd' + ccd + '/' + component
+        canfar_url = 'http://www.canfar.phys.uvic.ca/vospace/nodes/OSSOS/joblog/'
+        # if component == 'plant':  # this job type doesn't produce plant.txt files...FIXME
+        #     component = 'Object.planted'  # this file doesn't actually have a .txt at the end, either
+        # if component.startswith('fk'):
+        #     component = 'fk_'+ component.lstrip('fk')
+        # if component != 'plant':  # grr getting convoluted...
+        #     retval = canfar_url + component +  '/' + self.image_id + '.txt'
+        # else:
+        retval = canfar_url + component +  '/' + self.image_id + '.txt'
 
         return retval
 
