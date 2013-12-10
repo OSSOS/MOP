@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 ## use the xy2skypv code to generate the astrometric values 
 ## that measure3 would normally produce.
@@ -13,7 +13,7 @@ if __name__=='__main__':
     if len(args)!= 1:
         parser.error("You must provide the base .cands.comb image on the command line\n")
     base_image=args[0]
-    OK=base_image+".measure3.OK"
+    OK="measure3.OK"
     FAILED=base_image+".measure3.FAILED"
 
     os.system("touch %s" %(FAILED))
@@ -35,6 +35,7 @@ if __name__=='__main__':
     rd_files={}
     xy_lines={}
     getImageNames=True
+    started=False
     for cands_line in open(cands_filename):
     ## read the names of the exposures to work from...
         if len(cands_line.strip())==0:
@@ -46,19 +47,22 @@ if __name__=='__main__':
                 astrom_file.write(cands_line)
             else:
                 astrom_file.write(astrom_header)
-            if getImageNames and cands_line[1]==' ':
+            if cands_line.lstrip()[1]=='#':
+                getImageNames= not started
+                continue
+            print cands_line[2:].strip()
+            if getImageNames and cands_line.lstrip()[1]==' ':
                 base_name=cands_line[2:].strip()
                 base_names.append(base_name)
                 xy_files[base_name]=open("%s.xy" %(base_name), 'w')
+                started=True
                 continue
-            getImageNames=False
             continue
         v=cands_line.strip().split()
         coords.append(v)
         base_name=base_names[line_counter % len(base_names)]
         if base_name not in xy_lines:
             xy_lines[base_name]=[]
-        print base_name, cands_line.strip()
         xy_lines[base_name].append(cands_line)
         xy_files[base_name].write("%s %s\n" % ( v[0],v[1]))
         xy_files[base_name].flush()
