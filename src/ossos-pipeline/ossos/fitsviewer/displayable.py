@@ -6,10 +6,8 @@ from ossos.gui import logger
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from ossos.fitsviewer.colormap import GrayscaleColorMap
 from ossos.fitsviewer.exceptions import MPLViewerError
@@ -41,24 +39,25 @@ class Displayable(object):
         if not self.rendered:
             self._do_render()
 
-        if canvas is None:
-            pass
-            #plt.show()
-        else:
-            self.canvas = canvas
-            canvas.figure = self.figure
-
-            parent_size = canvas.GetClientSize()
-
-            figure_dpi = self.figure.get_dpi()
-            self.figure.set_size_inches(parent_size[0] / figure_dpi,
-                                        parent_size[1] / figure_dpi)
-
-            self._apply_event_handlers(canvas)
+        # if canvas is None:
+        #     pass
+        #     #plt.show()
+        # else:
+        #     self.canvas = canvas
+        #     canvas.figure = self.figure
+        #
+        #     parent_size = canvas.GetClientSize()
+        #
+        #     figure_dpi = self.figure.get_dpi()
+        #     self.figure.set_size_inches(parent_size[0] / figure_dpi,
+        #                                 parent_size[1] / figure_dpi)
+        #
+        #     self._apply_event_handlers(canvas)
 
     def redraw(self):
-        if self.canvas is not None:
-            self.canvas.draw()
+        pass
+        # if self.canvas is not None:
+        #     self.canvas.draw()
 
     def place_error_ellipse(self, x, y, a, b, pa, color='y'):
         pass
@@ -86,7 +85,7 @@ class ImageSinglet(object):
         self.hdulist = hdulist
         self.figure = figure
         self.axes = self._create_axes(rect)
-        self.figure.add_axes(self.axes)
+        #self.figure.add_axes(self.axes)
 
         self.marker = None
 
@@ -135,13 +134,16 @@ class ImageSinglet(object):
 
         self.number_of_images_displayed += 1
 
+    def clear_markers(self):
+        display = ds9.ds9(target='valdiate')
+        display.set('regions delete all')
+
     def place_marker(self, x, y, radius, colour="b"):
         """
         Draws a marker with the specified dimensions.  Only one marker can
         be on the image at a time, so any existing marker will be replaced.
         """
         display = ds9.ds9(target='validate')
-        # display.set('regions delete all')
         colour_string = {'r': 'red', 'b': 'blue'}.get(colour, 'green')
         display.set('regions', 'image; circle({},{},{}) # color={}'.format(x,y,radius,colour_string))
 
@@ -265,6 +267,8 @@ class DisplayableImageSinglet(Displayable):
         self.image_singlet = ImageSinglet(self.hdulist, self.figure,
                                           [0.025, 0.025, 0.95, 0.95])
         self.image_singlet.display_changed.connect(self.redraw)
+        self.marker_placed = False
+        self.ellipse_placed = False
 
     @property
     def xy_changed(self):
@@ -275,10 +279,14 @@ class DisplayableImageSinglet(Displayable):
         return self.image_singlet.focus_released
 
     def place_marker(self, x, y, radius, colour="b"):
-        self.image_singlet.place_marker(x, y, radius, colour=colour)
+        if not self.marker_placed:
+            self.image_singlet.place_marker(x, y, radius, colour=colour)
+            self.marker_placed = True
 
     def place_error_ellipse(self, x, y, a, b, pa, color='b'):
-        self.image_singlet.place_error_ellipse(x, y, a, b, pa, color=color)
+        if not self.ellipse_placed:
+            self.image_singlet.place_error_ellipse(x, y, a, b, pa, color=color)
+            self.ellipse_placed = True
 
     def reset_colormap(self):
         self.image_singlet.reset_colormap()
