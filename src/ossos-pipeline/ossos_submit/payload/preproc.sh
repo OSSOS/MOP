@@ -11,8 +11,8 @@ status=`vtag vos:OSSOS/dbimages/${expnum} ivo://canfar.uvic.ca/ossos#preproc_36`
 
 if [ ${status} != "'success'" ]
 then
-  vls vos:OSSOS/dbimages/${expnum}/${expnum}p.fits >& /dev/null && vtag vos:OSSOS/dbimages/${expnum} 'ivo://canfar.uvic.ca/ossos#preproc_36=success'
-  status=`vtag vos:OSSOS/dbimages/${expnum} ivo://canfar.uvic.ca/ossos#preproc_36`
+  vls vos:OSSOS/dbimages/${expnum}/${expnum}p.fits >& /dev/null && vtag vos:OSSOS/dbimages/${expnum} 'ivo://canfar.uvic.ca/ossos#preproc_o36=success'
+  status=`vtag vos:OSSOS/dbimages/${expnum} ivo://canfar.uvic.ca/ossos#preproc_o36`
 fi
 
 echo -n " status = ${status} -> "
@@ -23,7 +23,7 @@ then
   # 13A has 13AQ05_r_flat.fits
   preproc.py --overscan --flat 13B_r_flat.fits --short --verbose $expnum  || exit -1
   vcp ${expnum}p.fits vos:OSSOS/dbimages/${expnum}/${expnum}p.fits
-  vtag vos:OSSOS/dbimages/${expnum} ivo://canfar.uvic.ca/ossos#preproc_36=success
+  vtag vos:OSSOS/dbimages/${expnum} ivo://canfar.uvic.ca/ossos#preproc_o36=success
   rm ${expnum}p.fits
   rm ${expnum}o.fits.fz
 else

@@ -39,17 +39,15 @@ class ErrorStatus(object):
         return retval
 
     def joblog_url(self, component, ccd):
-        canfar_url = 'http://www.canfar.phys.uvic.ca/vospace/nodes/OSSOS/dbimages/'
-        # OSSOS/dbimages/EXPNUM/ccd##/pipeline_step.txt
-        if component == 'plant':  # this job type doesn't produce plant.txt files...FIXME
-            component = 'Object.planted'  # this file doesn't actually have a .txt at the end, either
-        if component.startswith('fk'):
-            component = 'fk_'+ component.lstrip('fk')
-
-        if component != 'plant':  # grr getting convoluted...
-            retval = canfar_url + self.image_id + '/' + 'ccd' + ccd + '/' + component + '.txt'
-        else:
-            retval = canfar_url + self.image_id + '/' + 'ccd' + ccd + '/' + component
+        canfar_url = 'http://www.canfar.phys.uvic.ca/vospace/nodes/OSSOS/joblog/'
+        # if component == 'plant':  # this job type doesn't produce plant.txt files...FIXME
+        #     component = 'Object.planted'  # this file doesn't actually have a .txt at the end, either
+        # if component.startswith('fk'):
+        #     component = 'fk_'+ component.lstrip('fk')
+        # if component != 'plant':  # grr getting convoluted...
+        #     retval = canfar_url + component +  '/' + self.image_id + '.txt'
+        # else:
+        retval = canfar_url + component +  '/' + self.image_id + '.txt'
 
         return retval
 
@@ -78,6 +76,10 @@ class Field(object):
         else:
             self.fieldId = fi
 
+    @Lazy
+    def discovery_triplet(self):
+        retval = self.imagesQuery.discovery_triplet(self.fieldId)
+        return retval
 
     @Lazy
     def observations(self):
@@ -87,8 +89,8 @@ class Field(object):
         # format the errors in html with links to their joblogs
         retproc = []
         for row in proc_rv:
-            statuses = [mk_status(s, row[2]) for s in row[3]]
-            retrow = row[0:3]  # without the unformatted errors
+            statuses = [mk_status(s, row[2]) for s in row[6]]
+            retrow = row[:-1]  # without the unformatted errors
             retrow.append(statuses)
             retproc.append(retrow)
 
@@ -105,6 +107,7 @@ class Field(object):
     @Lazy
     def dec(self):
         ret = self.imagesQuery.field_dec(self.fieldId)
+        # FIXME: need these to catch the ones that are being stored as ints and parse them properly
         dec = ret.split(':')[0]
         dec2 = ret.split(':')[1] + "'"
         retval = (dec, dec2)
@@ -116,11 +119,6 @@ class Field(object):
                               ephem.degrees(self.imagesQuery.field_dec(self.fieldId)))
         ec = ephem.Ecliptic(rr)
         retval = (degrees(ec.lat), str(ec.lon))  # eclat is float (deg), eclon is str in deg
-        return retval
-
-    @Lazy
-    def discovery_triplet(self):
-        retval = self.imagesQuery.discovery_triplet(self.fieldId)
         return retval
 
     @Lazy

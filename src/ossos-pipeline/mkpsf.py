@@ -49,7 +49,7 @@ def mkpsf(expnum, ccd, fversion):
     ## confirm destination directory exists.
     destdir = os.path.dirname(
         storage.dbimages_uri(expnum, ccd, version=fversion,ext='fits'))
-    logging.info("Checking that destination direcoties exist")
+    logging.info("Checking that destination directories exist")
     storage.mkdir(destdir)
 
 
@@ -115,7 +115,7 @@ if __name__ == '__main__':
 
     for expnum in args.expnum:
         for ccd in ccdlist:
-            if storage.get_status(expnum, ccd, 'mkpsf') and not args.force:
+            if storage.get_status(expnum, ccd, 'mkpsf_p') and not args.force:
                 logging.info("Already did %s %s, skipping" %( str(expnum),
                                                                   str(ccd)))
                 continue
@@ -124,12 +124,12 @@ if __name__ == '__main__':
                 mkpsf(expnum, ccd, args.type)
                 storage.set_status(expnum,
                                          ccd,
-                                         'fwhm',
+                                         'fwhm_p',
                                          str(storage.get_fwhm(
                     expnum, ccd, version=args.type)))
                 storage.set_status(expnum,
                                          ccd,
-                                         'zeropoint',
+                                         'zeropoint_p',
                                          str(storage.get_zeropoint(
                     expnum, ccd, version=args.type)))
                                          
@@ -139,6 +139,6 @@ if __name__ == '__main__':
             logging.error(message)
             storage.set_status( expnum,
                                       ccd,
-                                      'mkpsf',
+                                      'mkpsf_p',
                                       message)
                        
