@@ -24,7 +24,7 @@ logfile=${jobid}.txt
 echo ${log_container_node}
 vmkdir -p ${log_container_node}
 
-vcp ${log_container_node} ${logfile} >> /dev/null  2>&1
+vcp ${log_container_node}/${logfile} .  >> /dev/null  2>&1
 
 touch ${logfile}
 echo "============================================================" >> ${logfile} 2>&1
