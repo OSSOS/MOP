@@ -25,7 +25,7 @@ def query_for_observations(mjd, observable, runids):
     where taken after mjd and have calibration 'observable'.
 
     mjd : float 
-    observable: str ( CAL or RAW)
+    observable: str ( 2 or 1 )
     runid: tuple eg. ('13AP05', '13AP06')
 
     """
@@ -37,15 +37,15 @@ def query_for_observations(mjd, observable, runids):
                     "Plane.time_exposure AS ExposureTime, "
                     "Observation.instrument_name AS Instrument, "
                     "Plane.energy_bandpassName AS Filter, "
-                    "Observation.collectionID AS dataset_name, "
+                    "Observation.observationID AS dataset_name, "
                     "Observation.proposal_id AS ProposalID, "
                     "Observation.proposal_pi AS PI "
-                    "FROM caom.Observation AS Observation "
-                    "JOIN caom.Plane AS Plane ON "
+                    "FROM caom2.Observation AS Observation "
+                    "JOIN caom2.Plane AS Plane ON "
                     "Observation.obsID = Plane.obsID "
                     "WHERE  ( Observation.collection = 'CFHT' ) "
                     "AND Plane.time_bounds_cval1 > %d "
-                    "AND Plane.observable_ctype='%s' "
+                    "AND Plane.calibrationLevel=%s "
                     "AND Observation.proposal_id IN %s " ) % 
           ( mjd, observable, str(runids)),
           "REQUEST": "doQuery",
@@ -59,6 +59,8 @@ def query_for_observations(mjd, observable, runids):
     logging.debug("QUERY: {}".format(data['QUERY']))
 
     urllib.urlretrieve(url,tmpFile.name)
+    tmpFile.seek(0)
+    print tmpFile.read()
 
     vot = parse(tmpFile.name).get_first_table()
     vot.array.sort(order='StartDate')
@@ -216,7 +218,7 @@ if __name__ == '__main__':
     parser.add_argument('--runid', nargs='*', action='store', 
                         default=OSSOS_RUNIDS)
 
-    parser.add_argument('--cal', action='store', default="RAW")
+    parser.add_argument('--cal', action='store', default=1)
 
     parser.add_argument('--outfile', action='store', 
                         default='vos:OSSOS/ObservingStatus/obsList')
