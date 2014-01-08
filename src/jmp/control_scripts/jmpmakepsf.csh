@@ -4,6 +4,8 @@ echo $0 $*
 # 
 # This processes depends on step0matt exiting.
 
+touch jmpmakepsf.csh.FAILED
+
 set orig = `pwd`
 set dir = $1
 set image = $2:r
@@ -11,6 +13,7 @@ set plant = $3
 set force = "no"
 if ( $#argv == 4 ) then
     if ( $4 == "force" ) set force = "yes"
+    touch jmpmakepsf.csh.OK
 endif
 
 set fwhm="4."
@@ -84,7 +87,7 @@ cd $dir
   }
   ;
 
+  touch jmpmakepsf.csh.OK
 logout
 
 EOF
-
