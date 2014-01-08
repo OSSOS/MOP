@@ -1,17 +1,24 @@
 import sqlalchemy as sa
 from web.overview.ossuary import OssuaryTable
-import os, vos, ephem, datetime
+import ephem, datetime
 from ossos import storage
 import cPickle
-
+import subprocess
+import shlex
 
 class ImagesQuery(object):
     def __init__(self):
+        """
+        An ImagesQuery allows queries to ossuary's images table, and marshalls vtags associated with each image.
+        """
         ot = OssuaryTable('images')
         self.images = ot.table
         self.conn = ot.conn
         self.field_triplets = {}
-
+        self.steps = ['preproc', 'preproc_o', 'update_header', 'update_header_p', 'mkpsf', 'mkpsf_p',
+                      'step1', 'step1_p', 'step2', 'step2_p', 'step3', 'step3_p', 'combine', 'combine_p',
+                      'scramble', 'scramble_s', 'plant', 'plant_s', 'mkpsf_s', 'step1_s', 'fkstep1', 'fkstep1_s',
+                      'fkstep2', 'fkstep2_s', 'fkstep3', 'fkstep3_s', 'fkcombine', 'fkcombine_s']
 
     def field_images(self, field):
         it = self.images
@@ -152,11 +159,7 @@ class ImagesQuery(object):
         errkeys = errors.keys()
         # print errkeys
         # Now accounts for all codes that have been used over time, with them in order, both old and new styles.
-        steps = ['preproc', 'preproc_o', 'update_header', 'update_header_p', 'mkpsf', 'mkpsf_p', 'step1', 'step1_p', \
-                 'step2', 'step2_p', 'step3', 'step3_p', 'combine', 'combine_p', 'scramble', 'scramble_s', \
-                 'plant', 'plant_s', 'mkpsf_s', 'step1_s', 'fkstep1', 'fkstep1_s', 'fkstep2', 'fkstep2_s', \
-                 'fkstep3', 'fkstep3_s', 'fkcombine', 'fkcombine_s']
-        for step in steps:
+        for step in self.steps:
             if step in errors.keys():
                 if len(errors[step]) == 0: # step was completed successfully for all ccds
                     order.append(step)
@@ -430,6 +433,45 @@ class ImagesQuery(object):
 
 #		return
 
+    def process_field(self, field, step, ):
+        allchips_scripts = ['preproc', 'update_header', 'mkpsf_all']
+        # TODO: want to be able to process all of a single field's images for those in allchips_scripts
+        # and to be able to process only triplets for the others.
+        # Have two buttons: reprocess all images, reprocess triplets.
+        triplet_scripts = []
+
+        ## Triplets: first do the search images
+        scripts = {'preproc':'',
+                   'update_header':'',
+                   'mkpsf_all':'',
+                   'mkpsf_p':'mkpsf.py $1 $2 $3 --ccd $ccd -v  ${force}',
+                   'step1_p':'step1.py $1 $2 $3 --ccd $ccd -v  ${force}',
+                   'step2_p':'step2.py $1 $2 $3 --ccd $ccd -v  ${force}',
+                   'step3_p':'step3.py $1 $2 $3 --ccd $ccd -v  ${force}',
+                   'combine_p':'combine.py $1 -v  --ccd $ccd ${force} --measure3 vos:OSSOS/measure3/2013A-O --field O-2+0',
+                   'scramble_s':'scramble.py $1 $2 $3 --ccd $ccd -v  ${force}',
+                   'mkpsf_s':'mkpsf.py $1 $2 $3 --ccd $ccd -v  ${force} --type s',
+                   'step1_s':'step1.py  $1 $2 $3 --ccd $ccd -v  ${force} --type s',
+                   'step2_s':'step2.py   $1 $2 $3 --ccd $ccd -v  ${force} --type s',
+                   'plant_s':'plant.py $1 $2 $3 --ccd $ccd -v ${force} --type s',
+                   'fkstep1_s':'step1.py $1 $2 $3 --ccd $ccd --fk --type s -v  ${force}',
+                   'fkstep2_s':'step2.py $1 $2 $3 --ccd $ccd --fk --type s -v  ${force}',
+                   'fkstep3_s':'step3.py $1 $2 $3 --ccd $ccd --fk --type s -v ${force}',
+                   'fkcombine_s':'combine.py $1 --fk --type s -v --ccd $ccd ${force} --measure3 vos:OSSOS/measure3/2013A-O --field O-2+0'}
+
+        d = {'wibble': 'arg1', 'blarg': 'arg2'}
+        foo = 'cmd {wibble} -o {blarg}'.format(**d)
+
+
+        for im in self.field_images(field):
+            if step in allchips_scripts:
+                str_cmd = 'ossos_submit/submit_job.sh '+ scripts[step]
+
+            # Execute a script
+            run_cmd = shlex.split(str_cmd)
+            subprocess.Popen(run_cmd)
+
+        return
 
 
 

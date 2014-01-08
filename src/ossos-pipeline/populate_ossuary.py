@@ -9,6 +9,7 @@ from web.field_obs.queries import ImagesQuery
 from ossos import storage
 import pyfits
 import shlex
+import os
 from subprocess import Popen
 
 """
@@ -178,17 +179,13 @@ def parse_unprocessed_images(dbimages, processed_images):
     return retval
 
 
-def get_header(data_web_service_url, image):
-# pulling back the header: fast if you know the direct source
-# also this means it's definitely the original header that's being checked
-# 'o' for an object acquisition
-#    hdr = "%s/%so.fits.fz?cutout=[0]" % (data_web_service_url, image)
-#    header_text = fits.open(StringIO(storage.vospace.open(hdr, view='data').read()))[0].header
-    header_text = storage.get_astheader(image, 0) # zeroth ccd
-    if header_text is not None:  # sometimes this happens
+def get_header(image):
+    retval = None
+    header_text = storage.get_astheader(image, 0) # zeroth ccd: first see if the preproc'd version is there
+    if header_text is None:
+        header_text = storage.get_astheader(image, 0, version='o', ext='.head')  # 'o' for an object acquisition
+    if header_text is not None:  # checked twice, it must be there now if it's there at all...
         retval = wanted_keys(header_text)
-    else:
-        retval = None
 
     return retval, header_text
 
@@ -292,7 +289,6 @@ def main():
                         help="Add comments on images provided by S. Gwyn to database.")
     args = parser.parse_args()
 
-    data_web_service_url = storage.DATA_WEB_SERVICE + "CFHT"
     images = ImagesQuery()
     processed_images, iqs = retrieve_processed_images(images)  # straight list of primary keys
     commdict = parse_sgwn_comments()
@@ -317,10 +313,10 @@ def main():
     sys.stdout.write('%d images in ossuary; updating with %d new in VOspace.\n' %
                      (len(processed_images), len(unprocessed_images)))
 
-    for n, image in enumerate(unprocessed_images):
+    for n, image in enumerate(unprocessed_images[29:]):  # FIXME: remove this when PlutoHazard images taken out by JJ
         sys.stdout.write('%s %d/%d ' % (image, n + 1, len(unprocessed_images)))
         try:
-            subheader, fullheader = get_header(data_web_service_url, image)
+            subheader, fullheader = get_header(image)
             if subheader is not None:
                 sys.stdout.write('Header obtained. ')
                 verify_ossos_image(fullheader)
@@ -328,7 +324,7 @@ def main():
                 if image in commdict.keys():
                     header['comment'] = commdict[image]
                 put_image_in_database(header, images)
-                sys.stdout.write('...added to ossuary...')
+                sys.stdout.write('...added to ossuary...\n')
                 # generate_MegaCam_previews(image)
                 # sys.stdout.write(' .gif preview saved.\n')
             else:
