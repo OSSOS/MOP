@@ -7,7 +7,7 @@ from ossos.gui import logger
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import matplotlib.pyplot as plt
-from matplotlib.patches import Ellipse
+#from matplotlib.patches import Ellipse
 
 from ossos.fitsviewer.colormap import GrayscaleColorMap
 from ossos.fitsviewer.exceptions import MPLViewerError
@@ -23,7 +23,8 @@ class Displayable(object):
     """
 
     def __init__(self):
-        self.figure = plt.figure()
+        self.figure = None
+        # self.figure = plt.figure()  [stop using the matplotlib plt]
         self.canvas = None
         self.rendered = False
 
@@ -206,13 +207,15 @@ class ImageSinglet(object):
         return self.axes == event.inaxes
 
     def register_mpl_event_handler(self, eventname, handler):
-        handler_id = self.figure.canvas.mpl_connect(eventname, handler)
-        self._mpl_event_handlers[handler_id] = (eventname, handler)
-        return handler_id
+        return 0
+#        handler_id = self.figure.canvas.mpl_connect(eventname, handler)
+#        self._mpl_event_handlers[handler_id] = (eventname, handler)
+#        return handler_id
 
     def deregister_mpl_event_handler(self, id_):
-        self.figure.canvas.mpl_disconnect(id_)
-        del self._mpl_event_handlers[id_]
+        return
+#        self.figure.canvas.mpl_disconnect(id_)
+#        del self._mpl_event_handlers[id_]
 
     def apply_event_handlers(self, canvas):
         for eventname, handler in self._mpl_event_handlers.itervalues():
@@ -224,20 +227,7 @@ class ImageSinglet(object):
           rect: [left, bottom, width, height]
             Used to construct the matplotlib axes.
         """
-        axes = plt.Axes(self.figure, rect)
-
-        # Don't draw tick marks and labels
-        axes.set_axis_off()
-
-        # FITS images start at pixel 1,1 in the bottom-left corner
-        axes.set_xlim([1, self.width])
-        axes.set_ylim([1, self.height])
-
-        # Add a border around the image.
-        axes.add_patch(plt.Rectangle((1, 1), self.width - 1, self.height - 1,
-                       linewidth=3, edgecolor="black", fill=False))
-
-        return axes
+        return None
 
     def _refresh_displayed_colormap(self):
         self.axes_image.set_cmap(self._colormap.as_mpl_cmap())
@@ -383,19 +373,14 @@ class ErrEllipse(object):
         self.a = max(a, 10)
         self.b = max(b, 10)
         self.pa = pa
+        self.angle = self.pa - 90
 
-        angle = self.pa - 90
-
-        self.artist = Ellipse(self.center, self.a, self.b, angle=angle,
-                              linewidth=3, edgecolor=color, facecolor='#E47833',
-                              alpha=0.1)
 
     def add_to_axes(self, axes):
-        self.artist.set_clip_box(axes.bbox)
-        axes.add_patch(self.artist)
+        return None
 
 
-class Marker(object):
+class Depricated_Marker(object):
     def __init__(self, x, y, radius, colour="b"):
         self.circle = plt.Circle((x, y), radius, color=colour, fill=False)
 

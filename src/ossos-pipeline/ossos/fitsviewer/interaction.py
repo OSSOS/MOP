@@ -2,7 +2,6 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 from ossos.fitsviewer.exceptions import MPLViewerError
 
-
 class InteractionContext(object):
     """
     Very useful reference for matplotlib event handling:
@@ -22,12 +21,13 @@ class InteractionContext(object):
         """
         Connect to start listening for the relevant events.
         """
-        self.cidpress = self.displayable.register_mpl_event_handler(
-            "button_press_event", self.on_press)
-        self.cidrelease = self.displayable.register_mpl_event_handler(
-            "button_release_event", self.on_release)
-        self.cidmotion = self.displayable.register_mpl_event_handler(
-            "motion_notify_event", self.on_motion)
+        #self.cidpress = self.displayable.register_mpl_event_handler(
+        #    "button_press_event", self.on_press)
+        #self.cidrelease = self.displayable.register_mpl_event_handler(
+        #    "button_release_event", self.on_release)
+        #self.cidmotion = self.displayable.register_mpl_event_handler(
+        #    "motion_notify_event", self.on_motion)
+        return
 
     def on_press(self, event):
         if not self.displayable.is_event_in_axes(event):
@@ -77,9 +77,10 @@ class InteractionContext(object):
 
     def disconnect(self):
         """Disconnects all the stored connection ids"""
-        self.displayable.deregister_mpl_event_handler(self.cidpress)
-        self.displayable.deregister_mpl_event_handler(self.cidrelease)
-        self.displayable.deregister_mpl_event_handler(self.cidmotion)
+        return
+        #self.displayable.deregister_mpl_event_handler(self.cidpress)
+        #self.displayable.deregister_mpl_event_handler(self.cidrelease)
+        #self.displayable.deregister_mpl_event_handler(self.cidmotion)
 
 
 class BaseInteractionState(object):
