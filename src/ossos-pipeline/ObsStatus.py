@@ -59,8 +59,6 @@ def query_for_observations(mjd, observable, runids):
     logging.debug("QUERY: {}".format(data['QUERY']))
 
     urllib.urlretrieve(url,tmpFile.name)
-    tmpFile.seek(0)
-    print tmpFile.read()
 
     vot = parse(tmpFile.name).get_first_table()
     vot.array.sort(order='StartDate')
