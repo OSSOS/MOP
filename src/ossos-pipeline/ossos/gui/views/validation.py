@@ -160,14 +160,18 @@ class AcceptSourceDialog(SourceValidationDialog):
                  note2_default=None,
                  default_observatory_code="",
                  default_comment="",
-                 phot_failure=False):
+                 phot_failure=False,
+                 pixel_x=None,
+                 pixel_y=None):
         self.controller = controller
         self.phot_failure = phot_failure
 
         self.provisional_name = provisional_name
         self.date_of_obs = date_of_obs
-        self.ra_str = str(ra)
-        self.dec_str = str(dec)
+        self.ra = ra
+        self.dec = dec
+        self.ra_str = "%10.6f (%5.2f)" % ( ra, pixel_x)
+        self.dec_str = "%10.6f (%5.2f)" % ( dec, pixel_y)
 
         if self.phot_failure:
             message = "Photometry failed.  Will be left blank."
@@ -286,8 +290,8 @@ class AcceptSourceDialog(SourceValidationDialog):
                                      note1,
                                      note2,
                                      self.date_of_obs,
-                                     self.ra_str,
-                                     self.dec_str,
+                                     self.ra,
+                                     self.dec,
                                      obs_mag,
                                      obs_mag_err,
                                      band,

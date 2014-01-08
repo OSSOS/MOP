@@ -180,7 +180,9 @@ class ApplicationView(object):
                                   note2_default=None,
                                   default_observatory_code="",
                                   default_comment="",
-                                  phot_failure=False
+                                  phot_failure=False,
+                                  pixel_x=None,
+                                  pixel_y=None
     ):
         self.accept_source_dialog = AcceptSourceDialog(
             self.mainframe, self.controller,
@@ -197,7 +199,9 @@ class ApplicationView(object):
             note2_default=note2_default,
             default_observatory_code=default_observatory_code,
             default_comment=default_comment,
-            phot_failure=phot_failure)
+            phot_failure=phot_failure,
+            pixel_x=pixel_x,
+            pixel_y=pixel_y)
         self.accept_source_dialog.ShowModal()
 
     @guithread

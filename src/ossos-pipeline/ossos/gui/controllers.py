@@ -243,7 +243,9 @@ class ProcessRealsController(AbstractController):
             note2_default=config.read("MPC.NOTE2DEFAULT"),
             default_observatory_code=config.read("MPC.DEFAULT_OBSERVATORY_CODE"),
             default_comment=default_comment,
-            phot_failure=phot_failure
+            phot_failure=phot_failure,
+            pixel_x=source_cutout.pixel_x,
+            pixel_y=source_cutout.pixel_y
         )
 
     def on_do_accept(self,
