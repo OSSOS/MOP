@@ -14,7 +14,7 @@ step1.py $1 $2 $3 --ccd $ccd -v  ${force}
 step2.py $1 $2 $3 --ccd $ccd -v  ${force}
 step3.py $1 $2 $3 --ccd $ccd -v  ${force}
 echo "Running combine.py"
-combine.py $1 -v  --ccd $ccd ${force} --measure3 vos:OSSOS/measure3/2013A-O --field O-2+0
+combine.py $1 -v  --ccd $ccd ${force} --measure3 vos:OSSOS/measure3/2013A-O --field ${field}
 
 ## Now build a scramble set and search
 echo "scramble and plant"
@@ -26,5 +26,4 @@ plant.py $1 $2 $3 --ccd $ccd -v ${force} --type s
 step1.py $1 $2 $3 --ccd $ccd --fk --type s -v  ${force}
 step2.py $1 $2 $3 --ccd $ccd --fk --type s -v  ${force}
 step3.py $1 $2 $3 --ccd $ccd --fk --type s -v ${force}
-echo "Running combine.py"
-combine.py $1 --fk --type s -v --ccd $ccd ${force} --measure3 vos:OSSOS/measure3/2013A-O --field O-2+0
+combine.py $1 --fk --type s -v --ccd $ccd ${force} --measure3 vos:OSSOS/measure3/2013A-O --field ${field}
