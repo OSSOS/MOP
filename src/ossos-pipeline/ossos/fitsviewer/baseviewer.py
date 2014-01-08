@@ -4,7 +4,7 @@ import ds9
 
 class WxMPLFitsViewer(object):
     """
-    Display FITS images using matplotlib.
+    Display FITS images using ds9.
     """
 
     def __init__(self, parent):
