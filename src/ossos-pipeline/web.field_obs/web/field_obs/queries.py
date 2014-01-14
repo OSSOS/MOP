@@ -440,7 +440,7 @@ class ImagesQuery(object):
         # Have two buttons: reprocess all images, reprocess triplets.
         triplet_scripts = []
 
-        ## Triplets: first do the search images
+        ## Triplets: first do the search images. These are the same commands as in mop.sh.
         scripts = {'preproc':'',
                    'update_header':'',
                    'mkpsf_all':'',
@@ -465,7 +465,9 @@ class ImagesQuery(object):
 
         for im in self.field_images(field):
             if step in allchips_scripts:
-                str_cmd = 'ossos_submit/submit_job.sh '+ scripts[step]
+                # Log formatting now EXPOSURE_CCD_SCRIPT_DATE  ${exp1}_preproc_`date -u +%Y-%m-%dT%H:%M:%S`
+                joblog = {'im':im, 'step':step, 'date':datetime.datetime.strftime('%Y-%m-%d_%H:%M:%S')}
+                str_cmd = 'ossos_submit/submit_job.sh '+'{im}_{step}_{date}'.format(**joblog)+ scripts[step].format(**)
 
             # Execute a script
             run_cmd = shlex.split(str_cmd)
