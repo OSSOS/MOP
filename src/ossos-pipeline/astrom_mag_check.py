@@ -68,7 +68,6 @@ def match_planted(astrom_filename, match_filename, false_positive_filename):
             continue
         planted_objects.append(PlantedObject(line))
 
-    false_positives_fptr = None
     false_positives_stream_writer = None
 
     matches_fptr.write("#{}\n".format(fk_candidate_observations.observations[0].rawname))
@@ -164,11 +163,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('astrom_filename',
                         help=".astrom containing objects to match with Object.planted list.")
-    #parser.add_argument('match_filename',
-    #                    help="name of file to start matched objects into.")
-    #parser.add_argument('false_positive_filename',
-    #                    help='name of file to send false positives into')
-
     parser.add_argument('--dbimages', default='vos:OSSOS/dbimages')
     args  = parser.parse_args()
 
