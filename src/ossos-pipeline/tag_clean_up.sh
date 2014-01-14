@@ -20,7 +20,10 @@ done
 ## remove all non-version tags from a dbimages/exposure container if that container has a versioned mkpsf tag. which indicates that
 ## new style tags should exist for that exposure
 
-for expnum in `vls vos:OSSOS/dbimages/` ; do [ `vtag vos:OSSOS/dbimages/${expnum} ivo://canfar.uvic.ca/ossos#mkpsf_p00` == 'None' ] || echo $expnum ; done > version_processed.txt
+for expnum in `vls vos:OSSOS/dbimages/` ; do
+    [ `vtag vos:OSSOS/dbimages/${expnum} ivo://canfar.uvic.ca/ossos#mkpsf_p00` == 'None' ] || echo $expnum ;
+     done
+> version_processed.txt
 
 cat version_processed.txt | while read exp ; do vtag vos:OSSOS/dbimages/${exp} | grep "_\d\d\'" | grep -v preproc >& /dev/null && echo $exp ; done > double.dat
 

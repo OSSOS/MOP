@@ -5,7 +5,7 @@ __author__ = "Michele Bannister <micheleb@uvic.ca>"
 import sys, datetime
 import argparse
 import sqlalchemy as sa
-from web.field_obs.queries import ImagesQuery
+import web.field_obs.queries
 from ossos import storage
 import pyfits
 import shlex
@@ -289,7 +289,7 @@ def main():
                         help="Add comments on images provided by S. Gwyn to database.")
     args = parser.parse_args()
 
-    images = ImagesQuery()
+    images = web.field_obs.queries.ImagesQuery()
     processed_images, iqs = retrieve_processed_images(images)  # straight list of primary keys
     commdict = parse_sgwn_comments()
 

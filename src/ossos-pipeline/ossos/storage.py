@@ -560,6 +560,7 @@ def get_astheader(expnum, ccd, version='p', ext='.fits'):
         return astheaders[ast_uri]
     if not exists(ast_uri):
         image_uri = dbimages_uri(expnum, version=version, ext=ext)
+        logger.debug('Switched to image_uri {}'.format(image_uri))
         if not exists(image_uri, force=False):
            return None
         hdulist = fits.open(cStringIO.StringIO(vospace.open(
