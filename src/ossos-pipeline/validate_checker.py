@@ -52,7 +52,7 @@ class PlantedObject(object):
         self.line = line
         self.recovered = None
         self.false_negative = None
-        self.confused = None
+        self.confused = 0
 
     def __str__(self):
         return self.line
@@ -100,6 +100,7 @@ def match_planted(cand_filename, measures):
     matched = {}
     false_positive_sources = []
     false_negative_sources = []
+    confused_measure = {}
     for idx in range(len(planted_objects)):
         planted_object = planted_objects[idx]
 
@@ -124,6 +125,10 @@ def match_planted(cand_filename, measures):
             if measure_dist is None or measure_dist > dist:
                 measure_dist = dist
                 measure_source = measures[provisional]
+                if measure_dist < 6.0:
+                    # this gets 'unset' if we match this measure with a cand, in the next step.
+                    confused_measure[provisional] = planted_object
+                    planted_object.confused += 1
 
         # determine if planted_object was found
         if cand_dist < 6.0:
@@ -131,29 +136,24 @@ def match_planted(cand_filename, measures):
             if measure_dist is not None and measure_dist < 6.0:
                 # accepted.
                 planted_object.recovered = measure_source
+                planted_object.confused -= 1
+                del(confused_measure[measure_source[0].provisional_name])
                 matched[measure_source[0].provisional_name] = True
             else:
                 # rejected.
                 planted_object.false_negative = cand_source
                 false_negative_sources.append(cand_source)
-        elif measure_dist < 6.0:
-            # not in 'cand' but in .mpc ?
-            planted_object.confused = measure_source
-            matched[measure_source[0].provisional_name] = True
-
 
     matches_fptr.write("{:1s}{} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s}\n".format(
     "",planted_object_file.header,"x_dao","y_dao","mag_dao","merr_dao", "rate_mes", "ang_mes" ))
 
 
     for planted_object in planted_objects:
-        if planted_object.recovered is not None or planted_object.confused is not None:
-            if planted_object.recovered is not None:
-                measure = planted_object.recovered
-                confused = " "
-            else:
-                measure = planted_object.confused
+        if planted_object.recovered is not None:
+            confused = " "
+            if planted_object.confused < 1 :
                 confused = "+"
+            measure = planted_object.recovered
             start_jd = measure[0].date.jd
             x = float(measure[0].comment.X)
             x3 = float(measure[2].comment.X)
@@ -205,6 +205,8 @@ def match_planted(cand_filename, measures):
 
 
     blank = """    000.00    0000.00      00.00      00.00       0.00       0.00     00"""
+
+
     for provisional in measures:
         if matched.get(provisional,False):
             continue
@@ -217,18 +219,24 @@ def match_planted(cand_filename, measures):
         y3 = float(measure[2].comment.Y)
         end_jd = measure[2].date.jd
 
-        # look for the matching cand entry
-        cand_dist = None
-        cand_source = None
-        for source in cands.get_sources():
-            obs = source.get_readings()
-            dist = math.sqrt((obs[0].x - x)**2 +
-                             (obs[0].y - y)**2)
-            if cand_dist is None or cand_dist > dist:
-                cand_dist = dist
-                cand_source = source
+        if provisional in confused_measure:
+            confused = "+"
+            planted_object = confused_measure[provisional]
+        else:
+            confused = "F"
+            planted_object = blank
+            # look for the matching cand entry
+            cand_dist = None
+            cand_source = None
+            for source in cands.get_sources():
+                obs = source.get_readings()
+                dist = math.sqrt((obs[0].x - x)**2 +
+                                 (obs[0].y - y)**2)
+                if cand_dist is None or cand_dist > dist:
+                    cand_dist = dist
+                    cand_source = source
 
-        false_positive_sources.append(cand_source)
+            false_positive_sources.append(cand_source)
 
         rate = math.sqrt((x3-x)**2 + (y3-y)**2)/(
                 24*(end_jd - start_jd))
@@ -246,14 +254,19 @@ def match_planted(cand_filename, measures):
 
 
         matches_fptr.write("{:1s}{} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format(
-            '+', blank, x, y, mag, merr, rate, angle))
+            confused, planted_object, x, y, mag, merr, rate, angle))
 
     matches_fptr.close()
 
 
     ## write out the false_positives and false_negatives
+    if not os.access('false_positives',os.R_OK):
+        os.mkdir('false_positives')
+    if not os.access('false_negatives', os.R_OK):
+        os.mkdir('false_negatives')
+
     if len(false_positive_sources) > 0  :
-        wh = open(os.path.basename(cand_filename)+'.false_positives','w+')
+        wh = open('false_positives/'+os.path.basename(cand_filename),'w+')
         writer = astrom.StreamingAstromWriter(wh,cands.sys_header)
         #writer.write_headers(cands.observations)
         for source in false_positive_sources:
@@ -262,7 +275,7 @@ def match_planted(cand_filename, measures):
         writer.close()
 
     if len(false_negative_sources) > 0  :
-        wh = open(os.path.basename(cand_filename)+'.false_negatives','w+')
+        wh = open('false_negatives/'+os.path.basename(cand_filename),'w+')
         writer = astrom.StreamingAstromWriter(wh,cands.sys_header)
         #writer.write_headers(cands.observations)
         for source in false_negative_sources:
@@ -301,7 +314,7 @@ if __name__ == '__main__':
         sys.stderr.write("Getting list of .mpc files for input "+reals_filename+" ...")
         # find and load any .mpc files associated with this candidate file.
         mpc_list = storage.my_glob(reals_filename+".*.mpc")
-        sys.stderr.write(" got {} mpc files".format(len(mpc_list)))
+        sys.stderr.write(" got {} detections \n".format(len(mpc_list)))
         if not len(mpc_list) > 0 :
             continue
         measures =  {}
