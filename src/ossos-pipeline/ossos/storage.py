@@ -2,6 +2,8 @@
 import cStringIO
 
 import errno
+import fnmatch
+from glob import glob
 import os
 
 from astropy.io import fits
@@ -400,6 +402,20 @@ def delete(expnum, ccd, version, ext, prefix=None):
     '''delete a file, no error on does not exist'''
     uri = get_uri(expnum, ccd=ccd, version=version, ext=ext, prefix=prefix)
     remove(uri)
+
+def my_glob(pattern):
+    """get a listing matching pattern"""
+    result = []
+    if pattern[0:4] == 'vos:' :
+        dirname = os.path.dirname(pattern)
+        flist = listdir(dirname)
+        for fname in flist:
+            fname = '/'.join([dirname,fname])
+            if fnmatch.fnmatch(fname, pattern):
+               result.append(fname)
+    else:
+        result = glob(pattern)
+    return result
 
 def listdir(directory, force=False):
     return vospace.listdir(directory, force=force)

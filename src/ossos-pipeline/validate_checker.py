@@ -89,9 +89,9 @@ def match_planted(cand_filename, measures):
         cands = astrom.parse(cand_filename)
     except:
         sys.stderr("Failed while reading {}".format(cand_filename))
-        sys.exit(-1)
+        return
 
-    matches_fptr = open(args.cand_filename+".eff", 'w')
+    matches_fptr = open(os.path.basename(cand_filename)+".eff", 'w')
 
     objects_planted_uri = cands.observations[0].get_object_planted_uri()
     planted_object_file = Planted_object_file(objects_planted_uri)
@@ -243,7 +243,7 @@ def match_planted(cand_filename, measures):
             sys.stderr.write(
                 "Error converting mag/merr to float, got: '{}' '{}'\n".format(measure[0].comment.mag,
                     measure[0].comment.mag_uncertainty))
-            sys.exit(-1)
+
 
         matches_fptr.write("{:1s}{} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format(
             '+', blank, x, y, mag, merr, rate, angle))
@@ -253,7 +253,7 @@ def match_planted(cand_filename, measures):
 
     ## write out the false_positives and false_negatives
     if len(false_positive_sources) > 0  :
-        wh = open(cand_filename+'.false_positives','w+')
+        wh = open(os.path.basename(cand_filename)+'.false_positives','w+')
         writer = astrom.StreamingAstromWriter(wh,cands.sys_header)
         #writer.write_headers(cands.observations)
         for source in false_positive_sources:
@@ -262,7 +262,7 @@ def match_planted(cand_filename, measures):
         writer.close()
 
     if len(false_negative_sources) > 0  :
-        wh = open(cand_filename+'.false_negatives','w+')
+        wh = open(os.path.basename(cand_filename)+'.false_negatives','w+')
         writer = astrom.StreamingAstromWriter(wh,cands.sys_header)
         #writer.write_headers(cands.observations)
         for source in false_negative_sources:
@@ -271,36 +271,44 @@ def match_planted(cand_filename, measures):
         writer.close()
 
 
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('cand_filename',
-                        help="cands.astrom file containing objects to match with Object.planted list.")
+    parser.add_argument('measure3',
+                        help="Directory containing the measure3 files you did cands and reals on")
+    parser.add_argument('--reals',
+                        help="Directory with the output from validate, default is the same as measure3.")
     parser.add_argument('--dbimages', default='vos:OSSOS/dbimages')
 
     args  = parser.parse_args()
 
     astrom.DATASET_ROOT = args.dbimages
     storage.DBIMAGES = args.dbimages
+    storage.MEASURE3 = args.measure3
 
     ## only measure if we have completed 'reals' on this file.
-    reals = args.cand_filename.replace("cands","reals")
-    print "Using files %s and %s" % ( args.cand_filename, reals)
+    reals_filepath = ( args.reals is not None and args.reals ) or args.measure3
+    cands_filepath = args.measure3
+    cands_filelist = storage.my_glob(cands_filepath+"/fk*.cands.astrom")
 
-    if not os.access(reals+".DONE",os.F_OK):
-        sys.exit(0)
+    for cands in cands_filelist:
+        cands_filename = os.path.basename(cands)
+        reals_filename = reals_filepath+cands_filename.replace('cands','reals')
+        if not (( reals_filename[0:4] == 'vos:' and storage.exists(reals_filename+".DONE") ) or os.access(reals_filename+".DONE",os.R_OK)) :
+            # skipping incomplete field/ccd combo
+            continue
+        sys.stderr.write("Getting list of .mpc files for input "+reals_filename+" ...")
+        # find and load any .mpc files associated with this candidate file.
+        mpc_list = storage.my_glob(reals_filename+".*.mpc")
+        sys.stderr.write(" got {} mpc files".format(len(mpc_list)))
+        if not len(mpc_list) > 0 :
+            continue
+        measures =  {}
+        for mpc_fname in mpc_list:
+            provisional = mpc_fname.split(".")[-2]
+            measures[provisional] = []
+            for line in open(mpc_fname,'r').readlines():
+                measures[provisional].append(mpc.Observation.from_string(line))
 
-    # find and load any .mpc files associated with this candidate file.
-    measures =  {}
-    filenames = glob(reals+".*.mpc")
-    if not len(filenames) > 0 :
-        sys.exit(-1)
-    for filename in filenames:
-        provisional = filename.split(".")[-2]
-        measures[provisional] = []
-        for line in open(filename,'r').readlines():
-            measures[provisional].append(mpc.Observation.from_string(line))
-
-    match_planted(args.cand_filename, measures)
-
-
+        match_planted(cands, measures)
