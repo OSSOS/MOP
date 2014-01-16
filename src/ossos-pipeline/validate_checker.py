@@ -4,6 +4,9 @@ Compare the measured fluxes of planted sources against those returned for by dig
 from StdSuites import strings, string
 from glob import glob
 import sys
+import astropy.io.ascii
+from matplotlib import pyplot
+import numpy
 
 __author__ = 'jjk'
 
@@ -30,11 +33,15 @@ class Planted_object_file(object):
         self.filename = uri
         objects_planted_lines = image_slice_downloader.download_raw(
             uri, view='data').split('\n')
-        self.header = objects_planted_lines[0]
+        #self.header = objects_planted_lines[0]
         self.planted_objects = []
         for line in objects_planted_lines[1:]:
             if len(line) > 0 and line.strip()[0] != "#":
                 self.planted_objects.append(PlantedObject(line))
+    @property
+    def header(self):
+        line = "{:4s}"+" {:8s}"*6
+        return line.format("id","x_pix","y_pix","r_arcsec","r_pixel","angle","mag_plt")
 
 
 class PlantedObject(object):
@@ -55,7 +62,9 @@ class PlantedObject(object):
         self.confused = 0
 
     def __str__(self):
-        return self.line
+        line = "{:4d}"+" {:8.2f}"*6
+        return line.format(self.id, self.x, self.y, self.rate_arcsec, self.rate_pixels, self.angle, self.mag)
+
 
 def get_planted_objects(mpc_comment):
     """
@@ -136,6 +145,7 @@ def match_planted(cand_filename, measures):
             if measure_dist is not None and measure_dist < 6.0:
                 # accepted.
                 planted_object.recovered = measure_source
+                planted_object.false_negative = None
                 planted_object.confused -= 1
                 del(confused_measure[measure_source[0].provisional_name])
                 matched[measure_source[0].provisional_name] = True
@@ -144,15 +154,21 @@ def match_planted(cand_filename, measures):
                 planted_object.false_negative = cand_source
                 false_negative_sources.append(cand_source)
 
-    matches_fptr.write("{:1s}{} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s}\n".format(
-    "",planted_object_file.header,"x_dao","y_dao","mag_dao","merr_dao", "rate_mes", "ang_mes" ))
+    matches_fptr.write( ("## F: found\n"
+                         "## M: multiple matches\n"
+                         "## C: other match of confused multiple match\n"
+                         "## N: not found\n"
+                         "## P: false Positive \n") )
+    matches_fptr.write("{} {} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s}\n".format(
+        "Key",planted_object_file.header,"x_dao","y_dao", "rate_mes", "ang_mes", "mag1_dao","merr1_dao",
+        "mag2_dao","merr2_dao", "mag3_dao","merr3_dao" ))
 
 
     for planted_object in planted_objects:
         if planted_object.recovered is not None:
-            confused = " "
-            if planted_object.confused < 1 :
-                confused = "+"
+            confused = "F"
+            if planted_object.confused > 1 :
+                confused = "M"
             measure = planted_object.recovered
             start_jd = measure[0].date.jd
             x = float(measure[0].comment.X)
@@ -165,17 +181,21 @@ def match_planted(cand_filename, measures):
                 24*(end_jd - start_jd)
             )
             angle = math.degrees(math.atan2(y3 - y,x3 - x))
-            mag = 0.0
-            merr = 0.0
-            try:
-                mag = float(measure[0].comment.mag)
-                merr = float(measure[0].comment.mag_uncertainty)
-            except:
-                sys.stderr.write(
-                    "Error converting mag/merr to float, got: '{}' '{}'\n".format(measure[0].comment.mag,
-                                                                                  measure[0].comment.mag_uncertainty))
-            matches_fptr.write("{:1s}{} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format(
-            confused, str(planted_object), x, y, mag, merr, rate, angle))
+
+            matches_fptr.write("{:3s} {} {:8.2f} {:8.2f} {:8.2f} {:8.2f} ".format(
+            confused, str(planted_object), x, y, rate, angle))
+
+            # record the three discovery magnitudes
+            for idx in range(3):
+                try:
+                    mag = float(measure[idx].comment.mag)
+                    merr = float(measure[idx].comment.mag_uncertainty)
+                except Exception as e:
+                    mag = -1.0
+                    merr = -1.0
+                    logger.warning(str(e))
+                matches_fptr.write("{:8.2f} {:8.2f} ".format(mag,merr))
+            matches_fptr.write("\n")
 
         elif planted_object.false_negative is not None:
             source = planted_object.false_negative
@@ -183,28 +203,34 @@ def match_planted(cand_filename, measures):
             third = source.get_reading(2)
             cutout = image_slice_downloader.download_cutout(reading, needs_apcor=True)
 
-            try:
-                (x, y, mag, merr) = cutout.get_observed_magnitude()
-            except TaskError as e:
-                logger.warning(str(e))
-                mag = 0.0
-                merr = -1.0
-
             start_jd = mpc.Time(reading.obs.header['MJD_OBS_CENTER'],format='mpc', scale='utc').jd
             end_jd = mpc.Time(third.obs.header['MJD_OBS_CENTER'], format='mpc', scale='utc').jd
 
             rate = math.sqrt((third.x - reading.x)**2 + (third.y - reading.y)**2)/(
                 24*(end_jd - start_jd) )
             angle = math.degrees(math.atan2(third.y - reading.y,third.x - reading.x))
-            matches_fptr.write("{:1s}{} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format(
-            "*", str(planted_object), reading.x, reading.y, mag, merr, rate, angle))
+            matches_fptr.write("{:3s} {} {:8.2f} {:8.2f} {:8.2f} {:8.2f} ".format(
+            "N", str(planted_object), reading.x, reading.y, rate, angle))
+
+            for idx in range(3):
+                try:
+                    (x, y, mag, merr) = cutout.get_observed_magnitude()
+                except TaskError as e:
+                    logger.warning(str(e))
+                    mag = -1.0
+                    merr = -1.0
+                matches_fptr.write("{:8.2f} {:8.2f} ".format(mag,merr))
+            matches_fptr.write("\n")
+
+
         else:
-            matches_fptr.write("{:1s}{} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format(
-                "",str(planted_object),0, 0, 0, 0, 0, 0))
+            matches_fptr.write("{:3s} {}".format("X",str(planted_object)))
+            matches_fptr.write(10*" {:8.2f}".format(0.0))
+            matches_fptr.write("\n")
+
         matches_fptr.flush()
 
 
-    blank = """    000.00    0000.00      00.00      00.00       0.00       0.00     00"""
 
 
     for provisional in measures:
@@ -220,11 +246,11 @@ def match_planted(cand_filename, measures):
         end_jd = measure[2].date.jd
 
         if provisional in confused_measure:
-            confused = "+"
+            confused = "C"
             planted_object = confused_measure[provisional]
         else:
-            confused = "F"
-            planted_object = blank
+            confused = "P"
+            planted_object = " {:4d}".format(-1)+6*" {:8.2f}".format(0)
             # look for the matching cand entry
             cand_dist = None
             cand_source = None
@@ -242,21 +268,25 @@ def match_planted(cand_filename, measures):
                 24*(end_jd - start_jd))
         angle = math.degrees(math.atan2(y3 - y,x3 - x))
 
-        mag = 0.0
-        merr = 0.0
-        try:
-            mag = float(measure[0].comment.mag)
-            merr = float(measure[0].comment.mag_uncertainty)
-        except:
-            sys.stderr.write(
-                "Error converting mag/merr to float, got: '{}' '{}'\n".format(measure[0].comment.mag,
-                    measure[0].comment.mag_uncertainty))
+        # record the three discovery magnitudes
+        matches_fptr.write("{:3s} {} {:8.2f} {:8.2f} {:8.2f} {:8.2f} ".format(
+            confused, planted_object, x, y, rate, angle))
 
 
-        matches_fptr.write("{:1s}{} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format(
-            confused, planted_object, x, y, mag, merr, rate, angle))
+        for idx in range(3):
+            try:
+                mag = float(measure[idx].comment.mag)
+                merr = float(measure[idx].comment.mag_uncertainty)
+            except Exception as e:
+                mag = -1.0
+                merr = -1.0
+                logger.warning(str(e))
+            matches_fptr.write("{:8.2f} {:8.2f} ".format(mag,merr))
+        matches_fptr.write("\n")
+
 
     matches_fptr.close()
+    return matches_fptr.name
 
 
     ## write out the false_positives and false_negatives
@@ -283,6 +313,51 @@ def match_planted(cand_filename, measures):
         writer.flush()
         writer.close()
 
+def plot():
+
+
+    eff_file_list = glob('*.eff')
+    mag_found = []
+    mag_planted = []
+    dmag1 = []
+    dmag2 = []
+    dmag3 = []
+    for eff_file in eff_file_list:
+        try:
+            d = astropy.io.ascii.read(eff_file)
+        except Exception as e:
+            sys.stderr.write(str(e))
+            sys.stderr.write("{}\n".format(eff_file))
+            continue
+        mag_found.extend(d['mag_plt'][d['Key']=='F'])
+        mag_planted.extend(d['mag_plt'])
+        dmag1.extend(d['mag_plt'][d['Key']=='F'] - d['mag1_dao'][d['Key']=='F'])
+        dmag2.extend(d['mag_plt'][d['Key']=='F'] - d['mag2_dao'][d['Key']=='F'])
+        dmag3.extend(d['mag_plt'][d['Key']=='F'] - d['mag3_dao'][d['Key']=='F'])
+
+
+    fig = pyplot.figure()
+    assert isinstance(fig, pyplot.Figure)
+    ax = fig.add_subplot(211)
+    ax.plot(mag_found,dmag1,'.')
+    ax.plot(mag_found,dmag2,'.')
+    ax.plot(mag_found,dmag3,'.')
+    ax.plot([21,25],[0,0],'k')
+
+    ax.set_xlabel('mag')
+    ax.set_ylabel('merr')
+    ax.set_ylim(-0.4,0.4)
+    bins=numpy.arange(21,25.2,0.2)
+    (found,bin_edges) = numpy.histogram(mag_found,bins=bins)
+    (planted,bin_edges) = numpy.histogram(mag_planted,bins=bins)
+    f = 1.0*found/(1.0*planted)
+    print f
+    ax = fig.add_subplot(212)
+    ax.plot(bin_edges[1:],f,'o')
+    ax.set_xlabel('mag')
+    ax.set_ylabel('frac')
+    fig.savefig('diag.pdf')
+
 
 
 if __name__ == '__main__':
@@ -305,9 +380,13 @@ if __name__ == '__main__':
     cands_filepath = args.measure3
     cands_filelist = storage.my_glob(cands_filepath+"/fk*.cands.astrom")
 
+    eff_file_list = []
     for cands in cands_filelist:
         cands_filename = os.path.basename(cands)
-        reals_filename = reals_filepath+cands_filename.replace('cands','reals')
+        if os.path.exists(cands_filename+".eff"):
+            logger.info("{}.eff exists, skipping".format(cands_filename))
+            continue
+        reals_filename = reals_filepath + cands_filename.replace('cands','reals')
         if not (( reals_filename[0:4] == 'vos:' and storage.exists(reals_filename+".DONE") ) or os.access(reals_filename+".DONE",os.R_OK)) :
             # skipping incomplete field/ccd combo
             continue
@@ -324,4 +403,5 @@ if __name__ == '__main__':
             for line in open(mpc_fname,'r').readlines():
                 measures[provisional].append(mpc.Observation.from_string(line))
 
-        match_planted(cands, measures)
+        eff_file_list.append(match_planted(cands, measures))
+    plot()
