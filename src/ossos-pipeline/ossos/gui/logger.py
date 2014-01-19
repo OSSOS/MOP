@@ -9,31 +9,19 @@ import logging
 import os
 import tempfile
 
-# Use debug for our own code, but not globally because vos is very verbose.
-OSSOS_DEBUG_LEVEL = logging.DEBUG
-THIRD_PARTY_DEBUG_LEVEL = logging.INFO
+# set logging level and shunt to a file
+OSSOS_DEBUG_LEVEL = logging.INFO
 
 logfile = os.path.join(tempfile.gettempdir(), "ossos_validation.log")
 logging.basicConfig(filename=logfile,
-                    format="%(levelname)s: %(message)s (%(asctime)s)",
+                    format="%(levelname)s: %(module)s.%(funcName)s %(lineno)d: %(message)s (%(asctime)s)",
                     datefmt="%m/%d/%Y %I:%M:%S %p",
-                    level=THIRD_PARTY_DEBUG_LEVEL)
+                    level=logging.INFO)
 
 _logger = logging.getLogger(__name__)
 _logger.setLevel(OSSOS_DEBUG_LEVEL)
+debug = _logger.debug
+info = _logger.info
+warning = _logger.warning
+critical = _logger.critical
 
-
-def debug(message):
-    _logger.debug(message)
-
-
-def info(message):
-    _logger.info(message)
-
-
-def warning(message):
-    _logger.warning(message)
-
-
-def critical(message):
-    _logger.critical(message)
