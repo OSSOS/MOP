@@ -28,13 +28,13 @@ class ImagesQuery(object):
         self.conn = ot.conn
 
 ims = ImagesQuery()
-outfile = '13AO_triplets_details.txt'
+outfile = '13AE_triplets_details.txt'
 
-with open('O_13A_discovery_expnums.txt', 'r') as infile:
+with open('E_13A_discovery_expnums.txt', 'r') as infile:
     it = ims.images
 
     with open(outfile, 'w') as ofile:
-        ofile.write('Expnum RA DEC Obs_end MJD_end Exptime\n'.format())
+        ofile.write('Expnum RA DEC MJD_middle Exptime_sec\n'.format())
 
     for triplet in infile.readlines():
         # this should have two versions, a very precise one for use with the updated headers
@@ -44,15 +44,20 @@ with open('O_13A_discovery_expnums.txt', 'r') as infile:
             ofile.write('{}'.format(triplet.split(' ')[3]))
 
         for expnum in triplet.split(' ')[0:3]:
-            ss = sa.select([it.c.image_id, it.c.crval_ra, it.c.crval_dec, it.c.obs_end, it.c.mjd_end, it.c.exptime],
+            ss = sa.select([it.c.image_id, it.c.crval_ra, it.c.crval_dec, it.c.mjd_start, it.c.mjd_end, it.c.exptime],
                            order_by=it.c.image_id)
             ss.append_whereclause(ims.images.c.image_id == expnum)
             query = ims.conn.execute(ss)
-            retval = [s for s in query][0]
+            init_retval = [s for s in query][0]
+            retval = list(init_retval[0:3])
+            # JM wants MJD_middle only: calculate it from the midpoint between the start and end
+            retval.append((init_retval[3] + init_retval[4])/2.)
+            # add the exptime back
+            retval.append(init_retval[5].total_seconds())
 
             with open(outfile, 'a') as ofile:
-                # expnum, ra, dec, obs_end, mjd_end, exptime
-                ofile.write('{} {} {} {} {} {}\n'.format(*retval))
+                # expnum, ra, dec, obs_end, mjd_middle, exptime (seconds)
+                ofile.write('{} {} {} {} {}\n'.format(*retval))
 
         with open(outfile, 'a') as ofile:  # blank line between triplets
             ofile.write('\n')
