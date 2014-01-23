@@ -1,3 +1,5 @@
+from ossos.gui import logger
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import os
@@ -38,7 +40,7 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
     ## get the filter for this image
     filter = input_hdulist[0].header.get('FILTER', 'DEFAULT')
 
-    ### Some CFHT zeropoints that might be useful
+    ### Some nominal CFHT zeropoints that might be useful
     zeropoints = {"I": 25.77,
                   "R": 26.07,
                   "V": 26.07,
@@ -47,14 +49,12 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
                   "g.MP9401": 26.4
     }
 
-    ### load the
-    if not filter in zeropoints:
-        filter = "DEFAULT"
+    photzp = input_hdulist[0].header.get('PHOTZP', zeropoints.get(filter,zeropoints["DEFAULT"]))
 
     if zmag is None:
         zmag = input_hdulist[0].header.get('PHOTZP', zeropoints[filter])
 
-        ### check for the magical 'zeropoint.used' file
+        ### check for magic 'zeropoint.used' files
         zpu_file = "zeropoint.used"
         if os.access(zpu_file, os.R_OK):
             with open(zpu_file) as zpu_fh:
@@ -64,6 +64,9 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
             if os.access(zpu_file, os.R_OK):
                 with open(zpu_file) as zpu_fh:
                     zmag = float(zpu_fh.read())
+
+    if zmag != photzp:
+        logger.warning("ZEROPOINT {} used in DAOPHOT doesn't match PHOTZP {} in header".format(zmag, photzp))
 
     ### setup IRAF to do the magnitude/centroid measurements
     iraf.set(uparm="./")

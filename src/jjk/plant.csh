@@ -56,17 +56,17 @@ set im = `grep -v "#" proc-these-files | awk ' NR == 1 { print $1 } ' `
 set nx = 2080
 set ny = 4612
 set pixs = `gethead PIXSCALE $im.mopheader`
-
+set dataset=(`gethead DATASEC $im.fits | sed -e 's/[\,\:\[\]]*/] /g' | awk -F] ' { print $2 $3 $4 $5 } ' `)
 # here is a typical KBO planting line
 echo "Hard coded for MegaPrime untrimmed images, May 2013"
 set rand=`date '+%N'`
-kbo_gen 33  $nx 1 $ny $rmin $rmax $ang $aw 21.0 23.5 10 10 $rand $pixs  > Object.planted
+kbo_gen ${datasec[0]} ${datasec[1]} ${datasec[2]} ${datasec[3]} $rmin $rmax $ang $aw 21.0 23.5 10 10 $rand $pixs  > Object.planted
 set rand=`date '+%N'`
-kbo_gen 33  $nx 1 $ny  $rmin $rmax $ang $aw 23.5 25.2 25 25 $rand $pixs | grep -v "#" >> Object.planted
+kbo_gen ${datasec[0]} ${datasec[1]} ${datasec[2]} ${datasec[3]}  $rmin $rmax $ang $aw 23.5 25.2 25 25 $rand $pixs | grep -v "#" >> Object.planted
 set ravg=`echo $rmax $rmin | awk ' { print( ($1 - $2)/2.0 ) } '`
 echo $ravg
 set rand=`date '+%N'`
-kbo_gen 33  $nx 1 $ny  $rmin $ravg $ang $aw 23.5 25.2 25 25 $rand $pixs | grep -v "#" >> Object.planted
+kbo_gen ${datasec[0]} ${datasec[1]} ${datasec[2]} ${datasec[3]} $rmin $ravg $ang $aw 23.5 25.2 25 25 $rand $pixs | grep -v "#" >> Object.planted
 
 
 # go into IRAF and do the planting.

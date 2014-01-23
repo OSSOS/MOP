@@ -1,3 +1,5 @@
+from build.lib.ossos import coding
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 from ossos import astrom
@@ -37,7 +39,10 @@ class ProvisionalNameGenerator(object):
         else:
             field = object_header[0]
 
-        return "O" + epoch + field
+        epoch = coding.base36decode(int(epoch))
+
+
+        return epoch + field
 
 
 class DryRunNameGenerator(ProvisionalNameGenerator):
