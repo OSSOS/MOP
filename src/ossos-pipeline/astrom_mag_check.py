@@ -5,18 +5,15 @@ Compare the measured fluxes of planted sources against those returned for by dig
 __author__ = 'jjk'
 
 import math
-import sys
 import os
 
 from ossos import astrom
 from ossos.daophot import TaskError
 from ossos.gui import logger
 from ossos.mpc import Time
-from ossos.astrom import AstromParser
 from ossos.astrom import StreamingAstromWriter
 from ossos.downloads.cutouts import ImageCutoutDownloader
 from ossos import storage
-
 import argparse
 
 class PlantedObject(object):
