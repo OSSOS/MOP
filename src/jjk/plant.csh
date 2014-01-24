@@ -53,6 +53,7 @@ match.pl
 if ( -e Object.planted ) \rm Object.planted
 
 set im = `grep -v "#" proc-these-files | awk ' NR == 1 { print $1 } ' `
+# note DATASEC = '[33:2080,1:4612]'
 set nx = 2080
 set ny = 4612
 set pixs = `gethead PIXSCALE $im.mopheader`
