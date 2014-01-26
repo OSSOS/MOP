@@ -1,18 +1,18 @@
 from math import sqrt
-import operator
 import math
 import os
 import sys
-import string
+import argparse
+
 import numpy as np
 import ephem
 from astropy.io import votable
 import Polygon
 import datetime
-
 from matplotlib.patches import Rectangle
 from matplotlib.font_manager import FontProperties
 import matplotlib.pyplot as plt
+
 
 # planning scripts
 import mpcread
@@ -29,8 +29,8 @@ from ossos import horizons
 
 # Ablocks pointings taken from pointing of actual +0+0 data: DO NOT USE for pointings generation (probably)
 # E block discovery triplets are April 4,9,few 19; O block May 7,8.
-Ablocks = {'13AE': {"RA": "14:15:28.89","DEC":"-12:32:28.4"},  # E+0+0: image 1616681, ccd21 on April 9
-        '13AO': {"RA": "15:58:01.35","DEC":"-12:19:54.2"}}     # O+0+0: image 1625346, ccd21 on May 8
+Ablocks = {'13AE': {"RA": "14:15:28.89", "DEC": "-12:32:28.4"}, # E+0+0: image 1616681, ccd21 on April 9
+           '13AO': {"RA": "15:58:01.35", "DEC": "-12:19:54.2"}}     # O+0+0: image 1625346, ccd21 on May 8
 
 # trustworthy: this was what we agreed
 Bblocks = {'13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"},
@@ -466,51 +466,95 @@ def plot_single_known_tno(ax, name, date, close=[]):
     return ax
 
 
+def plot_discovery_uncertainty_ellipses(ax, date):
+    # plot objects at time of triplet with an X, location each 3 days with a single grey pixel, actual observations
+    # with a solid dot. Will give suitable corkscrew effect.
+    # plot wireframe of footprint at discovery triplet
+    # plot hollow circle as location at start of dark run, ellipse (no fill I think) for orbit uncertainty.
+    return ax
+
+
+def saving_closeout(date, extents, file_id):
+    plt.title(date)
+    plt.axis(extents)  # depends on which survey field is being plotted
+    plt.draw()
+    outfile = 'plots/' + date.replace('/', '-') + file_id + '.pdf'
+    print 'Saving file.', outfile
+    plt.savefig(outfile, transparent=True)
+
+    return
+
+
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-opposition", "-op", action="store_true",
+                        help="Plots blocks at their opposition dates (the date .")
+    parser.add_argument("-discovery", "-d", action="store_true",
+                        help="Plots blocks at their discovery dates.")
+    parser.add_argument("-date", action="store_true",
+                        help="Plot blocks at a specific user-provided date, format yyyy/mm/dd HH:MM:SS.")
+    parser.add_argument("-dist", action="store_true",
+                        help="Display text of block IDs and arc distance of blocks from opposition on the given date")
+    parser.add_argument("-blocks", action="store_true",
+                        help="specify blocks to be plotted, e.g. 13AE; default is all") # FIXME: add default as all
+    args = parser.parse_args()
 
-    blocks = [Bblocks] #[Ablocks, Bblocks]
-    """
-    first night of November dark run: Oct 28. Last night of run Nov 7.
-    Dec run is Nov 26 - Dec 05 inclusive.
-    Jan run is Dec 27 - Jan 06 inclusive.
-    Feb run is Jan 23 - Feb unknown yet.
-    """
+    blocks = [Ablocks, Bblocks] # in 2015 more will be added. Can make this a keyword later.
+    elongation = False
+    block_dates = []
+    file_id = ""
 
-    block_dates = ["2013/10/28 09:59:59", "2013/11/07 09:59:59", "2013/11/26 09:59:59", "2013/12/05 09:59:59"]
-    #['Apr13','Oct13']  # block oppositions
-    # mind you 13AE is a month different in opposition from 13AO. FIXME: Plot at different dates.
-    # plot_extents =   [[245,208,-18,-8], [30,5,-2,18]] # 13A, 13B  # 13AE only: [[219,209,-16,-9]]
-    plot_extents = [[30,5,-2,18]]  # FIXME: check these work in the late 13B runs (set for 13B Oct opposition)
+    for extent, block in enumerate(args.blocks):
+        if args.opposition:
+            # block oppositions; mind you 13AE is a month different in opposition from 13AO. ['Apr13','Oct13']
+            block_dates = ["2013/10/28 09:59:59"]
+            plot_extents = [[245, 208, -18, -8], [30, 5, -2, 18]] # 13A, 13B Oct opposition
+            # 13AE only: [[219,209,-16,-9]]
+            file_id = 'opposition-'
 
-    for ii, block in enumerate(blocks):
-        for date in block_dates:  # REMOVE AFTER RUNNING FOR ELONGATIONS
+        if args.discovery:
+            # FIXME 13H/L discovery dates
+            block_dates = []
+            plot_extents = []
+            file_id = 'discovery-'
+
+        if args.date:
+            # if it's not a list (multiple dates), wrap the single date into being a list
+            if not args.date.isinstance('list'):
+                block_dates = [args.date]
+                # FIXME: calculate the appropriate extents given that date and the given blocks
+            # FIXME: note that
+            plot_extents = []
+
+        if args.dist:
+            elongation = True
+            file_id = 'elongation-'
+
+        for date in block_dates:
             handles, labels, ax, fontP = basic_skysurvey_plot_setup()
             ras, decs, coverage, names, ax = build_ossos_footprint(ax, block, field_offset, plot=False)
-            ra, dec, kbos = synthetic_model_kbos(coverage)  # defaults to Oct new moon
-            ax = keplerian_sheared_field_locations(ax, kbos, date, ras, decs, names, elongation=True, plot=True)
+            ra, dec, kbos = synthetic_model_kbos(coverage)  # defaults to Oct new moon: FIXME: set date appropriately
+            ax = keplerian_sheared_field_locations(ax, kbos, date, ras, decs, names, elongation=elongation, plot=True)
 
             if block == Ablocks:  # special case: oppositions were a month apart
-    #            handles, labels = plot_known_tnos_batch(handles, labels, newMoons['May13'])
-                ax = plot_planets(ax, plot_extents[ii], "2013/04/09 08:50:00")
+            #            handles, labels = plot_known_tnos_batch(handles, labels, newMoons['May13'])
+                ax = plot_planets(ax, plot_extents[extent], "2013/04/09 08:50:00")
                 ax = plot_known_tnos_singly(ax, "2013/04/09 08:50:00")
-                print 'Plotted planets and known tnos.'
                 for s_moon in saturn_moons:
-                    close = ['Ijiraq', 'Bestla','Hyrrokkin']  # 'Kiviuq' to left. Hyr mag 24.3, Bestla mag 24.5, Kiviuq 22.6, Iji 23.3
-                    ax = plot_single_known_tno(ax, s_moon, "2013-04-09 08:50", close=close)  # get Saturn's irregular moons
+                    # 'Kiviuq' to left. Hyr mag 24.3, Bestla mag 24.5, Kiviuq 22.6, Iji 23.3
+                    close = ['Ijiraq', 'Bestla', 'Hyrrokkin']
+                    # get Saturn's irregular moons
+                    ax = plot_single_known_tno(ax, s_moon, "2013-04-09 08:50", close=close)
                 print 'Plotted relevant moons.'
                 # ax = plot_ossos_discoveries(ax)
 
             else:  # plot as normal
-                ax = plot_planets(ax, plot_extents[ii], date)
+                ax = plot_planets(ax, plot_extents[extent], date)
                 handles, labels = plot_known_tnos_batch(handles, labels, date)
                 # ax = plot_ossos_discoveries(ax, date=date)
 
-            plt.title(date)
-            plt.axis(plot_extents[ii])  # dependent on the survey fields being plotted
-            plt.draw()
-            outfile = 'plots/'+ 'elongation-' + date.replace('/','-')
-            print 'Saving file.', outfile
-            plt.savefig(outfile+'.pdf', transparent=True)
+            saving_closeout(date, plot_extents[extent], file_id)
+
     sys.stderr.write("Finished.\n")
 
 
