@@ -6,18 +6,18 @@ import sys
 
 
 class OssuaryTable(object):
+    def __init__(self, tablename):
+        # reflect_table_from_ossuary
+        # Development testing database on local machine provided by Postgres.App
+        engine = sa.create_engine('postgresql://localhost/ossuary', echo=False)
+        metadata = sa.MetaData(bind=engine)
+        table = sa.Table(tablename, metadata, autoload=True, autoload_with=engine)  # reflect existing table
+        conn = engine.connect()
 
-	def __init__(self, tablename):
-		# reflect_table_from_ossuary
-		# Development testing database on local machine provided by Postgres.App
-		engine = sa.create_engine('postgresql://localhost/ossuary', echo=False)
-		metadata = sa.MetaData(bind=engine)
-		table = sa.Table(tablename, metadata, autoload=True, autoload_with=engine)  # reflect existing table
-		conn = engine.connect()
+        self.tablename = tablename
+        self.table = table
+        self.conn = conn
 
-		self.tablename = tablename
-		self.table = table
-		self.conn = conn
 
 class ImagesQuery(object):
     def __init__(self):
@@ -28,11 +28,12 @@ class ImagesQuery(object):
         self.images = ot.table
         self.conn = ot.conn
 
+
 ims = ImagesQuery()
 
-field = sys.argv[1]
+field = sys.argv[1]  # format as e.g. AE, AO, BL
 
-outfile = 'planning/13A{}_triplets_details.txt'.format(field)
+outfile = 'planning/13{}_triplets_details.txt'.format(field)
 
 with open('planning/{}_13A_discovery_expnums.txt'.format(field), 'r') as infile:
     it = ims.images
@@ -57,7 +58,7 @@ with open('planning/{}_13A_discovery_expnums.txt'.format(field), 'r') as infile:
             init_retval = [s for s in query][0]
             retval = list(init_retval[0:3])
             # JM wants MJD_middle only: calculate it from the midpoint between the start and end
-            retval.append((init_retval[3] + init_retval[4])/2.)
+            retval.append((init_retval[3] + init_retval[4]) / 2.)
             # add the exptime back
             retval.append(init_retval[5].total_seconds())
             # now the area in which we planted TNOs for characterisation (hardwired in plant.csh's calls to kbo_gen)
@@ -84,3 +85,5 @@ with open('planning/{}_13A_discovery_expnums.txt'.format(field), 'r') as infile:
 
         with open(outfile, 'a') as ofile:  # blank line between triplets
             ofile.write('\n')
+
+            # copy up the file to VOSpace
