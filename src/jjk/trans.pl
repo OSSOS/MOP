@@ -148,7 +148,7 @@ FILE1: while ( <MASTER> ) {
       if ( sqrt( ($x1-($x2-$xoff[1]))**2 + ($y1 - ($y2 - $yoff[1]))**2) < 3 ) {
 	  push @xoff2,($x2-$x1);
 	  push @yoff2,($y2-$y1);
-	  my $dmag = $mag2-$mag1;
+	  my $dmag = $mag2-$apcor[1]-($mag1-$apcor[0]);
 	  push @dmag2 ,$dmag if ( $mag1 > 0 );
 	  print STDERR "(1,2) $x1 $y1 $mag1 $x2 $y2 $mag2 $dmag\n" if ($verbose);
 	  last FILE2;
@@ -162,7 +162,7 @@ FILE1: while ( <MASTER> ) {
       if ( sqrt( ($x1-($x3-$xoff[2]))**2 + ($y1 - ($y3 - $yoff[2]))**2) < 3 ) {
 	  push @xoff3,($x3-$x1);
 	  push @yoff3,($y3-$y1);
-	  my $dmag = $mag3-$mag1;
+	  my $dmag = $mag3-$apcor[2]-($mag1-$apcor[0]);
 	  push @dmag3, $dmag;
 	  print STDERR "(1,3) $x1 $y1 $mag1 $x3 $y3 $mag3 $dmag\n" if ($verbose);
 	  last FILE3;
@@ -173,11 +173,7 @@ FILE1: while ( <MASTER> ) {
 }
 close (MASTER);
 
-#print "0 1 0 0 0 1 0\n";
-open(SHIFTS,">shifts");
-#printf SHIFTS "%5.1f 1 0 %5.1f 0 1 %8.3f %8.3f %4d\n", (0.0,0.0,0.0,0.0,$n1);
-printf SHIFTS "%5.1f 1 0 %5.1f 0 1 %8.3f %8.3f %4d\n", (0.0,0.0,$apcor[0],$aperr[0],$n1);
-
+## Compute the offset between frames, based from star matching.
 if ( $#dmag2 > 0 ) { 
    @smag2 = sort { $a <=> $b } @dmag2;
    $dmag2 = $smag2[int($#smag2/2.0)];
@@ -206,8 +202,22 @@ if ( $#dmag3 > 0 ) {
    $dx3=$xoff[2];
    $dy3=$yoff[2];
 }
+
+
+open(SHIFTS,">shifts");
+
+if ( abs($dmag2) > 0.05 || abs($dmag3) > 0.05 ) { 
+    printf SHIFTS "# Got shifts of $dmag2 and $dmag3\n";
+    printf SHIFTS "# Magnitude shifts don't match apcor, they should.";
+} 
+
+#printf SHIFTS "%5.1f 1 0 %5.1f 0 1 %8.3f %8.3f %4d\n", (0.0,0.0,0.0,0.0,$n1);
+printf SHIFTS "%5.1f 1 0 %5.1f 0 1 %8.3f %8.3f %4d\n", (0.0,0.0,$apcor[0],$aperr[0],$n1);
 #printf SHIFTS "%5.1f 1 0 %5.1f 0 1 %8.3f %8.3f %4d\n", ($dx2,$dy2,$dmag2,$emag2,$#dmag2);
-printf SHIFTS "%5.1f 1 0 %5.1f 0 1 %8.3f %8.3f %4d\n", ($dx2,$dy2,$dmag2+$apcor[0],$emag2,$#dmag2);
+printf SHIFTS "%5.1f 1 0 %5.1f 0 1 %8.3f %8.3f %4d\n", ($dx2,$dy2,$dmag2+$apcor[1],$emag2,$#dmag2);
 #printf SHIFTS "%5.1f 1 0 %5.1f 0 1 %8.3f %8.3f %4d\n", ($dx3,$dy3,$dmag3,$emag3,$#dmag3);
-printf SHIFTS "%5.1f 1 0 %5.1f 0 1 %8.3f %8.3f %4d\n", ($dx3,$dy3,$dmag3+$apcor[0],$emag3,$#dmag3);
+printf SHIFTS "%5.1f 1 0 %5.1f 0 1 %8.3f %8.3f %4d\n", ($dx3,$dy3,$dmag3+$apcor[2],$emag3,$#dmag3);
 #printf "$xoff[2] 1 0 $yoff[2] 0 1 $dmag3 $emag3 $#dmag3\n";
+
+
+close(SHIFTS);
