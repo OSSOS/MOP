@@ -1,28 +1,35 @@
 __author__ = 'Michele Bannister   git:@mtbannister'
 
 # import argparse
+from glob import glob
+
 from ossos import storage
 
 
-
 if __name__=='__main__':
-    undone = 'undone.txt'
-    with open('undone.txt', 'r') as infile:
-        for expnum in infile.readlines():
-            message = storage.get_status(expnum, 36, 'update_header_p', version='p', return_message=True)
+    donefiles = glob('/Users/michele/Dropbox/OSSOS/measure3/2013A-O/smonty/*.reals.astrom')
+    for fn in donefiles:
+        mv_file = storage.MEASURE3 + '/2013A-O/' + fn.replace('reals', 'cands').rsplit('/')[8]
+        print mv_file
+        storage.set_property(mv_file, 'done', 'montys')
 
-            # if message == None:
-            #     with open(undone, 'a') as outfile:
-            #         outfile.write(str(expnum))
-            # if (message != storage.SUCCESS) and (message != None):  # let's see what happened here
-            #     print expnum, message
+        #undone = 'undone.txt'
+        #with open('undone.txt', 'r') as infile:
+        #    for expnum in infile.readlines():
+        #        message = storage.get_status(expnum, 36, 'update_header_p', version='p', return_message=True)
+        #
+        #        # if message == None:
+        #        #     with open(undone, 'a') as outfile:
+        #        #         outfile.write(str(expnum))
+        #        # if (message != storage.SUCCESS) and (message != None):  # let's see what happened here
+        #        #     print expnum, message
+        #
+        #        # for fixing the bug in update_header.py at the moment
+        #        storage.set_status(expnum, 36, 'update_header', message, version='p')
 
-            # for fixing the bug in update_header.py at the moment
-            storage.set_status(expnum, 36, 'update_header', message, version='p')
 
-
-    # """
-    # Query VOSpace node of an image and
+        # "This part never got finished (below)""
+        # Query VOSpace node of an image and
     #
     # """
     # parser=argparse.ArgumentParser(
