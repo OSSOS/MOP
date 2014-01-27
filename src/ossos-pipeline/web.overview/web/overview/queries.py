@@ -73,7 +73,7 @@ class SurveyQuery(object):
                     (datetime.datetime(2014, 4, 24), datetime.datetime(2014, 5, 06)),
                     (datetime.datetime(2014, 5, 20), datetime.datetime(2014, 6, 02)),
                     (datetime.datetime(2014, 6, 20), datetime.datetime(2014, 7, 02)),
-                    (datetime.datetime(2014, 7, 17), datetime.datetime(2014, 7, 28))]
+                    (datetime.datetime(2014, 7, 17), datetime.datetime(2014, 7, 28))
         ]
         return schedule
 

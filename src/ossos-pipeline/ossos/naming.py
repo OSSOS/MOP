@@ -1,4 +1,4 @@
-from build.lib.ossos import coding
+from ossos import coding
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
