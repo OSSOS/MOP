@@ -30,6 +30,7 @@ begin
 	string sx ;
 	real start_time,current_time;
 	real x,y,rate,angle,mag,arcrate;
+	real y1, x1;
 	real dx,dxx,dxy,dy,dyx,dyy,dmag,emag;
 	int  id, count, nsteps ;
 	int  nmag ;
@@ -107,15 +108,15 @@ begin
 # with the shifted positions
 	  count=0;
 	  pipeobjects = t_outfile;
-	  while(fscan(pipeobjects,sx,y,mag,rate,angle,arcrate,id) != EOF) {
+	  while(fscan(pipeobjects,sx,y1,mag,rate,angle,arcrate,id) != EOF) {
 	    if (stridx("#",substr(sx,1,1))!=0)
 	       next;
-	    x = real(sx);
+	    x1 = real(sx);
 
 
 # Apply the linear transformation
-	    x =  dx + dxx*x + dxy*y;
-	    y =  dy + dyx*x + dyy*y;
+	    x =  dx + dxx*x1 + dxy*y1;
+	    y =  dy + dyx*x1 + dyy*y1;
 	    mag = mag + dmag;
 
 # Determine the amount of shift since the refence time 
