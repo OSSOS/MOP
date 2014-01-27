@@ -90,7 +90,9 @@ if __name__=='__main__':
         level = logging.INFO
 
     logging.basicConfig(level=level, format="%(message)s")
-
+    logging.getLogger('vos').setLevel(level)
+    logging.getLogger('vos').addHandler(logging.StreamHandler())
+    
     if not args.nosort:
         args.expnums.sort()
 
