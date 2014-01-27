@@ -1,6 +1,6 @@
 """OSSOS VOSpace storage convenience package"""
 import cStringIO
-
+import re
 import errno
 import fnmatch
 from glob import glob
@@ -294,7 +294,8 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
                       subdir=subdir)
 	
         cutout="[%d]" % ( int(ccd)+1)
-        if ccd < 18 :
+        flip_datasec = (ccd < 18)
+        if flip_datasec:
             cutout += "[-*,-*]"
 
         logger.debug(uri)
@@ -313,6 +314,19 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
         hdu_list = fits.open(filename,'update',do_not_scale_image_data=True)
         hdu_list[0].header['BZERO']=hdu_list[0].header.get('BZERO',32768)
         hdu_list[0].header['BSCALE']=hdu_list[0].header.get('BSCALE',1)
+        if flip_datasec:
+            naxis1 = hdu_list[0].header.get('NAXIS1')
+            naxis2 = hdu_list[0].header.get('NAXIS2')
+            datasec = hdu_list[0].header.get('DATASEC',"[33:2080,1:4612]")
+            hdu_list[0].header['OLDSEC'] = datasec
+            logger.info("Flipping the datasec")
+            datasec = re.findall(r'(\d+)', datasec)
+            x2 = naxis1 - int(datasec[0]) + 1
+            x1 = naxis1 - int(datasec[1]) + 1 
+            y2 = naxis2 - int(datasec[2]) + 1
+            y1 = naxis2 - int(datasec[3]) + 1
+            datasec = "[{}:{},{}:{}]".format(x1,x2,y1,y2)
+            hdu_list[0].header['DATASEC'] = datasec
         hdu_list.flush()
         hdu_list.close()
         
