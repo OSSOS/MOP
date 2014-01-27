@@ -5,7 +5,7 @@ import threading
 
 from ossos.gui import logger
 
-MAX_THREADS = 1
+MAX_THREADS = 4
 
 
 class AsynchronousDownloadManager(object):
