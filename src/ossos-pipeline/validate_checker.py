@@ -286,7 +286,6 @@ def match_planted(cand_filename, measures):
 
 
     matches_fptr.close()
-    return matches_fptr.name
 
 
     ## write out the false_positives and false_negatives
@@ -312,6 +311,7 @@ def match_planted(cand_filename, measures):
             writer.write_source(source)
         writer.flush()
         writer.close()
+    return matches_fptr.name
 
 def plot():
 
