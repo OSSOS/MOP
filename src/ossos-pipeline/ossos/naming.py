@@ -19,9 +19,10 @@ class ProvisionalNameGenerator(object):
         Generates a name for an object given the information in its astrom
         observation header and FITS header.
         """
-        epoch_field = self.get_epoch_field(astrom_header, fits_header)
+        ef = self.get_epoch_field(astrom_header, fits_header)
+        epoch_field = ef[0]+ef[1]
         count = storage.increment_object_counter(storage.MEASURE3, epoch_field)
-        return epoch_field + count
+        return ef[1] + count
 
     def get_epoch_field(self, astrom_header, fits_header):
         # Format: "YYYY MM DD.dddddd"
@@ -39,10 +40,8 @@ class ProvisionalNameGenerator(object):
         else:
             field = object_header[0]
 
-        epoch = coding.base36decode(int(epoch))
 
-
-        return epoch + field
+        return (epoch, field)
 
 
 class DryRunNameGenerator(ProvisionalNameGenerator):
