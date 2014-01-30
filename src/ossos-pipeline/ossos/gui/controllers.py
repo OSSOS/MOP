@@ -217,7 +217,7 @@ class ProcessRealsController(AbstractController):
         if math.sqrt( (cen_x - pixel_x)**2 + (cen_y - pixel_y)**2 ) > 1.5:
             # check if the user wants to use the 'hand' coordinates or these new ones.
             self.view.draw_error_ellipse(cen_x, cen_y, 10, 10, 0, color='r')
-            self.view.show_offset_source_dialog((cen_x, cen_y), (pixel_x,pixel_y))
+            self.view.show_offset_source_dialog((pixel_x, pixel_y), (cen_x, cen_y))
         else:
             source_cutout.update_pixel_location((cen_x, cen_y))
             self.model.get_current_cutout()._adjusted = False
@@ -298,7 +298,8 @@ class ProcessRealsController(AbstractController):
         self.model.get_writer().write(mpc_observation)
 
         self.model.accept_current_item()
-        self.view.clear()
+        if self.model.get_current_workunit().get_current_source_readings().is_on_last_item():
+            self.view.clear()
 
         self.model.next_item()
 

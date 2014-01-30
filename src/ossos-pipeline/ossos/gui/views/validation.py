@@ -306,13 +306,13 @@ class AcceptSourceDialog(SourceValidationDialog):
 class OffsetSourceDialog(SourceValidationDialog):
     TITLE = "Accept Re-centroid Dialog"
 
-    def __init__(self, parent, controller, cen_coords=(0,0), pix_coords=(0,0)):
+    def __init__(self, parent, controller, pix_coords=(0,0), cen_coords=(0,0)):
 
         self.cen_coords = cen_coords
         self.pix_coords = pix_coords
         self.default_comment =  "DAOphot centroid differs from input value.\n\n"
-        self.default_comment += "{:8s} {:6.2f} {:6.2f}\n".format("mark", self.cen_coords[0], self.cen_coords[1])
-        self.default_comment += "{:8s} {:6.2f} {:6.2f}\n".format("daophot", self.pix_coords[0], self.pix_coords[1])
+        self.default_comment += "{:8s} {:6.2f} {:6.2f}\n".format("mark", self.pix_coords[0], self.pix_coords[1])
+        self.default_comment += "{:8s} {:6.2f} {:6.2f}\n".format("daophot", self.cen_coords[0], self.cen_coords[1])
         self.default_comment += "\nAccepted DAOphot centroid or Mark centroid?"
 
         super(OffsetSourceDialog, self).__init__(parent, title=self.TITLE)
