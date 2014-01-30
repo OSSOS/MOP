@@ -298,6 +298,8 @@ class ProcessRealsController(AbstractController):
         self.model.get_writer().write(mpc_observation)
 
         self.model.accept_current_item()
+        self.view.clear()
+
         self.model.next_item()
 
     def on_cancel_accept(self):
