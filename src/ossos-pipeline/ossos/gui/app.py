@@ -74,7 +74,7 @@ class ValidationApplication(object):
                                              progress_manager, builder,
                                              randomize=self.should_randomize_workunits)
 
-        prefetching_workunit_provider = PreFetchingWorkUnitProvider(workunit_provider, 1)
+        prefetching_workunit_provider = PreFetchingWorkUnitProvider(workunit_provider, config.read("PREFETCH.NUMBER"))
 
         if working_context.is_remote():
             synchronization_manager = SynchronizationManager(working_context)
