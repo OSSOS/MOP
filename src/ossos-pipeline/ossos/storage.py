@@ -10,6 +10,7 @@ import sys
 from astropy.io import fits
 from astropy.io import ascii
 import vos
+from vos.vos import urlparse
 
 from ossos import coding
 from mpc import Time
@@ -47,7 +48,7 @@ mopheaders = {}
 astheaders = {}
 
 
-def cone_search(ra, dec, dra=0.01, ddec=0.01, runids=('13AP05','13AP06','13BP05')):
+def cone_search(ra, dec, dra=0.01, ddec=0.01, runids=('13AP05','13AP06','13BP05', '14AP05')):
     """Do a QUERY on the TAP service for all observations that are part of runid,
     where taken after mjd and have calibration 'observable'.
 
@@ -587,29 +588,69 @@ def get_mopheader(expnum, ccd):
 
     return mopheaders[mopheader_uri]
 
+def _getheader(uri):
+    """
+    Internal method for accessing the storage system.
+    Given the vospace URI for fits file get the header of the file.
+    """
+    #'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/vospace/OSSOS/dbimages/1616100/ccd00/1616100p00.psf.fits'
+
+    DATA_URL="https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/vospace/"
+    url = DATA_URL+urlparse(uri).path
+    payload = {'fhead': 'true'}
+
+    r = requests.get(url, params=payload, cert=CERTFILE)
+    if r.status_code != 200:
+        logger.error("{}".format(r.status_code))
+        logger.error(r.content)
+        return None
+    str_header = r.content.split('\n')
+    headers = []
+    fobj = cStringIO.StringIO()
+    for line in str_header:
+        if "END" not in line[0:4]:
+            fobj.write(line + "\n")
+            continue
+        fobj.seek(0)
+        header = fits.header.Header.fromfile(fobj,
+                                             sep='\n',
+                                             endcard=False,
+                                             padding=False)
+        headers.append(header)
+        fobj.close()
+        fobj = cStringIO.StringIO()
+
+    # check if there are lines left in fobj and try to make a header from those.
+    fobj.seek(0,2)
+    if fobj.tell() > 0:
+        fobj.seek(0)
+        header = fits.header.Header.fromfile(fobj,
+                                             sep='\n',
+                                             endcard=False,
+                                             padding=False)
+        headers.append(header)
+        fobj.close()
+
+    return headers
+
+
+
+def get_header(uri):
+    """
+    Pull a FITS header from observation at the given URI
+    """
+    if uri not in astheaders:
+        astheaders[uri] = _getheader(uri)
+    return astheaders[uri]
 
 def get_astheader(expnum, ccd, version='p', ext='.fits'):
 
     ast_uri = dbimages_uri(expnum, ccd, version=version, ext=ext)
-    if ast_uri in astheaders:
-        logger.debug("returning cached header for {}".format(ast_uri))
-        return astheaders[ast_uri]
-    if not exists(ast_uri):
-        image_uri = dbimages_uri(expnum, version=version, ext=ext)
-        logger.debug('Switched to image_uri {}'.format(image_uri))
-        if not exists(image_uri, force=False):
-           return None
-        hdulist = fits.open(cStringIO.StringIO(vospace.open(
-           uri=image_uri,
-           view='cutout',
-           cutout='[{}][{}:{},{}:{}]'.format(int(ccd)+1, 1, 1, 1, 1)).read()))
+    headers = get_header(ast_uri)
+    if headers is None:
+        ast_uri = dbimages_uri(expnum, version=version, ext=ext )
+        header = get_header(ast_uri)[int(ccd)+1]
     else:
-        image_uri = ast_uri
-        hdulist = fits.open(cStringIO.StringIO(vospace.open(
-           uri=image_uri,
-           view='cutout',
-           cutout='[{}:{},{}:{}]'.format(1, 1, 1, 1)).read()))
-    astheaders[ast_uri] = hdulist[0].header
-    logger.debug("header pulled")
-    return astheaders[ast_uri]
+        header = headers[0]
+    return header
 
