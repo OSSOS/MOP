@@ -111,4 +111,4 @@ class ApcorData(object):
 
     @property
     def swidth(self):
-        return self.ap_in
+        return 3*self.ap_in
