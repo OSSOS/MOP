@@ -404,6 +404,19 @@ class Source(object):
     def __init__(self, readings, provisional_name=None):
         self.readings = readings
         self.provisional_name = provisional_name
+        self.set_min_cutout()
+
+    def set_min_cutout(self):
+        x = []
+        y = []
+        for reading in self.readings:
+            x.append(reading.x0)
+            y.append(reading.y0)
+        dx = max(x) - min(x)
+        dy = max(y)-min(y)
+        for reading in self.readings:
+            reading.dx = dx+20
+            reading.dy = dy+20
 
     def get_reading(self, index):
         return self.readings[index]
