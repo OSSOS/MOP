@@ -7,13 +7,31 @@ from ossos import storage
 
 
 if __name__=='__main__':
-    donefiles = glob('/Users/michele/Dropbox/OSSOS/measure3/2013A-O/smonty/*.reals.astrom')
-    for fn in donefiles:
-        mv_file = storage.MEASURE3 + '/2013A-O/' + fn.replace('reals', 'cands').rsplit('/')[8]
-        print mv_file
-        storage.set_property(mv_file, 'done', 'montys')
+    user_id = 'mtb55'  # set as appropriate
+    uploaded_count = 0
 
-        #undone = 'undone.txt'
+    donefiles = glob('/Users/michele/Dropbox/OSSOS/measure3/2013A-O/*.reals.astrom')
+    for fname in donefiles:
+        fn = fname.rsplit('/')[len(fname.rsplit('/')) - 1]
+        vo_reals = storage.MEASURE3 + '/2013A-O/' + fn
+        mv_file = storage.MEASURE3 + '/2013A-O/' + fn.replace('reals', 'cands')
+        # check if file's .cands.astrom equivalent in VOSpace has a #done tag
+        wasdone = storage.get_property(mv_file, 'done')
+        if not wasdone:
+            if not storage.exists(vo_reals):  # shouldn't possibly be there but let's just make sure
+                storage.copy(fname, vo_reals)
+                storage.set_property(mv_file, 'done', user_id)  # set the .cands.astrom #done tag to the user ID.
+                uploaded_count += 1
+        else:
+            print fn, wasdone
+
+    print 'Added unique files:', uploaded_count
+
+
+
+
+
+    #undone = 'undone.txt'
         #with open('undone.txt', 'r') as infile:
         #    for expnum in infile.readlines():
         #        message = storage.get_status(expnum, 36, 'update_header_p', version='p', return_message=True)
