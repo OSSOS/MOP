@@ -591,9 +591,10 @@ class WorkUnitProvider(object):
 
 
 class PreFetchingWorkUnitProvider(object):
-    def __init__(self, workunit_provider, prefetch_quantity):
+    def __init__(self, workunit_provider, prefetch_quantity, image_manager):
         self.workunit_provider = workunit_provider
         self.prefetch_quantity = prefetch_quantity
+        self.image_manager = image_manager
 
         self.fetched_files = []
         self.workunits = []
@@ -655,6 +656,7 @@ class PreFetchingWorkUnitProvider(object):
             if filename not in self.fetched_files:
                 self.fetched_files.append(filename)
                 self.workunits.append(workunit)
+                self.image_manager.download_singlets_for_workunit(workunit)
 
                 logger.info("%s was prefetched." % filename)
 
