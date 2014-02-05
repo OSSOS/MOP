@@ -81,11 +81,11 @@ class ValidationModel(object):
                 events.send(events.NO_AVAILABLE_WORK)
                 return
         # pre-load some work units if we are within 4 units of the end
-        #if self.work_units.index >  len(self.work_units) - 5:
-        #    try:
-        #        self._get_new_workunit()
-        #    except:
-        #        pass
+        if self.work_units.index >  len(self.work_units) - 5:
+            try:
+                self._get_new_workunit()
+            except:
+                pass
         self.work_units.next()
 
     def expect_source_transition(self):
