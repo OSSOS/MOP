@@ -1,19 +1,66 @@
 __author__ = 'Michele Bannister   git:@mtbannister'
 
-# import argparse
 from glob import glob
 
 from ossos import storage
+from ossos.gui import context
+from ossos.gui import tasks
+from ossos.gui.progress import DONE_PROPERTY
+
+
+def update_vos_with_local_files(user_id, vos_dir, dir_to_scan):
+    uploaded_count = 0
+    donefiles = glob(dir_to_scan + '*.reals.astrom')
+    for fname in donefiles:
+        fn = fname.rsplit('/')[len(fname.rsplit('/')) - 1]
+        vo_reals = vos_dir + fn
+        mv_file = vos_dir + fn.replace('reals', 'cands')
+        # check if file's .cands.astrom equivalent in VOSpace has a #done tag
+        wasdone = storage.get_property(mv_file, 'done')
+        if not wasdone:
+            if not storage.exists(vo_reals):  # shouldn't possibly be there but let's just make sure
+                storage.copy(fname, vo_reals)
+                storage.set_property(mv_file, 'done', user_id)  # set the .cands.astrom #done tag to the user ID.
+                uploaded_count += 1
+        else:
+            print fn, wasdone
+
+    print 'Added unique files:', uploaded_count
+
+    return
+
+
+def fix_tags_on_cands_missing_reals(user_id, vos_dir, property):
+    "At the moment this just checks for a single user's missing reals. Easy to generalise it to all users: modify the
+    and"
+    con = context.get_context(vos_dir)
+    user_progress = []
+    listing = con.get_listing(tasks.get_suffix('cands'))
+    for filename in listing:
+        user = storage.get_property(con.get_full_path(filename), property)
+        if (user is not None) and (
+            user == user_id):  # modify here to generalise to all users with work in this directory
+            user_progress.append(filename)
+            realsfile = filename.replace('cands', 'reals')
+            if not storage.exists(con.get_full_path(realsfile)):
+                print filename, 'no reals file', realsfile
+                storage.set_property(con.get_full_path(filename), property, None)
+
+    print 'Fixed files:', len(user_progress)
+
+    return
 
 
 if __name__=='__main__':
-    donefiles = glob('/Users/michele/Dropbox/OSSOS/measure3/2013A-O/smonty/*.reals.astrom')
-    for fn in donefiles:
-        mv_file = storage.MEASURE3 + '/2013A-O/' + fn.replace('reals', 'cands').rsplit('/')[8]
-        print mv_file
-        storage.set_property(mv_file, 'done', 'montys')
+    user_id = ''  # set as appropriate
+    vos_dir = storage.MEASURE3 + '/2013A-O/'
+    dir_to_scan = '/Users/michele/Dropbox/OSSOS/measure3/2013A-O/ptsws/'
 
-        #undone = 'undone.txt'
+    #update_vos_with_local_files(user_id, vos_dir, dir_to_scan)
+    fix_tags_on_cands_missing_reals(user_id, vos_dir, DONE_PROPERTY)  # can also be LOCK_PROPERTY
+
+
+    #undone = 'undone.txt'
         #with open('undone.txt', 'r') as infile:
         #    for expnum in infile.readlines():
         #        message = storage.get_status(expnum, 36, 'update_header_p', version='p', return_message=True)
