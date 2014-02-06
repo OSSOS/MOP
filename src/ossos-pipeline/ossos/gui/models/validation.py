@@ -81,9 +81,9 @@ class ValidationModel(object):
                 events.send(events.NO_AVAILABLE_WORK)
                 return
         # pre-load some work units if we are within 4 units of the end
-        if self.work_units.index >  len(self.work_units) - 5:
+        if self.work_units.index >  len(self.work_units) - 3:
             try:
-                self._get_new_workunit()
+                self.workunit_provider.trigger_prefetching()
             except:
                 pass
         self.work_units.next()
