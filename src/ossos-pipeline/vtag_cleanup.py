@@ -5,7 +5,7 @@ from glob import glob
 from ossos import storage
 from ossos.gui import context
 from ossos.gui import tasks
-from ossos.gui.progress import DONE_PROPERTY
+from ossos.gui.progress import LOCK_PROPERTY
 
 
 def update_vos_with_local_files(user_id, vos_dir, dir_to_scan):
@@ -31,20 +31,20 @@ def update_vos_with_local_files(user_id, vos_dir, dir_to_scan):
 
 
 def fix_tags_on_cands_missing_reals(user_id, vos_dir, property):
-    "At the moment this just checks for a single user's missing reals. Easy to generalise it to all users: modify the
-    and"
+    "At the moment this just checks for a single user's missing reals. Easy to generalise it to all users."
     con = context.get_context(vos_dir)
     user_progress = []
     listing = con.get_listing(tasks.get_suffix('cands'))
     for filename in listing:
         user = storage.get_property(con.get_full_path(filename), property)
         if (user is not None) and (
-            user == user_id):  # modify here to generalise to all users with work in this directory
+            user == user_id):  # modify 'and' to generalise to all users with work in this directory
+            print filename, user
             user_progress.append(filename)
-            realsfile = filename.replace('cands', 'reals')
-            if not storage.exists(con.get_full_path(realsfile)):
-                print filename, 'no reals file', realsfile
-                storage.set_property(con.get_full_path(filename), property, None)
+            #realsfile = filename.replace('cands', 'reals')
+            #if not storage.exists(con.get_full_path(realsfile)):
+            #    print filename, 'no reals file', realsfile
+            storage.set_property(con.get_full_path(filename), property, None)
 
     print 'Fixed files:', len(user_progress)
 
@@ -52,12 +52,12 @@ def fix_tags_on_cands_missing_reals(user_id, vos_dir, property):
 
 
 if __name__=='__main__':
-    user_id = ''  # set as appropriate
+    user_id = 'jkavelaars'  # set as appropriate
     vos_dir = storage.MEASURE3 + '/2013A-O/'
     dir_to_scan = '/Users/michele/Dropbox/OSSOS/measure3/2013A-O/ptsws/'
 
     #update_vos_with_local_files(user_id, vos_dir, dir_to_scan)
-    fix_tags_on_cands_missing_reals(user_id, vos_dir, DONE_PROPERTY)  # can also be LOCK_PROPERTY
+    fix_tags_on_cands_missing_reals(user_id, vos_dir, LOCK_PROPERTY)  # DONE_PROPERTY or LOCK_PROPERTY
 
 
     #undone = 'undone.txt'
