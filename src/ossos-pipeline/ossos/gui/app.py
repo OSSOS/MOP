@@ -189,7 +189,7 @@ class ProcessRealsApplication(ValidationApplication):
 
     @property
     def should_randomize_workunits(self):
-        return False
+        return True
 
     def _create_workunit_builder(self,
                                  input_context,
@@ -283,4 +283,4 @@ def preload_iraf():
     # import them directly in the functions/methods where they are used.
     # TODO: find out what the best practice is for handling this sort of
     # situation and refactor.
-    from pyraf import iraf
+
