@@ -136,6 +136,7 @@ class SourceCutout(object):
                                 apcor=self.apcor.apcor,
                                 zmag=self.zmag,
                                 maxcount=maxcount)
+        # Close file so that handles don't run out.
         self.close()
         return mag
 
