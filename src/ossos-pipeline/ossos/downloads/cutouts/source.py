@@ -128,14 +128,17 @@ class SourceCutout(object):
         from ossos import daophot
 
         maxcount = float(self.astrom_header["MAXCOUNT"])
-        return daophot.phot_mag(self._hdulist_on_disk(),
-                                self.pixel_x, self.pixel_y,
+        mag = daophot.phot_mag(self._hdulist_on_disk(),
+                                  self.pixel_x, self.pixel_y,
                                 aperture=self.apcor.aperture,
                                 sky=self.apcor.sky,
                                 swidth=self.apcor.swidth,
                                 apcor=self.apcor.apcor,
                                 zmag=self.zmag,
                                 maxcount=maxcount)
+        # Close file so that handles don't run out.
+        self.close()
+        return mag
 
     def _hdulist_on_disk(self):
         """
@@ -152,6 +155,13 @@ class SourceCutout(object):
 
         return self._tempfile.name
 
+    def close(self):
+        """
+        Once we are done with the on disk content we should close the filehandle.
+        """
+        if self._tempfile is not None:
+            self._tempfile.close()
+
     def _lazy_refresh(self):
         if self._stale:
             self._update_ra_dec()
@@ -167,6 +177,8 @@ class SourceCutout(object):
                                          wcs.parse_cd(fits_header),
                                          wcs.parse_pv(fits_header),
                                          wcs.parse_order_fit(fits_header))
+
+
 
     @property
     def comparison_image(self):
