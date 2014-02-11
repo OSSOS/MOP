@@ -79,7 +79,7 @@ class ValidationApplication(object):
                                                                     image_manager)
 
         if working_context.is_remote():
-            synchronization_manager = SynchronizationManager(working_context)
+            synchronization_manager = SynchronizationManager(working_context, sync_enabled=True)
         else:
             synchronization_manager = None
 
