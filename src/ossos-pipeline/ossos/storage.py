@@ -511,7 +511,8 @@ def build_counter_tag(epoch_field, dry_run=False):
     Builds the tag for the counter of a given epoch/field,
     without the OSSOS base.
     """
-    tag = epoch_field + "-" + OBJECT_COUNT
+    logger.info("Epoch Field: {}, OBJECT_COUNT {}".format(str(epoch_field),str(OBJECT_COUNT)))
+    tag = epoch_field[1] + "-" + OBJECT_COUNT
 
     if dry_run:
         tag += "-DRYRUN"
