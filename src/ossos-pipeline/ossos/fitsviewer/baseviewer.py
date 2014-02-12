@@ -49,6 +49,9 @@ class WxMPLFitsViewer(object):
     def refresh_markers(self):
         self.mark_sources(self.current_cutout)
 
+    def mark_apertures(self, cutout):
+        pass
+
     def release_focus(self):
         self.parent.SetFocus()
 
