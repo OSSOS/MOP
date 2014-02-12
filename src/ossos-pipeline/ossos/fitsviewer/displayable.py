@@ -260,6 +260,7 @@ class DisplayableImageSinglet(Displayable):
         self.image_singlet.display_changed.connect(self.redraw)
         self.marker_placed = False
         self.ellipse_placed = False
+        self.annulus_placed = False
 
     @property
     def xy_changed(self):
@@ -273,6 +274,12 @@ class DisplayableImageSinglet(Displayable):
         if not self.marker_placed:
             self.image_singlet.place_marker(x, y, radius, colour=colour)
             self.marker_placed = True
+
+    def place_annulus(self, x, y, radii, colour='b'):
+        if not self.annulus_placed:
+            for radius in radii:
+                self.image_singlet.place_marker(x, y, radius, colour=colour)
+            self.annulus_placed = True
 
     def place_error_ellipse(self, x, y, a, b, pa, color='b'):
         if not self.ellipse_placed:

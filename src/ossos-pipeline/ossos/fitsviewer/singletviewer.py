@@ -5,6 +5,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 from ossos.fitsviewer.baseviewer import WxMPLFitsViewer
 from ossos.fitsviewer.displayable import DisplayableImageSinglet
 from ossos.fitsviewer.interaction import Signal
+from ossos.gui import logger
 
 
 class SingletViewer(WxMPLFitsViewer):
@@ -19,6 +20,12 @@ class SingletViewer(WxMPLFitsViewer):
     def _refresh_markers(self,cutout):
         self._displayables_by_cutout[cutout].clear_markers()
         self.mark_sources(self.current_cutout)
+
+    def mark_apertures(self, cutout):
+        logger.info("marking apertures on cutout.")
+        x, y = cutout.pixel_source_point
+        radii = (cutout.apcor.aperture, cutout.apcor.sky, cutout.apcor.swidth+cutout.apcor.sky)
+        self._displayables_by_cutout[cutout].place_annulus(x, y, radii, colour='r')
 
     def mark_sources(self, cutout):
         assert cutout in self._displayables_by_cutout
