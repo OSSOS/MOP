@@ -189,8 +189,10 @@ class AstromParser(object):
             access.
         """
         filehandle = storage.open_vos_or_local(filename, "rb")
+        assert filehandle is not None, "Failed to open file {} ".format(filename)
         filestr = filehandle.read()
         filehandle.close()
+
 
         assert filestr is not None, "File contents are None"
 
