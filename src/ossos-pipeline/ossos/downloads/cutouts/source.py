@@ -161,6 +161,7 @@ class SourceCutout(object):
         """
         if self._tempfile is not None:
             self._tempfile.close()
+            self._tempfile = None
 
     def _lazy_refresh(self):
         if self._stale:
