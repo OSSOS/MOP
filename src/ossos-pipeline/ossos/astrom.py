@@ -406,7 +406,8 @@ class Source(object):
     def __init__(self, readings, provisional_name=None):
         self.readings = readings
         self.provisional_name = provisional_name
-        self.set_min_cutout()
+        if self.num_readings() < 4:
+            self.set_min_cutout()
 
     def set_min_cutout(self):
         x = []
@@ -451,7 +452,9 @@ class SourceReading(object):
     def __init__(self, x, y, x0, y0, ra, dec, xref, yref, obs, ssos=False,
                  from_input_file=False,
                  null_observation=False,
-                 discovery=False):
+                 discovery=False,
+                 dx=0,
+                 dy=0):
         """
         Args:
           x, y: the coordinates of the source in this reading.
@@ -471,9 +474,14 @@ class SourceReading(object):
         self.dec = float(dec)
         self.xref = float(xref)
         self.yref = float(yref)
+        self.dra = 0
+        self.ddec = 0
+        self.pa = 0
 
         self.x_ref_offset = self.x - self.x0
         self.y_ref_offset = self.y - self.y0
+        self.dx = dx
+        self.dy = dy
 
         self.obs = obs
         self.ssos = ssos
