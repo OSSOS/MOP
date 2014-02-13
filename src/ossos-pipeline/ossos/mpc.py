@@ -448,7 +448,7 @@ class Observation(object):
             mpc_str = "!" + 4 * " "
         else:
             mpc_str = (self.minor_planet_number is None and 5 * " ") or "%5s" % (self.minor_planet_number)
-        mpc_str += (self.provisional_name is None and 7 * " ") or "%7s" % (self.provisional_name)
+        mpc_str += (self.provisional_name is None and 7 * " ") or "%-7s" % (self.provisional_name)
         mpc_str += str(self.discovery)
         mpc_str += '{0:1s}{1:1s}'.format(str(self.note1), str(self.note2))
         mpc_str += '{0:<17s}'.format(str(self.date))
