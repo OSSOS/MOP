@@ -1,4 +1,6 @@
 import re
+import math
+from ossos.astrom import SourceReading
 from ossos.gui import logger
 
 from ossos.downloads.core import Downloader
@@ -48,12 +50,19 @@ class ImageCutoutDownloader(Downloader):
         if focus is None:
             focus = reading.source_point
 
+        assert isinstance(reading, SourceReading)
+        dx = 3*math.fabs(-reading.dra*math.sin(math.radians(reading.pa)) + reading.ddec*math.cos(math.radians(reading.pa)))
+        dy = 3*math.fabs(reading.dra*math.cos(math.radians(reading.pa)) - reading.ddec*math.sin(math.radians(reading.pa)))
+        logger.info("Got error ellipse dimensions {} {} from {} {} {} ".format(dx, dy, reading.dra, reading.ddec, reading.pa))
+        dx = max(reading.dx, dx)
+        dy = max(reading.dy, dy)
+
         cutout_str, converter = self.cutout_calculator.build_cutout_str(
             reading.get_extension(),
             focus,
             reading.get_original_image_size(),
-            dx = reading.dx,
-            dy = reading.dy,
+            dx = dx,
+            dy = dy,
             inverted=reading.is_inverted())
 
         image_uri = reading.get_image_uri()
