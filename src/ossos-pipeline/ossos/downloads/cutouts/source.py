@@ -200,7 +200,7 @@ class SourceCutout(object):
         ddec= self.fits_header['CD2_2']*self.fits_header['NAXIS2']/2.0
         radius=max(dra,ddec)
 
-        logger.debug("BOX({} {} {} {})".format(ref_ra, ref_dec,dra, ddec))
+        logger.info("BOX({} {} {} {})".format(ref_ra, ref_dec,dra, ddec))
 
         query_result = storage.cone_search(ref_ra, ref_dec, dra, ddec)
 
