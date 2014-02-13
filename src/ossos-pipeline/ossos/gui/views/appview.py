@@ -98,6 +98,10 @@ class ApplicationView(object):
         self.image_viewer.draw_error_ellipse(x, y, a, b, pa, color=color)
 
     @guithread
+    def mark_apertures(self, cutout):
+        self.image_viewer.mark_apertures(cutout)
+
+    @guithread
     def reset_colormap(self):
         self.image_viewer.reset_colormap()
 
