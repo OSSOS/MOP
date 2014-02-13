@@ -203,6 +203,9 @@ class ProcessRealsController(AbstractController):
         pixel_x = source_cutout.pixel_x
         pixel_y = source_cutout.pixel_y
 
+        self.view.mark_apertures(self.model.get_current_cutout())
+
+
         try:
             cen_x, cen_y, obs_mag, obs_mag_err = self.model.get_current_source_observed_magnitude()
         except TaskError as error:
