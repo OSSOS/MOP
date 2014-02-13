@@ -168,7 +168,9 @@ class TracksParser(object):
                 self.orbit.predict(astrom_observation.header['MJD_OBS_CENTER'])
                 logger.info("Finished predict")
                 source_reading.pa = self.orbit.pa
-                # why are these being recorded just in pixels?
+                # why are these being recorded just in pixels?  Because the error ellipse is drawn in pixels.
+                # TODO: Modify error ellipse drawing routine to use WCS but be sure
+                # that this does not cause trouble with the use of dra/ddec for cutout computer
                 source_reading.dra = self.orbit.dra / astrom_observation.header['SCALE']
                 source_reading.ddec = self.orbit.ddec / astrom_observation.header['SCALE']
 
