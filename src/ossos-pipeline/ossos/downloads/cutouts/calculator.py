@@ -31,6 +31,12 @@ class CutoutCalculator(object):
           converter: CoordinateConverter
             Can be used to find a point in the sliced image based on its
             coordinate in the original image.
+        @param extnum: The CFHT exposure to retrieve some pixels from.
+        @param focus: The (x,y) location that is the centre of the cutout
+        @param img_size: The (width, height) of the region to cutout by default.
+        @param dx: The minimum width to select
+        @param dy: The minimum height to select
+        @param inverted: Should this cutout be flip/flopped while doing cutout.
         """
         (x0, x1, y0, y1), converter = self.calc_cutout(focus, img_size, dx, dy, inverted)
 
@@ -38,7 +44,7 @@ class CutoutCalculator(object):
 
         return cutout_str, converter
 
-    def calc_cutout(self, focus, img_size, dx, dy, inverted=False ):
+    def calc_cutout(self, focus, img_size, dx, dy, inverted=False):
         """
         Calculates the start and stop points of the cutout around a point.
 
@@ -56,6 +62,11 @@ class CutoutCalculator(object):
             converter: CoordinateConverter
               Can be used to find a point in the sliced image based on its
               coordinate in the original image.
+        @param focus: The (x,y) centre of the cutout to calculate
+        @param img_size: The size of the image to cutout.
+        @param dx: The minimum x size of the image to cutout
+        @param dy: The minimum y size of the image to cutout
+        @param inverted: Should this image be flip/flopped during cutout?
         """
         x, y = focus
         img_size_x, img_size_y = img_size
@@ -64,12 +75,12 @@ class CutoutCalculator(object):
             x = img_size_x - x
             y = img_size_y - y
 
-        x_mid_offset = max(dx,self.slice_cols) / 2
-        y_mid_offset = max(dy,self.slice_rows) / 2
+        x_mid_offset = max(2*dx, self.slice_cols) / 2
+        y_mid_offset = max(2*dy, self.slice_rows) / 2
 
-        xmin = max(1,x - x_mid_offset)
+        xmin = max(1, x - x_mid_offset)
         xmax = min(img_size_x, x + x_mid_offset)
-        ymin = max(1,y - y_mid_offset)
+        ymin = max(1, y - y_mid_offset)
         ymax = min(img_size_y, y + y_mid_offset)
 
         # VOSpace cutout service only accepts integer values, so round
@@ -98,15 +109,19 @@ class CutoutCalculator(object):
             x_offset = xmin - 1
             y_offset = ymin - 1
 
-
         return (x0, x1, y0, y1), CoordinateConverter(x_offset, y_offset)
+
 
 class CoordinateConverter(object):
     def __init__(self, x_offset, y_offset):
+        """
+
+        @type y_offset: float
+        @type x_offset: float
+        """
         self.x_offset = x_offset
         self.y_offset = y_offset
-        logger.debug("Convert initialized as dx,dy,inverted {},{}".format(x_offset,
-                                                                            y_offset))
+        logger.debug("Convert initialized as dx,dy,inverted {},{}".format(x_offset, y_offset))
 
     def convert(self, point):
         """
@@ -122,15 +137,18 @@ class CoordinateConverter(object):
 
         Example: convert coordinate from original image into a pixel location
           within a cutout image.
+        @type point: list(float,float)
         """
         x, y = point
-        (x1, y1) =  x - self.x_offset, y - self.y_offset
-        logger.debug("converted {} {} to {} {}".format(x,y, x1, y1))
+        (x1, y1) = x - self.x_offset, y - self.y_offset
+        logger.debug("converted {} {} to {} {}".format(x, y, x1, y1))
         return x1, y1
 
     def get_inverse_converter(self):
         """
         Returns a converter object for converting back from this converter's
         output coordinate system to its input coordinate system.
+        @rtype : CoordinateConverter
         """
+
         return CoordinateConverter(-self.x_offset, -self.y_offset)
