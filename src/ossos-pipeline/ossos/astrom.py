@@ -52,6 +52,7 @@ RMAX = "RMAX"
 ANGLE = "ANGLE"
 AWIDTH = "AWIDTH"
 
+
 def parse(filename):
     return AstromParser().parse(filename)
 
@@ -116,7 +117,7 @@ class AstromParser(object):
         )
 
     def _parse_observation_list(self, filestr):
-        matches = self.obs_list_regex.findall(filestr) # returns list of tuples
+        matches = self.obs_list_regex.findall(filestr)  # returns list of tuples
         return [Observation.from_parse_data(*match) for match in matches]
 
     def _parse_observation_headers(self, filestr, observations):
@@ -151,8 +152,8 @@ class AstromParser(object):
 
             source_obs = raw_source.strip().split("\n")
             assert len(source_obs) == len(
-                observations), "Source doesn't have same number of observations (%d) as in observations list (%d)." % (
-                len(source_obs), len(observations))
+                observations), ("Source doesn't have same number of observations"
+                                " ({0:d}) as in observations list ({1:d}).".format(len(source_obs), len(observations)))
 
             x_ref = None
             y_ref = None
@@ -192,7 +193,6 @@ class AstromParser(object):
         assert filehandle is not None, "Failed to open file {} ".format(filename)
         filestr = filehandle.read()
         filehandle.close()
-
 
         assert filestr is not None, "File contents are None"
 
@@ -440,10 +440,6 @@ class Source(object):
         self.provisional_name = provisional_name
 
 
-
-
-
-
 class SourceReading(object):
     """
     Data for a detected point source (which is a potential moving objects).
@@ -482,7 +478,7 @@ class SourceReading(object):
         self.y_ref_offset = self.y - self.y0
         self.dx = dx
         self.dy = dy
-
+        self._from_input_file = None
         self.obs = obs
         self.ssos = ssos
         self.from_input_file = from_input_file
@@ -492,8 +488,9 @@ class SourceReading(object):
     @property
     def from_input_file(self):
         return self._from_input_file
+
     @from_input_file.setter
-    def from_input_file(self,from_input_file):
+    def from_input_file(self, from_input_file):
         self._from_input_file = from_input_file
 
     def __repr__(self):
@@ -583,10 +580,10 @@ class SourceReading(object):
         """
         astheader = storage.get_astheader(self.obs.expnum, self.obs.ccdnum, version=self.obs.ftype)
         pvwcs = wcs.WCS(astheader)
-        (x,y) = pvwcs.sky2xy(self.ra, self.dec)
+        (x, y) = pvwcs.sky2xy(self.ra, self.dec)
         logger.debug("is_inverted: X,Y {},{}  -> wcs X,Y {},{}".format(self.x, self.y, x, y))
         dr2 = ((x-self.x)**2 + (y-self.y)**2)
-        logger.debug("inverted is {}".format(dr2>2))
+        logger.debug("inverted is {}".format(dr2 > 2))
         return dr2 > 2
 
         # if self.ssos or self.obs.is_fake():
@@ -596,16 +593,6 @@ class SourceReading(object):
         # logger.debug("No override")
         #
         # return True if self.get_ccd_num() <= MAX_INVERTED_CCD else False
-
-    def get_mag(self, image_downloader=None):
-        """
-        Retrieve the reading cutout and do photometry on the source.
-        """
-        if image_downloader is None and self._image_downloader is None:
-            image_downloader = ImageCutoutDownloader(slice_rows=100, slice_cols=100)
-        if self._image_downloader is None:
-            self._image_downloader = image_downloader
-
 
 
 class Observation(object):
@@ -624,7 +611,7 @@ class Observation(object):
         return Observation(expnum, ftype, ccdnum, fk)
 
     @staticmethod
-    def from_source_reference(expnum, ccd, X, Y):
+    def from_source_reference(expnum, ccd, x, y):
         """
         Given the location of a source in the image, create a source reading.
         """
@@ -646,10 +633,9 @@ class Observation(object):
             logger.warning("Image doesn't exist in ccd subdir. %s" % image_uri)
             return None
 
-        if X == -9999 or Y == -9999 :
+        if x == -9999 or y == -9999:
             logger.warning("Skipping {} as x/y not resolved.".format(image_uri))
             return None
-
 
         mopheader_uri = storage.dbimages_uri(expnum=expnum,
                                              ccd=ccd,
@@ -660,21 +646,17 @@ class Observation(object):
             logger.critical('Image exists but processing incomplete. Mopheader missing. {}'.format(image_uri))
             return None
 
-
         mopheader = storage.get_mopheader(expnum, ccd)
 
         # Build astrom.Observation
         observation = Observation(expnum=str(expnum),
-                                         ftype='p',
-                                         ccdnum=str(ccd),
-                                         fk="")
-
+                                  ftype='p',
+                                  ccdnum=str(ccd),
+                                  fk="")
         observation.rawname = os.path.splitext(os.path.basename(image_uri))[0]+str(ccd).zfill(2)
-
         observation.header = mopheader
 
         return observation
-
 
     def __init__(self, expnum, ftype, ccdnum, fk="", image_uri=None):
         self.expnum = expnum
@@ -711,9 +693,8 @@ class Observation(object):
 
     def get_apcor_uri(self):
         ccd = "ccd{:02d}".format(int(self.ccdnum))
-        return "%s/%s/%s/%s.apcor" % (DATASET_ROOT, self.expnum,
-                                         ccd, self.rawname)
+        return "%s/%s/%s/%s.apcor" % (DATASET_ROOT, self.expnum, ccd, self.rawname)
 
     def get_zmag_uri(self):
         ccd = "ccd{:02d}".format(int(self.ccdnum))
-        return "%s/%s/%s/%s.zeropoint.used" % ( DATASET_ROOT, self.expnum, ccd, self.rawname)
+        return "%s/%s/%s/%s.zeropoint.used" % (DATASET_ROOT, self.expnum, ccd, self.rawname)
