@@ -705,4 +705,3 @@ def get_astheader(expnum, ccd, version='p', ext='.fits'):
     else:
         header = headers[0]
     return header
-
