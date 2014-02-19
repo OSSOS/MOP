@@ -65,25 +65,24 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, runids=('13AP05', '13AP06', '13BP0
 
     """
 
-    data = {
-        "QUERY": ( " SELECT Observation.collectionID as dataset_name "
-                   " FROM caom.Observation AS Observation "
-                   " JOIN caom.Plane AS Plane "
-                   " ON Observation.obsID = Plane.obsID "
-                   " WHERE  ( Observation.collection = 'CFHT' ) "
-                   " AND Plane.observable_ctype='CAL' "
-                   " AND Observation.proposal_id IN %s " ) % ( str(runids)),
-        "REQUEST": "doQuery",
-        "LANG": "ADQL",
-        "FORMAT": "tsv"}
+    data = dict(QUERY=(" SELECT Observation.collectionID as dataset_name "
+                       " FROM caom.Observation AS Observation "
+                       " JOIN caom.Plane AS Plane "
+                       " ON Observation.obsID = Plane.obsID "
+                       " WHERE  ( Observation.collection = 'CFHT' ) "
+                       " AND Plane.observable_ctype='CAL' "
+                       " AND Observation.proposal_id IN %s ".format(str(runids))),
+                REQUEST="doQuery",
+                LANG="ADQL",
+                FORMAT="tsv")
 
-    data["QUERY"] += ( " AND  "
-                       " CONTAINS( BOX('ICRS', {}, {}, {}, {}), "
-                       " Plane.position_bounds ) = 1 " ).format(ra, dec, dra, ddec)
+    data["QUERY"] += (" AND  "
+                      " CONTAINS( BOX('ICRS', {}, {}, {}, {}), "
+                      " Plane.position_bounds ) = 1 ").format(ra, dec, dra, ddec)
 
     result = requests.get(TAP_WEB_SERVICE, params=data)
     assert isinstance(result, requests.Response)
-    logger.debug("Doing TAP Query using url: %s" % ( str(result.url)))
+    logger.debug("Doing TAP Query using url: %s" % (str(result.url)))
     #data = StringIO(result.text)
 
     table_reader = ascii.get_reader(Reader=ascii.Basic)
@@ -159,6 +158,13 @@ def get_uri(expnum, ccd=None,
     ccd: CCD in the mosaic [0-35]
     version: one of p,s,o etc.
     dbimages: dbimages containerNode.
+    @type subdir: String
+    @param expnum: int
+    @param ccd:
+    @param version:
+    @param ext:
+    @param subdir:
+    @param prefix:
     """
     if subdir is None:
         subdir = str(expnum)
@@ -175,7 +181,7 @@ def get_uri(expnum, ccd=None,
     if ccd is not None:
         ccd = str(ccd).zfill(2)
         uri = os.path.join(uri,
-                           'ccd%s' % (ccd),
+                           'ccd{}'.format(ccd),
                            '%s%s%s%s%s' % (prefix, str(expnum),
                                            version,
                                            ccd,
@@ -193,7 +199,13 @@ dbimages_uri = get_uri
 
 
 def set_tag(expnum, key, value):
-    '''Assign a key/value pair tag to the given expnum containerNode'''
+    """Assign a key/value pair tag to the given expnum containerNode.
+
+    @param expnum:  str
+    @param key: str
+    @param value: str
+    @return: success
+    """
 
     uri = os.path.join(DBIMAGES, str(expnum))
     node = vospace.getNode(uri)
@@ -218,7 +230,7 @@ def tag_uri(key):
 
 
 def get_tag(expnum, key):
-    '''given a key, return the vospace tag value.'''
+    """given a key, return the vospace tag value."""
 
     if tag_uri(key) not in get_tags(expnum):
         get_tags(expnum, force=True)
@@ -228,8 +240,10 @@ def get_tag(expnum, key):
 
 
 def get_process_tag(program, ccd, version='p'):
-    """make a process tag have a suffix indicating which ccd its for"""
-    return "%s_%s%s" % ( program, str(version), str(ccd).zfill(2))
+    """make a process tag have a suffix indicating which ccd its for.
+
+    """
+    return "%s_%s%s" % (program, str(version), str(ccd).zfill(2))
 
 
 def get_tags(expnum, force=False):
@@ -238,7 +252,9 @@ def get_tags(expnum, force=False):
 
 
 def get_status(expnum, ccd, program, version='p', return_message=False):
-    '''Report back status of the given program'''
+    """Report back status of the given program.
+
+    """
     key = get_process_tag(program, ccd, version)
     status = get_tag(expnum, key)
     logger.debug('%s: %s' % (key, status))
@@ -249,21 +265,27 @@ def get_status(expnum, ccd, program, version='p', return_message=False):
 
 
 def set_status(expnum, ccd, program, status, version='p'):
-    '''set the processing status of the given program'''
+    """set the processing status of the given program.
+
+    """
 
     return set_tag(expnum, get_process_tag(program, ccd, version), status)
 
 
 def get_image(expnum, ccd=None, version='p', ext='fits',
               subdir=None, rescale=True, prefix=None):
-    '''Get a FITS file for this expnum/ccd  from VOSpace.
-    
-    expnum:  CFHT exposure number (int)
-    ccd: CCD in the mosaic (int)
-    version:  [p, s, o]  (char)
-    dbimages:  VOSpace containerNode
+    """Get a FITS file for this expnum/ccd  from VOSpace.
 
-    '''
+
+    @param expnum: CFHT exposure number (int)
+    @param ccd:     @param ccd:
+    @param version: [p, s, o]  (char)
+    @param ext:
+    @param subdir:
+    @param rescale:
+    @param prefix:
+    @return:
+    """
 
     if not subdir:
         subdir = str(expnum)
@@ -272,11 +294,11 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     filename = os.path.basename(uri)
 
     if os.access(filename, os.F_OK):
-        logger.debug("File already on disk: %s" % ( filename))
+        logger.debug("File already on disk: {}".format(filename))
         return filename
 
     try:
-        logger.debug("trying to get file %s" % ( uri))
+        logger.debug("trying to get file {}".format(uri))
         copy(uri, filename)
     except Exception as e:
         logger.debug(str(e))
@@ -287,14 +309,14 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
                       version=version,
                       ext=ext,
                       subdir=subdir)
-        logger.debug("Using uri: %s" % ( uri))
+        logger.debug("Using uri: {}".format(uri))
         if not exists(uri):
             uri = get_uri(expnum,
                           version=version,
                           ext=ext + ".fz",
                           subdir=subdir)
 
-        cutout = "[%d]" % ( int(ccd) + 1)
+        cutout = "[%d]" % (int(ccd) + 1)
         flip_datasec = (ccd < 18)
         if flip_datasec:
             cutout += "[-*,-*]"
@@ -335,7 +357,14 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
 
 
 def get_fwhm(expnum, ccd, prefix=None, version='p'):
-    '''Get the FWHM computed for the given expnum/ccd combo.'''
+    """Get the FWHM computed for the given expnum/ccd combo.
+
+    @param expnum:
+    @param ccd:
+    @param prefix:
+    @param version:
+    @return:
+    """
 
     uri = get_uri(expnum, ccd, version, ext='fwhm', prefix=prefix)
 
@@ -343,28 +372,33 @@ def get_fwhm(expnum, ccd, prefix=None, version='p'):
 
 
 def get_zeropoint(expnum, ccd, prefix=None, version='p'):
-    '''Get the zeropoint for this exposure'''
+    """Get the zeropoint for this exposure.
 
-    return float(vospace.
-                 open(
-        uri=get_uri(expnum, ccd, version, ext='zeropoint.used', prefix=prefix),
-        view='data').
-                 read().
-                 strip()
-    )
+    This command expects that there is a file called #######p##.zeropoint.used which contains the zeropoint.
+
+    @param expnum: exposure to get zeropoint of
+    @param ccd: which ccd (extension - 1) to get zp
+    @param prefix: possible string prefixed to expsoure number.
+    @param version:  one of [spo] as in #######p##
+    @return:
+    """
+    uri = get_uri(expnum, ccd, version, ext='zeropoint.used', prefix=prefix)
+    return float(vospace.open(uri=uri, view='data').read().strip())
 
 
-def mkdir(root):
-    '''make directory tree in vospace.'''
+def mkdir(dirname):
+    """make directory tree in vospace.
+
+    @param dirname: name of the directory to make
+    """
     dir_list = []
 
-    while not vospace.isdir(root):
-        dir_list.append(root)
-        root = os.path.dirname(root)
+    while not vospace.isdir(dirname):
+        dir_list.append(dirname)
+        dirname = os.path.dirname(dirname)
     while len(dir_list) > 0:
         logging.debug("Creating directory: %s" % (dir_list[-1]))
         vospace.mkdir(dir_list.pop())
-    return
 
 
 def vofile(filename, mode):
@@ -393,14 +427,12 @@ def open_vos_or_local(path, mode="rb"):
 
 
 def copy(source, dest):
-    '''use the vospace service to get a file.
+    """use the vospace service to get a file. """
 
-    '''
-
-    logger.debug("%s -> %s" % ( source, dest))
+    logger.debug("{} -> {}".format(source, dest))
     try:
         vospace.delete(dest)
-    except:
+    except IOError:
         pass
 
     return vospace.copy(source, dest)
@@ -408,9 +440,22 @@ def copy(source, dest):
 
 def vlink(s_expnum, s_ccd, s_version, s_ext,
           l_expnum, l_ccd, l_version, l_ext, s_prefix=None, l_prefix=None):
-    '''make a link between two version of a file'''
+    """make a link between two version of a file.
+
+    @param s_expnum:
+    @param s_ccd:
+    @param s_version:
+    @param s_ext:
+    @param l_expnum:
+    @param l_ccd:
+    @param l_version:
+    @param l_ext:
+    @param s_prefix:
+    @param l_prefix:
+    @return:
+    """
     source_uri = get_uri(s_expnum, ccd=s_ccd, version=s_version, ext=s_ext, prefix=s_prefix)
-    link_uri = get_uri(l_expnum, ccd=l_ccd, version=l_version, ext=s_ext, prefix=l_prefix)
+    link_uri = get_uri(l_expnum, ccd=l_ccd, version=l_version, ext=l_ext, prefix=l_prefix)
 
     return vospace.link(source_uri, link_uri)
 
@@ -424,7 +469,7 @@ def remove(uri):
 
 
 def delete(expnum, ccd, version, ext, prefix=None):
-    '''delete a file, no error on does not exist'''
+    """delete a file, no error on does not exist."""
     uri = get_uri(expnum, ccd=ccd, version=version, ext=ext, prefix=prefix)
     remove(uri)
 
@@ -457,8 +502,8 @@ def exists(uri, force=False):
         return vospace.getNode(uri, force=force) is not None
     except IOError as e:
         logger.error(str(e))
-        return False
-        if e.errno == os.errno.ENOENT or e.errno == 404:
+        # Sometimes the error code returned is the OS version, sometimes the HTTP version
+        if e.errno in [404, os.errno.ENOENT]:
             return False
         raise e
 
@@ -582,7 +627,7 @@ def get_mopheader(expnum, ccd):
     header = mopheader[0].header
     try:
         header['FWHM'] = get_fwhm(expnum, ccd)
-    except:
+    except IOError:
         header['FWHM'] = 10
     header['SCALE'] = mopheader[0].header['PIXSCALE']
     header['NAX1'] = header['NAXIS1']
@@ -604,8 +649,8 @@ def _getheader(uri):
     """
     #'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/vospace/OSSOS/dbimages/1616100/ccd00/1616100p00.psf.fits'
 
-    DATA_URL = "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/vospace/"
-    url = DATA_URL + urlparse(uri).path
+    data_url = "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/vospace/"
+    url = data_url + urlparse(uri).path
     payload = {'fhead': 'true'}
     logger.info("Requesting URL: {}".format(url))
     r = requests.get(url, params=payload, cert=CERTFILE)
@@ -621,10 +666,10 @@ def _getheader(uri):
             fobj.write(line + "\n")
             continue
         fobj.seek(0)
-        header = fits.header.Header.fromfile(fobj,
-                                             sep='\n',
-                                             endcard=False,
-                                             padding=False)
+        header = fits.Header.fromfile(fobj,
+                                      sep='\n',
+                                      endcard=False,
+                                      padding=False)
         headers.append(header)
         fobj.close()
         fobj = cStringIO.StringIO()
@@ -633,11 +678,10 @@ def _getheader(uri):
     fobj.seek(0, 2)
     if fobj.tell() > 0:
         fobj.seek(0)
-        header = fits.header.Header.fromfile(fobj,
-                                             sep='\n',
-                                             endcard=False,
-                                             padding=False)
-        headers.append(header)
+        headers.append(fits.Header.fromfile(fobj,
+                                            sep='\n',
+                                            endcard=False,
+                                            padding=False))
         fobj.close()
 
     return headers
