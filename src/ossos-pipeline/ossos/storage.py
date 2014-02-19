@@ -17,29 +17,29 @@ from mpc import Time
 import requests
 
 import logging
+
 logger = logging
 
-MAXCOUNT=30000
+MAXCOUNT = 30000
 
-CERTFILE=os.path.join(os.getenv('HOME'),
-                      '.ssl',
-                      'cadcproxy.pem')
+CERTFILE = os.path.join(os.getenv('HOME'),
+                        '.ssl',
+                        'cadcproxy.pem')
 
-DBIMAGES='vos:OSSOS/dbimages'
-MEASURE3='vos:OSSOS/measure3'
+DBIMAGES = 'vos:OSSOS/dbimages'
+MEASURE3 = 'vos:OSSOS/measure3'
 
-DATA_WEB_SERVICE='https://www.canfar.phys.uvic.ca/data/pub/'
-TAP_WEB_SERVICE='http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/tap/sync?'
+DATA_WEB_SERVICE = 'https://www.canfar.phys.uvic.ca/data/pub/'
+TAP_WEB_SERVICE = 'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/tap/sync?'
 
-OSSOS_TAG_URI_BASE='ivo://canfar.uvic.ca/ossos'
+OSSOS_TAG_URI_BASE = 'ivo://canfar.uvic.ca/ossos'
 OBJECT_COUNT = "object_count"
 
-vospace = vos.Client(cadc_short_cut=True, certFile=CERTFILE)
+vospace = vos.Client(cadc_short_cut=False, certFile=CERTFILE)
 vlog = logging.getLogger('vos')
 vlog.setLevel(logging.ERROR)
 sh = logging.StreamHandler(sys.stderr)
 vlog.addHandler(sh)
-
 
 SUCCESS = 'success'
 
@@ -48,7 +48,7 @@ mopheaders = {}
 astheaders = {}
 
 
-def cone_search(ra, dec, dra=0.01, ddec=0.01, runids=('13AP05','13AP06','13BP05', '14AP05')):
+def cone_search(ra, dec, dra=0.01, ddec=0.01, runids=('13AP05', '13AP06', '13BP05', '14AP05')):
     """Do a QUERY on the TAP service for all observations that are part of runid,
     where taken after mjd and have calibration 'observable'.
 
@@ -65,7 +65,7 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, runids=('13AP05','13AP06','13BP05'
 
     """
 
-    data=  {
+    data = {
         "QUERY": ( " SELECT Observation.collectionID as dataset_name "
                    " FROM caom.Observation AS Observation "
                    " JOIN caom.Plane AS Plane "
@@ -73,16 +73,16 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, runids=('13AP05','13AP06','13BP05'
                    " WHERE  ( Observation.collection = 'CFHT' ) "
                    " AND Plane.observable_ctype='CAL' "
                    " AND Observation.proposal_id IN %s " ) % ( str(runids)),
-          "REQUEST": "doQuery",
-          "LANG": "ADQL",
-          "FORMAT": "tsv" }
+        "REQUEST": "doQuery",
+        "LANG": "ADQL",
+        "FORMAT": "tsv"}
 
     data["QUERY"] += ( " AND  "
                        " CONTAINS( BOX('ICRS', {}, {}, {}, {}), "
-                       " Plane.position_bounds ) = 1 " ).format(ra,dec, dra, ddec)
+                       " Plane.position_bounds ) = 1 " ).format(ra, dec, dra, ddec)
 
     result = requests.get(TAP_WEB_SERVICE, params=data)
-    assert isinstance(result,requests.Response)
+    assert isinstance(result, requests.Response)
     logger.debug("Doing TAP Query using url: %s" % ( str(result.url)))
     #data = StringIO(result.text)
 
@@ -99,59 +99,53 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, runids=('13AP05','13AP06','13BP05'
     return table
 
 
-
 def populate(dataset_name,
-             data_web_service_url = DATA_WEB_SERVICE+"CFHT"):
-
+             data_web_service_url=DATA_WEB_SERVICE + "CFHT"):
     """Given a dataset_name created the desired dbimages directories
     and links to the raw data files stored at CADC."""
 
-    data_dest = get_uri(dataset_name,version='o',ext='fits.fz')
-    data_source = "%s/%so.fits.fz" % (data_web_service_url,dataset_name)
-
-    c = vospace
+    data_dest = get_uri(dataset_name, version='o', ext='fits.fz')
+    data_source = "%s/%so.fits.fz" % (data_web_service_url, dataset_name)
 
     try:
-        c.mkdir(os.path.dirname(data_dest))
+        vospace.mkdir(os.path.dirname(data_dest))
     except IOError as e:
         if e.errno == errno.EEXIST:
             pass
         else:
             raise e
 
-    try: 
-        c.link(data_source, data_dest)
+    try:
+        vospace.link(data_source, data_dest)
     except IOError as e:
         if e.errno == errno.EEXIST:
             pass
         else:
             raise e
 
-    header_dest = get_uri(dataset_name,version='o',ext='head')
+    header_dest = get_uri(dataset_name, version='o', ext='head')
     header_source = "%s/%so.fits.fz?cutout=[0]" % (
         data_web_service_url, dataset_name)
     try:
-        c.link(header_source, header_dest)
+        vospace.link(header_source, header_dest)
     except IOError as e:
         if e.errno == errno.EEXIST:
             pass
         else:
             raise e
 
-    header_dest = get_uri(dataset_name,version='p',ext='head')
+    header_dest = get_uri(dataset_name, version='p', ext='head')
     header_source = "%s/%s/%sp.head" % (
-       'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub', 'CFHTSG', dataset_name)
+        'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub', 'CFHTSG', dataset_name)
     try:
-        c.link(header_source, header_dest)
+        vospace.link(header_source, header_dest)
     except IOError as e:
         if e.errno == errno.EEXIST:
             pass
         else:
             raise e
-
 
     return True
-        
 
 
 def get_uri(expnum, ccd=None,
@@ -175,7 +169,7 @@ def get_uri(expnum, ccd=None,
     if ext is None:
         ext = ''
     elif len(ext) > 0 and ext[0] != '.':
-        ext = '.'+ext
+        ext = '.' + ext
 
     # if ccd is None then we send uri for the MEF
     if ccd is not None:
@@ -183,19 +177,19 @@ def get_uri(expnum, ccd=None,
         uri = os.path.join(uri,
                            'ccd%s' % (ccd),
                            '%s%s%s%s%s' % (prefix, str(expnum),
-                                            version,
-                                            ccd,
-                                            ext))
+                                           version,
+                                           ccd,
+                                           ext))
     else:
         uri = os.path.join(uri,
                            '%s%s%s%s' % (prefix, str(expnum),
-                                          version,
-                                          ext))
-    logger.debug("got uri: "+uri)
+                                         version,
+                                         ext))
+    logger.debug("got uri: " + uri)
     return uri
 
-dbimages_uri = get_uri
 
+dbimages_uri = get_uri
 
 
 def set_tag(expnum, key, value):
@@ -211,6 +205,7 @@ def set_tag(expnum, key, value):
     node.props[uri] = value
     return vospace.addProps(node)
 
+
 def tag_uri(key):
     """Build the uri for a given tag key. 
 
@@ -219,7 +214,7 @@ def tag_uri(key):
     """
     if OSSOS_TAG_URI_BASE in key:
         return key
-    return OSSOS_TAG_URI_BASE+"#"+key.strip()
+    return OSSOS_TAG_URI_BASE + "#" + key.strip()
 
 
 def get_tag(expnum, key):
@@ -227,32 +222,37 @@ def get_tag(expnum, key):
 
     if tag_uri(key) not in get_tags(expnum):
         get_tags(expnum, force=True)
-    logger.debug("%s # %s -> %s"  % (
+    logger.debug("%s # %s -> %s" % (
         expnum, tag_uri(key), get_tags(expnum).get(tag_uri(key), None)))
     return get_tags(expnum).get(tag_uri(key), None)
 
+
 def get_process_tag(program, ccd, version='p'):
     """make a process tag have a suffix indicating which ccd its for"""
-    return "%s_%s%s" % ( program, str(version),str(ccd).zfill(2))
+    return "%s_%s%s" % ( program, str(version), str(ccd).zfill(2))
+
 
 def get_tags(expnum, force=False):
-    uri = os.path.join(DBIMAGES,str(expnum))
+    uri = os.path.join(DBIMAGES, str(expnum))
     return vospace.getNode(uri, force=force).props
+
 
 def get_status(expnum, ccd, program, version='p', return_message=False):
     '''Report back status of the given program'''
     key = get_process_tag(program, ccd, version)
     status = get_tag(expnum, key)
-    logger.debug('%s: %s' %(key, status))
+    logger.debug('%s: %s' % (key, status))
     if return_message:
         return status
     else:
         return status == SUCCESS
 
+
 def set_status(expnum, ccd, program, status, version='p'):
     '''set the processing status of the given program'''
-    
-    return set_tag(expnum, get_process_tag(program,ccd,version), status)
+
+    return set_tag(expnum, get_process_tag(program, ccd, version), status)
+
 
 def get_image(expnum, ccd=None, version='p', ext='fits',
               subdir=None, rescale=True, prefix=None):
@@ -270,7 +270,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
 
     uri = get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix)
     filename = os.path.basename(uri)
-    
+
     if os.access(filename, os.F_OK):
         logger.debug("File already on disk: %s" % ( filename))
         return filename
@@ -280,7 +280,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
         copy(uri, filename)
     except Exception as e:
         logger.debug(str(e))
-        if getattr(e,'errno',0) != errno.ENOENT or ccd is None:
+        if getattr(e, 'errno', 0) not in [404, errno.ENOENT] or ccd is None:
             raise e
         ## try doing a cutout from MEF in VOSpace
         uri = get_uri(expnum,
@@ -290,47 +290,47 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
         logger.debug("Using uri: %s" % ( uri))
         if not exists(uri):
             uri = get_uri(expnum,
-                      version=version,
-                      ext=ext+".fz",
-                      subdir=subdir)
-	
-        cutout="[%d]" % ( int(ccd)+1)
+                          version=version,
+                          ext=ext + ".fz",
+                          subdir=subdir)
+
+        cutout = "[%d]" % ( int(ccd) + 1)
         flip_datasec = (ccd < 18)
         if flip_datasec:
             cutout += "[-*,-*]"
 
         logger.debug(uri)
-        url = vospace.getNodeURL(uri,view='cutout', limit=None, cutout=cutout)
+        url = vospace.getNodeURL(uri, view='cutout', limit=None, cutout=cutout)
         logger.debug(url)
         fin = vospace.open(uri, URL=url)
         fout = open(filename, 'w')
-        buff = fin.read(2**16)
-        while len(buff)>0:
+        buff = fin.read(2 ** 16)
+        while len(buff) > 0:
             fout.write(buff)
-            buff = fin.read(2**16)
+            buff = fin.read(2 ** 16)
         fout.close()
         fin.close()
         if not rescale:
             return filename
-        hdu_list = fits.open(filename,'update',do_not_scale_image_data=True)
-        hdu_list[0].header['BZERO']=hdu_list[0].header.get('BZERO',32768)
-        hdu_list[0].header['BSCALE']=hdu_list[0].header.get('BSCALE',1)
+        hdu_list = fits.open(filename, 'update', do_not_scale_image_data=True)
+        hdu_list[0].header['BZERO'] = hdu_list[0].header.get('BZERO', 32768)
+        hdu_list[0].header['BSCALE'] = hdu_list[0].header.get('BSCALE', 1)
         if flip_datasec:
             naxis1 = hdu_list[0].header.get('NAXIS1')
             naxis2 = hdu_list[0].header.get('NAXIS2')
-            datasec = hdu_list[0].header.get('DATASEC',"[33:2080,1:4612]")
+            datasec = hdu_list[0].header.get('DATASEC', "[33:2080,1:4612]")
             hdu_list[0].header['OLDSEC'] = datasec
             logger.info("Flipping the datasec")
             datasec = re.findall(r'(\d+)', datasec)
             x2 = naxis1 - int(datasec[0]) + 1
-            x1 = naxis1 - int(datasec[1]) + 1 
+            x1 = naxis1 - int(datasec[1]) + 1
             y2 = naxis2 - int(datasec[2]) + 1
             y1 = naxis2 - int(datasec[3]) + 1
-            datasec = "[{}:{},{}:{}]".format(x1,x2,y1,y2)
+            datasec = "[{}:{},{}:{}]".format(x1, x2, y1, y2)
             hdu_list[0].header['DATASEC'] = datasec
         hdu_list.flush()
         hdu_list.close()
-        
+
     return filename
 
 
@@ -339,7 +339,8 @@ def get_fwhm(expnum, ccd, prefix=None, version='p'):
 
     uri = get_uri(expnum, ccd, version, ext='fwhm', prefix=prefix)
 
-    return float(vospace.open(uri,view='data').read().strip())
+    return float(vospace.open(uri, view='data').read().strip())
+
 
 def get_zeropoint(expnum, ccd, prefix=None, version='p'):
     '''Get the zeropoint for this exposure'''
@@ -350,7 +351,8 @@ def get_zeropoint(expnum, ccd, prefix=None, version='p'):
         view='data').
                  read().
                  strip()
-                 )
+    )
+
 
 def mkdir(root):
     '''make directory tree in vospace.'''
@@ -359,7 +361,7 @@ def mkdir(root):
     while not vospace.isdir(root):
         dir_list.append(root)
         root = os.path.dirname(root)
-    while len(dir_list)>0:
+    while len(dir_list) > 0:
         logging.debug("Creating directory: %s" % (dir_list[-1]))
         vospace.mkdir(dir_list.pop())
     return
@@ -395,14 +397,14 @@ def copy(source, dest):
 
     '''
 
-
     logger.debug("%s -> %s" % ( source, dest))
     try:
-       vospace.delete(dest)
+        vospace.delete(dest)
     except:
-       pass
+        pass
 
     return vospace.copy(source, dest)
+
 
 def vlink(s_expnum, s_ccd, s_version, s_ext,
           l_expnum, l_ccd, l_version, l_ext, s_prefix=None, l_prefix=None):
@@ -412,31 +414,35 @@ def vlink(s_expnum, s_ccd, s_version, s_ext,
 
     return vospace.link(source_uri, link_uri)
 
+
 def remove(uri):
     try:
         vospace.delete(uri)
     except IOError as e:
-        if e.errno != errno.ENOENT:
+        if e.errno != errno.ENOENT or e.errno == 404:
             raise e
+
 
 def delete(expnum, ccd, version, ext, prefix=None):
     '''delete a file, no error on does not exist'''
     uri = get_uri(expnum, ccd=ccd, version=version, ext=ext, prefix=prefix)
     remove(uri)
 
+
 def my_glob(pattern):
     """get a listing matching pattern"""
     result = []
-    if pattern[0:4] == 'vos:' :
+    if pattern[0:4] == 'vos:':
         dirname = os.path.dirname(pattern)
         flist = listdir(dirname)
         for fname in flist:
-            fname = '/'.join([dirname,fname])
+            fname = '/'.join([dirname, fname])
             if fnmatch.fnmatch(fname, pattern):
-               result.append(fname)
+                result.append(fname)
     else:
         result = glob(pattern)
     return result
+
 
 def listdir(directory, force=False):
     return vospace.listdir(directory, force=force)
@@ -450,10 +456,11 @@ def exists(uri, force=False):
     try:
         return vospace.getNode(uri, force=force) is not None
     except IOError as e:
-        if e.errno == os.errno.ENOENT:
+        logger.error(str(e))
+        return False
+        if e.errno == os.errno.ENOENT or e.errno == 404:
             return False
         raise e
-
 
 
 def move(old_uri, new_uri):
@@ -511,7 +518,7 @@ def build_counter_tag(epoch_field, dry_run=False):
     Builds the tag for the counter of a given epoch/field,
     without the OSSOS base.
     """
-    logger.info("Epoch Field: {}, OBJECT_COUNT {}".format(str(epoch_field),str(OBJECT_COUNT)))
+    logger.info("Epoch Field: {}, OBJECT_COUNT {}".format(str(epoch_field), str(OBJECT_COUNT)))
     tag = epoch_field[1] + "-" + OBJECT_COUNT
 
     if dry_run:
@@ -563,9 +570,9 @@ def get_mopheader(expnum, ccd):
     Retrieve the mopheader, either from cache or from vospace
     """
     mopheader_uri = dbimages_uri(expnum=expnum,
-                                         ccd=ccd,
-                                         version='p',
-                                         ext='.mopheader')
+                                 ccd=ccd,
+                                 version='p',
+                                 ext='.mopheader')
     if mopheader_uri in mopheaders:
         return mopheaders[mopheader_uri]
 
@@ -576,18 +583,19 @@ def get_mopheader(expnum, ccd):
     try:
         header['FWHM'] = get_fwhm(expnum, ccd)
     except:
-        header['FWHM']  = 10
+        header['FWHM'] = 10
     header['SCALE'] = mopheader[0].header['PIXSCALE']
     header['NAX1'] = header['NAXIS1']
     header['NAX2'] = header['NAXIS2']
     header['MOPversion'] = header['MOP_VER']
     header['MJD_OBS_CENTER'] = str(Time(header['MJD-OBSC'],
-                                            format='mjd',
-                                            scale='utc', precision=5 ).replicate(format='mpc'))
+                                        format='mjd',
+                                        scale='utc', precision=5).replicate(format='mpc'))
     header['MAXCOUNT'] = MAXCOUNT
     mopheaders[mopheader_uri] = header
 
     return mopheaders[mopheader_uri]
+
 
 def _getheader(uri):
     """
@@ -596,10 +604,10 @@ def _getheader(uri):
     """
     #'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/vospace/OSSOS/dbimages/1616100/ccd00/1616100p00.psf.fits'
 
-    DATA_URL="https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/vospace/"
-    url = DATA_URL+urlparse(uri).path
+    DATA_URL = "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/vospace/"
+    url = DATA_URL + urlparse(uri).path
     payload = {'fhead': 'true'}
-
+    logger.info("Requesting URL: {}".format(url))
     r = requests.get(url, params=payload, cert=CERTFILE)
     if r.status_code != 200:
         logger.error("{}".format(r.status_code))
@@ -622,7 +630,7 @@ def _getheader(uri):
         fobj = cStringIO.StringIO()
 
     # check if there are lines left in fobj and try to make a header from those.
-    fobj.seek(0,2)
+    fobj.seek(0, 2)
     if fobj.tell() > 0:
         fobj.seek(0)
         header = fits.header.Header.fromfile(fobj,
@@ -635,7 +643,6 @@ def _getheader(uri):
     return headers
 
 
-
 def get_header(uri):
     """
     Pull a FITS header from observation at the given URI
@@ -644,13 +651,13 @@ def get_header(uri):
         astheaders[uri] = _getheader(uri)
     return astheaders[uri]
 
-def get_astheader(expnum, ccd, version='p', ext='.fits'):
 
+def get_astheader(expnum, ccd, version='p', ext='.fits'):
     ast_uri = dbimages_uri(expnum, ccd, version=version, ext=ext)
     headers = get_header(ast_uri)
     if headers is None:
-        ast_uri = dbimages_uri(expnum, version=version, ext=ext )
-        header = get_header(ast_uri)[int(ccd)+1]
+        ast_uri = dbimages_uri(expnum, version=version, ext=ext)
+        header = get_header(ast_uri)[int(ccd) + 1]
     else:
         header = headers[0]
     return header
