@@ -1,18 +1,14 @@
 """
 Reads and writes .astrom files.
 """
-import os
-
-from ossos.gui import logger
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+import os
+from ossos.gui import logger
 import re
-
 from ossos import storage, wcs
 
 DATASET_ROOT = storage.DBIMAGES
-# DATASET_ROOT = "vos://cadc.nrc.ca~vospace/OSSOS/dbimages"
 
 # Images from CCDs < 18 have their coordinates flipped
 MAX_INVERTED_CCD = 17
@@ -406,7 +402,7 @@ class Source(object):
     def __init__(self, readings, provisional_name=None):
         self.readings = readings
         self.provisional_name = provisional_name
-        if self.num_readings() < 4:
+        if 4 > self.num_readings() > 1:
             self.set_min_cutout()
 
     def set_min_cutout(self):
