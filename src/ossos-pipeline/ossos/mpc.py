@@ -177,13 +177,15 @@ class MPCNote(object):
 
         if _code.isdigit():
             if self.note_type != 'Note1':
-                raise MPCFieldFormatError(self.note_type,
-                                          "must be one of " + str(MPCNOTES[self.note_type]),
-                                          _code)
+	        logging.warning("code {}".format(_code))
+                #raise MPCFieldFormatError(self.note_type,
+                #                          "must be one of " + str(MPCNOTES[self.note_type]),
+                #                          _code)
             if _code not in range(10):
-                raise MPCFieldFormatError(self.note_type,
-                                          "integer values must be between 0 and 9",
-                                          _code)
+	        logging.warning("code {}".format(_code))
+                #raise MPCFieldFormatError(self.note_type,
+                #                          "integer values must be between 0 and 9",
+                #                          _code)
         else:
             if len(_code) > 1:
                 raise MPCFieldFormatError(self.note_type,
@@ -228,11 +230,11 @@ class Discovery(object):
 
     @is_discovery.setter
     def is_discovery(self, is_discovery):
-        if is_discovery not in ['*', ' ', '', True, False, None]:
+        if is_discovery not in ['*', '&', ' ', '', True, False, None]:
             raise MPCFieldFormatError("discovery",
-                                      "must be one of '',' ','*',True, False. Was: ",
+                                      "must be one of '',' ','&', '*',True, False. Was: ",
                                       is_discovery)
-        self._is_discovery = (( (is_discovery or False) == '*' or is_discovery == True ) and True ) or False
+        self._is_discovery = (( (is_discovery or False) in ['*','&'] or is_discovery == True ) and True ) or False
 
     def __str__(self):
         return (self.is_discovery and "*") or " "
