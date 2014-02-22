@@ -51,9 +51,7 @@ class ImageCutoutDownloader(Downloader):
             focus = reading.source_point
 
         assert isinstance(reading, SourceReading)
-        dx = 3*math.fabs(-reading.dra*math.sin(math.radians(reading.pa)) + reading.ddec*math.cos(math.radians(reading.pa)))
-        dy = 3*math.fabs(reading.dra*math.cos(math.radians(reading.pa)) - reading.ddec*math.sin(math.radians(reading.pa)))
-        logger.info("Got error ellipse dimensions {} {} from {} {} {} ".format(dx, dy, reading.dra, reading.ddec, reading.pa))
+        dx = dy = 2* max(reading.dra, reading.ddec)
         dx = max(reading.dx, dx)
         dy = max(reading.dy, dy)
 
