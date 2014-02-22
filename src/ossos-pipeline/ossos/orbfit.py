@@ -23,21 +23,24 @@ class Orbfit(object):
     This class provides orbital information derived by calling 'fit_radec'.
     """
 
-    def __init__(self, observations=[]):
+    def __init__(self, observations=None):
         """
         Given a set of observations compute the orbit using fit_radec and provide methods for
         accessing that orbit.
 
         Requires at least 3 observations.
         """
+        assert isinstance(observations, tuple) or isinstance(observations, list)
+        if not observations:
+            observations = []
         if len(observations) < 3:
             raise OrbfitError()
-
         self.orbfit = ctypes.CDLL(LIBORBFIT)
         assert isinstance(observations[0], Observation)
         self.observations = observations
         self.arc_length = observations[-1].date.jd - observations[0].date.jd
         self._fit_radec()
+
 
     @property
     def abg(self):
@@ -55,22 +58,20 @@ class Orbfit(object):
 
         """
 
-        # call fitradec with mpcfile, abgfile, resfile
+        # call fit_radec with mpcfile, abgfile, resfile
         self.orbfit.fitradec.restype = ctypes.POINTER(ctypes.c_double * 2)
-        self.orbfit.fitradec.argtypes = [ ctypes.c_char_p, ctypes.c_char_p ]
+        self.orbfit.fitradec.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
 
         mpc_file = tempfile.NamedTemporaryFile(suffix='.mpc')
         for observation in self.observations:
             if not observation.null_observation:
                 obs = observation
-                ra = obs.ra.replace(" ",":")
-                dec = obs.dec.replace(" ",":")
+                ra = obs.ra.replace(" ", ":")
+                dec = obs.dec.replace(" ", ":")
                 res = 0.3
-                mpc_file.write("{} {} {} {} {}\n".format(obs.date.jd, ra, dec, res, 568,))
-                sys.stderr.write("{} {} {} {} {}\n".format(obs.date.jd, ra, dec, res, 568,))
-#                mpc_file.write("{}\n".format(str(observation)))))
+                mpc_file.write("{} {} {} {} {}\n".format(obs.date.jd, ra, dec, res, 568, ))
+                sys.stderr.write("{} {} {} {} {}\n".format(obs.date.jd, ra, dec, res, 568, ))
         mpc_file.seek(0)
-        self.name = self.observations[0].provisional_name.strip(' ')
 
         self._abg = tempfile.NamedTemporaryFile()
 
@@ -81,7 +82,7 @@ class Orbfit(object):
         self.distance_uncertainty = result.contents[1]
 
         self.orbfit.abg_to_aei.restype = ctypes.POINTER(ctypes.c_double * 12)
-        self.orbfit.abg_to_aei.argtypes = [ ctypes.c_char_p ]
+        self.orbfit.abg_to_aei.argtypes = [ctypes.c_char_p]
         result = self.orbfit.abg_to_aei(ctypes.c_char_p(self._abg.name))
         self.a = result.contents[0]
         self.da = result.contents[6]
@@ -101,46 +102,48 @@ class Orbfit(object):
         residuals = ""
         for observation in self.observations:
             self.predict(observation.date)
-            dra = coordinates.Angle(self.coordinate.ra - observation.coordinate.ra )
-            if dra.degrees > 180 :
-                dra = dra - coordinates.Angle(360, unit=units.degree )
-            ddec = coordinates.Angle(self.coordinate.dec - observation.coordinate.dec )
+            dra = coordinates.Angle(self.coordinate.ra - observation.coordinate.ra)
+            if dra.degrees > 180:
+                dra = dra - coordinates.Angle(360, unit=units.degree)
+            ddec = coordinates.Angle(self.coordinate.dec - observation.coordinate.dec)
             if ddec.degrees > 180:
                 dra = ddec - coordinates.Angle(360, unit=units.degree)
-            observation.ra_residual = dra.degrees*3600.0
-            observation.dec_residual = ddec.degrees*3600.0
-            if observation.null_observation :
+            observation.ra_residual = dra.degrees * 3600.0
+            observation.dec_residual = ddec.degrees * 3600.0
+            if observation.null_observation:
                 residuals += "!"
             else:
                 residuals += " "
-            residuals += "{:12s} {:+05.2f} {:+05.2f}\n".format(observation.date, observation.ra_residual, observation.dec_residual)
+            residuals += "{:12s} {:+05.2f} {:+05.2f}\n".format(observation.date, observation.ra_residual,
+                                                               observation.dec_residual)
         self.residuals = residuals
 
     def __str__(self):
         """
 
         """
-        res = "{:>10s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s}\n".format(self.observations[0].provisional_name.strip(' '),
-                                                            "r (AU)",
-                                                            "a (AU)",
-                                                            "e",
-                                                            "Inc.",
-                                                            "Node",
-                                                            "peri.")
+        res = "{:>10s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s}\n".format(
+            self.observations[0].provisional_name.strip(' '),
+            "r (AU)",
+            "a (AU)",
+            "e",
+            "Inc.",
+            "Node",
+            "peri.")
         res += "{:>10s} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format("fit",
-                                                   self.distance,
-                                                   self.a,
-                                                   self.e,
-                                                   self.inc,
-                                                   self.Node,
-                                                   self.om)
+                                                                                  self.distance,
+                                                                                  self.a,
+                                                                                  self.e,
+                                                                                  self.inc,
+                                                                                  self.Node,
+                                                                                  self.om)
         res += "{:>10s} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format("uncert",
-                                                               self.distance_uncertainty,
-                                                               self.da,
-                                                               self.de,
-                                                               self.dinc,
-                                                               self.dNode,
-                                                               self.dom)
+                                                                                  self.distance_uncertainty,
+                                                                                  self.da,
+                                                                                  self.de,
+                                                                                  self.dinc,
+                                                                                  self.dNode,
+                                                                                  self.dom)
         res += "{:>10s} {:8.2f} days\n".format("arc", self.arc_length)
 
         return res
@@ -149,11 +152,12 @@ class Orbfit(object):
         """
         use the bk predict method to compute the location of the source on the given date.
         """
-        time = Time(date, scale='utc', precision=6)
-        jd = ctypes.c_double(time.jd)
+        if not isinstance(date, Time):
+            date = Time(date, scale='utc', precision=6)
+        jd = ctypes.c_double(date.jd)
         # call predict with agbfile, jdate, obscode
         self.orbfit.predict.restype = ctypes.POINTER(ctypes.c_double * 5)
-        self.orbfit.predict.argtypes = [ ctypes.c_char_p, ctypes.c_double, ctypes.c_int ]
+        self.orbfit.predict.argtypes = [ctypes.c_char_p, ctypes.c_double, ctypes.c_int]
         predict = self.orbfit.predict(ctypes.c_char_p(self._abg.name),
                                       jd,
                                       ctypes.c_int(obs_code))
@@ -163,4 +167,4 @@ class Orbfit(object):
         self.dra = predict.contents[2]
         self.ddec = predict.contents[3]
         self.pa = predict.contents[4]
-        self.date = str(time)
+        self.date = str(date)
