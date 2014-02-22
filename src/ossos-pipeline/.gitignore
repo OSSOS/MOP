@@ -2,3 +2,5 @@ cover/
 profiling/
 .idea/
 freshvo.sh
+payload*
+pyraf/

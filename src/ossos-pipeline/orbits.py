@@ -1,22 +1,10 @@
 import numpy
-from ossos.storage import get_mopheader, get_astheader
-
-import datetime
 import os
-import warnings
-
 import sys
-from astropy.io import ascii
-from astropy.table import Table
-from astropy.time import Time
-import requests
 
-from ossos import astrom, gui
-from ossos.gui import logger, config
 from ossos import mpc
 from ossos.orbfit import Orbfit
 from ossos import storage
-from ossos import wcs
 
 MAXCOUNT = 30000
 
@@ -38,7 +26,7 @@ def summarize(orbit):
     for observation in orbit.observations:
             print observation.to_string()
 
-    orbit = Orbfit(mpc_observations)
+    orbit = Orbfit(orbit.observations)
 
     print ""
     print orbit
