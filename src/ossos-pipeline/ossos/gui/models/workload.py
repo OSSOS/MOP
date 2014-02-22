@@ -739,7 +739,7 @@ class TracksWorkUnitBuilder(WorkUnitBuilder):
         for i, reading in enumerate(self.get_readings(data)):
             if reading.discovery:
                 return i
-
+        return 1
         raise ValueError("No discovery index found in track workunit.")
 
     def move_discovery_to_front(self, data):
