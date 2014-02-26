@@ -128,21 +128,25 @@ def match_planted(cand_filename, measures):
         measure_dist = None
         measure_source = None
         for provisional in measures:
-            x = float(measures[provisional][0].comment.X)
-            y = float(measures[provisional][0].comment.Y)
+            try:	
+                x = float(measures[provisional][0].comment.X)
+                y = float(measures[provisional][0].comment.Y)
+            except Exception as e:
+                sys.stderr.write(str(e))
+                sys.stderr.write(str(provisional))
             dist = math.sqrt( (x - planted_object.x)**2 + (y-planted_object.y)**2)
+            if dist < 10.0:
+                # flag as a matched measure
+                confused_measure[provisional] = planted_object
+                planted_object.confused += 1
             if measure_dist is None or measure_dist > dist:
                 measure_dist = dist
                 measure_source = measures[provisional]
-                if measure_dist < 6.0:
-                    # this gets 'unset' if we match this measure with a cand, in the next step.
-                    confused_measure[provisional] = planted_object
-                    planted_object.confused += 1
 
         # determine if planted_object was found
-        if cand_dist < 6.0:
+        if cand_dist < 10.0:
             # In candidate list
-            if measure_dist is not None and measure_dist < 6.0:
+            if measure_dist is not None and measure_dist < 10.0:
                 # accepted.
                 planted_object.recovered = measure_source
                 planted_object.false_negative = None
