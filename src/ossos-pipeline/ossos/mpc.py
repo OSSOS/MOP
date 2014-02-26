@@ -1,13 +1,10 @@
-
-__author__ = "David Rusk <drusk@uvic.ca>"
-__author__ = 'jjk'
+__author__ = 'jjk, mtb55'
 
 from datetime import datetime
 import itertools
 import os
 import struct
 import time
-
 from astropy import coordinates
 from astropy.time import sofa_time
 from astropy.time import TimeString
@@ -16,74 +13,66 @@ from astropy import units
 import numpy
 import logging
 
-
-
-MPCNOTES = {'Note1':
-                {" ": " ",
-                 "": " ",
-                 "*": "*",
-                 "A": "earlier approximate position inferior",
-                 "a": "sense of motion ambiguous",
-                 "B": "bright sky/black or dark plate",
-                 "b": "bad seeing",
-                 "c": "crowded star field",
-                 "D": "declination uncertain",
-                 "d": "diffuse image",
-                 "E": "at or near edge of plate",
-                 "F": "faint image",
-                 "f": "involved with emulsion or plate flaw",
-                 "G": "poor guiding",
-                 "g": "no guiding",
-                 "H": "hand measurement of CCD image",
-                 "I": "involved with star",
-                 "i": "inkdot measured",
-                 "J": "J2000.0 rereduction of previously-reported position",
-                 "K": "stacked image",
-                 "k": "stare-mode observation by scanning system",
-                 "M": "measurement difficult",
-                 "m": "image tracked on object motion",
-                 "N": "near edge of plate, measurement uncertain",
-                 "O": "image out of focus",
-                 "o": "plate measured in one direction only",
-                 "P": "position uncertain",
-                 "p": "poor image",
-                 "R": "right ascension uncertain",
-                 "r": "poor distribution of reference stars",
-                 "S": "poor sky",
-                 "s": "streaked image",
-                 "T": "time uncertain",
-                 "t": "trailed image",
-                 "U": "uncertain image",
-                 "u": "unconfirmed image",
-                 "V": "very faint image",
-                 "W": "weak image",
-                 "w": "weak solution"
-                },
-            'Note2': {
-                " ": " ",
-                "": " ",
-                "P": "Photographic",
-                "e": "Encoder",
-                "C": "CCD",
-                "T": "Meridian or transit circle",
-                "M": "Micrometer",
-                "V": "'Roving Observer' observation",
-                "R": "Radar observation",
-                "S": "Satellite observation",
-                "c": "Corrected-without-republication CCD observation",
-                "E": "Occultation-derived observations",
-                "O": "Offset observations (used only for observations of natural satellites)",
-                "H": "Hipparcos geocentric observations",
-                "N": "Normal place",
-                "n": "Mini-normal place derived from averaging observations from video frames"
-            },
-            'PhotometryNote': {
-                " ": " ",
-                "": " ",
-                "L": "Photometry uncertainty lacking", # not used by MPC
-                "Y": "Photometry measured successfully", # not used by MPC
-                "Z": "Photometry measurement failed."      # not used by MPC 
-            }}
+MPCNOTES = {"Note1": {" ": " ",
+                      "": " ",
+                      "*": "*",
+                      "A": "earlier approximate position inferior",
+                      "a": "sense of motion ambiguous",
+                      "B": "bright sky/black or dark plate",
+                      "b": "bad seeing",
+                      "c": "crowded star field",
+                      "D": "declination uncertain",
+                      "d": "diffuse image",
+                      "E": "at or near edge of plate",
+                      "F": "faint image",
+                      "f": "involved with emulsion or plate flaw",
+                      "G": "poor guiding",
+                      "g": "no guiding",
+                      "H": "hand measurement of CCD image",
+                      "I": "involved with star",
+                      "i": "inkdot measured",
+                      "J": "J2000.0 rereduction of previously-reported position",
+                      "K": "stacked image",
+                      "k": "stare-mode observation by scanning system",
+                      "M": "measurement difficult",
+                      "m": "image tracked on object motion",
+                      "N": "near edge of plate, measurement uncertain",
+                      "O": "image out of focus",
+                      "o": "plate measured in one direction only",
+                      "P": "position uncertain",
+                      "p": "poor image",
+                      "R": "right ascension uncertain",
+                      "r": "poor distribution of reference stars",
+                      "S": "poor sky",
+                      "s": "streaked image",
+                      "T": "time uncertain",
+                      "t": "trailed image",
+                      "U": "uncertain image",
+                      "u": "unconfirmed image",
+                      "V": "very faint image",
+                      "W": "weak image",
+                      "w": "weak solution"},
+            "Note2": {" ": " ",
+                      "": " ",
+                      "P": "Photographic",
+                      "e": "Encoder",
+                      "C": "CCD",
+                      "T": "Meridian or transit circle",
+                      "M": "Micrometer",
+                      "V": "'Roving Observer' observation",
+                      "R": "Radar observation",
+                      "S": "Satellite observation",
+                      "c": "Corrected-without-republication CCD observation",
+                      "E": "Occultation-derived observations",
+                      "O": "Offset observations (used only for observations of natural satellites)",
+                      "H": "Hipparcos geocentric observations",
+                      "N": "Normal place",
+                      "n": "Mini-normal place derived from averaging observations from video frames"},
+            'PhotometryNote': {" ": " ",
+                               "": " ",
+                               "L": "Photometry uncertainty lacking",
+                               "Y": "Photometry measured successfully",
+                               "Z": "Photometry measurement failed."}}
 
 
 class MPCFormatError(Exception):
@@ -140,6 +129,8 @@ class MPCNote(object):
     """
 
     def __init__(self, code="C", note_type="Note2"):
+        self._note_type = None
+        self._code = None
         self.note_type = note_type
         self.code = code
 
@@ -153,7 +144,7 @@ class MPCNote(object):
     @note_type.setter
     def note_type(self, note_type):
         if note_type not in MPCNOTES.keys():
-            raise ValueError("Invalid note_type: expected one of %s got %s" % ( str(MPCNOTES.keys()), note_type))
+            raise ValueError("Invalid note_type: expected one of %s got %s" % (str(MPCNOTES.keys()), note_type))
         self._note_type = note_type
 
     @property
@@ -177,15 +168,9 @@ class MPCNote(object):
 
         if _code.isdigit():
             if self.note_type != 'Note1':
-	        logging.warning("code {}".format(_code))
-                #raise MPCFieldFormatError(self.note_type,
-                #                          "must be one of " + str(MPCNOTES[self.note_type]),
-                #                          _code)
+                logging.warning("code {}".format(_code))
             if _code not in range(10):
-	        logging.warning("code {}".format(_code))
-                #raise MPCFieldFormatError(self.note_type,
-                #                          "integer values must be between 0 and 9",
-                #                          _code)
+                logging.warning("code {}".format(_code))
         else:
             if len(_code) > 1:
                 raise MPCFieldFormatError(self.note_type,
@@ -211,7 +196,10 @@ class Discovery(object):
     """
 
     def __init__(self, is_discovery=False):
+        self._is_discovery = False
+        self._is_initial_discovery = False
         self.is_discovery = is_discovery
+        self.is_initial_discovery = is_discovery
 
     def set_from_mpc_line(self, mpc_line):
         """
@@ -225,6 +213,10 @@ class Discovery(object):
         self.is_discovery = mpc_line[12]
 
     @property
+    def is_initial_discovery(self):
+        return self._is_initial_discovery
+
+    @property
     def is_discovery(self):
         return self._is_discovery
 
@@ -234,10 +226,22 @@ class Discovery(object):
             raise MPCFieldFormatError("discovery",
                                       "must be one of '',' ','&', '*',True, False. Was: ",
                                       is_discovery)
-        self._is_discovery = (( (is_discovery or False) in ['*','&'] or is_discovery == True ) and True ) or False
+        self._is_discovery = (is_discovery in ['*','&', True] and True) or False
+
+    @is_initial_discovery.setter
+    def is_initial_discovery(self, is_discovery):
+        """
+        Is this MPC line the initial discovery line?
+        @param is_discovery: the code for the discovery setting "*" or True or False
+        """
+        self._is_initial_discovery = (is_discovery in ["*", "True"] and True ) or False
 
     def __str__(self):
-        return (self.is_discovery and "*") or " "
+        if self.is_initial_discovery:
+            return "*"
+        if self.is_discovery:
+            return "&"
+        return " "
 
 
 class TimeMPC(TimeString):
@@ -302,8 +306,7 @@ class TimeMPC(TimeString):
                     dsec[i] = tm.tm_sec + 60 * (60 * (24 * fracday - ihr[i]) - imin[i])
                     break
             else:
-                raise ValueError('Time {0} does not match {1} format'
-                .format(timestr, self.name))
+                raise ValueError("Time {0} does not match {1} format".format(timestr, self.name))
 
         self.jd1, self.jd2 = sofa_time.dtf_jd(self.scale.upper().encode('utf8'),
                                               iy, im, iday, ihr, imin, dsec)
@@ -335,8 +338,6 @@ class TimeMPC(TimeString):
             # MPC uses day fraction as time part of datetime
             fracday = (((((ifracsec / 1000000.0 + isec) / 60.0 + imin) / 60.0) + ihr) / 24.0) * (10 ** 6)
             fracday = '{0:06g}'.format(fracday)[0:self.precision]
-            #format_str = '{{0:g}}'.format(self.precision)
-            #fracday = int(format_str.format(fracday))
             yield dict(year=int(iy), mon=int(im), day=int(iday), hour=int(ihr), min=int(imin), sec=int(isec),
                        fracsec=int(ifracsec), yday=yday, fracday=fracday)
 
@@ -416,18 +417,18 @@ class Observation(object):
                                   plate_uncertainty=plate_uncertainty,
                                   comment=comment)
 
-
-
     @classmethod
     def from_string(cls, mpc_line):
         """
         Given an MPC formatted line, returns an MPC Observation object.
         :param mpc_line: a line in the one-line roving observer format
         """
-        mpc_format = '5s7s1s1s1s17s12s12s9x5s1s6x3s'
+        mpc_format = '1s11s1s1s1s17s12s12s9x5s1s6x3s'
         mpc_line = mpc_line.strip('\n')
         comment = mpc_line[81:]
         mpc_line = mpc_line[0:80]
+        if len(mpc_line) > 0 and mpc_line[0] == '#':
+            return MPCComment.from_string(mpc_line[1:])
         if len(mpc_line) != 80:
             return None
         obsrec = cls(*struct.unpack(mpc_format, mpc_line))
@@ -449,15 +450,15 @@ class Observation(object):
         if self.null_observation is True:
             mpc_str = "!" + 4 * " "
         else:
-            mpc_str = (self.minor_planet_number is None and 5 * " ") or "%5s" % (self.minor_planet_number)
-        mpc_str += (self.provisional_name is None and 7 * " ") or "%-7s" % (self.provisional_name)
+            mpc_str = (self.minor_planet_number is None and 5 * " ") or "%5s" % self.minor_planet_number
+        mpc_str += (self.provisional_name is None and 7 * " ") or "%-7s" % self.provisional_name
         mpc_str += str(self.discovery)
         mpc_str += '{0:1s}{1:1s}'.format(str(self.note1), str(self.note2))
         mpc_str += '{0:<17s}'.format(str(self.date))
         mpc_str += '{0:<12s}{1:<12s}'.format(str(self.ra), str(self.dec))
         mpc_str += 9 * " "
         mag_format = '{0:<5.' + str(self._mag_precision) + 'f}{1:1s}'
-        mag_str = ( self.mag is None and 6 * " ") or mag_format.format(self.mag, self.band)
+        mag_str = (self.mag is None and 6 * " ") or mag_format.format(self.mag, self.band)
         if len(mag_str) != 6:
             raise MPCFieldFormatError("mag",
                                       "length of mag string should be exactly 6 characters, got->",
@@ -503,6 +504,7 @@ class Observation(object):
         if provisional_name is None:
             provisional_name = " " * 7
         else:
+            provisional_name = provisional_name.strip()
             if not 0 < len(provisional_name) <= 7:
                 raise MPCFieldFormatError("Provisional name",
                                           "must be 7 characters or less",
@@ -717,7 +719,7 @@ class MPCComment(object):
         """
         values = comment.split()
         if len(values) < 8:
-            logging.warning("non-OSSOS format MPC line read")
+            logging.warning("non-OSSOS format MPC line read: {}".format(comment))
             return comment
         comment = comment.split('%')[-1]
         return MPCComment(source_name=values[1],
