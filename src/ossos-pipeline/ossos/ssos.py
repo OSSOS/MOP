@@ -62,9 +62,16 @@ class TracksParser(object):
         input_mpc_lines = filestr.split('\n')
 
         mpc_observations = []
+        next_comment = None
         for line in input_mpc_lines:
             mpc_observation = mpc.Observation.from_string(line)
-            if mpc_observation is not None:
+            if isinstance(mpc_observation, mpc.MPCComment):
+                next_comment = mpc_observation
+                continue
+            if isinstance(mpc_observation, mpc.Observation):
+                if next_comment is not None:
+                    mpc_observation.comment = next_comment
+                    next_comment = None
                 mpc_observations.append(mpc_observation)
 
         mpc_observations.sort(key=lambda obs: obs.date.jd)
@@ -221,7 +228,8 @@ class SSOSParser(object):
                                          ccd=None,
                                          version='p',
                                          ext='.fits',
-                                         subdir=None)
+                                         subdir="")
+
         logger.debug('Trying to access {}'.format(image_uri))
 
         if not storage.exists(image_uri, force=False):
