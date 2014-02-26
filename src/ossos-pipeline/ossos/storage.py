@@ -158,7 +158,7 @@ def get_uri(expnum, ccd=None,
     ccd: CCD in the mosaic [0-35]
     version: one of p,s,o etc.
     dbimages: dbimages containerNode.
-    @type subdir: String
+    @type subdir: str
     @param expnum: int
     @param ccd:
     @param version:
