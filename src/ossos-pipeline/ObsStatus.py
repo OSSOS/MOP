@@ -2,23 +2,28 @@
 # Copyright 2012, 2013 JJ Kavelaars
 
 import argparse
-import urllib, datetime, tempfile, math, ephem
-from astropy.io.votable import parse
-from astropy.io.votable.tree import Field
+import urllib
+import tempfile
+import math
 import sys
-import vos, os
 import time
-from ossos import storage
+
+import ephem
+from astropy.io.votable import parse
+import vos
 import matplotlib
+
+from ossos import storage
+
 matplotlib.use('Agg')
-from matplotlib.pyplot import figure, savefig, close, subplot
+from matplotlib.pyplot import figure, close
 from matplotlib.patches import Rectangle
 from matplotlib.backends.backend_pdf import PdfPages
-from matplotlib import pyplot
 import logging
 
 
-OSSOS_RUNIDS = list(('13AP05','13AP06', '13BP05', '13BP06'))
+OSSOS_RUNIDS = list(('13AP05', '13AP06', '13BP05', '13BP06', '14AP05', '14AP06'))
+
 
 def query_for_observations(mjd, observable, runids):
     """Do a QUERY on the TAP service for all observations that are part of runid, 
