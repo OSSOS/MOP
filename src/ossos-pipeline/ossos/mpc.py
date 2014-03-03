@@ -168,9 +168,9 @@ class MPCNote(object):
 
         if _code.isdigit():
             if self.note_type != 'Note1':
-                logging.warning("code {}".format(_code))
+                logging.debug("code {}".format(_code))
             if _code not in range(10):
-                logging.warning("code {}".format(_code))
+                logging.debug("code {}".format(_code))
         else:
             if len(_code) > 1:
                 raise MPCFieldFormatError(self.note_type,
@@ -719,7 +719,7 @@ class MPCComment(object):
         """
         values = comment.split()
         if len(values) < 8:
-            logging.warning("non-OSSOS format MPC line read: {}".format(comment))
+            #logging.debug("non-OSSOS format MPC line read: {}".format(comment))
             return comment
         comment = comment.split('%')[-1]
         return MPCComment(source_name=values[1],
@@ -951,7 +951,6 @@ class MPCConverter(object):
                 # tnodb requires all lines to be MPC roving observer line length
                 comment_line = ('#O ' + str(obs.comment))[:80].rstrip('\n') # #O indicates OSSOS survey
 
-                # print comment_line
 
                 outfile.write(comment_line + '\n')
 
@@ -964,7 +963,6 @@ class MPCConverter(object):
                 if mpc_observation.startswith('!'):   # .null_observation doesn't have an override for the character
                     mpc_observation = mpc_observation.replace('!', '-')  # format non-detection lines for tnodb
 
-                # print mpc_observation
 
                 outfile.write(mpc_observation + '\n')
 
