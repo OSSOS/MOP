@@ -70,7 +70,6 @@ class Orbfit(object):
                 dec = obs.dec.replace(" ", ":")
                 res = 0.3
                 mpc_file.write("{} {} {} {} {}\n".format(obs.date.jd, ra, dec, res, 568, ))
-                sys.stderr.write("{} {} {} {} {}\n".format(obs.date.jd, ra, dec, res, 568, ))
         mpc_file.seek(0)
 
         self._abg = tempfile.NamedTemporaryFile()
@@ -153,7 +152,11 @@ class Orbfit(object):
         use the bk predict method to compute the location of the source on the given date.
         """
         if not isinstance(date, Time):
-            date = Time(date, scale='utc', precision=6)
+            try:
+               date = Time(float(date), format='jd', scale='utc', precision=6)
+            except:
+               date = Time(date, format='jd', scale='utc', precision=6)
+
         jd = ctypes.c_double(date.jd)
         # call predict with agbfile, jdate, obscode
         self.orbfit.predict.restype = ctypes.POINTER(ctypes.c_double * 5)
