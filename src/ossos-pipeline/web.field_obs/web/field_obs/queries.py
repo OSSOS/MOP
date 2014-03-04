@@ -1,10 +1,14 @@
-import sqlalchemy as sa
-from web.overview.ossuary import OssuaryTable
-import ephem, datetime
-from ossos import storage
 import cPickle
 import subprocess
 import shlex
+
+import sqlalchemy as sa
+import ephem
+import datetime
+
+from web.overview.ossuary import OssuaryTable
+from ossos import storage
+
 
 class ImagesQuery(object):
     def __init__(self):
@@ -22,7 +26,8 @@ class ImagesQuery(object):
 
     def field_images(self, field):
         it = self.images
-        cols = [it.c.cfht_field, it.c.obs_end, it.c.iq_ossos, it.c.image_id, it.c.zeropt, it.c.exptime, it.c.comment]
+        cols = [it.c.cfht_field, it.c.obs_end, it.c.iq_ossos, it.c.image_id, it.c.zeropt, it.c.exptime, it.c.comment,
+                it.c.snr]
         ss = sa.select(cols, order_by=it.c.obs_end)
         ss.append_whereclause(it.c.cfht_field == field)
         ims_query = self.conn.execute(ss)
@@ -36,8 +41,9 @@ class ImagesQuery(object):
         for row in ims_query:
             retrow = [r for r in row[1:]]
             if row[2] is None:  # catch None fwhm, zeropoint from unprocessed images.
-                retrow[1] = -1. # displaced by one as retrow starts after field_id
-                retrow[3] = -1.
+                retrow[1] = -1.  # displaced by one as retrow starts after field_id. This one is iq_ossos
+                retrow[3] = -1.  # zeropoint
+                retrow[7] = -1.  # snr
             if row[6] is None:
                 retrow[5] = ''  # comment can be an empty string for display
             ret_images.append(retrow)
@@ -289,7 +295,7 @@ class ImagesQuery(object):
 
         if len(good_triples) > 0:
             # Return the set of 3 images that have the lowest value of 'worst iq'.
-            lowest_worst_iq = min([g[2] for g in good_triples])
+            lowest_worst_iq = min([g[2] for g in good_triples if g[2] != -1.])  # added check against not-set value
             retval = good_triples[[g[2] for g in good_triples].index(lowest_worst_iq)]
         else:
             retval = None
