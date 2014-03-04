@@ -4,7 +4,7 @@
   <head>
   	<!-- No indexing by search engines, for now -->
     <meta http-equiv="Content-Type" name="robots" content="noindex; text/html; charset=utf-8" />
-    <title>OSSOS: Field Inspection</title>
+    <title>OSSOS: Field Inspection: ${fieldId}</title>
     <link rel="stylesheet" type="text/css" href="/css/bootstrap.css" />
     <style type = "text/css">
         .normal-image {}
@@ -74,7 +74,8 @@
             <th>observation endtime</th>
             <th>IQ</th>
             <th>zeropoint</th>
-            <th>integration (s)</th>
+              <th>SNR</th>
+              <th>integration (s)</th>
             <th>image ID</th>
             <th>comment</th>
             <th>processing status</th>
@@ -86,7 +87,8 @@
               <td>${obj[0].strftime('%Y-%m-%d %H:%M:%S')}</td>
               <td>${'%.2f' % obj[1]}</td>
               <td>${'%.2f' % obj[3]}</td>
-              <td>${'%.1f' % obj[4].seconds}</td>
+            <td>${'%.2f' % obj[7]}</td>
+            <td>${'%.1f' % obj[4].seconds}</td>
               <td>
                 <a href="http://www.canfar.phys.uvic.ca/vosui/#OSSOS/dbimages/${obj[2]}">${obj[2]}</a>
                 <a href="">&#128247;</a> <!-- will link to .gifs once JJ generates them -->
@@ -102,6 +104,7 @@
           <td>${obj[0].strftime('%Y-%m-%d %H:%M:%S')}</td>
           <td>${'%.2f' % obj[1]}</td>
           <td>${'%.2f' % obj[3]}</td>
+          <td>${'%.2f' % obj[7]}</td>
           <td>${'%.1f' % obj[4].seconds}</td>
           <td>
             <a href="http://www.canfar.phys.uvic.ca/vosui/#OSSOS/dbimages/${obj[2]}">${obj[2]}</a>
