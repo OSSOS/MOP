@@ -191,7 +191,7 @@ def get_uri(expnum, ccd=None,
                            '%s%s%s%s' % (prefix, str(expnum),
                                          version,
                                          ext))
-    logger.debug("got uri: " + uri)
+    logger.debug("got uri: " + str(uri))
     return uri
 
 
@@ -301,7 +301,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
         logger.debug("trying to get file {}".format(uri))
         copy(uri, filename)
     except Exception as e:
-        logger.debug(str(e))
+        logger.debug("copy sent back error: {} code: {}".format(str(e), getattr(e, 'errno', 0)))
         if getattr(e, 'errno', 0) not in [404, errno.ENOENT] or ccd is None:
             raise e
         ## try doing a cutout from MEF in VOSpace
@@ -338,8 +338,8 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
         hdu_list[0].header['BZERO'] = hdu_list[0].header.get('BZERO', 32768)
         hdu_list[0].header['BSCALE'] = hdu_list[0].header.get('BSCALE', 1)
         if flip_datasec:
-            naxis1 = hdu_list[0].header.get('NAXIS1')
-            naxis2 = hdu_list[0].header.get('NAXIS2')
+            naxis1 = int(hdu_list[0].header.get('NAXIS1'))
+            naxis2 = int(hdu_list[0].header.get('NAXIS2'))
             datasec = hdu_list[0].header.get('DATASEC', "[33:2080,1:4612]")
             hdu_list[0].header['OLDSEC'] = datasec
             logger.info("Flipping the datasec")
@@ -429,11 +429,12 @@ def open_vos_or_local(path, mode="rb"):
 def copy(source, dest):
     """use the vospace service to get a file. """
 
-    logger.debug("{} -> {}".format(source, dest))
+    logger.debug("deleting {} ".format(dest))
     try:
         vospace.delete(dest)
-    except IOError:
+    except Exception as e:
         pass
+    logger.debug("copying {} -> {}".format(source, dest))
 
     return vospace.copy(source, dest)
 
@@ -463,9 +464,8 @@ def vlink(s_expnum, s_ccd, s_version, s_ext,
 def remove(uri):
     try:
         vospace.delete(uri)
-    except IOError as e:
-        if e.errno != errno.ENOENT or e.errno == 404:
-            raise e
+    except Exception as e:
+       logger.debug(str(e))
 
 
 def delete(expnum, ccd, version, ext, prefix=None):
