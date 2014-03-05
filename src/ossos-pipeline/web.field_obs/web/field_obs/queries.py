@@ -1,10 +1,14 @@
-import sqlalchemy as sa
-from web.overview.ossuary import OssuaryTable
-import ephem, datetime
-from ossos import storage
 import cPickle
 import subprocess
 import shlex
+
+import sqlalchemy as sa
+import ephem
+import datetime
+
+from web.overview.ossuary import OssuaryTable
+from ossos import storage
+
 
 class ImagesQuery(object):
     def __init__(self):
@@ -22,7 +26,8 @@ class ImagesQuery(object):
 
     def field_images(self, field):
         it = self.images
-        cols = [it.c.cfht_field, it.c.obs_end, it.c.iq_ossos, it.c.image_id, it.c.zeropt, it.c.exptime, it.c.comment]
+        cols = [it.c.cfht_field, it.c.obs_end, it.c.iq_ossos, it.c.image_id, it.c.zeropt, it.c.exptime, it.c.comment,
+                it.c.snr]
         ss = sa.select(cols, order_by=it.c.obs_end)
         ss.append_whereclause(it.c.cfht_field == field)
         ims_query = self.conn.execute(ss)
@@ -36,8 +41,9 @@ class ImagesQuery(object):
         for row in ims_query:
             retrow = [r for r in row[1:]]
             if row[2] is None:  # catch None fwhm, zeropoint from unprocessed images.
-                retrow[1] = -1. # displaced by one as retrow starts after field_id
-                retrow[3] = -1.
+                retrow[1] = -1.  # displaced by one as retrow starts after field_id. This one is iq_ossos
+                retrow[3] = -1.  # zeropoint
+                retrow[7] = -1.  # snr
             if row[6] is None:
                 retrow[5] = ''  # comment can be an empty string for display
             ret_images.append(retrow)
@@ -69,7 +75,7 @@ class ImagesQuery(object):
         strerr = cPickle.dumps(ordered_errors)
         ss = self.images.update(self.images.c.image_id == image_id)
         params = {'proc_status': strerr}
-        self.conn.execute(ss, params)#, self.images.c.proc_status=strerr)
+        self.conn.execute(ss, params)  #, self.images.c.proc_status=strerr)
 
         return
 
@@ -91,7 +97,7 @@ class ImagesQuery(object):
             retrow = row
             if update:  # retrieve new data from VOSpace
                 ordered_errors = self.check_VOSpace_for_proc_status(row[2])
-            else:       # retrieve existing data from local database
+            else:  # retrieve existing data from local database
                 ordered_errors = self.image_errors(row[2])
             retrow.append(ordered_errors)
             retval.append(retrow)
@@ -120,7 +126,7 @@ class ImagesQuery(object):
         # {root:{error:[ccds]}}, where ccds are sorted in ascending order.
         errors = {}
         for key, val in proc_keys:
-            root, ccd = key[0:len(key)-2].strip('_'), key[-2:]
+            root, ccd = key[0:len(key) - 2].strip('_'), key[-2:]
             tag = errors.get(root, {})
 
             # TODO: need a collate_successes part of this that counts the successes for the tag types
@@ -161,7 +167,7 @@ class ImagesQuery(object):
         # Now accounts for all codes that have been used over time, with them in order, both old and new styles.
         for step in self.steps:
             if step in errors.keys():
-                if len(errors[step]) == 0: # step was completed successfully for all ccds
+                if len(errors[step]) == 0:  # step was completed successfully for all ccds
                     order.append(step)
                 else:
                     order.append({step: errors[step]})
@@ -177,7 +183,7 @@ class ImagesQuery(object):
 
         retval = 0
         for row in ims_query:
-            retval = str(ephem.hours(ephem.degrees(str(row[1]))))    # HACKED FOR QUICK RESULT (precision not needed)
+            retval = str(ephem.hours(ephem.degrees(str(row[1]))))  # HACKED FOR QUICK RESULT (precision not needed)
 
         return retval
 
@@ -190,7 +196,7 @@ class ImagesQuery(object):
 
         retval = 0
         for row in ims_query:
-            retval = str(ephem.degrees(str(row[1])))    # HACKED FOR QUICK RESULT (precision not needed)
+            retval = str(ephem.degrees(str(row[1])))  # HACKED FOR QUICK RESULT (precision not needed)
 
         return retval
 
@@ -267,7 +273,7 @@ class ImagesQuery(object):
         for row in tplus_res:
             # keep year, month, day, image_id, obs_end, iq_ossos
             rr = list(row[1:])
-            if row[6] is None: # iq_ossos hasn't been calculated yet
+            if row[6] is None:  # iq_ossos hasn't been calculated yet
                 rr[5] = -1.
                 rr[6] = -1.
             ret_images.append(rr)
@@ -289,7 +295,7 @@ class ImagesQuery(object):
 
         if len(good_triples) > 0:
             # Return the set of 3 images that have the lowest value of 'worst iq'.
-            lowest_worst_iq = min([g[2] for g in good_triples])
+            lowest_worst_iq = min([g[2] for g in good_triples if g[2] != -1.])  # added check against not-set value
             retval = good_triples[[g[2] for g in good_triples].index(lowest_worst_iq)]
         else:
             retval = None
@@ -431,7 +437,7 @@ class ImagesQuery(object):
             storage.vospace.copy(tmpfile, blockuri)
             print tmpfile, '->', blockuri
 
-#		return
+        #		return
 
     def process_field(self, field, step, ):
         allchips_scripts = ['preproc', 'update_header', 'mkpsf_all']
@@ -441,33 +447,35 @@ class ImagesQuery(object):
         triplet_scripts = []
 
         ## Triplets: first do the search images. These are the same commands as in mop.sh.
-        scripts = {'preproc':'',
-                   'update_header':'',
-                   'mkpsf_all':'',
-                   'mkpsf_p':'mkpsf.py $1 $2 $3 --ccd $ccd -v  ${force}',
-                   'step1_p':'step1.py $1 $2 $3 --ccd $ccd -v  ${force}',
-                   'step2_p':'step2.py $1 $2 $3 --ccd $ccd -v  ${force}',
-                   'step3_p':'step3.py $1 $2 $3 --ccd $ccd -v  ${force}',
-                   'combine_p':'combine.py $1 -v  --ccd $ccd ${force} --measure3 vos:OSSOS/measure3/2013A-O --field O-2+0',
-                   'scramble_s':'scramble.py $1 $2 $3 --ccd $ccd -v  ${force}',
-                   'mkpsf_s':'mkpsf.py $1 $2 $3 --ccd $ccd -v  ${force} --type s',
-                   'step1_s':'step1.py  $1 $2 $3 --ccd $ccd -v  ${force} --type s',
-                   'step2_s':'step2.py   $1 $2 $3 --ccd $ccd -v  ${force} --type s',
-                   'plant_s':'plant.py $1 $2 $3 --ccd $ccd -v ${force} --type s',
-                   'fkstep1_s':'step1.py $1 $2 $3 --ccd $ccd --fk --type s -v  ${force}',
-                   'fkstep2_s':'step2.py $1 $2 $3 --ccd $ccd --fk --type s -v  ${force}',
-                   'fkstep3_s':'step3.py $1 $2 $3 --ccd $ccd --fk --type s -v ${force}',
-                   'fkcombine_s':'combine.py $1 --fk --type s -v --ccd $ccd ${force} --measure3 vos:OSSOS/measure3/2013A-O --field O-2+0'}
+        scripts = {'preproc': '',
+                   'update_header': '',
+                   'mkpsf_all': '',
+                   'mkpsf_p': 'mkpsf.py $1 $2 $3 --ccd $ccd -v  ${force}',
+                   'step1_p': 'step1.py $1 $2 $3 --ccd $ccd -v  ${force}',
+                   'step2_p': 'step2.py $1 $2 $3 --ccd $ccd -v  ${force}',
+                   'step3_p': 'step3.py $1 $2 $3 --ccd $ccd -v  ${force}',
+                   'combine_p': 'combine.py $1 -v  --ccd $ccd ${force} --measure3 vos:OSSOS/measure3/2013A-O --field '
+                                'O-2+0',
+                   'scramble_s': 'scramble.py $1 $2 $3 --ccd $ccd -v  ${force}',
+                   'mkpsf_s': 'mkpsf.py $1 $2 $3 --ccd $ccd -v  ${force} --type s',
+                   'step1_s': 'step1.py  $1 $2 $3 --ccd $ccd -v  ${force} --type s',
+                   'step2_s': 'step2.py   $1 $2 $3 --ccd $ccd -v  ${force} --type s',
+                   'plant_s': 'plant.py $1 $2 $3 --ccd $ccd -v ${force} --type s',
+                   'fkstep1_s': 'step1.py $1 $2 $3 --ccd $ccd --fk --type s -v  ${force}',
+                   'fkstep2_s': 'step2.py $1 $2 $3 --ccd $ccd --fk --type s -v  ${force}',
+                   'fkstep3_s': 'step3.py $1 $2 $3 --ccd $ccd --fk --type s -v ${force}',
+                   'fkcombine_s': 'combine.py $1 --fk --type s -v --ccd $ccd ${force} --measure3 '
+                                  'vos:OSSOS/measure3/2013A-O --field O-2+0'}
 
         d = {'wibble': 'arg1', 'blarg': 'arg2'}
         foo = 'cmd {wibble} -o {blarg}'.format(**d)
 
-
         for im in self.field_images(field):
             if step in allchips_scripts:
                 # Log formatting now EXPOSURE_CCD_SCRIPT_DATE  ${exp1}_preproc_`date -u +%Y-%m-%dT%H:%M:%S`
-                joblog = {'im':im, 'step':step, 'date':datetime.datetime.strftime('%Y-%m-%d_%H:%M:%S')}
-                str_cmd = 'ossos_submit/submit_job.sh '+'{im}_{step}_{date}'.format(**joblog)+ scripts[step].format(**)
+                joblog = {'im': im, 'step': step, 'date': datetime.datetime.strftime('%Y-%m-%d_%H:%M:%S')}
+                str_cmd = 'ossos_submit/submit_job.sh ' + '{im}_{step}_{date}'.format(**joblog) + scripts[step].format(
+                    **)
 
             # Execute a script
             run_cmd = shlex.split(str_cmd)

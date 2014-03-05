@@ -31,3 +31,18 @@ cat decdarkrun.txt | while read exp1 ; do vtag vos:OSSOS/dbimages/${exp1} ivo://
 
 
 cat undone.txt | while read exp1 ; do ./submit_job.sh ${exp1}_update_header_`date -u +%Y-%m-%dT%H:%M:%S` update_header.sh ${exp1} ; done
+
+
+
+For 2013B we must set the angle of search and planting (the default
+values for those scripts are for spring fields). Based on the rate.pl
+script (part of the MOP pipeline) we should be searching at angles of
+between -56 and +10 degrees (so -23 +/- 33 degrees)
+
+thus, plant and step3 become :  
+
+plant.py --ang -23 --width 33  ....
+
+step3.py --angle -23 --wdith 33  ....
+
+
