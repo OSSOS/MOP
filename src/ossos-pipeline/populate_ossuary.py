@@ -2,15 +2,18 @@
 
 __author__ = "Michele Bannister <micheleb@uvic.ca>"
 
-import sys, datetime
+import sys
 import argparse
+import shlex
+from subprocess import Popen
+
+import datetime
 import sqlalchemy as sa
+import pyfits
+
 import web.field_obs.queries
 from ossos import storage
-import pyfits
-import shlex
-import os
-from subprocess import Popen
+
 
 """
 Initial table populating for the 'ossuary' database.
@@ -136,7 +139,6 @@ def get_iq_and_zeropoint(image, header_extract):
 
     return header_extract
 
-
 def parse_sgwn_comments():
     retval = {}
     lines = storage.vofile('vos:sgwyn/tkBAD', 'r').read().splitlines()
@@ -145,6 +147,13 @@ def parse_sgwn_comments():
         retval[ln[0]] = ln[2]
 
     return retval
+
+
+def get_snr(image, header_extract):
+    snr = storage.get_tag(image, 'snr_13')
+    header_extract['snr'] = snr
+
+    return header_extract
 
 
 def retrieve_processed_images(ims):
@@ -163,8 +172,17 @@ def retrieve_processed_images(ims):
 
 
 def iq_unmeasured_images(ims):
-    ss = sa.select([ims.images.c.image_id, ims.images.c.iq_ossos], order_by=ims.images.c.image_id)
+    ss = sa.select([ims.images.c.image_id, ims.images.c.iq_ossos, ims.images.c.snr], order_by=ims.images.c.image_id)
     ss.append_whereclause(ims.images.c.iq_ossos == None)
+    query = ims.conn.execute(ss)
+    retval = [s[0] for s in query if isinstance(s[0], long)]
+
+    return retval
+
+
+def snr_unmeasured_images(ims):
+    ss = sa.select([ims.images.c.image_id, ims.images.c.snr], order_by=ims.images.c.image_id)
+    ss.append_whereclause(ims.images.c.snr == None)
     query = ims.conn.execute(ss)
     retval = [s[0] for s in query if isinstance(s[0], long)]
 
@@ -207,7 +225,7 @@ def put_image_in_database(image, ims):
     return
 
 
-def update_values(ims, image_id, iq_zeropt=True, comment=False, commdict=None):
+def update_values(ims, image_id, iq_zeropt=True, comment=False, snr=False, commdict=None):
     """
     Update a row in ossuary with
     :param ims: an ImageQuery, contains image table and a connector
@@ -222,6 +240,8 @@ def update_values(ims, image_id, iq_zeropt=True, comment=False, commdict=None):
         updating_params = get_iq_and_zeropoint(image_id, {})
     if comment:
         updating_params = {'comment': commdict[str(image_id)]}
+    if snr:
+        updating_params = get_snr(image_id, {})
     ss = ims.images.update(ims.images.c.image_id == image_id)
     ims.conn.execute(ss, updating_params)
 
@@ -287,6 +307,8 @@ def main():
                              "IQ/zeropoint information; update where possible.")
     parser.add_argument("-comment", action="store_true",
                         help="Add comments on images provided by S. Gwyn to database.")
+    parser.add_argument("-snr", action="store_true",
+                        help="Update existing images in ossuary for SNR info where that exists in a vtag.")
     args = parser.parse_args()
 
     images = web.field_obs.queries.ImagesQuery()
@@ -300,6 +322,14 @@ def main():
         for n, image in enumerate(unmeasured_iqs):  # it's in the db, so has already passed the other checks
             update_values(images, image)
             sys.stdout.write('%s %d/%d...ossuary updated.\n' % (image, n + 1, len(unmeasured_iqs)))
+
+    if args.snr:
+        unmeasured = snr_unmeasured_images(images)
+        sys.stdout.write('%d images in ossuary; updating %d with new SNR information.\n' %
+                         (len(processed_images), len(unmeasured)))
+        for n, image in enumerate(unmeasured):  # it's in the db, so has already passed the other checks
+            update_values(images, image, iq_zeropt=False, snr=True)
+            sys.stdout.write('%s %d/%d...ossuary updated.\n' % (image, n + 1, len(unmeasured)))
 
     if args.comment:
         sys.stdout.write('%d images in ossuary; updating with new comment information.\n' %
@@ -321,6 +351,7 @@ def main():
                 sys.stdout.write('Header obtained. ')
                 verify_ossos_image(fullheader)
                 header = get_iq_and_zeropoint(image, subheader)
+                header = get_snr(image, header)
                 if image in commdict.keys():
                     header['comment'] = commdict[image]
                 put_image_in_database(header, images)
