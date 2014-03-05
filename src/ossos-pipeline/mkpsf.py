@@ -56,9 +56,9 @@ def mkpsf(expnum, ccd, fversion):
     for ext in ('mopheader', 'psf.fits',
                 'zeropoint.used', 'apcor', 'fwhm', 'phot'):
         dest = storage.dbimages_uri(expnum, ccd, version=fversion, ext=ext)
-        source = basename + "." + ext
+        source = basename + "." + str(ext)
         logging.info("Copying %s -> %s" % ( source, dest))
-        storage.remove(dest)
+        #storage.remove(dest)
         storage.copy(source, dest)
 
     return
@@ -103,7 +103,7 @@ if __name__ == '__main__':
         logging.basicConfig(level=logging.INFO,
                             format='%(message)s')
     if args.debug:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=logging.DEBUG,         format="%(asctime)s - %(module)s.%(funcName)s %(lineno)d: %(message)s")
 
 
     storage.DBIMAGES = args.dbimages
@@ -119,9 +119,9 @@ if __name__ == '__main__':
                 logging.info("Already did %s %s, skipping" %( str(expnum),
                                                                   str(ccd)))
                 continue
+            message = 'success'
+            mkpsf(expnum, ccd, args.type)
             try:
-                message = 'success'
-                mkpsf(expnum, ccd, args.type)
                 storage.set_status(expnum,
                                    ccd,
                                    'fwhm',
