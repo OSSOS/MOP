@@ -1,6 +1,4 @@
 import cPickle
-import subprocess
-import shlex
 
 import sqlalchemy as sa
 import ephem
@@ -39,11 +37,12 @@ class ImagesQuery(object):
     def marshall_imquery_return(self, ims_query):
         ret_images = []
         for row in ims_query:
-            retrow = [r for r in row[1:]]
+            retrow = [r for r in row[1:]]  # trim off the unnecessary field
             if row[2] is None:  # catch None fwhm, zeropoint from unprocessed images.
                 retrow[1] = -1.  # displaced by one as retrow starts after field_id. This one is iq_ossos
                 retrow[3] = -1.  # zeropoint
-                retrow[7] = -1.  # snr
+            if row[7] is None:
+                retrow[6] = -1.  # snr is None until set
             if row[6] is None:
                 retrow[5] = ''  # comment can be an empty string for display
             ret_images.append(retrow)
@@ -94,11 +93,12 @@ class ImagesQuery(object):
         # where the vtags are shown in their order of processing.
         retval = []
         for row in ret_images:
+            image = row[2]
             retrow = row
             if update:  # retrieve new data from VOSpace
-                ordered_errors = self.check_VOSpace_for_proc_status(row[2])
+                ordered_errors = self.check_VOSpace_for_proc_status(image)
             else:  # retrieve existing data from local database
-                ordered_errors = self.image_errors(row[2])
+                ordered_errors = self.image_errors(image)
             retrow.append(ordered_errors)
             retval.append(retrow)
 
@@ -439,49 +439,50 @@ class ImagesQuery(object):
 
         #		return
 
-    def process_field(self, field, step, ):
-        allchips_scripts = ['preproc', 'update_header', 'mkpsf_all']
-        # TODO: want to be able to process all of a single field's images for those in allchips_scripts
-        # and to be able to process only triplets for the others.
-        # Have two buttons: reprocess all images, reprocess triplets.
-        triplet_scripts = []
-
-        ## Triplets: first do the search images. These are the same commands as in mop.sh.
-        scripts = {'preproc': '',
-                   'update_header': '',
-                   'mkpsf_all': '',
-                   'mkpsf_p': 'mkpsf.py $1 $2 $3 --ccd $ccd -v  ${force}',
-                   'step1_p': 'step1.py $1 $2 $3 --ccd $ccd -v  ${force}',
-                   'step2_p': 'step2.py $1 $2 $3 --ccd $ccd -v  ${force}',
-                   'step3_p': 'step3.py $1 $2 $3 --ccd $ccd -v  ${force}',
-                   'combine_p': 'combine.py $1 -v  --ccd $ccd ${force} --measure3 vos:OSSOS/measure3/2013A-O --field '
-                                'O-2+0',
-                   'scramble_s': 'scramble.py $1 $2 $3 --ccd $ccd -v  ${force}',
-                   'mkpsf_s': 'mkpsf.py $1 $2 $3 --ccd $ccd -v  ${force} --type s',
-                   'step1_s': 'step1.py  $1 $2 $3 --ccd $ccd -v  ${force} --type s',
-                   'step2_s': 'step2.py   $1 $2 $3 --ccd $ccd -v  ${force} --type s',
-                   'plant_s': 'plant.py $1 $2 $3 --ccd $ccd -v ${force} --type s',
-                   'fkstep1_s': 'step1.py $1 $2 $3 --ccd $ccd --fk --type s -v  ${force}',
-                   'fkstep2_s': 'step2.py $1 $2 $3 --ccd $ccd --fk --type s -v  ${force}',
-                   'fkstep3_s': 'step3.py $1 $2 $3 --ccd $ccd --fk --type s -v ${force}',
-                   'fkcombine_s': 'combine.py $1 --fk --type s -v --ccd $ccd ${force} --measure3 '
-                                  'vos:OSSOS/measure3/2013A-O --field O-2+0'}
-
-        d = {'wibble': 'arg1', 'blarg': 'arg2'}
-        foo = 'cmd {wibble} -o {blarg}'.format(**d)
-
-        for im in self.field_images(field):
-            if step in allchips_scripts:
-                # Log formatting now EXPOSURE_CCD_SCRIPT_DATE  ${exp1}_preproc_`date -u +%Y-%m-%dT%H:%M:%S`
-                joblog = {'im': im, 'step': step, 'date': datetime.datetime.strftime('%Y-%m-%d_%H:%M:%S')}
-                str_cmd = 'ossos_submit/submit_job.sh ' + '{im}_{step}_{date}'.format(**joblog) + scripts[step].format(
-                    **)
-
-            # Execute a script
-            run_cmd = shlex.split(str_cmd)
-            subprocess.Popen(run_cmd)
-
-        return
+            # def process_field(self, field, step, ):
+            #     allchips_scripts = ['preproc', 'update_header', 'mkpsf_all']
+            #     # TODO: want to be able to process all of a single field's images for those in allchips_scripts
+            #     # and to be able to process only triplets for the others.
+            #     # Have two buttons: reprocess all images, reprocess triplets.
+            #     triplet_scripts = []
+            #
+            #     ## Triplets: first do the search images. These are the same commands as in mop.sh.
+            #     scripts = {'preproc': '',
+            #                'update_header': '',
+            #                'mkpsf_all': '',
+            #                'mkpsf_p': 'mkpsf.py $1 $2 $3 --ccd $ccd -v  ${force}',
+            #                'step1_p': 'step1.py $1 $2 $3 --ccd $ccd -v  ${force}',
+            #                'step2_p': 'step2.py $1 $2 $3 --ccd $ccd -v  ${force}',
+            #                'step3_p': 'step3.py $1 $2 $3 --ccd $ccd -v  ${force}',
+            #                'combine_p': 'combine.py $1 -v  --ccd $ccd ${force} --measure3
+            # vos:OSSOS/measure3/2013A-O --field '
+            #                             'O-2+0',
+            #                'scramble_s': 'scramble.py $1 $2 $3 --ccd $ccd -v  ${force}',
+            #                'mkpsf_s': 'mkpsf.py $1 $2 $3 --ccd $ccd -v  ${force} --type s',
+            #                'step1_s': 'step1.py  $1 $2 $3 --ccd $ccd -v  ${force} --type s',
+            #                'step2_s': 'step2.py   $1 $2 $3 --ccd $ccd -v  ${force} --type s',
+            #                'plant_s': 'plant.py $1 $2 $3 --ccd $ccd -v ${force} --type s',
+            #                'fkstep1_s': 'step1.py $1 $2 $3 --ccd $ccd --fk --type s -v  ${force}',
+            #                'fkstep2_s': 'step2.py $1 $2 $3 --ccd $ccd --fk --type s -v  ${force}',
+            #                'fkstep3_s': 'step3.py $1 $2 $3 --ccd $ccd --fk --type s -v ${force}',
+            #                'fkcombine_s': 'combine.py $1 --fk --type s -v --ccd $ccd ${force} --measure3 '
+            #                               'vos:OSSOS/measure3/2013A-O --field O-2+0'}
+            #
+            #     d = {'wibble': 'arg1', 'blarg': 'arg2'}
+            #     foo = 'cmd {wibble} -o {blarg}'.format(**d)
+            #
+            #     for im in self.field_images(field):
+            #         if step in allchips_scripts:
+            #             # Log formatting now EXPOSURE_CCD_SCRIPT_DATE  ${exp1}_preproc_`date -u +%Y-%m-%dT%H:%M:%S`
+            #             joblog = {'im': im, 'step': step, 'date': datetime.datetime.strftime('%Y-%m-%d_%H:%M:%S')}
+            #             str_cmd = 'ossos_submit/submit_job.sh ' + '{im}_{step}_{date}'.format(**joblog) + scripts[step].format(
+            #                 **)
+            #
+            #         # Execute a script
+            #         run_cmd = shlex.split(str_cmd)
+            #         subprocess.Popen(run_cmd)
+            #
+            #     return
 
 
 
