@@ -120,8 +120,8 @@ if __name__ == '__main__':
                                                                   str(ccd)))
                 continue
             message = 'success'
-            mkpsf(expnum, ccd, args.type)
             try:
+                mkpsf(expnum, ccd, args.type)
                 storage.set_status(expnum,
                                    ccd,
                                    'fwhm',
