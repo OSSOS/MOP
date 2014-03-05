@@ -96,7 +96,7 @@
         <td>${obj[0].strftime('%Y-%m-%d %H:%M:%S')}</td>
         <td>${'%.2f' % obj[1]}</td>
         <td>${'%.2f' % obj[3]}</td>
-        <td>${'%.2f' % obj[7]}</td>
+        <td>${'%.2f' % obj[6]}</td>
         <td>${'%.1f' % obj[4].seconds}</td>
         <td>
           <a href="http://www.canfar.phys.uvic.ca/vosui/#OSSOS/dbimages/${obj[2]}">${obj[2]}</a>
@@ -104,8 +104,8 @@
         </td>
         <td>${obj[5]}</td>
         <td>
-          <tal:block repeat="status obj[6]">
-            <span tal:content="structure status.render()"></span>
+          <tal:block repeat="status obj[7]">
+          <span tal:content="structure status.render()"></span>
           </tal:block>
         </td>
       </tr>
@@ -113,15 +113,15 @@
         <td>${obj[0].strftime('%Y-%m-%d %H:%M:%S')}</td>
         <td>${'%.2f' % obj[1]}</td>
         <td>${'%.2f' % obj[3]}</td>
-        <td>${'%.2f' % obj[7]}</td>
+        <td>${'%.2f' % obj[6]}</td>
         <td>${'%.1f' % obj[4].seconds}</td>
         <td>
           <a href="http://www.canfar.phys.uvic.ca/vosui/#OSSOS/dbimages/${obj[2]}">${obj[2]}</a>
         </td>
         <td>${obj[5]}</td>
         <td>
-          <tal:block repeat="status obj[6]">
-            <span tal:content="structure status.render()"></span>
+          <tal:block repeat="status obj[7]">
+          <span tal:content="structure status.render()"></span>
           </tal:block>
         </td>
       </tr>

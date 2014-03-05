@@ -1,10 +1,10 @@
-from zope.cachedescriptors.property import Lazy
-from pyramid.response import Response
-from pyramid.view import view_config
-from queries import ImagesQuery
-import ephem
 from math import degrees
-from ossos import storage
+
+from zope.cachedescriptors.property import Lazy
+from pyramid.view import view_config
+import ephem
+
+from queries import ImagesQuery
 
 
 class SimpleStatus(object):
@@ -89,7 +89,7 @@ class Field(object):
         # format the errors in html with links to their joblogs
         retproc = []
         for row in proc_rv:
-            statuses = [mk_status(s, row[2]) for s in row[6]]
+            statuses = [mk_status(s, row[2]) for s in row[len(row) - 1]]  # statuses are always at the end
             retrow = row[:-1]  # without the unformatted errors
             retrow.append(statuses)
             retproc.append(retrow)
