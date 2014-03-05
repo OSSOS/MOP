@@ -295,7 +295,7 @@ class ImagesQuery(object):
 
         if len(good_triples) > 0:
             # Return the set of 3 images that have the lowest value of 'worst iq'.
-            lowest_worst_iq = min([g[2] for g in good_triples if g[2] != -1.])  # added check against not-set value
+            lowest_worst_iq = min([g[2] for g in good_triples if g[2] is not None])  # check against not-set value
             retval = good_triples[[g[2] for g in good_triples].index(lowest_worst_iq)]
         else:
             retval = None
@@ -325,11 +325,15 @@ class ImagesQuery(object):
         triple_sets.sort(key=lambda x: x[3])
         # if there's one available in triple_sets!
         if len(triple_sets) > 0:
+            # if there's multiple sets, keep only the one where there's FWHM info available for everything in the set.
+            clean_triple_sets = []
+            for tset in triple_sets:
+                fwhms = [ts[2] for ts in tset if ts is not None]
+                if len(fwhms) == 3:  # it's fine, none of the fwhms haven't been set
+                    clean_triple_sets.append(tset)
+
             # format as ([image_ids], [3 rows of remaining info], worst_iq)
-            if triple_sets[0][3] is None:  # guard against not-yet-computed mkpsf
-                retval = ([t[3] for t in triple_sets[0][0:3]], triple_sets[0][0:3], -1.)
-            else:
-                retval = ([t[3] for t in triple_sets[0][0:3]], triple_sets[0][0:3], triple_sets[0][3])
+            retval = ([t[3] for t in clean_triple_sets[0][0:3]], clean_triple_sets[0][0:3], clean_triple_sets[0][3])
         else:
             retval = None
 
