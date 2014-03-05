@@ -75,7 +75,11 @@ def step1(expnum,
     ## for step1matt we need the weight image
     hdulist = fits.open(filename)
     flat_name = hdulist[0].header.get('FLAT','06Bm02.flat.r.36.01.fits')
-    flat_name = flat_name[0:-5]
+    parts = os.path.splitext(flat_name)
+    if parts[1] == '.fz':
+	flat_name = os.path.splitext(parts[0])[0]
+    else:	
+        flat_name = parts[0]
     flat_filename = storage.get_image(flat_name, ccd, version='', ext='fits',
                       subdir='calibrators', rescale=False)
     if not os.access('weight.fits',os.R_OK):
