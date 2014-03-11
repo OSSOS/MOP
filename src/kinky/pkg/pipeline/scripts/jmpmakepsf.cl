@@ -50,7 +50,7 @@ begin
 	real apmax
 	int naps
 	real apcor, aperr
-	real previous_fwhm, step0_fwhm
+	real p_fwhm, step0_fwhm
   
 
 	# Flow monitoring control
@@ -181,9 +181,9 @@ begin
 	datapars.datamin = (sig-5.0*ssig);
 
 	## Now we build the PSF, twice.... correcting the FWHM as we go.
-	previous_fwhm = -1
-	while ( previous_fwhm < 0 || abs(previous_fwhm - t_fwhm)/t_fwhm > 0.05 ) {
-        previous_fwhm = t_fwhm
+	p_fwhm = -1
+	while ( p_fwhm < 0 || abs(p_fwhm - t_fwhm)/t_fwhm > 0.05 ) {
+        p_fwhm = t_fwhm
 	    # We should use a minimum aperture that is about 1.1 -1.2 the FWHM
 	    # This is set at the start of the psf loop so the PSF small aperture
 	    # matches that used in mkapfile after the PSF is built.
@@ -276,8 +276,8 @@ begin
 	## Check that the output fwhm is reasonablely close to the input one.
 	# and overwrite the input value with the computed one
 	list = t_image//".fwhm"
-	fscan(list, n_fwhm)
-	if ( (n_fwhm > t_fwhm*3.0) || (t_fwhm > n_fwhm*3.0) ) {
+	dum = fscan(list, p_fwhm)
+	if ( (p_fwhm > t_fwhm*3.0) || (t_fwhm > p_fwhm*3.0) ) {
 	   print("PSF change too  large")
 	   failedflag = 1
 	   goto finalproc
