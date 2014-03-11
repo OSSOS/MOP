@@ -62,7 +62,7 @@ begin
 
 	jmpmakepsf.base="./"
 
-	iferr  { jmpmakepsf(timage,"psf",fwhm=t_fwhm,thresh=t_thresh,maxlin=t_maxlin,apmin=3,apmax=15)  }
+	iferr  { jmpmakepsf(timage,"psf",fwhm=t_fwhm,thresh=t_thresh,maxlin=t_maxlin,apin=1.1,apout=5)  }
 	    trymakepsf=1 
 
 
