@@ -30,6 +30,7 @@ step1matt is a script from M. Holman that runs E. Bertain's sExtractor.
 
 import argparse
 import logging
+import math
 import os
 from ossos import storage
 from ossos import util
@@ -57,7 +58,7 @@ def step1(expnum,
     filename = storage.get_image(expnum, ccd, version=version, prefix=prefix)
     mopheader = storage.get_image(expnum, ccd, version=version,
                                   ext='mopheader', prefix=prefix)
-    fwhm = storage.get_fwhm(expnum, ccd, prefix=prefix, version=version)
+    fwhm = int(math.ceil(storage.get_fwhm(expnum, ccd, prefix=prefix, version=version)))
     basename = os.path.splitext(filename)[0]
     
     outfile = util.exec_prog(['step1jmp', 
