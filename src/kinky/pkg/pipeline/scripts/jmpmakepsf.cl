@@ -49,6 +49,7 @@ begin
 	real apmin
 	real apmax
 	int naps
+	int niters
 	real apcor, aperr
 	real p_fwhm, step0_fwhm
   
@@ -182,7 +183,9 @@ begin
 
 	## Now we build the PSF, twice.... correcting the FWHM as we go.
 	p_fwhm = -1
-	while ( p_fwhm < 0 || abs(p_fwhm - t_fwhm)/t_fwhm > 0.05 ) {
+	niters = 0
+	while ( ( p_fwhm < 0 || abs(p_fwhm - t_fwhm)/t_fwhm > 0.01 ) && niters < 5 ) {
+		niters = niters + 1
         p_fwhm = t_fwhm
 	    # We should use a minimum aperture that is about 1.1 -1.2 the FWHM
 	    # This is set at the start of the psf loop so the PSF small aperture
