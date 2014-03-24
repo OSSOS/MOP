@@ -153,6 +153,7 @@ class Orbfit(object):
         use the bk predict method to compute the location of the source on the given date.
         """
         if not isinstance(date, Time):
+            print date, type(date)
             if isinstance(date, float):
                 try:
                     date = Time(date, format='jd', scale='utc', precision=6)
@@ -162,7 +163,10 @@ class Orbfit(object):
                 try:
                     date = Time(date, format='jd', scale='utc', precision=6)
                 except ValueError:
-                    date = Time(date, format='mpc', scale='utc', precision=6)
+                    try:
+                        date = Time(date, format='mpc', scale='utc', precision=6)
+                    except ValueError:
+                        date = Time(date, scale='utc', precision=6)  # see if it can guess
         print date
 
         jd = ctypes.c_double(date.jd)
