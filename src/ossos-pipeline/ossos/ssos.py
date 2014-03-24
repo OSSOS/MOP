@@ -8,7 +8,6 @@ import os
 import warnings
 
 from astropy.io import ascii
-from astropy.table import Table
 from astropy.time import Time
 import requests
 
@@ -96,10 +95,12 @@ class TracksParser(object):
         motion_rate = coord1.separation(coord2).arcsecs/(self.orbit.arc_length*24)  # how best to get arcsec moved between first/last?
         print "{:>10s} {:8.2f}".format('rate ("/hr)', motion_rate)
 
-        self.orbit.predict('2014-04-04')  # hardwiring next year's prediction date for the moment
-        print "{:>10s} {:8.2f} {:8.2f}\n".format("Expected accuracy on 4 April 2014 (arcsec)", self.orbit.dra, self.orbit.ddec)
+        # self.orbit.predict('2014-04-04')  # hardwiring next year's prediction date for the moment
+        # print "{:>10s} {:8.2f} {:8.2f}\n".format("Expected accuracy on 4 April 2014 (arcsec)", self.orbit.dra,
+        # self.orbit.ddec)
 
         length_of_observation_arc = mpc_observations[-1].date.jd - mpc_observations[0].date.jd
+        print 'arclen (days)', length_of_observation_arc
 
         if length_of_observation_arc < 1:
             # data from the same dark run.
@@ -115,8 +116,8 @@ class TracksParser(object):
         while True:
             tracks_data = self.query_ssos(mpc_observations, lunation_count)
 
-            print len(mpc_observations), tracks_data.get_reading_count(), lunation_count
-
+            print 'num observations', len(mpc_observations), 'reading_count', tracks_data.get_reading_count(), \
+                'lunation_count', lunation_count
 
             if ( tracks_data.get_arc_length() > (length_of_observation_arc+2.0/86400.0) or
                 tracks_data.get_reading_count() > len(mpc_observations) ) :
@@ -228,7 +229,7 @@ class SSOSParser(object):
                                          ccd=None,
                                          version='p',
                                          ext='.fits',
-                                         subdir="")
+                                         subdir=None)
 
         logger.debug('Trying to access {}'.format(image_uri))
 
@@ -303,8 +304,6 @@ class SSOSParser(object):
 
         :param ssos_result_filename_or_lines:
         """
-
-
         table_reader = ascii.get_reader(Reader=ascii.Basic)
         table_reader.inconsistent_handler = self._skip_missing_data
         table_reader.header.splitter.delimiter = '\t'
@@ -328,12 +327,14 @@ class SSOSParser(object):
             X = row['X']
             Y = row['Y']
 
-            # ADDING THIS TEMPORARILY TO GET THE NON-OSSOS DATA OUT OF THE WAY WHILE DEBUGGING
-            if (row['Telescope_Insturment'] != 'CFHT/MegaCam') or (row['Filter'] != 'r.MP9601'):
+            # ADDING THIS TEMPORARILY TO GET THE NON-OSSOS and wallpaper DATA OUT OF THE WAY WHILE DEBUGGING
+            if (row['Telescope_Insturment'] != 'CFHT/MegaCam') or (row['Filter'] != 'r.MP9601') or row[
+                'Image_target'].startswith('WP'):
                 continue
 
             # Build astrom.SourceReading
             observation = self.build_source_reading(expnum, ccd, X, Y)
+            logger.info('built source reading {}'.format(observation))
             if observation is None:
                 continue
             observations.append(observation)
