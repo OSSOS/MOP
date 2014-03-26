@@ -8,6 +8,7 @@ import os
 import warnings
 
 from astropy.io import ascii
+from astropy.table import Table
 from astropy.time import Time
 import requests
 
@@ -95,9 +96,8 @@ class TracksParser(object):
         motion_rate = coord1.separation(coord2).arcsecs/(self.orbit.arc_length*24)  # how best to get arcsec moved between first/last?
         print "{:>10s} {:8.2f}".format('rate ("/hr)', motion_rate)
 
-        # self.orbit.predict('2014-04-04')  # hardwiring next year's prediction date for the moment
-        # print "{:>10s} {:8.2f} {:8.2f}\n".format("Expected accuracy on 4 April 2014 (arcsec)", self.orbit.dra,
-        # self.orbit.ddec)
+        self.orbit.predict('2014-04-04')  # hard wiring next year's prediction date for the moment
+        print "{:>10s} {:8.2f} {:8.2f}\n".format("Expected accuracy on 4 April 2014 (arcsec)", self.orbit.dra, self.orbit.ddec)
 
         length_of_observation_arc = mpc_observations[-1].date.jd - mpc_observations[0].date.jd
         print 'arclen (days)', length_of_observation_arc

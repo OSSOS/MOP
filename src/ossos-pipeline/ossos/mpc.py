@@ -721,7 +721,9 @@ class MPCComment(object):
         if len(values) < 8:
             #logging.debug("non-OSSOS format MPC line read: {}".format(comment))
             return comment
-        comment = comment.split('%')[-1]
+        parts = comment.split('%')
+        comment = parts[-1]
+        values = parts[0].split()[-8:]
         return MPCComment(source_name=values[1],
                           frame=values[0],
                           X=values[3],

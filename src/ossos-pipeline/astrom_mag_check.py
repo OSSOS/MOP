@@ -16,7 +16,7 @@ import argparse
 import logging
 
 logger = logging.getLogger('vos')
-logger.setLevel(logging.CRITICAL)
+logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler())
 
 
@@ -149,6 +149,5 @@ if __name__ == '__main__':
     storage.DBIMAGES = args.dbimages
 
     match_filename = os.path.splitext(args.astrom_filename)[0]+'.match'
-    false_positive_filename = os.path.splitext(args.astrom_filename)[0]+'.false'
-
+    
     match_planted(args.astrom_filename, match_filename)

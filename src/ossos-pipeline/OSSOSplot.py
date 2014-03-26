@@ -523,9 +523,14 @@ class Plot(Canvas):
         ccds = this_camera.getGeometry(ra, dec)
         items = []
         for ccd in ccds:
-            (x1, y1) = self.p2c((ccd[0], ccd[1]))
-            (x2, y2) = self.p2c((ccd[2], ccd[3]))
-            item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill='#000')
+            if len(ccd) == 4:
+                (x1, y1) = self.p2c((ccd[0], ccd[1]))
+                (x2, y2) = self.p2c((ccd[2], ccd[3]))
+                item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill='#000')
+            else:
+                (x1, y1) = self.p2c((ccd[0]-ccd[2]/math.cos(ccd[1]), ccd[1]-ccd[2]))
+                (x2, y2) = self.p2c((ccd[0]+ccd[2]/math.cos(ccd[1]), ccd[1]+ccd[2]))
+                item = self.create_oval(x1,y1, x2, y2)
             items.append(item)
         label = {}
         label['text'] = self.plabel.get()
@@ -549,9 +554,14 @@ class Plot(Canvas):
             label = {}
             label['text'] = pointing['label']['text']
             for ccd in pointing["camera"].getGeometry():
-                (x1, y1) = self.p2c((ccd[0], ccd[1]))
-                (x2, y2) = self.p2c((ccd[2], ccd[3]))
-                item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill=pointing.get('color', ''))
+                if len(ccd) == 4:
+                    (x1, y1) = self.p2c((ccd[0], ccd[1]))
+                    (x2, y2) = self.p2c((ccd[2], ccd[3]))
+                    item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill=pointing.get('color', ''))
+                else:
+                    (x1, y1) = self.p2c((ccd[0]-ccd[2]/math.cos(ccd[1]), ccd[1]-ccd[2]))
+                    (x2, y2) = self.p2c((ccd[0]+ccd[2]/math.cos(ccd[1]), ccd[1]+ccd[2]))
+                    item = self.create_oval(x1,y1, x2, y2)
                 items.append(item)
             if self.show_labels.get() == 1:
                 label['id'] = self.label(pointing["camera"].ra, pointing["camera"].dec, label['text'])
@@ -592,8 +602,12 @@ class Plot(Canvas):
         for i in range(len(ccds)):
             ccd = ccds[i]
             item = items[i]
-            (x1, y1) = self.p2c((ccd[0], ccd[1]))
-            (x2, y2) = self.p2c((ccd[2], ccd[3]))
+            if len(ccd) == 4:
+                (x1, y1) = self.p2c((ccd[0], ccd[1]))
+                (x2, y2) = self.p2c((ccd[2], ccd[3]))
+            else:
+                (x1, y1) = self.p2c((ccd[0] - ccd[2]/math.cos(ccd[1]), ccd[1] - ccd[2]))
+                (x2, y2) = self.p2c((ccd[0] + ccd[2]/math.cos(ccd[1]), ccd[1] + ccd[2]))
             self.coords(item, x1, y1, x2, y2)
         self.current_pointing(this_index)
 
@@ -689,7 +703,7 @@ NAME                |RA         |DEC        |EPOCH |POINT|
         """
         w = self
         w.delete(ALL)
-        #w.coord_grid()
+        w.coord_grid()
         w.objList.delete(0, END)
         self._plot()
 
@@ -755,6 +769,7 @@ class Camera:
 
     geometry = {"MP_CCD": [
         {"ra": 0., "dec": 0., "dra": 0.1052, "ddec": 0.2344}],
+                "HSC": [ {"ra": 0.0, "dec": 0.0, "rad": 0.75 } ],
                 "MEGACAM_36": [
                     {"ra": -0.46, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
                     {"ra": -0.35, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
@@ -897,10 +912,13 @@ class Camera:
         for geo in self.geometry[self.camera]:
             ycen = math.radians(geo["dec"]) + dec
             xcen = math.radians(geo["ra"]) / math.cos(ycen) + ra
-            dy = math.radians(geo["ddec"])
-            dx = math.radians(geo["dra"] / math.cos(ycen))
-            ccds.append([xcen - dx / 2.0, ycen - dy / 2.0, xcen + dx / 2.0, ycen + dy / 2.0])
-
+            try:
+                dy = math.radians(geo["ddec"])
+                dx = math.radians(geo["dra"] / math.cos(ycen))
+                ccds.append([xcen - dx / 2.0, ycen - dy / 2.0, xcen + dx / 2.0, ycen + dy / 2.0])
+            except:
+                rad = math.radians(geo["rad"])
+                ccds.append([xcen, ycen, rad])
         return ccds
 
 

@@ -2,28 +2,26 @@
 # Run the Moving Object Pipeline on the given exposure numbers
 source ${HOME}/.bash_profile
 
-ccd=$4
+field=$4
+ccd=$5
 
-if [ $# -eq 5 ] ; then 
- force=$5 
-fi
 
 ## First do the search images
-mkpsf.py $1 $2 $3 --ccd $ccd -v  ${force}
-step1.py $1 $2 $3 --ccd $ccd -v  ${force}
-step2.py $1 $2 $3 --ccd $ccd -v  ${force}
-step3.py $1 $2 $3 --ccd $ccd -v  ${force}
+mkpsf.py $1 $2 $3 --ccd $ccd -v
+step1.py $1 $2 $3 --ccd $ccd -v
+step2.py $1 $2 $3 --ccd $ccd -v
+step3.py $1 $2 $3 --ccd $ccd -v
 echo "Running combine.py"
-combine.py $1 -v  --ccd $ccd ${force} --measure3 vos:OSSOS/measure3/2013A-O --field ${field}
+combine.py $1 -v  --ccd $ccd --measure3 vos:OSSOS/measure3/2013B-H --field ${field}
 
 ## Now build a scramble set and search
 echo "scramble and plant"
-scramble.py $1 $2 $3 --ccd $ccd -v  ${force}
-mkpsf.py $1 $2 $3 --ccd $ccd -v  ${force} --type s
-step1.py  $1 $2 $3 --ccd $ccd -v  ${force} --type s
-step2.py   $1 $2 $3 --ccd $ccd -v  ${force} --type s
-plant.py $1 $2 $3 --ccd $ccd -v ${force} --type s
-step1.py $1 $2 $3 --ccd $ccd --fk --type s -v  ${force}
-step2.py $1 $2 $3 --ccd $ccd --fk --type s -v  ${force}
-step3.py $1 $2 $3 --ccd $ccd --fk --type s -v ${force}
-combine.py $1 --fk --type s -v --ccd $ccd ${force} --measure3 vos:OSSOS/measure3/2013A-O --field ${field}
+scramble.py $1 $2 $3 --ccd $ccd -v
+mkpsf.py $1 $2 $3 --ccd $ccd -v --type s
+step1.py  $1 $2 $3 --ccd $ccd -v --type s
+step2.py   $1 $2 $3 --ccd $ccd -v --type s
+plant.py $1 $2 $3 --ccd $ccd -v --type s
+step1.py $1 $2 $3 --ccd $ccd --fk --type s -v 
+step2.py $1 $2 $3 --ccd $ccd --fk --type s -v 
+step3.py $1 $2 $3 --ccd $ccd --fk --type s -v 
+combine.py $1 --fk --type s -v --ccd $ccd --measure3 vos:OSSOS/measure3/2013B-H --field ${field}
