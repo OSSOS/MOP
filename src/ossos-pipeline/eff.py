@@ -26,18 +26,16 @@ for filename in sys.argv[1:]:
 
 (fp_hist, bin_edges) = numpy.histogram(fastmag_planted, bins=40, range=(21,25))
 (ff_hist, bin_edges) = numpy.histogram(fastmag_found, bins=40, range=(21,25))
-
-fig = pyplot.Figure()
-ax = fig.add_subplot(224)
-ax.plot(bin_edges[1:], ff_hist/fp_hist)
-ax.set_ylim(0,1.1)
-ax.set_xlim(21,26)
-ax.set_xlabel('mag (r)')
-ax.set_ylabel('frac')
+print ff_hist, fp_hist
+pyplot.plot(bin_edges[1:], (1.0*ff_hist)/(1.0*fp_hist))
+pyplot.ylim(0,1.1)
+pyplot.xlim(21,26)
+pyplot.xlabel('mag (r)')
+pyplot.ylabel('frac')
 
 
 (sp_hist, bin_edges) = numpy.histogram(slowmag_planted, bins=50, range=(21,25))
 (sf_hist, bin_edges) = numpy.histogram(slowmag_found, bins=50, range=(21,25))
-
-ax.plot(bin_edges[1:], sf_hist/sp_hist)
+print sp_hist, sf_hist
+pyplot.plot(bin_edges[1:], (1.0*sf_hist)/(1.0*sp_hist))
 pyplot.savefig('eff.pdf')

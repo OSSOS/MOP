@@ -28,7 +28,7 @@ echo "" >> ${condor_submit}
 echo "submitting ${job_id} $task $args"
 status=1
 while [ $status -ne 0 ] ;  do 
-   /usr/bin/curl --fail -k -E ${proxy_pem} \
+   /usr/local/bin/curl --fail -k -E ${proxy_pem} \
     -X POST \
     -F "condor_submit=<${condor_submit}" \
     -F "payload=<${payload}" \
