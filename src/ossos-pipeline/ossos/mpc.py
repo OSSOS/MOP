@@ -1,18 +1,20 @@
 __author__ = 'jjk, mtb55'
 
-from datetime import datetime
 import itertools
 import os
 import sys
 import struct
 import time
+import logging
+
+from datetime import datetime
 from astropy import coordinates
 from astropy.time import sofa_time
 from astropy.time import TimeString
 from astropy.time import Time
 from astropy import units
 import numpy
-import logging
+
 
 MPCNOTES = {"Note1": {" ": " ",
                       "": " ",
@@ -693,21 +695,27 @@ class MPCComment(object):
     """
     Parses an OSSOS observation's metadata into a format that can be stored in the 
     an Observation.comment and written out in the same MPC line.
+
+    Specification: '1s11s1s1s1s17s12s12s9x5s1s6x3s'
+    5.2f
     """
 
     def __init__(self,
-                 source_name,
                  frame,
+                 source_name,
+                 MPCNote,
                  X,
                  Y,
-                 MPCNote=None,
+                 # MPCNote=None,
                  magnitude=-1,
+                 PNote=None,
                  mag_uncertainty=-1,
                  plate_uncertainty=-1,
                  comment=None):
 
-        self.source_name = source_name
         self.frame = frame
+        self.source_name = source_name
+        self.PNote = PNote
         self.MPCNote = MPCNote
         self.X = X
         self.Y = Y
@@ -721,22 +729,35 @@ class MPCComment(object):
         """
         Build an MPC Comment from a string.
         """
-        values = comment.split()
-        if len(values) < 8:
-            #logging.debug("non-OSSOS format MPC line read: {}".format(comment))
-            return comment
-        parts = comment.split('%')
-        comment = parts[-1]
-        values = parts[0].split()[-8:]
-        return MPCComment(source_name=values[1],
-                          frame=values[0],
-                          X=values[3],
-                          Y=values[4],
-                          MPCNote=values[2][1:],
-                          magnitude=values[5],
-                          mag_uncertainty=values[6],
-                          plate_uncertainty=values[7],
-                          comment=comment)
+        print comment
+
+        comment_format = '1s10s1s11s1s3s6f1s6f'  #1s4f1s3f1s4s1s'  # is this right...?
+        values = comment.split('%')[0]
+        try:
+            retval = cls(*struct.unpack(comment_format, values))
+            retval.comment = comment.split('%')[1]  # comment length is not confined
+        except:
+            if len(values) < 6:  # something is just weird
+                logging.debug("non-OSSOS format MPC line read: {}".format(comment))
+                return comment
+            # otherwise we might be able to parse it!
+            values = values.split()  # try to deal with the legacy lines
+            retval = MPCComment(frame=values[0],
+                                source_name=values[1],
+                                PNote=values[2][0],
+                                MPCNote=values[2][1:],
+                                X=values[3],
+                                Y=values[4],
+                                comment=comment.split('%')[1].lstrip(' '))
+            if len(values) > 6:  # a line can have up to 8 values when mag/mag_uncertainty are set
+                retval.mag = values[5]
+                retval.mag_uncertainty = values[6]
+                retval.plate_uncertainty = values[7]
+            else:
+                retval.plate_uncertainty = values[5]
+
+            print retval
+            return retval
 
     @property
     def mag(self):
@@ -745,15 +766,15 @@ class MPCComment(object):
     @mag.setter
     def mag(self, mag):
         try:
-            if float(mag) > 0:
+            if float(mag) > 0.:
                 self._mag = "{:5.2f}".format(float(mag))
                 self.PNote = "Y"
             else:
-                self._mag = "-1"
+                self._mag = "     "
                 self.PNote = "Z"
         except:
             self.PNote = "Z"
-            self._mag = "-1"
+            self._mag = "     "
 
     @property
     def mag_uncertainty(self):
@@ -765,13 +786,13 @@ class MPCComment(object):
             if float(mag_uncertainty) > 0:
                 self._mag_uncertainty = "{:4.2f}".format(float(mag_uncertainty))
             else:
-                self._mag_uncertainty = "-1"
-                if len(str(self.mag)) > 0:
+                self._mag_uncertainty = "    "
+                if str(self.mag).isdigit():
                     self.PNote = "L"
                 else:
                     self.PNote = "Z"
         except:
-            self._mag_uncertainty = "-1"
+            self._mag_uncertainty = "    "
             self.PNote = "Z"
 
     @property
@@ -835,8 +856,6 @@ class MPCComment(object):
         odonum p ccd object_name MPCnotes X Y mag mag_uncertainty plate_uncertainty % comment
         """
         # The astrometric uncertainty should be set to higher when hand measurements are made.
-
-
 
         comm = '{}'.format(self.frame)
         comm += ' {}'.format(self.source_name)
