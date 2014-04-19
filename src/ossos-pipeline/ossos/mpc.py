@@ -3,6 +3,7 @@ __author__ = 'jjk, mtb55'
 from datetime import datetime
 import itertools
 import os
+import sys
 import struct
 import time
 from astropy import coordinates
@@ -396,7 +397,7 @@ class Observation(object):
         self.minor_planet_number = minor_planet_number
         if null_observation and not self.minor_planet_number.startswith("!"):
             self.minor_planet_number = "!" + " " * 4
-        self.null_observation = self.minor_planet_number.startswith("!")
+        self.null_observation = self.minor_planet_number.startswith("!") or self.minor_planet_number.startswith("-")
         self.provisional_name = provisional_name
         self.discovery = discovery
         self.note1 = note1
@@ -432,7 +433,10 @@ class Observation(object):
         if len(mpc_line) != 80:
             return None
         obsrec = cls(*struct.unpack(mpc_format, mpc_line))
-        obsrec.comment = MPCComment.from_string(comment)
+        if not obsrec.null_observation :
+            obsrec.comment = MPCComment.from_string(comment)
+        else:
+            obsrec.comment = comment
         return obsrec
 
     def to_string(self):
@@ -745,11 +749,11 @@ class MPCComment(object):
                 self._mag = "{:5.2f}".format(float(mag))
                 self.PNote = "Y"
             else:
-                self._mag = ""
+                self._mag = "-1"
                 self.PNote = "Z"
         except:
             self.PNote = "Z"
-            self._mag = ""
+            self._mag = "-1"
 
     @property
     def mag_uncertainty(self):
@@ -761,13 +765,13 @@ class MPCComment(object):
             if float(mag_uncertainty) > 0:
                 self._mag_uncertainty = "{:4.2f}".format(float(mag_uncertainty))
             else:
-                self._mag_uncertainty = ""
+                self._mag_uncertainty = "-1"
                 if len(str(self.mag)) > 0:
                     self.PNote = "L"
                 else:
                     self.PNote = "Z"
         except:
-            self._mag_uncertainty = ""
+            self._mag_uncertainty = "-1"
             self.PNote = "Z"
 
     @property
