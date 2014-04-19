@@ -10,7 +10,7 @@ import sys
 from astropy.io import fits
 from astropy.io import ascii
 import vos
-from vos.vos import urlparse
+from vos.vos import URLparse as urlparse
 
 from ossos import coding
 from mpc import Time
@@ -65,13 +65,13 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, runids=('13AP05', '13AP06', '13BP0
 
     """
 
-    data = dict(QUERY=(" SELECT Observation.collectionID as dataset_name "
+    data = dict(QUERY=(" SELECT Observation.collectionID as collectionID "
                        " FROM caom.Observation AS Observation "
                        " JOIN caom.Plane AS Plane "
                        " ON Observation.obsID = Plane.obsID "
                        " WHERE  ( Observation.collection = 'CFHT' ) "
                        " AND Plane.observable_ctype='CAL' "
-                       " AND Observation.proposal_id IN %s ".format(str(runids))),
+                       " AND ( Observation.proposal_id LIKE '%P05' or Observation.proposal_id LIKE '%P06' )"),
                 REQUEST="doQuery",
                 LANG="ADQL",
                 FORMAT="tsv")
@@ -322,16 +322,12 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
             cutout += "[-*,-*]"
 
         logger.debug(uri)
-        url = vospace.getNodeURL(uri, view='cutout', limit=None, cutout=cutout)
+        param = {'cutout': cutout}
+        url = uri.replace("vos:","https://www.canfar.phys.uvic.ca/data/pub/vospace/")
         logger.debug(url)
-        fin = vospace.open(uri, URL=url)
-        fout = open(filename, 'w')
-        buff = fin.read(2 ** 16)
-        while len(buff) > 0:
-            fout.write(buff)
-            buff = fin.read(2 ** 16)
+        fout = open(filename,'w')
+        fout.write(requests.get(url, param=param, cert=vospace.conn.certfile).content)
         fout.close()
-        fin.close()
         if not rescale:
             return filename
         hdu_list = fits.open(filename, 'update', do_not_scale_image_data=True)
@@ -367,8 +363,8 @@ def get_fwhm(expnum, ccd, prefix=None, version='p'):
     """
 
     uri = get_uri(expnum, ccd, version, ext='fwhm', prefix=prefix)
-
-    return float(vospace.open(uri, view='data').read().strip())
+    url = uri.replace('vos:','https://www.canfar.phys.uvic.ca/data/pub/vospace/')
+    return float(requests.get(url,cert=vospace.conn.certfile).content)
 
 
 def get_zeropoint(expnum, ccd, prefix=None, version='p'):
@@ -383,7 +379,8 @@ def get_zeropoint(expnum, ccd, prefix=None, version='p'):
     @return:
     """
     uri = get_uri(expnum, ccd, version, ext='zeropoint.used', prefix=prefix)
-    return float(vospace.open(uri=uri, view='data').read().strip())
+    url = uri.replace('vos:','https://www.canfar.phys.uvic.ca/data/pub/vospace/')
+    return float(requests.get(url,cert=vospace.conn.certfile).content)
 
 
 def mkdir(dirname):
@@ -621,7 +618,10 @@ def get_mopheader(expnum, ccd):
     if mopheader_uri in mopheaders:
         return mopheaders[mopheader_uri]
 
-    mopheader_fpt = cStringIO.StringIO(open_vos_or_local(mopheader_uri).read())
+    url = mopheader_uri.replace('vos:','https://www.canfar.phys.uvic.ca/data/pub/vospace/')
+    req = requests.get(url, cert=vospace.conn.certfile)
+
+    mopheader_fpt = cStringIO.StringIO(req.content)
     mopheader = fits.open(mopheader_fpt)
     ## add some values to the mopheader so it can be an astrom header too.
     header = mopheader[0].header

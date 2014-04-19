@@ -19,9 +19,9 @@ procedure ccmatch(simg,sscale,sminmag,smaxmag,strial)
 	real sbuf     {9, prompt=" Buffer region around edges? (pix) "}
         int  sbox     {9, prompt=" Box size for centroiding? (pix) "}
 begin 
-	int    i,xsize,ysize,xcent,ycent,nstars,ngood,box
+	int    i,xsize,ysize,nstars,ngood,box
 	real   thisra,thisdec,thismag,thisid,scale
-	real   crval1,crval2,crpix1,crpix2,cd1_1,cd2_2
+	real   crval1,crval2,crpix1,crpix2,cd1_1,cd2_2, cd1_2, cd2_1
 	real   minmag,maxmag,buf
 	real   ra[9000],dec[9000],mag[9000]
 	real   racent,deccent,xpix[9000],ypix[9000]
@@ -57,22 +57,18 @@ begin
 #	print(intable)
         inimg = simg
 	scale = sscale
+	cd2_2 = -scale/3600.0
+	cd1_1 = scale/3600.0
 	minmag = sminmag
 	maxmag = smaxmag
 	ntrial = strial
 	buf = sbuf
 	box = sbox
 
-#	xsize = sxsize
 	imgets(inimg,'i_naxis1')
 	xsize = int(imgets.value)
-	xcent = xsize/2
-#	ysize = sysize
 	imgets(inimg,'i_naxis2')
 	ysize = int(imgets.value)
-	ycent = ysize/2
-	print(" ") 
-	print(' Image pixel center : ',xcent,ycent)
 
 #--------------------------------------------
 # Attempt to identify telescope
@@ -267,9 +263,12 @@ begin
 	    cd1_1 = real(imgets.value)
 	    imgets(inimg,'CD2_2')
 	    cd2_2 = real(imgets.value)
-	    imgets(inimg,'CRAVL2'
-	    racent   = crval1 - cd1_1*(1997.0/2.0-crpix1)
-	    deccent  = crval2 + cd2_2*(4534.0/2.0-crpix2)
+	    imgets(inimg,'CD1_2')
+	    cd1_2 = real(imgets.value)
+	    imgets(inimg, 'CD2_1')
+	    cd2_1 = real(imgets.value)
+	    racent   = crval1 + cd1_1*(xsize/2.0 - crpix1) + cd1_2 * (xsize/2.0 - crpix1)
+	    deccent  = crval2 + cd2_2*(ysize/2.0 - crpix2) + cd2_1 * (ysize/2.0 - crpix2)
 	    print('*new (CRVAL based)  RA    : ',racent)
 	    print('*new (CRVAL based)  DEC   : ',deccent)
 	    print(' ')
@@ -364,7 +363,7 @@ begin
 	    print('---->>>> USEFUL INFORMATION ***************************** ')
 	    print(' ')
 	    pwd
- 	    print('search_usno.pl --ra ',racent,' --dec ',deccent,' --xsize ',1.3*4096*scale/3600.0/2.0,' --ysize ',1.3*2048*scale/3600.0,' --file usno.ccmap --num 1000' )
+ 	    print('search_usno.pl --ra ',racent,' --dec ',deccent,' --xsize ',1.3*4096*scale/2.0,' --ysize ',1.3*2048*scale/3600.0,' --file usno.ccmap --num 1000' )
 	    #print('usnoget ',racent,' ',deccent,' 19.0')
 	    print('---->>>> ************************************************ ')
 	    print(' ')
@@ -413,7 +412,6 @@ begin
 #--------------------------------------------
 # Manual.  THIS SHOULD STAY THE LAST CHOICE!
         if (command == "m") {
-	    xy2sky ('-d ',inimg,xcent, ycent) 
             print(" Enter RA  of field center in decimal format (0--360) ")
             scan(racent)
             print(" Enter Dec of field center in decimal format (-90,90) ")
@@ -474,8 +472,8 @@ begin
 	ngood = 0
         for (j=1; j<=nstars; j+=1)
         {
-           ypix[j]= ycent + (dec[j] - deccent)*3600.0/scale
-           xpix[j]= xcent - cos(dec[j]/57.29578)*(ra[j] - racent)*3600.0/scale
+	   ypix[j] = crpix2 + ((dec[j]-crval2)*cd1_1 - (ra[j] - crval1)*cd2_1)/(cd2_2*cd1_1 - cd2_1*cd1_2)
+	   xpix[j] = crpix1 + ((ra[j]-crval1)*cd2_2 - (dec[j] - crval2)*cd1_2)/(cd2_2*cd1_1 - cd2_1*cd1_2)
 	   if (xpix[j] < buf) goto skip;
 	   if (xpix[j] > (xsize - buf) ) goto skip;
 	   if (ypix[j] < buf) goto skip;
@@ -563,8 +561,8 @@ begin
 	  print(" *>>IMCURSOR<< * ")
 	  print(" ***************")
           now= fscan(imcur, x1, y1, wcs, command)
-          xcent = xcent + (x1-xx1)
-          ycent = ycent + (y1-yy1)
+          crpix1 = crpix1 + (x1-xx1)
+          crpix2 = crpix2 + (y1-yy1)
 	  goto dispmark
         }
         if (command == "r" && count == 0) {

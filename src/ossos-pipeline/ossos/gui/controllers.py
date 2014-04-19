@@ -133,7 +133,7 @@ class AbstractController(object):
         self.view.close()
         self.model.exit()
 
-    def on_load_comparison(self, reasearch=False):
+    def on_load_comparison(self, research=False):
         raise NotImplementedError()
 
     def on_next_obs(self):
@@ -208,7 +208,8 @@ class ProcessRealsController(AbstractController):
 
         try:
             cen_x, cen_y, obs_mag, obs_mag_err = self.model.get_current_source_observed_magnitude()
-        except TaskError as error:
+        except Exception as error:
+            logger.critical(str(error))
             phot_failure = True
             obs_mag = ""
             cen_x = pixel_x

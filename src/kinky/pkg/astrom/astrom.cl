@@ -15,7 +15,6 @@ task map = "astrom$scripts/map.cl"
 task markcat = "astrom$scripts/markcat.cl"
 task notastrom = "astrom$scripts/notastrom.cl"
 task notmatch = "astrom$scripts/notmatch.cl"
-task usno     =  "astrom$usno/usno.e"
 task wcs_update = "astrom$scripts/wcs_update.cl"
 
 clbye()

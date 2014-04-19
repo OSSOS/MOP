@@ -8,9 +8,9 @@ import os
 import warnings
 
 from astropy.io import ascii
-from astropy.table import Table
 from astropy.time import Time
 import requests
+import sys
 
 from ossos import astrom
 from ossos.gui import logger, config
@@ -39,7 +39,8 @@ def summarize(orbit):
     coord1 = orbit.coordinate
     orbit.predict(orbit.observations[-1].date)
     coord2 = orbit.coordinate
-    motion_rate = coord1.separation(coord2).arcsecs/(orbit.arc_length*24)  # how best to get arcsec moved between first/last?
+    # how best to get arcsec moved between first/last?
+    motion_rate = coord1.separation(coord2).arcsecs/(orbit.arc_length*24)
     print "{:>10s} {:8.2f}".format('rate ("/hr)', motion_rate)
 
     orbit.predict('2014-04-04')  # hardwiring next year's prediction date for the moment
@@ -47,12 +48,22 @@ def summarize(orbit):
 
     return
 
+
 class TracksParser(object):
 
     def __init__(self, inspect=True):
+        self.orbit = None
         self._nights_per_darkrun = 18
         self._nights_separating_darkruns = 30
         self.inspect = inspect
+
+    @property
+    def rate_of_motion(self):
+        self.orbit.predict(self.orbit.observations[0].date)
+        coord1 = self.orbit.coordinate
+        self.orbit.predict(self.orbit.observations[1].date)
+        coord2 = self.orbit.coordinate
+        return coord1.separation(coord2).arcsecs/(self.orbit.arc_length*24)
 
     def parse(self, filename):
         filehandle = storage.open_vos_or_local(filename, "rb")
@@ -76,11 +87,9 @@ class TracksParser(object):
 
         mpc_observations.sort(key=lambda obs: obs.date.jd)
 
-
         # pass down the provisional name so the table lines are linked to this TNO
-        self.ssos_parser=SSOSParser(mpc_observations[0].provisional_name,
-                                    input_observations=mpc_observations)
-
+        self.ssos_parser = SSOSParser(mpc_observations[0].provisional_name,
+                                      input_observations=mpc_observations)
         self.orbit = Orbfit(mpc_observations)
 
         for observation in self.orbit.observations:
@@ -89,15 +98,12 @@ class TracksParser(object):
         print self.orbit
         print self.orbit.residuals
 
-        self.orbit.predict(self.orbit.observations[0].date)
-        coord1 = self.orbit.coordinate
-        self.orbit.predict(self.orbit.observations[-1].date)
-        coord2 = self.orbit.coordinate
-        motion_rate = coord1.separation(coord2).arcsecs/(self.orbit.arc_length*24)  # how best to get arcsec moved between first/last?
-        print "{:>10s} {:8.2f}".format('rate ("/hr)', motion_rate)
+        print "{:>10s} {:8.2f}".format('rate ("/hr)', self.rate_of_motion)
 
         self.orbit.predict('2014-04-04')  # hard wiring next year's prediction date for the moment
-        print "{:>10s} {:8.2f} {:8.2f}\n".format("Expected accuracy on 4 April 2014 (arcsec)", self.orbit.dra, self.orbit.ddec)
+        print "{:>10s} {:8.2f} {:8.2f}\n".format("Expected accuracy on 4 April 2014 (arcsec)",
+                                                 self.orbit.dra,
+                                                 self.orbit.ddec)
 
         length_of_observation_arc = mpc_observations[-1].date.jd - mpc_observations[0].date.jd
         print 'arclen (days)', length_of_observation_arc
@@ -115,12 +121,13 @@ class TracksParser(object):
         # loop over the query until some new observations are found, or raise assert error.
         while True:
             tracks_data = self.query_ssos(mpc_observations, lunation_count)
+    
+            sys.stderr.write('num observations: {}\nreading_count: {}\nlunation_count: {}\n'.format(len(mpc_observations),
+                                                                                                    tracks_data.get_reading_count(),
+                                                                                                    lunation_count))
 
-            print 'num observations', len(mpc_observations), 'reading_count', tracks_data.get_reading_count(), \
-                'lunation_count', lunation_count
-
-            if ( tracks_data.get_arc_length() > (length_of_observation_arc+2.0/86400.0) or
-                tracks_data.get_reading_count() > len(mpc_observations) ) :
+            if (tracks_data.get_arc_length() > (length_of_observation_arc+2.0/86400.0) or
+                tracks_data.get_reading_count() > len(mpc_observations)) :
                 return tracks_data
             if not self.inspect:
                 assert lunation_count is not None, "No new observations available."
@@ -131,18 +138,20 @@ class TracksParser(object):
                 lunation_count = None
 
     def query_ssos(self, mpc_observations, lunation_count=None):
-        # we observe ~ a week either side of new moon
-        # but we don't know when in the dark run the discovery happened
-        # so be generous with the search boundaries, add extra 2 weeks
-        # current date just has to be the night of the triplet,
-
-        """
+        """Send a query to the SSOS web service, looking for available observations using the given track.
 
         :param mpc_observations: a list of mpc.Observations
         :param lunation_count: how many dark runs (+ and -) to search into
         :return: an SSOSData object
         """
+
+        # we observe ~ a week either side of new moon
+        # but we don't know when in the dark run the discovery happened
+        # so be generous with the search boundaries, add extra 2 weeks
+        # current date just has to be the night of the triplet,
+
         if lunation_count is None:
+            # Only using SSOS to find data acquired during the survey period, for now.
             search_start_date = Time('2013-02-08', scale='utc')
             search_end_date = Time(datetime.datetime.now().strftime('%Y-%m-%d'), scale='utc')
         else:
@@ -155,16 +164,23 @@ class TracksParser(object):
                 lunation_count*self._nights_separating_darkruns) ),
                                    format='jd', scale='utc')
 
+        sys.stderr.write("Sending query to SSOS\n")
         query = Query(mpc_observations,
                       search_start_date=search_start_date,
                       search_end_date=search_end_date)
-        tracks_data = self.ssos_parser.parse(query.get())
+
+        sys.stderr.write("Pasrsing query results")
+        tracks_data = self.ssos_parser.parse(query.get(), mpc_observations=mpc_observations)
 
         tracks_data.mpc_observations = {}
+
         for mpc_observation in mpc_observations:
             # attach the input observations to the the SSOS query result.
             assert isinstance(mpc_observation,mpc.Observation)
-            tracks_data.mpc_observations[mpc_observation.comment.frame] = mpc_observation
+            try:
+                tracks_data.mpc_observations[mpc_observation.comment.frame] = mpc_observation
+            except:
+                print mpc_observation
 
         for source in tracks_data.get_sources():
             astrom_observations = tracks_data.observations
@@ -204,11 +220,13 @@ class SSOSParser(object):
         self.input_rawnames = []
         self.null_observations = []
         for observation in input_observations:
-            rawname = observation.comment.frame
-            self.input_rawnames.append(rawname)
-            if observation.null_observation:
-                self.null_observations.append(rawname)
-
+            try:
+                rawname = observation.comment.frame
+                self.input_rawnames.append(rawname)
+                if observation.null_observation:
+                    self.null_observations.append(rawname)
+            except:
+                sys.stderr.write("failed to get orignal filename from {}".format(observation.comment))
     def _skip_missing_data(self, str_vals, ncols):
         """
         add a extra column if one is missing, else return None.
@@ -246,7 +264,7 @@ class SSOSParser(object):
         slice_rows=config.read("CUTOUTS.SINGLETS.SLICE_ROWS")
         slice_cols=config.read("CUTOUTS.SINGLETS.SLICE_COLS")
 
-        if X == -9999 or Y == -9999  :
+        if X==-9999 or Y==-9999:
             logger.warning("Skipping {} as x/y not resolved.".format(image_uri))
             return None
 
@@ -258,16 +276,19 @@ class SSOSParser(object):
                                              ccd=ccd,
                                              version='p',
                                              ext='.mopheader')
+
         if not storage.exists(mopheader_uri, force=False):
             # ELEVATE! we need to know to go off and reprocess/include this image.
             logger.critical('Image exists but processing incomplete. Mopheader missing. {}'.format(image_uri))
             return None
 
-
+        sys.stderr.write("... getting header {:50s} ... \b\b\b\b".format(mopheader_uri))
         mopheader = get_mopheader(expnum, ccd)
+        sys.stderr.write("done ")
 
 
         # Build astrom.Observation
+
         observation = astrom.Observation(expnum=str(expnum),
                                          ftype='p',
                                          ccdnum=str(ccd),
@@ -298,7 +319,7 @@ class SSOSParser(object):
         return (x0, y0)
 
 
-    def parse(self, ssos_result_filename_or_lines):
+    def parse(self, ssos_result_filename_or_lines, mpc_observations=None):
         """
         given the result table create 'source' objects.
 
@@ -320,6 +341,8 @@ class SSOSParser(object):
         ref_mjd = None
         ref_expnum = None
         ref_ccd = None
+        nrows = len(table)
+        sys.stderr.write("Loading {} obseravtions\n".format(nrows))
         for row in table:
             # check if a dbimages object exists
             ccd = int(row['Ext']) - 1
@@ -333,6 +356,19 @@ class SSOSParser(object):
                 continue
 
             # Build astrom.SourceReading
+            nrows -= 1
+            skip = False
+            for mpc_observation in mpc_observations:
+                try:
+                    if mpc_observation.comment.frame=="{}p{:02d}".format(expnum,ccd):
+                        sys.stderr.write("Skipping {}p{:02d}\n".format(expnum, ccd))
+                        skip = True
+                        break
+                except:
+                    pass
+            if skip:
+                continue
+            sys.stderr.write("\r{}\r {}: observation {} {} {} {} from SSOS .. ".format(" "*190, nrows, expnum, ccd, X, Y))
             observation = self.build_source_reading(expnum, ccd, X, Y)
             logger.info('built source reading {}'.format(observation))
             if observation is None:
@@ -370,6 +406,7 @@ class SSOSParser(object):
                 x0 = X
                 y0 = Y
 
+            sys.stderr.write(" Building SourceReading .... \b\b\b\b\b")
             source_reading = astrom.SourceReading(
                 x=row['X'], y=row['Y'],
                 xref=ref_x, yref=ref_y,
@@ -379,6 +416,7 @@ class SSOSParser(object):
                 ssos=True,
                 from_input_file=from_input_file,
                 null_observation=null_observation)
+            sys.stderr.write("done")
 
 
             source_readings.append(source_reading)
