@@ -18,7 +18,6 @@ C -*-compile-command: "g77 -O3 -o ../../bin/LINUX/global-area global-area.f -L..
 
       logical help, finished, no_f
 
-      external iargc
 
 c Create a file for later error handling
 

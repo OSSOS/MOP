@@ -3,7 +3,7 @@
 
 LIBDIR=${LIBDIRA)
 
-FC=g77
+FC=gfortran
 FFLAGS=-fno-automatic  -force_cpusubtype_ALL
 LDFLAGS=-L${LIBDIRA} -lcfitsio
 

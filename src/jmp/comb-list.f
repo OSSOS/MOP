@@ -26,7 +26,6 @@ C -*-compile-command: "cf77 -O6 -o ../bin/LINUX/comb-list comb-list.f -L../lib/L
      $  help, finished, keep, found1, found2,
      $  fake2(n_o_max_cat), ready, keep_all
 
-      external iargc
 
 c Create a file for later error handling
 

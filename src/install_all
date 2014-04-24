@@ -54,6 +54,18 @@ if [ $ans == "y" ]; then
   cd $initdir
 fi
 
+echo "Install in gwyn pipeline area (y|n)?"
+read ans
+
+if [ $ans == "y" ]; then 
+  cd gwyn
+  echo "Installing Stephen's astrometry stuff."
+  ./install_all
+  cd $initdir
+fi
+
+echo "Install in lstools pipeline area (y|n)?"
+
 echo "Install in lstools pipeline area (y|n)?"
 read ans
 
