@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!python
 # Copyright 2012, 2013 JJ Kavelaars
 
 import argparse

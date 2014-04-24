@@ -1,3 +1,4 @@
+#!python
 from Tkinter import *
 import tkFileDialog
 from ossos.gui import context

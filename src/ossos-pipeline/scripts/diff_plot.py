@@ -1,3 +1,4 @@
+#!python
 from matplotlib import pyplot
 from numpy import loadtxt
 from numpy import histogram
