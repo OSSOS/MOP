@@ -13,7 +13,6 @@ set plant = $3
 set force = "no"
 if ( $#argv == 4 ) then
     if ( $4 == "force" ) set force = "yes"
-    touch jmpmakepsf.csh.OK
 endif
 
 set fwhm="4."
@@ -34,7 +33,14 @@ set lock = $image"_lock"
 set psf = $image".psf.fits"
 set output = $orig"/plant.input"
 
-if ( -e $dir/$lock || -e $dir/$psf && $force == "no" ) then 
+# Is this area locked.. don't start
+if ( -e $dir/$lock ) then 
+   exit
+endif
+
+# Does PSF exist and we are NOT in force mode?
+if ( -e $dir/$psf && $force == "no" ) then 
+   touch jmpmakepsf.csh.OK
    exit
 endif
 

@@ -18,7 +18,6 @@ C -*-compile-command: "cf77 -O6 -o ../bin/LINUX/pipe-eff pipe-eff.f -L../lib/LIN
       logical
      $  help, finished, no_s, no_m, no_f
 
-      external iargc
 
 c Create a file for later error handling
 

@@ -26,7 +26,6 @@ C -*-compile-command: "cf77 -O6 -o ../bin/LINUX/step2ajmpl step2ajmpl.f -L ../li
      $  arg*100, line*80, frame_1*100, frame_2*100, header(7)*80,
      $  infile_cats(maxframes)*100, transf(maxframes)*100
 
-      external iargc
 
 c Create a file for later error handling
 

@@ -30,7 +30,7 @@ C -*-compile-command: "cf77 -O6 -o ../bin/LINUX/test-step2 test-step2.f -L ../li
       logical
      $  help, finished
 
-      external iargc, trans
+      external trans
 
 c Create a file for later error handling
 

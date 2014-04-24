@@ -38,7 +38,6 @@ C When actually using g77, add the option -fno-automatic
      $  finished, help, no_f, no_m, no_t, no_w, two_thresh,
      $  ok(n_o_max_cat), alone(n_o_max_cat)
 
-      external iargc
 
 c Create a file for later error handling
 

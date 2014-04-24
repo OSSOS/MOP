@@ -20,13 +20,13 @@ cc -c -o mycio.o mycio.c
 which `echo ${FC}| cut -d " " -f 1` > /dev/null 2>&1
 fcexists=$?
 echo $fcexists
-echo $CFLAGS
+echo $FFLAGS
 echo $LIBDIRA
 if [ "$fcexists" -eq "0" ]; then
-  echo "$FC -o $BINDIRA/stepZjmp $CFLAGS stepZjmp.f -L$LIBDIRA -ljmp -lcfitsio  -fPIC"
-  echo "$FC -o $BINDIRA/step0jmp $CFLAGS step0jmp.f -L$LIBDIRA -ljmp -lcfitsio  -fPIC"
-  echo "$FC -o $BINDIRA/step1jmp $CFLAGS step1jmp.f -L$LIBDIRA -ljmp -lcfitsio  -fPIC"
-  $FC -o $BINDIRA/step2ajmpl $CFLAGS step2ajmpl.f -L$LIBDIRA -ljmp 
+  "$FC -o $BINDIRA/stepZjmp $FFLAGS stepZjmp.f -L$LIBDIRA -ljmp -lcfitsio  -fPIC"
+  "$FC -o $BINDIRA/step0jmp $FFLAGS step0jmp.f -L$LIBDIRA -ljmp -lcfitsio  -fPIC"
+  "$FC -o $BINDIRA/step1jmp $FFLAGS step1jmp.f -L$LIBDIRA -ljmp -lcfitsio  -fPIC"
+  $FC -o $BINDIRA/step2ajmpl $FFLAGS step2ajmpl.f -L$LIBDIRA -ljmp 
   $FC -o $BINDIRA/step2ajmps step2ajmps.f -L$LIBDIRA -ljmp 
   $FC -o $BINDIRA/step2bjmp step2bjmp.f -L$LIBDIRA -ljmp 
   $FC -o $BINDIRA/step3jmp step3jmp.f -L$LIBDIRA -ljmp 

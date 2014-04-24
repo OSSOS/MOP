@@ -18,7 +18,6 @@ C -*-compile-command: "cf77 -O6 -o ../bin/LINUX/recover recover.f -L../lib/LINUX
       character*80
      $  ast_name, bright, line(nframes), arg
 
-      external iargc
 
 c Create a file for later error handling
 

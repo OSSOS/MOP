@@ -51,7 +51,7 @@ c tr?_r(3,*) : c/a (0 < c < b)
       logical
      $  help, finished, ok(n_o_max_cat), alone(n_o_max_cat)
 
-      external iargc, trans
+      external trans
 
 c Create a file for later error handling
 
