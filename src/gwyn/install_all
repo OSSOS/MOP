@@ -1,0 +1,7 @@
+#! /bin/sh
+
+source ../config.inc 
+
+${FC} -o ${BINDIRA}/xy2skypv xy2skypv.f utils.f wcs.f
+${FC} -o ${BINDIRA}/sky2xypv sky2xypv.f utils.f wcs.f
+
