@@ -30,6 +30,7 @@ DBIMAGES = 'vos:OSSOS/dbimages'
 MEASURE3 = 'vos:OSSOS/measure3'
 
 DATA_WEB_SERVICE = 'https://www.canfar.phys.uvic.ca/data/pub/'
+VOSPACE_WEB_SERVICE = 'https://www.canfar.phys.uvic.ca/vospace/nodes/'
 TAP_WEB_SERVICE = 'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/tap/sync?'
 
 OSSOS_TAG_URI_BASE = 'ivo://canfar.uvic.ca/ossos'
@@ -291,8 +292,8 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
         subdir = str(expnum)
 
     uri = get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix)
-    filename = os.path.basename(uri)
 
+    filename = os.path.basename(uri)
     if os.access(filename, os.F_OK):
         logger.debug("File already on disk: {}".format(filename))
         return filename
@@ -326,7 +327,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
         url = uri.replace("vos:","https://www.canfar.phys.uvic.ca/data/pub/vospace/")
         logger.debug(url)
         fout = open(filename,'w')
-        fout.write(requests.get(url, param=param, cert=vospace.conn.certfile).content)
+        fout.write(requests.get(url, params=param, cert=vospace.conn.certfile).content)
         fout.close()
         if not rescale:
             return filename
@@ -363,6 +364,12 @@ def get_fwhm(expnum, ccd, prefix=None, version='p'):
     """
 
     uri = get_uri(expnum, ccd, version, ext='fwhm', prefix=prefix)
+    filename = os.path.basename(uri)
+
+    if os.access(filename, os.F_OK):
+        logger.debug("File already on disk: {}".format(filename))
+        return float(open(filename,'r').read())
+
     url = uri.replace('vos:','https://www.canfar.phys.uvic.ca/data/pub/vospace/')
     return float(requests.get(url,cert=vospace.conn.certfile).content)
 
@@ -495,6 +502,7 @@ def list_dbimages():
 
 
 def exists(uri, force=False):
+
     try:
         return vospace.getNode(uri, force=force) is not None
     except IOError as e:
@@ -619,9 +627,14 @@ def get_mopheader(expnum, ccd):
         return mopheaders[mopheader_uri]
 
     url = mopheader_uri.replace('vos:','https://www.canfar.phys.uvic.ca/data/pub/vospace/')
-    req = requests.get(url, cert=vospace.conn.certfile)
+    filename = os.path.basename(uri)
+    if os.access(filename, os.F_OK):
+        logger.debug("File already on disk: {}".format(filename))
+        mopheader_fpt = cStringIO.StringIO(open(filename,'r').read())
+    else:
+        req = requests.get(url, cert=vospace.conn.certfile)
+        mopheader_fpt = cStringIO.StringIO(req.content)
 
-    mopheader_fpt = cStringIO.StringIO(req.content)
     mopheader = fits.open(mopheader_fpt)
     ## add some values to the mopheader so it can be an astrom header too.
     header = mopheader[0].header

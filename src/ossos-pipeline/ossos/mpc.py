@@ -511,16 +511,14 @@ class Observation(object):
             provisional_name = " " * 7
         else:
             provisional_name = provisional_name.strip()
-            if not 0 < len(provisional_name) <= 7:
-                raise MPCFieldFormatError("Provisional name",
-                                          "must be 7 characters or less",
-                                          provisional_name)
-
             if not provisional_name[0].isalpha():
-                raise MPCFieldFormatError("Provisional name",
-                                          "must start with a letter",
-                                          provisional_name)
-
+                logging.warning("Provisional Name should not be a number", provisional_name)
+                provisional_name = "O"+str(provisional_name)
+            if not len(provisional_name) > 0 :
+                provisional_name = "TEMP"
+            if not len(provisional_name) <= 7:
+                logging.warning("Provisional Name too long",provisional_name)
+                provisional_name = provisional_name[:7]
         self._provisional_name = provisional_name
 
     @property

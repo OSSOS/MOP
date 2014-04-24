@@ -29,13 +29,13 @@ import os
 from ossos import storage
 from ossos import util 
 
-def mkpsf(expnum, ccd, fversion):
+def mkpsf(expnum, ccd, fversion, dry_run=False, prefix=""):
     """Run the OSSOS makepsf script.
 
     """
 
     ## get image from the vospace storage area
-    filename = storage.get_image(expnum, ccd, version=fversion)
+    filename = storage.get_image(expnum, ccd, prefix=prefix, version=fversion)
     logging.info("Running mkpsf on %s %d" % (expnum, ccd))
     ## launch the makepsf script
     util.exec_prog(['jmpmakepsf.csh',
@@ -43,19 +43,22 @@ def mkpsf(expnum, ccd, fversion):
                           filename,
                           'no'])
 
+    if dry_run:
+        return
+
     ## place the results into VOSpace
     basename = os.path.splitext(filename)[0]
 
     ## confirm destination directory exists.
     destdir = os.path.dirname(
-        storage.dbimages_uri(expnum, ccd, version=fversion,ext='fits'))
+        storage.dbimages_uri(expnum, ccd, prefix=prefix, version=fversion,ext='fits'))
     logging.info("Checking that destination directories exist")
     storage.mkdir(destdir)
 
 
     for ext in ('mopheader', 'psf.fits',
                 'zeropoint.used', 'apcor', 'fwhm', 'phot'):
-        dest = storage.dbimages_uri(expnum, ccd, version=fversion, ext=ext)
+        dest = storage.dbimages_uri(expnum, ccd, prefix=prefix, version=fversion, ext=ext)
         source = basename + "." + str(ext)
         logging.info("Copying %s -> %s" % ( source, dest))
         #storage.remove(dest)
@@ -89,6 +92,12 @@ if __name__ == '__main__':
                         help="expnum(s) to process"
                         )
 
+    parser.add_argument("--dry_run",
+                       action="store_true",
+                       help="DRY RUN, don't copy results to VOSpace, implies --force")
+
+    parser.add_argument("--fk",action="store_true", help="Run fk images")
+
     parser.add_argument("--type", "-t", choices=['o','p','s'], help="which type of image: o-RAW, p-ELIXIR, s-SCRAMBLE", default='p')
     parser.add_argument("--verbose", "-v",
                         action="store_true")
@@ -99,11 +108,17 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    if args.dry_run:
+        args.force = True
+
     if args.verbose:
         logging.basicConfig(level=logging.INFO,
                             format='%(message)s')
     if args.debug:
         logging.basicConfig(level=logging.DEBUG,         format="%(asctime)s - %(module)s.%(funcName)s %(lineno)d: %(message)s")
+
+
+    prefix = ( args.fk and 'fk') or ''
 
 
     storage.DBIMAGES = args.dbimages
@@ -115,22 +130,24 @@ if __name__ == '__main__':
 
     for expnum in args.expnum:
         for ccd in ccdlist:
-            if storage.get_status(expnum, ccd, 'mkpsf', version=args.type) and not args.force:
+            if storage.get_status(expnum, ccd, prefix+'mkpsf', version=args.type) and not args.force:
                 logging.info("Already did %s %s, skipping" %( str(expnum),
                                                                   str(ccd)))
                 continue
             message = 'success'
             try:
-                mkpsf(expnum, ccd, args.type)
+                mkpsf(expnum, ccd, args.type, args.dry_run, prefix=prefix)
+                if args.dry_run:
+                    continue
                 storage.set_status(expnum,
                                    ccd,
-                                   'fwhm',
+                                   prefix+'fwhm',
                                    version=args.type,
                                    status=str(storage.get_fwhm(
                     expnum, ccd, version=args.type)))
                 storage.set_status(expnum,
                                    ccd,
-                                   'zeropoint',
+                                   prefix+'zeropoint',
                                    version=args.type,
                                    status=str(storage.get_zeropoint(
                     expnum, ccd, version=args.type)))
@@ -139,9 +156,10 @@ if __name__ == '__main__':
                 message = str(e)
 
             logging.error(message)
-            storage.set_status( expnum,
-                                ccd,
-                                'mkpsf',
-                                version=args.type,
-                                status=message)
+            if not args.dry_run:
+                storage.set_status( expnum,
+                                    ccd,
+                                    prefix+'mkpsf',
+                                    version=args.type,
+                                    status=message)
                        
