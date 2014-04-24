@@ -1,3 +1,4 @@
+#!python
 from ossos import mpc
 import vos
 import sys

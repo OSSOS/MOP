@@ -1,3 +1,4 @@
+#!python
 __author__ = 'Michele Bannister   git:@mtbannister'
 
 from glob import glob

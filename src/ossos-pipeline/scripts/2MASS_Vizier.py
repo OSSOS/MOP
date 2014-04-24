@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!python
 from astropy.io import votable
 import requests
 from cStringIO import StringIO
