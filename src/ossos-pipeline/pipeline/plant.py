@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!python 
 '''plant synthetic moving objects into a set of observations.
 
 prior to planting, the headers of the objects may be swapped around.'''

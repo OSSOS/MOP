@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!python
 '''replace arg1 header with arg2s.'''
 
 import argparse
