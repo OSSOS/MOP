@@ -10,7 +10,7 @@ from ossos import storage
 from astropy.io import fits
 import logging
 
-def scramble(expnums, ccd, version='p'):
+def scramble(expnums, ccd, version='p', dry_run=False):
     '''run the plant script on this combination of exposures'''
 
     mjds = []
@@ -36,9 +36,11 @@ def scramble(expnums, ccd, version='p'):
         if os.access(fname, os.F_OK):
             os.unlink(fname)
         fobjs[idx].writeto(fname)
+        if dry_run:
+            continue
         storage.copy(fname, uri)
 
-        # now make a link between files that the plant system will need
+        # now make a link ebetween files that the plant system will need
         for ext in ['apcor', 'obj.jmp', 'mopheader', 'phot',
                     'psf.fits','trans.jmp', 'zeropoint.used', 'fwhm']:
             if storage.exists(storage.get_uri(expnums[order[idx]], ccd, 's', ext)):
@@ -76,9 +78,13 @@ if __name__=='__main__':
                         action="store_true")
     parser.add_argument("--debug",'-d',
                         action='store_true')
+    parser.add_argument("--dry_run", action="store_true", help="Do not copy back to VOSpace, implies --force")
     parser.add_argument("--force", action='store_true')
     
     args=parser.parse_args()
+
+    if args.dry_run:
+        args.force = True
 
     storage.DBIMAGES = args.dbimages
 
@@ -107,11 +113,12 @@ if __name__=='__main__':
         message = storage.SUCCESS
 
         try:
-            scramble(expnums=expnums, ccd=ccd, version='p')
+            scramble(expnums=expnums, ccd=ccd, version='p', dry_run = args.dry_run)
         except Exception as e:
             logging.error(e)
             message = str(e)
-
-        storage.set_status(expnums[0], ccd,
-                           'scramble', version='s',
-                           status=message)
+        if not args.dry_run:
+            storage.set_status(expnums[0], ccd,
+                               'scramble', version='s',
+                               status=message)
+            

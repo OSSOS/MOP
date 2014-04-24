@@ -37,13 +37,14 @@ from ossos import util
 from astropy.io import fits
 
 def step1(expnum,
-              ccd,
-              prefix='',
-              version='p',
-              fwhm=4, 
-              sex_thresh=1.3, 
-              wave_thresh=2.7, 
-              maxcount=30000):
+          ccd,
+          prefix='',
+          version='p',
+          fwhm=4, 
+          sex_thresh=1.3, 
+          wave_thresh=2.7, 
+          maxcount=30000,
+          dry_run=False):
     """run the actual step1jmp/matt codes.
 
     expnum: the CFHT expousre to process
@@ -71,7 +72,8 @@ def step1(expnum,
                               prefix=prefix)
     obj_filename = basename+".obj.jmp"
 
-    storage.copy(obj_filename,obj_uri)
+    if not dry_run:
+        storage.copy(obj_filename,obj_uri)
 
     ## for step1matt we need the weight image
     hdulist = fits.open(filename)
@@ -95,7 +97,8 @@ def step1(expnum,
                               prefix=prefix)
     obj_filename = basename+".obj.matt"
 
-    storage.copy(obj_filename,obj_uri)
+    if not dry_run:
+        storage.copy(obj_filename,obj_uri)
 
     return True
 
@@ -141,8 +144,12 @@ if __name__=='__main__':
     parser.add_argument("--debug",'-d',
                         action='store_true')
     parser.add_argument("--force", action="store_true")
+    parser.add_argument("--dry_run", action="store_true", help="Do a dry run, not changes to vospce, implies --force")
 
     args=parser.parse_args()
+
+    if args.dry_run:
+        args.force = True
 
     level = logging.CRITICAL
     if args.debug:
@@ -175,15 +182,16 @@ if __name__=='__main__':
                     continue
                 logging.info("step1_p on expnum: %s, ccd: %s" % (
                     prefix+str(expnum), str(ccd)))
-                step1(expnum, ccd, prefix=prefix, version=args.type)
+                step1(expnum, ccd, prefix=prefix, version=args.type, dry_run=args.dry_run)
             except Exception as e:
                 message = str(e)
                 logging.error("Error running step1_p: %s " %(message))
 
-            storage.set_status(expnum,
-                               ccd,
-                               prefix+'step1',
-                               version=args.type,
-                               status=message)
+            if not args.dry_run:
+                storage.set_status(expnum,
+                                   ccd,
+                                   prefix+'step1',
+                                   version=args.type,
+                                   status=message)
         
             

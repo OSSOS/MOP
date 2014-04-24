@@ -30,7 +30,7 @@ import logging
 
 MEASURE3='vos:OSSOS/measure3/'
 
-def combine(expnum, ccd, prefix=None, type='p', field=None, measure3=MEASURE3 ):
+def combine(expnum, ccd, prefix=None, type='p', field=None, measure3=MEASURE3 , dry_run=False):
 
     if field is None:
         field=str(expnum)
@@ -46,10 +46,11 @@ def combine(expnum, ccd, prefix=None, type='p', field=None, measure3=MEASURE3 ):
                                   ccd=ccd,
                                   prefix=prefix,
                                   version=type, ext=ext)
+
     if prefix is not None and len(prefix) > 0:
         planted = storage.get_image('Object',
                                     subdir=str(expnum)+"/ccd%s" % (
-            str(ccd).zfill(2)),
+                str(ccd).zfill(2)),
                                     version='',
                                     ext='planted')
     else:
@@ -85,8 +86,9 @@ def combine(expnum, ccd, prefix=None, type='p', field=None, measure3=MEASURE3 ):
             logging.critical("No %s file" % (filename))
             continue
         vospace_name = "%s.%s" % ( field, ext )
-        logging.info("%s -> %s" % ( filename, os.path.join(measure3, vospace_name)))
-        storage.copy(filename, os.path.join(measure3, vospace_name))
+        if not dry_run:
+            logging.info("%s -> %s" % ( filename, os.path.join(measure3, vospace_name)))
+            storage.copy(filename, os.path.join(measure3, vospace_name))
 
     base_name = prefix+str(expnum)+type+str(ccd).zfill(2)
     cands_file = base_name+'.cands.comb'
@@ -98,8 +100,9 @@ def combine(expnum, ccd, prefix=None, type='p', field=None, measure3=MEASURE3 ):
                          str(ccd).zfill(2)+
                          '.no_candidates' )
         open(nocands_file, 'w').close()
-        vospace_name = "%s.no_candidates" % ( field ) 
-        storage.copy(nocands_file,os.path.join(measure3, vospace_name))
+        if not dry_run:
+            vospace_name = "%s.no_candidates" % ( field ) 
+            storage.copy(nocands_file,os.path.join(measure3, vospace_name))
 
         return storage.SUCCESS
 
@@ -118,9 +121,11 @@ def combine(expnum, ccd, prefix=None, type='p', field=None, measure3=MEASURE3 ):
     logging.info("Running measure3")
     util.exec_prog(cmd_args)
     
-    filename=base_name+".measure3.cands.astrom"
-    vospace_filename = "%s.measure3.cands.astrom" % ( field)
-    storage.copy(filename, os.path.join(measure3,vospace_filename))
+    if not dry_run:
+        filename=base_name+".measure3.cands.astrom"
+        vospace_filename = "%s.measure3.cands.astrom" % ( field)
+        storage.copy(filename, os.path.join(measure3,vospace_filename))
+
     return storage.SUCCESS
 
 
@@ -158,7 +163,11 @@ if __name__=='__main__':
     parser.add_argument("--debug",'-d',
                         action='store_true')
     parser.add_argument("--force", '-f', action='store_true')
+    parser.add_argument("--dry_run", action="store_true", help="Don't push back to VOSpace, implies --force")
+
     args=parser.parse_args()
+    if args.dry_run:
+        args.force=True
 
     level = logging.CRITICAL
     if args.debug:
@@ -177,29 +186,33 @@ if __name__=='__main__':
 
     for ccd in ccdlist:
         message = storage.SUCCESS
-        if 1==1:
-            if not storage.get_status(args.expnum, ccd, prefix+'step3', version=args.type):
-                logging.error(storage.get_status(
-                        args.expnum,
-                        ccd,
-                        'step3',
-                        return_message=True))
-                raise IOError(35, "need to run step3 first")
-            if storage.get_status(args.expnum, ccd,
-                                  prefix+'combine',
-                                  version=args.type) and not args.force:
-                continue
-            message = combine(args.expnum, 
-                              ccd, 
-                              prefix=prefix, 
-                              type=args.type, 
-                              field=args.field, 
-                              measure3=args.measure3
-                              )
+
+        if not storage.get_status(args.expnum, ccd, prefix+'step3', version=args.type) and not args.dry_run:
+            logging.error(storage.get_status(
+                    args.expnum,
+                    ccd,
+                    'step3',
+                    return_message=True))
+            raise IOError(35, "need to run step3 first")
+
+        if storage.get_status(args.expnum, ccd,
+                              prefix+'combine',
+                              version=args.type) and not args.force:
+            continue
+
+        message = combine(args.expnum, 
+                          ccd, 
+                          prefix=prefix, 
+                          type=args.type, 
+                          field=args.field, 
+                          measure3=args.measure3,
+                          dry_run=args.dry_run
+                          )
         #except Exception as e:
         #   message = str(e)
+        if not args.dry_run:
+            storage.set_status(args.expnum, ccd,
+                               prefix+'combine',
+                               version=args.type,
+                               status=message)
             
-        storage.set_status(args.expnum, ccd,
-                           prefix+'combine',
-                           version=args.type,
-                           status=message)

@@ -13,7 +13,7 @@ from ossos import util
 import logging
 
 
-def plant(expnums, ccd, rmin, rmax, ang, width, version='s'):
+def plant(expnums, ccd, rmin, rmax, ang, width, version='s', dry_run=False):
     '''run the plant script on this combination of exposures'''
 
     ptf = open('proc-these-files','w')
@@ -42,13 +42,15 @@ def plant(expnums, ccd, rmin, rmax, ang, width, version='s'):
 
     util.exec_prog(cmd_args)
     
-    if args.dryrun:
+    if dry_run:
         # Don't push back to VOSpace
         return 
 
     uri = storage.get_uri('Object',ext='planted',version='',
                           subdir=str(
         expnums[0])+"/ccd%s" % (str(ccd).zfill(2)))
+
+
     storage.copy('Object.planted',uri)
     uri = os.path.join(os.path.dirname(uri), 'plant.shifts')
     storage.copy('shifts', uri)
@@ -83,9 +85,6 @@ if __name__=='__main__':
                         action="store",
                         default="vos:OSSOS/dbimages",
                         help='vospace dbimages containerNode')
-    parser.add_argument("--dryrun", action="store_true",
-                        default=False,
-                        help="do a dry-run, no push to VOSpace")
     parser.add_argument("expnums",
                         type=int,
                         nargs=3,
@@ -112,7 +111,11 @@ if __name__=='__main__':
     parser.add_argument("--ang", default=20,
                         type=float, help="angle of motion, 0 is West")
     parser.add_argument("--force", action="store_true")
+    parser.add_argument("--dry_run", action="store_true")
     args=parser.parse_args()
+
+    if args.dry_run:
+        args.force = True
 
     ## setup logging
     level = logging.CRITICAL
@@ -147,13 +150,16 @@ if __name__=='__main__':
             plant(args.expnums,
                   ccd,
                   args.rmin, args.rmax, args.ang, args.width,
-                  version=args.type)
+                  version=args.type,
+                  dry_run=args.dry_run)
         except Exception as e:
             message = str(e)
             logging.error(str(e))
 
-        storage.set_status(args.expnums[0],
-                           ccd,
-                           'plant',
-                           version=args.type,
-                           status=message)
+        if not args.dry_run:
+            storage.set_status(args.expnums[0],
+                               ccd,
+                               'plant',
+                               version=args.type,
+                               status=message)
+            

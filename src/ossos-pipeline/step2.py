@@ -28,7 +28,7 @@ import logging
 from ossos import util
 from ossos import storage
 
-def step2(expnums, ccd, version, prefix=None):
+def step2(expnums, ccd, version, prefix=None, dry_run=False):
     '''run the actual step2  on the given exp/ccd combo'''
 
     jmp_args = ['step2jmp']
@@ -57,6 +57,9 @@ def step2(expnums, ccd, version, prefix=None):
 
     util.exec_prog(jmp_args)
     util.exec_prog(matt_args)
+
+    if dry_run:
+        return
 
     for expnum in expnums:
         for ext in ['unid.jmp', 'unid.matt', 'trans.jmp']:
@@ -100,13 +103,21 @@ if __name__ == '__main__':
                         action='store_true')
     parser.add_argument("--verbose","-v",
                         action="store_true")
+    parser.add_argument("--debug",
+                        action="store_true")
+    parser.add_argument("--dry_run", action="store_true", help="run without pushing back to VOSpace, implies --force")
     parser.add_argument("--force", action="store_true")
 
 
     args=parser.parse_args()
 
+    if args.dry_run:
+        args.force=True
+
     if args.verbose:
         logging.basicConfig(level=logging.INFO, format="%(message)s")
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG, format="%(message)s")
 
     storage.DBIMAGES = args.dbimages
 
@@ -135,15 +146,16 @@ if __name__ == '__main__':
                 continue
             logging.info("step2 on expnums :%s, ccd: %d" % (
                     str(args.expnums), ccd))
-            step2(args.expnums, ccd, version=args.type, prefix=prefix)
+            step2(args.expnums, ccd, version=args.type, prefix=prefix, dry_run=args.dry_run)
 
         except Exception as e:
             message = str(e)
         logging.error(message)
-        storage.set_status(args.expnums[0],
-                           ccd,
-                           prefix+'step2',
-                           version=args.type,
-                           status=message)
-        
+        if not args.dry_run:
+            storage.set_status(args.expnums[0],
+                               ccd,
+                               prefix+'step2',
+                               version=args.type,
+                               status=message)
+            
             

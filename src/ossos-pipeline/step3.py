@@ -29,7 +29,7 @@ from ossos import util
 from ossos import storage
 
 def step3(expnums, ccd, version, rate_min,
-              rate_max, angle, width, field=None, prefix=None):
+              rate_max, angle, width, field=None, prefix=None, dry_run=False):
     '''run the actual step2  on the given exp/ccd combo'''
 
     jmp_args = ['step3jmp']
@@ -60,15 +60,17 @@ def step3(expnums, ccd, version, rate_min,
     util.exec_prog(jmp_args)
     util.exec_prog(matt_args)
 
+    if dry_run:
+        return
 
     if field is None:
         field = str(expnums[0])
     storage.mkdir(os.path.dirname(
-        storage.get_uri(field,
-                        ccd=ccd,
-                        version=version,
-                        ext=ext,
-                        prefix=prefix)))
+            storage.get_uri(field,
+                            ccd=ccd,
+                            version=version,
+                            ext=ext,
+                            prefix=prefix)))
 
     for ext in ['moving.jmp', 'moving.matt']:
         uri = storage.get_uri(field,
@@ -121,6 +123,7 @@ if __name__ == '__main__':
                         action='store_true')
     parser.add_argument("--verbose","-v",
                         action="store_true")
+    parser.add_argument("--debug", action="store_true")
     parser.add_argument("--rate_min", default=0.4,
                         help='minimum rate to accept',
                         type=float)
@@ -133,12 +136,18 @@ if __name__ == '__main__':
     parser.add_argument('--width', default=30,
                         help='openning angle of search cone',
                         type=float)
+    parser.add_argument("--dry_run", action="store_true", help="do not copy to VOSpace, implies --force")
     parser.add_argument("--force", action="store_true")
 
     args=parser.parse_args()
 
+    if args.dry_run:
+        args.force = True
+
     if args.verbose:
         logging.basicConfig(level=logging.INFO, format="%(message)s")
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG, format="%(message)s")
 
     storage.DBIMAGES = args.dbimages
 
@@ -168,18 +177,19 @@ if __name__ == '__main__':
                   angle=args.angle,
                   width=args.width,
                   field=args.field,
-                  prefix=prefix)
+                  prefix=prefix,
+                  dry_run=args.dry_run)
         except Exception as e:
             message = str(e)
 
         logging.error(message)
-
-        storage.set_status(args.expnums[0],
-                           ccd,
-                           prefix+'step3',
-                           version=args.type,
-                           status=message)
-        
+        if not args.dry_run:
+            storage.set_status(args.expnums[0],
+                               ccd,
+                               prefix+'step3',
+                               version=args.type,
+                               status=message)
+            
             
 
 
