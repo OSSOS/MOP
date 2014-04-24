@@ -1,7 +1,7 @@
 import glob
 import os
 
-from setuptools import setup, find_packages
+from distutils.core import setup
 import sys
 
 if sys.version_info[0] > 2:
@@ -23,8 +23,9 @@ setup(name='ossos',
       description="Outer Solar System Origins Survey (OSSOS) Pipeline",
       package_data = { 'ossos' : ['gui/*.json']},
       packages=['ossos', 'ossos/gui', 'ossos/fitsviewer','ossos/downloads', 'ossos/downloads/cutouts', 'ossos/gui/models', 'ossos/gui/views' ],
-      install_requires=[ 'pyraf', 'astropy', 'vos', 'pyephem','requests','pyOpenSSL', 'numpy', 'wxPython', 'pyds9'],
+      requires=[ 'pyraf', 'astropy (<0.3)', 'vos (>1.9)', 'pyephem','requests','pyOpenSSL', 'numpy', 'wxPython', 'pyds9'],
       scripts=['mkpsf.py',
+               'OSSOSplot.py',
                'step1.py',
                'step2.py',
                'step3.py',

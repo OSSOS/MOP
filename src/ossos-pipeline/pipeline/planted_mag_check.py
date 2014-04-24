@@ -1,3 +1,4 @@
+#!python
 """
 Compare the measured fluxes of planted sources against those returned for by digiphot.
 """

@@ -1,4 +1,4 @@
-
+#!python
 
 from ossos import storage
 from astropy.io import ascii
