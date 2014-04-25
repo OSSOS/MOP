@@ -25,7 +25,7 @@ setup(name='ossos',
       url='https://github.com/ijiraq/MOP',
       description="Outer Solar System Origins Survey (OSSOS) Pipeline",
       package_data = { 'ossos' : ['gui/*.json']},
-      packages=['ossos', 'ossos/gui', 'ossos/fitsviewer','ossos/downloads', 'ossos/downloads/cutouts', 'ossos/gui/models', 'ossos/gui/views' ],
       requires=['pyraf', 'astropy (==0.2.5)', 'vos', 'pyephem', 'requests', 'pyOpenSSL', 'numpy', 'wxPython', 'pyds9'],
-      scripts=scripts
+      scripts=scripts,
+      packages=['ossos', 'ossos/gui', 'ossos/fitsviewer','ossos/downloads', 'ossos/downloads/cutouts', 'ossos/gui/models', 'ossos/gui/views' ],
       )
