@@ -371,7 +371,13 @@ def get_fwhm(expnum, ccd, prefix=None, version='p'):
         return float(open(filename,'r').read())
 
     url = uri.replace('vos:','https://www.canfar.phys.uvic.ca/data/pub/vospace/')
-    return float(requests.get(url,cert=vospace.conn.certfile).content)
+    try:
+        fwhm = float(requests.get(url,cert=vospace.conn.certfile).content)
+    except Exception as e:
+        print url
+        print str(e)
+        fwhm = 4
+    return fwhm
 
 
 def get_zeropoint(expnum, ccd, prefix=None, version='p'):
@@ -627,7 +633,7 @@ def get_mopheader(expnum, ccd):
         return mopheaders[mopheader_uri]
 
     url = mopheader_uri.replace('vos:','https://www.canfar.phys.uvic.ca/data/pub/vospace/')
-    filename = os.path.basename(uri)
+    filename = os.path.basename(mopheader_uri)
     if os.access(filename, os.F_OK):
         logger.debug("File already on disk: {}".format(filename))
         mopheader_fpt = cStringIO.StringIO(open(filename,'r').read())
