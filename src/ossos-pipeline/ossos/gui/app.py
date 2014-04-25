@@ -25,18 +25,20 @@ from ossos.ssos import TracksParser
 
 
 def create_application(taskname, working_directory, output_directory,
-                       dry_run=False, debug=False):
+                       dry_run=False, debug=False, name_filter=None):
     logger.info("Starting %s task." % taskname)
+
+
 
     if taskname == tasks.CANDS_TASK:
         ProcessCandidatesApplication(working_directory, output_directory,
-                                     dry_run=dry_run, debug=debug)
+                                     dry_run=dry_run, debug=debug, name_filter=name_filter)
     elif taskname == tasks.REALS_TASK:
         ProcessRealsApplication(working_directory, output_directory,
-                                dry_run=dry_run, debug=debug)
+                                dry_run=dry_run, debug=debug, name_filter=name_filter)
     elif taskname == tasks.TRACK_TASK:
         ProcessTracksApplication(working_directory, output_directory,
-                                 dry_run=dry_run, debug=debug)
+                                 dry_run=dry_run, debug=debug, name_filter=name_filter)
     else:
         error_message = "Unknown task: %s" % taskname
         logger.critical(error_message)
@@ -45,7 +47,7 @@ def create_application(taskname, working_directory, output_directory,
 
 class ValidationApplication(object):
     def __init__(self, working_directory, output_directory,
-                 dry_run=False, debug=False):
+                 dry_run=False, debug=False, name_filter=None):
         self.dry_run = dry_run
 
         logger.info("Input directory set to: %s" % working_directory)
@@ -72,7 +74,8 @@ class ValidationApplication(object):
         workunit_provider = WorkUnitProvider(self.input_suffix,
                                              working_context,
                                              progress_manager, builder,
-                                             randomize=self.should_randomize_workunits)
+                                             randomize=self.should_randomize_workunits,
+                                             name_filter=name_filter)
 
         prefetching_workunit_provider = PreFetchingWorkUnitProvider(workunit_provider,
                                                                     config.read("PREFETCH.NUMBER"),
@@ -205,11 +208,11 @@ class ProcessRealsApplication(ValidationApplication):
 
 class ProcessTracksApplication(ValidationApplication):
     def __init__(self, working_directory, output_directory,
-                 dry_run=False, debug=False):
+                 dry_run=False, debug=False, name_filter=None):
         preload_iraf()
 
         super(ProcessTracksApplication, self).__init__(
-            working_directory, output_directory, dry_run=dry_run, debug=debug)
+            working_directory, output_directory, dry_run=dry_run, debug=debug, name_filter=name_filter)
 
     @property
     def input_suffix(self):
