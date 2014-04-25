@@ -727,8 +727,6 @@ class MPCComment(object):
         """
         Build an MPC Comment from a string.
         """
-        print comment
-
         comment_format = '1s10s1s11s1s3s6f1s6f'  #1s4f1s3f1s4s1s'  # is this right...?
         values = comment.split('%')[0]
         try:
@@ -739,7 +737,10 @@ class MPCComment(object):
                 logging.debug("non-OSSOS format MPC line read: {}".format(comment))
                 return comment
             # otherwise we might be able to parse it!
-            values = values.split()  # try to deal with the legacy lines
+            ## dbase: 20130208_568_1 20130910 0000000000                      O 1615943p18 O13AE2P Yf  581.1 3293.7 23.87 0.15 UUUU %      on bad column
+            values = values.split()
+            if values[3] == 'O':
+                values = values[4:]
             retval = MPCComment(frame=values[0],
                                 source_name=values[1],
                                 PNote=values[2][0],
@@ -753,9 +754,7 @@ class MPCComment(object):
                 retval.plate_uncertainty = values[7]
             else:
                 retval.plate_uncertainty = values[5]
-
-            print retval
-            return retval
+        return retval
 
     @property
     def mag(self):
