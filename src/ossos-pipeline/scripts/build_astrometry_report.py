@@ -95,6 +95,8 @@ auto-magical way.
     parser.add_argument("--COD",
                         default=568,
                         help="Observatory code for report file.")
+    parser.add_argument("-q",
+                        action="store_true", help="Run quiet")
     parser.add_argument("--OBS",
                         action="append",
                         default=['M. T. Bannister', 'J. J. Kavelaars'],
@@ -103,23 +105,25 @@ auto-magical way.
     args = parser.parse_args()
 
     logger = logging.getLogger('reporter')
+    if args.q:
+        logger.setLevel(logging.CRITICAL)
 
     if args.idx_filename is None:
         args.idx_filename = os.path.dirname(args.existing_astrometry_directory)+"/idx/file.idx"
 
     idx = mpc.Index(args.idx_filename)
-    print idx
+
 
     existing_observations = {}
     os.path.walk(args.existing_astrometry_directory, load_observations, (existing_observations,
                                                                          args.existing_name_regex))
-    print "Loaded existing observations for {} objects.".format(len(existing_observations))
+    logger.info("Loaded existing observations for {} objects.\n".format(len(existing_observations)))
 
     new_observations = {}
     os.path.walk(args.new_astrometry_directory, load_observations, (new_observations, args.new_name_regex))
-    print "Loaded new observations for {} objects.".format(len(new_observations))
+    logger.info("Loaded new observations for {} objects.\n".format(len(new_observations)))
 
-    report_observations = []
+    report_observations = {}
     for date1 in new_observations:
         for name1 in new_observations[date1]:
             observation1 = new_observations[date1][name1]
@@ -146,15 +150,29 @@ auto-magical way.
                             replacement = True
                 if report and replacement == args.replacement:
                     logger.warning("Adding {} on {} to report".format(name1, observation1.date))
-                    report_observations.append(observation1)
+                    report_observations[name1] = report_observations.get(name1,[])
+                    report_observations[name1].append(observation1)
 
     if not len(report_observations) > 0:
         logger.warning("No observations matched criterion.")
         sys.exit(0)
 
-    outfile = open(args.report_file, 'w')
-    outfile.write(mpc.make_tnodb_header(report_observations))
+    if args.report_file == "-":
+        outfile = sys.stdout
+    else:
+        outfile = open(args.report_file, 'w')
+    
+    observations = []
+    for name in report_observations:
+        observations.extend(report_observations[name])
+    outfile.write(mpc.make_tnodb_header(observations))
     outfile.write("\n")
-    for observation in report_observations:
-        outfile.write(observation.to_tnodb()+"\n")
+
+    for name in report_observations:
+        sorted("This is a test string from Andrew".split(), key=str.lower)
+        report_observations[name].sort(key=lambda x: x.date.jd)
+        for observation in report_observations[name]:
+            outfile.write(observation.to_tnodb()+"\n")
+        outfile.write("\n")
     outfile.close()
+
