@@ -51,11 +51,12 @@ def summarize(orbit):
 
 class TracksParser(object):
 
-    def __init__(self, inspect=True):
+    def __init__(self, inspect=True, skip_previous=False):
         self.orbit = None
         self._nights_per_darkrun = 18
         self._nights_separating_darkruns = 30
         self.inspect = inspect
+        self.skip_previous = skip_previous
 
     @property
     def rate_of_motion(self):
@@ -89,11 +90,11 @@ class TracksParser(object):
 
         # pass down the provisional name so the table lines are linked to this TNO
         self.ssos_parser = SSOSParser(mpc_observations[0].provisional_name,
-                                      input_observations=mpc_observations)
+                                      input_observations=mpc_observations, skip_previous=self.skip_previous)
         self.orbit = Orbfit(mpc_observations)
 
-        for observation in self.orbit.observations:
-            print observation.to_string()
+        #for observation in self.orbit.observations:
+        #    print observation.to_string()
         print ""
         print self.orbit
         print self.orbit.residuals
@@ -209,7 +210,7 @@ class SSOSParser(object):
     """
     Parse the result of an SSOS query, which is stored in an astropy Table object
     """
-    def __init__(self, provisional_name, input_observations=None):
+    def __init__(self, provisional_name, input_observations=None, skip_previous=False):
         """
         setup the parser.
         :param provisional_name: name of KBO to assign SSOS data to
@@ -219,6 +220,7 @@ class SSOSParser(object):
         self.provisional_name = provisional_name
         self.input_rawnames = []
         self.null_observations = []
+        self.skip_previous = skip_previous
         for observation in input_observations:
             try:
                 rawname = observation.comment.frame
@@ -357,16 +359,18 @@ class SSOSParser(object):
 
             # Build astrom.SourceReading
             nrows -= 1
-            skip = False
+
+
+            previous = False
             for mpc_observation in mpc_observations:
                 try:
                     if mpc_observation.comment.frame=="{}p{:02d}".format(expnum,ccd):
                         sys.stderr.write("Skipping {}p{:02d}\n".format(expnum, ccd))
-                        skip = True
+                        previous = True
                         break
                 except:
                     pass
-            if skip:
+            if previous and self.skip_previous:
                 continue
             sys.stderr.write("\r{}\r {}: observation {} {} {} {} from SSOS .. ".format(" "*190, nrows, expnum, ccd, X, Y))
             observation = self.build_source_reading(expnum, ccd, X, Y)
