@@ -24,37 +24,35 @@ from ossos.naming import ProvisionalNameGenerator, DryRunNameGenerator
 from ossos.ssos import TracksParser
 
 
-def create_application(taskname, working_directory, output_directory,
-                       dry_run=False, debug=False, name_filter=None):
-    logger.info("Starting %s task." % taskname)
+def create_application(task_name, working_directory, output_directory,
+                       dry_run=False, debug=False, name_filter=None, user_id=None):
+    logger.info("Starting %s task." % task_name)
 
-
-
-    if taskname == tasks.CANDS_TASK:
+    if task_name == tasks.CANDS_TASK:
         ProcessCandidatesApplication(working_directory, output_directory,
-                                     dry_run=dry_run, debug=debug, name_filter=name_filter)
-    elif taskname == tasks.REALS_TASK:
+                                     dry_run=dry_run, debug=debug, name_filter=name_filter, user_id=user_id)
+    elif task_name == tasks.REALS_TASK:
         ProcessRealsApplication(working_directory, output_directory,
-                                dry_run=dry_run, debug=debug, name_filter=name_filter)
-    elif taskname == tasks.TRACK_TASK:
+                                dry_run=dry_run, debug=debug, name_filter=name_filter, user_id=user_id)
+    elif task_name == tasks.TRACK_TASK:
         ProcessTracksApplication(working_directory, output_directory,
-                                 dry_run=dry_run, debug=debug, name_filter=name_filter)
+                                 dry_run=dry_run, debug=debug, name_filter=name_filter, user_id=user_id)
     else:
-        error_message = "Unknown task: %s" % taskname
+        error_message = "Unknown task: %s" % task_name
         logger.critical(error_message)
         raise ValueError(error_message)
 
 
 class ValidationApplication(object):
     def __init__(self, working_directory, output_directory,
-                 dry_run=False, debug=False, name_filter=None):
+                 dry_run=False, debug=False, name_filter=None, user_id=None):
         self.dry_run = dry_run
-
+        self.user_id = user_id
         logger.info("Input directory set to: %s" % working_directory)
         logger.info("Output directory set to: %s" % output_directory)
 
-        working_context = context.get_context(working_directory)
-        output_context = context.get_context(output_directory)
+        working_context = context.get_context(working_directory, userid=user_id)
+        output_context = context.get_context(output_directory, userid=user_id)
 
         if dry_run and working_context.is_remote():
             sys.stdout.write("A dry run can only be done on local files.\n")
@@ -180,11 +178,12 @@ class ProcessCandidatesApplication(ValidationApplication):
 
 class ProcessRealsApplication(ValidationApplication):
     def __init__(self, working_directory, output_directory,
-                 dry_run=False, debug=False):
+                 dry_run=False, debug=False, name_filter=None, user_id=None):
         preload_iraf()
 
         super(ProcessRealsApplication, self).__init__(
-            working_directory, output_directory, dry_run=dry_run, debug=debug)
+            working_directory, output_directory, dry_run=dry_run,
+            debug=debug, name_filter=name_filter, user_id=user_id)
 
     @property
     def input_suffix(self):
@@ -208,11 +207,12 @@ class ProcessRealsApplication(ValidationApplication):
 
 class ProcessTracksApplication(ValidationApplication):
     def __init__(self, working_directory, output_directory,
-                 dry_run=False, debug=False, name_filter=None):
+                 dry_run=False, debug=False, name_filter=None, user_id=None):
         preload_iraf()
 
         super(ProcessTracksApplication, self).__init__(
-            working_directory, output_directory, dry_run=dry_run, debug=debug, name_filter=name_filter)
+            working_directory, output_directory, dry_run=dry_run, debug=debug, name_filter=name_filter,
+            user_id=user_id)
 
     @property
     def input_suffix(self):
