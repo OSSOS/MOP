@@ -15,7 +15,7 @@ from astropy import units
 import numpy
 
 NULL_OBSERVATION_CHARACTERS = ["!", "-", "#"]
-DEFAULT_OBSERVERS = ['M. T. Bannister', 'J. J. Kavelars']
+DEFAULT_OBSERVERS = ['M. T. Bannister', 'J. J. Kavelaars']
 DEFAULT_TELESCOPE = "CFHT 3.6m + CCD"
 DEFAULT_ASTROMETRIC_NETWORK = "UCAC4"
 
