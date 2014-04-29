@@ -322,9 +322,10 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
             cutout += "[-*,-*]"
 
         logger.debug(uri)
-        url = vospace.getNodeURL(uri, view='cutout', limit=None, cutout=cutout)
-        logger.debug(url)
-        fin = vospace.open(uri, URL=url)
+        try:
+            fin = vospace.open(uri, view='cutout', cutout=cutout)
+        except:
+            fin = vospace.open(uri+".fz", view='cutout', cutout=cutout)
         fout = open(filename, 'w')
         buff = fin.read(2 ** 16)
         while len(buff) > 0:
