@@ -19,7 +19,6 @@ C -*-compile-command: "g77 -O3 -o ../../bin/LINUX/global-pipe-eff global-pipe-ef
       logical
      $  help, finished, no_s, no_m, no_f
 
-      external iargc
 
 c Create a file for later error handling
 

@@ -40,7 +40,7 @@ class SourceCutout(object):
         self._comparison_image = None
         self._tempfile = None
 
-        self._bad_comparison_images = [self.fits_header.get('EXPNUM',None)]
+        self._bad_comparison_images = [self.fits_header.get('EXPNUM', None)]
 
     @property
     def astrom_header(self):
@@ -48,7 +48,7 @@ class SourceCutout(object):
 
     @property
     def fits_header(self):
-        return self.hdulist[0].header
+        return self.hdulist[len(self.hdulist)-1].header
 
     @property
     def observed_source_point(self):
@@ -121,23 +121,26 @@ class SourceCutout(object):
     def get_observed_magnitude(self):
         if self.apcor is None:
             raise TaskError("Photometry cannot be performed.  "
-                        "No magnitude calculated.")
+                            "No magnitude calculated.")
 
         # NOTE: this import is only here so that we don't load up IRAF
         # unnecessarily (ex: for candidates processing).
         from ossos import daophot
 
         maxcount = float(self.astrom_header["MAXCOUNT"])
-        mag = daophot.phot_mag(self._hdulist_on_disk(),
-                                  self.pixel_x, self.pixel_y,
-                                aperture=self.apcor.aperture,
-                                sky=self.apcor.sky,
-                                swidth=self.apcor.swidth,
-                                apcor=self.apcor.apcor,
-                                zmag=self.zmag,
-                                maxcount=maxcount)
-        # Close file so that handles don't run out.
-        self.close()
+        mag = -1
+        try:
+            mag = daophot.phot_mag(self._hdulist_on_disk(),
+                                   self.pixel_x, self.pixel_y,
+                                   aperture=self.apcor.aperture,
+                                   sky=self.apcor.sky,
+                                   swidth=self.apcor.swidth,
+                                   apcor=self.apcor.apcor,
+                                   zmag=self.zmag,
+                                   maxcount=maxcount)
+        except Exception as e:
+            logger.critical(str(e))
+
         return mag
 
     def _hdulist_on_disk(self):
@@ -151,8 +154,11 @@ class SourceCutout(object):
         if self._tempfile is None:
             self._tempfile = tempfile.NamedTemporaryFile(
                 mode="r+b", suffix=".fits")
-            self.hdulist.writeto(self._tempfile.name)
-
+            if len(self.hdulist) > 1:
+                self.hdulist[1].writeto(self._tempfile.name)
+                self.hdulist[1].writeto(self._tempfile.name)
+            else:
+                self.hdulist[0].writeto(self._tempfile.name)
         return self._tempfile.name
 
     def close(self):
@@ -179,8 +185,6 @@ class SourceCutout(object):
                                          wcs.parse_pv(fits_header),
                                          wcs.parse_order_fit(fits_header))
 
-
-
     @property
     def comparison_image(self):
         return self._comparison_image
@@ -192,15 +196,20 @@ class SourceCutout(object):
         # selecting comparitor when on a comparitor should load a new one.
 
         ref_wcs = wcs.WCS(self.fits_header)
-        ref_x = self.fits_header['NAXIS1']/2.0
-        ref_y = self.fits_header['NAXIS2']/2.0
-        (ref_ra, ref_dec) = ref_wcs.xy2sky(ref_x,ref_y)
+        try:
+            ref_x = self.fits_header['NAXIS1']/2.0
+            ref_y = self.fits_header['NAXIS2']/2.0
+            (ref_ra, ref_dec) = ref_wcs.xy2sky(ref_x, ref_y)
+        except Exception as e:
+            logger.info(str(e))
+            logger.info(str(self.fits_header))
+            return None
 
         dra = self.fits_header['CD1_1']*self.fits_header['NAXIS1']/2.0
-        ddec= self.fits_header['CD2_2']*self.fits_header['NAXIS2']/2.0
-        radius=max(dra,ddec)
+        ddec = self.fits_header['CD2_2']*self.fits_header['NAXIS2']/2.0
+        radius = max(dra, ddec)
 
-        logger.info("BOX({} {} {} {})".format(ref_ra, ref_dec,dra, ddec))
+        logger.info("BOX({} {} {} {})".format(ref_ra, ref_dec, dra, ddec))
 
         query_result = storage.cone_search(ref_ra, ref_dec, dra, ddec)
 
@@ -213,6 +222,7 @@ class SourceCutout(object):
                 break
 
         if comparison is None:
+            logger.critical(str(self.fits_header))
             self._comparison_image = None
             return
 

@@ -227,7 +227,7 @@ class CutoutCalculatorTest(unittest.TestCase):
         assert_that(new_coords_x, equal_to(500))
         assert_that(new_coords_y, equal_to(1500))
 
-        inverse_converter = converter.get_inverse_converter()
+        inverse_converter = converter.get_inverse_converter
 
         final_x, final_y = inverse_converter.convert(
             (new_coords_x, new_coords_y))

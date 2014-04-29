@@ -24,7 +24,10 @@ class SingletViewer(WxMPLFitsViewer):
     def mark_apertures(self, cutout):
         logger.info("marking apertures on cutout.")
         x, y = cutout.pixel_source_point
-        radii = (cutout.apcor.aperture, cutout.apcor.sky, cutout.apcor.swidth+cutout.apcor.sky)
+        try:
+            radii = (cutout.apcor.aperture, cutout.apcor.sky, cutout.apcor.swidth+cutout.apcor.sky)
+        except:
+            radii = (4, 15,30)
         self._displayables_by_cutout[cutout].place_annulus(x, y, radii, colour='r')
 
     def mark_sources(self, cutout):

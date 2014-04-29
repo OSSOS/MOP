@@ -1,5 +1,4 @@
-import astropy
-import numpy
+
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -22,7 +21,7 @@ class ConeSearchTest(unittest.TestCase):
                             observation.coordinate.latangle.degrees,
                             )
         self.assertIsInstance(result_table, table.Table)
-        self.assertEquals(result_table['collectionID'][0],1607614)
+        self.assertEquals(result_table['dataset_name'][0],1607614)
 
 class ObjectCountTest(unittest.TestCase):
     @patch("ossos.storage.set_property")

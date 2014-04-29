@@ -442,16 +442,16 @@ class TracksWorkUnit(WorkUnit):
         (Currently only works on local filesystem)
         """
         if self._writer is None:
-            print "called with filename {}".format(self.filename)
-            base_name = re.search("(?P<base_name>.*)\.(\d+\.mpc|track)",self.filename).group('base_name')
-            print base_name
+            suffix = tasks.get_suffix(tasks.TRACK_TASK)
+            try:
+                base_name = re.search("(?P<base_name>.*?)\.\d*{}".format(suffix),self.filename).group('base_name')
+            except:
+                base_name = os.path.splitext(self.filename)[0]
             mpc_filename_pattern = self.output_context.get_full_path(
-                "{}.?.mpc".format(base_name))
-            print "globing with pattern {}".format(mpc_filename_pattern)
+                "{}.?{}".format(base_name, suffix))
             mpc_file_count = len(glob(mpc_filename_pattern))
             mpc_filename = self.output_context.get_full_path(
-                "{}.{}.mpc".format(base_name, mpc_file_count))
-            print "opening file {}".format(mpc_filename)
+                "{}.{}{}".format(base_name, mpc_file_count,suffix))
             self._writer = self._create_writer(mpc_filename)
 
         return self._writer
@@ -505,13 +505,14 @@ class WorkUnitProvider(object):
                  directory_context,
                  progress_manager,
                  builder,
-                 randomize=False):
+                 randomize=False,
+                 name_filter=None):
         self.taskid = taskid
         self.directory_context = directory_context
         self.progress_manager = progress_manager
         self.builder = builder
         self.randomize = randomize
-
+        self.name_filter = name_filter
         self._done = []
         self._already_fetched = []
 
@@ -521,6 +522,14 @@ class WorkUnitProvider(object):
         The directory that workunits are being acquired from.
         """
         return self.directory_context.directory
+
+    def _filter(self, filename):
+        """
+        return 'true' if filename doesn't match name_filter regex and should be filtered out of the list.
+        @param filename:
+        @return:
+        """
+        return self.name_filter is not None and re.search(self.name_filter,filename) is None
 
     def get_workunit(self, ignore_list=None):
         """
@@ -547,6 +556,9 @@ class WorkUnitProvider(object):
         while len(potential_files) > 0:
             potential_file = self.select_potential_file(potential_files)
             potential_files.remove(potential_file)
+
+            if self._filter(potential_file):
+                continue
 
             if self.directory_context.get_file_size(potential_file) == 0:
                 continue

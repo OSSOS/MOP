@@ -22,7 +22,6 @@ C     fraction with errors.
       logical
      $  help, finished, no_s, no_m, no_f
 
-      external iargc
 
 c Create a file for later error handling
 

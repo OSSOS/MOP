@@ -1,11 +1,15 @@
 #! /bin/sh
 
+source ../config.inc 
+
 syst=`uname -s`
 
 BASEDIR=`pwd`
 MATCHDIR=$BASEDIR/match
 PERLDIR=`which perl`
 . ../MOP_version
+
+MAKEWCSARGS=" "
 
 case "$syst"
 in
@@ -33,21 +37,25 @@ echo "Making Matt's files."
 make clean
 make all
 
+basedir=`pwd`
+
 # Install sextractor
 # Now use the system install sex
-#if [ ! -f ${BINDIRA}/sex ]; then
-#    echo "Installing Sextractor."
-#    gunzip < sextractor2.1.6.tar.gz | tar xf -
-#    cd sextractor2.1.6/source
-#    make clean
-#    make SEXMACHINE=$SEXARCH
-#    cp sex $BINDIRA/
-#    cd ../..
-#    \rm -rf sextractor2.1.6
-#fi
+cd ${basedir}
+if [ ! -f ${BINDIRA}/sex ]; then
+    echo "Installing Sextractor."
+    tar xzf sextractor-2.5.0.tar.gz
+    cd sextractor-2.5.0
+    ./configure --bindir=${BINDIRA} --prefix=${PREFIX}
+    make clean
+    make install
+    cd ../
+    \rm -rf sextractor-2.5.0
+fi
 
 # Install match
 
+cd ${basedir}
 if [ ! -f $BINDIRA/match ]; then
     echo "Installing match."
     gunzip < match-tar.gz | tar xf -
@@ -60,26 +68,29 @@ if [ ! -f $BINDIRA/match ]; then
 fi
 
 # Install wcstools
-
-    echo "Installing WCStools."
-    gunzip < wcstools-2.9.3.tar.gz | tar xf -
-    cd wcstools-2.9.3
+cd ${basedir}
+if [ ! -f ${BINDIRA}/gethead ]; then
+   echo "Installing WCStools."
+   tar zxf wcstools-3.8.7.tar | tar xf -
+    cd wcstools-3.8.7
     make $MAKEWCSARGS all
     cd bin
     \cp * $BINDIRA
-    cd ../..
-    \rm -rf wcstools-2.9.3
+    cd ${basedir}
+    \rm -rf wcstools-3.8.7
+fi
 
-# Editing configuration files
+## Editing configuration files
 ## but use these sex configs still
+
 echo "Editing configuration files."
-cd config
+cd ${basedir}/config
 cat fnd-c.sex | sed "s|AA-CONFIGDIR|$CONFIGDIR|" > fnd.sex.edited
 \mv fnd.sex.edited ${CONFIGDIR}/fnd.sex
 cat fnd_bright-c.sex | sed "s|AA-CONFIGDIR|$CONFIGDIR|" > fnd_bright.sex.edited
 \mv fnd_bright.sex.edited ${CONFIGDIR}/fnd_bright.sex
 \cp * ${CONFIGDIR}/
-cd ..
+cd ${basedir}
 
 cat match_matt-c | sed "s|AA-PERLDIR|$PERLDIR|" > match_matt.edited
 \mv match_matt.edited match_matt

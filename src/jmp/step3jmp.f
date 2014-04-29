@@ -37,7 +37,6 @@ C -*-compile-command: "cf77 -O6 -o ../bin/LINUX/step3jmp step3jmp.f -L ../lib/LI
       common /c1/min_day_m, max_day_m, tol_dis_lin, min_motion_pix
       common /angles/ang_mean, ang_width
 
-      external iargc
 
 c Create a file for later error handling
 

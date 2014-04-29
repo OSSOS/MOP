@@ -9,7 +9,7 @@ task_list = [CANDS_TASK, REALS_TASK, TRACK_TASK]
 suffixes = {
     CANDS_TASK: ".cands.astrom",
     REALS_TASK: ".reals.astrom",
-    TRACK_TASK: ".track"
+    TRACK_TASK: ".ast"
 }
 
 

@@ -1,3 +1,6 @@
+import re
+import requests
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import cStringIO
@@ -7,6 +10,9 @@ import vos
 
 from ossos.gui import logger
 
+
+SERVER='https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/vospace/'
+# OSSOS/dbimages/1625660/1625660p.fits?cutout=[1][990:1140,4144:4294]'
 
 class Downloader(object):
     """
@@ -31,9 +37,24 @@ class Downloader(object):
           raw_string: str
             The data downloaded as a string.
         """
-        logger.debug("Starting download: %s" % uri)
-        buff = self.vosclient.open(uri, **kwargs).read()
-        logger.debug("Got {} chars".format(len(buff)))
+        certfile = self.vosclient.conn.certfile
+        if "URL" in kwargs.keys():
+            r = requests.get(kwargs['URL'], cert=certfile)
+            buff = r.content
+            return buff
+
+        if not 'vos:' in uri:
+            logger.debug("cadcVOFS download: %s" % uri)
+            buff = self.vosclient.open(uri, **kwargs).read()
+        else:
+            groups = re.match("vos:(?P<path>.*)", uri)
+            logger.debug("requests download")
+            params = None
+            if 'cutout' in kwargs.keys():
+                params = {'cutout': kwargs['cutout']}
+            r = requests.get(SERVER+groups.group('path'),params=params, cert=certfile)
+            buff = r.content
+
         return buff
 
     def download_hdulist(self, uri, **kwargs):

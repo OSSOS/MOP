@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-
+#!python
+# A script to do validation
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import argparse
@@ -8,14 +8,16 @@ import tempfile
 from ossos.gui import tasks
 
 
-def launch_app(task, working_directory, output_directory, dry_run, debug):
+def launch_app(task, working_directory, output_directory, dry_run, debug, name_filter=None, 
+               user_name=None, skip_previous=False):
     # Put import here to avoid the delay loading them.  This allows quick
     # feedback when argparse can tell the arguments are invalid, and makes
     # getting help with the -h flag faster.
     from ossos.gui.app import create_application
 
     create_application(task, working_directory, output_directory,
-                       dry_run=dry_run, debug=debug)
+                       dry_run=dry_run, debug=debug, name_filter=name_filter,
+                       user_id=None, skip_previous=None)
 
 
 def main():
@@ -37,6 +39,13 @@ def main():
     parser.add_argument("--debug",
                         action="store_true",
                         help="wx inspection tool will be launched.")
+    parser.add_argument("--name-filter",
+                        dest="name_filter",
+                        help="A filter to apply to object names when loading from a directory.")
+    parser.add_argument("--skip-previous", action="store_true",
+                        dest="skip_previous",
+                        help="Don't show me observation that are already in the input files, TRACKS only")
+    parser.add_argument("--username", dest="username", help="Your CADC username")
 
     args = parser.parse_args()
 
@@ -46,7 +55,8 @@ def main():
     else:
         output = args.output
 
-    launch_app(args.task, args.input, output, args.dry_run, args.debug)
+    launch_app(args.task, args.input, output, args.dry_run, args.debug, args.name_filter,
+               args.username, args.skip_previous)
 
 
 if __name__ == "__main__":
