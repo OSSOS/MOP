@@ -30,6 +30,7 @@ __Version__ = "2.0"
 import re, os, string, sys
 import vos
 import numpy as np
+import logging
 from scipy import stats
 from cStringIO import StringIO
 from astropy.io import fits 
@@ -57,8 +58,7 @@ def trim(hdu, datasec='DATASEC'):
     r=int(datasec[1])
     b=int(datasec[2])-1
     t=int(datasec[3])
-    if opt.verbose:
-        print "Trimming [%d:%d,%d:%d]" % ( l,r,b,t)
+    logger.info("Trimming [%d:%d,%d:%d]" % ( l,r,b,t))
     hdu.data = hdu.data[b:t,l:r]    
     hdu.header.update('DATASEC',
                       "[%d:%d,%d:%d]" % (1,r-l+1,1,t-b+1),
@@ -129,6 +129,10 @@ if __name__=='__main__':
                       action="store_true",
                       dest="verbose",
                       help="Provide feedback on what I'm doing")
+    parser.add_argument("--debug",
+                      action="store_true",
+                      dest="debug",
+                      help="Provide detailed feedback on what I'm doing")
     parser.add_argument("--outfile",
                       action="store",
                       type=str,
@@ -205,6 +209,13 @@ if __name__=='__main__':
     ### get the bias frames from the archive.
     (args)=parser.parse_args()
     opt=args
+
+    logger = logging.getLogger()
+    logger.addHandler(logging.StreamHandler())
+    log_level = opt.verbose and logging.INFO  or logging.CRITICAL
+    log_level = opt.debug and logging.DEBUG or log_level 
+    logger.setLevel(log_level)
+
     file_ids = args.images
 
     vos_client = vos.Client()
@@ -226,8 +237,7 @@ if __name__=='__main__':
     images={}
     file_names=[]
     for file_id in file_ids:
-        if opt.verbose:
-            print "Attempting to get and open file assocaiated with  "+str(file_id)
+        logger.info( "Attempting to get and open file assocaiated with  "+str(file_id))
 	if not re.match(r'.*.fits.*',file_id):
             filename=file_id+"o.fits.fz"
 	else :
@@ -275,7 +285,7 @@ if __name__=='__main__':
     ccds=args.ccds
 
     for ccd in ccds:
-        print "Working on ccd "+str(ccd)
+        logger.info( "Working on ccd "+str(ccd))
 	stack=[]
 	mstack=[]
         nim=0
@@ -293,8 +303,8 @@ if __name__=='__main__':
                 re.match(r'(^.*)\.fits.fz',opt.outfile)
                 outfile=opt.outfile
             else:
-                print "\nMulitple input images with only one output"
-                print "but --output option not set? [Logic Error]"
+                logger.error(("Mulitple input images with only one output "
+                              "but --output option not set? [Logic Error]"))
                 sys.exit(-1)
             subs="."
             if opt.dist:
@@ -317,28 +327,23 @@ if __name__=='__main__':
                 sys.exit("Output file "+outfile+" already exists")
                 
             ### do the overscan for each file
-            print "Processing "+filename
+            logger.info("Processing "+filename)
 
             if opt.overscan:
-                if opt.verbose:
-                    print "Overscan subtracting"
+                logger.info( "Overscan subtracting")
                 overscan(hdu)
             if opt.bias:
-                if opt.verbose:
-                    print "Subtracting bias frame "+opt.bias
+                logger.info( "Subtracting bias frame "+opt.bias)
                 hdu.data -= bias[ccd+1].data
             if opt.trim:
-                if opt.verbose:
-                    print "Triming image"
+                logger.info( "Triming image")
                 trim(hdu)
             if opt.flat:
-                if opt.verbose:
-                    print "Dividing by flat field "+opt.flat
+                logger.info( "Dividing by flat field "+opt.flat)
                 hdu.data /= flat[ccd+1].data
                 hdu.header.update("Flat",opt.flat,comment="Flat Image")
             if opt.normal:
-                if opt.verbose:
-                    print "Normalizing the frame"
+                logger.info("Normalizing the frame")
                 (h, b) = np.histogram(hdu.data,bins=1000)
                 idx = h.argsort()
                 mode = float((b[idx[-1]]+b[idx[-2]])/2.0)
@@ -346,8 +351,7 @@ if __name__=='__main__':
 
             if opt.flip:
 	        if ccd < 18 :
-                    if opt.verbose:
-                        print "Flipping the x and y axis"
+                    logger.info( "Flipping the x and y axis")
                     hdu.data = hdu.data[::-1,::-1]
                     hdu.header['CRPIX2']= hdu.data.shape[0] - hdu.header['CRPIX2'] 
                     hdu.header['CRPIX1'] = hdu.data.shape[1] - hdu.header['CRPIX1']
@@ -362,8 +366,7 @@ if __name__=='__main__':
                     hdu.header.update(keyword,hdu.header.get(keyword,default=elixir_header[keyword][0]), elixir_header[keyword][1])
 
             if not opt.combine or len(file_names)==1:
-                if opt.verbose:
-                    print "writing data to "+outfile
+                logger.info( "writing data to "+outfile)
                 ### write out the image now (don't overwrite
                 ### files that exist at the start of this process
                 if opt.split:
@@ -390,7 +393,7 @@ if __name__=='__main__':
 		    hdul.append(fits.ImageHDU(data=hdu.data,
                                               header=hdu.header))
                     if opt.short:
-                        print "Scaling to interger"
+                        logger.info("Scaling to interger")
                         hdul[-1].scale('int16', bzero=32768)
                     hdul.close()
                 hdu = None
@@ -398,8 +401,7 @@ if __name__=='__main__':
                 nim=0
             else:
                 ### stack em up
-                if opt.verbose:
-                    print "Saving the data for later"
+                logger.info( "Saving the data for later")
 		data = hdu.data
 	        naxis1 = hdu.data.shape[0]
 	        naxis2 = hdu.data.shape[1]
@@ -415,8 +417,7 @@ if __name__=='__main__':
         ### if this is a combine and we have more than on hdu
             
         if opt.combine and len(file_names)>1:
-            if opt.verbose:
-                print "Median combining "+str(nim)+" images"
+            logger.info( "Median combining "+str(nim)+" images")
             mstack = np.vstack(mstack)
             mstack.shape = [len(file_names),naxis1,naxis2]
             data = np.percentile(mstack, 40, axis=0)
@@ -430,20 +431,17 @@ if __name__=='__main__':
             
             for im in file_names:
                 hdu.header['comment'] = str(im)+" used to make this flat"
-            if opt.verbose:
-                print "writing median combined stack to file "+outfile
+            logger.info("writing median combined stack to file "+outfile)
             if opt.split:
                 fitsobj=fits.open(outfile,'update')
                 fitsobj[0]=hdu
                 if opt.short:
-                    if opt.verbose:
-                        print "Scaling data to ushort"
+                    logger.info("Scaling data to ushort")
                     fitsobj[0].scale(type='int16', bzero=32768)
 		fitsobj.close()
             else:
                 if not os.access(outfile,os.W_OK) :
-                    if opt.verbose:
-                        print "Creating output image "+outfile
+                    logger.info( "Creating output image "+outfile)
                     fitsobj = fits.HDUList()
                     pdu = fits.PrimaryHDU()
                     fitsobj.append(fits.PrimaryHDU())
@@ -452,8 +450,7 @@ if __name__=='__main__':
                 fitsobj=fits.open(outfile,'append')
                 fitsobj.append(stack)
                 if opt.short:
-                    if opt.verbose:
-                        print "Scaling data to ushort"
+                    logger.info("Scaling data to ushort")
                     fitsobj[-1].scale(type='int16', bzero=32768)
                 fitsobj.close()
             del(stack)
