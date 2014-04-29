@@ -361,17 +361,18 @@ class SSOSParser(object):
             nrows -= 1
 
 
-            previous = False
-            for mpc_observation in mpc_observations:
-                try:
-                    if mpc_observation.comment.frame=="{}p{:02d}".format(expnum,ccd):
-                        sys.stderr.write("Skipping {}p{:02d}\n".format(expnum, ccd))
-                        previous = True
-                        break
-                except:
-                    pass
-            if previous and self.skip_previous:
-                continue
+            if self.skip_previous:
+                previous = False
+                for mpc_observation in mpc_observations:
+                    try:
+                        if mpc_observation.comment.frame=="{}p{:02d}".format(expnum,ccd):
+                            sys.stderr.write("Skipping {}p{:02d}\n".format(expnum, ccd))
+                            previous = True
+                            break
+                    except:
+                        pass
+                if previous:
+                    continue
             sys.stderr.write("\r{}\r {}: observation {} {} {} {} from SSOS .. ".format(" "*190, nrows, expnum, ccd, X, Y))
             observation = self.build_source_reading(expnum, ccd, X, Y)
             logger.info('built source reading {}'.format(observation))
