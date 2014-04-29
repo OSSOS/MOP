@@ -38,7 +38,7 @@ C -*-compile-command: "cf77 -O6 -o ../bin/LINUX/step2bjmp step2bjmp.f -L ../lib/
      $  help, finished, ok(n_o_max_cat), alone(n_o_max_cat),
      $  identified(n_o_max_cat,maxframes)
 
-      external iargc, trans
+      external trans
 
 c Create a file for later error handling
 

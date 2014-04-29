@@ -93,5 +93,5 @@ VERBOSE_TYPE	QUIET		# can be "QUIET", "NORMAL" or "FULL" (*)
 
 #------------------------------- New Stuff -----------------------------------
 
-WEIGHT_TYPE	WEIGHT_MAP
+WEIGHT_TYPE	MAP_WEIGHT
 WEIGHT_IMAGE	weight.fits

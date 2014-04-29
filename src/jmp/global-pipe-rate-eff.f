@@ -20,7 +20,6 @@ C global-pipe-rate-eff.f -L../../lib/LINUX -ljmp"; -*-
 
       logical help, finished, no_s, no_r, no_f, no_mn, no_mx
 
-      external iargc
 
 c Create a file for later error handling
 

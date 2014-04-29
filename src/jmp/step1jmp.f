@@ -30,7 +30,6 @@ C When actually using g77, add the option -fno-automatic
       logical
      $  finished, help, no_f, no_m, no_t, no_w, two_thresh
 
-      external iargc
 
 c Create a file for later error handling
 

@@ -65,7 +65,8 @@ class ImageManager(object):
     def get_cutout(self, reading):
         try:
             return self._cutouts[reading]
-        except KeyError:
+        except KeyError as err:
+            logger.info(str(err)+str(reading))
             raise ImageNotLoadedException(reading)
 
     def download_triplets_for_workunit(self, workunit):

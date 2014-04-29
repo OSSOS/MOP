@@ -6,15 +6,16 @@ from ossos import storage
 from ossos.gui.progress import LocalProgressManager, VOSpaceProgressManager
 
 
-def get_context(directory):
+def get_context(directory, userid=None):
     if directory.startswith("vos:"):
-        return VOSpaceWorkingContext(directory)
+        return VOSpaceWorkingContext(directory, userid=userid)
     else:
-        return LocalDirectoryWorkingContext(directory)
+        return LocalDirectoryWorkingContext(directory, userid=userid)
 
 
 class WorkingContext(object):
-    def __init__(self, directory):
+    def __init__(self, directory, userid=None):
+        self.userid = userid
         self.directory = directory
 
     def is_remote(self):
@@ -49,8 +50,8 @@ class WorkingContext(object):
 
 
 class LocalDirectoryWorkingContext(WorkingContext):
-    def __init__(self, directory):
-        super(LocalDirectoryWorkingContext, self).__init__(directory)
+    def __init__(self, directory, userid=None):
+        super(LocalDirectoryWorkingContext, self).__init__(directory, userid=userid)
 
     def is_remote(self):
         return False
@@ -82,12 +83,12 @@ class LocalDirectoryWorkingContext(WorkingContext):
         os.remove(self.get_full_path(filename))
 
     def get_progress_manager(self):
-        return LocalProgressManager(self)
+        return LocalProgressManager(self, userid=self.userid)
 
 
 class VOSpaceWorkingContext(WorkingContext):
-    def __init__(self, directory):
-        super(VOSpaceWorkingContext, self).__init__(directory)
+    def __init__(self, directory, userid=None):
+        super(VOSpaceWorkingContext, self).__init__(directory, userid=userid)
 
     def is_remote(self):
         return True
@@ -125,4 +126,4 @@ class VOSpaceWorkingContext(WorkingContext):
         storage.delete_uri(self.get_full_path(filename))
 
     def get_progress_manager(self):
-        return VOSpaceProgressManager(self, track_partial_progress=False)
+        return VOSpaceProgressManager(self, track_partial_progress=False, userid=self.userid)

@@ -31,7 +31,6 @@ C -*-compile-command: "cf77 -O6 -o ../bin/step2jmp step2jmp.f; /bin/rm step2jmp.
      $  bright_stars_cats(maxframes)*100, infile_cats(maxframes)*100,
      $  unidentif_file_cats(maxframes)*100
 
-      external iargc
 
 c Create a file for later error handling
 

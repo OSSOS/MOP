@@ -21,7 +21,6 @@ C -*-compile-command: "g77 -O3 -o ../../bin/LINUX/global-mag-rate-eff global-mag
 
       logical help, finished, no_rs, no_rn, no_f, no_mn, no_ms
 
-      external iargc
 
 c Create a file for later error handling
 

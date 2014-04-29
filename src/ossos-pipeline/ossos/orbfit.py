@@ -2,12 +2,13 @@ __author__ = 'jjk'
 
 import ctypes
 import tempfile
-import sys
 
 from astropy import coordinates
 from astropy import units
+
 from mpc import Observation
 from ossos.mpc import Time
+
 
 LIBORBFIT = "/usr/local/lib/liborbfit.so"
 
@@ -69,6 +70,7 @@ class Orbfit(object):
                 ra = obs.ra.replace(" ", ":")
                 dec = obs.dec.replace(" ", ":")
                 res = 0.3
+                print "FIT: "+str(observation)
                 mpc_file.write("{} {} {} {} {}\n".format(obs.date.jd, ra, dec, res, 568, ))
         mpc_file.seek(0)
 
@@ -152,10 +154,19 @@ class Orbfit(object):
         use the bk predict method to compute the location of the source on the given date.
         """
         if not isinstance(date, Time):
-            try:
-               date = Time(float(date), format='jd', scale='utc', precision=6)
-            except:
-               date = Time(date, format='jd', scale='utc', precision=6)
+            if isinstance(date, float):
+                try:
+                    date = Time(date, format='jd', scale='utc', precision=6)
+                except:
+                    date = None  # FIXME: this might blow up, not sure
+            else:
+                try:
+                    date = Time(date, format='jd', scale='utc', precision=6)
+                except ValueError:
+                    try:
+                        date = Time(date, format='mpc', scale='utc', precision=6)
+                    except ValueError:
+                        date = Time(date, scale='utc', precision=6)  # see if it can guess
 
         jd = ctypes.c_double(date.jd)
         # call predict with agbfile, jdate, obscode

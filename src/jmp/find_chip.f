@@ -22,7 +22,6 @@ C When actually using g77, add the option -fno-automatic
       logical
      $  finished, help, no_f, no_r, no_d, no_o
 
-      external iargc
 
       data
      $  MC_chip    / 0, 1, 2, 3, 4, 5, 6, 7, 8,

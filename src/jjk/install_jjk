@@ -16,7 +16,9 @@ for file in "*.pl" "*.csh" ; do
 done;
 
 cp aclient_$ARCH  $BINDIRA/aclient
+cp measure3 ${BINDIR}/measure3
 
+gfortran -o ${BINDIRA}/sky2xypv sky2xypv.f
 
 cd ../Bucket
 echo "installing Bucket"
