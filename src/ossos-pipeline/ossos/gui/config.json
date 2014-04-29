@@ -16,8 +16,8 @@
 
     "CUTOUTS": {
         "SINGLETS": {
-            "SLICE_ROWS": 150,
-            "SLICE_COLS": 150
+            "SLICE_ROWS": 250,
+            "SLICE_COLS": 250
         },
         "TRIPLETS": {
             "SLICE_ROWS": 50,
