@@ -91,7 +91,6 @@ class MPCFieldFormatError(MPCFormatError):
             "Field %s: %s; but was %s" % (field, requirement, actual))
 
 
-
 def format_ra_dec(ra_deg, dec_deg):
     """
     Converts RA and DEC values from degrees into the formatting required
@@ -233,7 +232,7 @@ class Discovery(object):
             raise MPCFieldFormatError("discovery",
                                       "must be one of '',' ','&', '*',True, False. Was: ",
                                       is_discovery)
-        self._is_discovery = (is_discovery in ['*','&', True] and True) or False
+        self._is_discovery = (is_discovery in ['*', '&', True] and True) or False
 
     @is_initial_discovery.setter
     def is_initial_discovery(self, is_discovery):
@@ -429,10 +428,13 @@ class Observation(object):
         self._minor_planet_number = None
         self.minor_planet_number = minor_planet_number
         self._null_observation = False
-        self.null_observation = self.minor_planet_number[0] in NULL_OBSERVATION_CHARACTERS or null_observation
+        self.null_observation = null_observation or \
+                                (self.minor_planet_number is not None and
+                                 len(self.minor_planet_number) > 0 and
+                                 self.minor_planet_number[0] in NULL_OBSERVATION_CHARACTERS)
         self.null_observation_character = "!"
-        if self.minor_planet_number[0] in NULL_OBSERVATION_CHARACTERS:
-            self.minor_planet_number = " "+self.minor_planet_number[1:]
+        if self.minor_planet_number is not None and len(self.minor_planet_number) > 0 and self.null_observation:
+            self.minor_planet_number = " " + self.minor_planet_number[1:]
         self._provisional_name = ""
         self.provisional_name = provisional_name
         self.discovery = discovery
@@ -536,7 +538,7 @@ class Observation(object):
         self.null_observation_character = "-"
         mpc_observation = str(self)
 
-        return comment_line+'\n'+mpc_observation
+        return comment_line + '\n' + mpc_observation
 
     def to_mpc(self):
         self.null_observation_character = "#"
@@ -829,11 +831,11 @@ class MPCComment(object):
                 self._mag = "{:5.2f}".format(float(mag))
                 self.PNote = "Y"
             else:
-                self._mag = " "*5
+                self._mag = " " * 5
                 self.PNote = "Z"
         except:
             self.PNote = "Z"
-            self._mag = " "*5
+            self._mag = " " * 5
 
     @property
     def mag_uncertainty(self):
@@ -845,13 +847,13 @@ class MPCComment(object):
             if float(mag_uncertainty) > 0:
                 self._mag_uncertainty = "{:4.2f}".format(float(mag_uncertainty))
             else:
-                self._mag_uncertainty = " "*4
+                self._mag_uncertainty = " " * 4
                 if str(self.mag).isdigit():
                     self.PNote = "L"
                 else:
                     self.PNote = "Z"
         except:
-            self._mag_uncertainty = " "*4
+            self._mag_uncertainty = " " * 4
             self.PNote = "Z"
 
     @property
@@ -1064,7 +1066,7 @@ class Index(object):
                 self.names[master_name] = master_name
                 self.index[master_name] = [master_name]
                 for i in range(Index.MAX_NAME_LENGTH, len(line), Index.MAX_NAME_LENGTH):
-                    this_name = line[i:i+Index.MAX_NAME_LENGTH].strip()
+                    this_name = line[i:i + Index.MAX_NAME_LENGTH].strip()
                     self.index[master_name].append(this_name)
                     self.names[this_name] = master_name
 
@@ -1128,7 +1130,7 @@ class MPCConverter(object):
                 self.write_header = False
 
             for obs in observations:
-                self.outfile.write(obs.to_tnodb()+'\n')
+                self.outfile.write(obs.to_tnodb() + '\n')
 
     @classmethod
     def batch_convert(cls, path):
