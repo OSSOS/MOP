@@ -17,6 +17,7 @@ real	swidth {15,prompt="swidth as fraction of FWHM"}
 string  base  {"./",prompt="Working directory (include trailing /)."}
 int     order  {3, prompt="Order of the psf. 3 is vary in x and y"}
 real    zeropt {26.0,prompt="Photometric zeropoint"}
+bool    keep_files {no, prompt="Do you want to keep the intermediate files?"}
 
 string  *aplist
 
@@ -34,7 +35,7 @@ begin
  	int t_order
 	real t_maxlin
 	real t_threshold
-
+	bool t_keep_files
 # procedure variables
 	int failedflag, npsfstar
 	real xsig
@@ -54,29 +55,30 @@ begin
 	real p_fwhm, step0_fwhm
   
 
-	# Flow monitoring control
-	touch (image//".jmpmakepsf.FAILED")
-	print("invoked with : "//image//" , "//psf, >> image//".jmpmakepsf.FAILED")
-	failedflag = 0
-
 	# Set the internal variables from the called variables.
 	# this ensures that any prompting happens at the start of the script
-	t_image = image  
-	t_psf = psf  
+	t_image = image
+	t_psf = psf
 	t_fwhm = fwhm
-    t_apin = apin
-	t_apout = apout
-	t_swidth = swidth
-	t_base  = base  
-	t_zeropoint = zeropt
 	t_threshold = thresh
 	t_maxlin = maxlin
+	t_apin = apin
+	t_apout = apout
+	t_swidth = swidth
+	t_base = base
 	t_order = order
+	t_zeropoint = zeropt
+	t_keep_files = keep_files
 
-    # ensure that the directory for writing has a traling '/'
+	# Flow monitoring control
+	touch (t_image//".jmpmakepsf.FAILED")
+	print("invoked with : "//t_image//" , "//psf, >> t_image//".jmpmakepsf.FAILED")
+	failedflag = 0
+
+	
+    	# ensure that the directory for writing has a traling '/'
 	if (substr(t_base,strlen(t_base),strlen(t_base)) != "/" )
 	    t_base = t_base//"/" 
-
 	t_image = t_base//t_image
 	t_psf = t_image//"."//t_psf
 
@@ -84,13 +86,13 @@ begin
 	apmax = t_fwhm*t_apout
 
     # In case of failure, record paramaters
-	print("FWHM  : ", t_fwhm, >> image//".jmpmakepsf.FAILED")
-	print("apmin : ", apmin, >> image//".jmpmakepsf.FAILED")
-	print("apmax : ", apmax, >> image//".jmpmakepsf.FAILED")
-	print("thresh: ", t_threshold, >> image//".jmpmakepsf.FAILED")
-	print("maxlin: ", t_maxlin, >> image//".jmpmakepsf.FAILED")
-	print("base  : ", t_base, >> image//".jmpmakepsf.FAILED")
-	print("ZP    : ", t_zeropoint, >> image//".jmpmakepsf.FAILED")
+	print("FWHM  : ", t_fwhm, >> t_image//".jmpmakepsf.FAILED")
+	print("apmin : ", apmin, >> t_image//".jmpmakepsf.FAILED")
+	print("apmax : ", apmax, >> t_image//".jmpmakepsf.FAILED")
+	print("thresh: ", t_threshold, >> t_image//".jmpmakepsf.FAILED")
+	print("maxlin: ", t_maxlin, >> t_image//".jmpmakepsf.FAILED")
+	print("base  : ", t_base, >> t_image//".jmpmakepsf.FAILED")
+	print("ZP    : ", t_zeropoint, >> t_image//".jmpmakepsf.FAILED")
 
 	kdelete(t_image//".zeropoint.used")
 	print(t_zeropoint,> t_image//".zeropoint.used")
@@ -136,7 +138,7 @@ begin
 	} else {
 	   failedflag = 1
 	   print ("stepZjmp FAILED")
-	   print ("stepZjmp FAILED", >> image//".jmpmakepsf.FAILED")
+	   print ("stepZjmp FAILED", >> t_image//".jmpmakepsf.FAILED")
 	   goto finalproc
 	}
 
@@ -146,7 +148,7 @@ begin
 	   kdelete ("step0jmp.FAILED")
 	   kdelete ("step0jmp.OK")
 	} else {   
-	   print ("step0jmp FAILED", >> image//".jmpmakepsf.FAILED")
+	   print ("step0jmp FAILED", >> t_image//".jmpmakepsf.FAILED")
 	   failedflag=1
 	   goto finalproc
 	}
@@ -162,20 +164,21 @@ begin
  	kdelete(t_image//".mag")
 	phot( t_image, 
 		  t_image//".bright.psf",
-		  t_image//".mag",
-		  centerpars.calgori="centroid" )
+		  t_image//".bright.mag",
+		  centerpars.calgori="centroid",
+		  centerpars.maxshift=3 )
 
 	# reject stars with any error in the calculation 
 	# of their photometric magnitude
 	kdelete(t_image//".coo.1")
-	txdump (t_image//".mag",
+	txdump (t_image//".bright.mag",
 			"XCEN,YCEN",
 			"(SIER==0)&&(CIER==0)&&(PIER==0)", > t_image//".coo.1");
 	
 	# Determine the sky threshold:
-#    Used reject stars with larger sky background than average and with any error
-	txdump(t_image//".mag","MSKY","(SIER==0)&&(CIER==0)&&(PIER==0)&&(MSKY!=INDEF)&&(MSKY<1e5)&&(MSKY>0)") | average | scan(sig,dum,nsamp);
-	txdump(t_image//".mag","STDEV","(SIER==0)&&(CIER==0)&&(PIER==0)&&(MSKY!=INDEF)&&(MSKY<1e5)&&(MSKY>0)") | average | scan(ssig,dum,nsamp);
+	# Used reject stars with larger sky background than average and with any error
+	txdump(t_image//".bright.mag","MSKY","(SIER==0)&&(CIER==0)&&(PIER==0)&&(MSKY!=INDEF)&&(MSKY<1e5)&&(MSKY>0)") | average | scan(sig,dum,nsamp);
+	txdump(t_image//".bright.mag","STDEV","(SIER==0)&&(CIER==0)&&(PIER==0)&&(MSKY!=INDEF)&&(MSKY<1e5)&&(MSKY>0)") | average | scan(ssig,dum,nsamp);
 
 	print ("SKY: "//sig//" STDEV: "//ssig//" NPOINT: "//nsamp);
 
@@ -185,32 +188,36 @@ begin
 	p_fwhm = -1
 	niters = 0
 	while ( ( p_fwhm < 0 || abs(p_fwhm - t_fwhm)/t_fwhm > 0.01 ) && niters < 5 ) {
-		niters = niters + 1
-        p_fwhm = t_fwhm
+	    niters = niters + 1
+	    p_fwhm = t_fwhm
+
 	    # We should use a minimum aperture that is about 1.1 -1.2 the FWHM
 	    # This is set at the start of the psf loop so the PSF small aperture
 	    # matches that used in mkapfile after the PSF is built.
 	    # We do this twice since the first time we build 
-		# the PSF with the input FWHM
-	    #  and the second time using the FWHM determined from the PSF stars
+	    # the PSF with the input FWHM
+	    # and the second time using the FWHM determined from the PSF stars
 
 	    apmin = int(10*t_apin*t_fwhm + 0.5) / 10.0
-        apmax = int(10*t_apout*t_fwhm + 0.5) / 10.0
+            apmax = int(10*t_apout*t_fwhm + 0.5) / 10.0	
+
 	    # using an aperture smaller than 1.5 pixels under samples
 	    if ( apmin < 1.5 )  {
 		apmin = 1.5
 	    }
+
 	    # Adjust the large aperture size too, and the sky fitting parameters
 	    fitskypars.dannulus = t_swidth*t_fwhm
 	    fitskypars.annulus =  apmax + 2
+
 	    # set the PSF radius and fitting radius
 	    daopars.fitrad = apmin
 	    daopars.psfrad = apmax
 	    datapars.fwhm = t_fwhm
 	    print "Using fwhm of --> "//t_fwhm
+
 	    ## using the good stars found outside the loop, reduce the aperture to the 
 	    ## small aperture and do the photometry to get PSF onto scale of small ap photometry
-
 	    photpars.apertures = apmin
 	    kdelete(t_image//".mag")
 	    phot(t_image,t_image//".coo.1",t_image//".mag",centerpars.calgori="centroid")
@@ -219,15 +226,16 @@ begin
 	    ## the first step removes those stars that have INDEF values for MSKY since those 
 	    ## stars cause math errors during the second step
 	    temp_mag=mktemp(t_image)
-	    pselect (t_image//".mag",temp_mag,"(CIER==0)&&(PIER==0)&&(SIER==0)&&(MSKY>0 && MSKY < 1e5 && MSKY!=INDEF )")
+	    pselect(t_image//".mag",temp_mag,"(CIER==0)&&(PIER==0)&&(SIER==0)&&(MSKY>0 && MSKY < 1e5 && MSKY!=INDEF )")
+
 	    ## now the 'INDEF' values of MSKY are gone so remove stars with large MSKY deviations
 	    kdelete(t_image//".phot")
 	    pselect(temp_mag,t_image//".phot",\
 		    "CIER == 0 && (abs(MSKY - "//sig//") < 3.0*"//ssig//")")
 	    kdelete(temp_mag)
-	
 
 	    ## time to select upto 25 PSF stars, from the good stars we have left.
+	    print "Selecting upto 25 PSF stars from "//t_image//".phot"
 	    kdelete(t_image//".pst.1")
 	    pstselect(t_image,t_image//".phot",t_image//".pst.1",25)
 
@@ -258,7 +266,7 @@ begin
 	    
 	    ## we must have 10 or more stars to get a good psf...
 	    if ( npsfstar < 9 ) {
-	        print("Too few psf stars")
+	        print("Only "//npsfstar//" where used to build the image, terminating")
 	        failedflag=1
 	        goto finalproc
 	    }
@@ -307,7 +315,7 @@ begin
 
 	# Run PHOT with a range of apertures.
 	kdelete(t_image//".mag.2")
-    photpars.apertures=apmin//":"//apmax//":1"
+    	photpars.apertures=apmin//":"//apmax//":1"
 	naps = apmax - apmin +1
 	if (naps < 3) {
 	    print("inner ("//apmin//") and outer ("//apmax//") aperatures must differ by more than 2 pixels\n")
@@ -371,12 +379,18 @@ begin
 
 
 finalproc:
-	delete(t_image//".mag*",verify-)
-	delete(t_image//".pst*",verify-)
-	delete(t_image//".psg*",verify-)
-	delete(t_image//".coo*",verify-)
-	delete(t_image//".nrj*",verify-)
-	delete(t_image//".nst*",verify-)
+
+	if ( t_keep_files )  {
+	    print("Keeping intermediate files")
+        } else {
+	    delete(t_image//".bright.mag", verify-)
+	    delete(t_image//".mag*", verify-)
+	    delete(t_image//".pst*", verify-)
+	    delete(t_image//".psg*", verify-)
+	    delete(t_image//".coo*", verify-)
+	    delete(t_image//".nrj*", verify-)
+	    delete(t_image//".nst*", verify-)
+	}
 
 	if ( failedflag == 0 ) {
 		if ( imaccess(t_psf) ) {
