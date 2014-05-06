@@ -23,9 +23,9 @@ echo $fcexists
 echo $FFLAGS
 echo $LIBDIRA
 if [ "$fcexists" -eq "0" ]; then
-  "$FC -o $BINDIRA/stepZjmp $FFLAGS stepZjmp.f -L$LIBDIRA -ljmp -lcfitsio  -fPIC"
-  "$FC -o $BINDIRA/step0jmp $FFLAGS step0jmp.f -L$LIBDIRA -ljmp -lcfitsio  -fPIC"
-  "$FC -o $BINDIRA/step1jmp $FFLAGS step1jmp.f -L$LIBDIRA -ljmp -lcfitsio  -fPIC"
+  $FC -o $BINDIRA/stepZjmp $FFLAGS stepZjmp.f -L$LIBDIRA -ljmp -lcfitsio  -fPIC
+  $FC -o $BINDIRA/step0jmp $FFLAGS step0jmp.f -L$LIBDIRA -ljmp -lcfitsio  -fPIC
+  $FC -o $BINDIRA/step1jmp $FFLAGS step1jmp.f -L$LIBDIRA -ljmp -lcfitsio  -fPIC
   $FC -o $BINDIRA/step2ajmpl $FFLAGS step2ajmpl.f -L$LIBDIRA -ljmp 
   $FC -o $BINDIRA/step2ajmps step2ajmps.f -L$LIBDIRA -ljmp 
   $FC -o $BINDIRA/step2bjmp step2bjmp.f -L$LIBDIRA -ljmp 
