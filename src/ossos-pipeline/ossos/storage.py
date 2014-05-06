@@ -324,14 +324,24 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
 
         logger.debug(uri)
         param = {'cutout': cutout}
-        url = uri.replace("vos:","https://www.canfar.phys.uvic.ca/data/pub/vospace/")
-        logger.debug(url)
-        with open(filename,'w') as fout:
+
+        # First try and get with vos then try with requests.
+
+        try:
+            with open(filename, 'w') as fout:
+                vh = vospace.open(uri, view="cutout", cutout=cutout)
+                fout.write(vh.read())
+                vh.close()
+        except:
+            url = uri.replace("vos:","https://www.canfar.phys.uvic.ca/data/pub/vospace/")
+            logger.debug(url)
             try:
-                fout.write(requests.get(url, params=param, cert=vospace.conn.certfile).content)
+                with open(filename,'w') as fout:
+                    fout.write(requests.get(url, params=param, cert=vospace.conn.certfile).content)
             except:
-                fout.seek(0)
-                fout.write(requests.get(url+".fz", params=param, cert=vospace.conn.certfile).content)
+                with open(filename,'w') as fout:
+                    fout.seek(0)
+                    fout.write(requests.get(url+".fz", params=param, cert=vospace.conn.certfile).content)
         if not rescale:
             return filename
         hdu_list = fits.open(filename, 'update', do_not_scale_image_data=True)
