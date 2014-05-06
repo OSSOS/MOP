@@ -79,6 +79,7 @@ if __name__ == '__main__':
                         default=None,
                         help='which ccd to process, default is all'
                         )
+    parser.add_argument('--ignore-update-headers', action='store_true', dest='ignore_update_headers')
 
     parser.add_argument("--dbimages",
                         action="store",
@@ -136,6 +137,8 @@ if __name__ == '__main__':
                 continue
             message = 'success'
             try:
+                if not storage.get_status(expnum, 36, 'update_header') and not args.ignore_update_headers :
+                     raise IOError("update_header not yet run for {}".format(expnum))
                 mkpsf(expnum, ccd, args.type, args.dry_run, prefix=prefix)
                 if args.dry_run:
                     continue
