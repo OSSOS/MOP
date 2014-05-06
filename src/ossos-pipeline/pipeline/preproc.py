@@ -335,7 +335,7 @@ if __name__ == '__main__':
                 re.match(r"(^.*)\.fits.fz", opt.outfile)
                 outfile = opt.outfile
             else:
-                logger.error(("Mulitple input images with only one output "
+                logger.error(("Mulitple input images needs one output "
                               "but --output option not set? [Logic Error]"))
                 sys.exit(-1)
             subs = "."
@@ -368,7 +368,7 @@ if __name__ == '__main__':
                 logger.info("Subtracting bias frame " + opt.bias)
                 hdu.data -= bias[ccd + 1].data
             if opt.trim:
-                logger.info("Triming image")
+                logger.info("Trimming image")
                 trim(hdu)
             if opt.flat:
                 qrunid = hdu.header.get('QRUNID')[0:3]
@@ -384,7 +384,7 @@ if __name__ == '__main__':
                 (h, b) = np.histogram(hdu.data, bins=1000)
                 idx = h.argsort()
                 mode = float((b[idx[-1]] + b[idx[-2]]) / 2.0)
-                hdu.data = hdu.data / mode
+                hdu.data /= mode
 
             if opt.flip:
                 if ccd < 18:
@@ -430,52 +430,52 @@ if __name__ == '__main__':
                 naxis2 = hdu.data.shape[1]
                 mstack.append(data)
 
-    ### free up the memory being used by the bias and flat
-    if opt.bias:
-        bias[ccd + 1].data = None
-    if opt.flat:
-        flat[ccd + 1].data = None
+        ### free up the memory being used by the bias and flat
+        if opt.bias:
+            bias[ccd + 1].data = None
+        if opt.flat:
+            flat[ccd + 1].data = None
 
-    ### last image has been processed so combine the stack
-    ### if this is a combine and we have more than on hdu
+        ### last image has been processed so combine the stack
+        ### if this is a combine and we have more than on hdu
 
-    if opt.combine and len(file_ids) > 1:
-        logger.info("Median combining " + str(nim) + " images")
-        mstack = np.vstack(mstack)
-        mstack.shape = [len(file_ids), naxis1, naxis2]
-        data = np.percentile(mstack, 40, axis=0)
-        del (mstack)
-        stack = fits.ImageHDU(data)
-        stack.header[args.extname_kw] = (hdu.header.get(args.extname_kw, args.extname_kw), 'Extension Name')
-        stack.header['QRUNID'] = (hdu.header.get('QRUNID', ''), 'CFHT QSO Run flat built for')
-        stack.header['FILTER'] = (hdu.header.get('FILTER', ''), 'Filter flat works for')
-        stack.header['DETSIZE'] = hdu.header.get('DETSIZE', '')
-        stack.header['DETSEC'] = hdu.header.get('DETSEC', '')
+        if opt.combine and len(file_ids) > 1:
+            logger.info("Median combining " + str(nim) + " images")
+            mstack = np.vstack(mstack)
+            mstack.shape = [len(file_ids), naxis1, naxis2]
+            data = np.percentile(mstack, 40, axis=0)
+            del (mstack)
+            stack = fits.ImageHDU(data)
+            stack.header[args.extname_kw] = (hdu.header.get(args.extname_kw, args.extname_kw), 'Extension Name')
+            stack.header['QRUNID'] = (hdu.header.get('QRUNID', ''), 'CFHT QSO Run flat built for')
+            stack.header['FILTER'] = (hdu.header.get('FILTER', ''), 'Filter flat works for')
+            stack.header['DETSIZE'] = hdu.header.get('DETSIZE', '')
+            stack.header['DETSEC'] = hdu.header.get('DETSEC', '')
 
-        for im in file_ids:
-            hdu.header['comment'] = str(im) + " used to make this flat"
-        logger.info("writing median combined stack to file " + outfile)
-        if opt.split:
-            fitsobj = fits.open(outfile, 'update')
-            fitsobj[0] = hdu
-            if opt.short:
-                logger.info("Scaling data to ushort")
-                fitsobj[0].scale(type='int16', bzero=32768)
-            fitsobj.close()
-        else:
-            if not os.access(outfile, os.W_OK):
-                logger.info("Creating output image " + outfile)
-                fitsobj = fits.HDUList()
-                pdu = fits.PrimaryHDU()
-                fitsobj.append(fits.PrimaryHDU())
-                fitsobj.writeto(outfile)
+            for im in file_ids:
+                hdu.header['comment'] = str(im) + " used to make this flat"
+            logger.info("writing median combined stack to file " + outfile)
+            if opt.split:
+                fitsobj = fits.open(outfile, 'update')
+                fitsobj[0] = hdu
+                if opt.short:
+                    logger.info("Scaling data to ushort")
+                    fitsobj[0].scale(type='int16', bzero=32768)
                 fitsobj.close()
-            fitsobj = fits.open(outfile, 'append')
-            fitsobj.append(stack)
-            if opt.short:
-                logger.info("Scaling data to ushort")
-                fitsobj[-1].scale(type='int16', bzero=32768)
-            fitsobj.close()
+            else:
+                if not os.access(outfile, os.W_OK):
+                    logger.info("Creating output image " + outfile)
+                    fitsobj = fits.HDUList()
+                    pdu = fits.PrimaryHDU()
+                    fitsobj.append(fits.PrimaryHDU())
+                    fitsobj.writeto(outfile)
+                    fitsobj.close()
+                fitsobj = fits.open(outfile, 'append')
+                fitsobj.append(stack)
+                if opt.short:
+                    logger.info("Scaling data to ushort")
+                    fitsobj[-1].scale(type='int16', bzero=32768)
+                fitsobj.close()
         del (stack)
         del (hdu)
     
