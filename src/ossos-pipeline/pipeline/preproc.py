@@ -124,8 +124,9 @@ def overscan(hdu,
 
 
 fits_handles = {}
-def get_from_dbimages(file_id, ext='o.fits.fz', calibrator=False):
 
+
+def get_from_dbimages(file_id, ext='o.fits.fz', calibrator=False):
     if not calibrator:
         filename = "{}{}".format(file_id, ext)
     else:
@@ -138,7 +139,7 @@ def get_from_dbimages(file_id, ext='o.fits.fz', calibrator=False):
         logger.info("Attempting to get " + str(file_id))
         if file_id in fits_handles[ext]:
             fits_handles[ext][file_id].close()
-            del(fits_handles[ext][file_id])
+            del (fits_handles[ext][file_id])
 
         if calibrator:
             uri = "/".join([opt.dbimages,
@@ -163,7 +164,6 @@ def get_from_dbimages(file_id, ext='o.fits.fz', calibrator=False):
                     if not block:
                         break
                     handle.write(block)
-
 
     if file_id not in fits_handles:
         fits_handles[ext][file_id] = fits.open(filename, mode='readonly', memmap=True)
@@ -193,7 +193,7 @@ if __name__ == '__main__':
                         action="store_true",
                         help="Overscan subtract?")
     parser.add_argument("--trim",
-                        action="store_true",
+                        action="store_true",  # FIXME: this is missing a dest
                         help="Trim to data section")
     parser.add_argument("--short",
                         action="store_true",
@@ -210,7 +210,7 @@ if __name__ == '__main__':
                         help="Flat field: setting to 'LOOKUP' selects a flat from image's semester")
     parser.add_argument("--normal",
                         action="store_true",
-                        help="Normallize before averaging?")
+                        help="Normalise before averaging?")
     parser.add_argument("--combine",
                         action="store_true",
                         help="Combine multiple images into single OUTFILE")
