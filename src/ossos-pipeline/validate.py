@@ -17,7 +17,7 @@ def launch_app(task, working_directory, output_directory, dry_run, debug, name_f
 
     create_application(task, working_directory, output_directory,
                        dry_run=dry_run, debug=debug, name_filter=name_filter,
-                       user_id=None, skip_previous=None)
+                       user_id=user_name, skip_previous=skip_previous)
 
 
 def main():
@@ -54,6 +54,7 @@ def main():
         output = args.input
     else:
         output = args.output
+
 
     launch_app(args.task, args.input, output, args.dry_run, args.debug, args.name_filter,
                args.username, args.skip_previous)
