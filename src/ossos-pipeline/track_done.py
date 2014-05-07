@@ -1,10 +1,13 @@
 __author__ = 'michele'
 
+import os
+
+import numpy
+
 from ossos import mpc
 from ossos.orbfit import Orbfit
 from ossos import storage
 
-import numpy
 
 # the various track processing dirs
 DISCOVERIES = 'vos:OSSOS/measure3/2013A-E/track/discoveries/'
@@ -15,6 +18,7 @@ NC = 'vos:OSSOS/measure3/2013A-E/track/need_comparitor/'
 SUBMITTED = 'vos:OSSOS/measure3/2013A-E/track/submitted/'
 CHECKUP = 'vos:OSSOS/measure3/2013A-E/track/checkup/'
 
+
 def get_names(path, blockID):
     """
     :param path: the VOSpace path to folder
@@ -22,11 +26,12 @@ def get_names(path, blockID):
     :return: a set containing those provisional designations present in the folder
     """
     retval = set()
-    for fn in storage.listdir(path):
-        name = [f for f in fn.split('.') if f.startswith(blockID)][0]
+    for fn in os.listdir(path):
+        name = [f for f in fn.split('.')][0]  # if f.startswith(blockID)][0] for provisional IDs
         retval.add(name)
 
     return retval
+
 
 def copy_unconsidered(names):
     local_path = '/Users/michele/measure3/2013A-E/genuine_reals_run/tracking/discoveries/'
@@ -35,15 +40,16 @@ def copy_unconsidered(names):
         for name in names:
             if fn.__contains__(name):
                 print fn
-                storage.copy(DISCOVERIES+fn, local_path+fn)
+                storage.copy(DISCOVERIES + fn, local_path + fn)
 
     return
+
 
 def parse(name, subs, path=SUBMITTED):
     filename = ''
     for sub in subs:
         if sub.__contains__(name):
-            filename = path+sub
+            filename = path + sub
     filehandle = storage.open_vos_or_local(filename, "rb")
     filestr = filehandle.read()
     filehandle.close()
@@ -61,11 +67,11 @@ def parse(name, subs, path=SUBMITTED):
     return length_of_observation_arc, orbit
 
 
-
-if __name__=='__main__':
+if __name__ == '__main__':
     blockID = 'O13AE'
     # the nine I first sent to Brett as a small initial batch
-    initial_submitted = ['O13AE2M', 'O13AE3O', 'O13AE3R', 'O13AE3Y', 'O13AE3Z', 'O13AE41', 'O13AE45', 'O13AE4D', 'O13AE4J']
+    initial_submitted = ['O13AE2M', 'O13AE3O', 'O13AE3R', 'O13AE3Y', 'O13AE3Z', 'O13AE41', 'O13AE45', 'O13AE4D',
+                         'O13AE4J']
     discoveries = get_names(DISCOVERIES, blockID)
     false_positives = get_names(FP, blockID)
     nailings = get_names(NAILING, blockID)
@@ -95,9 +101,9 @@ if __name__=='__main__':
             print 'Not yet considered discovery!', dd
             unconsidered.append(dd)
     print 'Not yet considered:', len(unconsidered)
-#    copy_unconsidered(lost)
+    #    copy_unconsidered(lost)
 
-    print 'Nailed discoveries:', len(nailings)+len(initial_submitted)
+    print 'Nailed discoveries:', len(nailings) + len(initial_submitted)
     print 'Lost discoveries:', len(lost)
     print lost
     print 'Needs comparison image before nailing possible:', len(need_comparator)
@@ -135,6 +141,6 @@ if __name__=='__main__':
     print arclens
     print len(arclens)
 
-    bins = [0,1,4,20,40,60,90,150]
-    hist,bin_edges = numpy.histogram(arclens,bins=bins)
+    bins = [0, 1, 4, 20, 40, 60, 90, 150]
+    hist, bin_edges = numpy.histogram(arclens, bins=bins)
     print hist

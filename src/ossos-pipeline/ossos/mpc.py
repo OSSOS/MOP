@@ -474,10 +474,7 @@ class Observation(object):
         if len(mpc_line) != 80:
             return None
         obsrec = cls(*struct.unpack(mpc_format, mpc_line))
-        if not obsrec.null_observation:
-            obsrec.comment = MPCComment.from_string(comment)
-        else:
-            obsrec.comment = comment
+        obsrec.comment = MPCComment.from_string(comment)
         return obsrec
 
     def to_string(self):

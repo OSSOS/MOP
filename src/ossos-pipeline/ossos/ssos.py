@@ -359,17 +359,16 @@ class SSOSParser(object):
 
             # Build astrom.SourceReading
             nrows -= 1
-
-
             if self.skip_previous:
                 previous = False
                 for mpc_observation in mpc_observations:
                     try:
-                        if mpc_observation.comment.frame=="{}p{:02d}".format(expnum,ccd):
+                        if mpc_observation.comment.frame=="{}p{:02d}".format(expnum,ccd) \
+                                and not mpc_observation.discovery.is_initial_discovery:
                             sys.stderr.write("Skipping {}p{:02d}\n".format(expnum, ccd))
                             previous = True
                             break
-                    except:
+                    except Exception as e:
                         pass
                 if previous:
                     continue
