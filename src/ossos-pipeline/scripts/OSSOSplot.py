@@ -1,16 +1,18 @@
 #!python
 from Tkinter import *
 import tkFileDialog
-from ossos.gui import context
-import ephem
 import math
-from ossos import orbfit
-from ossos import storage
 import optparse
-from ossos.coord import Coord
 import re
 import sys
 import time
+
+import ephem
+
+from ossos.gui import context
+from ossos import orbfit
+from ossos import storage
+from ossos.coord import Coord
 from ossos import mpc
 
 
@@ -737,8 +739,9 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                 kbo = kbos[name]
                 assert isinstance(kbo, orbfit.Orbfit)
                 start_date = mpc.Time(w.date.get(),scale='utc').jd
-                for days in range(13):
-                    today = mpc.Time(start_date + days, scale='utc', format='jd')
+                trail_mid_point = 6
+                for days in range(trail_mid_point * 2 + 1):
+                    today = mpc.Time(start_date - trail_mid_point + days, scale='utc', format='jd')
                     kbo.predict(today, 568)
                     ra = kbo.coordinate.ra.radians
                     dec = kbo.coordinate.dec.radians
@@ -752,9 +755,10 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                     if kbo.arc_length > 180:
                         color = 'red'
                     w.create_point(ra, dec, size=1, color=color)
-            if w.show_ellipse.get() == 1:
-                if ( a < math.radians(5.0) ):
-                    w.create_ellipse(ra, dec, a, b, ang)
+                    if w.show_ellipse.get() == 1 and days == trail_mid_point + 1:
+                        first_date = False
+                        if ( a < math.radians(5.0) ):
+                            w.create_ellipse(ra, dec, a, b, ang)
             if ( a < math.radians(1.0) ):
                 w.create_point(ra, dec, size=2, color=color)
             if w.show_labels.get() == 1:
