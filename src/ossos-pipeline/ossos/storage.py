@@ -1,20 +1,21 @@
 """OSSOS VOSpace storage convenience package"""
 import cStringIO
-import re
 import errno
 import fnmatch
 from glob import glob
 import os
-import sys
-
-from astropy.io import fits
 from astropy.io import ascii
 import vos
 from vos.vos import URLparse as urlparse
-
 from ossos import coding
 from mpc import Time
+from astropy.io import fits
+from cStringIO import StringIO
 import requests
+import sys
+import re
+
+
 
 import logging
 
@@ -681,7 +682,7 @@ def _getheader(uri):
     """
     #'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/vospace/OSSOS/dbimages/1616100/ccd00/1616100p00.psf.fits'
 
-    data_url = "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/vospace/"
+    data_url = DATA_WEB_SERVICE+"/vospace/"
     url = data_url + urlparse(uri).path
     payload = {'fhead': 'true'}
     logger.info("Requesting URL: {}".format(url))
