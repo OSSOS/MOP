@@ -52,9 +52,6 @@ else
    exit
 fi
 
-let annulus=5*$aper+1
-let dannulus=$aper
-
 maxlin=`gethead $img.fits MAXLIN`
 if [ "X$maxlin" == "X" ]; then
    maxlin=35000
@@ -63,12 +60,15 @@ fi
 curdir=`pwd`
 cd ~/iraf
 cl <<EOF
-
+  real annulus
+  real dannulus
+  annulus=5*$aper+1 
+  dannulus=$aper
   digiphot
   daophot
   cd $curdir
   s1=mktemp("$img")
-  phot("$img","$coo",s1,apertures=$aper,zmag=$zeropoint,datapars.exposur="EXPTIME",datapars.datamin=0,datapars.datamax=$maxlin,fitskypars.annulus=$annulus,fitskypars.dannulus=$dannulus,datapars.gain="GAIN",datapars.obstime="UTC-OBS",centerpars.calgori="centroid",verify-,verbose-)
+  phot("$img","$coo",s1,apertures=$aper,zmag=$zeropoint,datapars.exposur="EXPTIME",datapars.datamin=0,datapars.datamax=$maxlin,fitskypars.annulus=annulus,fitskypars.dannulus=dannulus,datapars.gain="GAIN",datapars.obstime="UTC-OBS",centerpars.calgori="centroid",verify-,verbose-)
   txdump(s1,"XCEN,YCEN,MAG,MERR,ID","(SIER==0)&&(CIER==0)&&(PIER==0)&&(MAG!=INDEF)&&(MERR<0.1)",>" $outfile") 
   delete(s1,verify-,go_ahead+)
 
