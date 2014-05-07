@@ -50,7 +50,7 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
     }
 
     photzp = input_hdulist[0].header.get('PHOTZP', zeropoints.get(filter,zeropoints["DEFAULT"]))
-
+    print("zmag: {}, sky: {}, swidth: {}, aperture: {}, apcor: {}".format(zmag, sky, swidth, aperture, apcor))
     if zmag is None:
         zmag = input_hdulist[0].header.get('PHOTZP', zeropoints[filter])
 
@@ -76,7 +76,7 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
 
 
 
-    iraf.photpars.apertures = int(aperture)
+    iraf.photpars.apertures = aperture
     iraf.photpars.zmag = zmag
     iraf.datapars.datamin = 0
     iraf.datapars.datamax = maxcount
