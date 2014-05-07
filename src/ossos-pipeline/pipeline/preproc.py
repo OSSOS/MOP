@@ -32,7 +32,6 @@ import re, os, string, sys
 import vos
 import numpy as np
 import logging
-from cStringIO import StringIO
 from astropy.io import fits
 
 version = __Version__
@@ -208,7 +207,7 @@ if __name__ == '__main__':
     parser.add_argument("--flat",
                         default=None,
                         action="store",
-                        help="Flat field")
+                        help="Flat field: setting to 'LOOKUP' selects a flat from image's semester")
     parser.add_argument("--normal",
                         action="store_true",
                         help="Normallize before averaging?")
