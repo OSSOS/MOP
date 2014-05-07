@@ -23,7 +23,8 @@ echo " ${expnum} status = ${status} -> "
 #flat=13AQ05_r_flat.fits
 ## this is the one that is full of 1s flat=13B_r_flat.fits
 ## new flat for 13B
-flat = "LOOKUP" #13B_r_flat_2.fits
+#13B_r_flat_2.fits
+flat=LOOKUP 
 
 if [ ${status} != "'success'" ]
 then
