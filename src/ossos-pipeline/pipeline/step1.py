@@ -77,7 +77,7 @@ def step1(expnum,
 
     ## for step1matt we need the weight image
     hdulist = fits.open(filename)
-    flat_name = hdulist[0].header.get('FLAT','06Bm02.flat.r.36.01.fits')
+    flat_name = hdulist[0].header.get('FLAT','weight.fits')
     parts = os.path.splitext(flat_name)
     if parts[1] == '.fz':
 	flat_name = os.path.splitext(parts[0])[0]
