@@ -49,8 +49,7 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
                   "g.MP9401": 26.4
     }
 
-    photzp = input_hdulist[0].header.get('PHOTZP', zeropoints.get(filter,zeropoints["DEFAULT"]))
-    print("zmag: {}, sky: {}, swidth: {}, aperture: {}, apcor: {}".format(zmag, sky, swidth, aperture, apcor))
+    photzp = input_hdulist[0].header.get('PHOTZP', zeropoints.get(filter, zeropoints["DEFAULT"]))
     if zmag is None:
         zmag = input_hdulist[0].header.get('PHOTZP', zeropoints[filter])
 
