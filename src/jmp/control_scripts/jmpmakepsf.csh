@@ -46,6 +46,7 @@ endif
 
 ## Now using Gwyn's ZP, if available
 echo "Getting SGWYN ZP from ${image}"
+which gethead
 set zerop=`gethead $dir/${image}.fits PHOTZP`
 if ( "X$zerop" == "X" ) then
     echo -n "Didn't find SGWYN ZP, Trying to set zeropoint by scaling ELIXIR value, got: "

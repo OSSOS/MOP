@@ -1,8 +1,10 @@
 import urllib
+
 from ossos.daophot import TaskError
 from ossos.astrom import SourceReading, Observation
 from ossos.downloads.cutouts.calculator import CoordinateConverter
 from ossos.gui import logger
+
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -211,18 +213,23 @@ class SourceCutout(object):
 
         logger.info("BOX({} {} {} {})".format(ref_ra, ref_dec, dra, ddec))
 
-        query_result = storage.cone_search(ref_ra, ref_dec, dra, ddec)
-
+        query_result = storage.cone_search(ref_ra, ref_dec, dra, ddec)  # returns an astropy.table.table.Table
 
         comparison = None
-        for collectionID in query_result['collectionID']:
-            if collectionID not in self._bad_comparison_images:
-                comparison = collectionID
-                self._bad_comparison_images.append(comparison)
-                break
-
-        if comparison is None:
-            logger.critical(str(self.fits_header))
+        if len(query_result['collectionID']) > 0:  # are there any comparison images even available on that sky?
+            for collectionID in query_result['collectionID']:
+                if collectionID not in self._bad_comparison_images:
+                    comparison = collectionID
+                    self._bad_comparison_images.append(comparison)
+                    break
+            if comparison is None:
+                logger.critical(str(self.fits_header))
+                self._comparison_image = None
+                return
+        else:
+            query_result.pprint()
+            logger.info("No comparison images available for this piece of sky.")
+            print "No comparison images available for this piece of sky."
             self._comparison_image = None
             return
 
