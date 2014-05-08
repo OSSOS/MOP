@@ -50,7 +50,7 @@ class SourceCutout(object):
 
     @property
     def fits_header(self):
-        return self.hdulist[len(self.hdulist)-1].header
+        return self.hdulist[len(self.hdulist) - 1].header
 
     @property
     def observed_source_point(self):
@@ -195,20 +195,20 @@ class SourceCutout(object):
         """
         Search the DB for a comparison image for this cutout.
         """
-        # selecting comparitor when on a comparitor should load a new one.
+        # selecting comparator when on a comparator should load a new one.
 
         ref_wcs = wcs.WCS(self.fits_header)
         try:
-            ref_x = self.fits_header['NAXIS1']/2.0
-            ref_y = self.fits_header['NAXIS2']/2.0
+            ref_x = self.fits_header['NAXIS1'] / 2.0
+            ref_y = self.fits_header['NAXIS2'] / 2.0
             (ref_ra, ref_dec) = ref_wcs.xy2sky(ref_x, ref_y)
         except Exception as e:
             logger.info(str(e))
             logger.info(str(self.fits_header))
             return None
 
-        dra = self.fits_header['CD1_1']*self.fits_header['NAXIS1']/2.0
-        ddec = self.fits_header['CD2_2']*self.fits_header['NAXIS2']/2.0
+        dra = self.fits_header['CD1_1'] * self.fits_header['NAXIS1'] / 2.0
+        ddec = self.fits_header['CD2_2'] * self.fits_header['NAXIS2'] / 2.0
         radius = max(dra, ddec)
 
         logger.info("BOX({} {} {} {})".format(ref_ra, ref_dec, dra, ddec))
@@ -233,14 +233,15 @@ class SourceCutout(object):
             self._comparison_image = None
             return
 
-        base_url = "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/vospace/nodes/OSSOS/dbimages/{}/{}p.fits".format(comparison, comparison)
-        cutout = 'CIRCLE ICRS {} {} {}'.format(ref_ra,ref_dec,radius)
-        url = base_url+"?"+urllib.urlencode({'view': 'cutout', 'cutout': cutout})
+        base_url = "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/vospace/nodes/OSSOS/dbimages/{}/{}p.fits".format(
+            comparison, comparison)
+        cutout = 'CIRCLE ICRS {} {} {}'.format(ref_ra, ref_dec, radius)
+        url = base_url + "?" + urllib.urlencode({'view': 'cutout', 'cutout': cutout})
 
         hdu_list = downloader.download_hdulist(uri=None, URL=url)
 
         comp_wcs = wcs.WCS(hdu_list[-1].header)
         (x, y) = comp_wcs.sky2xy(ref_ra, ref_dec)
-        obs = Observation(str(comparison),'p',ccdnum=str(hdu_list[-1].header.get('EXTVER',0)))
-        reading = SourceReading(x,y,ref_x, ref_y, ref_ra, ref_dec,ref_x,ref_y, obs)
-        self._comparison_image = SourceCutout(reading ,hdu_list, CoordinateConverter(0,0))
+        obs = Observation(str(comparison), 'p', ccdnum=str(hdu_list[-1].header.get('EXTVER', 0)))
+        reading = SourceReading(x, y, ref_x, ref_y, ref_ra, ref_dec, ref_x, ref_y, obs)
+        self._comparison_image = SourceCutout(reading, hdu_list, CoordinateConverter(0, 0))
