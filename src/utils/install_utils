@@ -68,24 +68,4 @@ if [ X"${FC}" == X ]; then
   export FC
 fi
 
-# Check the existence of the cfitsio library.
-
-if [ ! -f $LIBDIRA/libcfitsio.a ]; then
-    echo "Installing cfitsio library."
-#    mkdir cfitsio
-#    cd cfitsio
-#    gunzip < ../cfitsio142.tar.gz | tar xf -
-    gunzip < cfitsio2470.tar.gz | tar xf -
-    cd cfitsio
-    ./configure -libdir=$LIBDIRA --bindir=$BINDIRA --include=$INCLUDEDIR
-    make
-    make install
-    make imcopy fitscopy listhead
-    strip imcopy fitscopy listhead
-    cp imcopy fitscopy listhead $BINDIRA/
-    cp lib/libcfitsio.a $LIBDIRA/
-    cp include/fitsio*.h $INCLUDEDIR/
-    cp include/longnam.h $INCLUDEDIR/
-    cd ..
-    \rm -rf cfitsio
-fi
+echo " a CFITSIO library is needed.. please ensure its installed"
