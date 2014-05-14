@@ -27,28 +27,6 @@ RESPONSE_FORMAT = 'tsv'
 NEW_LINE = '\r\n'
 
 
-def summarize(orbit):
-    for observation in orbit.observations:
-            print observation.to_string()
-
-    print ""
-    print orbit
-    print orbit.residuals
-
-    orbit.predict(orbit.observations[0].date)
-    coord1 = orbit.coordinate
-    orbit.predict(orbit.observations[-1].date)
-    coord2 = orbit.coordinate
-    # how best to get arcsec moved between first/last?
-    motion_rate = coord1.separation(coord2).arcsecs/(orbit.arc_length*24)
-    print "{:>10s} {:8.2f}".format('rate ("/hr)', motion_rate)
-
-    orbit.predict('2014-04-04')  # hardwiring next year's prediction date for the moment
-    print "{:>10s} {:8.2f} {:8.2f}\n".format("Expected accuracy on 4 April 2014 (arcsec)", orbit.dra, orbit.ddec)
-
-    return
-
-
 class TracksParser(object):
 
     def __init__(self, inspect=True, skip_previous=False):
@@ -57,14 +35,6 @@ class TracksParser(object):
         self._nights_separating_darkruns = 30
         self.inspect = inspect
         self.skip_previous = skip_previous
-
-    @property
-    def rate_of_motion(self):
-        self.orbit.predict(self.orbit.observations[0].date)
-        coord1 = self.orbit.coordinate
-        self.orbit.predict(self.orbit.observations[1].date)
-        coord2 = self.orbit.coordinate
-        return coord1.separation(coord2).arcsecs/(self.orbit.arc_length*24)
 
     def parse(self, filename):
         filehandle = storage.open_vos_or_local(filename, "rb")
@@ -92,27 +62,12 @@ class TracksParser(object):
         self.ssos_parser = SSOSParser(mpc_observations[0].provisional_name,
                                       input_observations=mpc_observations, skip_previous=self.skip_previous)
         self.orbit = Orbfit(mpc_observations)
+        self.orbit.summarize()  # defaults to predicting at today's date
 
-        #for observation in self.orbit.observations:
-        #    print observation.to_string()
-        print ""
-        print self.orbit
-        print self.orbit.residuals
-
-        print "{:>10s} {:8.2f}".format('rate ("/hr)', self.rate_of_motion)
-
-        self.orbit.predict('2014-04-04')  # hard wiring next year's prediction date for the moment
-        print "{:>10s} {:8.2f} {:8.2f}\n".format("Expected accuracy on 4 April 2014 (arcsec)",
-                                                 self.orbit.dra,
-                                                 self.orbit.ddec)
-
-        length_of_observation_arc = mpc_observations[-1].date.jd - mpc_observations[0].date.jd
-        print 'arclen (days)', length_of_observation_arc
-
-        if length_of_observation_arc < 1:
+        if self.orbit.arc_length < 1:
             # data from the same dark run.
             lunation_count = 0
-        elif length_of_observation_arc > 1 and length_of_observation_arc < self._nights_per_darkrun :
+        elif self.orbit.arc_length > 1 and self.orbit.arc_length < self._nights_per_darkrun:
             # data from neighbouring darkruns.
             lunation_count = 1
         else:
@@ -122,13 +77,12 @@ class TracksParser(object):
         # loop over the query until some new observations are found, or raise assert error.
         while True:
             tracks_data = self.query_ssos(mpc_observations, lunation_count)
-    
-            sys.stderr.write('num observations: {}\nreading_count: {}\nlunation_count: {}\n'.format(len(mpc_observations),
-                                                                                                    tracks_data.get_reading_count(),
-                                                                                                    lunation_count))
 
-            if (tracks_data.get_arc_length() > (length_of_observation_arc+2.0/86400.0) or
-                tracks_data.get_reading_count() > len(mpc_observations)) :
+            sys.stderr.write('num observations: {}\nreading_count: {}\nlunation_count: {}\n'
+                             .format(len(mpc_observations), tracks_data.get_reading_count(), lunation_count))
+
+            if (tracks_data.get_arc_length() > (self.orbit.arc_length + 2.0 / 86400.0) or
+                    tracks_data.get_reading_count() > len(mpc_observations)) :
                 return tracks_data
             if not self.inspect:
                 assert lunation_count is not None, "No new observations available."
@@ -170,7 +124,7 @@ class TracksParser(object):
                       search_start_date=search_start_date,
                       search_end_date=search_end_date)
 
-        sys.stderr.write("Pasrsing query results")
+        sys.stderr.write("Parsing query results...")
         tracks_data = self.ssos_parser.parse(query.get(), mpc_observations=mpc_observations)
 
         tracks_data.mpc_observations = {}
@@ -228,7 +182,8 @@ class SSOSParser(object):
                 if observation.null_observation:
                     self.null_observations.append(rawname)
             except:
-                sys.stderr.write("failed to get orignal filename from {}".format(observation.comment))
+                sys.stderr.write("failed to get original filename from {}".format(observation.comment))
+
     def _skip_missing_data(self, str_vals, ncols):
         """
         add a extra column if one is missing, else return None.
@@ -282,6 +237,7 @@ class SSOSParser(object):
         if not storage.exists(mopheader_uri, force=False):
             # ELEVATE! we need to know to go off and reprocess/include this image.
             logger.critical('Image exists but processing incomplete. Mopheader missing. {}'.format(image_uri))
+            print 'Image exists but processing incomplete. Mopheader missing. {}'.format(image_uri)
             return None
 
         sys.stderr.write("... getting header {:50s} ... \b\b\b\b".format(mopheader_uri))
@@ -344,7 +300,7 @@ class SSOSParser(object):
         ref_expnum = None
         ref_ccd = None
         nrows = len(table)
-        sys.stderr.write("Loading {} obseravtions\n".format(nrows))
+        sys.stderr.write("Loading {} observations\n".format(nrows))
         for row in table:
             # check if a dbimages object exists
             ccd = int(row['Ext']) - 1
@@ -352,7 +308,8 @@ class SSOSParser(object):
             X = row['X']
             Y = row['Y']
 
-            # ADDING THIS TEMPORARILY TO GET THE NON-OSSOS and wallpaper DATA OUT OF THE WAY WHILE DEBUGGING
+            # ADDING THIS TEMPORARILY TO GET THE NON-OSSOS and wallpaper DATA OUT OF THE WAY
+            # note: 'Telescope_Insturment' is a typo in SSOIS's return format
             if (row['Telescope_Insturment'] != 'CFHT/MegaCam') or (row['Filter'] != 'r.MP9601') or row[
                 'Image_target'].startswith('WP'):
                 continue
@@ -365,7 +322,7 @@ class SSOSParser(object):
                     try:
                         if mpc_observation.comment.frame=="{}p{:02d}".format(expnum,ccd) \
                                 and not mpc_observation.discovery.is_initial_discovery:
-                            sys.stderr.write("Skipping {}p{:02d}\n".format(expnum, ccd))
+                            sys.stderr.write("Skipping {}p{:02d}: already measured\n".format(expnum, ccd))
                             previous = True
                             break
                     except Exception as e:
@@ -630,7 +587,7 @@ class ParamDictBuilder(object):
     @property
     def params(self):
         """
-        The SSOS Query parameters as dictoinary, appropriate for url_encoding
+        The SSOS Query parameters as dictionary, appropriate for url_encoding
         """
         return dict(format=RESPONSE_FORMAT,
                     verbose=self.verbose,
@@ -666,8 +623,7 @@ class Query(object):
                  observations, 
                  search_start_date=Time('2013-01-01', scale='utc'),
                  search_end_date = Time('2017-01-01', scale='utc')):
-
-        self.param_dict_biulder = ParamDictBuilder(
+        self.param_dict_builder = ParamDictBuilder(
             observations,
             search_start_date=search_start_date,
             search_end_date=search_end_date)
@@ -679,7 +635,7 @@ class Query(object):
         :return: astropy.table.table
         :raise: AssertionError
         """
-        params = self.param_dict_biulder.params
+        params = self.param_dict_builder.params
         self.response = requests.get(SSOS_URL, 
                                      params=params, 
                                      headers=self.headers)
@@ -691,8 +647,8 @@ class Query(object):
         lines = self.response.content
         if len(lines) < 1 or str(lines[1]).startswith((
                 "An error occurred getting the ephemeris") ):
-            raise IOError(os.errno.EACCES, 
-                          "call to SSOS failed on format error")
+            raise IOError(os.errno.EACCES,
+                          "call to SSOIS failed on format error")
 
         return lines
 

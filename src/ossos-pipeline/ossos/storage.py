@@ -4,20 +4,19 @@ import errno
 import fnmatch
 from glob import glob
 import os
+import sys
+import re
+import logging
+
 from astropy.io import ascii
 import vos
 from vos.vos import URLparse as urlparse
+from astropy.io import fits
+import requests
+
 from ossos import coding
 from mpc import Time
-from astropy.io import fits
-from cStringIO import StringIO
-import requests
-import sys
-import re
 
-
-
-import logging
 
 logger = logging
 
@@ -95,7 +94,6 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, runids=('13AP05', '13AP06', '13BP0
     #vot = votable.parse_single_table(data)
     #vot.array.sort(order='dataset_name')
     #t = vot.array
-    logger.debug(type(table))
     logger.debug(str(table))
     return table
 
@@ -334,15 +332,15 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
                 fout.write(vh.read())
                 vh.close()
         except:
-            url = uri.replace("vos:","https://www.canfar.phys.uvic.ca/data/pub/vospace/")
+            url = uri.replace("vos:", "https://www.canfar.phys.uvic.ca/data/pub/vospace/")
             logger.debug(url)
             try:
-                with open(filename,'w') as fout:
+                with open(filename, 'w') as fout:
                     fout.write(requests.get(url, params=param, cert=vospace.conn.certfile).content)
             except:
-                with open(filename,'w') as fout:
+                with open(filename, 'w') as fout:
                     fout.seek(0)
-                    fout.write(requests.get(url+".fz", params=param, cert=vospace.conn.certfile).content)
+                    fout.write(requests.get(url + ".fz", params=param, cert=vospace.conn.certfile).content)
         if not rescale:
             return filename
         hdu_list = fits.open(filename, 'update', do_not_scale_image_data=True)
@@ -382,11 +380,11 @@ def get_fwhm(expnum, ccd, prefix=None, version='p'):
 
     if os.access(filename, os.F_OK):
         logger.debug("File already on disk: {}".format(filename))
-        return float(open(filename,'r').read())
+        return float(open(filename, 'r').read())
 
-    url = uri.replace('vos:','https://www.canfar.phys.uvic.ca/data/pub/vospace/')
+    url = uri.replace('vos:', 'https://www.canfar.phys.uvic.ca/data/pub/vospace/')
     try:
-        fwhm = float(requests.get(url,cert=vospace.conn.certfile).content)
+        fwhm = float(requests.get(url, cert=vospace.conn.certfile).content)
     except Exception as e:
         print url
         print str(e)
@@ -406,8 +404,8 @@ def get_zeropoint(expnum, ccd, prefix=None, version='p'):
     @return:
     """
     uri = get_uri(expnum, ccd, version, ext='zeropoint.used', prefix=prefix)
-    url = uri.replace('vos:','https://www.canfar.phys.uvic.ca/data/pub/vospace/')
-    return float(requests.get(url,cert=vospace.conn.certfile).content)
+    url = uri.replace('vos:', 'https://www.canfar.phys.uvic.ca/data/pub/vospace/')
+    return float(requests.get(url, cert=vospace.conn.certfile).content)
 
 
 def mkdir(dirname):
@@ -489,7 +487,7 @@ def remove(uri):
     try:
         vospace.delete(uri)
     except Exception as e:
-       logger.debug(str(e))
+        logger.debug(str(e))
 
 
 def delete(expnum, ccd, version, ext, prefix=None):
@@ -522,7 +520,6 @@ def list_dbimages():
 
 
 def exists(uri, force=False):
-
     try:
         return vospace.getNode(uri, force=force) is not None
     except IOError as e:
@@ -646,11 +643,11 @@ def get_mopheader(expnum, ccd):
     if mopheader_uri in mopheaders:
         return mopheaders[mopheader_uri]
 
-    url = mopheader_uri.replace('vos:','https://www.canfar.phys.uvic.ca/data/pub/vospace/')
+    url = mopheader_uri.replace('vos:', 'https://www.canfar.phys.uvic.ca/data/pub/vospace/')
     filename = os.path.basename(mopheader_uri)
     if os.access(filename, os.F_OK):
         logger.debug("File already on disk: {}".format(filename))
-        mopheader_fpt = cStringIO.StringIO(open(filename,'r').read())
+        mopheader_fpt = cStringIO.StringIO(open(filename, 'r').read())
     else:
         req = requests.get(url, cert=vospace.conn.certfile)
         mopheader_fpt = cStringIO.StringIO(req.content)
@@ -682,7 +679,7 @@ def _getheader(uri):
     """
     #'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/vospace/OSSOS/dbimages/1616100/ccd00/1616100p00.psf.fits'
 
-    data_url = DATA_WEB_SERVICE+"/vospace/"
+    data_url = DATA_WEB_SERVICE + "/vospace/"
     url = data_url + urlparse(uri).path
     payload = {'fhead': 'true'}
     logger.info("Requesting URL: {}".format(url))
