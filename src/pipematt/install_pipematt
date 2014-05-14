@@ -41,17 +41,7 @@ basedir=`pwd`
 
 # Install sextractor
 # Now use the system install sex
-cd ${basedir}
-if [ ! -f ${BINDIRA}/sex ]; then
-    echo "Installing Sextractor."
-    tar xzf sextractor-2.5.0.tar.gz
-    cd sextractor-2.5.0
-    ./configure --bindir=${BINDIRA} --prefix=${PREFIX}
-    make clean
-    make install
-    cd ../
-    \rm -rf sextractor-2.5.0
-fi
+which sex >& /dev/null || echo "Please install sextractor on your system."
 
 # Install match
 
@@ -68,17 +58,7 @@ if [ ! -f $BINDIRA/match ]; then
 fi
 
 # Install wcstools
-cd ${basedir}
-if [ ! -f ${BINDIRA}/gethead ]; then
-   echo "Installing WCStools."
-   tar zxf wcstools-3.8.7.tar | tar xf -
-    cd wcstools-3.8.7
-    make $MAKEWCSARGS all
-    cd bin
-    \cp * $BINDIRA
-    cd ${basedir}
-    \rm -rf wcstools-3.8.7
-fi
+which gethead >& /dev/null || echo "Please ensure that gethead, part of the WCSTools package, is in your path."
 
 ## Editing configuration files
 ## but use these sex configs still
