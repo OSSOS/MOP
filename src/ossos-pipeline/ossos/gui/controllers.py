@@ -1,11 +1,13 @@
 import math
+
 import ds9
+
 from ossos.downloads.core import Downloader
 from ossos.gui.models.validation import ValidationModel
 
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from ossos.daophot import TaskError
 from ossos.gui.autoplay import AutoplayManager
 from ossos.gui import config, logger
 from ossos.gui import events
@@ -20,8 +22,7 @@ class AbstractController(object):
         self.model = model
         self.view = view
 
-
-        assert isinstance(self.model,ValidationModel)
+        assert isinstance(self.model, ValidationModel)
         events.subscribe(events.CHANGE_IMAGE, self.on_change_image)
         events.subscribe(events.IMG_LOADED, self.on_image_loaded)
         events.subscribe(events.NO_AVAILABLE_WORK, self.on_no_available_work)
@@ -194,8 +195,8 @@ class ProcessRealsController(AbstractController):
         result = display.get('imexam key coordinate')
         values = result.split()
         logger.debug("IMEXAM returned {}".format(values))
-        cen_coords = (float(values[1]),float(values[2]))
-        key  = values[0]
+        cen_coords = (float(values[1]), float(values[2]))
+        key = values[0]
         source_cutout.update_pixel_location(cen_coords)
         #source_cutout.pixel_x = float(values[1])
         #source_cutout.pixel_y = float(values[2])
@@ -204,7 +205,6 @@ class ProcessRealsController(AbstractController):
         pixel_y = source_cutout.pixel_y
 
         self.view.mark_apertures(self.model.get_current_cutout())
-
 
         try:
             cen_x, cen_y, obs_mag, obs_mag_err = self.model.get_current_source_observed_magnitude()
@@ -218,7 +218,7 @@ class ProcessRealsController(AbstractController):
             band = ""
             default_comment = str(error)
 
-        if math.sqrt( (cen_x - pixel_x)**2 + (cen_y - pixel_y)**2 ) > 1.5:
+        if math.sqrt((cen_x - pixel_x) ** 2 + (cen_y - pixel_y) ** 2) > 1.5:
             # check if the user wants to use the 'hand' coordinates or these new ones.
             self.view.draw_error_ellipse(cen_x, cen_y, 10, 10, 0, color='r')
             self.view.show_offset_source_dialog((pixel_x, pixel_y), (cen_x, cen_y))
@@ -280,7 +280,6 @@ class ProcessRealsController(AbstractController):
 
         reading = self.model.get_current_reading()
         source_cutout = self.model.get_current_cutout()
-
 
         mpc_observation = mpc.Observation(
             minor_planet_number=minor_planet_number,
@@ -419,7 +418,8 @@ class ProcessTracksController(ProcessRealsController):
 
             if not hasattr(reading, 'redraw_ellipse'):
                 reading.redraw_ellipse = True
-            if hasattr(reading, 'dra') and hasattr(reading, 'ddec') and hasattr(reading, 'pa' ) and reading.redraw_ellipse:
+            if hasattr(reading, 'dra') and hasattr(reading, 'ddec') and hasattr(reading,
+                                                                                'pa') and reading.redraw_ellipse:
                 x, y = self.model.get_current_pixel_source_point()
                 self.view.draw_error_ellipse(x, y, reading.dra, reading.ddec, reading.pa)
 
@@ -434,9 +434,10 @@ class ProcessTracksController(ProcessRealsController):
         cutout = self.model.get_current_cutout()
         if research or cutout.comparison_image is None:
             cutout.retrieve_comparison_image(self.downloader)
-        self.view.display(cutout.comparison_image)
-        self.model.get_current_workunit().previous_obs()
-        self.model.acknowledge_image_displayed()
+        if cutout.comparison_image is not None:  # if a comparison image was found
+            self.view.display(cutout.comparison_image)
+            self.model.get_current_workunit().previous_obs()
+            self.model.acknowledge_image_displayed()
 
     def on_ssos_query(self):
         try:

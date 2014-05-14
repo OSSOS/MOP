@@ -2,7 +2,9 @@ __author__ = 'jjk'
 
 import ctypes
 import tempfile
+import sys
 
+import datetime
 from astropy import coordinates
 from astropy import units
 
@@ -26,10 +28,10 @@ class Orbfit(object):
 
     def __init__(self, observations=None):
         """
-        Given a set of observations compute the orbit using fit_radec and provide methods for
+        Given a list of mpc.Observations, compute the orbit using fit_radec and provide methods for
         accessing that orbit.
 
-        Requires at least 3 observations.
+        Requires at least 3 mpc.Observations in the list.
         """
         assert isinstance(observations, tuple) or isinstance(observations, list)
         if not observations:
@@ -70,7 +72,7 @@ class Orbfit(object):
                 ra = obs.ra.replace(" ", ":")
                 dec = obs.dec.replace(" ", ":")
                 res = 0.3
-                print "FIT: "+str(observation)
+                # print "FIT: "+str(observation)
                 mpc_file.write("{} {} {} {} {}\n".format(obs.date.jd, ra, dec, res, 568, ))
         mpc_file.seek(0)
 
@@ -182,3 +184,32 @@ class Orbfit(object):
         self.ddec = predict.contents[3]
         self.pa = predict.contents[4]
         self.date = str(date)
+
+
+    def rate_of_motion(self, date=datetime.datetime.now()):
+        # rate of motion at a requested date rather than averaged over the arc.
+        # Date is datetime.datetime() objects.
+        assert isinstance(date, datetime.datetime)
+        self.predict(date.strftime('%Y-%m-%d'))
+        coord1 = self.coordinate
+        self.predict((date + datetime.timedelta(1)).strftime('%Y-%m-%d'))
+        coord2 = self.coordinate
+        retval = coord1.separation(coord2).arcsecs / (24.)  # arcsec/hr
+
+        return retval
+
+
+    def summarize(self, date=datetime.datetime.now()):
+        assert isinstance(date, datetime.datetime)
+        at_date = date.strftime('%Y-%m-%d')
+        for observation in self.observations:
+            sys.stderr.write("{:>10s}\n".format(observation.to_string()))
+        self.predict(at_date)
+
+        sys.stderr.write("\n{:>10s}"
+                         "Residuals:\n{:>10s}\n"
+                         "Expected accuracy on {:>10s}: {:6.2f}'' {:6.2f}'' moving at {:6.2f} ''/hr\n\n"
+                         .format(self.__str__(), self.residuals,
+                                 at_date, self.dra, self.ddec, self.rate_of_motion(date=date)))
+
+        return
