@@ -24,6 +24,8 @@ from track_done import parse, get_names
 from ossos import storage
 from ossos import horizons
 
+
+
 # ORIGINAL: DON't USE, does not match the location of the data as pointed & taken!
 # Ablocks={'13AE': {"RA": "14:32:30.29","DEC":"-13:54:01.4"},
 #         '13AO': {"RA": "16:17:04.41","DEC":"-13:14:45.8"}}
@@ -265,8 +267,8 @@ def synthetic_model_kbos(coverage, input_date=newMoons['Oct13']):
     ra = []
     dec = []
     kbos = []
-    for line in open('L7SyntheticModel-v09.txt'):
-        if line[0] == '#':
+    fobj = storage.open_vos_or_local('vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt')    for line in fobj.read().split('\n'):
+        If line[0] == '#':
             continue
         kbo = ephem.EllipticalBody()
         values = line.split()
