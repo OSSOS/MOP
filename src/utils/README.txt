@@ -4,3 +4,4 @@ sextractor
 wcsTools
 f2c
 pyephem
+liborbift (on github)
