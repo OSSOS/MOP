@@ -201,15 +201,14 @@ class Orbfit(object):
 
     def summarize(self, date=datetime.datetime.now()):
         assert isinstance(date, datetime.datetime)
-        at_date = date.strftime('%Y-%m-%d')
         for observation in self.observations:
             sys.stderr.write("{:>10s}\n".format(observation.to_string()))
-        self.predict(at_date)
+        self.predict(date.strftime('%Y-%m-%d'))
 
         sys.stderr.write("\n{:>10s}"
                          "Residuals:\n{:>10s}\n"
                          "Expected accuracy on {:>10s}: {:6.2f}'' {:6.2f}'' moving at {:6.2f} ''/hr\n\n"
                          .format(self.__str__(), self.residuals,
-                                 at_date, self.dra, self.ddec, self.rate_of_motion(date=date)))
+                                 date.strftime('%Y-%m-%d'), self.dra, self.ddec, self.rate_of_motion(date=date)))
 
         return
