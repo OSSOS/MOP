@@ -475,6 +475,7 @@ class Observation(object):
             return None
         obsrec = cls(*struct.unpack(mpc_format, mpc_line))
         obsrec.comment = MPCComment.from_string(comment)
+        #TODO set the 'discovery' flags from the binary flags in TNODB style ast lines.
         return obsrec
 
     def to_string(self):
