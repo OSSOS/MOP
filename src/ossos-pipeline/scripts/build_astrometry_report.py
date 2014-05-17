@@ -8,7 +8,7 @@ import re
 import sys
 
 
-def load_observations((observations, regex), path, filenames):
+def load_observations((observations, regex, rename), path, filenames):
     """
     Returns a provisional name based dictionary of observations of the object.
     Each observations is keyed on the date. ie. a dictionary of dictionaries.
@@ -24,10 +24,15 @@ def load_observations((observations, regex), path, filenames):
             logging.warning("Skipping {}".format(filename))
             continue
         with open(os.path.join(path, filename)) as ifptr:
+            ## use the filename as the new_provisional name of an object
+            new_provisional_name = os.path.basename(filename)
+            new_provisional_name = new_provisional_name[0:new_provisional_name.find(".")]
             for line in ifptr.readlines():
                 observation = None
                 try:
                     observation = mpc.Observation.from_string(line)
+                    if rename:
+                        observation.provisional_name = new_provisional_name
                 except Exception as e:
                     logger.error(str(e))
                     logger.error(os.path.join(path, filename))
@@ -79,6 +84,8 @@ auto-magical way.
                               "Only observations from a single observatory should be present in these files."))
     parser.add_argument("report_file",
                         help="Name of file that new lines will be reported to")
+    parser.add_argument("--rename", action="store_true",
+                        help="Rename objects in new measurement files based on the name of the file" )
     parser.add_argument("--new_name_regex",
                         default='.*\.ast',
                         help="Only load new observations where provisional name matches")
@@ -115,12 +122,13 @@ auto-magical way.
 
 
     existing_observations = {}
-    os.path.walk(args.existing_astrometry_directory, load_observations, (existing_observations,
-                                                                         args.existing_name_regex))
+    os.path.walk(args.existing_astrometry_directory, load_observations,
+                 (existing_observations, args.existing_name_regex, False))
     logger.info("Loaded existing observations for {} objects.\n".format(len(existing_observations)))
 
     new_observations = {}
-    os.path.walk(args.new_astrometry_directory, load_observations, (new_observations, args.new_name_regex))
+    os.path.walk(args.new_astrometry_directory, load_observations,
+                 (new_observations, args.new_name_regex, args.rename))
     logger.info("Loaded new observations for {} objects.\n".format(len(new_observations)))
 
     report_observations = {}

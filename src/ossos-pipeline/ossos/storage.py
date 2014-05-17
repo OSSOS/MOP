@@ -299,7 +299,12 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
 
     try:
         logger.debug("trying to get file {}".format(uri))
-        copy(uri, filename)
+        try:
+            with open(filename,'w') as fout:
+                url = uri.replace("vos:","https://www.canfar.phys.uvic.ca/data/pub/vospace/")
+                fout.write(requests.get(url, cert=vospace.conn.certfile).content)
+        except:
+            copy(uri, filename)
     except Exception as e:
         logger.debug("copy sent back error: {} code: {}".format(str(e), getattr(e, 'errno', 0)))
         if getattr(e, 'errno', 0) not in [404, errno.ENOENT] or ccd is None:
@@ -324,15 +329,10 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
         logger.debug(uri)
         param = {'cutout': cutout}
 
-        # First try and get with vos then try with requests.
+        # First try and get with requests then try with vos.
 
         try:
-            with open(filename, 'w') as fout:
-                vh = vospace.open(uri, view="cutout", cutout=cutout)
-                fout.write(vh.read())
-                vh.close()
-        except:
-            url = uri.replace("vos:", "https://www.canfar.phys.uvic.ca/data/pub/vospace/")
+            url = uri.replace("vos:","https://www.canfar.phys.uvic.ca/data/pub/vospace/")
             logger.debug(url)
             try:
                 with open(filename, 'w') as fout:
@@ -340,7 +340,13 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
             except:
                 with open(filename, 'w') as fout:
                     fout.seek(0)
-                    fout.write(requests.get(url + ".fz", params=param, cert=vospace.conn.certfile).content)
+                    fout.write(requests.get(url+".fz", params=param, cert=vospace.conn.certfile).content)
+        except:
+            with open(filename, 'w') as fout:
+                vh = vospace.open(uri, view="cutout", cutout=cutout)
+                fout.write(vh.read())
+                vh.close()
+
         if not rescale:
             return filename
         hdu_list = fits.open(filename, 'update', do_not_scale_image_data=True)
