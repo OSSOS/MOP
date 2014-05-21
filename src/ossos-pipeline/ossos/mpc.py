@@ -475,6 +475,7 @@ class Observation(object):
             return None
         obsrec = cls(*struct.unpack(mpc_format, mpc_line))
         obsrec.comment = MPCComment.from_string(comment)
+        #TODO set the 'discovery' flags from the binary flags in TNODB style ast lines.
         return obsrec
 
     def to_string(self):
@@ -493,9 +494,10 @@ class Observation(object):
         # the provisional name.
 
         if self.minor_planet_number is None or self.minor_planet_number == ' ':
-            mpc_str = "%12s" % self.provisional_name
+            padding = " "*min(5,12-len(self.provisional_name))
+            mpc_str = "%-12s" % (padding+self.provisional_name)
         else:
-            mpc_str = "%5s" % self.minor_planet_number[:5]
+            mpc_str = "%-5s" % self.minor_planet_number[:5]
             mpc_str += (self.provisional_name is None and 7 * " ") or "%-7s" % self.provisional_name[:7]
 
         if self.null_observation is True:
