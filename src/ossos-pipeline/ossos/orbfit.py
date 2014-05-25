@@ -1,4 +1,10 @@
+__author__ = 'jjk'
 
+import ctypes
+import tempfile
+import sys
+
+import datetime
 from astropy import coordinates
 from astropy import units
 import ctypes
@@ -25,10 +31,10 @@ class Orbfit(object):
 
     def __init__(self, observations=None):
         """
-        Given a set of observations compute the orbit using fit_radec and provide methods for
+        Given a list of mpc.Observations, compute the orbit using fit_radec and provide methods for
         accessing that orbit.
 
-        Requires at least 3 observations.
+        Requires at least 3 mpc.Observations in the list.
         """
         assert isinstance(observations, tuple) or isinstance(observations, list)
         if not observations:
@@ -54,6 +60,7 @@ class Orbfit(object):
                 #print "FIT: "+str(observation)
                 self._mpc_file.write("{} {} {} {} {}\n".format(obs.date.jd, ra, dec, res, 568, ))
         self._mpc_file.seek(0)
+        self._abg = tempfile.NamedTemporaryFile()
         result = self.orbfit.fitradec(ctypes.c_char_p(self._mpc_file.name),
                                       ctypes.c_char_p(self._abg.name))
         self.distance = result.contents[0]
@@ -179,18 +186,29 @@ class Orbfit(object):
         self.ddec = predict.contents[3]
         self.pa = predict.contents[4]
         self.date = str(date)
-        predict = self.orbfit.predict(ctypes.c_char_p(self._abg.name),
-                                      jd+1.0/24.0,
-                                      ctypes.c_int(obs_code))
-        coord2 = coordinates.ICRSCoordinates(predict.contents[0],
-                                             predict.contents[1],
-                                             unit=(units.degree, units.degree))
-        self.rate_of_motion = self.coordinate.separation(coord2).arcsecs
 
-    def summary():
+    def rate_of_motion(self, date=datetime.datetime.now()):
+        # rate of motion at a requested date rather than averaged over the arc.
+        # Date is datetime.datetime() objects.
+        assert isinstance(date, datetime.datetime)
+        self.predict(date.strftime('%Y-%m-%d'))
+        coord1 = self.coordinate
+        self.predict((date + datetime.timedelta(1)).strftime('%Y-%m-%d'))
+        coord2 = self.coordinate
+        retval = coord1.separation(coord2).arcsecs / (24.)  # arcsec/hr
+
+        return retval
+
+
+    def summarize(self, date=datetime.datetime.now()):
         """Return a string summary of the orbit.
 
         """
+
+        assert isinstance(date, datetime.datetime)
+        at_date = date.strftime('%Y-%m-%d')
+        self.predict(at_date)
+
         fobj = StringIO()
 
         for observation in self.observations:
@@ -200,8 +218,9 @@ class Orbfit(object):
         fobj.write(str(self)+"\n")
         fobj.write(str(self._residuals)+"\n")
         fobj.write('arclen (days) {}'.format(self.orbit.arc_length))
+        fobj.write('Expected accuracy on {:>10s}: {:6.2f}'' {:6.2f}'' moving at {:6.2f} ''/hr\n\n".format(
+                                 at_date, self.dra, self.ddec, self.rate_of_motion(date=date)))
 
-        #orbit.predict('2014-04-04')  # hardwiring next year's prediction date for the moment
-        #print "{:>10s} {:8.2f} {:8.2f}\n".format("Expected accuracy on 4 April 2014 (arcsec)", orbit.dra, orbit.ddec)
         fobj.seek(0)
         return fobj.read()
+
