@@ -1,7 +1,7 @@
 
 from ossos.storage import get_mopheader, get_astheader
 
-__author__ = 'Michele Bannister'
+__author__ = 'Michele Bannister, JJ Kavelaars'
 
 import datetime
 import os
@@ -12,42 +12,17 @@ from astropy.time import Time
 import requests
 import sys
 
-from ossos import astrom
-from ossos.gui import logger, config
-from ossos import mpc
-from ossos.orbfit import Orbfit
-from ossos import storage
-from ossos import wcs
+from . import astrom
+from .gui import logger, config
+from . import mpc
+from .orbfit import Orbfit
+from . import storage
+from . import wcs
 
-MAXCOUNT = 30000
 
 SSOS_URL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssos.pl"
 RESPONSE_FORMAT = 'tsv'
-# was set to \r\n ?
 NEW_LINE = '\r\n'
-
-
-def summarize(orbit):
-    for observation in orbit.observations:
-            print observation.to_string()
-
-    print ""
-    print orbit
-    print orbit.residuals
-
-    orbit.predict(orbit.observations[0].date)
-    coord1 = orbit.coordinate
-    orbit.predict(orbit.observations[-1].date)
-    coord2 = orbit.coordinate
-    # how best to get arcsec moved between first/last?
-    motion_rate = coord1.separation(coord2).arcsecs/(orbit.arc_length*24)
-    print "{:>10s} {:8.2f}".format('rate ("/hr)', motion_rate)
-
-    orbit.predict('2014-04-04')  # hardwiring next year's prediction date for the moment
-    print "{:>10s} {:8.2f} {:8.2f}\n".format("Expected accuracy on 4 April 2014 (arcsec)", orbit.dra, orbit.ddec)
-
-    return
-
 
 class TracksParser(object):
 
@@ -57,14 +32,6 @@ class TracksParser(object):
         self._nights_separating_darkruns = 30
         self.inspect = inspect
         self.skip_previous = skip_previous
-
-    @property
-    def rate_of_motion(self):
-        self.orbit.predict(self.orbit.observations[0].date)
-        coord1 = self.orbit.coordinate
-        self.orbit.predict(self.orbit.observations[1].date)
-        coord2 = self.orbit.coordinate
-        return coord1.separation(coord2).arcsecs/(self.orbit.arc_length*24)
 
     def parse(self, filename):
         filehandle = storage.open_vos_or_local(filename, "rb")
@@ -92,27 +59,18 @@ class TracksParser(object):
         self.ssos_parser = SSOSParser(mpc_observations[0].provisional_name,
                                       input_observations=mpc_observations, skip_previous=self.skip_previous)
         self.orbit = Orbfit(mpc_observations)
-
-        #for observation in self.orbit.observations:
-        #    print observation.to_string()
-        print ""
-        print self.orbit
-        print self.orbit.residuals
-
-        print "{:>10s} {:8.2f}".format('rate ("/hr)', self.rate_of_motion)
+        self.orbit.predict(mpc_observations[-1].date)
+        print self.orbit.summary()
 
         self.orbit.predict('2014-04-04')  # hard wiring next year's prediction date for the moment
         print "{:>10s} {:8.2f} {:8.2f}\n".format("Expected accuracy on 4 April 2014 (arcsec)",
                                                  self.orbit.dra,
                                                  self.orbit.ddec)
 
-        length_of_observation_arc = mpc_observations[-1].date.jd - mpc_observations[0].date.jd
-        print 'arclen (days)', length_of_observation_arc
-
-        if length_of_observation_arc < 1:
+        if self.orbit.arc_length < 1:
             # data from the same dark run.
             lunation_count = 0
-        elif length_of_observation_arc > 1 and length_of_observation_arc < self._nights_per_darkrun :
+        elif self.orbit.arc_length > 1 and self.orbit.arc_length < self._nights_per_darkrun :
             # data from neighbouring darkruns.
             lunation_count = 1
         else:
@@ -127,7 +85,7 @@ class TracksParser(object):
                                                                                                     tracks_data.get_reading_count(),
                                                                                                     lunation_count))
 
-            if (tracks_data.get_arc_length() > (length_of_observation_arc+2.0/86400.0) or
+            if (tracks_data.get_arc_length() > ( self.orbit.arc_length+2.0/86400.0) or
                 tracks_data.get_reading_count() > len(mpc_observations)) :
                 return tracks_data
             if not self.inspect:
@@ -680,8 +638,8 @@ class Query(object):
         :raise: AssertionError
         """
         params = self.param_dict_biulder.params
-        self.response = requests.get(SSOS_URL, 
-                                     params=params, 
+        self.response = requests.post(SSOS_URL, 
+                                     data=params, 
                                      headers=self.headers)
         logger.debug(self.response.url)
         assert isinstance(self.response, requests.Response)
