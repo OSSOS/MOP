@@ -1,7 +1,7 @@
 
 from ossos.storage import get_mopheader, get_astheader
 
-__author__ = 'Michele Bannister'
+__author__ = 'Michele Bannister, JJ Kavelaars'
 
 import datetime
 import os
@@ -12,21 +12,22 @@ from astropy.time import Time
 import requests
 import sys
 
-from ossos import astrom
-from ossos.gui import logger, config
-from ossos import mpc
-from ossos.orbfit import Orbfit
-from ossos import storage
-from ossos import wcs
+from . import astrom
+from .gui import logger, config
+from . import mpc
+from .orbfit import Orbfit
+from . import storage
+from . import wcs
 
-MAXCOUNT = 30000
 
 SSOS_URL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssos.pl"
 RESPONSE_FORMAT = 'tsv'
-# was set to \r\n ?
 NEW_LINE = '\r\n'
 
+<<<<<<< HEAD
+=======
 
+>>>>>>> b56e2fd56cf4cf51434fce6a4375f6d9a4e392ac
 class TracksParser(object):
 
     def __init__(self, inspect=True, skip_previous=False):
@@ -62,12 +63,26 @@ class TracksParser(object):
         self.ssos_parser = SSOSParser(mpc_observations[0].provisional_name,
                                       input_observations=mpc_observations, skip_previous=self.skip_previous)
         self.orbit = Orbfit(mpc_observations)
+<<<<<<< HEAD
+        self.orbit.predict(mpc_observations[-1].date)
+        print self.orbit.summary()
+
+        self.orbit.predict('2014-04-04')  # hard wiring next year's prediction date for the moment
+        print "{:>10s} {:8.2f} {:8.2f}\n".format("Expected accuracy on 4 April 2014 (arcsec)",
+                                                 self.orbit.dra,
+                                                 self.orbit.ddec)
+=======
         self.orbit.summarize()  # defaults to predicting at today's date
+>>>>>>> b56e2fd56cf4cf51434fce6a4375f6d9a4e392ac
 
         if self.orbit.arc_length < 1:
             # data from the same dark run.
             lunation_count = 0
+<<<<<<< HEAD
+        elif self.orbit.arc_length > 1 and self.orbit.arc_length < self._nights_per_darkrun :
+=======
         elif self.orbit.arc_length > 1 and self.orbit.arc_length < self._nights_per_darkrun:
+>>>>>>> b56e2fd56cf4cf51434fce6a4375f6d9a4e392ac
             # data from neighbouring darkruns.
             lunation_count = 1
         else:
@@ -78,11 +93,16 @@ class TracksParser(object):
         while True:
             tracks_data = self.query_ssos(mpc_observations, lunation_count)
 
+<<<<<<< HEAD
+            if (tracks_data.get_arc_length() > ( self.orbit.arc_length+2.0/86400.0) or
+                tracks_data.get_reading_count() > len(mpc_observations)) :
+=======
             sys.stderr.write('num observations: {}\nreading_count: {}\nlunation_count: {}\n'
                              .format(len(mpc_observations), tracks_data.get_reading_count(), lunation_count))
 
             if (tracks_data.get_arc_length() > (self.orbit.arc_length + 2.0 / 86400.0) or
                     tracks_data.get_reading_count() > len(mpc_observations)) :
+>>>>>>> b56e2fd56cf4cf51434fce6a4375f6d9a4e392ac
                 return tracks_data
             if not self.inspect:
                 assert lunation_count is not None, "No new observations available."
@@ -635,9 +655,15 @@ class Query(object):
         :return: astropy.table.table
         :raise: AssertionError
         """
+<<<<<<< HEAD
+        params = self.param_dict_biulder.params
+        self.response = requests.post(SSOS_URL, 
+                                     data=params, 
+=======
         params = self.param_dict_builder.params
         self.response = requests.get(SSOS_URL, 
                                      params=params, 
+>>>>>>> b56e2fd56cf4cf51434fce6a4375f6d9a4e392ac
                                      headers=self.headers)
         logger.debug(self.response.url)
         assert isinstance(self.response, requests.Response)

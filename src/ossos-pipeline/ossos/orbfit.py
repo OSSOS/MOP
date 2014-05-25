@@ -7,9 +7,12 @@ import sys
 import datetime
 from astropy import coordinates
 from astropy import units
+import ctypes
+import tempfile
+from StringIO import StringIO
 
-from mpc import Observation
-from ossos.mpc import Time
+from .mpc import Observation
+from .mpc import Time
 
 
 LIBORBFIT = "/usr/local/lib/liborbfit.so"
@@ -39,54 +42,35 @@ class Orbfit(object):
         if len(observations) < 3:
             raise OrbfitError()
         self.orbfit = ctypes.CDLL(LIBORBFIT)
-        assert isinstance(observations[0], Observation)
+        for observation in observations:
+            assert isinstance(observation, Observation)
         self.observations = observations
-        self.arc_length = observations[-1].date.jd - observations[0].date.jd
-        self._fit_radec()
-
-
-    @property
-    def abg(self):
-        """
-        A print out the abg file.
-
-        abg is stored in a temporary file and is deleted on code exit.  This is the content of that file.
-        """
-        self._abg.seek(0)
-        return self._abg.readlines()
-
-    def _fit_radec(self):
-        """
-        call fit_radec of BK passing in the observations.
-
-        """
+        self._abg = tempfile.NamedTemporaryFile()
+        self._mpc_file = tempfile.NamedTemporaryFile(suffix='.mpc')
 
         # call fit_radec with mpcfile, abgfile, resfile
         self.orbfit.fitradec.restype = ctypes.POINTER(ctypes.c_double * 2)
         self.orbfit.fitradec.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
-
-        mpc_file = tempfile.NamedTemporaryFile(suffix='.mpc')
         for observation in self.observations:
             if not observation.null_observation:
                 obs = observation
                 ra = obs.ra.replace(" ", ":")
                 dec = obs.dec.replace(" ", ":")
                 res = 0.3
-                # print "FIT: "+str(observation)
-                mpc_file.write("{} {} {} {} {}\n".format(obs.date.jd, ra, dec, res, 568, ))
-        mpc_file.seek(0)
-
+                #print "FIT: "+str(observation)
+                self._mpc_file.write("{} {} {} {} {}\n".format(obs.date.jd, ra, dec, res, 568, ))
+        self._mpc_file.seek(0)
         self._abg = tempfile.NamedTemporaryFile()
-
-        result = self.orbfit.fitradec(ctypes.c_char_p(mpc_file.name),
+        result = self.orbfit.fitradec(ctypes.c_char_p(self._mpc_file.name),
                                       ctypes.c_char_p(self._abg.name))
-
         self.distance = result.contents[0]
         self.distance_uncertainty = result.contents[1]
 
+        # call abg_to_aei to get elliptical elements and their chi^2 uncertainty.
         self.orbfit.abg_to_aei.restype = ctypes.POINTER(ctypes.c_double * 12)
         self.orbfit.abg_to_aei.argtypes = [ctypes.c_char_p]
         result = self.orbfit.abg_to_aei(ctypes.c_char_p(self._abg.name))
+
         self.a = result.contents[0]
         self.da = result.contents[6]
         self.e = result.contents[1]
@@ -99,10 +83,10 @@ class Orbfit(object):
         self.dom = result.contents[10]
         self.T = result.contents[5]
         self.dT = result.contents[11]
-        self._residuals()
 
-    def _residuals(self):
-        residuals = ""
+
+        ## compute the residuals (from the given observations)
+        self._residuals = ""
         for observation in self.observations:
             self.predict(observation.date)
             dra = coordinates.Angle(self.coordinate.ra - observation.coordinate.ra)
@@ -114,12 +98,30 @@ class Orbfit(object):
             observation.ra_residual = dra.degrees * 3600.0
             observation.dec_residual = ddec.degrees * 3600.0
             if observation.null_observation:
-                residuals += "!"
+                self._residuals += "!"
             else:
-                residuals += " "
-            residuals += "{:12s} {:+05.2f} {:+05.2f}\n".format(observation.date, observation.ra_residual,
-                                                               observation.dec_residual)
-        self.residuals = residuals
+                self._residuals += ' '
+            self._residuals += "{:12s} {:+05.2f} {:+05.2f}\n".format(observation.date, observation.ra_residual, observation.dec_residual)
+
+    @property
+    def arc_length(self):
+        dates = []
+        for observation in self.observations:
+            dates.append(observation.date.jd)
+        return max(dates)-min(dates)
+
+    @property
+    def abg(self):
+        """
+        A print out the abg file.
+
+        abg is stored in a temporary file and is deleted on code exit.  This is the content of that file.
+        """
+        self._abg.seek(0)
+        return self._abg.readlines()
+
+
+
 
     def __str__(self):
         """
@@ -185,7 +187,6 @@ class Orbfit(object):
         self.pa = predict.contents[4]
         self.date = str(date)
 
-
     def rate_of_motion(self, date=datetime.datetime.now()):
         # rate of motion at a requested date rather than averaged over the arc.
         # Date is datetime.datetime() objects.
@@ -200,15 +201,26 @@ class Orbfit(object):
 
 
     def summarize(self, date=datetime.datetime.now()):
+        """Return a string summary of the orbit.
+
+        """
+
         assert isinstance(date, datetime.datetime)
+        at_date = date.strftime('%Y-%m-%d')
+        self.predict(at_date)
+
+        fobj = StringIO()
+
         for observation in self.observations:
-            sys.stderr.write("{:>10s}\n".format(observation.to_string()))
-        self.predict(date.strftime('%Y-%m-%d'))
+            fobj.write(observation.to_string()+"\n")
 
-        sys.stderr.write("\n{:>10s}"
-                         "Residuals:\n{:>10s}\n"
-                         "Expected accuracy on {:>10s}: {:6.2f}'' {:6.2f}'' moving at {:6.2f} ''/hr\n\n"
-                         .format(self.__str__(), self.residuals,
-                                 date.strftime('%Y-%m-%d'), self.dra, self.ddec, self.rate_of_motion(date=date)))
+        fobj.write("\n")
+        fobj.write(str(self)+"\n")
+        fobj.write(str(self._residuals)+"\n")
+        fobj.write('arclen (days) {}'.format(self.orbit.arc_length))
+        fobj.write("Expected accuracy on {:>10s}: {:6.2f}'' {:6.2f}'' moving at {:6.2f} ''/hr\n\n".format(
+                                 at_date, self.dra, self.ddec, self.rate_of_motion(date=date)))
 
-        return
+        fobj.seek(0)
+        return fobj.read()
+
