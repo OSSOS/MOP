@@ -179,6 +179,13 @@ class Orbfit(object):
         self.ddec = predict.contents[3]
         self.pa = predict.contents[4]
         self.date = str(date)
+        predict = self.orbfit.predict(ctypes.c_char_p(self._abg.name),
+                                      jd+1.0/24.0,
+                                      ctypes.c_int(obs_code))
+        coord2 = coordinates.ICRSCoordinates(predict.contents[0],
+                                             predict.contents[1],
+                                             unit=(units.degree, units.degree))
+        self.rate_of_motion = self.coordinate.separation(coord2).arcsecs
 
     def summary():
         """Return a string summary of the orbit.
@@ -192,6 +199,8 @@ class Orbfit(object):
         fobj.write("\n")
         fobj.write(str(self)+"\n")
         fobj.write(str(self._residuals)+"\n")
+        fobj.write('arclen (days) {}'.format(self.orbit.arc_length))
+
         #orbit.predict('2014-04-04')  # hardwiring next year's prediction date for the moment
         #print "{:>10s} {:8.2f} {:8.2f}\n".format("Expected accuracy on 4 April 2014 (arcsec)", orbit.dra, orbit.ddec)
         fobj.seek(0)
