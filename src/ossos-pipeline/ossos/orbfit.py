@@ -218,7 +218,7 @@ class Orbfit(object):
         fobj.write(str(self)+"\n")
         fobj.write(str(self._residuals)+"\n")
         fobj.write('arclen (days) {}'.format(self.orbit.arc_length))
-        fobj.write('Expected accuracy on {:>10s}: {:6.2f}'' {:6.2f}'' moving at {:6.2f} ''/hr\n\n".format(
+        fobj.write("Expected accuracy on {:>10s}: {:6.2f}'' {:6.2f}'' moving at {:6.2f} ''/hr\n\n".format(
                                  at_date, self.dra, self.ddec, self.rate_of_motion(date=date)))
 
         fobj.seek(0)
