@@ -197,6 +197,35 @@ def get_uri(expnum, ccd=None,
 
 dbimages_uri = get_uri
 
+def _set_tags(expnum, keys, values=None):
+    
+    uri = os.path.join(DBIMAGES, str(expnum))
+    node = vospace.getNode(uri)
+    if values is None:
+        values = []
+        for idx in range(len(keys)):
+            values.append(None)
+    assert(len(values)==len(keys))
+    for idx in range(len(keys)):
+        key = keys[idx]
+        value = values[idx]
+        tag = tag_uri(key)
+        node.props[tag] = value
+    return vospace.addProps(node)
+
+def set_tags(expnum, props):
+    """Assign the key/value pairs in props as tags on on the given expnum.
+
+    @param expnum: str
+    @param props: dict
+    @return: success
+    """
+    # first clear all the props
+    _set_tags(expnum, props.keys())
+    
+    # now set all the props 
+    return _set_tags(expnum, props.keys(), props.values())
+        
 
 def set_tag(expnum, key, value):
     """Assign a key/value pair tag to the given expnum containerNode.
@@ -207,15 +236,8 @@ def set_tag(expnum, key, value):
     @return: success
     """
 
-    uri = os.path.join(DBIMAGES, str(expnum))
-    node = vospace.getNode(uri)
-    uri = tag_uri(key)
-    # for now we delete and then set, some issue with the props
-    # updating on vospace (2013/06/23, JJK)
-    node.props[uri] = None
-    vospace.addProps(node)
-    node.props[uri] = value
-    return vospace.addProps(node)
+    return set_tags(expnum, {key: value})
+
 
 
 def tag_uri(key):
@@ -718,7 +740,7 @@ def _getheader(uri):
                                             sep='\n',
                                             endcard=False,
                                             padding=False))
-        fobj.close()
+    fobj.close()
 
     return headers
 
