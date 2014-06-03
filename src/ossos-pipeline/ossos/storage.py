@@ -376,20 +376,23 @@ def get_fwhm(expnum, ccd, prefix=None, version='p'):
     """
 
     uri = get_uri(expnum, ccd, version, ext='fwhm', prefix=prefix)
+    print uri
     filename = os.path.basename(uri)
 
     if os.access(filename, os.F_OK):
         logger.debug("File already on disk: {}".format(filename))
         return float(open(filename, 'r').read())
 
-    url = uri.replace('vos:', 'https://www.canfar.phys.uvic.ca/data/pub/vospace/')
     try:
-        fwhm = float(requests.get(url, cert=vospace.conn.certfile).content)
-    except Exception as e:
-        print url
-        print str(e)
-        fwhm = 4
-    return fwhm
+        return float(open_vos_or_local(uri).read())
+    except:
+        try:
+            url = uri.replace('vos:', 'https://www.canfar.phys.uvic.ca/data/pub/vospace/')
+            return float(requests.get(url, cert=vospace.conn.certfile).content)
+        except Exception as e:
+            print url
+            print str(e)
+    return 4
 
 
 def get_zeropoint(expnum, ccd, prefix=None, version='p'):
@@ -404,8 +407,11 @@ def get_zeropoint(expnum, ccd, prefix=None, version='p'):
     @return:
     """
     uri = get_uri(expnum, ccd, version, ext='zeropoint.used', prefix=prefix)
-    url = uri.replace('vos:', 'https://www.canfar.phys.uvic.ca/data/pub/vospace/')
-    return float(requests.get(url, cert=vospace.conn.certfile).content)
+    try:
+        return float(open_vos_or_local(uri).read())
+    except:
+        url = uri.replace('vos:', 'https://www.canfar.phys.uvic.ca/data/pub/vospace/')
+        return float(requests.get(url, cert=vospace.conn.certfile).content)
 
 
 def mkdir(dirname):
@@ -649,8 +655,11 @@ def get_mopheader(expnum, ccd):
         logger.debug("File already on disk: {}".format(filename))
         mopheader_fpt = cStringIO.StringIO(open(filename, 'r').read())
     else:
-        req = requests.get(url, cert=vospace.conn.certfile)
-        mopheader_fpt = cStringIO.StringIO(req.content)
+        try:
+            mopheader_fpt = cString.StringIO(open_vos_or_local(mopheader_uri).read())
+        except:
+            req = requests.get(url, cert=vospace.conn.certfile)
+            mopheader_fpt = cStringIO.StringIO(req.content)
 
     mopheader = fits.open(mopheader_fpt)
     ## add some values to the mopheader so it can be an astrom header too.
@@ -668,7 +677,7 @@ def get_mopheader(expnum, ccd):
                                         scale='utc', precision=5).replicate(format='mpc'))
     header['MAXCOUNT'] = MAXCOUNT
     mopheaders[mopheader_uri] = header
-
+    mopheader.close()
     return mopheaders[mopheader_uri]
 
 
