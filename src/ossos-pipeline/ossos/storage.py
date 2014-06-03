@@ -31,7 +31,7 @@ MEASURE3 = 'vos:OSSOS/measure3'
 
 DATA_WEB_SERVICE = 'https://www.canfar.phys.uvic.ca/data/pub/'
 VOSPACE_WEB_SERVICE = 'https://www.canfar.phys.uvic.ca/vospace/nodes/'
-TAP_WEB_SERVICE = 'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/tap/sync?'
+TAP_WEB_SERVICE = 'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/tap/sync'
 
 OSSOS_TAG_URI_BASE = 'ivo://canfar.uvic.ca/ossos'
 OBJECT_COUNT = "object_count"
@@ -49,21 +49,14 @@ mopheaders = {}
 astheaders = {}
 
 
-def cone_search(ra, dec, dra=0.01, ddec=0.01, runids=('13AP05', '13AP06', '13BP05', '14AP05')):
-    """Do a QUERY on the TAP service for all observations that are part of runid,
+def cone_search(ra, dec, dra=0.01, ddec=0.01):
+    """Do a QUERY on the TAP service for all observations that are part of OSSOS (*P05/*P016)
     where taken after mjd and have calibration 'observable'.
 
-    :param runids:
-    :param ra:
-    :param dec:
-    :param dra: degrees
-    :param ddec: degrees
-    mjd : float
-    observable: str ( CAL or RAW)
-    runid: tuple eg. ('13AP05', '13AP06')
-    ra: float right ascension
-    dec: float declination
-
+    :param ra: float degrees
+    :param dec: float degrees
+    :param dra: float degrees
+    :param ddec: float degrees
     """
 
     data = dict(QUERY=(" SELECT Observation.collectionID as collectionID "
@@ -84,16 +77,12 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, runids=('13AP05', '13AP06', '13BP0
     result = requests.get(TAP_WEB_SERVICE, params=data)
     assert isinstance(result, requests.Response)
     logger.debug("Doing TAP Query using url: %s" % (str(result.url)))
-    #data = StringIO(result.text)
 
     table_reader = ascii.get_reader(Reader=ascii.Basic)
     table_reader.header.splitter.delimiter = '\t'
     table_reader.data.splitter.delimiter = '\t'
     table = table_reader.read(result.text)
 
-    #vot = votable.parse_single_table(data)
-    #vot.array.sort(order='dataset_name')
-    #t = vot.array
     logger.debug(str(table))
     return table
 
@@ -154,6 +143,7 @@ def get_uri(expnum, ccd=None,
     Build the uri for an OSSOS image stored in the dbimages
     containerNode.
 
+    :rtype : basestring
     expnum: CFHT exposure number
     ccd: CCD in the mosaic [0-35]
     version: one of p,s,o etc.
@@ -273,7 +263,7 @@ def set_status(expnum, ccd, program, status, version='p'):
 
 
 def get_image(expnum, ccd=None, version='p', ext='fits',
-              subdir=None, rescale=True, prefix=None):
+              subdir=None, prefix=None, cutout=None):
     """Get a FITS file for this expnum/ccd  from VOSpace.
 
 
@@ -282,93 +272,105 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     @param version: [p, s, o]  (char)
     @param ext:
     @param subdir:
-    @param rescale:
     @param prefix:
-    @return:
+    @return: basestring
     """
 
-    if not subdir:
-        subdir = str(expnum)
-
-    uri = get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix)
-
-    filename = os.path.basename(uri)
+    # the filename is based on the Simple FITS images file.
+    filename = os.path.basename(get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix))
     if os.access(filename, os.F_OK):
         logger.debug("File already on disk: {}".format(filename))
         return filename
 
-    try:
-        logger.debug("trying to get file {}".format(uri))
+    if not subdir:
+        subdir = str(expnum)
+
+    if cutout is None and int(ccd) < 18:
+        flip = "[-*,-*]"
+    else:
+        flip = cutout
+
+    ## here is the list of places we will look, in order
+    locations = [(get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix), cutout),
+                 (get_uri(expnum, version=version, ext=ext, subdir=subdir), "[{}]{}".format(int(ccd) + 1,
+                                                                                            flip)),
+                 (get_uri(expnum, version=version, ext=ext + ".fz", subdir=subdir), "[{}]{}".format(int(ccd) + 1,
+                                                                                                    flip))]
+    for (uri, cutout) in locations:
         try:
-            with open(filename,'w') as fout:
-                url = uri.replace("vos:","https://www.canfar.phys.uvic.ca/data/pub/vospace/")
-                fout.write(requests.get(url, cert=vospace.conn.certfile).content)
-        except:
-            copy(uri, filename)
-    except Exception as e:
-        logger.debug("copy sent back error: {} code: {}".format(str(e), getattr(e, 'errno', 0)))
-        if getattr(e, 'errno', 0) not in [404, errno.ENOENT] or ccd is None:
-            raise e
-        ## try doing a cutout from MEF in VOSpace
-        uri = get_uri(expnum,
-                      version=version,
-                      ext=ext,
-                      subdir=subdir)
-        logger.debug("Using uri: {}".format(uri))
-        if not exists(uri):
-            uri = get_uri(expnum,
-                          version=version,
-                          ext=ext + ".fz",
-                          subdir=subdir)
-
-        cutout = "[%d]" % (int(ccd) + 1)
-        flip_datasec = (ccd < 18)
-        if flip_datasec:
-            cutout += "[-*,-*]"
-
-        logger.debug(uri)
-        param = {'cutout': cutout}
-
-        # First try and get with requests then try with vos.
-
-        try:
-            url = uri.replace("vos:","https://www.canfar.phys.uvic.ca/data/pub/vospace/")
-            logger.debug(url)
-            try:
-                with open(filename, 'w') as fout:
-                    fout.write(requests.get(url, params=param, cert=vospace.conn.certfile).content)
-            except:
-                with open(filename, 'w') as fout:
-                    fout.seek(0)
-                    fout.write(requests.get(url+".fz", params=param, cert=vospace.conn.certfile).content)
-        except:
-            with open(filename, 'w') as fout:
-                vh = vospace.open(uri, view="cutout", cutout=cutout)
-                fout.write(vh.read())
-                vh.close()
-
-        if not rescale:
+            hdu_list = get_hdu(uri, cutout)
+            hdu_list.writeto(filename)
+            del hdu_list
             return filename
-        hdu_list = fits.open(filename, 'update', do_not_scale_image_data=True)
-        hdu_list[0].header['BZERO'] = hdu_list[0].header.get('BZERO', 32768)
-        hdu_list[0].header['BSCALE'] = hdu_list[0].header.get('BSCALE', 1)
-        if flip_datasec:
-            naxis1 = int(hdu_list[0].header.get('NAXIS1'))
-            naxis2 = int(hdu_list[0].header.get('NAXIS2'))
-            datasec = hdu_list[0].header.get('DATASEC', "[33:2080,1:4612]")
-            hdu_list[0].header['OLDSEC'] = datasec
-            logger.info("Flipping the datasec")
-            datasec = re.findall(r'(\d+)', datasec)
-            x2 = naxis1 - int(datasec[0]) + 1
-            x1 = naxis1 - int(datasec[1]) + 1
-            y2 = naxis2 - int(datasec[2]) + 1
-            y1 = naxis2 - int(datasec[3]) + 1
-            datasec = "[{}:{},{}:{}]".format(x1, x2, y1, y2)
-            hdu_list[0].header['DATASEC'] = datasec
-        hdu_list.flush()
-        hdu_list.close()
+        except Exception as e:
+            logger.debug("vos sent back error: {} code: {}".format(str(e), getattr(e, 'errno', 0)))
+            if getattr(e, 'errno', 0) not in [404, errno.ENOENT] or ccd is None:
+                break
+            raise e
 
-    return filename
+    return None
+
+
+def get_hdu(uri, cutout):
+    """Get a at the given uri from VOSpace, possibly doing a cutout.
+
+    If the cutout is flips the image then we also must flip the datasec keywords.  Also, we must offset the
+    datasec to reflect the cutout area being used.
+
+    @return: fits.HDU
+    """
+
+    vos_ptr = vospace.open(uri, cutout=cutout)
+    fpt = cStringIO.StringIO(vos_ptr.read())
+    fpt.seek(0)
+    hdu_list = fits.open(fpt)
+    fpt.close()
+    vos_ptr.close()
+
+    if cutout is None:
+        return hdu_list
+    flip_datasec = '[-*' in cutout
+    flop_datasec = '-*]' in cutout
+
+    datasec = hdu_list[0].header.get('DATASEC', "[33:2080,1:4612]")
+    if datasec is None or len(datasec) != 4:
+        return hdu_list
+    hdu_list[0].header['OLDSEC'] = datasec
+    datasec = re.findall(r'(\d+)', datasec)
+    for idx in range(len(datasec)):
+        datasec[idx] = int(datasec)
+
+    parts = re.findall(r'(\d+?)[:,\]]+', cutout)
+    if parts is not None and len(parts) == 4:
+        for idx in range(len(parts)):
+            parts[idx] = int(parts[idx])
+        flip_datasec = parts[0] < parts[1]
+        flop_datasec = parts[2] < parts[3]
+    else:
+        parts = datasec
+
+    naxis1 = hdu_list[0].header['NAXIS1']
+    naxis2 = hdu_list[0].header['NAXIS2']
+
+    x1 = min(parts[0:2])
+    x2 = max(parts[0:2])
+    y1 = min(parts[2:])
+    y2 = max(parts[2:])
+    datasec[0] = max(1, 1 + int(datasec[0]) - x1)
+    datasec[1] = min(naxis1, naxis1 - (x2 - int(datasec[1])))
+    datasec[2] = max(1, 1 + int(datasec[2]) - y1)
+    datasec[3] = min(naxis2, naxis2 - (y2 - int(datasec[3])))
+
+    if flip_datasec:
+        x2 = naxis1 - int(datasec[0]) + 1
+        x1 = naxis1 - int(datasec[1]) + 1
+    if flop_datasec:
+        y2 = naxis2 - int(datasec[2]) + 1
+        y1 = naxis2 - int(datasec[3]) + 1
+
+    datasec = "[{}:{},{}:{}]".format(x1, x2, y1, y2)
+    hdu_list[0].header['DATASEC'] = datasec
+    return hdu_list
 
 
 def get_fwhm(expnum, ccd, prefix=None, version='p'):
@@ -461,6 +463,7 @@ def copy(source, dest):
     try:
         vospace.delete(dest)
     except Exception as e:
+        logger.debug(str(e))
         pass
     logger.debug("copying {} -> {}".format(source, dest))
 
