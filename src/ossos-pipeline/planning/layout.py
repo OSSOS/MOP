@@ -20,6 +20,8 @@ import os
 from numpy.random import random
 import Polygon, Polygon.IO
 import string
+from ossos import mpc
+from ossos import orbfit
 
 ## EmulateApJ columnwidth=245.26 pts                                                                                                   
 fig_width_pt = 246.0
@@ -101,11 +103,19 @@ NAME                |RA         |DEC        |EPOCH |POINT|
 """
 
 #spring13
-blocks={'E':{"RA": "14:32:30.29","DEC":"-13:54:01.4"},
-        'O':{"RA": "16:17:04.41","DEC":"-13:14:45.8"}}
+blocks = {#'13AE': {"RA": "14:15:28.89", "DEC": "-12:32:28.4"},  # E+0+0: image 1616681, ccd21 on April 9
+          #'13AO': {"RA": "15:58:01.35", "DEC": "-12:19:54.2"},  # O+0+0: image 1625346, ccd21 on May 8
+          '14AN': {'RA': "15:30:00.00", "DEC": "-11:00:00.0"},
+          '14AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"},
+          '14AS': {'RA': "15:12:00.00", "DEC": "-17:40:00.0"}}
+
+
 #fall13
-blocks={'13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"}, 
-        '13BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"}}
+#blocks={'13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"}, 
+#        '13BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"}}
+
+#spring14
+
 
 newMoons={'Feb13': "2013/02/10 10:00:00",
           'Mar13': "2013/03/11 10:00:00",
@@ -119,17 +129,22 @@ newMoons={'Feb13': "2013/02/10 10:00:00",
           'Nov13': '2013/11/03 10:00:00',
           'Dec13': '2013/12/02 10:00:00',
           'Jan14': '2014/01/01 10:00:00',
-          'Feb14': '2014/01/31 10:00:00'}
+          'Feb14': '2014/01/31 10:00:00',
+          'Mar14': '2014/03/28 10:00:00',
+          'Apr14': '2014/04/01 10:00:00',
+          'May14': '2014/05/28 10:00:00',
+          'Jun14': '2014/06/26 10:00:00'
+          }
 
-xgrid={'2013':[-3, -2, -1, 0, 1, 2, 3],
-       '2014':[-3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5],
+xgrid={'2014':[-3, -2, -1, 0, 1, 2, 3],
+       '2014r':[-3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5],
        'astr':[1,2,3,4]}
 # 2013
 #       'astr':[-5.5,-4.5,-3.5,-2.5,-1.5,-0.5,0.5,1.5,2.5,3.5,4.5,5.5]}
 
-ygrid={'2013':  [-1, 0, 1],
+ygrid={'2014':  [-1, 0, 1],
        'astr':  [-2.5,-1.5,-0.5,0.5,1.5],
-       '2014':  [-1.5,-0.5, 0.5, 1.5]}
+       '2014r':  [-1.5,-0.5, 0.5, 1.5]}
 # 2013
 #       'astr':  [-2.2,-1.2, -0.2, 0.8, 1.8],
 
@@ -141,13 +156,13 @@ field_offset = math.radians(1.00)
 ## camera_dimen is the size of the field.
 camera_dimen=0.98
 
-years={"2013": {"ra_off": ephem.hours("00:00:00"),
+years={"2014": {"ra_off": ephem.hours("00:00:00"),
                "dec_off":ephem.hours("00:00:00"),
 	       "fill": False,
 	       "facecolor": 'k',
                "alpha": 0.5,
                "color": 'b'},
-       "2014": {"ra_off": ephem.hours("00:05:00"),
+       "2014r": {"ra_off": ephem.hours("00:05:00"),
                 "dec_off":ephem.degrees("00:18:00"),
                 "alpha": 0.5,
 	        "fill": False,
@@ -169,7 +184,7 @@ x = []
 y = []
 names = []
 coverage = []
-year = '2013'
+year = '2014'
 #year = 'astr'
 if year == 'astr':
   field_offset = field_offset*0.75
@@ -209,7 +224,6 @@ for block in blocks.keys():
             (xcen+dimen/2.0,ycen+dimen/2.0),
             (xcen+dimen/2.0,ycen-dimen/2.0),
             (xcen-dimen/2.0,ycen-dimen/2.0))))
-      print ra, dec
       ax.add_artist(Rectangle(xy=(ra-dimen/2.0,dec-dimen/2.0), 
                               height=camera_dimen, 
                               width=camera_dimen, 
@@ -377,21 +391,22 @@ for idx in range(len(ras)):
 #</ASTRO>
 #""")
 
-ra_cen = (37+7)/2.0
-dec_cen = (20+0)/2.0
-width = 20-0
-height = 37-7
+ra_cen = (245+205)/2.0
+dec_cen = (-25-8)/2.0
+width = 245-205
+height = -8+25
 
-ax.set_xlim(37,7)
-ax.set_ylim(0,20)
+ax.set_xlim(245,205)
+ax.set_ylim(-25,-8)
+
 
 t = votable.parse(usnoB1.TAPQuery(ra_cen, dec_cen, width, height)).get_first_table()
 
-Rmag = t.array['Bmag'][t.array['Bmag'] < 15]
+Rmag = t.array['Bmag'][t.array['Bmag'] < 12]
 min = max(Rmag.min(),11)
 max = Rmag.max()
 scale = 0.5*10**((min - Rmag)/2.5)
-print scale.min(), scale.max()
+print max, Rmag.min(), scale.min(), scale.max()
 ax.scatter(t.array['RAJ2000'], t.array['DEJ2000'], s=scale, marker='o', facecolor='y', alpha=0.8, edgecolor='', zorder=-10)
 
 for planet in [ephem.Mars(), ephem.Jupiter(), ephem.Saturn(), ephem.Uranus(), ephem.Neptune()]:
@@ -441,9 +456,22 @@ if os.access(MPCORB,os.F_OK):
              facecolor='none',
              edgecolor='g')
 
-   
+for ast in os.listdir('/Users/jjk/Dropbox/dbaseclone/ast'):
+  obs = []
+  for line in open('/Users/jjk/Dropbox/dbaseclone/ast/'+ast):
+    obs.append(mpc.Observation.from_string(line))
+  kbo = orbfit.Orbfit(obs)
+  kbo.predict('2014-05-29')
+  ax.scatter(kbo.coordinate.ra.degrees,
+             kbo.coordinate.dec.degrees,
+             marker='h',
+             s=10,
+             facecolor='none',
+             edgecolor='g',
+             alpha=0.5)
 
-savefig('layout.pdf')
+
+savefig('layout.png')
 
 sys.stderr.write("FINISHED\n")
 
