@@ -49,7 +49,6 @@ class Downloader(object):
             fobj = self.vosclient.open(uri, **kwargs)
             buff = fobj.read()
             fobj.close()
-            return buff
         except:
             groups = re.match("vos:(?P<path>.*)", uri)
             logger.debug("requests download")
@@ -57,8 +56,8 @@ class Downloader(object):
             if 'cutout' in kwargs.keys():
                 params = {'cutout': kwargs['cutout']}
             r = requests.get(SERVER+groups.group('path'),params=params, cert=certfile)
-            buff = r.content
-            return buff
+
+        return buff
 
     def download_hdulist(self, uri, **kwargs):
         """
