@@ -41,11 +41,15 @@ class Downloader(object):
         if "URL" in kwargs.keys():
             r = requests.get(kwargs['URL'], cert=certfile)
             buff = r.content
+            logger.debug("Sending back buffer.")
             return buff
 
         if not 'vos:' in uri:
             logger.debug("cadcVOFS download: %s" % uri)
-            buff = self.vosclient.open(uri, **kwargs).read()
+            fobj = self.vosclient.open(uri, **kwargs)
+            buff = fobj.read()
+            fobj.close()
+            return buff
         else:
             groups = re.match("vos:(?P<path>.*)", uri)
             logger.debug("requests download")
@@ -54,8 +58,7 @@ class Downloader(object):
                 params = {'cutout': kwargs['cutout']}
             r = requests.get(SERVER+groups.group('path'),params=params, cert=certfile)
             buff = r.content
-
-        return buff
+            return buff
 
     def download_hdulist(self, uri, **kwargs):
         """
@@ -74,7 +77,9 @@ class Downloader(object):
             (http://docs.astropy.org/en/latest/io/fits/api/hdulists.html).
         """
         logger.debug(str(kwargs))
-        hdulist = fits.open(cStringIO.StringIO(self.download_raw(uri, **kwargs)))
+        fobj = cStringIO.StringIO(self.download_raw(uri, **kwargs))
+        fobj.seek(0)
+        hdulist = fits.open(fobj)
         logger.debug("Got fits hdulist of len {}".format(len(hdulist)))
         return hdulist
 
