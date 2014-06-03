@@ -126,6 +126,8 @@ class ImageSinglet(object):
             for hdu in hdulist:
                 del(hdu.header['PV*'])
             display.set_pyfits(hdulist)
+            f.close()
+            del(hdulist)
             self.frame_number = display.get('frame frameno')
             display.set('frame center {}'.format(self.frame_number))
             display.set('zoom to fit')

@@ -1,7 +1,7 @@
 
 from ossos.storage import get_mopheader, get_astheader
 
-__author__ = 'Michele Bannister'
+__author__ = 'Michele Bannister, JJ Kavelaars'
 
 import datetime
 import os
@@ -12,18 +12,16 @@ from astropy.time import Time
 import requests
 import sys
 
-from ossos import astrom
-from ossos.gui import logger, config
-from ossos import mpc
-from ossos.orbfit import Orbfit
-from ossos import storage
-from ossos import wcs
+from . import astrom
+from .gui import logger, config
+from . import mpc
+from .orbfit import Orbfit
+from . import storage
+from . import wcs
 
-MAXCOUNT = 30000
 
 SSOS_URL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssos.pl"
 RESPONSE_FORMAT = 'tsv'
-# was set to \r\n ?
 NEW_LINE = '\r\n'
 
 
@@ -78,11 +76,8 @@ class TracksParser(object):
         while True:
             tracks_data = self.query_ssos(mpc_observations, lunation_count)
 
-            sys.stderr.write('num observations: {}\nreading_count: {}\nlunation_count: {}\n'
-                             .format(len(mpc_observations), tracks_data.get_reading_count(), lunation_count))
-
-            if (tracks_data.get_arc_length() > (self.orbit.arc_length + 2.0 / 86400.0) or
-                    tracks_data.get_reading_count() > len(mpc_observations)) :
+            if (tracks_data.get_arc_length() > ( self.orbit.arc_length+2.0/86400.0) or
+                tracks_data.get_reading_count() > len(mpc_observations)) :
                 return tracks_data
             if not self.inspect:
                 assert lunation_count is not None, "No new observations available."
@@ -635,9 +630,9 @@ class Query(object):
         :return: astropy.table.table
         :raise: AssertionError
         """
-        params = self.param_dict_builder.params
-        self.response = requests.get(SSOS_URL, 
-                                     params=params, 
+        params = self.param_dict_biulder.params
+        self.response = requests.post(SSOS_URL, 
+                                     data=params, 
                                      headers=self.headers)
         logger.debug(self.response.url)
         assert isinstance(self.response, requests.Response)

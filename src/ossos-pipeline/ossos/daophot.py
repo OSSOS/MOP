@@ -35,6 +35,7 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
     try:
         input_hdulist = fits.open(fits_filename)
     except Exception as err:
+        logger.debug(str(err))
         raise TaskError("Failed to open input image: %s" % err.message)
 
     ## get the filter for this image

@@ -99,13 +99,14 @@ class ImageCutoutDownloader(Downloader):
         if needs_apcor:
             try:
                 apcor = self.download_apcor(reading.get_apcor_uri())
-            except:
+            except Exception as e:
+                logger.error(str(e))
                 apcor = None
         zmag = None
         try:
             zmag = self.download_zmag(reading.get_zmag_uri())
         except Exception as e:
-	    logger.debug(str(e))
+            logger.error(str(e))
             pass
 
         return SourceCutout(reading, hdulist, converter, apcor, zmag=zmag)
