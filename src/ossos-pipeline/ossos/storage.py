@@ -307,22 +307,27 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     if not subdir:
         subdir = str(expnum)
 
-    if cutout is None and int(ccd) < 18:
-        flip = "[-*,-*]"
-    else:
-        flip = cutout
-
+    logger.debug("Building list of possible uri locations")
     ## here is the list of places we will look, in order
-    locations = [(get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix), cutout),
-                 (get_uri(expnum, version=version, ext=ext, subdir=subdir), "[{}]{}".format(int(ccd) + 1,
-                                                                                            flip)),
-                 (get_uri(expnum, version=version, ext=ext + ".fz", subdir=subdir), "[{}]{}".format(int(ccd) + 1,
-                                                                                                    flip))]
+    locations = []
+    locations.append((get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix), cutout))
+    if ccd is not None:
+        try:
+           ext = int(ccd)+1
+           flip = (ext < 19 and cutout is None and "[-*,-*]") or cutout
+           locations.append((get_uri(expnum, version=version, ext=ext, subdir=subdir), "[{}]{}".format(ext,flip)))
+           locations.append((get_uri(expnum, version=version, ext=ext + ".fz", subdir=subdir), "[{}]{}".format(ext,flip)))
+        except Exception as e:
+           logger.error(str(e))
+           pass
     for (uri, cutout) in locations:
         try:
-            hdu_list = get_hdu(uri, cutout)
-            hdu_list.writeto(filename)
-            del hdu_list
+            if cutout is not None:
+                hdu_list = get_hdu(uri, cutout)
+                hdu_list.writeto(filename)
+                del hdu_list
+            else:
+                copy(uri, filename)
             return filename
         except Exception as e:
             logger.debug("vos sent back error: {} code: {}".format(str(e), getattr(e, 'errno', 0)))
@@ -342,12 +347,19 @@ def get_hdu(uri, cutout):
     @return: fits.HDU
     """
 
-    vos_ptr = vospace.open(uri, cutout=cutout)
+    logger.debug("Pulling: {} from VOSpace".format(uri))
+    if cutout is not None:
+        vos_ptr = vospace.open(uri, view='cutout', cutout=cutout)
+    else:
+        vos_ptr = vospace.open(uri, view='data')
     fpt = cStringIO.StringIO(vos_ptr.read())
+    fpt.seek(0,2)
+    print fpt.tell()
     fpt.seek(0)
+    logger.debug("Read from vospace completed. Building fits object.")
     hdu_list = fits.open(fpt)
-    fpt.close()
     vos_ptr.close()
+    logger.debug("Got image from vospace")
 
     if cutout is None:
         return hdu_list

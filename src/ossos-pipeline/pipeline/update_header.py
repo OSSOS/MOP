@@ -94,24 +94,21 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     level = logging.CRITICAL
+    format = "%(message)s"
     if args.verbose:
         level = logging.INFO
-        format = "%(message)s"
     if args.debug:
         level = logging.DEBUG
         format = "%(module)s %(funcName)s %(lineno)s %(message)s"
     logging.basicConfig(level=level, format=format)
 
     message = storage.SUCCESS
-
+    expnum=args.expnum
     try:
-        
-        expnum=args.expnum
         # skip if already succeeded and not in force mode
         if storage.get_status(expnum, 36, 'update_header') and not args.force:
             logging.info("Already updated, skipping")
             sys.exit(0)
-
     
         header = (args.header is not None and ((
             os.access(args.header, os.W_OK) and args.header ) or (
