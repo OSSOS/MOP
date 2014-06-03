@@ -43,10 +43,10 @@ class Downloader(object):
             buff = r.content
             return buff
 
-        if not 'vos:' in uri:
+        try:
             logger.debug("cadcVOFS download: %s" % uri)
             buff = self.vosclient.open(uri, **kwargs).read()
-        else:
+        except:
             groups = re.match("vos:(?P<path>.*)", uri)
             logger.debug("requests download")
             params = None
