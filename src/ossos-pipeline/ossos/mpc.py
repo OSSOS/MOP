@@ -240,7 +240,7 @@ class Discovery(object):
         Is this MPC line the initial discovery line?
         @param is_discovery: the code for the discovery setting "*" or True or False
         """
-        self._is_initial_discovery = (is_discovery in ["*", "True"] and True ) or False
+        self._is_initial_discovery = (is_discovery in ["*", "True"] and True) or False
 
     def __str__(self):
         if self.is_initial_discovery:
@@ -383,7 +383,7 @@ class Observation(object):
     """
 
     def __init__(self,
-                 minor_planet_number=None,
+                 null_observation=False,
                  provisional_name=None,
                  discovery=False,
                  note1=None,
@@ -399,12 +399,10 @@ class Observation(object):
                  xpos=None,
                  ypos=None,
                  frame=None,
-                 plate_uncertainty=None,
-                 null_observation=False):
+                 plate_uncertainty=None):
 
         """
 
-        :param minor_planet_number:
         :param provisional_name:
         :param discovery:
         :param note1:
@@ -425,16 +423,9 @@ class Observation(object):
 
         :type comment MPCComment
         """
-        self._minor_planet_number = None
-        self.minor_planet_number = minor_planet_number
         self._null_observation = False
-        self.null_observation = null_observation or \
-                                (self.minor_planet_number is not None and
-                                 len(self.minor_planet_number) > 0 and
-                                 self.minor_planet_number[0] in NULL_OBSERVATION_CHARACTERS)
+        self.null_observation = null_observation
         self.null_observation_character = "!"
-        if self.minor_planet_number is not None and len(self.minor_planet_number) > 0 and self.null_observation:
-            self.minor_planet_number = " " + self.minor_planet_number[1:]
         self._provisional_name = ""
         self.provisional_name = provisional_name
         self.discovery = discovery
@@ -493,15 +484,8 @@ class Observation(object):
         # MOP/OSSOS allows the provisional name to take up the full space allocated to the MinorPlanetNumber AND
         # the provisional name.
 
-        if self.minor_planet_number is None or self.minor_planet_number == ' ':
-            padding = " "*min(5,12-len(self.provisional_name))
-            mpc_str = "%-12s" % (padding+self.provisional_name)
-        else:
-            mpc_str = "%-5s" % self.minor_planet_number[:5]
-            mpc_str += (self.provisional_name is None and 7 * " ") or "%-7s" % self.provisional_name[:7]
-
-        if self.null_observation is True:
-            mpc_str = self.null_observation_character + mpc_str[1:]
+        padding = " " * min(4, 11 - len(self.provisional_name))
+        mpc_str = "%-12s" % (str(self.null_observation) + padding + self.provisional_name)
 
         mpc_str += str(self.discovery)
         mpc_str += '{0:1s}{1:1s}'.format(str(self.note1), str(self.note2))
@@ -544,27 +528,31 @@ class Observation(object):
         return str(self)
 
     @property
-    def minor_planet_number(self):
-        return self._minor_planet_number
-
-    @minor_planet_number.setter
-    def minor_planet_number(self, minor_planet_number=None):
-        """
-
-        :type minor_planet_number: int
-        :param minor_planet_number: the number of the minor planet
-        """
-        self._minor_planet_number = minor_planet_number
-        if minor_planet_number is not None and len(str(minor_planet_number)) > 5:
-            logging.warning("Minor Planet Number shoudl be 5 or less characters.  got: {}".format(minor_planet_number))
-
-    @property
     def null_observation(self):
-        return str(self.minor_planet_number).startswith("!") or self._null_observation
+        return self._null_observation
 
     @null_observation.setter
-    def null_observation(self, null_observation):
-        self._null_observation = null_observation
+    def null_observation(self, null_observation=False):
+
+        class Null_Observation(object):
+            def __init__(self, null_observation=None, null_observation_character=None):
+                if null_observation_character is None:
+                    null_observation_character = "-"
+                self.null_observation_character = null_observation_character
+                if isinstance(null_observation, basestring):
+                    self._null_observation = null_observation[0] in NULL_OBSERVATION_CHARACTERS
+                elif isinstance(null_observation, bool):
+                    self._null_observation = null_observation
+                else:
+                    self._null_observation = False
+
+            def __str__(self):
+                return self._null_observation and self.null_observation_character or " "
+
+            def __bool__(self):
+                return self._null_observation
+
+        self._null_observation = Null_Observation(null_observation, self.null_observation_character)
 
     @property
     def provisional_name(self):
