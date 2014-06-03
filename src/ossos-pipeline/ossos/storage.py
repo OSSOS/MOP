@@ -311,16 +311,21 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     ## here is the list of places we will look, in order
     locations = []
     locations.append((get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix), cutout))
+    logger.debug(str(locations))
     if ccd is not None:
         try:
-           ext = int(ccd)+1
-           flip = (ext < 19 and cutout is None and "[-*,-*]") or cutout
-           locations.append((get_uri(expnum, version=version, ext=ext, subdir=subdir), "[{}]{}".format(ext,flip)))
-           locations.append((get_uri(expnum, version=version, ext=ext + ".fz", subdir=subdir), "[{}]{}".format(ext,flip)))
+            ext_no = int(ccd)+1
+            flip = (cutout is None and ( ext_no < 19 and "[-*,-*]" or "[*,*]" )) or cutout
+            locations.append((get_uri(expnum, version=version, ext=ext, subdir=subdir),
+                              "[{}]{}".format(ext_no,flip)))
+            logger.debug(str(locations))
+            locations.append((get_uri(expnum, version=version, ext=ext + ".fz", subdir=subdir),
+                              "[{}]{}".format(ext_no,flip)))
         except Exception as e:
-           logger.error(str(e))
-           pass
-    for (uri, cutout) in locations:
+            logger.error(str(e))
+            pass
+    while len(locations) > 0:
+        (uri, cutout)  = locations.pop(0)
         try:
             if cutout is not None:
                 hdu_list = get_hdu(uri, cutout)
@@ -331,9 +336,6 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
             return filename
         except Exception as e:
             logger.debug("vos sent back error: {} code: {}".format(str(e), getattr(e, 'errno', 0)))
-            if getattr(e, 'errno', 0) not in [404, errno.ENOENT] or ccd is None:
-                break
-            raise e
 
     return None
 
