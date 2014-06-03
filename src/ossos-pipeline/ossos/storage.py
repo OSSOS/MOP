@@ -187,6 +187,35 @@ def get_uri(expnum, ccd=None,
 
 dbimages_uri = get_uri
 
+def _set_tags(expnum, keys, values=None):
+    
+    uri = os.path.join(DBIMAGES, str(expnum))
+    node = vospace.getNode(uri)
+    if values is None:
+        values = []
+        for idx in range(len(keys)):
+            values.append(None)
+    assert(len(values)==len(keys))
+    for idx in range(len(keys)):
+        key = keys[idx]
+        value = values[idx]
+        tag = tag_uri(key)
+        node.props[tag] = value
+    return vospace.addProps(node)
+
+def set_tags(expnum, props):
+    """Assign the key/value pairs in props as tags on on the given expnum.
+
+    @param expnum: str
+    @param props: dict
+    @return: success
+    """
+    # first clear all the props
+    _set_tags(expnum, props.keys())
+    
+    # now set all the props 
+    return _set_tags(expnum, props.keys(), props.values())
+        
 
 def set_tag(expnum, key, value):
     """Assign a key/value pair tag to the given expnum containerNode.
@@ -197,15 +226,8 @@ def set_tag(expnum, key, value):
     @return: success
     """
 
-    uri = os.path.join(DBIMAGES, str(expnum))
-    node = vospace.getNode(uri)
-    uri = tag_uri(key)
-    # for now we delete and then set, some issue with the props
-    # updating on vospace (2013/06/23, JJK)
-    node.props[uri] = None
-    vospace.addProps(node)
-    node.props[uri] = value
-    return vospace.addProps(node)
+    return set_tags(expnum, {key: value})
+
 
 
 def tag_uri(key):
@@ -285,28 +307,35 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     if not subdir:
         subdir = str(expnum)
 
-    if cutout is None and int(ccd) < 18:
-        flip = "[-*,-*]"
-    else:
-        flip = cutout
-
+    logger.debug("Building list of possible uri locations")
     ## here is the list of places we will look, in order
-    locations = [(get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix), cutout),
-                 (get_uri(expnum, version=version, ext=ext, subdir=subdir), "[{}]{}".format(int(ccd) + 1,
-                                                                                            flip)),
-                 (get_uri(expnum, version=version, ext=ext + ".fz", subdir=subdir), "[{}]{}".format(int(ccd) + 1,
-                                                                                                    flip))]
-    for (uri, cutout) in locations:
+    locations = []
+    locations.append((get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix), cutout))
+    logger.debug(str(locations))
+    if ccd is not None:
         try:
-            hdu_list = get_hdu(uri, cutout)
-            hdu_list.writeto(filename)
-            del hdu_list
+            ext_no = int(ccd)+1
+            flip = (cutout is None and ( ext_no < 19 and "[-*,-*]" or "[*,*]" )) or cutout
+            locations.append((get_uri(expnum, version=version, ext=ext, subdir=subdir),
+                              "[{}]{}".format(ext_no,flip)))
+            logger.debug(str(locations))
+            locations.append((get_uri(expnum, version=version, ext=ext + ".fz", subdir=subdir),
+                              "[{}]{}".format(ext_no,flip)))
+        except Exception as e:
+            logger.error(str(e))
+            pass
+    while len(locations) > 0:
+        (uri, cutout)  = locations.pop(0)
+        try:
+            if cutout is not None:
+                hdu_list = get_hdu(uri, cutout)
+                hdu_list.writeto(filename)
+                del hdu_list
+            else:
+                copy(uri, filename)
             return filename
         except Exception as e:
             logger.debug("vos sent back error: {} code: {}".format(str(e), getattr(e, 'errno', 0)))
-            if getattr(e, 'errno', 0) not in [404, errno.ENOENT] or ccd is None:
-                break
-            raise e
 
     return None
 
@@ -320,12 +349,19 @@ def get_hdu(uri, cutout):
     @return: fits.HDU
     """
 
-    vos_ptr = vospace.open(uri, cutout=cutout)
+    logger.debug("Pulling: {} from VOSpace".format(uri))
+    if cutout is not None:
+        vos_ptr = vospace.open(uri, view='cutout', cutout=cutout)
+    else:
+        vos_ptr = vospace.open(uri, view='data')
     fpt = cStringIO.StringIO(vos_ptr.read())
+    fpt.seek(0,2)
+    print fpt.tell()
     fpt.seek(0)
+    logger.debug("Read from vospace completed. Building fits object.")
     hdu_list = fits.open(fpt)
-    fpt.close()
     vos_ptr.close()
+    logger.debug("Got image from vospace")
 
     if cutout is None:
         return hdu_list
@@ -384,20 +420,23 @@ def get_fwhm(expnum, ccd, prefix=None, version='p'):
     """
 
     uri = get_uri(expnum, ccd, version, ext='fwhm', prefix=prefix)
+    print uri
     filename = os.path.basename(uri)
 
     if os.access(filename, os.F_OK):
         logger.debug("File already on disk: {}".format(filename))
         return float(open(filename, 'r').read())
 
-    url = uri.replace('vos:', 'https://www.canfar.phys.uvic.ca/data/pub/vospace/')
     try:
-        fwhm = float(requests.get(url, cert=vospace.conn.certfile).content)
-    except Exception as e:
-        print url
-        print str(e)
-        fwhm = 4
-    return fwhm
+        return float(open_vos_or_local(uri).read())
+    except:
+        try:
+            url = uri.replace('vos:', 'https://www.canfar.phys.uvic.ca/data/pub/vospace/')
+            return float(requests.get(url, cert=vospace.conn.certfile).content)
+        except Exception as e:
+            print url
+            print str(e)
+    return 4
 
 
 def get_zeropoint(expnum, ccd, prefix=None, version='p'):
@@ -412,8 +451,11 @@ def get_zeropoint(expnum, ccd, prefix=None, version='p'):
     @return:
     """
     uri = get_uri(expnum, ccd, version, ext='zeropoint.used', prefix=prefix)
-    url = uri.replace('vos:', 'https://www.canfar.phys.uvic.ca/data/pub/vospace/')
-    return float(requests.get(url, cert=vospace.conn.certfile).content)
+    try:
+        return float(open_vos_or_local(uri).read())
+    except:
+        url = uri.replace('vos:', 'https://www.canfar.phys.uvic.ca/data/pub/vospace/')
+        return float(requests.get(url, cert=vospace.conn.certfile).content)
 
 
 def mkdir(dirname):
@@ -658,8 +700,11 @@ def get_mopheader(expnum, ccd):
         logger.debug("File already on disk: {}".format(filename))
         mopheader_fpt = cStringIO.StringIO(open(filename, 'r').read())
     else:
-        req = requests.get(url, cert=vospace.conn.certfile)
-        mopheader_fpt = cStringIO.StringIO(req.content)
+        try:
+            mopheader_fpt = cString.StringIO(open_vos_or_local(mopheader_uri).read())
+        except:
+            req = requests.get(url, cert=vospace.conn.certfile)
+            mopheader_fpt = cStringIO.StringIO(req.content)
 
     mopheader = fits.open(mopheader_fpt)
     ## add some values to the mopheader so it can be an astrom header too.
@@ -677,7 +722,7 @@ def get_mopheader(expnum, ccd):
                                         scale='utc', precision=5).replicate(format='mpc'))
     header['MAXCOUNT'] = MAXCOUNT
     mopheaders[mopheader_uri] = header
-
+    mopheader.close()
     return mopheaders[mopheader_uri]
 
 
@@ -721,7 +766,7 @@ def _getheader(uri):
                                             sep='\n',
                                             endcard=False,
                                             padding=False))
-        fobj.close()
+    fobj.close()
 
     return headers
 
