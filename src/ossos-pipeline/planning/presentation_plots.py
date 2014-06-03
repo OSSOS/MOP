@@ -179,7 +179,8 @@ def synthetic_model_kbos(date, maglimit=24.5, kbotype='resonant'):
     ra = []
     dist = []
     hlat = []
-    for line in open('L7SyntheticModel-v09.txt'):
+    lines = storage.open_vos_or_local('vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt').read().split('\n')
+    for line in lines:
         if line[0]=='#':
             continue
         kbo = ephem.EllipticalBody()
