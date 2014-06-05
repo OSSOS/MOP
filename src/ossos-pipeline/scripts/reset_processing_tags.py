@@ -9,13 +9,12 @@ from ossos import storage
 import logging
 import argparse
 
-PROGRAMS = {'PREP': (('',), ('preproc',), ('o',)),
-            'CALIBRATION': (('', 'fk'), ('update_header', 'mkpsf', 'zeropoint', 'fwhm'), ('p', 's')),
+PROGRAMS = {'CALIBRATION': (('', 'fk'), ('mkpsf', 'zeropoint', 'fwhm'), ('p', 's')),
             'PLANT': (('',), ('scramble', 'plant'), ('s',)),
             'SCRAMBLE': (('',), ('step1', 'step2', 'step3', 'combine'), ('s',)),
             'FAKES': (('fk',), ('step1', 'step2', 'step3', 'combine'), ('s',)),
             'DETECT': (('',), ('step1', 'step2', 'step3', 'combine'), ('p', ))}
-
+PREP = ((('',), ('preproc', 'update_header'), ('o',)),)
 ALL_CCDS = range(36)
 
 logging.basicConfig(level=logging.DEBUG)
@@ -42,8 +41,11 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('expnums', nargs='+')
-    parser.add_argument('--ccd', nargs=1, action='append')
-    parser.add_argument('--ALL', help="Clear all processing tags.", dest='programs', action='store_const',
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--ccd', nargs=1, action='append')
+    group.add_argument('--PREP', dest='programs', action='store_const', const=PREP)
+    parser.add_argument('--ALL', help="Clear all processing tags except preproc and update_header",
+                        dest='programs', action='store_const',
                         const=[PROGRAMS[program] for program in PROGRAMS])
 
     for program in PROGRAMS:
@@ -55,6 +57,7 @@ if __name__ == '__main__':
     opt = parser.parse_args()
 
     ccds = opt.ccd is not None and opt.ccd or range(36)
+    ccds = opt.PREP is not None and 36 or ccds
 
     if opt.programs is None or not len(opt.programs) > 0:
         parser.error("Must specify at least one program group to clear tags for.")
