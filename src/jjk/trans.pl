@@ -1,9 +1,9 @@
 #!/usr/bin/env perl
 ##
 ## Compute the mag difference between three sets of photometry. 
-## using the shifts file to allign the lists of stars.
+## using the shifts file to align the lists of stars.
 ##
-## USAGE: deltamag.pl --shift shifts 
+## USAGE: trans.pl --shift shifts
 ##	  	      --file1 file1.phot
 ##		      --file2 file2.phot 
 ##		      --file2 file3.phot
@@ -32,9 +32,7 @@ $result = GetOptions('h|help|?' => \$help,
 
 pod2usage() if $help;
 pod2usage() if !$trans || !$file1 || !$file2 || !$file3 ; 
-#pod2usage() if !$file1;
-#pod2usage() if !$file2;
-#pod2usage() if !$file3;
+
 
 my $files;
 $files[0]=$file1;
