@@ -9,10 +9,12 @@ export rmin=0.5
 export ang=-90
 export width=90
 export field=$4
+export ccd_start=$5
+export ccd_end=$6
 export force=
 basedir=`pwd`
 
-for ccd in {0..35} 
+for ((ccd=ccd_start;ccd<=ccd_end;ccd++))
   do
   mkdir ${ccd}
   cd ${ccd}
