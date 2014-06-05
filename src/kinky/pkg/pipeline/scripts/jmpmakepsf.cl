@@ -327,11 +327,10 @@ begin
 
 	# fit that range of apertures to a curve of growth.
 	kdelete(t_image//".mkap")
-    failedflag=1
+	failedflag=1
 	iferr { mkapfile(t_image//".mag.2",naps,t_image//".mkap",interactive-,verify-,nparams=t_order) }
 	     goto finalproc
-    failedflag=0
-
+	failedflag=0
 
 	### Read in the aperture correction file and convert to CFEPS Pipeline format
 	list=t_image//".mkap"
