@@ -112,7 +112,7 @@ for (my $j=0; $j<=$#files; $j++ ) {
     chomp $zp ;
     unlink($image.".amag") if ( -f $image.".amag");
     my $cmd="daophot.sh -i $image.fits -c $image.acoo -a $apin -z $zp -o $image.amag";
-    print STDERR "$cmd\n";
+    print STDERR "\n$cmd\n";
     system('which daophot.sh');
     system($cmd);
     if ( -f 'daophot.OK') {
@@ -130,7 +130,7 @@ for (my $j=0; $j<=$#files; $j++ ) {
 open(MASTER,"< $pfiles[0]") or 
 		die "Can't open star photometry file $pfiles[0]. $!\n";
 
-print STDERR "\n\nAperture corrections: $apcor[0], $apcor[1], $apcor[2]\n";
+print STDERR "\n\nAperture corrections: $apcor[0], $apcor[1], $apcor[2]\n\n";
 
 my @dmag2;
 my @dmag3;
@@ -206,7 +206,7 @@ open(SHIFTS,">shifts");
 
 if ( abs($dmag2) > 0.05 || abs($dmag3) > 0.05 ) { 
     printf SHIFTS "# Got shifts of $dmag2 and $dmag3\n";
-    printf SHIFTS "# Magnitude shifts don't match apcor, they should.";
+    printf SHIFTS "# Magnitude shifts don't match apcor, they should.\n";
 } 
 
 #printf SHIFTS "%5.1f 1 0 %5.1f 0 1 %8.3f %8.3f %4d\n", (0.0,0.0,0.0,0.0,$n1);
