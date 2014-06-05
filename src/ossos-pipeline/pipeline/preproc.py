@@ -370,7 +370,7 @@ if __name__ == '__main__':
                 logger.info("Trimming image")
                 trim(hdu)
             if opt.flat:
-                qrunid = hdu.header.get('QRUNID')[0:3]
+                qrunid = hdu.header.get('QRUNID',hdu.header.get('CRUNID','13A'))[0:3]
                 flat = flats.get(qrunid, flats.get("ALL", None))
                 if flat is None:
                     raise ValueError("No available flat for {}".format(qrunid))
