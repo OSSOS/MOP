@@ -65,15 +65,11 @@ class ImageManager(object):
             )
 
     def get_cutout(self, reading):
-        if reading is None:
-            raise KeyError("Bad Reading")
         try:
             return self._cutouts[reading]
         except KeyError as err:
-            print "Image {} not yet available. retrying in 3 seconds.".format(reading)
-            time.sleep(3)
-            self.download_singlet_for_reading(reading, focus=None, needs_apcor=True)
-            return self.get_cutout(reading)
+            logger.info(str(err)+str(reading))
+            raise ImageNotLoadedException(reading)
 
     def download_triplets_for_workunit(self, workunit):
         if workunit in self._workunits_downloaded_for_triplets:

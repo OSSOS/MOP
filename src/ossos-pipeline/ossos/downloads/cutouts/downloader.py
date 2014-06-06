@@ -1,5 +1,4 @@
 import re
-import math
 from ossos.astrom import SourceReading
 from ossos.gui import logger
 
