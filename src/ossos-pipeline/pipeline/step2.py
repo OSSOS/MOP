@@ -27,6 +27,7 @@ import argparse
 import logging
 from ossos import util
 from ossos import storage
+import numpy
 
 def step2(expnums, ccd, version, prefix=None, dry_run=False):
     '''run the actual step2  on the given exp/ccd combo'''
@@ -58,12 +59,33 @@ def step2(expnums, ccd, version, prefix=None, dry_run=False):
     util.exec_prog(jmp_args)
     util.exec_prog(matt_args)
 
+    ## check that the shifts from step2 are rational
+    check_args = ['checktrans']
+    if os.access('proc-these-files', os.R_OK):
+        os.unlink('proc-these-files')
+    ptf = open('proc-these-files', 'w')
+    ptf.write("# A dummy file that is created so checktrans could run.\n")
+    for expnum in expnums:
+        filename = os.path.splitext(storage.get_image(expnum,
+                                                      ccd,
+                                                      version=version,
+                                                      prefix=prefix))[0]
+        if not os.access(filename + ".bright.psf", os.R_OK):
+            os.link(filename + ".bright.jmp", filename + ".bright.psf")
+        if not os.access(filename + ".obj.psf", os.R_OK):
+            os.link(filename + ".obj.jmp", filename + ".obj.psf")
+        ptf.write("{:>19s}{:>10.1f}{:>5s}\n".format(filename,
+                                                    4.0,
+                                                    "NO"))
+    ptf.close()
+    util.exec_prog(check_args)
+
     if dry_run:
         return
 
     for expnum in expnums:
         for ext in ['unid.jmp', 'unid.matt', 'trans.jmp']:
-            uri = storage.dbimages_uri(expnum,ccd=ccd,version=version,ext=ext, prefix=prefix)
+            uri = storage.dbimages_uri(expnum, ccd=ccd, version=version, ext=ext, prefix=prefix)
             filename = os.path.basename(uri)
             storage.copy(filename, uri)
 
