@@ -1,5 +1,6 @@
 import re
 import requests
+import sys
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -39,25 +40,30 @@ class Downloader(object):
         """
         certfile = self.vosclient.conn.certfile
         if "URL" in kwargs.keys():
+            logger.debug("Using reqquests to get {}\n".format(kwargs['URL']))
             r = requests.get(kwargs['URL'], cert=certfile)
             buff = r.content
             logger.debug("Sending back buffer.")
             return buff
 
         try:
-            logger.debug("cadcVOFS download: %s" % uri)
+            logger.debug("cadcVOFS download: {} {}\n".format(uri, kwargs))
             fobj = self.vosclient.open(uri, **kwargs)
             buff = fobj.read()
             fobj.close()
-        except:
+            return buff
+        except Exception as e:
+            logger.debug("vosclient raised exception: {}\n".format(str(e)))
+            logger.debug("Tying requests method\n")
             groups = re.match("vos:(?P<path>.*)", uri)
             logger.debug("requests download")
             params = None
             if 'cutout' in kwargs.keys():
                 params = {'cutout': kwargs['cutout']}
             r = requests.get(SERVER+groups.group('path'),params=params, cert=certfile)
+            return r.content
 
-        return buff
+        return None
 
     def download_hdulist(self, uri, **kwargs):
         """
@@ -78,7 +84,12 @@ class Downloader(object):
         logger.debug(str(kwargs))
         fobj = cStringIO.StringIO(self.download_raw(uri, **kwargs))
         fobj.seek(0)
-        hdulist = fits.open(fobj)
+        try:
+            hdulist = fits.open(fobj)
+        except Exception as e:
+            sys.stderr.write(str(e))
+            sys.stderr.write("Error trying to get {} {}\n".format(uri, kwargs))
+            return self.download_hdulist(uri, **kwargs)
         logger.debug("Got fits hdulist of len {}".format(len(hdulist)))
         return hdulist
 
