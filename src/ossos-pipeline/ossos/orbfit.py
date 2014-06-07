@@ -29,7 +29,7 @@ class Orbfit(object):
     This class provides orbital information derived by calling 'fit_radec'.
     """
 
-    def __init__(self, observations=None):
+    def __init__(self, observations):
         """
         Given a list of mpc.Observations, compute the orbit using fit_radec and provide methods for
         accessing that orbit.
@@ -37,18 +37,16 @@ class Orbfit(object):
         Requires at least 3 mpc.Observations in the list.
         """
         assert isinstance(observations, tuple) or isinstance(observations, list)
-        if not observations:
-            observations = []
         if len(observations) < 3:
             raise OrbfitError()
         self.orbfit = ctypes.CDLL(LIBORBFIT)
-        for observation in observations:
-            assert isinstance(observation, Observation)
+
         self.observations = observations
-        self._abg = tempfile.NamedTemporaryFile()
+
+        self._abg_file = tempfile.NamedTemporaryFile(suffix='.abg')
         self._mpc_file = tempfile.NamedTemporaryFile(suffix='.mpc')
 
-        # call fit_radec with mpcfile, abgfile, resfile
+        # call fit_radec with mpcfile and abgfile
         self.orbfit.fitradec.restype = ctypes.POINTER(ctypes.c_double * 2)
         self.orbfit.fitradec.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
         for observation in self.observations:
@@ -57,19 +55,17 @@ class Orbfit(object):
                 ra = obs.ra.replace(" ", ":")
                 dec = obs.dec.replace(" ", ":")
                 res = 0.3
-                #print "FIT: "+str(observation)
                 self._mpc_file.write("{} {} {} {} {}\n".format(obs.date.jd, ra, dec, res, 568, ))
         self._mpc_file.seek(0)
-        self._abg = tempfile.NamedTemporaryFile()
         result = self.orbfit.fitradec(ctypes.c_char_p(self._mpc_file.name),
-                                      ctypes.c_char_p(self._abg.name))
+                                      ctypes.c_char_p(self._abg_file.name))
         self.distance = result.contents[0]
         self.distance_uncertainty = result.contents[1]
 
         # call abg_to_aei to get elliptical elements and their chi^2 uncertainty.
         self.orbfit.abg_to_aei.restype = ctypes.POINTER(ctypes.c_double * 12)
         self.orbfit.abg_to_aei.argtypes = [ctypes.c_char_p]
-        result = self.orbfit.abg_to_aei(ctypes.c_char_p(self._abg.name))
+        result = self.orbfit.abg_to_aei(ctypes.c_char_p(self._abg_file.name))
 
         self.a = result.contents[0]
         self.da = result.contents[6]
@@ -84,24 +80,16 @@ class Orbfit(object):
         self.T = result.contents[5]
         self.dT = result.contents[11]
 
-
         ## compute the residuals (from the given observations)
         self._residuals = ""
         for observation in self.observations:
             self.predict(observation.date)
-            dra = coordinates.Angle(self.coordinate.ra - observation.coordinate.ra)
-            if dra.degrees > 180:
-                dra = dra - coordinates.Angle(360, unit=units.degree)
-            ddec = coordinates.Angle(self.coordinate.dec - observation.coordinate.dec)
-            if ddec.degrees > 180:
-                dra = ddec - coordinates.Angle(360, unit=units.degree)
-            observation.ra_residual = dra.degrees * 3600.0
-            observation.dec_residual = ddec.degrees * 3600.0
-            if observation.null_observation:
-                self._residuals += "!"
-            else:
-                self._residuals += ' '
-            self._residuals += "{:12s} {:+05.2f} {:+05.2f}\n".format(observation.date, observation.ra_residual, observation.dec_residual)
+            coord1 = coordinates.ICRSCoordinates(self.coordinate.ra, self.coordinate.dec)
+            coord2 = coordinates.ICRSCoordinates(observation.coordinate.ra, self.coordinate.dec)
+            observation.ra_residual = coord1.separation(coord2).arcsecs
+            observation.dec_residual = coordinates.ICRSCoordinates(self.coordinate.ra, observation.coordinate.dec)
+            self._residuals += "{:1s}{:12s} {:+05.2f} {:+05.2f}\n".format(
+                observation.null_observation, observation.date, observation.ra_residual, observation.dec_residual)
 
     @property
     def arc_length(self):
@@ -176,7 +164,7 @@ class Orbfit(object):
         # call predict with agbfile, jdate, obscode
         self.orbfit.predict.restype = ctypes.POINTER(ctypes.c_double * 5)
         self.orbfit.predict.argtypes = [ctypes.c_char_p, ctypes.c_double, ctypes.c_int]
-        predict = self.orbfit.predict(ctypes.c_char_p(self._abg.name),
+        predict = self.orbfit.predict(ctypes.c_char_p(self._abg_file.name),
                                       jd,
                                       ctypes.c_int(obs_code))
         self.coordinate = coordinates.ICRSCoordinates(predict.contents[0],

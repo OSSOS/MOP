@@ -1,16 +1,20 @@
 
 import re
 import ephem
-
+import sys
 
 #Number_Mil={'B': 110000, 'C': 120000, 'D': 130000, 'E': 140000, 'F': 150000}
 #Number_Cent={'J': 1900, 'K': 2000}
 def date_unpack(pdate):
-    YY={'I': 1800, 'J': 1900, 'K': 2000}
-    Ncode='0123456789ABCDEFGHIJKLMNOPQRSTUV'
-    yyyy=YY[pdate[0]]+int(pdate[1:3])
-    mm=Ncode.rindex(pdate[3])
-    dd=float(Ncode.rindex(pdate[4]))
+    (yyyy, mm, dd) = (2000, 01, 01)
+    try:
+        YY={'I': 1800, 'J': 1900, 'K': 2000}
+        Ncode='0123456789ABCDEFGHIJKLMNOPQRSTUV'
+        yyyy=YY[pdate[0]]+int(pdate[1:3])
+        mm=Ncode.rindex(pdate[3])
+        dd=float(Ncode.rindex(pdate[4]))
+    except:
+        sys.stderr.write("ERROR converting date part {}:".format(pdate))
     return (yyyy, mm, dd)
 
 
@@ -42,12 +46,9 @@ def getKBOs(mpc_file, cond='a > 30'):
     lines=f.readlines()
     f.close()
 
-    # line=lines.pop(0)
-    # while (line[0:3]!="---") :
-    #     line=lines.pop(0)
-    #
-    # lines.append(line)
-
+    while "------" not in lines[0]:
+        lines.pop(0)
+    lines.pop(0)
     nobj=0
     lineCount=0
     kbos = []
