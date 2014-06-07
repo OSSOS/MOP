@@ -17,7 +17,7 @@ endif
 
 set fwhm="4."
 set thresh="4."
-set maxlin="59000."
+set maxlin="20000."
 
 if ( $?plant ) then
  if ( $plant == "YES" ) then 
@@ -46,7 +46,6 @@ endif
 
 ## Now using Gwyn's ZP, if available
 echo "Getting SGWYN ZP from ${image}"
-which gethead
 set zerop=`gethead $dir/${image}.fits PHOTZP`
 if ( "X$zerop" == "X" ) then
     echo -n "Didn't find SGWYN ZP, Trying to set zeropoint by scaling ELIXIR value, got: "
@@ -81,6 +80,7 @@ cd $dir
 
   jmpprepimage.plant=$plant
   jmpmakepsf.zeropt=$zerop
+  jmpmakepsf.swidth=1
   makepsf.zeropt=$zerop
   jmpprepimage $image $fwhm $thresh $maxlin
   delete ./piejmpmaf.par verify-

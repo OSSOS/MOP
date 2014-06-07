@@ -84,7 +84,7 @@ def step1(expnum,
     else:	
         flat_name = parts[0]
     flat_filename = storage.get_image(flat_name, ccd, version='', ext='fits',
-                      subdir='calibrators', rescale=False)
+                      subdir='calibrators')
     if not os.access('weight.fits',os.R_OK):
         os.symlink(flat_filename, 'weight.fits')
     outfile = util.exec_prog(['step1matt',

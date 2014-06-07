@@ -670,7 +670,7 @@ class Observation(object):
         return "<Observation rawname=%s>" % self.rawname
 
     def is_fake(self):
-        return self.fk == FAKE_PREFIX
+        return self.fk == FAKE_PREFIX or self.ftype == 's'
 
     def get_image_uri(self):
         # TODO: make more general - have logic for trying alternative locations

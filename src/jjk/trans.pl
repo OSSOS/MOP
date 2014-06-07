@@ -1,9 +1,9 @@
 #!/usr/bin/env perl
 ##
 ## Compute the mag difference between three sets of photometry. 
-## using the shifts file to allign the lists of stars.
+## using the shifts file to align the lists of stars.
 ##
-## USAGE: deltamag.pl --shift shifts 
+## USAGE: trans.pl --shift shifts
 ##	  	      --file1 file1.phot
 ##		      --file2 file2.phot 
 ##		      --file2 file3.phot
@@ -32,9 +32,7 @@ $result = GetOptions('h|help|?' => \$help,
 
 pod2usage() if $help;
 pod2usage() if !$trans || !$file1 || !$file2 || !$file3 ; 
-#pod2usage() if !$file1;
-#pod2usage() if !$file2;
-#pod2usage() if !$file3;
+
 
 my $files;
 $files[0]=$file1;
@@ -114,7 +112,7 @@ for (my $j=0; $j<=$#files; $j++ ) {
     chomp $zp ;
     unlink($image.".amag") if ( -f $image.".amag");
     my $cmd="daophot.sh -i $image.fits -c $image.acoo -a $apin -z $zp -o $image.amag";
-    print STDERR "$cmd\n";
+    print STDERR "\n$cmd\n";
     system('which daophot.sh');
     system($cmd);
     if ( -f 'daophot.OK') {
@@ -132,7 +130,7 @@ for (my $j=0; $j<=$#files; $j++ ) {
 open(MASTER,"< $pfiles[0]") or 
 		die "Can't open star photometry file $pfiles[0]. $!\n";
 
-print STDERR "\n\nAperture corrections: $apcor[0], $apcor[1], $apcor[2]\n";
+print STDERR "\n\nAperture corrections: $apcor[0], $apcor[1], $apcor[2]\n\n";
 
 my @dmag2;
 my @dmag3;
@@ -208,7 +206,7 @@ open(SHIFTS,">shifts");
 
 if ( abs($dmag2) > 0.05 || abs($dmag3) > 0.05 ) { 
     printf SHIFTS "# Got shifts of $dmag2 and $dmag3\n";
-    printf SHIFTS "# Magnitude shifts don't match apcor, they should.";
+    printf SHIFTS "# Magnitude shifts don't match apcor, they should.\n";
 } 
 
 #printf SHIFTS "%5.1f 1 0 %5.1f 0 1 %8.3f %8.3f %4d\n", (0.0,0.0,0.0,0.0,$n1);

@@ -1,3 +1,5 @@
+import time
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 from ossos.gui import events, logger
