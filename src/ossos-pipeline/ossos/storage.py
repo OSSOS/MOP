@@ -74,7 +74,7 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01):
                       " CONTAINS( BOX('ICRS', {}, {}, {}, {}), "
                       " Plane.position_bounds ) = 1 ").format(ra, dec, dra, ddec)
 
-    result = requests.get(TAP_WEB_SERVICE, params=data)
+    result = requests.get(TAP_WEB_SERVICE, params=data, verify=False)
     assert isinstance(result, requests.Response)
     logger.debug("Doing TAP Query using url: %s" % (str(result.url)))
 
@@ -432,7 +432,7 @@ def get_fwhm(expnum, ccd, prefix=None, version='p'):
     except:
         try:
             url = uri.replace('vos:', 'https://www.canfar.phys.uvic.ca/data/pub/vospace/')
-            return float(requests.get(url, cert=vospace.conn.certfile).content)
+            return float(requests.get(url, cert=vospace.conn.certfile, verify=False).content)
         except Exception as e:
             print url
             print str(e)
@@ -455,7 +455,7 @@ def get_zeropoint(expnum, ccd, prefix=None, version='p'):
         return float(open_vos_or_local(uri).read())
     except:
         url = uri.replace('vos:', 'https://www.canfar.phys.uvic.ca/data/pub/vospace/')
-        return float(requests.get(url, cert=vospace.conn.certfile).content)
+        return float(requests.get(url, cert=vospace.conn.certfile, verify=False).content)
 
 
 def mkdir(dirname):
@@ -703,7 +703,7 @@ def get_mopheader(expnum, ccd):
         try:
             mopheader_fpt = cString.StringIO(open_vos_or_local(mopheader_uri).read())
         except:
-            req = requests.get(url, cert=vospace.conn.certfile)
+            req = requests.get(url, cert=vospace.conn.certfile, verify=False)
             mopheader_fpt = cStringIO.StringIO(req.content)
 
     mopheader = fits.open(mopheader_fpt)
@@ -737,7 +737,7 @@ def _getheader(uri):
     url = data_url + urlparse(uri).path
     payload = {'fhead': 'true'}
     logger.info("Requesting URL: {}".format(url))
-    r = requests.get(url, params=payload, cert=CERTFILE)
+    r = requests.get(url, params=payload, cert=CERTFILE, verify=False)
     if r.status_code != 200:
         logger.error("{}".format(r.status_code))
         logger.error(r.content)
