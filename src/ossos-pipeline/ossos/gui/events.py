@@ -14,7 +14,11 @@ except ImportError:
     # because all they have is the version 1 API.
     pass
 
-from wx.lib.pubsub import Publisher as pub
+try:
+    from wx.lib.pubsub import Publisher as pub
+except ImportError:
+    from wx.lib.pubsub import setuparg1
+    from wx.lib.pubsub import pub
 
 # Event ids
 ROOT = ("rootid", )
