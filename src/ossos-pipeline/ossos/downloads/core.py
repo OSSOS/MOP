@@ -39,7 +39,7 @@ class Downloader(object):
         """
         certfile = self.vosclient.conn.certfile
         if "URL" in kwargs.keys():
-            logger.debug("Using reqquests to get {}\n".format(kwargs['URL']))
+            logger.debug("Using requests to get {}\n".format(kwargs['URL']))
             r = requests.get(kwargs['URL'], cert=certfile)
             buff = r.content
             logger.debug("Sending back buffer.")
