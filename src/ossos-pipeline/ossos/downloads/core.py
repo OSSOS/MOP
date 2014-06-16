@@ -11,9 +11,8 @@ import vos
 
 from ossos.gui import logger
 
+SERVER = 'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/vospace/'
 
-SERVER='https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/vospace/'
-# OSSOS/dbimages/1625660/1625660p.fits?cutout=[1][990:1140,4144:4294]'
 
 class Downloader(object):
     """
@@ -60,7 +59,7 @@ class Downloader(object):
             params = None
             if 'cutout' in kwargs.keys():
                 params = {'cutout': kwargs['cutout']}
-            r = requests.get(SERVER+groups.group('path'),params=params, cert=certfile)
+            r = requests.get(SERVER+groups.group('path'), params=params, cert=certfile)
             return r.content
 
         return None
