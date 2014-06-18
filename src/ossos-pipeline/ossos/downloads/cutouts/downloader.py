@@ -21,7 +21,7 @@ class ImageCutoutDownloader(Downloader):
             The number of rows and columns (pixels) to slice out around the
             source.  Leave as None to use default configuration values.
         """
-        super(ImageCutoutDownloader, self).__init__(vosclient=vosclient)
+        super(ImageCutoutDownloader, self).__init__()
 
         self.cutout_calculator = CutoutCalculator(slice_rows, slice_cols)
 
