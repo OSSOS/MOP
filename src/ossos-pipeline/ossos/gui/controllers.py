@@ -170,6 +170,7 @@ class ProcessRealsController(AbstractController):
         super(ProcessRealsController, self).__init__(model, view)
 
         self.name_generator = name_generator
+        self.is_discovery = True
 
     def _generate_provisional_name(self):
         return self.name_generator.generate_name(
@@ -282,7 +283,7 @@ class ProcessRealsController(AbstractController):
         source_cutout = self.model.get_current_cutout()
 
         mpc_observation = mpc.Observation(
-            minor_planet_number=minor_planet_number,
+            null_observation=False,
             provisional_name=provisional_name,
             note1=note1_code,
             note2=note2_code,
@@ -293,6 +294,7 @@ class ProcessRealsController(AbstractController):
             mag_err=obs_mag_err,
             band=band,
             observatory_code=observatory_code,
+            discovery=self.is_discovery,
             comment=comment,
             xpos=source_cutout.observed_x,
             ypos=source_cutout.observed_y,
@@ -408,6 +410,8 @@ class ProcessTracksController(ProcessRealsController):
             self.model.get_current_workunit().print_orbfit_info()
         except OrbfitError as error:
             print str(error)
+        self.is_discovery = False
+
 
     def display_current_image(self):
         successful = super(ProcessTracksController, self).display_current_image()
