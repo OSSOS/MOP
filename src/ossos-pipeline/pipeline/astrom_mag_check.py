@@ -9,7 +9,6 @@ import math
 import os
 
 from ossos import astrom
-from ossos.daophot import TaskError
 from ossos.mpc import Time
 from ossos.downloads.cutouts import ImageCutoutDownloader
 from ossos import storage
@@ -60,7 +59,9 @@ def match_planted(astrom_filename, match_fname):
     matches_fptr = storage.open_vos_or_local(match_fname, 'w')
 
     objects_planted_uri = fk_candidate_observations.observations[0].get_object_planted_uri()
-    objects_planted = image_slice_downloader.download_raw(objects_planted_uri, view='data').split('\n')
+    fobj = storage.open_vos_or_local(objects_planted_uri)
+    objects_planted = fobj.read().split('\n')
+    fobj.close()
 
     planted_objects = []
     for line in objects_planted[1:]:
