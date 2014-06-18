@@ -23,4 +23,5 @@ _logger.setLevel(OSSOS_DEBUG_LEVEL)
 debug = _logger.debug
 info = _logger.info
 warning = _logger.warning
+error = _logger.error
 critical = _logger.critical
