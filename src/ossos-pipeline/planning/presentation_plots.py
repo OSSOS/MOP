@@ -1,18 +1,17 @@
 __author__ = 'Michele Bannister'
 
-import matplotlib.mlab as mlab
-from scipy.optimize import curve_fit
+import math
+
 import matplotlib.pyplot as plt
 import brewer2mpl
 from matplotlib import rcParams
-from matplotlib.ticker import MultipleLocator, FormatStrFormatter
+from matplotlib.ticker import MultipleLocator
 import numpy as np
-import math
-import sys
 import ephem
-from scipy.stats import norm
+
 from track_done import parse, get_names
 from ossos import storage
+
 
 # nicer defaults
 # every colourbrewer scale: http://bl.ocks.org/mbostock/5577023
@@ -181,7 +180,8 @@ def synthetic_model_kbos(date, maglimit=24.5, kbotype='resonant'):
     hlat = []
     lines = storage.open_vos_or_local('vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt').read().split('\n')
     for line in lines:
-        if line[0]=='#':
+        if (len(line) > 0 and line[0] == '#') or (
+            len(line) == 0):  # skip initial column descriptors and the final blank line
             continue
         kbo = ephem.EllipticalBody()
         values = line.split()
