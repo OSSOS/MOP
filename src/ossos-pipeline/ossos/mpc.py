@@ -240,7 +240,7 @@ class Discovery(object):
         Is this MPC line the initial discovery line?
         @param is_discovery: the code for the discovery setting "*" or True or False
         """
-        self._is_initial_discovery = (is_discovery in ["*", "True"] and True) or False
+        self._is_initial_discovery = (is_discovery in ["*", True] and True) or False
 
     def __str__(self):
         if self.is_initial_discovery:
@@ -423,9 +423,9 @@ class Observation(object):
 
         :type comment MPCComment
         """
+        self.null_observation_character = "!"
         self._null_observation = False
         self.null_observation = null_observation
-        self.null_observation_character = "!"
         self._provisional_name = ""
         self.provisional_name = provisional_name
         self.discovery = discovery
@@ -984,10 +984,15 @@ class MPCWriter(object):
         self.filehandle.flush()
 
     def _flush_observation(self, obs):
+        isinstance(obs, Observation)
         if (self.auto_discovery and
                 not obs.null_observation and
                 not self._discovery_written):
             obs.discovery = True
+
+        if obs.discovery and self._discovery_written:
+            obs.discovery.is_initial_discovery = False
+        else:
             self._discovery_written = True
 
         if obs.date.jd not in self._written_mpc_observations:
