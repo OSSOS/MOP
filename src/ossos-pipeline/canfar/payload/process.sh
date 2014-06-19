@@ -6,8 +6,8 @@ export DBIMAGES=vos:OSSOS/dbimages/
 export MEASURE3=vos:OSSOS/measure3/2013B-H/
 export rmax=15.0
 export rmin=0.5
-export ang=-90
-export width=90
+export ang=-23
+export width=30
 export field=$4
 export ccd_start=$5
 export ccd_end=$6
@@ -22,7 +22,7 @@ for ((ccd=ccd_start;ccd<=ccd_end;ccd++))
   mkpsf.py $1 $2 $3 -v --ccd ${ccd} ${force}
   step1.py $1 $2 $3 -v --ccd ${ccd} ${force}
   step2.py $1 $2 $3 -v --ccd ${ccd} ${force}
-  step3.py $1 $2 $3 -v --rate_min 0.5 --angle -90 --width 90  --ccd ${ccd} ${force}
+  step3.py $1 $2 $3 --ccd $ccd  -v --dbimages ${DBIMAGES} --rate_min ${rmin} --rate_max ${rmax} --angle ${ang} --width ${width}  
   echo "Running combine.py"
   combine.py $1 -v --measure3 ${MEASURE3} --field ${field}  --ccd ${ccd} ${force}
 
