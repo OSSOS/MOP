@@ -89,7 +89,7 @@ class Downloader(object):
         except Exception as e:
             sys.stderr.write(str(e))
             sys.stderr.write("Error trying to get {} {}\n".format(uri, kwargs))
-            return self.download_hdulist(uri, **kwargs)
+            return None
         logger.debug("Got fits hdulist of len {}".format(len(hdulist)))
         return hdulist
 
