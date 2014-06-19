@@ -1,0 +1,144 @@
+#!/usr/bin/env python
+
+import sys,re
+import math
+import numpy
+#cond=sys.argv[1]
+
+#print "# "+cond
+
+Number_Mil={'B': 110000, 'C': 120000, 'D': 130000, 'E': 140000, 'F': 150000}
+Number_Cent={'J': 1900, 'K': 2000}
+def date_unpack(pdate):
+    YY={'I': 1800, 'J': 1900, 'K': 2000}
+    Ncode='0123456789ABCDEFGHIJKLMNOPQRSTUV'
+    yyyy=YY[pdate[0]]+int(pdate[1:3])
+    mm=Ncode.rindex(pdate[3])
+    dd=float(Ncode.rindex(pdate[4]))
+    return (yyyy, mm, dd)
+
+
+def desig_unpack(desig):
+    import re
+    if re.match('\d+',desig):
+        return str(int(desig))
+    Kilo='ABCDEFGHIJKLMNOPQRSTUV'
+    j = Kilo.rfind(desig[0])
+    if j != -1 :
+      if re.match('^\d+$',desig[1:7]):
+        return str(100000+j*10000+int(desig[1:7]))
+    YY={'I': 1800, 'J': 1900, 'K': 2000}
+    try:
+       yyyy=str(YY[desig[0]]+int(desig[1:3]))
+    except KeyError as e:
+       return desig
+    Ncode='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+    Mcode=desig[3]+desig[6]
+    cycle=Ncode.rindex(desig[4])*10+int(desig[5])
+    if (cycle>0) :
+	cycle=str(cycle)
+    else:
+	cycle=''
+    return yyyy+' '+Mcode+cycle
+    
+
+
+f=open('MPCORB.DAT')
+#f=open('schwamb_orbits.dat')
+lines=f.readlines()
+f.close()
+
+import ephem,sys
+kbo=ephem.EllipticalBody()
+line=lines.pop(0)
+while (line[0:3]!="---") : 
+   line=lines.pop(0)
+
+lines.append(line)
+nobj=0
+lineCount=0
+#2013-11-29 09:59:59| 0:51:16.75|  2:33:57.9|
+#2013-11-30 09:59:59| 0:51:14.24|  2:33:43.0|
+#2013-12-01 09:59:59| 1:26:52.38| 11:41:10.1|
+
+ra_low  = float(ephem.hours("15:20:00.0"))
+ra_high = float(ephem.hours("15:50:00.0"))
+#ra_low  = float(ephem.hours(math.radians(17)))
+#ra_high = float(ephem.hours(math.radians(25)))
+dec_low = float(ephem.degrees("-13:30:00"))
+dec_high = float(ephem.degrees("-11:30:00"))
+#dec_low = float(ephem.degrees("10:00:00"))
+#dec_high = float(ephem.degrees("18:00:00"))
+min_rate = [[],[],[],[],[],[],[],[],[],[],[],[], [],[],[],[],[]]
+max_rate = [[],[],[],[],[],[],[],[],[],[],[],[], [],[],[],[],[]]
+count = numpy.zeros(14)
+for line in lines:
+    lineCount=lineCount+1
+    if lineCount %1000 == 0 : 
+	sys.stderr.write("# Line: %d \n" % ( lineCount)) 
+    if line[0]=='#' or len(line) < 103 or line[0:3]=='---':
+        #sys.stderr.write(line)
+        continue
+    
+    if len(line[8:13].strip()):
+        kbo._H=float(line[8:13])
+        kbo._G=float(line[14:19])
+    else:
+        kbo._H=20
+        kbo._G=0
+    arc = line[127:136]
+    try:
+      if 'days' in arc:
+	arc = int(arc.split()[0])/365.25
+      else:  
+        dt = -eval(arc)
+    except:
+      print arc
+      continue
+    kbo._epoch_M=date_unpack(line[20:25].strip())
+    kbo._M=float(line[26:35].strip())
+    kbo._om=float(line[37:46].strip())
+    kbo._Om=float(line[48:57].strip())
+    kbo._inc=float(line[59:68].strip())
+    kbo._e=float(line[70:79].strip())
+    kbo._epoch='2011/08/01'
+    kbo._a=float(line[92:103].strip())
+    a= kbo._a
+    e= kbo._e
+    H= kbo._H
+    i= kbo._inc
+    startdate = ephem.date('2014/05/24')
+    kbo.compute(startdate)
+    kbo.name=desig_unpack(line[0:7].strip()) 
+    T_J = (5.2/a) + 2.0 * math.sqrt((1-e**2)*(a/5.2)) * math.cos(i)
+    if not ra_low < float(kbo.ra) < ra_high or not dec_low < float(kbo.dec) < dec_high :
+        continue
+    for ddays in range(14):
+        kbo.compute(startdate)
+        ra1 = kbo.ra
+        dec1 = kbo.dec
+        enddate = startdate + 1
+        kbo.compute(enddate)
+        ra2 = kbo.ra
+        dec2 = kbo.dec
+        delta = math.degrees(ephem.separation((ra1,dec1),(ra2,dec2)))*3600.0
+        retrograde = False
+	if ra1 < ra2 :
+            retrograde = True
+        rate = delta/(24*(enddate-startdate))
+        print rate, kbo.earth_distance, kbo._a, retrograde
+        if kbo.earth_distance < 5:
+            if rate < 5:
+                count[ddays] += 1 
+            min_rate[ddays].append(rate)
+            #print ddays, numpy.min(min_rate[ddays]), count[ddays]
+        if kbo.earth_distance > 10:
+            if rate < 5:
+                count[ddays] += 1 
+            max_rate[ddays].append(rate)
+        startdate = enddate
+
+startdate = ephem.date('2014/05/24')
+for rate in range(len(min_rate)):
+    today = ephem.date(startdate+rate)
+    print rate, today, numpy.min(min_rate[rate])
