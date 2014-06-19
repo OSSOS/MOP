@@ -29,6 +29,8 @@ ASTRO_FORMAT_FOOTER="""]]></CSV></DATA>
 DIR_DB = "./"
 orbb = DIR_DB
 
+from astropy import units 
+
 
 geometry={"MegaPrime":[
         {"ra": -0.46, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344 },
@@ -104,67 +106,60 @@ geometry={"MegaPrime":[
 {'ra': 0.162500, 'dec':0.095000 , 'dra':0.102222 , 'ddec':0.045333},
 {'ra': 0.162500, 'dec':0.141944 , 'dra':0.102222 , 'ddec':0.045333},
 {'ra': 0.162500, 'dec':0.189444 , 'dra':0.102222 , 'ddec':0.045333}]}
-	
 
-
-
+from ossos import mpc
+from ossos import orbfit
 import logging
-import optparse, math
-import ephem, time, orbfit
+import argparse
+import ephem
 
-logger=logging.getLogger()
-parser=optparse.OptionParser()
-parser.add_option('--verbose','-v',action='store_true',default=None,
-                  help='verbose feedback')
-parser.add_option('--start','-s',action='store',default=None,help='Date as YYYY/MM/DD, default is curernt date')
-parser.add_option('--range','-r',action='store',default=30,help='Length of ephemeris is days',type=int)
-parser.add_option('--ccd','-c',action='store',default=22,help='Offset so target is on this CCD')
-parser.add_option('--geometry','-g',action='store',default="MegaPrime",help='camera geometry (MegaCam or MegaPrime)')
-parser.add_option('--dra',action='store',default=0,help='Additional RA offset (arcmin)')
-parser.add_option('--ddec',action='store',default=0,help='Additional DECA offset (arcmin)')
-
-
+logger = logging.getLogger()
+parser = argparse.ArgumentParser()
+parser.add_argument('mpc_files', nargs='+', help='mpc_file to base ephemeris from.')
+parser.add_argument('--verbose','-v', action='store_true', default=None, help='verbose feedback')
+parser.add_argument('--start', '-s', default=None, help='Date as YYYY/MM/DD, default is curernt date')
+parser.add_argument('--range', '-r', default=30, help='Length of ephemeris is days', type=int)
+parser.add_argument('--ccd', '-c', default=22, help='Offset so target is on this CCD')
+parser.add_argument('--geometry', '-g', default="MegaPrime", help='camera geometry (MegaCam or MegaPrime)')
+parser.add_argument('--dra', default=0, help='Additional RA offset (arcmin)')
+parser.add_argument('--ddec', default=0, help='Additional DECA offset (arcmin)')
 
 
-(opt, abgs) = parser.parse_args()
+
+opt = parser.parse_args()
 if opt.verbose:
     logger.setLevel(logging.INFO)
 
-if opt.start is None:
-    julian_date = ephem.julian_date()
-else:
+julian_date = ephem.julian_date()
+if opt.start is not None:
     try:
         julian_date = ephem.julian_date(opt.start)
     except:
-        logger.error("Don't recognize date format use YYYY/MM/DD")
         logger.error(opt.start)
+        parser.error("Don't recognize date format use YYYY/MM/DD")
 
-jd_0 = ephem.julian_date(ephem.date(0))
+jd0 = ephem.julian_date(0)
+offset = geometry[opt.geometry]
 
-offset=geometry[opt.geometry]
-
-count=0
+count = 0
 print ASTRO_FORMAT_HEADER
-for abg in abgs:
-    obj=abg
-    abg = orbb+"/"+abg+".abg"
+for mpc_file in opt.mpc_files:
+    obs = []
+    for line in open(mpc_file, 'r'):
+        ob = mpc.Observation.from_string(line)
+        ob.null_observation = False
+        obs.append(ob)
+    orbit = orbfit.Orbfit(obs)
     for day in range(opt.range):
-        count=count+1
-        sdate = str(ephem.date(julian_date+day-jd_0))
-        (ra,dec,dra,ddec,dang)=orbfit.predict(abg,julian_date+day,568)
-        ra=ephem.hours(math.radians(ra)+math.radians(offset[int(opt.ccd)]['ra'])+math.radians(float(opt.dra)/60.0))
-        dec=ephem.degrees(math.radians(dec)+math.radians(offset[int(opt.ccd)]['dec'])+math.radians(float(opt.ddec)/60.0))
-        sdate = str(ephem.date(julian_date+day-jd_0))
-        sdate=sdate.replace("/","-")
-        sra   = str(ra)
-        sdec  = str(dec)
-        if math.fabs(math.degrees(dec))< 10 :
-            sdec = "0"+sdec
-        if dec > 0 :
-            sdec = "+"+sdec
+        count = count+1
+        smjd = julian_date+day
+        orbit.predict(smjd)
+        sra = orbit.coordinate.ra.format(units.hour, sep=':')
+        sdec = orbit.coordinate.dec.format(units.degree, sep=':')
+        sdate = str(ephem.date(smjd-jd0))
+        sdate = sdate.replace("/","-")
         print "%19s|%11s|%11s|" % ( sdate[0:19],sra[0:11],sdec[0:11])
-        #print "%10d %15s %11s %11s 2000 0 0 0 0 0 0 0 0 0 0 %8.2f %8.2f %8.2f  " % (count,obj,sra[0:11],sdec[0:11],dra,ddec,dang)
-        
+
 
 print ASTRO_FORMAT_FOOTER
 

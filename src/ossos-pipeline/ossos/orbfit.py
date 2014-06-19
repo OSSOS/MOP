@@ -50,12 +50,13 @@ class Orbfit(object):
         self.orbfit.fitradec.restype = ctypes.POINTER(ctypes.c_double * 2)
         self.orbfit.fitradec.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
         for observation in self.observations:
-            if not observation.null_observation:
-                obs = observation
-                ra = obs.ra.replace(" ", ":")
-                dec = obs.dec.replace(" ", ":")
-                res = 0.3
-                self._mpc_file.write("{} {} {} {} {}\n".format(obs.date.jd, ra, dec, res, 568, ))
+            if observation.null_observation == True:
+                continue
+            obs = observation
+            ra = obs.ra.replace(" ", ":")
+            dec = obs.dec.replace(" ", ":")
+            res = 0.3
+            self._mpc_file.write("{} {} {} {} {}\n".format(obs.date.jd, ra, dec, res, 568, ))
         self._mpc_file.seek(0)
         result = self.orbfit.fitradec(ctypes.c_char_p(self._mpc_file.name),
                                       ctypes.c_char_p(self._abg_file.name))
@@ -86,8 +87,9 @@ class Orbfit(object):
             self.predict(observation.date)
             coord1 = coordinates.ICRSCoordinates(self.coordinate.ra, self.coordinate.dec)
             coord2 = coordinates.ICRSCoordinates(observation.coordinate.ra, self.coordinate.dec)
-            observation.ra_residual = coord1.separation(coord2).arcsecs
-            observation.dec_residual = coordinates.ICRSCoordinates(self.coordinate.ra, observation.coordinate.dec)
+            observation.ra_residual = float(coord1.separation(coord2).arcsecs)
+            coord2 = coordinates.ICRSCoordinates(self.coordinate.ra, observation.coordinate.dec)
+            observation.dec_residual = float(coord1.separation(coord2).arcsecs)
             self._residuals += "{:1s}{:12s} {:+05.2f} {:+05.2f}\n".format(
                 observation.null_observation, observation.date, observation.ra_residual, observation.dec_residual)
 
