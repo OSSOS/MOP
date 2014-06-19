@@ -22,7 +22,12 @@ import megacam
 
 from track_done import parse, get_names
 from ossos import storage
-from ossos import horizons
+HAVE_HORIZONS=True
+try:
+    from ossos import horizons
+except:
+    HAVE_HORIZONS=False
+    
 
 
 
@@ -36,7 +41,9 @@ BLOCKS = {'13AE': {"RA": "14:15:28.89", "DEC": "-12:32:28.4"},  # E+0+0: image 1
           '13AO': {"RA": "15:58:01.35", "DEC": "-12:19:54.2"},  # O+0+0: image 1625346, ccd21 on May 8
           # 13B are trustworthy: this was what we agreed
           '13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"},  # 13B blocks are at their opposition locations
-          '13BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"}  # due to bad weather, discovery wasn't until Dec/Jan
+          '13BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"},  # due to bad weather, discovery wasn't until Dec/Jan
+          # 14A fields:  These are the 'pre-covery' fields  for 15A 
+          '14AM': {'RA': "15:36:00.00", "DEC": "-12:00:00.0"}
 }
 
 newMoons = {'Feb13': "2013/02/10 10:00:00",
@@ -51,15 +58,22 @@ newMoons = {'Feb13': "2013/02/10 10:00:00",
             'Nov13': '2013/11/03 10:00:00',
             'Dec13': '2013/12/02 10:00:00',
             'Jan14': '2014/01/01 10:00:00',
-            'Feb14': '2014/01/31 10:00:00'}
+            'Feb14': '2014/01/31 10:00:00',
+            'Mar14': '2014/03/28 10:00:00',
+            'Apr14': '2014/04/01 10:00:00',
+            'May14': '2014/05/28 10:00:00',
+            'Jun14': '2014/06/26 10:00:00'
+            }
 
 xgrid = {'2013': [-3, -2, -1, 0, 1, 2, 3],
-         '2014': [-3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5],
+         '2014r': [-3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5],
+         '2014': [-3, -2, -1, 0, 1, 2, 3],
          'astr': [1, 2, 3, 4]}
 
 ygrid = {'2013': [-1, 0, 1],
+         '2014': [-1, 0, 1],
          'astr': [-2.5, -1.5, -0.5, 0.5, 1.5],
-         '2014': [-1.5, -0.5, 0.5, 1.5]}
+         '2014r': [-1.5, -0.5, 0.5, 1.5]}
 
 block_centre = ephem.Ecliptic(0, 0)
 field_centre = ephem.Ecliptic(0, 0)
@@ -69,13 +83,13 @@ field_offset = math.radians(1.00)
 # the size of the field
 camera_dimen = 0.98
 
-years = {"2013": {"ra_off": ephem.hours("00:00:00"),
+years = {"2014": {"ra_off": ephem.hours("00:00:00"),
                   "dec_off": ephem.hours("00:00:00"),
                   "fill": False,
                   "facecolor": 'k',
                   "alpha": 0.5,
                   "color": 'b'},
-         "2014": {"ra_off": ephem.hours("00:05:00"),
+         "2014r": {"ra_off": ephem.hours("00:05:00"),
                   "dec_off": ephem.degrees("00:18:00"),
                   "alpha": 0.5,
                   "fill": False,
@@ -209,7 +223,7 @@ def build_ossos_footprint(ax, blocks, field_offset, plot=True):
     y = []
     names = []
     coverage = []
-    year = '2013'
+    year = '2014'
     if year == 'astr':
         field_offset = field_offset * 0.75
 
@@ -460,6 +474,8 @@ def plot_ossos_discoveries(ax, blockID='O13AE', date="2013/04/09 08:50:00"):
 
 def plot_single_known_tno(ax, name, date, close=[]):
     # date formatted as %Y-%m-%d %H:%M
+    if not HAVE_HORIZONS:
+        return ax
     dateplus1hr = (datetime.datetime.strptime(date, '%Y-%m-%d %H:%M') + datetime.timedelta(1 / 24.)).strftime(
         '%Y-%m-%d %H:%M')
     obj_elems, single_ephem = horizons.batch(name, date, dateplus1hr, None, su='d')  # pull back one position only
@@ -539,17 +555,17 @@ if __name__ == '__main__':
     for extent, block in enumerate(blocks):  # FIXME: need separation between key, item here in blocks
         if args.opposition:
             # 13AE is a month different in opposition from 13AO, but 13B are both in October
-            block_dates = [newMoons['Apr13'], newMoons['May13'], newMoons['Oct13'], newMoons['Oct13']]
+            block_dates = [newMoons['Apr13'], newMoons['May13'], newMoons['Oct13'], newMoons['Oct13'], newMoons['May14']]
             # FIXME: correct 13AO extent, tweak 13B extents into individual blocks
-            plot_extents = [[219, 209, -16, -9], [219, 209, -16, -9], [30, 5, -2, 18], [30, 5, -2, 18]]
+            plot_extents = [[219, 209, -16, -9], [219, 209, -16, -9], [30, 5, -2, 18], [30, 5, -2, 18], [219, 209, -16, -9]]
             # 13A all: [[245, 208, -18, -8]] 13B all: [30, 5, -2, 18]
             file_id = 'opposition-'
 
         if args.discovery:
             # E block discovery triplets are April 4,9,few 19; O block are May 7,8.
             # FIXME: 13H/L discovery dates, 13AO discovery time
-            block_dates = ["2013/04/09 08:50:00", "2013/05/08 08:50:00", "2013/12/12 08:50:00", "2014/01/03 08:50:00"]
-            plot_extents = [[219, 209, -16, -9], [219, 209, -16, -9], [30, 5, -2, 18], [30, 5, -2, 18]]
+            block_dates = ["2013/04/09 08:50:00", "2013/05/08 08:50:00", "2013/12/12 08:50:00", "2014/01/03 08:50:00", "2014/05/28 08:50:00"]
+            plot_extents = [[219, 209, -16, -9], [219, 209, -16, -9], [30, 5, -2, 18], [30, 5, -2, 18], [219, 209, -16, -9]]
             file_id = 'discovery-'
 
         if args.date:
@@ -557,7 +573,7 @@ if __name__ == '__main__':
             if not args.date.isinstance('list'):
                 block_dates = [args.date]
                 # FIXME: calculate the appropriate extents given that date and the given blocks
-            plot_extents = [[219, 209, -16, -9], [219, 209, -16, -9], [30, 5, -2, 18], [30, 5, -2, 18]]
+            plot_extents = [[219, 209, -16, -9], [219, 209, -16, -9], [30, 5, -2, 18], [30, 5, -2, 18], [219, 209, -16, -9]]
             file_id = args.date
 
         if args.dist:
@@ -566,8 +582,8 @@ if __name__ == '__main__':
 
         for date in block_dates:
             handles, labels, ax, fontP = basic_skysurvey_plot_setup()
-            ras, decs, coverage, names, ax = build_ossos_footprint(ax, block, field_offset, plot=False)
-            ax = keplerian_sheared_field_locations(ax, kbos, date, ras, decs, names, elongation=elongation, plot=True)
+            ras, decs, coverage, names, ax = build_ossos_footprint(ax, blocks, field_offset, plot=False)
+            #ax = keplerian_sheared_field_locations(ax, kbos, date, ras, decs, names, elongation=elongation, plot=True)
             ax = plot_planets(ax, plot_extents[extent], date)
             ax = plot_ossos_discoveries(ax, date=date)  # will predict for dates other than discovery
             ax = plot_discovery_uncertainty_ellipses(ax, date)
@@ -576,7 +592,7 @@ if __name__ == '__main__':
                 # defaults to Oct new moon: FIXME: set date appropriately
                 ra, dec, kbos = synthetic_model_kbos(coverage)
 
-            if block == '13AE':  # special case: needs Saturn's moons plotted as well
+            if "A" in block:  # special case: needs Saturn's moons plotted as well
                 ax = plot_known_tnos_singly(ax, date)  # this because we need the ax and batch doesn't return that
                 ax = plot_saturn_moons(ax)
             else:  # plot as normal
