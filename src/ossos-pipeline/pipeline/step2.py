@@ -79,7 +79,9 @@ def step2(expnums, ccd, version, prefix=None, dry_run=False):
                                                     "NO"))
     ptf.close()
     util.exec_prog(check_args)
-
+    if os.access('proc-these-files', os.F_OK):
+        os.unlink('proc-these-files')
+        
     if dry_run:
         return
 
