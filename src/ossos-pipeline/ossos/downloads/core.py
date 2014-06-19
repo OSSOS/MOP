@@ -1,69 +1,17 @@
-import re
-import requests
-import sys
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import cStringIO
-
 from astropy.io import fits
-import vos
-
+import cStringIO
 from ossos.gui import logger
+from .. import storage
+import sys
 
-
-SERVER='https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/vospace/'
-# OSSOS/dbimages/1625660/1625660p.fits?cutout=[1][990:1140,4144:4294]'
 
 class Downloader(object):
     """
     Downloads data from VOSpace.
     """
-
-    def __init__(self, vosclient=None):
-        if vosclient is None:
-            self.vosclient = self._create_default_vosclient()
-        else:
-            self.vosclient = vosclient
-
-    def download_raw(self, uri, **kwargs):
-        """
-        Downloads raw data from VOSpace.
-
-        Args:
-          uri: The URI of the resource to download.
-          kwargs: optional arguments to pass to the vos client.
-
-        Returns:
-          raw_string: str
-            The data downloaded as a string.
-        """
-        certfile = self.vosclient.conn.certfile
-        if "URL" in kwargs.keys():
-            logger.debug("Using reqquests to get {}\n".format(kwargs['URL']))
-            r = requests.get(kwargs['URL'], cert=certfile)
-            buff = r.content
-            logger.debug("Sending back buffer.")
-            return buff
-
-        try:
-            logger.debug("cadcVOFS download: {} {}\n".format(uri, kwargs))
-            fobj = self.vosclient.open(uri, **kwargs)
-            buff = fobj.read()
-            fobj.close()
-            return buff
-        except Exception as e:
-            logger.debug("vosclient raised exception: {}\n".format(str(e)))
-            logger.debug("Tying requests method\n")
-            groups = re.match("vos:(?P<path>.*)", uri)
-            logger.debug("requests download")
-            params = None
-            if 'cutout' in kwargs.keys():
-                params = {'cutout': kwargs['cutout']}
-            r = requests.get(SERVER+groups.group('path'),params=params, cert=certfile)
-            return r.content
-
-        return None
 
     def download_hdulist(self, uri, **kwargs):
         """
@@ -82,14 +30,16 @@ class Downloader(object):
             (http://docs.astropy.org/en/latest/io/fits/api/hdulists.html).
         """
         logger.debug(str(kwargs))
-        fobj = cStringIO.StringIO(self.download_raw(uri, **kwargs))
+        vobj = storage.vofile(uri, **kwargs)
+        fobj = cStringIO.StringIO(vobj.read())
+        vobj.close()
         fobj.seek(0)
         try:
             hdulist = fits.open(fobj)
         except Exception as e:
             sys.stderr.write(str(e))
             sys.stderr.write("Error trying to get {} {}\n".format(uri, kwargs))
-            return self.download_hdulist(uri, **kwargs)
+            return None
         logger.debug("Got fits hdulist of len {}".format(len(hdulist)))
         return hdulist
 
@@ -103,20 +53,13 @@ class Downloader(object):
         Returns:
           apcor: ossos.downloads.core.ApcorData
         """
-        return ApcorData.from_string(self.download_raw(uri, view="data"))
+        fobj = storage.vofile(uri, view='data')
+        apcor_str = fobj.read()
+        fobj.close()
+        return ApcorData.from_string(apcor_str)
 
     def download_zmag(self, uri):
-        return float(self.download_raw(uri, view="data"))
-
-    def refresh_vos_client(self):
-        """
-        If we have gotten a new certfile we have to create a new Client
-        object before it will get used.
-        """
-        self.vosclient = self._create_default_vosclient()
-
-    def _create_default_vosclient(self):
-        return vos.Client(cadc_short_cut=True)
+        return float(storage.vofile(uri, view="data").read())
 
 
 class ApcorData(object):

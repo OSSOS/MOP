@@ -5,6 +5,8 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import argparse
 import collections
 
+import datetime
+
 from ossos import storage
 from ossos.gui import context
 from ossos.gui import tasks
@@ -22,9 +24,11 @@ def print_progress_stats(task, directory):
             user_progress[user] += 1
 
     total_processed = sum(user_progress.values())
+    total_todo = len(listing)
 
-    print "%s: %s: %d of %d processed." % (
-        directory, task, total_processed, len(listing))
+    print datetime.datetime.now()
+    print "%s: %s: %d of %d processed (%2.1f%%)." % (
+        directory, task, total_processed, total_todo, (float(total_processed) / float(total_todo)) * 100.)
     print "---"
 
     for user, num_processed in user_progress.iteritems():

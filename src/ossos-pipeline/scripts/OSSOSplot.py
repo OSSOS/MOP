@@ -66,7 +66,7 @@ class Plot(Canvas):
 
         working_context = context.get_context(directory_name)
 
-        for filename in working_context.get_listing('mpc'):
+        for filename in working_context.get_listing('ast'):
             fhandle = working_context.open(filename)
             observations = []
             lines = fhandle.read().split('\n')
@@ -74,7 +74,7 @@ class Plot(Canvas):
                 if len(line) > 0 : 
                     observations.append(mpc.Observation.from_string(line))
             fhandle.close()
-            name = observations[0].provisional_name
+            name = filename.rstrip('.ast')  # observations[0].provisional_name
             self.kbos[name] = orbfit.Orbfit(observations)
 
         self.doplot()
@@ -894,9 +894,9 @@ class Camera:
     }
 
 
-    def __init__(self, camera="MEGACAM_2"):
+    def __init__(self, camera="MEGACAM_36"):
         if camera == '':
-            camera = "MEGACAM_2"
+            camera = "MEGACAM_36"
         self.camera = camera
 
     def __str__(self):
