@@ -1,27 +1,25 @@
-
-
-import ephem
-from matplotlib.patches import Rectangle
-from matplotlib.projections import register_projection
 from math import sqrt
-import numpy as np
-import mpcread
-from matplotlib.pyplot import figure, show, savefig, xlabel, ylabel
-from matplotlib import cm
-from matplotlib import rcParams
-from astropy.io import votable
 import operator
-import usnoB1
-import megacam
-import ephem
 import math
 import sys
 import os
-from numpy.random import random
-import Polygon, Polygon.IO
 import string
-from ossos import mpc
-from ossos import orbfit
+
+from matplotlib.patches import Rectangle
+import numpy as np
+
+from matplotlib.pyplot import figure, savefig, xlabel, ylabel
+from astropy.io import votable
+import ephem
+import Polygon
+import Polygon.IO
+
+import mpcread
+import usnoB1
+
+import megacam
+from ossos import storage
+
 
 ## EmulateApJ columnwidth=245.26 pts                                                                                                   
 fig_width_pt = 246.0
@@ -103,15 +101,15 @@ NAME                |RA         |DEC        |EPOCH |POINT|
 """
 
 #spring13
-blocks = {#'13AE': {"RA": "14:15:28.89", "DEC": "-12:32:28.4"},  # E+0+0: image 1616681, ccd21 on April 9
-          #'13AO': {"RA": "15:58:01.35", "DEC": "-12:19:54.2"},  # O+0+0: image 1625346, ccd21 on May 8
-          '14AN': {'RA': "15:30:00.00", "DEC": "-11:00:00.0"},
-          '14AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"},
-          '14AS': {'RA': "15:12:00.00", "DEC": "-17:40:00.0"}}
+# blocks = {#'13AE': {"RA": "14:15:28.89", "DEC": "-12:32:28.4"},  # E+0+0: image 1616681, ccd21 on April 9
+# #'13AO': {"RA": "15:58:01.35", "DEC": "-12:19:54.2"},  # O+0+0: image 1625346, ccd21 on May 8
+#           '14AN': {'RA': "15:30:00.00", "DEC": "-11:00:00.0"},
+#           '14AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"},
+#           '14AS': {'RA': "15:12:00.00", "DEC": "-17:40:00.0"}}
 
 
 #fall13
-#blocks={'13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"}, 
+blocks={'13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"}}  # ,
 #        '13BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"}}
 
 #spring14
@@ -133,8 +131,14 @@ newMoons={'Feb13': "2013/02/10 10:00:00",
           'Mar14': '2014/03/28 10:00:00',
           'Apr14': '2014/04/01 10:00:00',
           'May14': '2014/05/28 10:00:00',
-          'Jun14': '2014/06/26 10:00:00'
-          }
+          'Jun14': '2014/06/26 10:00:00',
+          'Jul14': '2014/07/26 10:00:00',
+          'Aug14': "2014/08/25 10:00:00",
+          'Sep14': '2014/09/24 10:00:00'  # ,
+          #'Oct14': '2014/10/23 10:00:00',
+          #'Nov14': '2014/11/22 10:00:00',
+          #'Dec14': '2014/12/22 10:00:00'
+}
 
 xgrid={'2014':[-3, -2, -1, 0, 1, 2, 3],
        '2014r':[-3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5],
@@ -188,7 +192,7 @@ year = '2014'
 #year = 'astr'
 if year == 'astr':
   field_offset = field_offset*0.75
-fix = open('Fall13.xml', 'w')
+fix = open('13BL_Jun14.xml', 'w')
 fix.write(header)
 
 fig=figure()
@@ -278,10 +282,12 @@ p=[]
 q=[]
 
 kbos = []
-for line in open('L7SyntheticModel-v09.txt'):
-   if line[0]=='#':
-	continue
-   kbo = ephem.EllipticalBody()
+lines = storage.open_vos_or_local('vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt').read().split('\n')
+for line in lines:
+    if (len(line) > 0 and line[0] == '#') or (
+        len(line) == 0):  # skip initial column descriptors and the final blank line
+        continue
+    kbo = ephem.EllipticalBody()
    values = line.split()
    kbo._a = float(values[0])
    kbo._e = float(values[1])
@@ -293,8 +299,8 @@ for line in open('L7SyntheticModel-v09.txt'):
    kbo._epoch_M = ephem.date(2453157.50000 - ephem.julian_date(0))
    kbo._epoch = kbo._epoch_M
    kbo.name = values[8]
-   date = ephem.date(newMoons['Oct13'])
-   kbo.compute(date)
+   date = ephem.date(newMoons['Jun14'])
+    kbo.compute(date)
 
 
    ### make a seperate plot of the p/q value of the cold objects
@@ -340,11 +346,11 @@ for kbo in kbos:
 
 ## plot source locations at the start
 ## middle and end of semester
-colours  = {'Aug13': 'g', 'Oct13': 'b', 'Dec13': 'r'}
-alpha = {'Aug13': 0.3, 'Oct13': 0.7, 'Dec13': 0.3}
-zorder = {'Aug13': 1, 'Oct13': 5, 'Dec13': 2}
-for month in ['Aug13', 'Oct13', 'Dec13']:
-  ra = []
+colours = {'Jun14': 'g', 'Jul14': 'b', 'Aug14': 'r'}
+alpha = {'Jun14': 0.3, 'Jul14': 0.7, 'Aug14': 0.3}
+zorder = {'Jun14': 1, 'Jul14': 5, 'Aug14': 2}
+for month in ['Jun14', 'Jul14', 'Aug14']:
+    ra = []
   dec = []
   date = ephem.date(newMoons[month])
   for kbo in kbos:
@@ -410,7 +416,7 @@ print max, Rmag.min(), scale.min(), scale.max()
 ax.scatter(t.array['RAJ2000'], t.array['DEJ2000'], s=scale, marker='o', facecolor='y', alpha=0.8, edgecolor='', zorder=-10)
 
 for planet in [ephem.Mars(), ephem.Jupiter(), ephem.Saturn(), ephem.Uranus(), ephem.Neptune()]:
-  planet.compute(ephem.date(newMoons['Oct13']))
+  planet.compute(ephem.date(newMoons['Jul14']))
   ax.scatter(math.degrees(planet.ra), math.degrees(planet.dec),
              marker='o',
              s=30,
@@ -456,19 +462,19 @@ if os.access(MPCORB,os.F_OK):
              facecolor='none',
              edgecolor='g')
 
-for ast in os.listdir('/Users/jjk/Dropbox/dbaseclone/ast'):
-  obs = []
-  for line in open('/Users/jjk/Dropbox/dbaseclone/ast/'+ast):
-    obs.append(mpc.Observation.from_string(line))
-  kbo = orbfit.Orbfit(obs)
-  kbo.predict('2014-05-29')
-  ax.scatter(kbo.coordinate.ra.degrees,
-             kbo.coordinate.dec.degrees,
-             marker='h',
-             s=10,
-             facecolor='none',
-             edgecolor='g',
-             alpha=0.5)
+# for ast in os.listdir('/Users/jjk/Dropbox/dbaseclone/ast'):
+# obs = []
+#   for line in open('/Users/jjk/Dropbox/dbaseclone/ast/'+ast):
+#     obs.append(mpc.Observation.from_string(line))
+#   kbo = orbfit.Orbfit(obs)
+#   kbo.predict('2014-05-29')
+#   ax.scatter(kbo.coordinate.ra.degrees,
+#              kbo.coordinate.dec.degrees,
+#              marker='h',
+#              s=10,
+#              facecolor='none',
+#              edgecolor='g',
+#              alpha=0.5)
 
 
 savefig('layout.png')
