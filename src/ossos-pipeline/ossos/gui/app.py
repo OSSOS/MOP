@@ -193,7 +193,7 @@ class ProcessRealsApplication(ValidationApplication):
 
     @property
     def should_randomize_workunits(self):
-        return True
+        return False  # now we are only going to manually measure the genuine candidates not also the planted ones
 
     def _create_workunit_builder(self,
                                  input_context,
