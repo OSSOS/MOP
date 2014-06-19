@@ -285,7 +285,7 @@ def set_status(expnum, ccd, program, status, version='p'):
 
 
 def get_image(expnum, ccd=None, version='p', ext='fits',
-              subdir=None, prefix=None, cutout=None):
+              subdir=None, prefix=None, cutout=None, rescale=None):
     """Get a FITS file for this expnum/ccd  from VOSpace.
 
 
@@ -408,6 +408,19 @@ def get_hdu(uri, cutout):
     hdu_list[0].header['DATASEC'] = datasec
     return hdu_list
 
+def get_trans(expnum, ccd, prefix=None, version='p'):
+    uri = get_uri(expnum, ccd, version, ext='trans.jmp', prefix=prefix)
+    fobj = open_vos_or_local(uri)
+    line = fobj.read()
+    fobj.close()
+    vs = line.split()
+    trans = {'dx': float(vs[0]),
+             'cd11': float(vs[1]),
+             'cd12': float(vs[2]),
+             'dy': float(vs[3]),
+             'cd21': float(vs[4]),
+             'cd22': float(vs[5])}
+    return trans
 
 def get_fwhm(expnum, ccd, prefix=None, version='p'):
     """Get the FWHM computed for the given expnum/ccd combo.
@@ -473,9 +486,10 @@ def mkdir(dirname):
         vospace.mkdir(dir_list.pop())
 
 
-def vofile(filename, mode):
+def vofile(filename, **kwargs):
     """Open and return a handle on a VOSpace data connection"""
-    return vospace.open(filename, view='data', mode=mode)
+    kwargs['view'] = kwargs.get('view', 'data')
+    return vospace.open(filename, **kwargs)
 
 
 def open_vos_or_local(path, mode="rb"):
@@ -493,7 +507,7 @@ def open_vos_or_local(path, mode="rb"):
         else:
             raise ValueError("Can't open with mode %s" % mode)
 
-        return vofile(path, vofile_mode)
+        return vofile(path, mode=vofile_mode)
     else:
         return open(path, mode)
 
