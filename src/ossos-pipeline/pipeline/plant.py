@@ -16,6 +16,8 @@ import logging
 def plant(expnums, ccd, rmin, rmax, ang, width, version='s', dry_run=False):
     '''run the plant script on this combination of exposures'''
 
+    if os.access('proc-these-files',os.F_OK):
+        os.unlink('proc-these-files')
     ptf = open('proc-these-files','w')
     ptf.write("# Files to be planted and search\n")
     ptf.write("# image fwhm plant\n")
