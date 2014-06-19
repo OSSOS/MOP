@@ -285,7 +285,7 @@ def set_status(expnum, ccd, program, status, version='p'):
 
 
 def get_image(expnum, ccd=None, version='p', ext='fits',
-              subdir=None, prefix=None, cutout=None):
+              subdir=None, prefix=None, cutout=None, rescale=None):
     """Get a FITS file for this expnum/ccd  from VOSpace.
 
 
