@@ -382,10 +382,8 @@ class TracksWorkUnit(WorkUnit):
         self._comparitors = {}
 
     def print_orbfit_info(self):
-        orbfit = Orbfit(self.get_writer().get_chronological_buffered_observations())
-
-        print orbfit
-        print orbfit.residuals
+        #TODO: this should not be here.
+        print Orbfit(self.get_writer().get_chronological_buffered_observations())
 
     def query_ssos(self):
         """
