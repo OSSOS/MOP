@@ -2,7 +2,6 @@
 """Create an ephemeris file for a KBO based on the .abg orbit file.
    output is in CFHT format"""
 
-
 ASTRO_FORMAT_HEADER="""<?xml version = "1.0"?>
 <!DOCTYPE ASTRO SYSTEM "http://vizier.u-strasbg.fr/xml/astrores.dtd"> <ASTRO ID="v0.8" xmlns:ASTRO="http://vizier.u-strasbg.fr/doc/astrores.htx">
 <TABLE ID="Table">
@@ -29,8 +28,7 @@ ASTRO_FORMAT_FOOTER="""]]></CSV></DATA>
 DIR_DB = "./"
 orbb = DIR_DB
 
-from astropy import units 
-
+from astropy import units, coordinates
 
 geometry={"MegaPrime":[
         {"ra": -0.46, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344 },
@@ -146,14 +144,23 @@ print ASTRO_FORMAT_HEADER
 for mpc_file in opt.mpc_files:
     obs = []
     for line in open(mpc_file, 'r'):
-        ob = mpc.Observation.from_string(line)
-        ob.null_observation = False
-        obs.append(ob)
+        if not line.startswith('#'):
+            ob = mpc.Observation.from_string(line)
+            ob.null_observation = False
+            obs.append(ob)
     orbit = orbfit.Orbfit(obs)
     for day in range(opt.range):
         count = count+1
         smjd = julian_date+day
         orbit.predict(smjd)
+        if opt.ccd:
+            # FIXME: CONFIRM CCD NUMBERING IS 0-35 TO MATCH THE INDEX NUMBERING IN THIS ARRAY (seems to be ok: works)
+            orbit.coordinate.ra = orbit.coordinate.ra + coordinates.RA(offset[opt.ccd]["ra"], units.degree)
+            orbit.coordinate.dec = orbit.coordinate.dec + coordinates.Dec(offset[opt.ccd]["dec"], units.degree)
+        if opt.dra:
+            orbit.coordinate.ra = orbit.coordinate.ra + coordinates.RA(opt.dra, units.degree)
+        if opt.ddec:
+            orbit.coordinate.dec = orbit.coordinate.dec + coordinates.Dec(opt.ddec, units.degree)
         sra = orbit.coordinate.ra.format(units.hour, sep=':')
         sdec = orbit.coordinate.dec.format(units.degree, sep=':')
         sdate = str(ephem.date(smjd-jd0))
