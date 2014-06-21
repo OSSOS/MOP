@@ -38,8 +38,8 @@ PLOT_FIELD_EPOCH = 'Jun14.00'  # Jun14.00 ==> '0' days since the New Moon on Jun
 
 PLOT_USNO_STARS = True
 PLOT_MEGACAM_ARCHIVE_FIELDS = False   ## TODO Make this work when True
-PLOT_SYNTHETIC_KBOS = True
-PLOT_SYNTHETIC_KBO_TRAILS = True
+PLOT_SYNTHETIC_KBOS = False
+PLOT_SYNTHETIC_KBO_TRAILS = False
 PLOT_REAL_KBOS = True and os.access(REAL_KBO_AST_DIR,os.F_OK)
 PLOT_FIELD_LAYOUT = True
 
@@ -416,11 +416,11 @@ if PLOT_USNO_STARS:
                zorder=-10)
 
     for planet in [ephem.Mars(), ephem.Jupiter(), ephem.Saturn(), ephem.Uranus(), ephem.Neptune()]:
-        planet.compute(ephem.date(newMoons['Jul14']))
+        planet.compute(dates[PLOT_FIELD_EPOCH])
         ax.scatter(math.degrees(planet.ra), math.degrees(planet.dec),
                    marker='o',
-                   s=30,
-                   facecolor='none',
+                   s=40,
+                   facecolor='r',
                    edgecolor='g', )
 
 if PLOT_MEGACAM_ARCHIVE_FIELDS:
@@ -456,8 +456,8 @@ if PLOT_MPCORB:
         ax.scatter(math.degrees(kbo.ra),
                    math.degrees(kbo.dec),
                    marker='h',
-                   s=10,
-                   facecolor='none',
+                   s=20,
+                   facecolor='g',
                    edgecolor='g')
 
 if PLOT_REAL_KBOS:
@@ -473,7 +473,8 @@ if PLOT_REAL_KBOS:
             ax.text(kbo.coordinate.ra.degrees,
                     kbo.coordinate.dec.degrees,
                     ast.split('.')[0],
-                    fontdict={'fontsize': 6})
+                    fontdict={'size': 6,
+                              'color': 'darkred'})
         else:
             c = 'g'
         ax.add_artist(Ellipse((kbo.coordinate.ra.degrees, kbo.coordinate.dec.degrees,),
@@ -482,10 +483,10 @@ if PLOT_REAL_KBOS:
                               angle=360 - (kbo.pa + 90),
                               edgecolor='none',
                               facecolor='k',
-                              alpha=0.3))
+                              alpha=0.2))
         ax.scatter(kbo.coordinate.ra.degrees,
                    kbo.coordinate.dec.degrees,
-                   marker='h',
+                   marker='o',
                    s=10,
                    facecolor='none',
                    edgecolor=c,
