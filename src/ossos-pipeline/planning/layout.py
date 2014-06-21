@@ -31,17 +31,18 @@ def plot_line(axes, fname, ltype):
     x = np.genfromtxt(fname, unpack=True)
     axes.plot(x[0], x[1], ltype)
 
-
-PLOT_USNO_STARS = True
-PLOT_MEGACAM_ARCHIVE_FIELDS = False
-PLOT_SYNTHETIC_KBOS = True
-PLOT_SYNTHETIC_KBO_TRAILS = False
-REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/ast'
-PLOT_REAL_KBOS = True and os.access(REAL_KBO_AST_DIR,os.F_OK)
-PLOT_FIELD_LAYOUT = True
+MPCORB_FILE = os.path.join(os.getenv('HOME', '/Users/jjk'), 'MPCORB.DAT')
+L7MODEL = 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
+REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/ast/'
 PLOT_FIELD_EPOCH = 'Jun14.00'  # Jun14.00 ==> '0' days since the New Moon on Jun14
 
-MPCORB_FILE = os.path.join(os.getenv('HOME', '/Users/jjk'), 'MPCORB.DAT')
+PLOT_USNO_STARS = True
+PLOT_MEGACAM_ARCHIVE_FIELDS = False   ## TODO Make this work when True
+PLOT_SYNTHETIC_KBOS = True
+PLOT_SYNTHETIC_KBO_TRAILS = True
+PLOT_REAL_KBOS = True and os.access(REAL_KBO_AST_DIR,os.F_OK)
+PLOT_FIELD_LAYOUT = True
+
 PLOT_MPCORB = True and os.access(MPCORB_FILE, os.F_OK)
 
 
@@ -290,10 +291,11 @@ plot_line(ax, 'eplane.radec', 'b-')
 plot_line(ax, 'gplane.radec', 'g-')
 
 ## build a list of Synthetic KBOs that will be in the discovery fields.
+print "LOADING SYNTHETIC MODEL KBOS FROM: {}".format(L7MODEL)
 ra = []
 dec = []
 kbos = []
-lines = storage.open_vos_or_local('vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt').read().split('\n')
+lines = storage.open_vos_or_local(L7MODEL).read().split('\n')
 for line in lines:
     if len(line) == 0 or line[0] == '#':  # skip initial column descriptors and the final blank line
         continue
@@ -336,6 +338,8 @@ for month in newMoons:
         dates[epoch] = ephem.date(ephem.date(newMoons[month]) + night)
         seps[epoch] = {'dra': 0, 'ddec': 0}
 
+print "COMPUTING NOMINAL MOTIONS USING SYNTHETIC MODEL KBOS FROM: {}".format(L7MODEL)
+
 ## Compute the typical motion of KBOs that were in the discovery field.
 for kbo in kbos:
     ra = kbo.ra
@@ -349,6 +353,7 @@ for kbo in kbos:
 ## plot source locations at the start
 ## middle and end of semester
 if PLOT_SYNTHETIC_KBO_TRAILS:
+    print "PLOTTING TAILS USING SYNTHETIC MODEL KBOS FROM: {}".format(L7MODEL)
     colours = {'Jun14': 'g', 'Jul14': 'b', 'Aug14': 'r'}
     alpha = {'Jun14': 0.3, 'Jul14': 0.7, 'Aug14': 0.3}
     zorder = {'Jun14': 1, 'Jul14': 5, 'Aug14': 2}
@@ -369,6 +374,7 @@ for month in seps:
 
 sorted_epochs = sorted(dates.iteritems(), key=operator.itemgetter(1))
 
+print "CREATING ET XML FILES USING BASE POINTING AND NOMINAL MOTION RATES"
 for idx in range(len(ras)):
     name = field_names[idx]
     f = file('%s.xml' % name, 'w')
@@ -400,7 +406,7 @@ width = 245 - 205
 height = -8 + 25
 
 if PLOT_USNO_STARS:
-
+    print "PLOTTING LOCATIONS NEARBY BRIGHT USNO B1 STARS"
     t = votable.parse(usnoB1.TAPQuery(ra_cen, dec_cen, width, height)).get_first_table()
 
     Rmag = t.array['Bmag'][t.array['Bmag'] < 12]
@@ -418,6 +424,7 @@ if PLOT_USNO_STARS:
                    edgecolor='g', )
 
 if PLOT_MEGACAM_ARCHIVE_FIELDS:
+    print "PLOTTING FOOTPRINTS NEARBY ARCHIVAL MEGAPRIME IMAGES."
     t = votable.parse(megacam.TAPQuery(ra_cen, dec_cen, width, height)).get_first_table()
 
     ra = t.array['RAJ2000']
@@ -439,6 +446,7 @@ if PLOT_MEGACAM_ARCHIVE_FIELDS:
         height = math.radians(height)
 
 if PLOT_MPCORB:
+    print "PLOTTING LOCATIONS OF KNOWN KBOs (using {})".format(MPCORB_FILE)
     kbos = mpcread.getKBOs(MPCORB_FILE)
     for kbo in kbos:
         kbo.compute(dates[PLOT_FIELD_EPOCH])
@@ -453,26 +461,28 @@ if PLOT_MPCORB:
                    edgecolor='g')
 
 if PLOT_REAL_KBOS:
+    print "PLOTTING LOCATIONS OF OSSOS KBOs (using directory {})".format(REAL_KBO_AST_DIR)
     for ast in os.listdir(REAL_KBO_AST_DIR):
-        if "O13B" not in ast:
-            continue
         obs = []
         for line in open(REAL_KBO_AST_DIR+ast):
             obs.append(mpc.Observation.from_string(line))
         kbo = orbfit.Orbfit(obs)
-        kbo.predict(ephem.julian_date(ephem.date(PLOT_FIELD_EPOCH)))
+        kbo.predict(ephem.julian_date(ephem.date(dates[PLOT_FIELD_EPOCH])))
         if obs[0].mag < 23.6:
             c = 'b'
             ax.text(kbo.coordinate.ra.degrees,
                     kbo.coordinate.dec.degrees,
-                    ast)
+                    ast.split('.')[0],
+                    fontdict={'fontsize': 6})
         else:
             c = 'g'
-        print kbo
-        print ast, kbo.coordinate, kbo.dra, kbo.ddec, kbo.pa
         ax.add_artist(Ellipse((kbo.coordinate.ra.degrees, kbo.coordinate.dec.degrees,),
-                              width=kbo.dra / 3600.0, height=kbo.ddec / 3600.0, angle=kbo.pa + 90.0,
-                              edgecolor='none', facecolor='k', alpha=0.3))
+                              width=2.0*kbo.dra / 3600.0,
+                              height=2.0*kbo.ddec / 3600.0,
+                              angle=360 - (kbo.pa + 90),
+                              edgecolor='none',
+                              facecolor='k',
+                              alpha=0.3))
         ax.scatter(kbo.coordinate.ra.degrees,
                    kbo.coordinate.dec.degrees,
                    marker='h',
@@ -481,6 +491,6 @@ if PLOT_REAL_KBOS:
                    edgecolor=c,
                    alpha=0.5)
 
-savefig('layout.png')
+savefig('layout.pdf')
 
 sys.stderr.write("FINISHED\n")
