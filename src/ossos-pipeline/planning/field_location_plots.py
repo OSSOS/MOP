@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 
 
 
+
 # planning scripts
 import mpcread
 import usnoB1
@@ -36,7 +37,8 @@ BLOCKS = {'13AE': {"RA": "14:15:28.89", "DEC": "-12:32:28.4"},  # E+0+0: image 1
           '13AO': {"RA": "15:58:01.35", "DEC": "-12:19:54.2"},  # O+0+0: image 1625346, ccd21 on May 8
           # 13B are trustworthy: this was what we agreed
           '13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"},  # 13B blocks are at their opposition locations
-          '13BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"}  # due to bad weather, discovery wasn't until Dec/Jan
+          '13BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"},  # due to bad weather, discovery wasn't until Dec/Jan
+          '15AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"}
 }
 
 newMoons = {'Feb13': "2013/02/10 10:00:00",
@@ -267,8 +269,10 @@ def synthetic_model_kbos(coverage, input_date=newMoons['Oct13']):
     ra = []
     dec = []
     kbos = []
-    fobj = storage.open_vos_or_local('vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt')    for line in fobj.read().split('\n'):
-        If line[0] == '#':
+    lines = storage.open_vos_or_local('vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt').read().split('\n')
+    for line in lines:
+        if (len(line) > 0 and line[0] == '#') or (
+            len(line) == 0):  # skip initial column descriptors and the final blank line
             continue
         kbo = ephem.EllipticalBody()
         values = line.split()
