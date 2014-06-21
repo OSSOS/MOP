@@ -280,7 +280,7 @@ decs = np.array(decs)
 ## lets make a plot of the field selections.
 fig = figure()
 ax = fig.add_subplot(111, aspect="equal")
-ax.set_xlim(20, 5)
+ax.set_xlim(24, 10)
 ax.set_ylim(0, 10)
 xlabel('RA (deg)')
 ylabel('DE (deg)')
@@ -422,6 +422,10 @@ if PLOT_USNO_STARS:
                    s=40,
                    facecolor='r',
                    edgecolor='g', )
+        ax.text(math.degrees(planet.ra), math.degrees(planet.dec),
+                planet.name,
+                fontdict={'size': 6,
+                          'color': 'darkred'})
 
 if PLOT_MEGACAM_ARCHIVE_FIELDS:
     print "PLOTTING FOOTPRINTS NEARBY ARCHIVAL MEGAPRIME IMAGES."
