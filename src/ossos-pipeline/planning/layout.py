@@ -395,6 +395,13 @@ for idx in range(len(ras)):
                                     width=camera_dimen,
                                     edgecolor='b',
                                     lw=0.5, fill=True, alpha=0.3))
+            ax.text(math.degrees(ra), math.degrees(dec),
+                    name,
+                    horizontalalignment='center',
+                    verticalalignment='center',
+                    zorder=10,
+                    fontdict={'size': 4, 'color': 'darkblue'})
+
 
     f.write("""]]</CSV></DATA>\n</TABLE>\n</ASTRO>\n""")
     f.close()
@@ -424,6 +431,7 @@ if PLOT_USNO_STARS:
                    edgecolor='g', )
         ax.text(math.degrees(planet.ra), math.degrees(planet.dec),
                 planet.name,
+                horizontalalignment='center',
                 fontdict={'size': 6,
                           'color': 'darkred'})
 
@@ -477,6 +485,8 @@ if PLOT_REAL_KBOS:
             ax.text(kbo.coordinate.ra.degrees,
                     kbo.coordinate.dec.degrees,
                     ast.split('.')[0],
+                    horizontalalignment='center',
+                    verticalalignment='baseline',
                     fontdict={'size': 6,
                               'color': 'darkred'})
         else:
