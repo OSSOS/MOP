@@ -25,6 +25,7 @@
 import os
 import argparse
 import logging
+import errno
 from ossos import util
 from ossos import storage
 import numpy
@@ -79,7 +80,12 @@ def step2(expnums, ccd, version, prefix=None, dry_run=False):
                                                     "NO"))
     ptf.close()
     util.exec_prog(check_args)
+    if os.access('BAD_TRANS',os.F_OK):
+        raise ValueError(errno.EBADEXEC, 'BAD_TRANS')
 
+    if os.access('proc-these-files', os.F_OK):
+        os.unlink('proc-these-files')
+        
     if dry_run:
         return
 

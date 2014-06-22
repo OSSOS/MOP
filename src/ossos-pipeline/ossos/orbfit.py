@@ -110,9 +110,6 @@ class Orbfit(object):
         self._abg.seek(0)
         return self._abg.readlines()
 
-
-
-
     def __str__(self):
         """
 
@@ -146,6 +143,10 @@ class Orbfit(object):
     def predict(self, date, obs_code=568):
         """
         use the bk predict method to compute the location of the source on the given date.
+        @param date: the julian date of interest or an astropy.core.time.Time object.
+        @param obs_code: the Minor Planet Center observatory location code (Mauna Kea: 568 is the default)
+
+        this methods sets the values of coordinate, dra (arcseconds), ddec (arcseconds), pa, (degrees) and date (str)
         """
         if not isinstance(date, Time):
             if isinstance(date, float):
@@ -189,7 +190,6 @@ class Orbfit(object):
 
         return retval
 
-
     def summarize(self, date=datetime.datetime.now()):
         """Return a string summary of the orbit.
 
@@ -207,7 +207,7 @@ class Orbfit(object):
         fobj.write("\n")
         fobj.write(str(self)+"\n")
         fobj.write(str(self._residuals)+"\n")
-        fobj.write('arclen (days) {}'.format(self.orbit.arc_length))
+        fobj.write('arclen (days) {}'.format(self.arc_length))
         fobj.write("Expected accuracy on {:>10s}: {:6.2f}'' {:6.2f}'' moving at {:6.2f} ''/hr\n\n".format(
                                  at_date, self.dra, self.ddec, self.rate_of_motion(date=date)))
 

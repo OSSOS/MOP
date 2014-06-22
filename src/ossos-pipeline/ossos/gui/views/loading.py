@@ -4,6 +4,7 @@ import wx
 
 
 class WaitingGaugeDialog(wx.Dialog):
+
     def __init__(self, parent, wait_message, pulse_period_ms=100):
         super(WaitingGaugeDialog, self).__init__(parent)
 

@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 
 
 
+
 # planning scripts
 import mpcread
 import usnoB1
@@ -44,6 +45,7 @@ BLOCKS = {'13AE': {"RA": "14:15:28.89", "DEC": "-12:32:28.4"},  # E+0+0: image 1
           '13BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"},  # due to bad weather, discovery wasn't until Dec/Jan
           # 14A fields:  These are the 'pre-covery' fields  for 15A 
           '14AM': {'RA': "15:36:00.00", "DEC": "-12:00:00.0"}
+          '15AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"}
 }
 
 newMoons = {'Feb13': "2013/02/10 10:00:00",
@@ -281,8 +283,10 @@ def synthetic_model_kbos(coverage, input_date=newMoons['Oct13']):
     ra = []
     dec = []
     kbos = []
-    fobj = storage.open_vos_or_local('vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt')    for line in fobj.read().split('\n'):
-        If line[0] == '#':
+    lines = storage.open_vos_or_local('vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt').read().split('\n')
+    for line in lines:
+        if (len(line) > 0 and line[0] == '#') or (
+            len(line) == 0):  # skip initial column descriptors and the final blank line
             continue
         kbo = ephem.EllipticalBody()
         values = line.split()
