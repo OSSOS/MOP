@@ -12,7 +12,7 @@ shift
 task=$1
 shift
 inputfile=$1
-
+shift
 condor_submit=${jobid}.in
 
 # create a fresh payload
@@ -25,7 +25,7 @@ echo "" >> ${condor_submit}
 while read line
   do
   jobid=`echo $line | awk ' { print $1 } ' `
-  echo "Arguments = ${jobid} $task ${line} "  >> ${condor_submit}
+  echo "Arguments = ${jobid} $task ${line} $@ "  >> ${condor_submit}
   echo "Log = ${jobid}.log" >> ${condor_submit}
   echo "Error = ${jobid}.err" >> ${condor_submit}
   echo "QUEUE" >> ${condor_submit}

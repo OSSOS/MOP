@@ -14,7 +14,7 @@ from vos.vos import URLparse as urlparse
 from astropy.io import fits
 import requests
 
-from ossos import coding
+import coding
 from mpc import Time
 
 
@@ -59,12 +59,12 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01):
     :param ddec: float degrees
     """
 
-    data = dict(QUERY=(" SELECT Observation.collectionID as collectionID "
-                       " FROM caom.Observation AS Observation "
-                       " JOIN caom.Plane AS Plane "
+    data = dict(QUERY=(" SELECT Observation.observationID as collectionID "
+                       " FROM caom2.Observation AS Observation "
+                       " JOIN caom2.Plane AS Plane "
                        " ON Observation.obsID = Plane.obsID "
                        " WHERE  ( Observation.collection = 'CFHT' ) "
-                       " AND Plane.observable_ctype='CAL' "
+                       " AND Plane.calibrationLevel=2 "
                        " AND ( Observation.proposal_id LIKE '%P05' or Observation.proposal_id LIKE '%P06' )"),
                 REQUEST="doQuery",
                 LANG="ADQL",
@@ -285,7 +285,7 @@ def set_status(expnum, ccd, program, status, version='p'):
 
 
 def get_image(expnum, ccd=None, version='p', ext='fits',
-              subdir=None, prefix=None, cutout=None):
+              subdir=None, prefix=None, cutout=None, rescale=None):
     """Get a FITS file for this expnum/ccd  from VOSpace.
 
 
