@@ -167,7 +167,7 @@ class Plot(Canvas):
         dec2 = math.pi / 2.0
 
 
-        ## grid space choices
+        # # grid space choices
         ## ra space in hours
         ra_grids = ["06:00:00",
                     "03:00:00",
@@ -364,7 +364,7 @@ class Plot(Canvas):
     def __zoom(self, event, scale=2.0):
         """Zoom in"""
 
-        ## compute the x,y of the center of the screen
+        # # compute the x,y of the center of the screen
         sx1 = self.cx1 + (self.cx2 - self.cx1 + 1.0) / 2.0
         sy1 = self.cy1 + (self.cy2 - self.cy1 + 1.0) / 2.0
         #print sx1,sy1
@@ -453,7 +453,7 @@ class Plot(Canvas):
         f.close()
         points = []
         if lines[0][0:5] == "<?xml":
-            ### assume astrores format
+            # ## assume astrores format
             ### with <DATA at start of 'data' segment
             for i in range(len(lines)):
                 if lines[i][0:5] == '<DATA':
@@ -464,7 +464,7 @@ class Plot(Canvas):
                 vs = lines[j].split('|')
                 points.append(vs)
         elif lines[0][0:5] == 'index':
-            ### Palomar Format
+            # ## Palomar Format
             ### OK.. ID/NAME/RA /DEC format
             for line in lines:
                 if line[0] == '!' or line[0:5] == 'index':
@@ -478,12 +478,12 @@ class Plot(Canvas):
                 decs = "%s:%s:%s" % ( d[5], d[6], d[7])
                 points.append((d[1].strip(), ras, decs))
         elif lines[0][0:5] == "#SSIM":
-            ### Survey Simulator format
+            # ## Survey Simulator format
             for line in lines[1:]:
                 d = line.split()
                 points.append((d[8], d[2], d[3]))
         else:
-            ### try name/ ra /dec / epoch
+            # ## try name/ ra /dec / epoch
             for line in lines:
                 d = line.split()
                 if len(d) != 4:
@@ -674,7 +674,7 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                                                                      dec[1].zfill(2),
                                                                      dec[2].zfill(2)))
             elif self.pointing_format.get() == 'CFHT PH':
-                #f.write("%f %f\n" % (pointing["camera"].ra,pointing["camera"].dec))
+                # f.write("%f %f\n" % (pointing["camera"].ra,pointing["camera"].dec))
                 f.write("%-20s|%11s|%11s|%6.1f|%-5d|\n" % (name, sra, sdec, 2000.0, 1))
             elif self.pointing_format.get() == 'KPNO/CTIO':
                 str1 = sra.replace(":", " ")
@@ -935,7 +935,7 @@ class Camera:
 
 def start(dirname=None, pointings=None):
     root = Tk()
-    ### Make the root window resizeable
+    # ## Make the root window resizeable
     root.rowconfigure(0, weight=1)
     root.columnconfigure(0, weight=1)
 
@@ -1066,7 +1066,7 @@ def start(dirname=None, pointings=None):
     root.mainloop()
 
 
-### read in pointings, from a command line file...
+# ## read in pointings, from a command line file...
 if __name__ == '__main__':
     parser = optparse.OptionParser()
     parser.add_option("-p", "--pointings", help="A file containing some pointings")
