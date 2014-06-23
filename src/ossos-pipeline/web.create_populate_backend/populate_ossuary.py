@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+# !/usr/bin/env python
 
 __author__ = "Michele Bannister <micheleb@uvic.ca>"
 
@@ -48,6 +48,7 @@ def wanted_keys(header):
 
     return retdir
 
+
 # For reference: header keywords we care about:
 # OBJECT  # the field it thinks it's looking at. eg 'O+0-1   '
 # FILENAME # '1616934o' / Base filename at acquisition: header has a .head suffix
@@ -87,8 +88,8 @@ def verify_ossos_image(header):
         'Requested %d s exposure, took %d exposure' % (header['EXPTIME'], header['EXPREQ'])
     # integration should be within ~10 sec of: normal field: 287 s, wallpaper: 30 s, long nail: 387 s
     assert (280. < float(header['EXPTIME']) < 297.) \
-               or (25. < float(header['EXPTIME']) < 35.) \
-        or (380. < float(header['EXPTIME']) < 397.), \
+           or (25. < float(header['EXPTIME']) < 35.) \
+           or (380. < float(header['EXPTIME']) < 397.), \
         'Exposure %s s, not in OSSOS range.' % header['EXPTIME']
 
     assert (header['FILTER'] == 'r.MP9601'), 'Filter not r. Instead %s' % header['FILTER']
@@ -130,7 +131,7 @@ def get_iq_and_zeropoint(image, header_extract):
         sys.stdout.write('...no zeropoint vtag. Instead trying file. ')
         try:
             zeropt = storage.get_zeropoint(image, ccd=22)
-        except: # no file yet then either
+        except:  # no file yet then either
             zeropt = None
             sys.stdout.write('...zeropoint not yet measured. ')
 
@@ -138,6 +139,7 @@ def get_iq_and_zeropoint(image, header_extract):
     sys.stdout.write('Storing zeropoint: %s\n' % str(header_extract['zeropt']))
 
     return header_extract
+
 
 def parse_sgwn_comments():
     retval = {}
@@ -165,7 +167,7 @@ def retrieve_processed_images(ims):
         if isinstance(s[0], long):
             retval.append(s[0])
             retval2.append(s[1])
-        # retval = [s[0] for s in query if isinstance(s[0], long)]
+            # retval = [s[0] for s in query if isinstance(s[0], long)]
     # retval2 = [s[1] for s in query if isinstance(s[0], long)]
 
     return retval, retval2
@@ -199,7 +201,7 @@ def parse_unprocessed_images(dbimages, processed_images):
 
 def get_header(image):
     retval = None
-    header_text = storage.get_astheader(image, 0) # zeroth ccd: first see if the preproc'd version is there
+    header_text = storage.get_astheader(image, 0)  # zeroth ccd: first see if the preproc'd version is there
     if header_text is None:
         header_text = storage.get_astheader(image, 0, version='o', ext='.head')  # 'o' for an object acquisition
     if header_text is not None:  # checked twice, it must be there now if it's there at all...

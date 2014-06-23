@@ -1,4 +1,4 @@
-#!python
+# !python
 from Tkinter import *
 import tkFileDialog
 import math
@@ -71,7 +71,7 @@ class Plot(Canvas):
             observations = []
             lines = fhandle.read().split('\n')
             for line in lines:
-                if len(line) > 0 : 
+                if len(line) > 0 and not line.startswith('#'):  # skip the comments, don't care about them here
                     observations.append(mpc.Observation.from_string(line))
             fhandle.close()
             name = filename.rstrip('.ast')  # observations[0].provisional_name
@@ -332,8 +332,8 @@ class Plot(Canvas):
         if self.kbos.has_key(name):
             kbo = self.kbos[name]
             assert isinstance(kbo, orbfit.Orbfit)
-            date=self.date.get()
-            date.replace("/"," ")
+            date = self.date.get()
+            date.replace("/", " ")
             kbo.predict(self.date.get())
             self.recenter(kbo.coordinate.ra.radians, kbo.coordinate.dec.radians)
             self.create_point(kbo.coordinate.ra.radians, kbo.coordinate.dec.radians, color='blue', size=4)
@@ -531,9 +531,9 @@ class Plot(Canvas):
                 (x2, y2) = self.p2c((ccd[2], ccd[3]))
                 item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill='#000')
             else:
-                (x1, y1) = self.p2c((ccd[0]-ccd[2]/math.cos(ccd[1]), ccd[1]-ccd[2]))
-                (x2, y2) = self.p2c((ccd[0]+ccd[2]/math.cos(ccd[1]), ccd[1]+ccd[2]))
-                item = self.create_oval(x1,y1, x2, y2)
+                (x1, y1) = self.p2c((ccd[0] - ccd[2] / math.cos(ccd[1]), ccd[1] - ccd[2]))
+                (x2, y2) = self.p2c((ccd[0] + ccd[2] / math.cos(ccd[1]), ccd[1] + ccd[2]))
+                item = self.create_oval(x1, y1, x2, y2)
             items.append(item)
         label = {}
         label['text'] = self.plabel.get()
@@ -562,9 +562,9 @@ class Plot(Canvas):
                     (x2, y2) = self.p2c((ccd[2], ccd[3]))
                     item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill=pointing.get('color', ''))
                 else:
-                    (x1, y1) = self.p2c((ccd[0]-ccd[2]/math.cos(ccd[1]), ccd[1]-ccd[2]))
-                    (x2, y2) = self.p2c((ccd[0]+ccd[2]/math.cos(ccd[1]), ccd[1]+ccd[2]))
-                    item = self.create_oval(x1,y1, x2, y2)
+                    (x1, y1) = self.p2c((ccd[0] - ccd[2] / math.cos(ccd[1]), ccd[1] - ccd[2]))
+                    (x2, y2) = self.p2c((ccd[0] + ccd[2] / math.cos(ccd[1]), ccd[1] + ccd[2]))
+                    item = self.create_oval(x1, y1, x2, y2)
                 items.append(item)
             if self.show_labels.get() == 1:
                 label['id'] = self.label(pointing["camera"].ra, pointing["camera"].dec, label['text'])
@@ -609,8 +609,8 @@ class Plot(Canvas):
                 (x1, y1) = self.p2c((ccd[0], ccd[1]))
                 (x2, y2) = self.p2c((ccd[2], ccd[3]))
             else:
-                (x1, y1) = self.p2c((ccd[0] - ccd[2]/math.cos(ccd[1]), ccd[1] - ccd[2]))
-                (x2, y2) = self.p2c((ccd[0] + ccd[2]/math.cos(ccd[1]), ccd[1] + ccd[2]))
+                (x1, y1) = self.p2c((ccd[0] - ccd[2] / math.cos(ccd[1]), ccd[1] - ccd[2]))
+                (x2, y2) = self.p2c((ccd[0] + ccd[2] / math.cos(ccd[1]), ccd[1] + ccd[2]))
             self.coords(item, x1, y1, x2, y2)
         self.current_pointing(this_index)
 
@@ -738,7 +738,7 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                 xoffset = -10
                 kbo = kbos[name]
                 assert isinstance(kbo, orbfit.Orbfit)
-                start_date = mpc.Time(w.date.get(),scale='utc').jd
+                start_date = mpc.Time(w.date.get(), scale='utc').jd
                 trail_mid_point = 6
                 for days in range(trail_mid_point * 2 + 1):
                     today = mpc.Time(start_date - trail_mid_point + days, scale='utc', format='jd')
@@ -774,7 +774,7 @@ class Camera:
 
     geometry = {"MP_CCD": [
         {"ra": 0., "dec": 0., "dra": 0.1052, "ddec": 0.2344}],
-                "HSC": [ {"ra": 0.0, "dec": 0.0, "rad": 0.75 } ],
+                "HSC": [{"ra": 0.0, "dec": 0.0, "rad": 0.75}],
                 "MEGACAM_36": [
                     {"ra": -0.46, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
                     {"ra": -0.35, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
