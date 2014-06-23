@@ -35,26 +35,7 @@ class TracksParser(object):
         self.skip_previous = skip_previous
 
     def parse(self, filename):
-        filehandle = storage.open_vos_or_local(filename, "rb")
-        filestr = filehandle.read()
-        filehandle.close()
-
-        input_mpc_lines = filestr.split('\n')
-
-        mpc_observations = []
-        next_comment = None
-        for line in input_mpc_lines:
-            mpc_observation = mpc.Observation.from_string(line)
-            if isinstance(mpc_observation, mpc.MPCComment):
-                next_comment = mpc_observation
-                continue
-            if isinstance(mpc_observation, mpc.Observation):
-                if next_comment is not None:
-                    mpc_observation.comment = next_comment
-                    next_comment = None
-                mpc_observations.append(mpc_observation)
-
-        mpc_observations.sort(key=lambda obs: obs.date.jd)
+        mpc_observations = mpc.MPCReader(filename).mpc_observations
 
         # pass down the provisional name so the table lines are linked to this TNO
         self.ssos_parser = SSOSParser(mpc_observations[0].provisional_name,
