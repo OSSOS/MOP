@@ -15,6 +15,7 @@ import matplotlib
 
 from ossos import storage
 
+
 matplotlib.use('Agg')
 from matplotlib.pyplot import figure, close
 from matplotlib.patches import Rectangle
@@ -22,7 +23,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 import logging
 
 
-OSSOS_RUNIDS = list(('13AP05', '13AP06', '13BP05', '13BP06', '14AP05', '14AP06'))
+OSSOS_RUNIDS = list(('13AP05', '13AP06', '13BP05', '13BP06', '14AP05', '14AP06', '14BP05', '14BP06'))
 
 
 def query_for_observations(mjd, observable, runids):
@@ -64,6 +65,11 @@ def query_for_observations(mjd, observable, runids):
     logging.debug("QUERY: {}".format(data['QUERY']))
 
     urllib.urlretrieve(url,tmpFile.name)
+
+    with open(tmpFile.name, 'r') as infile:
+        lines = infile.readlines()
+        for line in lines:
+            print line
 
     vot = parse(tmpFile.name).get_first_table()
     vot.array.sort(order='StartDate')
