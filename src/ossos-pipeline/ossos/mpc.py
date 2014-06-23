@@ -270,7 +270,7 @@ class TimeMPC(TimeString):
     name = 'mpc'
     subfmts = (('mpc', '%Y %m %d', "{year:4d} {mon:02d} {day:02d}.{fracday:s}"),)
 
-    ### need our own 'set_jds' function as the MPC Time string is not typical
+    # ## need our own 'set_jds' function as the MPC Time string is not typical
     def set_jds(self, val1, val2):
         """
 
@@ -322,8 +322,10 @@ class TimeMPC(TimeString):
         return
 
     def str_kwargs(self):
-        """                                                                                                                                           
-        Generator that yields a dict of values corresponding to the                                                                                   
+        """
+
+        Generator that yields a dict of values corresponding to the
+
         calendar date and time for the internal JD values.
 
         Here we provide the additional 'fracday' element needed by 'mpc' format
@@ -333,7 +335,8 @@ class TimeMPC(TimeString):
                                                  6,
                                                  self.jd1, self.jd2)
 
-        # Get the str_fmt element of the first allowed output subformat                                                                               
+        # Get the str_fmt element of the first allowed output subformat
+
         _, _, str_fmt = self._select_subfmts(self.out_subfmt)[0]
 
         yday = None
@@ -469,7 +472,7 @@ class Observation(object):
             return None
         obsrec = cls(*struct.unpack(mpc_format, mpc_line))
         obsrec.comment = MPCComment.from_string(comment)
-        #TODO set the 'discovery' flags from the binary flags in TNODB style ast lines.
+        # TODO set the 'discovery' flags from the binary flags in TNODB style ast lines.
         return obsrec
 
     def to_string(self):
@@ -511,7 +514,7 @@ class Observation(object):
         provide string representation of observation in a format used for OSSOS database input.
         """
 
-        #O indicates OSSOS survey
+        # O indicates OSSOS survey
         comment_line = ('#O ' + str(self.comment))[:80].rstrip('\n')
 
         if self.mag == -1:  # write no mag and no filter for where photometry couldn't be measured
@@ -777,7 +780,7 @@ class MPCComment(object):
         """
         Build an MPC Comment from a string.
         """
-        comment_format = '1s10s1s11s1s3s6f1s6f'  #1s4f1s3f1s4s1s'  # is this right...?
+        comment_format = '1s10s1s11s1s3s6f1s6f'  # 1s4f1s3f1s4s1s'  # is this right...?
         values = comment.split('%')[0]
         try:
             retval = cls(*struct.unpack(comment_format, values))
@@ -1046,6 +1049,11 @@ def make_tnodb_header(observations, observatory_code=None, observers=DEFAULT_OBS
 
 
 class MPCReader(object):
+    """
+    Takes the filename of either a .mpc or .ast format file and parses that file
+    to instantiate an array of mpc.Observation objects.
+    """
+
     def __init__(self, filename):
         self.mpc_observations = []
         filehandle = storage.open_vos_or_local(filename, "rb")
