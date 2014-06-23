@@ -2,11 +2,12 @@
 # Copyright 2012, 2013 JJ Kavelaars
 
 import argparse
-import urllib
 import tempfile
 import math
 import sys
 import time
+
+import requests
 
 import ephem
 from astropy.io.votable import parse
@@ -30,6 +31,8 @@ def query_for_observations(mjd, observable, runids):
     """Do a QUERY on the TAP service for all observations that are part of runid, 
     where taken after mjd and have calibration 'observable'.
 
+    Schema is at: http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/tap/tables
+
     mjd : float 
     observable: str ( 2 or 1 )
     runid: tuple eg. ('13AP05', '13AP06')
@@ -37,7 +40,7 @@ def query_for_observations(mjd, observable, runids):
     """
 
     data={"QUERY": ("SELECT Observation.target_name as TargetName, "
-                    "COORD1(CENTROID(Plane.position_bounds)) AS RA,"  
+                    "COORD1(CENTROID(Plane.position_bounds)) AS RA,"
                     "COORD2(CENTROID(Plane.position_bounds)) AS DEC, "
                     "Plane.time_bounds_cval1 AS StartDate, "
                     "Plane.time_exposure AS ExposureTime, "
@@ -58,27 +61,23 @@ def query_for_observations(mjd, observable, runids):
           "LANG": "ADQL",
           "FORMAT": "votable" }
 
-    url=storage.TAP_WEB_SERVICE+urllib.urlencode(data)
-
+    result = requests.get(storage.TAP_WEB_SERVICE, params=data, verify=False)
+    assert isinstance(result, requests.Response)
+    logging.debug("Doing TAP Query using url: %s" % (str(result.url)))
     tmpFile = tempfile.NamedTemporaryFile()
-
-    logging.debug("QUERY: {}".format(data['QUERY']))
-
-    urllib.urlretrieve(url,tmpFile.name)
-
-    with open(tmpFile.name, 'r') as infile:
-        lines = infile.readlines()
-        for line in lines:
-            print line
-
+    with open(tmpFile.name, 'w') as outfile:
+        outfile.write(result.text)
     vot = parse(tmpFile.name).get_first_table()
+
     vot.array.sort(order='StartDate')
     t = vot.array
     tmpFile.close()
+
+    print t
+
     logging.debug("Got {} lines from tap query".format(len(t)))
+
     return t
-
-
 
 def create_ascii_table(obsTable, outfile):
     """Given a table of observations create an ascii log file for easy parsing.
@@ -255,7 +254,6 @@ if __name__ == '__main__':
         sys.exit(-1)
 
     obs_table = query_for_observations(mjd_yesterday, opt.cal, runids)
-
 
     create_ascii_table(obs_table, opt.outfile+".txt")
 
