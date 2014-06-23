@@ -14,6 +14,9 @@ from astropy.time import Time
 from astropy import units
 import numpy
 
+import storage
+
+
 NULL_OBSERVATION_CHARACTERS = ["!", "-", "#"]
 DEFAULT_OBSERVERS = ['M. T. Bannister', 'J. J. Kavelaars']
 DEFAULT_TELESCOPE = "CFHT 3.6m + CCD"
@@ -1040,6 +1043,30 @@ def make_tnodb_header(observations, observatory_code=None, observers=DEFAULT_OBS
     header += "{:s} {:s}\n".format('END', maxdate)
 
     return header
+
+
+class MPCReader(object):
+    def __init__(self, filename):
+        self.mpc_observations = []
+        filehandle = storage.open_vos_or_local(filename, "rb")
+        filestr = filehandle.read()
+        filehandle.close()
+
+        input_mpc_lines = filestr.split('\n')
+
+        next_comment = None
+        for line in input_mpc_lines:
+            mpc_observation = Observation.from_string(line)
+            if isinstance(mpc_observation, MPCComment):
+                next_comment = mpc_observation
+                continue
+            if isinstance(mpc_observation, Observation):
+                if next_comment is not None:
+                    mpc_observation.comment = next_comment
+                    next_comment = None
+                self.mpc_observations.append(mpc_observation)
+
+        self.mpc_observations.sort(key=lambda obs: obs.date.jd)
 
 
 class Index(object):
