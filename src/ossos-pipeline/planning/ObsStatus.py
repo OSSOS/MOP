@@ -1,4 +1,4 @@
-#!python
+# !python
 # Copyright 2012, 2013 JJ Kavelaars
 
 import argparse
@@ -39,27 +39,27 @@ def query_for_observations(mjd, observable, runids):
 
     """
 
-    data={"QUERY": ("SELECT Observation.target_name as TargetName, "
-                    "COORD1(CENTROID(Plane.position_bounds)) AS RA,"
-                    "COORD2(CENTROID(Plane.position_bounds)) AS DEC, "
-                    "Plane.time_bounds_cval1 AS StartDate, "
-                    "Plane.time_exposure AS ExposureTime, "
-                    "Observation.instrument_name AS Instrument, "
-                    "Plane.energy_bandpassName AS Filter, "
-                    "Observation.observationID AS dataset_name, "
-                    "Observation.proposal_id AS ProposalID, "
-                    "Observation.proposal_pi AS PI "
-                    "FROM caom2.Observation AS Observation "
-                    "JOIN caom2.Plane AS Plane ON "
-                    "Observation.obsID = Plane.obsID "
-                    "WHERE  ( Observation.collection = 'CFHT' ) "
-                    "AND Plane.time_bounds_cval1 > %d "
-                    "AND Plane.calibrationLevel=%s "
-                    "AND Observation.proposal_id IN %s " ) % 
-          ( mjd, observable, str(runids)),
-          "REQUEST": "doQuery",
-          "LANG": "ADQL",
-          "FORMAT": "votable" }
+    data = {"QUERY": ("SELECT Observation.target_name as TargetName, "
+                      "COORD1(CENTROID(Plane.position_bounds)) AS RA,"
+                      "COORD2(CENTROID(Plane.position_bounds)) AS DEC, "
+                      "Plane.time_bounds_cval1 AS StartDate, "
+                      "Plane.time_exposure AS ExposureTime, "
+                      "Observation.instrument_name AS Instrument, "
+                      "Plane.energy_bandpassName AS Filter, "
+                      "Observation.observationID AS dataset_name, "
+                      "Observation.proposal_id AS ProposalID, "
+                      "Observation.proposal_pi AS PI "
+                      "FROM caom2.Observation AS Observation "
+                      "JOIN caom2.Plane AS Plane ON "
+                      "Observation.obsID = Plane.obsID "
+                      "WHERE  ( Observation.collection = 'CFHT' ) "
+                      "AND Plane.time_bounds_cval1 > %d "
+                      "AND Plane.calibrationLevel=%s "
+                      "AND Observation.proposal_id IN %s " ) %
+                     ( mjd, observable, str(runids)),
+            "REQUEST": "doQuery",
+            "LANG": "ADQL",
+            "FORMAT": "votable"}
 
     result = requests.get(storage.TAP_WEB_SERVICE, params=data, verify=False)
     assert isinstance(result, requests.Response)
@@ -79,6 +79,7 @@ def query_for_observations(mjd, observable, runids):
 
     return t
 
+
 def create_ascii_table(obsTable, outfile):
     """Given a table of observations create an ascii log file for easy parsing.
     Store the result in outfile (could/should be a vospace dataNode)
@@ -90,10 +91,10 @@ def create_ascii_table(obsTable, outfile):
 
     logging.info("writing text log to %s" % ( outfile))
 
-
-    stamp = "#\n# Last Updated: "+time.asctime()+"\n#\n"
-    header= "| %20s | %20s | %20s | %20s | %20s | %20s | %20s |\n"  % ( "EXPNUM", "OBS-DATE", "FIELD", "EXPTIME(s)", "RA", "DEC", "RUNID")
-    bar = "="*(len(header)-1)+"\n"
+    stamp = "#\n# Last Updated: " + time.asctime() + "\n#\n"
+    header = "| %20s | %20s | %20s | %20s | %20s | %20s | %20s |\n" % (
+    "EXPNUM", "OBS-DATE", "FIELD", "EXPTIME(s)", "RA", "DEC", "RUNID")
+    bar = "=" * (len(header) - 1) + "\n"
 
     if outfile[0:4] == "vos:":
         tmpFile = tempfile.NamedTemporaryFile(suffix='.txt')
@@ -102,27 +103,27 @@ def create_ascii_table(obsTable, outfile):
         fout = open(outfile, 'w')
 
     t2 = None
-    fout.write(bar+stamp+bar+header)
+    fout.write(bar + stamp + bar + header)
 
     populated = vos.Client().listdir(storage.DBIMAGES)
-    for i in range(len(obsTable)-1,-1,-1):
+    for i in range(len(obsTable) - 1, -1, -1):
         row = obsTable.data[i]
         if row['dataset_name'] not in populated:
             storage.populate(row['dataset_name'])
-        sDate = str(ephem.date(row.StartDate + 
-                               2400000.5 - 
+        sDate = str(ephem.date(row.StartDate +
+                               2400000.5 -
                                ephem.julian_date(ephem.date(0))))[:20]
-        t1 = time.strptime(sDate,"%Y/%m/%d %H:%M:%S")
-        if t2 is None or math.fabs(time.mktime(t2)-time.mktime(t1)) > 3*3600.0:
+        t1 = time.strptime(sDate, "%Y/%m/%d %H:%M:%S")
+        if t2 is None or math.fabs(time.mktime(t2) - time.mktime(t1)) > 3 * 3600.0:
             fout.write(bar)
         t2 = t1
         ra = str(ephem.hours(math.radians(row.RA)))
         dec = str(ephem.degrees(math.radians(row.DEC)))
-        line = "| %20s | %20s | %20s | %20.1f | %20s | %20s | %20s |\n" % ( 
-            str(row.dataset_name), 
-            str(ephem.date(row.StartDate + 2400000.5 - 
-                           ephem.julian_date(ephem.date(0))))[:20], 
-            row.TargetName[:20], 
+        line = "| %20s | %20s | %20s | %20.1f | %20s | %20s | %20s |\n" % (
+            str(row.dataset_name),
+            str(ephem.date(row.StartDate + 2400000.5 -
+                           ephem.julian_date(ephem.date(0))))[:20],
+            row.TargetName[:20],
             row.ExposureTime, ra[:20], dec[:20], row.ProposalID[:20] )
         fout.write(line)
 
@@ -130,10 +131,10 @@ def create_ascii_table(obsTable, outfile):
 
     if outfile[0:4] == "vos:":
         fout.flush()
-        vos.Client().copy(tmpFile.name,outfile)
+        vos.Client().copy(tmpFile.name, outfile)
     fout.close()
 
-    return 
+    return
 
 
 def create_sky_plot(obstable, outfile, night_count=1, stack=True):
@@ -146,7 +147,7 @@ def create_sky_plot(obstable, outfile, night_count=1, stack=True):
 
     # camera dimensions
     width = 0.98
-    height  = 0.98
+    height = 0.98
 
     if outfile[0:4] == 'vos:':
         tmpFile = tempfile.NamedTemporaryFile(suffix='.pdf')
@@ -160,61 +161,60 @@ def create_sky_plot(obstable, outfile, night_count=1, stack=True):
     t2 = None
     fig = None
     proposalID = None
-    limits = { '13A' : ( 245, 200, -20, 0),
-               '13B' : ( 0, 45, 0, 20) }
+    limits = {'13A': ( 245, 200, -20, 0),
+              '13B': ( 0, 45, 0, 20)}
     for row in reversed(obstable.data):
         date = ephem.date(row.StartDate + 2400000.5 - ephem.julian_date(ephem.date(0)))
         sDate = str(date)
         # Saturn only a problem in 2013A fields
         saturn.compute(date)
-        sra= math.degrees(saturn.ra)
+        sra = math.degrees(saturn.ra)
         sdec = math.degrees(saturn.dec)
         uranus.compute(date)
         ura = math.degrees(uranus.ra)
         udec = math.degrees(uranus.dec)
-        t1 = time.strptime(sDate,"%Y/%m/%d %H:%M:%S")
-        if t2 is None or ( math.fabs(time.mktime(t2)-time.mktime(t1)) > 3*3600.0 and opt.stack) or proposalID is None or proposalID != row.ProposalID:
+        t1 = time.strptime(sDate, "%Y/%m/%d %H:%M:%S")
+        if t2 is None or (math.fabs(time.mktime(t2) - time.mktime(
+                t1)) > 3 * 3600.0 and opt.stack) or proposalID is None or proposalID != row.ProposalID:
             if fig is not None:
                 pdf.savefig()
                 close()
             proposalID = row.ProposalID
-            fig = figure(figsize=(7,2))
-            ax = fig.add_subplot(111,aspect='equal')
-            ax.set_title("Data taken on %s-%s-%s" % ( t1.tm_year, t1.tm_mon, t1.tm_mday), fontdict={'fontsize': 8} )
-            ax.axis(limits.get(row.ProposalID[0:3],(0,20,0,20)))  # appropriate only for 2013A fields
+            fig = figure(figsize=(7, 2))
+            ax = fig.add_subplot(111, aspect='equal')
+            ax.set_title("Data taken on %s-%s-%s" % ( t1.tm_year, t1.tm_mon, t1.tm_mday), fontdict={'fontsize': 8})
+            ax.axis(limits.get(row.ProposalID[0:3], (0, 20, 0, 20)))  # appropriate only for 2013A fields
             ax.grid()
-            ax.set_xlabel("RA (deg)", fontdict={'fontsize': 8} )
-            ax.set_ylabel("DEC (deg)", fontdict={'fontsize': 8} )
+            ax.set_xlabel("RA (deg)", fontdict={'fontsize': 8})
+            ax.set_ylabel("DEC (deg)", fontdict={'fontsize': 8})
         t2 = t1
-        ra = row.RA - width/2.0
-        dec = row.DEC - height/2.0
+        ra = row.RA - width / 2.0
+        dec = row.DEC - height / 2.0
         color = 'b'
         if 'W' in row['TargetName']:
-            color='g'
-        ax.add_artist(Rectangle(xy=(ra,dec), height=height, width=width, 
-                                edgecolor=color, facecolor=color, 
+            color = 'g'
+        ax.add_artist(Rectangle(xy=(ra, dec), height=height, width=width,
+                                edgecolor=color, facecolor=color,
                                 lw=0.5, fill='g', alpha=0.33))
-        ax.add_artist(Rectangle(xy=(sra,sdec), height=0.3, width=0.3, 
-                                edgecolor='r', 
+        ax.add_artist(Rectangle(xy=(sra, sdec), height=0.3, width=0.3,
+                                edgecolor='r',
                                 facecolor='r',
                                 lw=0.5, fill='k', alpha=0.33))
-        ax.add_artist(Rectangle(xy=(ura,udec), height=0.3, width=0.3, 
-                                edgecolor='b', 
+        ax.add_artist(Rectangle(xy=(ura, udec), height=0.3, width=0.3,
+                                edgecolor='b',
                                 facecolor='b',
                                 lw=0.5, fill='b', alpha=0.33))
 
     if ax is not None:
-        ax.axis((270,215,-20,0))
+        ax.axis((270, 215, -20, 0))
         pdf.savefig()
         close()
     pdf.close()
     if outfile[0:4] == "vos:":
-        vos.Client().copy(tmpFile.name,outfile)
+        vos.Client().copy(tmpFile.name, outfile)
         tmpFile.close()
 
-    return 
-
-
+    return
 
 
 if __name__ == '__main__':
@@ -223,19 +223,19 @@ if __name__ == '__main__':
     parser.add_argument('date', nargs='?', action='store',
                         default='2013-01-01')
 
-    parser.add_argument('--runid', nargs='*', action='store', 
+    parser.add_argument('--runid', nargs='*', action='store',
                         default=OSSOS_RUNIDS)
 
     parser.add_argument('--cal', action='store', default=1)
 
-    parser.add_argument('--outfile', action='store', 
+    parser.add_argument('--outfile', action='store',
                         default='vos:OSSOS/ObservingStatus/obsList')
 
     parser.add_argument('--debug', action='store_true')
 
-    parser.add_argument('--stack', action='store_true', default=False, 
-            help= ( "Make single status plot that stacks"
-                    " data accross multiple nights, instead of nightly sub-plots." ) )
+    parser.add_argument('--stack', action='store_true', default=False,
+                        help=( "Make single status plot that stacks"
+                               " data accross multiple nights, instead of nightly sub-plots." ))
 
     opt = parser.parse_args()
 
@@ -247,14 +247,14 @@ if __name__ == '__main__':
         logging.basicConfig(level=logging.ERROR)
 
     try:
-        mjd_yesterday = ephem.date(ephem.julian_date(ephem.date(opt.date))) - 2400000.5 
+        mjd_yesterday = ephem.date(ephem.julian_date(ephem.date(opt.date))) - 2400000.5
     except Exception as e:
-        logging.error("you said date = %s" %(opt.date))
+        logging.error("you said date = %s" % (opt.date))
         logging.error(str(e))
         sys.exit(-1)
 
     obs_table = query_for_observations(mjd_yesterday, opt.cal, runids)
 
-    create_ascii_table(obs_table, opt.outfile+".txt")
+    create_ascii_table(obs_table, opt.outfile + ".txt")
 
-    create_sky_plot(obs_table, opt.outfile+".pdf", stack=opt.stack )
+    create_sky_plot(obs_table, opt.outfile + ".pdf", stack=opt.stack)
