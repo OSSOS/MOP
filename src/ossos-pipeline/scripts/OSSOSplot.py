@@ -168,7 +168,7 @@ class Plot(Canvas):
 
 
         # # grid space choices
-        ## ra space in hours
+        # # ra space in hours
         ra_grids = ["06:00:00",
                     "03:00:00",
                     "01:00:00",
@@ -367,7 +367,7 @@ class Plot(Canvas):
         # # compute the x,y of the center of the screen
         sx1 = self.cx1 + (self.cx2 - self.cx1 + 1.0) / 2.0
         sy1 = self.cy1 + (self.cy2 - self.cy1 + 1.0) / 2.0
-        #print sx1,sy1
+        # print sx1,sy1
         if not event is None:
             sx1 = event.x
             sy1 = event.y
@@ -454,7 +454,7 @@ class Plot(Canvas):
         points = []
         if lines[0][0:5] == "<?xml":
             # ## assume astrores format
-            ### with <DATA at start of 'data' segment
+            # ## with <DATA at start of 'data' segment
             for i in range(len(lines)):
                 if lines[i][0:5] == '<DATA':
                     break
@@ -465,7 +465,7 @@ class Plot(Canvas):
                 points.append(vs)
         elif lines[0][0:5] == 'index':
             # ## Palomar Format
-            ### OK.. ID/NAME/RA /DEC format
+            # ## OK.. ID/NAME/RA /DEC format
             for line in lines:
                 if line[0] == '!' or line[0:5] == 'index':
                     # index is a header line for Palomar
@@ -939,7 +939,7 @@ def start(dirname=None, pointings=None):
     root.rowconfigure(0, weight=1)
     root.columnconfigure(0, weight=1)
 
-    ### The PLOT frame
+    # ## The PLOT frame
     pframe = Frame()
     pframe.grid(sticky=N + S + E + W)
     pframe.rowconfigure(0, weight=1)
