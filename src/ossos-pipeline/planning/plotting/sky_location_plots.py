@@ -14,44 +14,15 @@ from matplotlib.font_manager import FontProperties
 import matplotlib.pyplot as plt
 
 
+
 # planning scripts
-import mpcread
-import usnoB1
-import megacam
+from .. import mpcread
+from .. import usnoB1
+from .. import megacam
 
-from track_done import parse, get_names
-from ossos import storage
 from ossos import horizons
-
-
-
-# ORIGINAL: DON't USE, does not match the location of the data as pointed & taken!
-# Ablocks={'13AE': {"RA": "14:32:30.29","DEC":"-13:54:01.4"},
-#         '13AO': {"RA": "16:17:04.41","DEC":"-13:14:45.8"}}
-
-# 13A pointings taken from pointing of actual +0+0 data: DO NOT USE for pointings generation (probably)
-# E block discovery triplets are April 4,9,few 19; O block are May 7,8.
-BLOCKS = {'13AE': {"RA": "14:15:28.89", "DEC": "-12:32:28.4"},  # E+0+0: image 1616681, ccd21 on April 9
-          '13AO': {"RA": "15:58:01.35", "DEC": "-12:19:54.2"},  # O+0+0: image 1625346, ccd21 on May 8
-          # 13B are trustworthy: this was what we agreed
-          '13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"},  # 13B blocks are at their opposition locations
-          '13BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"},  # due to bad weather, discovery wasn't until Dec/Jan
-          '15AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"}
-}
-
-newMoons = {'Feb13': "2013/02/10 10:00:00",
-            'Mar13': "2013/03/11 10:00:00",
-            'Apr13': "2013/04/10 10:00:00",
-            'May13': "2013/05/09 10:00:00",
-            'Jun13': "2013/06/08 10:00:00",
-            'Jul13': "2013/07/08 10:00:00",
-            'Aug13': "2013/08/06 10:00:00",
-            'Sep13': '2013/09/05 10:00:00',
-            'Oct13': '2013/10/04 10:00:00',
-            'Nov13': '2013/11/03 10:00:00',
-            'Dec13': '2013/12/02 10:00:00',
-            'Jan14': '2014/01/01 10:00:00',
-            'Feb14': '2014/01/31 10:00:00'}
+from parsers import get_discoveries
+from . import parameters
 
 xgrid = {'2013': [-3, -2, -1, 0, 1, 2, 3],
          '2014': [-3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5],
@@ -262,40 +233,12 @@ def build_ossos_footprint(ax, blocks, field_offset, plot=True):
     return ras, decs, coverage, names, ax
 
 
-def synthetic_model_kbos(coverage, input_date=newMoons['Oct13']):
+def synthetic_model_kbos(coverage, input_date=parameters.DISCOVERY_NEW_MOON):
     ## build a list of KBOs that will be in the discovery fields.
-    ra = []
-    dec = []
-    kbos = []
-    lines = storage.open_vos_or_local('vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt').read().split('\n')
-    for line in lines:
-        if (len(line) > 0 and line[0] == '#') or (
-            len(line) == 0):  # skip initial column descriptors and the final blank line
-            continue
-        kbo = ephem.EllipticalBody()
-        values = line.split()
-        kbo._a = float(values[0])
-        kbo._e = float(values[1])
-        kbo._inc = float(values[2])
-        kbo._Om = float(values[3])
-        kbo._om = float(values[4])
-        kbo._M = float(values[5])
-        kbo._H = float(values[6])
-        kbo._epoch_M = ephem.date(2453157.50000 - ephem.julian_date(0))
-        kbo._epoch = kbo._epoch_M
-        kbo.name = values[8]
-        date = ephem.date(input_date)
-        kbo.compute(date)
-
-        ### only keep objects that are brighter than limit
-        if kbo.mag > 25.0:
-            continue
-        ra.append(math.degrees(float(kbo.ra)))
-        dec.append(math.degrees(float(kbo.dec)))
-
+    kbos = synthetic_model_kbos(input_date)
         ## keep a list of KBOs that are in the discovery pointings
         for field in coverage:
-            if field.isInside(ra[-1], dec[-1]):
+            if .isInside(ra[-1], dec[-1]):
                 kbos.append(kbo)
                 break
 
@@ -439,21 +382,18 @@ def plot_known_tnos_singly(ax, date):
 
 
 def plot_ossos_discoveries(ax, blockID='O13AE', date="2013/04/09 08:50:00"):
-    path = 'vos:OSSOS/measure3/2013A-E/track/discoveries/'
-    discoveries = storage.listdir(path)
-    names = get_names(path, blockID)
-    for kbo in names:
-        arclen, orbit = parse(kbo, discoveries, path=path)
+    discoveries = get_discoveries()
+    for kbo in discoveries:
         if date != "2013/04/09 08:50:00":  # date is the new moon for a given month
-            orbit.predict(date.replace('/', '-'))
-            ra = orbit.coordinate.ra.degrees
-            dec = orbit.coordinate.dec.degrees
+            kbo.orbit.predict(date.replace('/', '-'))
+            ra = kbo.orbit.coordinate.ra.degrees
+            dec = kbo.orbit.coordinate.dec.degrees
         else:  # specific date on which discovery was made: use discovery locations
-            ra = orbit.observations[0].coordinate.ra.degrees
-            dec = orbit.observations[0].coordinate.dec.degrees
+            ra = kbo.orbit.observations[0].coordinate.ra.degrees
+            dec = kbo.orbit.observations[0].coordinate.dec.degrees
         ax.scatter(ra, dec, marker='+', facecolor='k')
         ax.annotate(kbo.replace(blockID, ''),
-                    (orbit.coordinate.ra.degrees + .05, orbit.coordinate.dec.degrees - 0.2),
+                    (kbo.orbit.coordinate.ra.degrees + .05, kbo.orbit.coordinate.dec.degrees - 0.2),
                     size='xx-small',
                     color='k')
 
