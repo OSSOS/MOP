@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+# !/usr/bin/env python
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 

@@ -4,24 +4,21 @@ import math
 import sys
 import os
 import string
-from ossos import mpc
-from ossos import orbfit
 
 from matplotlib.patches import Rectangle
 from matplotlib.patches import Ellipse
 from matplotlib import rcParams
-
 import numpy as np
-
 from matplotlib.pyplot import figure, savefig, xlabel, ylabel
 from astropy.io import votable
 import ephem
 import Polygon
 import Polygon.IO
 
+from ossos import mpc
+from ossos import orbfit
 import mpcread
 import usnoB1
-
 import megacam
 from ossos import storage
 
@@ -316,7 +313,7 @@ for line in lines:
     kbo.compute(date)
 
     ### only keep objects that are brighter than limit
-    if kbo.mag > 25.0:
+    if kbo.mag < 25.0:
         continue
 
     ## keep a list of KBOs that are in the discovery pointings
