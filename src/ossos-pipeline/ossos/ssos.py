@@ -1,4 +1,3 @@
-
 from ossos.storage import get_mopheader, get_astheader
 
 __author__ = 'Michele Bannister, JJ Kavelaars'
@@ -26,7 +25,6 @@ NEW_LINE = '\r\n'
 
 
 class TracksParser(object):
-
     def __init__(self, inspect=True, skip_previous=False):
         self.orbit = None
         self._nights_per_darkrun = 18
@@ -35,26 +33,7 @@ class TracksParser(object):
         self.skip_previous = skip_previous
 
     def parse(self, filename):
-        filehandle = storage.open_vos_or_local(filename, "rb")
-        filestr = filehandle.read()
-        filehandle.close()
-
-        input_mpc_lines = filestr.split('\n')
-
-        mpc_observations = []
-        next_comment = None
-        for line in input_mpc_lines:
-            mpc_observation = mpc.Observation.from_string(line)
-            if isinstance(mpc_observation, mpc.MPCComment):
-                next_comment = mpc_observation
-                continue
-            if isinstance(mpc_observation, mpc.Observation):
-                if next_comment is not None:
-                    mpc_observation.comment = next_comment
-                    next_comment = None
-                mpc_observations.append(mpc_observation)
-
-        mpc_observations.sort(key=lambda obs: obs.date.jd)
+        mpc_observations = mpc.MPCReader(filename).mpc_observations
 
         # pass down the provisional name so the table lines are linked to this TNO
         self.ssos_parser = SSOSParser(mpc_observations[0].provisional_name,
@@ -76,15 +55,15 @@ class TracksParser(object):
         while True:
             tracks_data = self.query_ssos(mpc_observations, lunation_count)
 
-            if (tracks_data.get_arc_length() > ( self.orbit.arc_length+2.0/86400.0) or
-                tracks_data.get_reading_count() > len(mpc_observations)) :
+            if (tracks_data.get_arc_length() > ( self.orbit.arc_length + 2.0 / 86400.0) or
+                        tracks_data.get_reading_count() > len(mpc_observations)):
                 return tracks_data
             if not self.inspect:
                 assert lunation_count is not None, "No new observations available."
             if lunation_count is None:
                 return tracks_data
             lunation_count += 1
-            if lunation_count > 2 :
+            if lunation_count > 2:
                 lunation_count = None
 
     def query_ssos(self, mpc_observations, lunation_count=None):
@@ -107,11 +86,11 @@ class TracksParser(object):
         else:
             search_start_date = Time((mpc_observations[0].date.jd - (
                 self._nights_per_darkrun +
-                lunation_count*self._nights_separating_darkruns) ),
+                lunation_count * self._nights_separating_darkruns) ),
                                      format='jd', scale='utc')
             search_end_date = Time((mpc_observations[-1].date.jd + (
                 self._nights_per_darkrun +
-                lunation_count*self._nights_separating_darkruns) ),
+                lunation_count * self._nights_separating_darkruns) ),
                                    format='jd', scale='utc')
 
         sys.stderr.write("Sending query to SSOS\n")
@@ -126,7 +105,7 @@ class TracksParser(object):
 
         for mpc_observation in mpc_observations:
             # attach the input observations to the the SSOS query result.
-            assert isinstance(mpc_observation,mpc.Observation)
+            assert isinstance(mpc_observation, mpc.Observation)
             try:
                 tracks_data.mpc_observations[mpc_observation.comment.frame] = mpc_observation
             except:
@@ -159,6 +138,7 @@ class SSOSParser(object):
     """
     Parse the result of an SSOS query, which is stored in an astropy Table object
     """
+
     def __init__(self, provisional_name, input_observations=None, skip_previous=False):
         """
         setup the parser.
@@ -213,15 +193,15 @@ class SSOSParser(object):
             logger.warning("Image doesn't exist in ccd subdir. %s" % image_uri)
             return None
 
-        slice_rows=config.read("CUTOUTS.SINGLETS.SLICE_ROWS")
-        slice_cols=config.read("CUTOUTS.SINGLETS.SLICE_COLS")
+        slice_rows = config.read("CUTOUTS.SINGLETS.SLICE_ROWS")
+        slice_cols = config.read("CUTOUTS.SINGLETS.SLICE_COLS")
 
-        if X==-9999 or Y==-9999:
+        if X == -9999 or Y == -9999:
             logger.warning("Skipping {} as x/y not resolved.".format(image_uri))
             return None
 
-        if not (-slice_cols/2. < X < 2048+slice_cols/2. and -slice_rows/2. < Y < 4600+slice_rows/2.0):
-            logger.warning("Central location ({},{}) off image cutout.".format(X,Y))
+        if not (-slice_cols / 2. < X < 2048 + slice_cols / 2. and -slice_rows / 2. < Y < 4600 + slice_rows / 2.0):
+            logger.warning("Central location ({},{}) off image cutout.".format(X, Y))
             return None
 
         mopheader_uri = storage.dbimages_uri(expnum=expnum,
@@ -247,7 +227,7 @@ class SSOSParser(object):
                                          ccdnum=str(ccd),
                                          fk="")
 
-        observation.rawname = os.path.splitext(os.path.basename(image_uri))[0]+str(ccd).zfill(2)
+        observation.rawname = os.path.splitext(os.path.basename(image_uri))[0] + str(ccd).zfill(2)
 
         observation.header = mopheader
 
@@ -263,12 +243,12 @@ class SSOSParser(object):
         ref_pvwcs = wcs.WCS(ref_astheader)
         pvwcs = wcs.WCS(astheader)
 
-        (ra,dec)  = pvwcs.xy2sky(X, Y)
-        (x0, y0) = ref_pvwcs.sky2xy(ra,dec)
-        logger.debug("{}p{} {},{} ->  {}p{} {},{}".format(expnum,ccd,
-                                                          X,Y,
+        (ra, dec) = pvwcs.xy2sky(X, Y)
+        (x0, y0) = ref_pvwcs.sky2xy(ra, dec)
+        logger.debug("{}p{} {},{} ->  {}p{} {},{}".format(expnum, ccd,
+                                                          X, Y,
                                                           ref_expnum, ref_ccd,
-                                                          x0,y0))
+                                                          x0, y0))
         return (x0, y0)
 
 
@@ -315,7 +295,7 @@ class SSOSParser(object):
                 previous = False
                 for mpc_observation in mpc_observations:
                     try:
-                        if mpc_observation.comment.frame=="{}p{:02d}".format(expnum,ccd) \
+                        if mpc_observation.comment.frame == "{}p{:02d}".format(expnum, ccd) \
                                 and not mpc_observation.discovery.is_initial_discovery:
                             sys.stderr.write("Skipping {}p{:02d}: already measured\n".format(expnum, ccd))
                             previous = True
@@ -324,7 +304,8 @@ class SSOSParser(object):
                         pass
                 if previous:
                     continue
-            sys.stderr.write("\r{}\r {}: observation {} {} {} {} from SSOS .. ".format(" "*190, nrows, expnum, ccd, X, Y))
+            sys.stderr.write(
+                "\r{}\r {}: observation {} {} {} {} from SSOS .. ".format(" " * 190, nrows, expnum, ccd, X, Y))
             observation = self.build_source_reading(expnum, ccd, X, Y)
             logger.info('built source reading {}'.format(observation))
             if observation is None:
@@ -333,8 +314,8 @@ class SSOSParser(object):
 
             from_input_file = observation.rawname in self.input_rawnames
             null_observation = observation.rawname in self.null_observations
-            mjd = Time(observation.header['MJD_OBS_CENTER'], 
-                       format='mpc', 
+            mjd = Time(observation.header['MJD_OBS_CENTER'],
+                       format='mpc',
                        scale='utc').jd
             if ref_x is None or mjd - ref_mjd > 0.5:
                 ref_x = X
@@ -345,15 +326,15 @@ class SSOSParser(object):
                 x0 = X
                 y0 = Y
             else:
-                (x0, y0) = self.get_coord_offset(expnum, 
-                                                 ccd, 
-                                                 X, 
-                                                 Y, 
-                                                 ref_expnum, 
+                (x0, y0) = self.get_coord_offset(expnum,
+                                                 ccd,
+                                                 X,
+                                                 Y,
+                                                 ref_expnum,
                                                  ref_ccd)
 
             # Also reset the reference point if the x/y shift is large.
-            if x0 - X > 250 or y0 - Y > 250 :
+            if x0 - X > 250 or y0 - Y > 250:
                 ref_x = X
                 ref_y = Y
                 ref_expnum = expnum
@@ -373,7 +354,6 @@ class SSOSParser(object):
                 from_input_file=from_input_file,
                 null_observation=null_observation)
             sys.stderr.write("done")
-
 
             source_readings.append(source_reading)
 
@@ -403,8 +383,8 @@ class SSOSData(object):
         self.observations = observations
         self.sys_header = None
         self.sources = [astrom.Source(
-                reading_list, 
-                provisional_name) for reading_list in sources]
+            reading_list,
+            provisional_name) for reading_list in sources]
 
     def get_reading_count(self):
         count = 0
@@ -423,8 +403,7 @@ class SSOSData(object):
         mjds = []
 
         for obs in self.observations:
-
-            mjds.append(Time(obs.header['MJD_OBS_CENTER'], 
+            mjds.append(Time(obs.header['MJD_OBS_CENTER'],
                              format='mpc', scale='utc').jd)
         arc = (len(mjds) > 0 and max(mjds) - min(mjds) ) or 0
         return arc
@@ -436,6 +415,7 @@ class ParamDictBuilder(object):
 
     This should be fun!
     """
+
     def __init__(self,
                  observations,
                  verbose=False,
@@ -457,7 +437,7 @@ class ParamDictBuilder(object):
     @property
     def observations(self):
         """
-        The observtions to be used in fitting, returned as list of on
+        The observations to be used in fitting, returned as list of
         the mpc format lines.
 
         This should be set to a list of objects whose 'str' values
@@ -478,7 +458,7 @@ class ParamDictBuilder(object):
         return self._verbose
 
     @verbose.setter
-    def verbose(self,verbose):
+    def verbose(self, verbose):
         self._verbose = ( verbose and 'yes') or 'no'
 
     @property
@@ -593,7 +573,7 @@ class ParamDictBuilder(object):
                     extres=self.resolve_extension,
                     xyres=self.resolve_position,
                     obs=NEW_LINE.join((
-                    str(observation) for observation in self.observations))
+                        str(observation) for observation in self.observations))
         )
 
 
@@ -614,10 +594,10 @@ class Query(object):
 
     """
 
-    def __init__(self, 
-                 observations, 
+    def __init__(self,
+                 observations,
                  search_start_date=Time('2013-01-01', scale='utc'),
-                 search_end_date = Time('2017-01-01', scale='utc')):
+                 search_end_date=Time('2017-01-01', scale='utc')):
         self.param_dict_builder = ParamDictBuilder(
             observations,
             search_start_date=search_start_date,
@@ -630,18 +610,18 @@ class Query(object):
         :return: astropy.table.table
         :raise: AssertionError
         """
-        params = self.param_dict_biulder.params
-        self.response = requests.post(SSOS_URL, 
-                                     data=params, 
-                                     headers=self.headers)
+        params = self.param_dict_builder.params
+        self.response = requests.post(SSOS_URL,
+                                      data=params,
+                                      headers=self.headers)
         logger.debug(self.response.url)
         assert isinstance(self.response, requests.Response)
 
-        assert(self.response.status_code == requests.codes.ok )
+        assert (self.response.status_code == requests.codes.ok )
 
         lines = self.response.content
         if len(lines) < 1 or str(lines[1]).startswith((
-                "An error occurred getting the ephemeris") ):
+                "An error occurred getting the ephemeris")):
             raise IOError(os.errno.EACCES,
                           "call to SSOIS failed on format error")
 

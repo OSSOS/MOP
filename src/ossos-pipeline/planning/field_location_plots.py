@@ -14,8 +14,6 @@ from matplotlib.font_manager import FontProperties
 import matplotlib.pyplot as plt
 
 
-
-
 # planning scripts
 import mpcread
 import usnoB1
