@@ -136,13 +136,38 @@ def ossos_discoveries(no_nt_and_u=True):
     return retval
 
 
-def synthetic_model_kbos(at_date=parameters.NEWMOONS[parameters.DISCOVERY_NEW_MOON], maglimit=25.2, kbotype=False):
+def ossos_release_with_metadata():
+    """
+    Wrap the objects from the Version Releases together with the objects instantiated from fitting their mpc lines
+    """
+    discoveries = ossos_release_parser()
+    observations = ossos_discoveries()
+
+    for obj in discoveries:
+        observation = [n for n in observations if n.observations[-1].provisional_name == obj.name][0]
+        for obs in observation.observations:
+            if obs.discovery.is_discovery:
+                if obj.mag is not None:
+                    H = obj.mag + 2.5 * math.log10(1. / ((obj.dist ** 2) * ((obj.dist - 1.) ** 2)))
+                else:
+                    H = None
+                obj.H = H
+                obj.T = observation.T
+                obj.discovery_date = obs.date
+                obj.orbit = observation
+
+    return discoveries  # list of tno() objects
+
+
+def synthetic_model_kbos(at_date=parameters.NEWMOONS[parameters.DISCOVERY_NEW_MOON], maglimit=25.2, kbotype=False,
+                         arrays=False):
     # # build a list of Synthetic KBOs
     print "LOADING SYNTHETIC MODEL KBOS FROM: {}".format(parameters.L7MODEL)
     kbos = []
-    # ra = []
-    # dist = []
-    # hlat = []
+    if arrays:  # much easier to use for plt.scatter()
+        ra = []
+        dist = []
+        hlat = []
     lines = storage.open_vos_or_local(parameters.L7MODEL).read().split('\n')
     counter = 0
     for line in lines:
@@ -150,49 +175,43 @@ def synthetic_model_kbos(at_date=parameters.NEWMOONS[parameters.DISCOVERY_NEW_MO
             continue
         kbo = ephem.EllipticalBody()
         values = line.split()
-        kbo._a = float(values[0])
-        kbo._e = float(values[1])
-        kbo._inc = float(values[2])
-        kbo._Om = float(values[3])
-        kbo._om = float(values[4])
-        kbo._M = float(values[5])
-        kbo._H = float(values[6])
-        epoch = ephem.date(2453157.50000 - ephem.julian_date(0))
-        kbo._epoch_M = epoch
-        kbo._epoch = epoch
         kbo.name = values[8]
-        date = ephem.date(at_date)
-        kbo.compute(date)
-        counter += 1
+        if kbotype and (kbo.name == kbotype):  # and (values[9] == '3'):
+            kbo._a = float(values[0])
+            kbo._e = float(values[1])
+            kbo._inc = float(values[2])
+            kbo._Om = float(values[3])
+            kbo._om = float(values[4])
+            kbo._M = float(values[5])
+            kbo._H = float(values[6])
+            epoch = ephem.date(2453157.50000 - ephem.julian_date(0))
+            kbo._epoch_M = epoch
+            kbo._epoch = epoch
+            date = ephem.date(at_date)
+            kbo.compute(date)
+            counter += 1
 
-        ### only keep objects that are brighter than limit
-        if (kbo.mag < maglimit):
-            if kbotype and (kbo.name == kbotype):
+            # ## only keep objects that are brighter than limit
+            if (kbo.mag < maglimit):
                 kbos.append(kbo)
-                # ra.append(kbo.ra)
-                # dist.append(kbo.sun_distance)
-                # hlat.append(kbo.hlat)
-        print '%s synthetic model kbos brighter than %d retained from %d in L7 model'.format(len(kbos), maglimit,
+                if arrays:
+                    ra.append(kbo.ra)
+                    dist.append(kbo.sun_distance)
+                    hlat.append(kbo.hlat)
+
+    print '%d synthetic model kbos brighter than %d retained from %d in L7 model'.format(len(kbos), maglimit,
                                                                                              counter)
-
-    return kbos  #, ra, dist, hlat
-
+    if not arrays:
+        return kbos
+    else:
+        return ra, dist, hlat
 
 def output_discoveries_for_animation():
-    discoveries = ossos_release_parser()
-    observations = ossos_discoveries()
-
+    discoveries = ossos_release_with_metadata()
     with open('/Users/michele/Desktop/OSSOSdiscoveries.txt', 'w') as outfile:
         outfile.write('name a e i node peri MA epoch H date_of_discovery\n')
         for obj in discoveries:
-            observation = [n for n in observations if n.observations[-1].provisional_name == obj.name][0]
-            for obs in observation.observations:
-                if obs.discovery.is_discovery:
-                    if obj.mag is not None:
-                        H = obj.mag + 2.5 * math.log10(1. / ((obj.dist ** 2) * ((obj.dist - 1.) ** 2)))
-                    else:
-                        H = None
-                    # a e i node peri MA epoch H date_of_discovery
-                    outfile.write(
-                        '{:>10s} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:>10s}\n'.format(
-                            obj.name, obj.a, obj.e, obj.i, obj.node, obj.argp, obj.M, observation.T, H, obs.date))
+            # a e i node peri MA epoch H date_of_discovery
+            outfile.write(
+                '{:>10s} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:>10s}\n'.format(
+                    obj.name, obj.a, obj.e, obj.i, obj.node, obj.argp, obj.M, obj.T, obj.H, obj.discovery_date))

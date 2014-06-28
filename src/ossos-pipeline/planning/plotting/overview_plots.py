@@ -10,17 +10,35 @@ import numpy as np
 import ephem
 
 import parsers
+import parameters
 import plot_fanciness
 
 set2 = brewer2mpl.get_map('Set2', 'qualitative', 8).mpl_colors
 rcParams['font.size'] = 12   # good for posters/slides
 rcParams['patch.facecolor'] = set2[0]
 
-def top_down_SolarSystem(discoveries, date="2013/04/09 08:50:00"):
+
+def top_down_SolarSystem(discoveries, extent=65):
     """
     Plot the OSSOS discoveries on a top-down Solar System showing the position of Neptune and model TNOs.
+    Discoveries are plotted each at their time of discovery according to the value in the Version Release.
     Coordinates should be polar to account for RA hours, radial axis is in AU.
     :return: a saved plot
+
+    This is not a 'projection' of the particles into any
+    common plane.  Each wedge is a different latitude above
+    the plane, but inside each wedge it is heliocentric distance
+    vs RA.
+     That is fine.  It's just important to know that if someone
+    asks we know this is NOT (for example) a projection of each
+    object down into the ecliptic.
+     A very minor future long-term improvement is that the galactic
+    plane wedge is not (I don't think) symmetric around 18h and 6h.
+    I think that lines of constant (say 15 degree galactic lat) are
+    centered a little off (I think the wedge would 'twist' a little
+    bit counter-clockwise).  I am not absolutely sure along the
+    ecliptic where the b= +/- 15 degree lines are but I don't
+    think they are symmetric?
     """
     fig = plt.figure(figsize=(6, 6))
     rect = [0.1, 0.1, 0.8, .8]  # the plot occupies not all the figspace
@@ -30,42 +48,49 @@ def top_down_SolarSystem(discoveries, date="2013/04/09 08:50:00"):
 
     # plot exclusion zones due to Galactic plane: RAs indicate where bar starts, rather than its centre angle
     width = math.radians(3*15)
-    plt.bar(math.radians(16.5 * 15), 65, width=width, color=plot_fanciness.ALMOST_BLACK, linewidth=0, alpha=0.2)
-    plt.bar(math.radians(4.5 * 15), 65, width=width, color=plot_fanciness.ALMOST_BLACK, linewidth=0, alpha=0.2)
+    plt.bar(math.radians(16.5 * 15), extent, width=width, color=plot_fanciness.ALMOST_BLACK, linewidth=0, alpha=0.2)
+    plt.bar(math.radians(4.5 * 15), extent, width=width, color=plot_fanciness.ALMOST_BLACK, linewidth=0, alpha=0.2)
 
     # plot OSSOS blocks
     # FIXME: should probably convert hours to ecliptic coords with a bit more finesse than just overplotting it
-    for block in ["14:15:28.89", "15:58:01.35", "00:54:00.00", "01:30:00.00"]:
+    for blockname, block in parameters.BLOCKS.items():  # ["14:15:28.89", "15:58:01.35", "00:54:00.00", "01:30:00.00"]:
         # truncate these at 8 AU to show that we don't have sensitivity in close; detect Ijiraq at 9.80 AU
+        # extend to 75 AU as indicative only, sensitivity is to ~300 AU
         # again RAs indicate where bar starts, so subtract half the block width from the block centrepoints
-        plt.bar(ephem.hours(block)-math.radians(3.5), 65, width=math.radians(7), bottom=8, color='b', linewidth=0, alpha=0.2)
+        # and approximate blocks as math.radians(7) degrees wide.
+        plt.bar(ephem.hours(block["RA"]) - math.radians(3.5), extent,
+                width=math.radians(7), bottom=8, color='b', linewidth=0.1, alpha=0.2)
 
-    ax1.set_rlim(0,65)
-    ax1.set_rgrids([20,40,60], labels=['','20 AU','40 AU','60 AU'], angle=308, alpha=0.45)
+    ax1.set_rlim(0, extent)
+    ax1.set_rgrids([20, 40, 60], labels=["", "", '20 AU', '40 AU', '60 AU'], angle=308, alpha=0.45)
     ax1.yaxis.set_major_locator(MultipleLocator(20))
     ax1.xaxis.set_major_locator(MultipleLocator(math.radians(30)))  # every 2 hours
     ax1.grid(axis='x', color='k', linestyle='--', alpha=0.2)
     ax1.set_xticklabels(['0h','','','','','','',"","","","20h","22h"],
                         color='b', alpha=0.6)  # otherwise they get in the way
 
-    plot_planets_plus_Pluto(ax1, date)
-    plot_ossos_discoveries(ax1, discoveries, date=date)
-     # special detection in 13AE: Ijiraq at 2013-04-09 shows inner limit of sensitivity. Position from Horizons
+    plot_planets_plus_Pluto(ax1)
+    plot_ossos_discoveries(ax1, discoveries)
+
+    # special detection in 13AE: Ijiraq at 2013-04-09 shows inner limit of sensitivity.
+    # Position from Horizons as it's excluded from the list of detections
     ax1.scatter(ephem.hours('14 29 46.57'), 9.805,
                 marker='o', s=5, facecolor='b', edgecolor=plot_fanciness.ALMOST_BLACK, linewidth=0.15, alpha=0.8)
     ax1.annotate('Ijiraq', (ephem.hours('14 29 46.57') + math.radians(7), 9.8+2), size=5)
-    ra, dist, hlat = parsers.synthetic_model_kbos(date, kbotype='resonant')
+
+    ra, dist, hlat = parsers.synthetic_model_kbos(kbotype='resonant', arrays=True)
     ax1.scatter(ra, dist, marker='o', s=2, facecolor=plot_fanciness.ALMOST_BLACK,
                 edgecolor=plot_fanciness.ALMOST_BLACK, linewidth=0.1, alpha=0.1)
 
     plt.draw()
-    outfile = 'ra_vs_au_20130409'
+    outfile = 'topdown_RA_d_OSSOSv3'
     plt.savefig(outfile+'.pdf', transparent=True)
 
     return
 
-def plot_planets_plus_Pluto(ax, date):
-    for planet in [ephem.Neptune(), ephem.Pluto()]:
+
+def plot_planets_plus_Pluto(ax, date=parameters.NEWMOONS[parameters.DISCOVERY_NEW_MOON]):
+    for planet in [ephem.Uranus(), ephem.Neptune(), ephem.Pluto()]:
         planet.compute(ephem.date(date))
         ax.scatter(planet.ra, planet.sun_distance,
                      marker='o',
@@ -80,23 +105,21 @@ def plot_planets_plus_Pluto(ax, date):
 
     return
 
-def plot_ossos_discoveries(ax, discoveries, date="2013/04/09 08:50:00"):
-    for orbit in discoveries:
-        orbit.predict(date.replace('/', '-'))
-        ra = math.radians(orbit.coordinate.ra.degrees)
+
+def plot_ossos_discoveries(ax, discoveries, lpmag=False):
+    """
+    these are all being plotted at their discovery locations now,
+    which are provided by the Version Releases in decimal degrees.
+    """
+    for obj in discoveries:
         fc = 'b'
         alph = 0.8
-        mags = [n.mag for n in orbit.observations if (n.mag != -1 and n.mag != None)]  # temporary workaround until zeropoints fixed
-        mean_mag = sum(mags)/len(mags)
-        if mean_mag > 24.15:  # we can't track these ones
-            fc = 'w'
-            alph = 1.
-            print orbit.observations[0].provisional_name, mean_mag
-        # if orbit.distance > 50:   # identifying the one that's far out
-        #     print kbo, orbit.distance
-        #     sys.exit()
-        ax.scatter(ra, orbit.distance, marker='o', s=4.5, facecolor=fc, edgecolor=plot_fanciness.ALMOST_BLACK,
-                   linewidth=0.15, alpha=alph)
+        if lpmag:
+            if obj.mag <= lpmag:  # show up the bright ones for Gemini LP
+                fc = 'r'
+        ra = ephem.hours(str(obj.ra_discov))
+        ax.scatter(ra, obj.dist,
+                   marker='o', s=4.5, facecolor=fc, edgecolor=plot_fanciness.ALMOST_BLACK, linewidth=0.15, alpha=alph)
 
     return
 
@@ -199,9 +222,9 @@ def delta_a_over_a(discoveries):
 
 
 def main():
-    parsers.output_discoveries_for_animation()
-    # discoveries = parsers.get_discoveries()  # just the Orbit objects
-    # top_down_SolarSystem(discoveries)
+    # parsers.output_discoveries_for_animation()
+    discoveries = parsers.ossos_release_with_metadata()
+    top_down_SolarSystem(discoveries)
 
 #    orbit_fit_residuals(discoveries)
 #    delta_a_over_a(discoveries)
