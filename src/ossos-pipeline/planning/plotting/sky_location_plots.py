@@ -13,16 +13,35 @@ from matplotlib.patches import Rectangle
 from matplotlib.font_manager import FontProperties
 import matplotlib.pyplot as plt
 
+import mpcread
+import parsers
+import parameters
 
 
-# planning scripts
-from .. import mpcread
-from .. import usnoB1
-from .. import megacam
+PLOT_MPCORB = True and os.access(parameters.MPCORB_FILE, os.F_OK)
 
-from ossos import horizons
-from parsers import get_discoveries
-from . import parameters
+# FIXME: correct 13AO extent, tweak 13B extents into individual blocks
+# 13A all: [[245, 208, -18, -8]] 13B all: [30, 5, -2, 18]
+plot_extents = {"13AE": [219, 209, -16, -9],
+                "13AO": [244, 234, -15, -10],
+                "15AM": [240, 225, -18, -5],
+                "13BL": [17, 9, 0, 7],
+                "13BH": [25, 15, 5, 15]
+}
+
+discovery_dates = {"13AE": "2013/04/09 08:50:00",
+                   "13AO": "2013/05/08 08:50:00",
+                   "15AM": "2014/05/30 08:50:00",
+                   "13BL": "2013/09/29 08:50:00",
+                   "13BH": "2014/01/03 08:50:00"
+}
+
+opposition_dates = {"13AE": parameters.NEWMOONS['Apr13'],
+                    "13AO": parameters.NEWMOONS['May13'],
+                    "15AM": parameters.NEWMOONS['May14'],
+                    "13BL": parameters.NEWMOONS['Oct13'],
+                    "13BH": parameters.NEWMOONS['Oct13']
+}
 
 xgrid = {'2013': [-3, -2, -1, 0, 1, 2, 3],
          '2014': [-3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5],
@@ -106,9 +125,6 @@ def basic_skysurvey_plot_setup():
     fontP.set_size('small')  # make the fonts smaller
     plt.xlabel('RA (deg)')
     plt.ylabel('Declination (deg)')
-    # shrink current axis's height by 10% on the bottom to fit legend easily
-    #    box = ax.get_position()
-    #    ax.set_position([box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9])
     plt.grid(True)
 
     return handles, labels, ax, fontP
@@ -233,16 +249,16 @@ def build_ossos_footprint(ax, blocks, field_offset, plot=True):
     return ras, decs, coverage, names, ax
 
 
-def synthetic_model_kbos(coverage, input_date=parameters.DISCOVERY_NEW_MOON):
-    ## build a list of KBOs that will be in the discovery fields.
-    kbos = synthetic_model_kbos(input_date)
-        ## keep a list of KBOs that are in the discovery pointings
-        for field in coverage:
-            if .isInside(ra[-1], dec[-1]):
-                kbos.append(kbo)
-                break
-
-    return ra, dec, kbos
+# def synthetic_model_kbos(coverage, input_date=parameters.DISCOVERY_NEW_MOON):
+# ## build a list of KBOs that will be in the discovery fields.
+#     kbos = synthetic_model_kbos(input_date)
+#         ## keep a list of KBOs that are in the discovery pointings
+#         for field in coverage:
+#             if .isInside(ra[-1], dec[-1]):
+#                 kbos.append(kbo)
+#                 break
+#
+#     return ra, dec, kbos
 
 
 def plot_synthetic_kbos(ax, coverage):
@@ -342,9 +358,7 @@ def plot_existing_CFHT_Megacam_observations_in_area(ax):
 
     return ax
 
-
 def plot_known_tnos_batch(handles, labels, date):
-    MPCORB = 'MPCORB.DAT'  # TNOs file only: http://www.minorplanetcenter.net/iau/MPCORB/Distant.txt
     rate_cut = 'a > 15'
     if os.access(MPCORB, os.F_OK):
         kbos = mpcread.getKBOs(MPCORB, cond=rate_cut)
@@ -354,46 +368,46 @@ def plot_known_tnos_batch(handles, labels, date):
             kbo.compute(ephem.date(date))
             kbo_ra.append(math.degrees(kbo.ra))
             kbo_dec.append(math.degrees(kbo.dec))
-        handles.append(plt.scatter(kbo_ra,
-                                   kbo_dec,
-                                   marker='+',
-                                   facecolor='none',
-                                   edgecolor='g'))
-        labels.append('known TNOs')
-
-    return handles, labels
-
-
-def plot_known_tnos_singly(ax, date):
-    MPCORB = 'MPCORB.DAT'  # TNOs file only: http://www.minorplanetcenter.net/iau/MPCORB/Distant.txt
-    rate_cut = 'a > 15'
-    if os.access(MPCORB, os.F_OK):
-        kbos = mpcread.getKBOs(MPCORB, cond=rate_cut)
-        for kbo in kbos:
-            kbo.compute(ephem.date(date))
-            pos = (math.degrees(kbo.ra), math.degrees(kbo.dec))
-            ax.scatter(pos[0],
-                       pos[1],
-                       marker='x',
-                       facecolor='r')
-            ax.annotate(kbo.name, (pos[0] + .4, pos[1] + 0.1), size='xx-small', color='r')
+            ax.scatter(kbo_ra, kbo_dec,
+                       marker='+', facecolor='none', edgecolor='g')
 
     return ax
 
 
-def plot_ossos_discoveries(ax, blockID='O13AE', date="2013/04/09 08:50:00"):
-    discoveries = get_discoveries()
+def plot_known_tnos_singly(ax, extent, date):
+    rate_cut = 'a > 15'
+    print "PLOTTING LOCATIONS OF KNOWN KBOs (using {})".format(parameters.MPCORB_FILE)
+    kbos = mpcread.getKBOs(parameters.MPCORB_FILE)
+    retkbos = []
+    for kbo in kbos:
+        kbo.compute(date)
+        # keep only the ones that'd make it onto this plot
+        if not ((extent[0] >= math.degrees(kbo.ra) >= extent[1])
+                and (extent[2] >= math.degrees(kbo.dec) >= extent[3])):
+            continue
+        print kbo.name
+        ax.scatter(math.degrees(kbo.ra),
+                   math.degrees(kbo.dec),
+                   marker='x',
+                   facecolor='r')
+        ax.annotate(kbo.name, (pos[0] + .4, pos[1] + 0.1), size='xx-small', color='r')
+        retkbos.append(kbo)
+
+    return ax, retkbos
+
+
+def plot_ossos_discoveries(ax, discoveries, prediction_date=False):  # , blockID='O13AE', date="2013/04/09 08:50:00"):
     for kbo in discoveries:
-        if date != "2013/04/09 08:50:00":  # date is the new moon for a given month
+        if prediction_date:
             kbo.orbit.predict(date.replace('/', '-'))
             ra = kbo.orbit.coordinate.ra.degrees
             dec = kbo.orbit.coordinate.dec.degrees
         else:  # specific date on which discovery was made: use discovery locations
-            ra = kbo.orbit.observations[0].coordinate.ra.degrees
-            dec = kbo.orbit.observations[0].coordinate.dec.degrees
+            ra = math.degrees(ephem.degrees(ephem.hours(str(kbo.ra_discov))))
+            dec = math.degrees(ephem.degrees(str(kbo.dec_discov)))
         ax.scatter(ra, dec, marker='+', facecolor='k')
-        ax.annotate(kbo.replace(blockID, ''),
-                    (kbo.orbit.coordinate.ra.degrees + .05, kbo.orbit.coordinate.dec.degrees - 0.2),
+        ax.annotate(kbo.name,
+                    (ra + .05, dec - 0.2),  # confirm this is being added properly
                     size='xx-small',
                     color='k')
 
@@ -443,16 +457,15 @@ def plot_discovery_uncertainty_ellipses(ax, date):
     return ax
 
 
-def saving_closeout(date, extents, file_id):
-    plt.title(date)
+def saving_closeout(blockname, date, extents, file_id):
+    # plt.title(date)
     plt.axis(extents)  # depends on which survey field is being plotted
     plt.draw()
-    outfile = 'plots/' + + file_id + date.replace('/', '-') + '.pdf'
+    outfile = blockname + file_id + date.split(' ')[0].replace('/', '-') + '.pdf'
     # Always use axes.set_rasterized(True) if you are saving as an EPS file.
     print 'Saving file.', outfile
     plt.savefig(outfile, transparent=True)
-
-    return
+    plt.close()
 
 
 if __name__ == '__main__':
@@ -471,60 +484,61 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     elongation = False
-    block_dates = []
     file_id = ""
-    blocks = BLOCKS  # Coordinates at opposition of currently-determined OSSOS blocks (2013: 4; 2015: 8 total).
     if args.blocks:
-        blocks = BLOCKS[args.blocks]
+        blocks = {parameters.BLOCKS[args.blocks]}
+    else:
+        blocks = parameters.BLOCKS  # Coordinates at opposition of currently-determined OSSOS blocks (2013: 4; 2015: 8 total).
     print blocks
 
-    for extent, block in enumerate(blocks):  # FIXME: need separation between key, item here in blocks
+    discoveries = parsers.ossos_release_with_metadata()
+
+    for blockname, block in blocks.items():
         if args.opposition:
             # 13AE is a month different in opposition from 13AO, but 13B are both in October
-            block_dates = [newMoons['Apr13'], newMoons['May13'], newMoons['Oct13'], newMoons['Oct13']]
-            # FIXME: correct 13AO extent, tweak 13B extents into individual blocks
-            plot_extents = [[219, 209, -16, -9], [219, 209, -16, -9], [30, 5, -2, 18], [30, 5, -2, 18]]
-            # 13A all: [[245, 208, -18, -8]] 13B all: [30, 5, -2, 18]
+            date = opposition_dates[blockname]
             file_id = 'opposition-'
 
         if args.discovery:
             # E block discovery triplets are April 4,9,few 19; O block are May 7,8.
-            # FIXME: 13H/L discovery dates, 13AO discovery time
-            block_dates = ["2013/04/09 08:50:00", "2013/05/08 08:50:00", "2013/12/12 08:50:00", "2014/01/03 08:50:00"]
-            plot_extents = [[219, 209, -16, -9], [219, 209, -16, -9], [30, 5, -2, 18], [30, 5, -2, 18]]
+            # FIXME: discovery times
+            # BL is 09-29 AND 10-31. Need to implement way to accommodate split.
+            # 15AM is 2014-05-29 and 2014-06-01
+            date = discovery_dates[blockname]
             file_id = 'discovery-'
 
         if args.date:
             # if it's not a list (multiple dates), wrap the single date into being a list
             if not args.date.isinstance('list'):
-                block_dates = [args.date]
+                date = [args.date]
                 # FIXME: calculate the appropriate extents given that date and the given blocks
-            plot_extents = [[219, 209, -16, -9], [219, 209, -16, -9], [30, 5, -2, 18], [30, 5, -2, 18]]
             file_id = args.date
 
         if args.dist:
             elongation = True
             file_id = 'elongation-'
 
-        for date in block_dates:
-            handles, labels, ax, fontP = basic_skysurvey_plot_setup()
-            ras, decs, coverage, names, ax = build_ossos_footprint(ax, block, field_offset, plot=False)
-            ax = keplerian_sheared_field_locations(ax, kbos, date, ras, decs, names, elongation=elongation, plot=True)
-            ax = plot_planets(ax, plot_extents[extent], date)
-            ax = plot_ossos_discoveries(ax, date=date)  # will predict for dates other than discovery
-            ax = plot_discovery_uncertainty_ellipses(ax, date)
+        print blockname, date
 
-            if args.synthetic:
-                # defaults to Oct new moon: FIXME: set date appropriately
-                ra, dec, kbos = synthetic_model_kbos(coverage)
+        handles, labels, ax, fontP = basic_skysurvey_plot_setup()
+        ax, kbos = plot_known_tnos_singly(ax, plot_extents[blockname], date)
+        ras, decs, coverage, names, ax = build_ossos_footprint(ax, blocks, field_offset, plot=False)
+        # Hacked for now since discovery dates kinda like opposition - about a month out
+        ax = keplerian_sheared_field_locations(ax, kbos, date, ras, decs, names, elongation=elongation, plot=True)
+        ax = plot_planets(ax, plot_extents[blockname], date)
+        ax = plot_ossos_discoveries(ax, discoveries)  # will predict for dates other than discovery
+        # ax = plot_discovery_uncertainty_ellipses(ax, date)
 
-            if block == '13AE':  # special case: needs Saturn's moons plotted as well
-                ax = plot_known_tnos_singly(ax, date)  # this because we need the ax and batch doesn't return that
-                ax = plot_saturn_moons(ax)
-            else:  # plot as normal
-                handles, labels = plot_known_tnos_batch(handles, labels, date)
+        # if args.synthetic:
+        # # defaults to Oct new moon: FIXME: set date appropriately
+        #     ra, dec, kbos = synthetic_model_kbos(coverage)
 
-            saving_closeout(block, date, plot_extents[extent], file_id)
+        # if blockname == '13AE':  # special case: needs Saturn's moons plotted as well
+        # ax = plot_known_tnos_singly(ax, date)  # this because we need the ax and batch doesn't return that
+        #     ax = plot_saturn_moons(ax)
+        # else:  # plot as normal
+
+        saving_closeout(blockname, date, plot_extents[blockname], file_id)
 
     sys.stderr.write("Finished.\n")
 
