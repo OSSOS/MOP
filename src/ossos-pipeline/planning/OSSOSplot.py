@@ -1,4 +1,4 @@
-#!python
+# !python
 from Tkinter import *
 import tkFileDialog
 import math
@@ -71,7 +71,7 @@ class Plot(Canvas):
             observations = []
             lines = fhandle.read().split('\n')
             for line in lines:
-                if len(line) > 0 : 
+                if len(line) > 0 and not line.startswith('#'):  # skip the comments, don't care about them here
                     observations.append(mpc.Observation.from_string(line))
             fhandle.close()
             name = filename.rstrip('.ast')  # observations[0].provisional_name
@@ -167,7 +167,7 @@ class Plot(Canvas):
         dec2 = math.pi / 2.0
 
 
-        ## grid space choices
+        # # grid space choices
         ## ra space in hours
         ra_grids = ["06:00:00",
                     "03:00:00",
@@ -332,8 +332,8 @@ class Plot(Canvas):
         if self.kbos.has_key(name):
             kbo = self.kbos[name]
             assert isinstance(kbo, orbfit.Orbfit)
-            date=self.date.get()
-            date.replace("/"," ")
+            date = self.date.get()
+            date.replace("/", " ")
             kbo.predict(self.date.get())
             self.recenter(kbo.coordinate.ra.radians, kbo.coordinate.dec.radians)
             self.create_point(kbo.coordinate.ra.radians, kbo.coordinate.dec.radians, color='blue', size=4)
@@ -364,7 +364,7 @@ class Plot(Canvas):
     def __zoom(self, event, scale=2.0):
         """Zoom in"""
 
-        ## compute the x,y of the center of the screen
+        # # compute the x,y of the center of the screen
         sx1 = self.cx1 + (self.cx2 - self.cx1 + 1.0) / 2.0
         sy1 = self.cy1 + (self.cy2 - self.cy1 + 1.0) / 2.0
         #print sx1,sy1
@@ -453,7 +453,7 @@ class Plot(Canvas):
         f.close()
         points = []
         if lines[0][0:5] == "<?xml":
-            ### assume astrores format
+            # ## assume astrores format
             ### with <DATA at start of 'data' segment
             for i in range(len(lines)):
                 if lines[i][0:5] == '<DATA':
@@ -464,7 +464,7 @@ class Plot(Canvas):
                 vs = lines[j].split('|')
                 points.append(vs)
         elif lines[0][0:5] == 'index':
-            ### Palomar Format
+            # ## Palomar Format
             ### OK.. ID/NAME/RA /DEC format
             for line in lines:
                 if line[0] == '!' or line[0:5] == 'index':
@@ -478,12 +478,12 @@ class Plot(Canvas):
                 decs = "%s:%s:%s" % ( d[5], d[6], d[7])
                 points.append((d[1].strip(), ras, decs))
         elif lines[0][0:5] == "#SSIM":
-            ### Survey Simulator format
+            # ## Survey Simulator format
             for line in lines[1:]:
                 d = line.split()
                 points.append((d[8], d[2], d[3]))
         else:
-            ### try name/ ra /dec / epoch
+            # ## try name/ ra /dec / epoch
             for line in lines:
                 d = line.split()
                 if len(d) != 4:
@@ -531,9 +531,9 @@ class Plot(Canvas):
                 (x2, y2) = self.p2c((ccd[2], ccd[3]))
                 item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill='#000')
             else:
-                (x1, y1) = self.p2c((ccd[0]-ccd[2]/math.cos(ccd[1]), ccd[1]-ccd[2]))
-                (x2, y2) = self.p2c((ccd[0]+ccd[2]/math.cos(ccd[1]), ccd[1]+ccd[2]))
-                item = self.create_oval(x1,y1, x2, y2)
+                (x1, y1) = self.p2c((ccd[0] - ccd[2] / math.cos(ccd[1]), ccd[1] - ccd[2]))
+                (x2, y2) = self.p2c((ccd[0] + ccd[2] / math.cos(ccd[1]), ccd[1] + ccd[2]))
+                item = self.create_oval(x1, y1, x2, y2)
             items.append(item)
         label = {}
         label['text'] = self.plabel.get()
@@ -562,9 +562,9 @@ class Plot(Canvas):
                     (x2, y2) = self.p2c((ccd[2], ccd[3]))
                     item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill=pointing.get('color', ''))
                 else:
-                    (x1, y1) = self.p2c((ccd[0]-ccd[2]/math.cos(ccd[1]), ccd[1]-ccd[2]))
-                    (x2, y2) = self.p2c((ccd[0]+ccd[2]/math.cos(ccd[1]), ccd[1]+ccd[2]))
-                    item = self.create_oval(x1,y1, x2, y2)
+                    (x1, y1) = self.p2c((ccd[0] - ccd[2] / math.cos(ccd[1]), ccd[1] - ccd[2]))
+                    (x2, y2) = self.p2c((ccd[0] + ccd[2] / math.cos(ccd[1]), ccd[1] + ccd[2]))
+                    item = self.create_oval(x1, y1, x2, y2)
                 items.append(item)
             if self.show_labels.get() == 1:
                 label['id'] = self.label(pointing["camera"].ra, pointing["camera"].dec, label['text'])
@@ -609,8 +609,8 @@ class Plot(Canvas):
                 (x1, y1) = self.p2c((ccd[0], ccd[1]))
                 (x2, y2) = self.p2c((ccd[2], ccd[3]))
             else:
-                (x1, y1) = self.p2c((ccd[0] - ccd[2]/math.cos(ccd[1]), ccd[1] - ccd[2]))
-                (x2, y2) = self.p2c((ccd[0] + ccd[2]/math.cos(ccd[1]), ccd[1] + ccd[2]))
+                (x1, y1) = self.p2c((ccd[0] - ccd[2] / math.cos(ccd[1]), ccd[1] - ccd[2]))
+                (x2, y2) = self.p2c((ccd[0] + ccd[2] / math.cos(ccd[1]), ccd[1] + ccd[2]))
             self.coords(item, x1, y1, x2, y2)
         self.current_pointing(this_index)
 
@@ -674,7 +674,7 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                                                                      dec[1].zfill(2),
                                                                      dec[2].zfill(2)))
             elif self.pointing_format.get() == 'CFHT PH':
-                #f.write("%f %f\n" % (pointing["camera"].ra,pointing["camera"].dec))
+                # f.write("%f %f\n" % (pointing["camera"].ra,pointing["camera"].dec))
                 f.write("%-20s|%11s|%11s|%6.1f|%-5d|\n" % (name, sra, sdec, 2000.0, 1))
             elif self.pointing_format.get() == 'KPNO/CTIO':
                 str1 = sra.replace(":", " ")
@@ -738,7 +738,7 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                 xoffset = -10
                 kbo = kbos[name]
                 assert isinstance(kbo, orbfit.Orbfit)
-                start_date = mpc.Time(w.date.get(),scale='utc').jd
+                start_date = mpc.Time(w.date.get(), scale='utc').jd
                 trail_mid_point = 6
                 for days in range(trail_mid_point * 2 + 1):
                     today = mpc.Time(start_date - trail_mid_point + days, scale='utc', format='jd')
@@ -774,7 +774,7 @@ class Camera:
 
     geometry = {"MP_CCD": [
         {"ra": 0., "dec": 0., "dra": 0.1052, "ddec": 0.2344}],
-                "HSC": [ {"ra": 0.0, "dec": 0.0, "rad": 0.75 } ],
+                "HSC": [{"ra": 0.0, "dec": 0.0, "rad": 0.75}],
                 "MEGACAM_36": [
                     {"ra": -0.46, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
                     {"ra": -0.35, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
@@ -935,7 +935,7 @@ class Camera:
 
 def start(dirname=None, pointings=None):
     root = Tk()
-    ### Make the root window resizeable
+    # ## Make the root window resizeable
     root.rowconfigure(0, weight=1)
     root.columnconfigure(0, weight=1)
 
@@ -1066,7 +1066,7 @@ def start(dirname=None, pointings=None):
     root.mainloop()
 
 
-### read in pointings, from a command line file...
+# ## read in pointings, from a command line file...
 if __name__ == '__main__':
     parser = optparse.OptionParser()
     parser.add_option("-p", "--pointings", help="A file containing some pointings")

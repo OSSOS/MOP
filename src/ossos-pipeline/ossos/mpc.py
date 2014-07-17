@@ -14,6 +14,9 @@ from astropy.time import Time
 from astropy import units
 import numpy
 
+import storage
+
+
 NULL_OBSERVATION_CHARACTERS = ["!", "-", "#"]
 DEFAULT_OBSERVERS = ['M. T. Bannister', 'J. J. Kavelaars']
 DEFAULT_TELESCOPE = "CFHT 3.6m + CCD"
@@ -267,7 +270,7 @@ class TimeMPC(TimeString):
     name = 'mpc'
     subfmts = (('mpc', '%Y %m %d', "{year:4d} {mon:02d} {day:02d}.{fracday:s}"),)
 
-    ### need our own 'set_jds' function as the MPC Time string is not typical
+    # ## need our own 'set_jds' function as the MPC Time string is not typical
     def set_jds(self, val1, val2):
         """
 
@@ -319,8 +322,10 @@ class TimeMPC(TimeString):
         return
 
     def str_kwargs(self):
-        """                                                                                                                                           
-        Generator that yields a dict of values corresponding to the                                                                                   
+        """
+
+        Generator that yields a dict of values corresponding to the
+
         calendar date and time for the internal JD values.
 
         Here we provide the additional 'fracday' element needed by 'mpc' format
@@ -330,7 +335,8 @@ class TimeMPC(TimeString):
                                                  6,
                                                  self.jd1, self.jd2)
 
-        # Get the str_fmt element of the first allowed output subformat                                                                               
+        # Get the str_fmt element of the first allowed output subformat
+
         _, _, str_fmt = self._select_subfmts(self.out_subfmt)[0]
 
         yday = None
@@ -466,7 +472,7 @@ class Observation(object):
             return None
         obsrec = cls(*struct.unpack(mpc_format, mpc_line))
         obsrec.comment = MPCComment.from_string(comment)
-        #TODO set the 'discovery' flags from the binary flags in TNODB style ast lines.
+        # TODO set the 'discovery' flags from the binary flags in TNODB style ast lines.
         return obsrec
 
     def to_string(self):
@@ -508,7 +514,7 @@ class Observation(object):
         provide string representation of observation in a format used for OSSOS database input.
         """
 
-        #O indicates OSSOS survey
+        # O indicates OSSOS survey
         comment_line = ('#O ' + str(self.comment))[:80].rstrip('\n')
 
         if self.mag == -1:  # write no mag and no filter for where photometry couldn't be measured
@@ -774,7 +780,7 @@ class MPCComment(object):
         """
         Build an MPC Comment from a string.
         """
-        comment_format = '1s10s1s11s1s3s6f1s6f'  #1s4f1s3f1s4s1s'  # is this right...?
+        comment_format = '1s10s1s11s1s3s6f1s6f'  # 1s4f1s3f1s4s1s'  # is this right...?
         values = comment.split('%')[0]
         try:
             retval = cls(*struct.unpack(comment_format, values))
@@ -1040,6 +1046,35 @@ def make_tnodb_header(observations, observatory_code=None, observers=DEFAULT_OBS
     header += "{:s} {:s}\n".format('END', maxdate)
 
     return header
+
+
+class MPCReader(object):
+    """
+    Takes the filename of either a .mpc or .ast format file and parses that file
+    to instantiate an array of mpc.Observation objects.
+    """
+
+    def __init__(self, filename):
+        self.mpc_observations = []
+        filehandle = storage.open_vos_or_local(filename, "rb")
+        filestr = filehandle.read()
+        filehandle.close()
+
+        input_mpc_lines = filestr.split('\n')
+
+        next_comment = None
+        for line in input_mpc_lines:
+            mpc_observation = Observation.from_string(line)
+            if isinstance(mpc_observation, MPCComment):
+                next_comment = mpc_observation
+                continue
+            if isinstance(mpc_observation, Observation):
+                if next_comment is not None:
+                    mpc_observation.comment = next_comment
+                    next_comment = None
+                self.mpc_observations.append(mpc_observation)
+
+        self.mpc_observations.sort(key=lambda obs: obs.date.jd)
 
 
 class Index(object):
