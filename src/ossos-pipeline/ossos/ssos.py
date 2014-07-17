@@ -630,7 +630,7 @@ class Query(object):
         :return: astropy.table.table
         :raise: AssertionError
         """
-        params = self.param_dict_biulder.params
+        params = self.param_dict_builder.params
         self.response = requests.post(SSOS_URL, 
                                      data=params, 
                                      headers=self.headers)
