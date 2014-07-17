@@ -65,7 +65,7 @@ with open('planning/{}_13A_discovery_expnums.txt'.format(field), 'r') as infile:
             # chosen to match that in header keyword DATASEC = [33:2080,1:4612] / Imaging area of the entire CCD in
             # raw frame
             if field == 'E' or 'O':
-                xmin = 66 # ya, we don't know why it got hardwired this way initially. 1.6% underplanting.
+                xmin = 66  # ya, we don't know why it got hardwired this way initially. 1.6% underplanting.
             else:  # spotted this by the time H and L etc were done. This was fixed for H/L to use DATASEC directly.
                 xmin = 33
             retval.append(xmin)

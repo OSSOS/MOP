@@ -4,15 +4,11 @@ import math
 import sys
 import os
 import string
-from ossos import mpc
-from ossos import orbfit
 
 from matplotlib.patches import Rectangle
 from matplotlib.patches import Ellipse
 from matplotlib import rcParams
-
 import numpy as np
-
 from matplotlib.pyplot import figure, savefig, xlabel, ylabel
 from astropy.io import votable
 import ephem
@@ -146,6 +142,7 @@ blocks = {'13BL': {'RA': "00:52:55.82", "DEC": "+03:43:49.1"}}
 
 #spring14
 
+DISCOVERY_NEW_MOON = 'Oct13'
 
 newMoons = {'Feb13': "2013/02/10 10:00:00",
             'Mar13': "2013/03/11 10:00:00",
@@ -280,8 +277,9 @@ fix.write("""]]</CSV></DATA>
 fix.close()
 
 field_polygon.simplify()
-print field_polygon.area()
-print field_polygon.center()
+print "Field Area: {} degrees squared".format(field_polygon.area())
+print "Field Centre: {} ".format(field_polygon.center())
+
 (ra_min, ra_max, dec_min, dec_max) = field_polygon.boundingBox()
 
 if year == "astr":
@@ -296,7 +294,7 @@ fig = figure()
 ax = fig.add_subplot(111, aspect="equal")
 #ax.set_xlim(32, 18)
 #ax.set_xlim(24,10)
-ax.set_xlim(10, 20)
+ax.set_xlim(20, 10)
 ax.set_ylim(0,10)
 xlabel('RA (deg)')
 ylabel('DE (deg)')
@@ -307,7 +305,7 @@ plot_line(ax, 'eplane.radec', 'b-')
 plot_line(ax, 'gplane.radec', 'g-')
 
 ## build a list of Synthetic KBOs that will be in the discovery fields.
-print "LOADING SYNTHETIC MODEL KBOs FROM: {}".format(L7MODEL)
+print "LOADING SYNTHETIC MODEL KBOS FROM: {}".format(L7MODEL)
 ra = []
 dec = []
 kbos = []
@@ -392,7 +390,6 @@ if PLOT_SYNTHETIC_KBO_TRAILS:
 for month in seps:
     seps[month]['dra'] /= float(len(kbos))
     seps[month]['ddec'] /= float(len(kbos))
-    print month, seps[month]['dra'], seps[month]['ddec']
 
 
 sorted_epochs = sorted(dates.iteritems(), key=operator.itemgetter(1))
