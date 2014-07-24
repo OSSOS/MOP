@@ -1,3 +1,4 @@
+
 from ossos.storage import get_mopheader, get_astheader
 
 __author__ = 'Michele Bannister, JJ Kavelaars'
@@ -25,6 +26,7 @@ NEW_LINE = '\r\n'
 
 
 class TracksParser(object):
+
     def __init__(self, inspect=True, skip_previous=False):
         self.orbit = None
         self._nights_per_darkrun = 18
@@ -55,7 +57,7 @@ class TracksParser(object):
         while True:
             tracks_data = self.query_ssos(mpc_observations, lunation_count)
 
-            if (tracks_data.get_arc_length() > ( self.orbit.arc_length + 2.0 / 86400.0) or
+            if (tracks_data.get_arc_length() > (self.orbit.arc_length + 2.0 / 86400.0) or
                         tracks_data.get_reading_count() > len(mpc_observations)):
                 return tracks_data
             if not self.inspect:
@@ -86,11 +88,11 @@ class TracksParser(object):
         else:
             search_start_date = Time((mpc_observations[0].date.jd - (
                 self._nights_per_darkrun +
-                lunation_count * self._nights_separating_darkruns) ),
+                lunation_count * self._nights_separating_darkruns)),
                                      format='jd', scale='utc')
             search_end_date = Time((mpc_observations[-1].date.jd + (
                 self._nights_per_darkrun +
-                lunation_count * self._nights_separating_darkruns) ),
+                lunation_count * self._nights_separating_darkruns)),
                                    format='jd', scale='utc')
 
         sys.stderr.write("Sending query to SSOS\n")
@@ -415,7 +417,6 @@ class ParamDictBuilder(object):
 
     This should be fun!
     """
-
     def __init__(self,
                  observations,
                  verbose=False,
