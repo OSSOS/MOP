@@ -178,13 +178,18 @@ class Orbfit(object):
         self.pa = predict.contents[4]
         self.date = str(date)
 
-    def rate_of_motion(self, date=datetime.datetime.now()):
+    def rate_of_motion(self, date):
         # rate of motion at a requested date rather than averaged over the arc.
         # Date is datetime.datetime() objects.
-        assert isinstance(date, datetime.datetime)
-        self.predict(date.strftime('%Y-%m-%d'))
+        if isinstance(date, datetime.datetime):
+	   sdate = date.strftime('%Y-%m-%d')
+           edate = (date + datetime.timedelta(1)).strftime('%Y-%m-%d')
+	else:
+	   sdate = date.jd
+	   edate = date.jd + 1
+        self.predict(edate)
         coord1 = self.coordinate
-        self.predict((date + datetime.timedelta(1)).strftime('%Y-%m-%d'))
+        self.predict(sdate)
         coord2 = self.coordinate
         retval = coord1.separation(coord2).arcsecs / (24.)  # arcsec/hr
 

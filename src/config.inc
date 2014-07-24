@@ -39,7 +39,7 @@ USNODIR=${PREFIX}/USNO
 export USNODIR
 cd $basedir
 
-CC="cc"
+CC="gcc"
 export CC
 
 case "$syst"
