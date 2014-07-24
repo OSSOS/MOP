@@ -1074,7 +1074,7 @@ class MPCReader(object):
                     next_comment = None
 
                 if filename.endswith('ast'):  # then it has an OSSOS designation: set that in preference
-                    mpc_observation.provisional_name = filename.rsplit('/')[-1].rstrip('.ast')
+                    mpc_observation.provisional_name = filename.rsplit('/')[-1].rstrip('.ast').split('.')[0]
                 self.mpc_observations.append(mpc_observation)
 
         self.mpc_observations.sort(key=lambda obs: obs.date.jd)
