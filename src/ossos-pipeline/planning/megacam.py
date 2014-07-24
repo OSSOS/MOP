@@ -11,7 +11,7 @@ def TAPQuery(RAdeg=180.0, DECdeg=0.0, width=1, height=1):
     QUERY =( """ SELECT """
              """ COORD1(CENTROID(Plane.position_bounds)) AS "RAJ2000", COORD2(CENTROID(Plane.position_bounds)) AS "DEJ2000" """
              """ FROM """
-             """ caom.Observation as o JOIN caom.Plane as Plane on o.obsID=Plane.obsID """
+             """ caom2.Observation as o JOIN caom2.Plane as Plane on o.obsID=Plane.obsID """
              """ WHERE """
              """ o.collection = 'CFHT' """
              """ AND o.instrument_name = 'MegaPrime' """
