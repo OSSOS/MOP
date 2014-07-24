@@ -15,7 +15,7 @@ def ossos_release_parser():
     retval = []
     infs = ['/Users/michele/Dropbox/OSSOS/o13eBlockV2.dat', '/Users/michele/Dropbox/OSSOS/OblockStage0_ossosv2.txt',
             parameters.MOST_RECENT_OSSOS_RELEASE, '/Users/michele/Dropbox/OSSOS/Lstage0.txt']
-    for inf in infs[2:]:
+    for inf in infs[2:3]:
         with open(inf, 'r') as infile:
             if inf == infs[0]:
                 # columns:
@@ -128,7 +128,8 @@ def ossos_discoveries(no_nt_and_u=True):
     for filename in discovery_files:
         # keep out the not-tracked for now. Some uncharacterised are quite good so keep those.
         if no_nt_and_u:
-            if not filename.endswith('nt'):  # or filename.startswith('u')):
+            if not filename.__contains__('nt') and not filename.__contains__('O13BL') and not filename.__contains__(
+                    'u'):
                 observations = mpc.MPCReader(parameters.REAL_KBO_AST_DIR + filename).mpc_observations
                 orbit = orbfit.Orbfit(observations)
                 retval.append(orbit)
@@ -200,11 +201,12 @@ def synthetic_model_kbos(at_date=parameters.NEWMOONS[parameters.DISCOVERY_NEW_MO
                     hlat.append(kbo.hlat)
 
     print '%d synthetic model kbos brighter than %d retained from %d in L7 model'.format(len(kbos), maglimit,
-                                                                                             counter)
+                                                                                         counter)
     if not arrays:
         return kbos
     else:
         return ra, dist, hlat
+
 
 def output_discoveries_for_animation():
     discoveries = ossos_release_with_metadata()
