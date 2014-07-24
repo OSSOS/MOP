@@ -17,6 +17,13 @@ import mpcread
 import parsers
 import parameters
 
+from ossos import storage
+HAVE_HORIZONS=True
+try:
+    from ossos import horizons
+except:
+    HAVE_HORIZONS=False
+    
 
 PLOT_MPCORB = True and os.access(parameters.MPCORB_FILE, os.F_OK)
 
@@ -43,13 +50,34 @@ opposition_dates = {"13AE": parameters.NEWMOONS['Apr13'],
                     "13BH": parameters.NEWMOONS['Oct13']
 }
 
+newMoons = {'Feb13': "2013/02/10 10:00:00",
+            'Mar13': "2013/03/11 10:00:00",
+            'Apr13': "2013/04/10 10:00:00",
+            'May13': "2013/05/09 10:00:00",
+            'Jun13': "2013/06/08 10:00:00",
+            'Jul13': "2013/07/08 10:00:00",
+            'Aug13': "2013/08/06 10:00:00",
+            'Sep13': '2013/09/05 10:00:00',
+            'Oct13': '2013/10/04 10:00:00',
+            'Nov13': '2013/11/03 10:00:00',
+            'Dec13': '2013/12/02 10:00:00',
+            'Jan14': '2014/01/01 10:00:00',
+            'Feb14': '2014/01/31 10:00:00',
+            'Mar14': '2014/03/28 10:00:00',
+            'Apr14': '2014/04/01 10:00:00',
+            'May14': '2014/05/28 10:00:00',
+            'Jun14': '2014/06/26 10:00:00'
+            }
+
 xgrid = {'2013': [-3, -2, -1, 0, 1, 2, 3],
-         '2014': [-3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5],
+         '2014r': [-3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5],
+         '2014': [-3, -2, -1, 0, 1, 2, 3],
          'astr': [1, 2, 3, 4]}
 
 ygrid = {'2013': [-1, 0, 1],
+         '2014': [-1, 0, 1],
          'astr': [-2.5, -1.5, -0.5, 0.5, 1.5],
-         '2014': [-1.5, -0.5, 0.5, 1.5]}
+         '2014r': [-1.5, -0.5, 0.5, 1.5]}
 
 block_centre = ephem.Ecliptic(0, 0)
 field_centre = ephem.Ecliptic(0, 0)
@@ -59,13 +87,13 @@ field_offset = math.radians(1.00)
 # the size of the field
 camera_dimen = 0.98
 
-years = {"2013": {"ra_off": ephem.hours("00:00:00"),
+years = {"2014": {"ra_off": ephem.hours("00:00:00"),
                   "dec_off": ephem.hours("00:00:00"),
                   "fill": False,
                   "facecolor": 'k',
                   "alpha": 0.5,
                   "color": 'b'},
-         "2014": {"ra_off": ephem.hours("00:05:00"),
+         "2014r": {"ra_off": ephem.hours("00:05:00"),
                   "dec_off": ephem.degrees("00:18:00"),
                   "alpha": 0.5,
                   "fill": False,
@@ -196,7 +224,7 @@ def build_ossos_footprint(ax, blocks, field_offset, plot=True):
     y = []
     names = []
     coverage = []
-    year = '2013'
+    year = '2014'
     if year == 'astr':
         field_offset = field_offset * 0.75
 
@@ -416,6 +444,8 @@ def plot_ossos_discoveries(ax, discoveries, prediction_date=False):  # , blockID
 
 def plot_single_known_tno(ax, name, date, close=[]):
     # date formatted as %Y-%m-%d %H:%M
+    if not HAVE_HORIZONS:
+        return ax
     dateplus1hr = (datetime.datetime.strptime(date, '%Y-%m-%d %H:%M') + datetime.timedelta(1 / 24.)).strftime(
         '%Y-%m-%d %H:%M')
     obj_elems, single_ephem = horizons.batch(name, date, dateplus1hr, None, su='d')  # pull back one position only
