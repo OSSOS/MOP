@@ -1,10 +1,17 @@
 __author__ = 'Michele Bannister   git:@mtbannister'
 
 import matplotlib.pyplot as plt
+import matplotlib
 import mpld3
 from mpld3 import plugins
 
-from . import parsers
+import parsers
+import plot_fanciness
+
+
+matplotlib.rcParams['font.size'] = 20  # good for posters/slides
+matplotlib.rcParams['font.family'] = 'sans-serif'
+matplotlib.rcParams['font.sans-serif'] = ['Sofia Pro', 'Tahoma']
 
 
 # Define some CSS to control our custom labels
@@ -30,68 +37,103 @@ table, th, td
 }
 """
 
-dat = parsers.ossos_release_parser()
-data = [d for d in dat if not d.name.__contains__('nt')]  # leave off the uncharacterised for now, they fill up the plot
+data = parsers.ossos_discoveries()  # release_with_metadata()
+# probably not needed now this is handled by the parser
+# data = [d for d in dat if not d.name.__contains__('nt')]  # leave off the uncharacterised for now, they fill up the
+#  plot
 
-# suitably bright ones
-bright = [d for d in data if d.mag < 23.5]
-print len(bright)
+# # suitably bright ones
+# bright = [d for d in data if d.mag < 23.5]
+# print len(bright)
+#
+# # just pulling out the cold classicals...
+# temp = [d for d in data if (42. < d.a < 46.) and d.e < 0.15 and d.i < 5. and d.mag < 23.5]
+# print len(temp)
+# data = temp
 
-# just pulling out the cold classicals...
-temp = [d for d in data if (42. < d.a < 46.) and d.e < 0.15 and d.i < 5. and d.mag < 23.5]
-print len(temp)
-data = temp
+fig, ax = plt.subplots(2, 1, sharex=True, figsize=(10, 10))
+# ax[0].set_title('OSSOS cold classical discoveries after 2013 observations in v2 release')
+fig.subplots_adjust(hspace=0.05)
 
-fig, ax = plt.subplots(3, 1, sharex=True, figsize=(10, 10))
-ax[0].set_title('OSSOS cold classical discoveries after 2013 observations in v2 release')
-fig.subplots_adjust(hspace=0.12)
-
-# first all the objects. Some of these don't have all their orbital parameters yet, but dist and i are ok
-points = ax[0].errorbar([d.dist for d in data], [d.i for d in data],
-                        xerr=[d.dist_e for d in data], yerr=[d.i_e for d in data],
-                        fmt='.', alpha=0.3, ecolor='0.1', ms=10)
-# ax[0].set_ylim([-1, 90])
-ax[0].grid(True, alpha=0.3)
-ax[0].set_ylabel('inclination (degrees)')
-ax[0].set_xlabel('heliocentric distance (AU)')
-# ax[0].annotate('')
+# # first all the objects. Some of these don't have all their orbital parameters yet, but dist and i are ok
+# points = ax[0].errorbar([d.dist for d in data], [d.i for d in data],
+# xerr=[d.dist_e for d in data], yerr=[d.i_e for d in data],
+#                         fmt='.', alpha=0.3, ecolor='0.1', ms=10)
+# # ax[0].set_ylim([-1, 90])
+# ax[0].grid(True, alpha=0.3)
+# ax[0].set_ylabel('inclination (degrees)')
+# ax[0].set_xlabel('heliocentric distance (AU)')
+# # ax[0].annotate('')
 
 # now the plots for objects where we have much better arcs
-dset = [d for d in data if d.a is not None]
-ax[1].errorbar([d.a for d in dset], [d.i for d in dset],
-               xerr=[d.a_e for d in dset], yerr=[d.i_e for d in dset],
-               fmt='.', alpha=0.4, ecolor='0.1', ms=10)
-ax[1].set_ylabel('inclination (degrees)')
-# ax[1].set_ylim([-1, 35])
-ax[1].grid(True, alpha=0.3)
-ax[1].set_xlabel('semimajor axis (AU)')
 
-ax[2].errorbar([d.a for d in dset], [d.e for d in dset],
-               xerr=[d.a_e for d in dset], yerr=[d.e_e for d in dset],
-               fmt='.', alpha=0.4, ecolor='0.1', ms=10)
-ax[2].set_ylabel('eccentricity')
-# ax[2].set_ylim([-0.01, .8])
-ax[2].grid(True, alpha=0.3)
-ax[2].set_xlabel('semimajor axis (AU)')
-# plt.xlim([30, 80])
-plt.xlim([42, 46])
+# why is this one object not fitting at all correctly?
+dset = [d for d in data if
+        ((d.a is not None) and not d.observations[-1].provisional_name.strip(' ').__contains__('o3e17'))]
+print [obj.observations[-1].provisional_name.strip(' ') for obj in dset]
+
+for n in dset:
+    if n.observations[-1].provisional_name.strip(' ').__contains__('o3e38'):
+        print n.a, n.inc, n.e
+
+# For calling with parsers.ossos_release_with_metadata()
+# points = ax[0].errorbar([d.a for d in dset], [d.i for d in dset],
+#                xerr=[d.a_e for d in dset], yerr=[d.i_e for d in dset],
+#                fmt='.', alpha=0.4, ecolor='0.1', ms=10)
+
+# For using Orbfit objects
+points = ax[0].errorbar([d.a for d in dset], [d.inc for d in dset],
+                        xerr=[d.da for d in dset], yerr=[d.dinc for d in dset],
+                        fmt='.', alpha=0.4, ecolor='0.1', ms=15)
+
+# ax[0].set_ylabel('inclination (degrees)')
+ax[0].set_ylim([-1, 55])
+ax[0].grid(True, alpha=0.3)
+# ax[0].set_xlabel('semimajor axis (AU)')
+
+# For calling with parsers.ossos_release_with_metadata()
+# ax[1].errorbar([d.a for d in dset], [d.e for d in dset],
+#                xerr=[d.a_e for d in dset], yerr=[d.e_e for d in dset],
+#                fmt='.', alpha=0.4, ecolor='0.1', ms=10)
+
+# For using Orbfit objects
+ax[1].errorbar([d.a for d in dset], [d.e for d in dset],
+               xerr=[d.da for d in dset], yerr=[d.de for d in dset],
+               fmt='.', alpha=0.4, ecolor='0.1', ms=15)
+
+# ax[1].set_ylabel('eccentricity')
+ax[1].set_ylim([-0.01, .8])
+ax[1].grid(True, alpha=0.3)
+# ax[1].set_xlabel('semimajor axis (AU)')
+plt.xlim([20, 155])
+
+plot_fanciness.remove_border(ax[0])
+plot_fanciness.remove_border(ax[1])
 
 # plt.xlabel('semimajor axis (AU)')
 
 # plt.legend()
 plt.draw()
-outfile = 'plots/2013_OSSOS_discoveries_orbits'
+outfile = 'v3_OSSOS_discoveries_orbits'
 plt.savefig(outfile + '.pdf', transparent=True)
 
 # plugins.connect(fig, LinkedBrush(points))
 
+# To activate the interactivity
+
 labels = []
 for obj in data:
-    if obj.peri is not None:
+    peri = None
+    try:
+        peri = obj.peri
+    except:
+        peri = obj.a * (1. - obj.e)
+    if peri is not None:
         # label = {'dist': obj.dist, 'peri':obj.peri, 'obj':obj.name}
         html = '<table><tr><th>Name</th><td>{:}</td></tr>' \
                '<tr><th>Dist</th><td>{:.2f}</td></tr>' \
-               '<tr><th>Peri</th><td>{:.2f}</td></tr></table>'.format(obj.name, obj.dist, obj.peri)
+               '<tr><th>Peri</th><td>{:.2f}</td></tr></table>'.format(obj.observations[-1].provisional_name.strip(' '),
+                                                                      obj.distance, peri)
         labels.append(html)
 
 tooltip = plugins.PointHTMLTooltip(points[0], labels, voffset=10, hoffset=10, css=css)
