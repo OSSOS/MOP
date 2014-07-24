@@ -1,21 +1,25 @@
-#!python
+# !python
 """
 Given an exposure number and optional ccd values clear the OSSOS processing tags associated with the expnum in dbimages.
 
 This script is part of the process for resetting the pipeline.
 """
 
-from ossos import storage
 import logging
 import argparse
 import sys
+
+from ossos import storage
+
+
+# FIXME: currently this doesn't clear the snr_13 tag
 
 PROGRAMS = {'CALIBRATION': (('', 'fk'), ('mkpsf', 'zeropoint', 'fwhm'), ('p', 's')),
             'PLANT': (('',), ('scramble', 'plant'), ('s',)),
             'SCRAMBLE': (('',), ('step1', 'step2', 'step3', 'combine'), ('s',)),
             'FAKES': (('fk',), ('step1', 'step2', 'step3', 'combine'), ('s',)),
             'DETECT': (('',), ('step1', 'step2', 'step3', 'combine'), ('p', ))}
-PREP = ((('',), ('preproc', 'update_header'), ('o',)),)
+PREP = ((('',), ('update_header',), ('o', 'p')),)
 ALL_CCDS = range(36)
 
 logging.basicConfig(level=logging.DEBUG)
@@ -36,6 +40,7 @@ def clear_tags(my_expnum, ops, my_ccds, dry_run=True):
             for version in ops[2]:
                 props = {}
                 for ccd in my_ccds:
+                    # print my_expnum, fake, my_program, version, ccd
                     key = storage.get_process_tag(fake + my_program, ccd, version)
                     props[key] = None
                     if dry_run:
@@ -44,6 +49,7 @@ def clear_tags(my_expnum, ops, my_ccds, dry_run=True):
                     storage.set_tags(my_expnum, props)
                 else:
                     sys.stdout.write("\n")
+
 
 if __name__ == '__main__':
 
@@ -64,14 +70,15 @@ if __name__ == '__main__':
 
     opt = parser.parse_args()
 
-    ccds = opt.ccd is not None and opt.ccd or range(36)
+    ccds = opt.ccd is not None and [opt.ccd] or range(36)
 
     if opt.PREP is not None:
-	programs = opt.PREP
+        opt.programs = opt.PREP
+
     if opt.programs is None or not len(opt.programs) > 0:
         parser.error("Must specify at least one program group to clear tags for.")
 
-    ccds = opt.PREP is not None and 36 or ccds
+    ccds = opt.PREP is not None and [36] or ccds
 
     for expnum in opt.expnums:
         for program in opt.programs:
