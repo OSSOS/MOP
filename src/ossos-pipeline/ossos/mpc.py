@@ -541,6 +541,10 @@ class Observation(object):
     def null_observation(self, null_observation=False):
         self._null_observation = _NullObservation(null_observation, self.null_observation_character)
 
+    @null_observation.getter
+    def null_observation(self, null_observation=False):
+        self._null_observation = _NullObservation(null_observation, self.null_observation_character)
+
     @property
     def provisional_name(self):
         return self._provisional_name
@@ -729,15 +733,20 @@ class _NullObservation(object):
         if null_observation_character is None:
             null_observation_character = "-"
         self.null_observation_character = null_observation_character
+
         if isinstance(null_observation, basestring):
+            # True if the first character of the null_observation argument is a '!', '-', or '#'
             self._null_observation = null_observation[0] in NULL_OBSERVATION_CHARACTERS
         elif isinstance(null_observation, bool):
             self._null_observation = null_observation
         else:
             self._null_observation = False
+        assert type(self._null_observation) == bool
 
     def __str__(self):
-        return self._null_observation and self.null_observation_character or " "
+        retval = self.null_observation_character if self._null_observation else " "
+        assert isinstance(retval, basestring)
+        return retval
 
     def __bool__(self):
         return self._null_observation
