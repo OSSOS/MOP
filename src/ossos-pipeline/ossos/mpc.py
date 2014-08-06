@@ -539,26 +539,7 @@ class Observation(object):
 
     @null_observation.setter
     def null_observation(self, null_observation=False):
-
-        class Null_Observation(object):
-            def __init__(self, null_observation=None, null_observation_character=None):
-                if null_observation_character is None:
-                    null_observation_character = "-"
-                self.null_observation_character = null_observation_character
-                if isinstance(null_observation, basestring):
-                    self._null_observation = null_observation[0] in NULL_OBSERVATION_CHARACTERS
-                elif isinstance(null_observation, bool):
-                    self._null_observation = null_observation
-                else:
-                    self._null_observation = False
-
-            def __str__(self):
-                return self._null_observation and self.null_observation_character or " "
-
-            def __bool__(self):
-                return self._null_observation
-
-        self._null_observation = Null_Observation(null_observation, self.null_observation_character)
+        self._null_observation = _NullObservation(null_observation, self.null_observation_character)
 
     @property
     def provisional_name(self):
@@ -570,10 +551,10 @@ class Observation(object):
             provisional_name = " " * 7
         else:
             provisional_name = provisional_name.strip()
-            if not provisional_name[0].isalpha():
-                logging.warning("Provisional Name should not be a number: {}".format(provisional_name))
-            if not len(provisional_name) <= 7:
-                logging.warning("Provisional Name too long {}".format(provisional_name))
+            # if not provisional_name[0].isalpha():
+            # logging.warning("Provisional Name should not be a number: {}".format(provisional_name))
+            # if not len(provisional_name) <= 7:
+            #     logging.warning("Provisional Name too long {}".format(provisional_name))
         self._provisional_name = provisional_name
 
     @property
@@ -741,6 +722,25 @@ class Observation(object):
                                       "must be 3 characters or less",
                                       observatory_code)
         self._observatory_code = str(observatory_code)
+
+
+class _NullObservation(object):
+    def __init__(self, null_observation, null_observation_character):
+        if null_observation_character is None:
+            null_observation_character = "-"
+        self.null_observation_character = null_observation_character
+        if isinstance(null_observation, basestring):
+            self._null_observation = null_observation[0] in NULL_OBSERVATION_CHARACTERS
+        elif isinstance(null_observation, bool):
+            self._null_observation = null_observation
+        else:
+            self._null_observation = False
+
+    def __str__(self):
+        return self._null_observation and self.null_observation_character or " "
+
+    def __bool__(self):
+        return self._null_observation
 
 
 class MPCComment(object):
