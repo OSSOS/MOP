@@ -8,10 +8,8 @@ import sys
 import time
 
 import requests
-
 import ephem
 from astropy.io.votable import parse
-import vos
 import matplotlib
 
 from ossos import storage
@@ -22,7 +20,6 @@ from matplotlib.pyplot import figure, close
 from matplotlib.patches import Rectangle
 from matplotlib.backends.backend_pdf import PdfPages
 import logging
-
 
 OSSOS_RUNIDS = list(('13AP05', '13AP06', '13BP05', '13BP06', '14AP05', '14AP06', '14BP05', '14BP06'))
 
@@ -105,7 +102,7 @@ def create_ascii_table(obsTable, outfile):
     t2 = None
     fout.write(bar + stamp + bar + header)
 
-    populated = vos.Client().listdir(storage.DBIMAGES)
+    populated = storage.list_dbimages()
     for i in range(len(obsTable) - 1, -1, -1):
         row = obsTable.data[i]
         if row['dataset_name'] not in populated:
@@ -131,7 +128,7 @@ def create_ascii_table(obsTable, outfile):
 
     if outfile[0:4] == "vos:":
         fout.flush()
-        vos.Client().copy(tmpFile.name, outfile)
+        storage.copy(tmpFile.name, outfile)
     fout.close()
 
     return
@@ -211,7 +208,7 @@ def create_sky_plot(obstable, outfile, night_count=1, stack=True):
         close()
     pdf.close()
     if outfile[0:4] == "vos:":
-        vos.Client().copy(tmpFile.name, outfile)
+        storage.copy(tmpFile.name, outfile)
         tmpFile.close()
 
     return

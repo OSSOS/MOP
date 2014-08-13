@@ -1,4 +1,3 @@
-
 from ossos.storage import get_mopheader, get_astheader
 
 __author__ = 'Michele Bannister, JJ Kavelaars'
@@ -26,7 +25,6 @@ NEW_LINE = '\r\n'
 
 
 class TracksParser(object):
-
     def __init__(self, inspect=True, skip_previous=False):
         self.orbit = None
         self._nights_per_darkrun = 18
@@ -41,7 +39,7 @@ class TracksParser(object):
         self.ssos_parser = SSOSParser(mpc_observations[0].provisional_name,
                                       input_observations=mpc_observations, skip_previous=self.skip_previous)
         self.orbit = Orbfit(mpc_observations)
-        self.orbit.summarize()  # defaults to predicting at today's date
+        print(self.orbit.summarize())  # defaults to predicting at today's date
 
         if self.orbit.arc_length < 1:
             # data from the same dark run.
@@ -417,6 +415,7 @@ class ParamDictBuilder(object):
 
     This should be fun!
     """
+
     def __init__(self,
                  observations,
                  verbose=False,
