@@ -2,16 +2,12 @@ __author__ = 'jjk'
 
 import ctypes
 import tempfile
-import sys
+from StringIO import StringIO
 
 import datetime
 from astropy import coordinates
 from astropy import units
-import ctypes
-import tempfile
-from StringIO import StringIO
 
-from .mpc import Observation
 from .mpc import Time
 
 
@@ -206,8 +202,8 @@ class Orbfit(object):
 
         fobj = StringIO()
 
-        for observation in self.observations:
-            fobj.write(observation.to_string()+"\n")
+        # for observation in self.observations:
+        # fobj.write(observation.to_string()+"\n")
 
         fobj.write("\n")
         fobj.write(str(self)+"\n")

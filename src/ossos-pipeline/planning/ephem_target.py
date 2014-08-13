@@ -155,12 +155,12 @@ for mpc_file in opt.mpc_files:
         orbit.predict(smjd)
         if opt.ccd:
             # FIXME: CONFIRM CCD NUMBERING IS 0-35 TO MATCH THE INDEX NUMBERING IN THIS ARRAY (seems to be ok: works)
-            orbit.coordinate.ra = orbit.coordinate.ra + coordinates.RA(offset[opt.ccd]["ra"], units.degree)
-            orbit.coordinate.dec = orbit.coordinate.dec + coordinates.Dec(offset[opt.ccd]["dec"], units.degree)
+            orbit.coordinate.ra = orbit.coordinate.ra + coordinates.RA(offset[int(opt.ccd)]["ra"], units.degree)
+            orbit.coordinate.dec = orbit.coordinate.dec + coordinates.Dec(offset[int(opt.ccd)]["dec"], units.degree)
         if opt.dra:
-            orbit.coordinate.ra = orbit.coordinate.ra + coordinates.RA(opt.dra, units.degree)
+            orbit.coordinate.ra = orbit.coordinate.ra + coordinates.RA(float(opt.dra), units.degree)
         if opt.ddec:
-            orbit.coordinate.dec = orbit.coordinate.dec + coordinates.Dec(opt.ddec, units.degree)
+            orbit.coordinate.dec = orbit.coordinate.dec + coordinates.Dec(float(opt.ddec), units.degree)
         sra = orbit.coordinate.ra.format(units.hour, sep=':')
         sdec = orbit.coordinate.dec.format(units.degree, sep=':')
         sdate = str(ephem.date(smjd-jd0))
