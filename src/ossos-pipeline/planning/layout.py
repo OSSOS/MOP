@@ -29,7 +29,9 @@ def plot_line(axes, fname, ltype):
 
 MPCORB_FILE = os.path.join(os.getenv('HOME', '/Users/jjk'), 'MPCORB.DAT')
 L7MODEL = 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
+L7MODEL = '/Users/kavelaarsj/Dropbox/Research/KuiperBelt/OSSOS/L7SyntheticModel-v09.txt'
 REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/ast/'
+
 PLOT_FIELD_EPOCH = 'Jul14'  # Oct14.00 ==> '0' days since the New Moon on Oct14
 #TODO the .00 is appended when this variable is used as a keyword that needs that .00 this is bad.
 DISCOVERY_NEW_MOON = 'Nov13'  # this is the date that the RA/DEC in blocks corresponds to.
@@ -39,12 +41,14 @@ PLOT_USNO_STARS = True
 PLOT_MEGACAM_ARCHIVE_FIELDS = True   ## TODO Make this work when True
 PLOT_SYNTHETIC_KBOS = True
 PLOT_SYNTHETIC_KBO_TRAILS = False
-PLOT_REAL_KBOS = True and os.access(REAL_KBO_AST_DIR,os.F_OK)
+PLOT_REAL_KBOS = False and os.access(REAL_KBO_AST_DIR,os.F_OK)
 PLOT_FIELD_LAYOUT = True
 
 PLOT_MPCORB = True and os.access(MPCORB_FILE, os.F_OK)
 
 
+LABEL_FIELDS = False
+LABEL_PLANETS = True
 # # EmulateApJ columnwidth=245.26 pts
 fig_width_pt = 246.0 * 3.0
 inches_per_pt = 1.0 / 72.27
@@ -62,7 +66,7 @@ params = {'backend': 'pdf',
           'text.usetex': False,
           'font.serif': 'Times',
           'font.family': 'serif',
-          'image.aspect': 'auto',
+          'image.aspect': 'equal',
           'figure.subplot.left': 0.2,
           'figure.subplot.bottom': 0.15,
           'figure.figsize': fig_size}
@@ -133,16 +137,18 @@ NAME                |RA         |DEC        |EPOCH |POINT|
 
 
 #fall13
-#blocks = {'13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"}}  # ,
-blocks = {'13BL': {'RA': "00:52:55.82", "DEC": "+03:43:49.1"}} 
-#        '13BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"}}
+blocks = {'13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"},  # ,
+          '13AE': {"RA": "14:15:28.89", "DEC": "-12:32:28.4"},  # E+0+0: image 1616681, ccd21 on April 9
+          '13AO': {"RA": "15:58:01.35", "DEC": "-12:19:54.2"},  # O+0+0: image 1625346, ccd21 on May 8
+          '13BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"},
+          '14AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"}
+          }
 
 ## this position is derived from the +0+0 field for 13B observed on November 1st 2013
 #blocks = {'14BH': {'RA': "01:28:32.32", "DEC": "+12:51:06.10"}}
 
 #spring14
 
-DISCOVERY_NEW_MOON = 'Oct13'
 
 newMoons = {'Feb13': "2013/02/10 10:00:00",
             'Mar13': "2013/03/11 10:00:00",
@@ -289,16 +295,28 @@ if year == "astr":
 ras = np.array(ras)
 decs = np.array(decs)
 
+ra_cen = 15.0
+dec_cen = 5.0
+width = 245 - 205
+height = -8 + 25
+ra_cen = 180.0
+dec_cen = 0.0
+width = 360
+height = 70
+
 ## lets make a plot of the field selections.
 fig = figure()
-ax = fig.add_subplot(111, aspect="equal")
-#ax.set_xlim(32, 18)
-#ax.set_xlim(24,10)
-ax.set_xlim(20, 10)
-ax.set_ylim(0,10)
-xlabel('RA (deg)')
-ylabel('DE (deg)')
+ax = fig.add_subplot(111)
+
+
+ax.set_xlim(ra_cen+width/2.0, ra_cen-width/2.0)
+#ax.set_ylim(dec_cen - height/2.0, dec_cen + height/2.0)
+ax.set_ylim(-30,30)
+ax.set_xlabel('RA (deg)')
+ax.set_ylabel('DE (deg)')
+
 ax.grid()
+
 
 ## plot the galactic plane line ..
 plot_line(ax, 'eplane.radec', 'b-')
@@ -415,32 +433,37 @@ for idx in range(len(ras)):
                                     width=camera_dimen,
                                     edgecolor='b',
                                     lw=0.5, fill=True, alpha=0.3))
-            ax.text(math.degrees(ra), math.degrees(dec),
-                    name,
-                    horizontalalignment='center',
-                    verticalalignment='center',
-                    zorder=10,
-                    fontdict={'size': 4, 'color': 'darkblue'})
+            if LABEL_FIELDS :
+                ax.text(math.degrees(ra), math.degrees(dec),
+                        name,
+                        horizontalalignment='center',
+                        verticalalignment='center',
+                        zorder=10,
+                        fontdict={'size': 4, 'color': 'darkblue'})
 
 
     f.write("""]]</CSV></DATA>\n</TABLE>\n</ASTRO>\n""")
     f.close()
 
 
-ra_cen = 15.0
-dec_cen = 5.0
-width = 245 - 205
-height = -8 + 25
-
 if PLOT_USNO_STARS:
     print "PLOTTING LOCATIONS NEARBY BRIGHT USNO B1 STARS"
-    t = votable.parse(usnoB1.TAPQuery(ra_cen, dec_cen, width, height)).get_first_table()
+    for ra in range(int(ra_cen - width/2.0),int(ra_cen + width/2.), 10):
+        for dec in range(int(dec_cen - height/2.0),int(dec_cen + height/2.), 10):
+	    file_name = "/Users/kavelaarsj/usno/usno{:5.2f}{:5.2f}.xml".format(ra,dec)
+	    if not os.access(file_name, os.R_OK):
+                usno = usnoB1.TAPQuery(ra, dec, 10.0, 10.0)
+		fobj=open(file_name,'w')
+	        fobj.write(usno.read())
+                fobj.close()
+            t = votable.parse(open(file_name,'r')).get_first_table()
 
-    Rmag = t.array['Bmag'][t.array['Bmag'] < 12]
-    min_mag = max(Rmag.min(), 11)
-    scale = 0.5 * 10 ** ((min_mag - Rmag) / 2.5)
-    ax.scatter(t.array['RAJ2000'], t.array['DEJ2000'], s=scale, marker='o', facecolor='y', alpha=0.8, edgecolor='',
-               zorder=-10)
+	    select = t.array['Bmag'] < 9.3
+            Rmag = t.array['Bmag'][select]
+            min_mag = max(Rmag.min(), 11)
+            scale = 0.5 * 10 ** ((min_mag - Rmag) / 2.5) 
+            ax.scatter(t.array['RAJ2000'][select], t.array['DEJ2000'][select], s=scale, marker='o', facecolor='y', alpha=0.3, edgecolor='',
+                       zorder=-10)
 
     for planet in [ephem.Mars(), ephem.Jupiter(), ephem.Saturn(), ephem.Uranus(), ephem.Neptune()]:
         planet.compute(plot_date)
@@ -449,7 +472,8 @@ if PLOT_USNO_STARS:
                    s=40,
                    facecolor='r',
                    edgecolor='g', )
-        ax.text(math.degrees(planet.ra), math.degrees(planet.dec),
+        if LABEL_PLANETS :
+            ax.text(math.degrees(planet.ra), math.degrees(planet.dec),
                 planet.name,
                 horizontalalignment='center',
                 fontdict={'size': 6,
@@ -457,25 +481,31 @@ if PLOT_USNO_STARS:
 
 if PLOT_MEGACAM_ARCHIVE_FIELDS:
     print "PLOTTING FOOTPRINTS NEARBY ARCHIVAL MEGAPRIME IMAGES."
-    t = votable.parse(megacam.TAPQuery(ra_cen, dec_cen, width, height)).get_first_table()
 
-    ra = t.array['RAJ2000']
-    dec = t.array['DEJ2000']
+    for qra in range(int(ra_cen - width/2.0),int(ra_cen + width/2.), 60):
+        for qdec in range(int(dec_cen - height/2.0),int(dec_cen + height/2.), 30):
+            filename = "/Users/kavelaarsj/usno/megacam{:+6.2f}{:+6.2f}.xml".format(qra,qdec)
+            if not os.access(filename, os.R_OK):
+                data = megacam.TAPQuery(qra, qdec, 60.0, 30.0).read()
+                fobj = open(filename, 'w')
+                fobj.write(data)
+                fobj.close()
+            fobj = open(filename, 'r')
+            t = votable.parse(fobj).get_first_table()
 
-    rects = [Rectangle(xy=(ra[idx] - dimen / 2.0, dec[idx] - dimen / 2.0),
-                       height=camera_dimen,
-                       width=camera_dimen,
-                       edgecolor='k',
-                       alpha=0.1,
-                       lw=0.1, zorder=-100,
-                       fill=False) for idx in xrange(ra.size)]
-    for r in rects:
-        ax.add_artist(r)
+            ra = t.array['RAJ2000']
+            dec = t.array['DEJ2000']
 
-        ra_cen = math.radians(ra_cen)
-        dec_cen = math.radians(dec_cen)
-        width = math.radians(width)
-        height = math.radians(height)
+            rects = [Rectangle(xy=(ra[idx] - dimen / 2.0, dec[idx] - dimen / 2.0),
+                               height=camera_dimen,
+                               width=camera_dimen,
+                               edgecolor='m',
+                               alpha=0.1,
+                               lw=0.1, zorder=-100,
+                               fill=False) for idx in xrange(ra.size)]
+            for r in rects:
+                ax.add_artist(r)
+                
 
 if PLOT_MPCORB:
     print "PLOTTING LOCATIONS OF KNOWN KBOs (using {})".format(MPCORB_FILE)
@@ -488,9 +518,9 @@ if PLOT_MPCORB:
         ax.scatter(math.degrees(kbo.ra),
                    math.degrees(kbo.dec),
                    marker='h',
-                   s=20,
-                   facecolor='none',
-                   edgecolor='g')
+                   s=1,
+                   facecolor='g',
+                   edgecolor='g', alpha=0.3)
 
 if PLOT_REAL_KBOS:
     print "PLOTTING LOCATIONS OF OSSOS KBOs (using directory {})".format(REAL_KBO_AST_DIR)
@@ -504,6 +534,14 @@ if PLOT_REAL_KBOS:
         #    continue
         if obs[0].mag < 23.6:
             c = 'b'
+            if LABEL_FIELDS : 
+                ax.text(kbo.coordinate.ra.degrees,
+                    kbo.coordinate.dec.degrees,
+                    ast.split('.')[0],
+                    horizontalalignment='center',
+                    verticalalignment='baseline',
+                    fontdict={'size': 6,
+                              'color': 'darkred'})
         else:
             c = 'g'
         ax.text(kbo.coordinate.ra.degrees,
@@ -523,11 +561,28 @@ if PLOT_REAL_KBOS:
         ax.scatter(kbo.coordinate.ra.degrees,
                    kbo.coordinate.dec.degrees,
                    marker='o',
-                   s=10,
+                   s=1,
                    facecolor='none',
                    edgecolor=c,
                    alpha=0.5)
 
+
+new_tick_locations = np.array(range(360,0,-30))
+def tick_function(X):
+    import calendar
+    month = ( X/30.0 + 8 ) % 12 + 1
+    return [ calendar.month_abbr[int(z)] for z in month ]
+print new_tick_locations
+if True:
+    ax.set_xlim(360,0)
+    ax2 = ax.twiny()
+    ax2.set_xticks(new_tick_locations)
+    ax2.set_xticklabels(tick_function(new_tick_locations))
+    ax2.set_xlabel("Opp. Month")    
+    ax2.set_xlim(360,0)
+
+
+print "SAVING FILE"
 savefig('layout.pdf')
 
 sys.stderr.write("FINISHED\n")
