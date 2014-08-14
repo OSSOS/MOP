@@ -42,8 +42,9 @@ BLOCKS = {'13AE': {"RA": "14:15:28.89", "DEC": "-12:32:28.4"},  # E+0+0: image 1
           '13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"},  # 13B blocks are at their opposition locations
           '13BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"},  # due to bad weather, discovery wasn't until Dec/Jan
           # 14A fields:  These are the 'pre-covery' fields  for 15A 
-          '14AM': {'RA': "15:36:00.00", "DEC": "-12:00:00.0"}
-          '15AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"}
+          '14AM': {'RA': "15:36:00.00", "DEC": "-12:00:00.0"},
+          '15AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"},
+          '15AS': {'RA': "20:00:00.00", "DEC": "-20:00:00.0"}
 }
 
 newMoons = {'Feb13': "2013/02/10 10:00:00",
@@ -541,7 +542,7 @@ if __name__ == '__main__':
                         help="Plot blocks at a specific user-provided date, format yyyy/mm/dd HH:MM:SS.")
     parser.add_argument("-dist", action="store_true",
                         help="Display text of block IDs and arc distance of blocks from opposition on the given date")
-    parser.add_argument("-blocks", action="store_true",
+    parser.add_argument("-blocks", 
                         help="specify blocks to be plotted, e.g. 13AE. Without specifying, will do all N(blocks) that"
                              "exist, making N(blocks) separate plots.")
     args = parser.parse_args()
@@ -551,7 +552,7 @@ if __name__ == '__main__':
     file_id = ""
     blocks = BLOCKS  # Coordinates at opposition of currently-determined OSSOS blocks (2013: 4; 2015: 8 total).
     if args.blocks:
-        blocks = BLOCKS[args.blocks]
+        blocks = { args.blocks: BLOCKS[args.blocks] }
     print blocks
 
     for extent, block in enumerate(blocks):  # FIXME: need separation between key, item here in blocks
