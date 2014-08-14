@@ -1,5 +1,6 @@
-# !python
+#!python
 from Tkinter import *
+import logging
 import tkFileDialog
 import math
 import optparse
@@ -19,7 +20,7 @@ from ossos import mpc
 class Plot(Canvas):
     """A plot class derived from the the Tkinter.Canvas class"""
 
-    def __init__(self, root, width=640, height=480, background='white'):
+    def __init__(self, root, width=1.5*640, height=1.5*480, background='white'):
 
         self.heliocentric = StringVar()
         self.heliocentric.set("00:00:00.00 +00:00:00.0")
@@ -108,10 +109,12 @@ class Plot(Canvas):
         """convert from plot to canvas coordinates.
 
         See also c2p."""
-        if not p: p = [0, 0]
+        if p is None:
+            p = [0, 0]
 
         x = (p[0] - self.x1) * self.xscale + self.cx1
         y = (p[1] - self.y1) * self.yscale + self.cy1
+        #logging.debug("p2c: ({},{}) -> ({},{})".format(p[0],p[1], x, y))
 
         return (x, y)
 
@@ -126,17 +129,18 @@ class Plot(Canvas):
         """Convert from canvas to screen coordinates"""
         if not p: p = [0, 0]
 
-        return ((p[0] - self.canvasx(self.cx1), p[1] - self.canvasy(self.cy1)))
+        return p[0] - self.canvasx(self.cx1), p[1] - self.canvasy(self.cy1)
 
     def c2p(self, p=None):
         """Convert from canvas to plot coordinates.
 
         See also p2s."""
-        if not p: p = [0, 0]
+        if not p:
+            p = [0, 0]
 
         x = (p[0] - self.cx1) / self.xscale + self.x1
         y = (p[1] - self.cy1) / self.yscale + self.y1
-        return (x, y)
+        return x, y
 
     def _convert(self, s, factor=15):
         p = s.split(":")
@@ -350,7 +354,14 @@ class Plot(Canvas):
         self.doplot()
 
     def center(self, event):
-        (ra, dec) = self.c2p((self.canvasx(event.x), self.canvasy(event.y)))
+        (cx, cy) = self.canvasx(event.x), self.canvasy(event.y)
+        (ra, dec) = self.c2p((cx, cy))
+        logging.debug("SCREEN: {},{} CANVAS: {},{}  RA/DEC: {},{}".format(event.x,
+                                                                          event.y,
+                                                                          cx,
+                                                                          cy,
+                                                                          ra,
+                                                                          dec))
         self.recenter(ra, dec)
 
     def zoom_in(self, event=None):
@@ -1071,6 +1082,13 @@ if __name__ == '__main__':
     parser = optparse.OptionParser()
     parser.add_option("-p", "--pointings", help="A file containing some pointings")
     parser.add_option("-d", "--dirname", help="Directory with mpc/ast files of Kuiper belt objects")
+    parser.add_option('--debug', action="store_true")
+
     (opt, files) = parser.parse_args()
+
+    if opt.debug:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.WARNING)
 
     start(opt.dirname, opt.pointings)
