@@ -20,6 +20,7 @@ begin
 	int    nimg, dispflg 
 	real   rate,xsh0,ysh0,angle,angledeg
 	real   dt,xsh[4],ysh[4],se,sn,wf2x,wf2y,wf3x,wf3y,wf4x,wf4y
+	real   dra, ddec, ra, dec
 	real   currtime, strttime
 	string infile,rootword,outfile,cplist,junkfl1,junkfl2
 	string newfield,imglist,intable,cntjunk
@@ -59,7 +60,7 @@ begin
 
 	nimg = 0
 #--------------------------------------------
-	while(fscan(list,rootword,dt,se,sn,wf2x,wf2y,wf3x,wf3y,wf4x,wf4y) != EOF)
+	while(fscan(list,image,dra,ddec,ra,dec) != EOF)
 	{
 	   nimg= nimg+1
 	   print("************ ",nimg," *************")
