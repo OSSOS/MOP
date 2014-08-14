@@ -39,7 +39,7 @@ class TracksParser(object):
         self.ssos_parser = SSOSParser(mpc_observations[0].provisional_name,
                                       input_observations=mpc_observations, skip_previous=self.skip_previous)
         self.orbit = Orbfit(mpc_observations)
-        self.orbit.summarize()  # defaults to predicting at today's date
+        print(self.orbit.summarize())  # defaults to predicting at today's date
 
         if self.orbit.arc_length < 1:
             # data from the same dark run.
@@ -55,7 +55,7 @@ class TracksParser(object):
         while True:
             tracks_data = self.query_ssos(mpc_observations, lunation_count)
 
-            if (tracks_data.get_arc_length() > ( self.orbit.arc_length + 2.0 / 86400.0) or
+            if (tracks_data.get_arc_length() > (self.orbit.arc_length + 2.0 / 86400.0) or
                         tracks_data.get_reading_count() > len(mpc_observations)):
                 return tracks_data
             if not self.inspect:
@@ -86,11 +86,11 @@ class TracksParser(object):
         else:
             search_start_date = Time((mpc_observations[0].date.jd - (
                 self._nights_per_darkrun +
-                lunation_count * self._nights_separating_darkruns) ),
+                lunation_count * self._nights_separating_darkruns)),
                                      format='jd', scale='utc')
             search_end_date = Time((mpc_observations[-1].date.jd + (
                 self._nights_per_darkrun +
-                lunation_count * self._nights_separating_darkruns) ),
+                lunation_count * self._nights_separating_darkruns)),
                                    format='jd', scale='utc')
 
         sys.stderr.write("Sending query to SSOS\n")
@@ -620,8 +620,8 @@ class Query(object):
         assert (self.response.status_code == requests.codes.ok )
 
         lines = self.response.content
-        if len(lines) < 1 or str(lines[1]).startswith((
-                "An error occurred getting the ephemeris")):
+        if len(lines) < 2 or str(lines[1]).startswith((
+            "An error occured getting the ephemeris")):
             raise IOError(os.errno.EACCES,
                           "call to SSOIS failed on format error")
 
