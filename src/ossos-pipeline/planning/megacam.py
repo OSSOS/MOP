@@ -1,23 +1,22 @@
 #!/usr/bin/env python
 
-
 import urllib
 
 def TAPQuery(RAdeg=180.0, DECdeg=0.0, width=1, height=1):
     """Do a query of the CADC Megacam table.  Get all observations insize the box.  Returns a file-like object"""
 
-    radius = max(width, height)/2.0
 
     QUERY =( """ SELECT """
-             """ COORD1(CENTROID(Plane.position_bounds)) AS "RAJ2000", COORD2(CENTROID(Plane.position_bounds)) AS "DEJ2000" """
+             """ COORD1(CENTROID(Plane.position_bounds)) AS "RAJ2000", COORD2(CENTROID(Plane.position_bounds)) AS "DEJ2000", Plane.time_bounds_cval1 as "MJDATE" """
              """ FROM """
-             """ caom.Observation as o JOIN caom.Plane as Plane on o.obsID=Plane.obsID """
+             """ caom2.Observation as o JOIN caom2.Plane as Plane on o.obsID=Plane.obsID """
              """ WHERE """
              """ o.collection = 'CFHT' """
              """ AND o.instrument_name = 'MegaPrime' """
-             """ AND INTERSECTS( CIRCLE('ICRS', %f, %f, %f), Plane.position_bounds ) = 1 """ )
+             """ AND INTERSECTS( BOX('ICRS', {}, {}, {}, {}), Plane.position_bounds ) = 1 """
+             """ AND ( o.proposal_id LIKE '%P05' OR o.proposal_id LIKE '%L03' or o.proposal_id LIKE '%L06' or o.proposal_id in ( '06AF33', '06BF98' ) ) """ )
 
-    QUERY = QUERY % ( RAdeg, DECdeg, radius)
+    QUERY = QUERY.format( RAdeg, DECdeg, width, height)
 
     data={"QUERY": QUERY,
           "REQUEST": "doQuery",
