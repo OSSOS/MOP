@@ -40,14 +40,6 @@ def scramble(expnums, ccd, version='p', dry_run=False):
             continue
         storage.copy(fname, uri)
 
-        # now make a link ebetween files that the plant system will need
-        for ext in ['apcor', 'obj.jmp', 'mopheader', 'phot',
-                    'psf.fits','trans.jmp', 'zeropoint.used', 'fwhm']:
-            if storage.exists(storage.get_uri(expnums[order[idx]], ccd, 's', ext)):
-                storage.delete(expnums[order[idx]], ccd, 's', ext)
-                storage.vlink(expnums[idx], ccd, 'p', ext,
-                         expnums[order[idx]], ccd, 's', ext)
-
     return
 
 if __name__=='__main__':
