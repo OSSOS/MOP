@@ -16,7 +16,6 @@ for script in os.listdir(script_dir):
         continue
     scripts.append(os.path.join(script_dir,script))
 scripts.append('validate.py')
-scripts.append('scripts/OSSOSplot.py')
 
 version = "0.2.1"
 

@@ -508,7 +508,7 @@ if __name__ == '__main__':
                         help="Plot blocks at a specific user-provided date, format yyyy/mm/dd HH:MM:SS.")
     parser.add_argument("-dist", action="store_true",
                         help="Display text of block IDs and arc distance of blocks from opposition on the given date")
-    parser.add_argument("-blocks", action="store_true",
+    parser.add_argument("-blocks", 
                         help="specify blocks to be plotted, e.g. 13AE. Without specifying, will do all N(blocks) that"
                              "exist, making N(blocks) separate plots.")
     args = parser.parse_args()

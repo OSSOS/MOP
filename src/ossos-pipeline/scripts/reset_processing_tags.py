@@ -42,6 +42,7 @@ def clear_tags(my_expnum, ops, my_ccds, dry_run=True):
                 for ccd in my_ccds:
                     # print my_expnum, fake, my_program, version, ccd
                     key = storage.get_process_tag(fake + my_program, ccd, version)
+                    print key
                     props[key] = None
                     if dry_run:
                         sys.stdout.write("{} ".format(key))
@@ -71,6 +72,9 @@ if __name__ == '__main__':
     opt = parser.parse_args()
 
     ccds = opt.ccd is not None and [opt.ccd] or range(36)
+
+    ccds = [item for sublist in ccds for item in sublist]
+    print ccds
 
     if opt.PREP is not None:
         opt.programs = opt.PREP
