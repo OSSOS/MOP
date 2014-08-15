@@ -7,9 +7,15 @@ import optparse
 import re
 import sys
 import time
+import Polygon
+import Polygon.IO
 
+
+from astropy import coordinates
+from astropy import units
 import ephem
 
+from ossos.ephem_target import EphemTarget
 from ossos.gui import context
 from ossos import orbfit
 from ossos import storage
@@ -18,34 +24,33 @@ from ossos import mpc
 import megacam
 
 
-colossos=[ 'O13BL3R9',
-'O13BL3SK',
-'O13BL3RB',
-'O13BL3SC',
-'O13BL3S3',
-'O13BL3QX',
-'O13BL3TF',
-'O13BL3TA',
-'O13BL3SN',
-'O13BL3RE',
-'O13BL3RV',
-'O13BL3SY',
-'O13BL3RG',
-'O13BL3RN',
-'O13BL3SW',
-'O13BL3T7',
-'O13BL3RT',
-'O13BL3RQ',
-'O13BL3SH',
-'O13BL3R1',
-'O13BL3RH']
-
+colossos = ['O13BL3R9',
+            'O13BL3SK',
+            'O13BL3RB',
+            'O13BL3SC',
+            'O13BL3S3',
+            'O13BL3QX',
+            'O13BL3TF',
+            'O13BL3TA',
+            'O13BL3SN',
+            'O13BL3RE',
+            'O13BL3RV',
+            'O13BL3SY',
+            'O13BL3RG',
+            'O13BL3RN',
+            'O13BL3SW',
+            'O13BL3T7',
+            'O13BL3RT',
+            'O13BL3RQ',
+            'O13BL3SH',
+            'O13BL3R1',
+            'O13BL3RH']
 
 
 class Plot(Canvas):
     """A plot class derived from the the Tkinter.Canvas class"""
 
-    def __init__(self, root, width=1.5*640, height=1.5*480, background='white'):
+    def __init__(self, root, width=1.5 * 640, height=1.5 * 480, background='white'):
 
         self.heliocentric = StringVar()
         self.heliocentric.set("00:00:00.00 +00:00:00.0")
@@ -563,21 +568,30 @@ class Plot(Canvas):
         this_camera = Camera(camera=self.camera.get())
         ccds = this_camera.getGeometry(ra, dec)
         items = []
+        polygons = []
         for ccd in ccds:
             if len(ccd) == 4:
                 (x1, y1) = self.p2c((ccd[0], ccd[1]))
                 (x2, y2) = self.p2c((ccd[2], ccd[3]))
-                item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill='#000')
+                item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill=None)
+                polygon = Polygon.Polygon(((ccd[0], ccd[1]),
+                                           (ccd[0], ccd[3]),
+                                           (ccd[2], ccd[3]),
+                                           (ccd[2], ccd[1]),
+                                           (ccd[0], ccd[1])))
             else:
+                polygon = None
                 (x1, y1) = self.p2c((ccd[0] - ccd[2] / math.cos(ccd[1]), ccd[1] - ccd[2]))
                 (x2, y2) = self.p2c((ccd[0] + ccd[2] / math.cos(ccd[1]), ccd[1] + ccd[2]))
                 item = self.create_oval(x1, y1, x2, y2)
             items.append(item)
+            polygons.append(polygon)
         label = {}
         label['text'] = self.plabel.get()
         label['id'] = self.label(this_camera.ra, this_camera.dec, label['text'])
         self.pointings.append({
             "label": label,
+            "polygons": polygons,
             "items": items,
             "camera": this_camera})
         self.current_pointing(len(self.pointings) - 1)
@@ -666,8 +680,8 @@ class Plot(Canvas):
 
         this_camera = Camera(camera="MEGACAM_1")
 
-        ra_cen = (self.x1 + self.x2)/2.0
-        dec_cen = (self.y1 + self.y2)/2.0
+        ra_cen = (self.x1 + self.x2) / 2.0
+        dec_cen = (self.y1 + self.y2) / 2.0
         width = math.fabs(self.x1 - self.x2)
         height = math.fabs(self.y1 - self.y2)
 
@@ -678,21 +692,30 @@ class Plot(Canvas):
             dec = row['DEJ2000']
             ccds = this_camera.getGeometry(ra, dec)
             items = []
+            polygons = []
             for ccd in ccds:
                 if len(ccd) == 4:
                     (x1, y1) = self.p2c((ccd[0], ccd[1]))
                     (x2, y2) = self.p2c((ccd[2], ccd[3]))
+                    polygon = Polygon.Polygon(((ccd[0],ccd[1]),
+                                               (ccd[0],ccd[3]),
+                                               (ccd[2],ccd[3]),
+                                               (ccd[2],ccd[1]),
+                                               (ccd[0],ccd[1])))
                     item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill='#000')
                 else:
                     (x1, y1) = self.p2c((ccd[0] - ccd[2] / math.cos(ccd[1]), ccd[1] - ccd[2]))
                     (x2, y2) = self.p2c((ccd[0] + ccd[2] / math.cos(ccd[1]), ccd[1] + ccd[2]))
+                    polygon = None
                     item = self.create_oval(x1, y1, x2, y2)
                 items.append(item)
+                polygons.append(polygon)
             label = {}
             label['text'] = row['target_name']
             label['id'] = self.label(this_camera.ra, this_camera.dec, label['text'])
             self.pointings.append({
                 "label": label,
+                "polygons": polygons,
                 "items": items,
                 "camera": this_camera})
             self.current_pointing(len(self.pointings) - 1)
@@ -701,8 +724,53 @@ class Plot(Canvas):
     def save_pointings(self):
         """Print the currently defined FOVs"""
 
-        f = tkFileDialog.asksaveasfile()
         i = 0
+        if self.pointing_format.get() == 'CFHT ET':
+            for pointing in self.pointings:
+                name = pointing["label"]["text"]
+                polygons = pointing["polygons"]
+                et = EphemTarget(name)
+                # determine the mean motion of KBOs in this field.
+                field_kbos = []
+                center_ra = 0
+                center_dec = 0
+                for kbo_name in self.kbos:
+                    kbo = self.kbos[kbo_name]
+                    kbo.predict(mpc.Time(self.date.get(), scale='utc'))
+                    ra = kbo.coordinate.ra.radians
+                    dec = kbo.coordinate.dec.radians
+                    for polygon in polygons:
+                        assert isinstance(polygon, Polygon.Polygon)
+                        if polygon.isInside(ra, dec):
+                            field_kbos.append(kbo)
+                            center_ra += ra
+                            center_dec += dec
+                start_date = mpc.Time(self.date.get(), scale='utc').jd
+                trail_mid_point = 6
+                for days in range(trail_mid_point * 2 + 1):
+                    today = mpc.Time(start_date - trail_mid_point + days,
+                                     scale='utc',
+                                     format='jd')
+                    mean_motion = (0, 0)
+                    if len(field_kbos) > 0:
+                        current_ra = 0
+                        current_dec = 0
+                        for kbo in field_kbos:
+                            kbo.predict(today)
+                            current_ra += kbo.coordinate.ra.radians
+                            current_dec += kbo.coordinate.dec.radians
+                        mean_motion = ((current_ra - center_ra)/len(field_kbos),
+                                       (current_dec - center_dec)/len(field_kbos))
+                    ra = pointing['camera'].coordinate.ra.radians + mean_motion[0]
+                    dec = pointing['camera'].coordinate.dec.radians + mean_motion[1]
+                    cc = coordinates.ICRSCoordinates(ra=ra,
+                                                     dec=dec,
+                                                     unit=(units.radian, units.radian),
+                                                     obstime=today)
+                    et.coordinates.append(cc)
+                et.save()
+            return
+        f = tkFileDialog.asksaveasfile()
         if self.pointing_format.get() == 'CFHT PH':
             f.write("""<?xml version = "1.0"?>
 <!DOCTYPE ASTRO SYSTEM "http://vizier.u-strasbg.fr/xml/astrores.dtd">
@@ -801,6 +869,11 @@ NAME                |RA         |DEC        |EPOCH |POINT|
             if not re.search(re_string, name):
                 continue
             vlist.append(name)
+            point_color = 'black'
+            for cname in colossos:
+                if cname in name:
+                    point_color = 'blue'
+                    break
             if type(kbos[name]) == type(ephem.EllipticalBody()):
                 kbos[name].compute(w.date.get())
                 ra = kbos[name].ra
@@ -808,9 +881,16 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                 a = math.radians(10.0 / 3600.0)
                 b = a
                 ang = 0.0
-                color = 'blue'
+                point_size = 2
+                point_color = 'yellow'
                 yoffset = +10
                 xoffset = +10
+                w.create_point(ra, dec, size=point_size, color=point_color)
+                if w.show_ellipse.get() == 1:
+                    if a < math.radians(5.0):
+                        w.create_ellipse(ra, dec, a, b, ang)
+                if w.show_labels.get() == 1:
+                    w.label(ra, dec, name, offset=[xoffset, yoffset])
             else:
                 yoffset = -10
                 xoffset = -10
@@ -819,6 +899,7 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                 start_date = mpc.Time(w.date.get(), scale='utc').jd
                 trail_mid_point = 6
                 for days in range(trail_mid_point * 2 + 1):
+                    point_size = days == trail_mid_point and 5 or 1
                     today = mpc.Time(start_date - trail_mid_point + days, scale='utc', format='jd')
                     kbo.predict(today, 568)
                     ra = kbo.coordinate.ra.radians
@@ -826,24 +907,17 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                     a = math.radians(kbo.dra / 3600.0)
                     b = math.radians(kbo.ddec / 3600.0)
                     ang = math.radians(kbo.pa)
-                    if ( a > math.radians(0.3) ):
-                        color = 'green'
-                    else:
-                        color = 'black'
-                    if kbo.arc_length > 180:
-                        color = 'red'
-                    for cname in colossos :
-			if cname in name:
-			    color = 'blue'
-                    w.create_point(ra, dec, size=1, color=color)
+                    if a > math.radians(0.3):
+                        point_color = 'red'
+                    if kbo.arc_length > 180 and point_color != 'blue':
+                        point_color = 'green'
+                    w.create_point(ra, dec, size=point_size, color=point_color)
                     if w.show_ellipse.get() == 1 and days == trail_mid_point + 1:
-                        first_date = False
-                        if ( a < math.radians(5.0) ):
+                        if a < math.radians(5.0):
                             w.create_ellipse(ra, dec, a, b, ang)
-            if ( a < math.radians(1.0) ):
-                w.create_point(ra, dec, size=2, color=color)
-            if w.show_labels.get() == 1:
-                w.label(ra, dec, name, offset=[xoffset, yoffset])
+                        if w.show_labels.get() == 1:
+                            w.label(ra, dec, name, offset=[xoffset, yoffset])
+
         vlist.sort()
         for v in vlist:
             w.objList.insert(END, v)
@@ -973,20 +1047,36 @@ class Camera:
                 "L2": [{"ra": 0, "dec": +0.98 * 0.5, "ddec": 1.0 * 0.98, "dra": 8.0 * 0.98},
                        {"ra": 0, "dec": -0.98 * 0.5, "ddec": 1.0 * 0.98, "dra": 8.0 * 0.98}],
                 "SSC": [
-            {"ra": -2*(0.20 * 2048 +15.0)/ 3600.0, "dec": 0.5*(4096 * 0.20 + 15.0)/3600.0, "ddec": 0.20*4096/3600.0, "dra": 0.20*2048/3600.0 },
-            {"ra": -1*(0.20 * 2048 +15.0)/ 3600.0, "dec": 0.5*(4096 * 0.20 + 15.0)/3600.0, "ddec": 0.20*4096/3600.0, "dra": 0.20*2048/3600.0 },
-            {"ra": -0*(0.20 * 2048 +15.0)/ 3600.0, "dec": 0.5*(4096 * 0.20 + 15.0)/3600.0, "ddec": 0.20*4096/3600.0, "dra": 0.20*2048/3600.0 },
-            {"ra": 1*(0.20 * 2048 +15.0)/ 3600.0, "dec": 0.5*(4096 * 0.20 + 15.0)/3600.0, "ddec": 0.20*4096/3600.0, "dra": 0.20*2048/3600.0 },
-            {"ra": 2*(0.20 * 2048 +15.0)/ 3600.0, "dec": 0.5*(4096 * 0.20 + 15.0)/3600.0, "ddec": 0.20*4096/3600.0, "dra": 0.20*2048/3600.0 },
-            {"ra": -2*(0.20 * 2048 +15.0)/ 3600.0, "dec": -0.5*(4096 * 0.20 + 15.0)/3600.0, "ddec": 0.20*4096/3600.0, "dra": 0.20*2048/3600.0 },
-            {"ra": -1*(0.20 * 2048 +15.0)/ 3600.0, "dec": -0.5*(4096 * 0.20 + 15.0)/3600.0, "ddec": 0.20*4096/3600.0, "dra": 0.20*2048/3600.0 },
-            {"ra": -0*(0.20 * 2048 +15.0)/ 3600.0, "dec": -0.5*(4096 * 0.20 + 15.0)/3600.0, "ddec": 0.20*4096/3600.0, "dra": 0.20*2048/3600.0 },
-            {"ra": 1*(0.20 * 2048 +15.0)/ 3600.0, "dec": -0.5*(4096 * 0.20 + 15.0)/3600.0, "ddec": 0.20*4096/3600.0, "dra": 0.20*2048/3600.0 },
-            {"ra": 2*(0.20 * 2048 +15.0)/ 3600.0, "dec": -0.5*(4096 * 0.20 + 15.0)/3600.0, "ddec": 0.20*4096/3600.0, "dra": 0.20*2048/3600.0 }
-                        ]
+                    {"ra": -2 * (0.20 * 2048 + 15.0) / 3600.0, "dec": 0.5 * (4096 * 0.20 + 15.0) / 3600.0,
+                     "ddec": 0.20 * 4096 / 3600.0, "dra": 0.20 * 2048 / 3600.0},
+                    {"ra": -1 * (0.20 * 2048 + 15.0) / 3600.0, "dec": 0.5 * (4096 * 0.20 + 15.0) / 3600.0,
+                     "ddec": 0.20 * 4096 / 3600.0, "dra": 0.20 * 2048 / 3600.0},
+                    {"ra": -0 * (0.20 * 2048 + 15.0) / 3600.0, "dec": 0.5 * (4096 * 0.20 + 15.0) / 3600.0,
+                     "ddec": 0.20 * 4096 / 3600.0, "dra": 0.20 * 2048 / 3600.0},
+                    {"ra": 1 * (0.20 * 2048 + 15.0) / 3600.0, "dec": 0.5 * (4096 * 0.20 + 15.0) / 3600.0,
+                     "ddec": 0.20 * 4096 / 3600.0, "dra": 0.20 * 2048 / 3600.0},
+                    {"ra": 2 * (0.20 * 2048 + 15.0) / 3600.0, "dec": 0.5 * (4096 * 0.20 + 15.0) / 3600.0,
+                     "ddec": 0.20 * 4096 / 3600.0, "dra": 0.20 * 2048 / 3600.0},
+                    {"ra": -2 * (0.20 * 2048 + 15.0) / 3600.0, "dec": -0.5 * (4096 * 0.20 + 15.0) / 3600.0,
+                     "ddec": 0.20 * 4096 / 3600.0, "dra": 0.20 * 2048 / 3600.0},
+                    {"ra": -1 * (0.20 * 2048 + 15.0) / 3600.0, "dec": -0.5 * (4096 * 0.20 + 15.0) / 3600.0,
+                     "ddec": 0.20 * 4096 / 3600.0, "dra": 0.20 * 2048 / 3600.0},
+                    {"ra": -0 * (0.20 * 2048 + 15.0) / 3600.0, "dec": -0.5 * (4096 * 0.20 + 15.0) / 3600.0,
+                     "ddec": 0.20 * 4096 / 3600.0, "dra": 0.20 * 2048 / 3600.0},
+                    {"ra": 1 * (0.20 * 2048 + 15.0) / 3600.0, "dec": -0.5 * (4096 * 0.20 + 15.0) / 3600.0,
+                     "ddec": 0.20 * 4096 / 3600.0, "dra": 0.20 * 2048 / 3600.0},
+                    {"ra": 2 * (0.20 * 2048 + 15.0) / 3600.0, "dec": -0.5 * (4096 * 0.20 + 15.0) / 3600.0,
+                     "ddec": 0.20 * 4096 / 3600.0, "dra": 0.20 * 2048 / 3600.0}
+                ]
 
     }
 
+    @property
+    def coordinate(self):
+        return coordinates.ICRSCoordinates(
+            ra=math.degrees(self.ra),
+            dec=math.degrees(self.dec),
+            unit=(units.degree, units.degree))
 
     def __init__(self, camera="MEGACAM_36"):
         if camera == '':
@@ -1129,6 +1219,7 @@ def start(dirname=None, pointings=None):
 
     pointFormat = Menu(pointing_menu, tearoff=0)
     pointFormat.add_checkbutton(label='CFHT PH', variable=w.pointing_format, onvalue='CFHT PH')
+    pointFormat.add_checkbutton(label="CFHT ET", variable=w.pointing_format, onvalue='CFHT ET')
     pointFormat.add_checkbutton(label='Palomar', variable=w.pointing_format, onvalue='Palomar')
     pointFormat.add_checkbutton(label='KPNO/CTIO', variable=w.pointing_format, onvalue='KPNO/CTIO')
     pointFormat.add_checkbutton(label='SSim', variable=w.pointing_format, onvalue='SSim')
