@@ -283,6 +283,9 @@ class Discovery(object):
     def __bool__(self):
         return self.is_discovery
 
+    def __nonzero__(self):
+        return self.__bool__()
+
 
 class TimeMPC(TimeString):
     """
