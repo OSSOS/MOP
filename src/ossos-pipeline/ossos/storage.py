@@ -10,7 +10,7 @@ import logging
 
 from astropy.io import ascii
 import vos
-from vos.vos import URLparse as urlparse
+from vos.vos import URLparse
 from astropy.io import fits
 import requests
 
@@ -36,7 +36,7 @@ TAP_WEB_SERVICE = 'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/tap/sync'
 OSSOS_TAG_URI_BASE = 'ivo://canfar.uvic.ca/ossos'
 OBJECT_COUNT = "object_count"
 
-vospace = vos.Client(cadc_short_cut=True, vospace_certfile=CERTFILE)
+vospace = vos.Client(cadc_short_cut=True)
 vlog = logging.getLogger('vos')
 vlog.setLevel(logging.ERROR)
 sh = logging.StreamHandler(sys.stderr)
@@ -187,21 +187,22 @@ def get_uri(expnum, ccd=None,
 
 dbimages_uri = get_uri
 
+
 def _set_tags(expnum, keys, values=None):
-    
     uri = os.path.join(DBIMAGES, str(expnum))
     node = vospace.getNode(uri)
     if values is None:
         values = []
         for idx in range(len(keys)):
             values.append(None)
-    assert(len(values)==len(keys))
+    assert (len(values) == len(keys))
     for idx in range(len(keys)):
         key = keys[idx]
         value = values[idx]
         tag = tag_uri(key)
         node.props[tag] = value
     return vospace.addProps(node)
+
 
 def set_tags(expnum, props):
     """Assign the key/value pairs in props as tags on on the given expnum.
@@ -212,10 +213,10 @@ def set_tags(expnum, props):
     """
     # first clear all the props
     _set_tags(expnum, props.keys())
-    
+
     # now set all the props 
     return _set_tags(expnum, props.keys(), props.values())
-        
+
 
 def set_tag(expnum, key, value):
     """Assign a key/value pair tag to the given expnum containerNode.
@@ -227,7 +228,6 @@ def set_tag(expnum, key, value):
     """
 
     return set_tags(expnum, {key: value})
-
 
 
 def tag_uri(key):
@@ -284,8 +284,7 @@ def set_status(expnum, ccd, program, status, version='p'):
     return set_tag(expnum, get_process_tag(program, ccd, version), status)
 
 
-def get_image(expnum, ccd=None, version='p', ext='fits',
-              subdir=None, prefix=None, cutout=None, rescale=None):
+def get_image(expnum, ccd=None, version='p', ext='fits', subdir=None, prefix=None, cutout=None):
     """Get a FITS file for this expnum/ccd  from VOSpace.
 
 
@@ -309,23 +308,22 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
 
     logger.debug("Building list of possible uri locations")
     ## here is the list of places we will look, in order
-    locations = []
-    locations.append((get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix), cutout))
+    locations = [(get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix), cutout)]
     logger.debug(str(locations))
     if ccd is not None:
         try:
-            ext_no = int(ccd)+1
-            flip = (cutout is None and ( ext_no < 19 and "[-*,-*]" or "[*,*]" )) or cutout
+            ext_no = int(ccd) + 1
+            flip = (cutout is None and (ext_no < 19 and "[-*,-*]" or "[*,*]")) or cutout
             locations.append((get_uri(expnum, version=version, ext=ext, subdir=subdir),
-                              "[{}]{}".format(ext_no,flip)))
+                              "[{}]{}".format(ext_no, flip)))
             logger.debug(str(locations))
             locations.append((get_uri(expnum, version=version, ext=ext + ".fz", subdir=subdir),
-                              "[{}]{}".format(ext_no,flip)))
+                              "[{}]{}".format(ext_no, flip)))
         except Exception as e:
             logger.error(str(e))
             pass
     while len(locations) > 0:
-        (uri, cutout)  = locations.pop(0)
+        (uri, cutout) = locations.pop(0)
         try:
             if cutout is not None:
                 hdu_list = get_hdu(uri, cutout)
@@ -355,7 +353,7 @@ def get_hdu(uri, cutout):
     else:
         vos_ptr = vospace.open(uri, view='data')
     fpt = cStringIO.StringIO(vos_ptr.read())
-    fpt.seek(0,2)
+    fpt.seek(0, 2)
     print fpt.tell()
     fpt.seek(0)
     logger.debug("Read from vospace completed. Building fits object.")
@@ -408,6 +406,7 @@ def get_hdu(uri, cutout):
     hdu_list[0].header['DATASEC'] = datasec
     return hdu_list
 
+
 def get_trans(expnum, ccd, prefix=None, version='p'):
     uri = get_uri(expnum, ccd, version, ext='trans.jmp', prefix=prefix)
     fobj = open_vos_or_local(uri)
@@ -421,6 +420,7 @@ def get_trans(expnum, ccd, prefix=None, version='p'):
              'cd21': float(vs[4]),
              'cd22': float(vs[5])}
     return trans
+
 
 def get_fwhm(expnum, ccd, prefix=None, version='p'):
     """Get the FWHM computed for the given expnum/ccd combo.
@@ -442,13 +442,9 @@ def get_fwhm(expnum, ccd, prefix=None, version='p'):
 
     try:
         return float(open_vos_or_local(uri).read())
-    except:
-        try:
-            url = uri.replace('vos:', 'https://www.canfar.phys.uvic.ca/data/pub/vospace/')
-            return float(requests.get(url, cert=vospace.conn.certfile, verify=False).content)
-        except Exception as e:
-            print url
-            print str(e)
+    except Exception as e:
+        logger.warning(str(e))
+        logger.warning("Using default FWHM of 4.0")
     return 4
 
 
@@ -468,7 +464,7 @@ def get_zeropoint(expnum, ccd, prefix=None, version='p'):
         return float(open_vos_or_local(uri).read())
     except:
         url = uri.replace('vos:', 'https://www.canfar.phys.uvic.ca/data/pub/vospace/')
-        return float(requests.get(url, cert=vospace.conn.certfile, verify=False).content)
+        return float(requests.get(url, cert=vospace.conn.vospace_certfile, verify=False).content)
 
 
 def mkdir(dirname):
@@ -708,19 +704,21 @@ def get_mopheader(expnum, ccd):
     if mopheader_uri in mopheaders:
         return mopheaders[mopheader_uri]
 
-    url = mopheader_uri.replace('vos:', 'https://www.canfar.phys.uvic.ca/data/pub/vospace/')
     filename = os.path.basename(mopheader_uri)
+
     if os.access(filename, os.F_OK):
         logger.debug("File already on disk: {}".format(filename))
         mopheader_fpt = cStringIO.StringIO(open(filename, 'r').read())
     else:
         try:
-            mopheader_fpt = cString.StringIO(open_vos_or_local(mopheader_uri).read())
-        except:
-            req = requests.get(url, cert=vospace.conn.certfile, verify=False)
-            mopheader_fpt = cStringIO.StringIO(req.content)
+            mopheader_fpt = cStringIO.StringIO(open_vos_or_local(mopheader_uri).read())
+        except Exception as e:
+            logger.error("Failed to open mopheader @ {}".format(mopheader_uri))
+            logger.error(str(e))
+            return None
 
     mopheader = fits.open(mopheader_fpt)
+
     ## add some values to the mopheader so it can be an astrom header too.
     header = mopheader[0].header
     try:
@@ -748,7 +746,7 @@ def _getheader(uri):
     #'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/vospace/OSSOS/dbimages/1616100/ccd00/1616100p00.psf.fits'
 
     data_url = DATA_WEB_SERVICE + "/vospace/"
-    url = data_url + urlparse(uri).path
+    url = data_url + URLparse(uri).path
     payload = {'fhead': 'true'}
     logger.info("Requesting URL: {}".format(url))
     r = requests.get(url, params=payload, cert=CERTFILE, verify=False)
