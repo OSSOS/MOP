@@ -1,17 +1,17 @@
 #!python
 from ossos import mpc
-import vos
+from ossos import storage
 import sys
 import requests
 from os import path
 
-c = vos.Client()
+c = storage.vospace
 
 BASEURL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/vospace/auth/synctrans"
 
 CERTFILE = "/Users/jjk/.ssl/cadcproxy.pem"
 
-obj =  path.splitext(path.basename(sys.argv[1]))[0]
+obj = path.splitext(path.basename(sys.argv[1]))[0]
 
 lines = open("/Users/jjk/Dropbox/dbaseclone/ast/{}.ast".format(obj)).readlines()
 
