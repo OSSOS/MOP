@@ -541,10 +541,6 @@ class Observation(object):
     def null_observation(self, null_observation=False):
         self._null_observation = _NullObservation(null_observation, self.null_observation_character)
 
-    @null_observation.getter
-    def null_observation(self, null_observation=False):
-        self._null_observation = _NullObservation(null_observation, self.null_observation_character)
-
     @property
     def provisional_name(self):
         return self._provisional_name
