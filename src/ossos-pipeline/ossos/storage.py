@@ -445,7 +445,7 @@ def get_fwhm(expnum, ccd, prefix=None, version='p'):
     except:
         try:
             url = uri.replace('vos:', 'https://www.canfar.phys.uvic.ca/data/pub/vospace/')
-            return float(requests.get(url, cert=vospace.conn.certfile, verify=False).content)
+            return float(requests.get(url, cert=vospace.conn.vospace_certfile, verify=False).content)
         except Exception as e:
             print url
             print str(e)
@@ -468,7 +468,7 @@ def get_zeropoint(expnum, ccd, prefix=None, version='p'):
         return float(open_vos_or_local(uri).read())
     except:
         url = uri.replace('vos:', 'https://www.canfar.phys.uvic.ca/data/pub/vospace/')
-        return float(requests.get(url, cert=vospace.conn.certfile, verify=False).content)
+        return float(requests.get(url, cert=vospace.conn.vospace_certfile, verify=False).content)
 
 
 def mkdir(dirname):
@@ -717,7 +717,7 @@ def get_mopheader(expnum, ccd):
         try:
             mopheader_fpt = cString.StringIO(open_vos_or_local(mopheader_uri).read())
         except:
-            req = requests.get(url, cert=vospace.conn.certfile, verify=False)
+            req = requests.get(url, cert=vospace.conn.vospace_certfile, verify=False)
             mopheader_fpt = cStringIO.StringIO(req.content)
 
     mopheader = fits.open(mopheader_fpt)
