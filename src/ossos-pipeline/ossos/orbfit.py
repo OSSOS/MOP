@@ -1,3 +1,5 @@
+from ossos import mpc
+
 __author__ = 'jjk'
 
 import ctypes
@@ -36,7 +38,8 @@ class Orbfit(object):
         if len(observations) < 3:
             raise OrbfitError()
         self.orbfit = ctypes.CDLL(LIBORBFIT)
-
+        self.dra = None
+        self.ddec = None
         self.observations = observations
 
         self._abg_file = tempfile.NamedTemporaryFile(suffix='.abg')
@@ -46,12 +49,14 @@ class Orbfit(object):
         self.orbfit.fitradec.restype = ctypes.POINTER(ctypes.c_double * 2)
         self.orbfit.fitradec.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
         for observation in self.observations:
+            assert isinstance(observation, mpc.Observation)
             if observation.null_observation == True:
                 continue
             obs = observation
+            self.name = observation.provisional_name
             ra = obs.ra.replace(" ", ":")
             dec = obs.dec.replace(" ", ":")
-            res = 0.3
+            res = 0.05
             self._mpc_file.write("{} {} {} {} {}\n".format(obs.date.jd, ra, dec, res, 568, ))
         self._mpc_file.seek(0)
         result = self.orbfit.fitradec(ctypes.c_char_p(self._mpc_file.name),
@@ -94,7 +99,7 @@ class Orbfit(object):
         dates = []
         for observation in self.observations:
             dates.append(observation.date.jd)
-        return max(dates)-min(dates)
+        return max(dates) - min(dates)
 
     @property
     def abg(self):
@@ -110,6 +115,7 @@ class Orbfit(object):
         """
 
         """
+
         res = "{:>10s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s}\n".format(
             self.observations[0].provisional_name.strip(' '),
             "r (AU)",
@@ -132,7 +138,11 @@ class Orbfit(object):
                                                                                   self.dinc,
                                                                                   self.dNode,
                                                                                   self.dom)
-        res += "{:>10s} {:8.2f} days\n".format("arc", self.arc_length)
+
+        res += "{:>10s} {:8.2f} days ".format("arc", self.arc_length)
+        if self.dra is not None:
+            res += "ephemeris uncertainty: {:8.2f} {:8.2f} {:8.2f}".format(self.dra, self.ddec, self.pa)
+        res += "\n"
 
         return res
 
@@ -168,7 +178,8 @@ class Orbfit(object):
                                       ctypes.c_int(obs_code))
         self.coordinate = coordinates.ICRSCoordinates(predict.contents[0],
                                                       predict.contents[1],
-                                                      unit=(units.degree, units.degree))
+                                                      unit=(units.degree, units.degree),
+                                                      obstime=date)
         self.dra = predict.contents[2]
         self.ddec = predict.contents[3]
         self.pa = predict.contents[4]
@@ -178,11 +189,11 @@ class Orbfit(object):
         # rate of motion at a requested date rather than averaged over the arc.
         # Date is datetime.datetime() objects.
         if isinstance(date, datetime.datetime):
-	   sdate = date.strftime('%Y-%m-%d')
-           edate = (date + datetime.timedelta(1)).strftime('%Y-%m-%d')
-	else:
-	   sdate = date.jd
-	   edate = date.jd + 1
+            sdate = date.strftime('%Y-%m-%d')
+            edate = (date + datetime.timedelta(1)).strftime('%Y-%m-%d')
+        else:
+            sdate = date.jd
+            edate = date.jd + 1
         self.predict(edate)
         coord1 = self.coordinate
         self.predict(sdate)
@@ -206,11 +217,11 @@ class Orbfit(object):
         # fobj.write(observation.to_string()+"\n")
 
         fobj.write("\n")
-        fobj.write(str(self)+"\n")
-        fobj.write(str(self._residuals)+"\n")
+        fobj.write(str(self) + "\n")
+        fobj.write(str(self._residuals) + "\n")
         fobj.write('arclen (days) {}'.format(self.arc_length))
         fobj.write("Expected accuracy on {:>10s}: {:6.2f}'' {:6.2f}'' moving at {:6.2f} ''/hr\n\n".format(
-                                 at_date, self.dra, self.ddec, self.rate_of_motion(date=date)))
+            at_date, self.dra, self.ddec, self.rate_of_motion(date=date)))
 
         fobj.seek(0)
         return fobj.read()
