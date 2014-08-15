@@ -3,23 +3,17 @@
 
 Takes a .ast file (in dbase format) as input
 
-"""
-
-
-import logging
-import vos
-from ossos import mpc
-from ossos import storage
-import sys
-import re
-import os
-
-"""
+An Example URL for cutouts
 http://www.canfar.phys.uvic.ca/vospace/auth/synctrans?TARGET=vos://cadc.nrc.ca~
 vospace/OSSOS/dbimages/1625356/1625356p.fits&DIRECTION=pullFromVoSpace&PROTOCOL=
 ivo://ivoa.net/vospace/core%23httpget&view=cutout&cutout=CIRCLE+ICRS+242.1318+-1
 2.4747+0.05
 """
+from ossos import mpc
+from ossos import storage
+import sys
+import re
+import os
 
 dbimages = "http://www.canfar.phys.uvic.ca/data/pub/vospace/OSSOS/dbimages"
 
@@ -27,7 +21,7 @@ postage_stamp_directory = "vos:OSSOS/postage_stamps"
 block_name = "13AE/FITS"
 width = 256/2.0
 
-c = vos.Client()
+c = storage.vospace
 
 next_comment = None
 obj_name = os.path.basename(sys.argv[1]).split(".")[0]
