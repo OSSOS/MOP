@@ -218,6 +218,8 @@ class ProcessTracksApplication(ValidationApplication):
             working_directory, output_directory, dry_run=dry_run, debug=debug, 
             name_filter=name_filter,
             user_id=user_id)
+        if skip_previous:
+            self.controller.is_discovery = False
 
     @property
     def input_suffix(self):
@@ -284,11 +286,9 @@ class TracksControllerFactory(ControllerFactory):
 
 def preload_iraf():
     logger.info("Preloading IRAF")
-
     # NOTE: Force expensive loading of libraries up front.  These are
     # libraries that the reals task needs but the candidates task
     # doesn't.  To make sure the candidates task doesn't load them, we
     # import them directly in the functions/methods where they are used.
     # TODO: find out what the best practice is for handling this sort of
     # situation and refactor.
-

@@ -77,8 +77,8 @@ def get_planted_objects(mpc_comment):
 
     obs = astrom.Observation.from_source_reference(int(expnum),
                                              int(ccd),
-                                             float(mpc_comment.X),
-                                             float(mpc_comment.Y))
+                                             float(mpc_comment.x),
+                                             float(mpc_comment.y))
 
     object_planted_uri = obs.get_object_planted_uri()
     image_slice_downloader = ImageCutoutDownloader(slice_rows=100, slice_cols=100)
@@ -130,8 +130,8 @@ def match_planted(cand_filename, measures):
         measure_source = None
         for provisional in measures:
             try:	
-                x = float(measures[provisional][0].comment.X)
-                y = float(measures[provisional][0].comment.Y)
+                x = float(measures[provisional][0].comment.x)
+                y = float(measures[provisional][0].comment.y)
             except Exception as e:
                 sys.stderr.write(str(e))
                 sys.stderr.write(str(provisional))
@@ -176,10 +176,10 @@ def match_planted(cand_filename, measures):
                 confused = "M"
             measure = planted_object.recovered
             start_jd = measure[0].date.jd
-            x = float(measure[0].comment.X)
-            x3 = float(measure[2].comment.X)
-            y = float(measure[0].comment.Y)
-            y3 = float(measure[2].comment.Y)
+            x = float(measure[0].comment.x)
+            x3 = float(measure[2].comment.x)
+            y = float(measure[0].comment.y)
+            y3 = float(measure[2].comment.y)
             end_jd = measure[2].date.jd
 
             rate = math.sqrt((x3-x)**2 + (y3-y)**2)/(
@@ -244,10 +244,10 @@ def match_planted(cand_filename, measures):
         # this source is a false positive
         measure = measures[provisional]
         start_jd = measure[0].date.jd
-        x = float(measure[0].comment.X)
-        x3 = float(measure[2].comment.X)
-        y = float(measure[0].comment.Y)
-        y3 = float(measure[2].comment.Y)
+        x = float(measure[0].comment.x)
+        x3 = float(measure[2].comment.x)
+        y = float(measure[0].comment.y)
+        y3 = float(measure[2].comment.y)
         end_jd = measure[2].date.jd
 
         if provisional in confused_measure:

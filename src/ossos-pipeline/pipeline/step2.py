@@ -39,22 +39,12 @@ def step2(expnums, ccd, version, prefix=None, dry_run=False):
     idx = 0
     for expnum in expnums:
         jmp_args.append(
-            storage.get_image(expnum,
-                              ccd=ccd,
-                              version=version,
-                              ext='obj.jmp',
-                              prefix=prefix
-                              )[0:-8]
+            storage.get_image(expnum, ccd=ccd, version=version, ext='obj.jmp', prefix=prefix)[0:-8]
             )
         idx += 1
         matt_args.append('-f%d' % ( idx))
         matt_args.append(
-            storage.get_image(expnum,
-                              ccd=ccd,
-                              version=version,
-                              ext='obj.matt',
-                              prefix=prefix
-                              )[0:-9]
+            storage.get_image(expnum, ccd=ccd, version=version, ext='obj.matt', prefix=prefix)[0:-9]
             )
 
     util.exec_prog(jmp_args)
@@ -68,10 +58,7 @@ def step2(expnums, ccd, version, prefix=None, dry_run=False):
     ptf.write("# A dummy file that is created so checktrans could run.\n")
     ptf.write("# Frame FWHM PSF?\n")
     for expnum in expnums:
-        filename = os.path.splitext(storage.get_image(expnum,
-                                                      ccd,
-                                                      version=version,
-                                                      prefix=prefix))[0]
+        filename = os.path.splitext(storage.get_image(expnum, ccd, version=version, prefix=prefix))[0]
         if not os.access(filename + ".bright.psf", os.R_OK):
             os.link(filename + ".bright.jmp", filename + ".bright.psf")
         if not os.access(filename + ".obj.psf", os.R_OK):
