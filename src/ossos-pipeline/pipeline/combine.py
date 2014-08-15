@@ -28,113 +28,91 @@ from ossos import mop_file
 import argparse
 import logging
 
-MEASURE3='vos:OSSOS/measure3/'
+MEASURE3 = 'vos:OSSOS/measure3/'
 
-def combine(expnum, ccd, prefix=None, type='p', field=None, measure3=MEASURE3 , dry_run=False):
 
+def combine(expnum, ccd, prefix=None, file_type='p', field=None, measure3=MEASURE3, dry_run=False):
     if field is None:
-        field=str(expnum)
+        field = str(expnum)
 
     if prefix is not None and len(prefix) > 0:
-        field = "%s_%s" % ( prefix, field ) 
-    field += "_%s%s" % ( str(type),str(ccd))
+        field = "%s_%s" % (prefix, field)
+    field += "_%s%s" % (str(file_type), str(ccd))
 
     logging.info("Doing combine on field {}".format(field))
-    
-    for ext in ['moving.matt','moving.jmp']:
-        fname = storage.get_image(expnum,
-                                  ccd=ccd,
-                                  prefix=prefix,
-                                  version=type, ext=ext)
+
+    for ext in ['moving.matt', 'moving.jmp']:
+        storage.get_image(expnum, ccd=ccd, version=file_type, ext=ext, prefix=prefix)
 
     if prefix is not None and len(prefix) > 0:
-        planted = storage.get_image('Object',
-                                    subdir=str(expnum)+"/ccd%s" % (
-                str(ccd).zfill(2)),
-                                    version='',
-                                    ext='planted')
+        storage.get_image('Object', version='', ext='planted', subdir=str(expnum) + "/ccd%s" % (str(ccd).zfill(2)))
     else:
         prefix = ''
 
-    base_image = os.path.basename( 
-        storage.get_uri(expnum,
-                        ccd=ccd,
-                        prefix=prefix,
-                        version=type,
-                        ext=None))
-
-
-    
-    cmd_args = ['comb-list', prefix+str(expnum)+type+str(ccd).zfill(2)]
+    cmd_args = ['comb-list', prefix + str(expnum) + file_type + str(ccd).zfill(2)]
     logging.info(str(cmd_args))
     util.exec_prog(cmd_args)
     ext_list = ['cands.comb']
-    if prefix is not None and len(prefix) > 0 :
-        ext_list.extend( [ 'jmp.missed', 'matt.missed',
-                            'jmp.found', 'matt.found',
-                            'comb.missed', 'comb.found' ] )
-                         
+    if prefix is not None and len(prefix) > 0:
+        ext_list.extend(['jmp.missed', 'matt.missed',
+                         'jmp.found', 'matt.found',
+                         'comb.missed', 'comb.found'])
 
     for ext in ext_list:
         uri = storage.get_uri(expnum,
                               ccd=ccd,
                               prefix=prefix,
-                              version=type,
+                              version=file_type,
                               ext=ext)
         filename = os.path.basename(uri)
-        if not os.access(filename,os.R_OK):
-            logging.critical("No %s file" % (filename))
+        if not os.access(filename, os.R_OK):
+            logging.critical("No %s file" % filename)
             continue
-        vospace_name = "%s.%s" % ( field, ext )
+        vospace_name = "%s.%s" % (field, ext)
         if not dry_run:
-            logging.info("%s -> %s" % ( filename, os.path.join(measure3, vospace_name)))
+            logging.info("%s -> %s" % (filename, os.path.join(measure3, vospace_name)))
             storage.copy(filename, os.path.join(measure3, vospace_name))
 
-    base_name = prefix+str(expnum)+type+str(ccd).zfill(2)
-    cands_file = base_name+'.cands.comb'
-    
-    if not os.access(cands_file,os.R_OK):
-        nocands_file = ( prefix+
-                         str(expnum)+
-                         type+
-                         str(ccd).zfill(2)+
-                         '.no_candidates' )
-        open(nocands_file, 'w').close()
+    base_name = prefix + str(expnum) + file_type + str(ccd).zfill(2)
+    cands_file = base_name + '.cands.comb'
+
+    if not os.access(cands_file, os.R_OK):
+        no_cands_file = (prefix +
+                         str(expnum) +
+                         file_type +
+                         str(ccd).zfill(2) +
+                         '.no_candidates')
+        open(no_cands_file, 'w').close()
         if not dry_run:
-            vospace_name = "%s.no_candidates" % ( field ) 
-            storage.copy(nocands_file,os.path.join(measure3, vospace_name))
+            vospace_name = "%s.no_candidates" % field
+            storage.copy(no_cands_file, os.path.join(measure3, vospace_name))
 
         return storage.SUCCESS
-
 
     # get the images we need to compute x/y ra/dec transforms
     cands_file = mop_file.Parser().parse(cands_file)
     for file_id in cands_file.header.file_ids:
-        rec_no=cands_file.header.file_ids.index(file_id)
-        storage.get_image(expnum=cands_file.header.keywords['EXPNUM'][rec_no],
-                          ccd=ccd,
-                          version=type,
-                          prefix=prefix,
-                          ext='fits')
+        rec_no = cands_file.header.file_ids.index(file_id)
+        storage.get_image(expnum=cands_file.header.keywords['EXPNUM'][rec_no], ccd=ccd, version=file_type, ext='fits',
+                          prefix=prefix)
 
-    cmd_args = ['measure3', prefix+str(expnum)+type+str(ccd).zfill(2)]
+    cmd_args = ['measure3', prefix + str(expnum) + file_type + str(ccd).zfill(2)]
     logging.info("Running measure3")
     util.exec_prog(cmd_args)
-    
+
     if not dry_run:
-        filename=base_name+".measure3.cands.astrom"
-        vospace_filename = "%s.measure3.cands.astrom" % ( field)
-        storage.copy(filename, os.path.join(measure3,vospace_filename))
+        filename = base_name + ".measure3.cands.astrom"
+        vospace_filename = "%s.measure3.cands.astrom" % field
+        storage.copy(filename, os.path.join(measure3, vospace_filename))
 
     return storage.SUCCESS
 
 
-
-if __name__=='__main__':
-    parser=argparse.ArgumentParser(
+def main():
+    parser = argparse.ArgumentParser(
         description='Run step1jmp and step1matt on a given exposure.')
 
-    parser.add_argument("--ccd","-c",
+    parser.add_argument("--ccd", "-c",
                         action="store",
                         default=None,
                         type=int,
@@ -157,62 +135,59 @@ if __name__=='__main__':
                         action="store",
                         help="VOSpace location for measure3 files",
                         default=MEASURE3)
-    parser.add_argument('--type', default='p', choices=['o','p','s'], help="which type of image")
-    parser.add_argument("--verbose","-v",
+    parser.add_argument('--type', default='p', choices=['o', 'p', 's'], help="which type of image")
+    parser.add_argument("--verbose", "-v",
                         action="store_true")
-    parser.add_argument("--debug",'-d',
+    parser.add_argument("--debug", '-d',
                         action='store_true')
     parser.add_argument("--force", '-f', action='store_true')
     parser.add_argument("--dry_run", action="store_true", help="Don't push back to VOSpace, implies --force")
 
-    args=parser.parse_args()
+    args = parser.parse_args()
     if args.dry_run:
-        args.force=True
+        args.force = True
 
     level = logging.CRITICAL
     if args.debug:
         level = logging.DEBUG
     elif args.verbose:
         level = logging.INFO
-    
+
     logging.basicConfig(level=level, format="%(message)s")
-        
+
     storage.DBIMAGES = args.dbimages
     storage.MEASURE3 = args.measure3
 
-    prefix = ( args.fk and 'fk' ) or ''
+    prefix = (args.fk and 'fk') or ''
 
-    ccdlist = ( args.ccd is None and range(0,36) ) or [args.ccd]
+    ccd_list = (args.ccd is None and range(0, 36)) or [args.ccd]
 
-    for ccd in ccdlist:
-        message = storage.SUCCESS
-
-        if not storage.get_status(args.expnum, ccd, prefix+'step3', version=args.type) and not args.dry_run:
+    for ccd in ccd_list:
+        if not storage.get_status(args.expnum, ccd, prefix + 'step3', version=args.type) and not args.dry_run:
             logging.error(storage.get_status(
-                    args.expnum,
-                    ccd,
-                    'step3',
-                    return_message=True))
+                args.expnum,
+                ccd,
+                'step3',
+                return_message=True))
             raise IOError(35, "need to run step3 first")
 
         if storage.get_status(args.expnum, ccd,
-                              prefix+'combine',
+                              prefix + 'combine',
                               version=args.type) and not args.force:
             continue
 
-        message = combine(args.expnum, 
-                          ccd, 
-                          prefix=prefix, 
-                          type=args.type, 
-                          field=args.field, 
+        message = combine(args.expnum,
+                          ccd,
+                          prefix=prefix,
+                          file_type=args.type,
+                          field=args.field,
                           measure3=args.measure3,
-                          dry_run=args.dry_run
-                          )
-        #except Exception as e:
-        #   message = str(e)
+                          dry_run=args.dry_run)
         if not args.dry_run:
             storage.set_status(args.expnum, ccd,
-                               prefix+'combine',
+                               prefix + 'combine',
                                version=args.type,
                                status=message)
-            
+
+if __name__ == '__main__':
+    main()
