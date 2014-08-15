@@ -8,7 +8,10 @@ import logging
 
 from datetime import datetime
 from astropy import coordinates
-from astropy.time import sofa_time
+try:
+    from astropy.time import sofa_time
+except ImportError:
+    from astropy.time import erfa_time as sofa_time
 from astropy.time import TimeString
 from astropy.time import Time
 from astropy import units
@@ -17,7 +20,6 @@ import numpy
 import storage
 
 
-NULL_OBSERVATION_CHARACTERS = ["!", "-", "#"]
 DEFAULT_OBSERVERS = ['M. T. Bannister', 'J. J. Kavelaars']
 DEFAULT_TELESCOPE = "CFHT 3.6m + CCD"
 DEFAULT_ASTROMETRIC_NETWORK = "UCAC4"
@@ -82,6 +84,32 @@ MPCNOTES = {"Note1": {" ": " ",
                                "L": "Photometry uncertainty lacking",
                                "Y": "Photometry measured successfully",
                                "Z": "Photometry measurement failed."}}
+
+
+class NullObservation(object):
+
+    NULL_OBSERVATION_CHARACTERS = ["!", "-", "#"]
+
+    def __init__(self, null_observation=None, null_observation_character=None):
+        """
+        A boolean object that keeps track of True/False status via a set of magic characters.
+        """
+        if null_observation_character is None:
+            null_observation_character = NullObservation.NULL_OBSERVATION_CHARACTERS[0]
+        self.null_observation_character = null_observation_character
+
+        if isinstance(null_observation, basestring):
+            self._null_observation = str(null_observation)[0] in NullObservation.NULL_OBSERVATION_CHARACTERS
+        elif isinstance(null_observation, bool):
+            self._null_observation = null_observation
+        else:
+            self._null_observation = False
+
+    def __str__(self):
+        return self._null_observation and self.null_observation_character or " "
+
+    def __bool__(self):
+        return self._null_observation
 
 
 class MPCFormatError(Exception):
@@ -252,6 +280,9 @@ class Discovery(object):
             return "&"
         return " "
 
+    def __bool__(self):
+        return self.is_discovery
+
 
 class TimeMPC(TimeString):
     """
@@ -290,20 +321,20 @@ class TimeMPC(TimeString):
         # Select subformats based on current self.in_subfmt
         subfmts = self._select_subfmts(self.in_subfmt)
 
-        for i, timestr in enumerate(val1):
+        for i, time_str in enumerate(val1):
             # Assume that anything following "." on the right side is a
             # floating fraction of a day.
             try:
-                idot = timestr.rindex('.')
+                idot = time_str.rindex('.')
             except:
                 fracday = 0.0
             else:
-                timestr, fracday = timestr[:idot], timestr[idot:]
+                time_str, fracday = time_str[:idot], time_str[idot:]
                 fracday = float(fracday)
 
             for _, strptime_fmt, _ in subfmts:
                 try:
-                    tm = time.strptime(timestr, strptime_fmt)
+                    tm = time.strptime(time_str, strptime_fmt)
                 except ValueError:
                     pass
                 else:
@@ -315,7 +346,7 @@ class TimeMPC(TimeString):
                     dsec[i] = tm.tm_sec + 60 * (60 * (24 * fracday - ihr[i]) - imin[i])
                     break
             else:
-                raise ValueError("Time {0} does not match {1} format".format(timestr, self.name))
+                raise ValueError("Time {0} does not match {1} format".format(time_str, self.name))
 
         self.jd1, self.jd2 = sofa_time.dtf_jd(self.scale.upper().encode('utf8'),
                                               iy, im, iday, ihr, imin, dsec)
@@ -357,7 +388,7 @@ class TimeMPC(TimeString):
 Time.FORMATS[TimeMPC.name] = TimeMPC
 
 
-def _compute_precision(coord):
+def compute_precision(coord):
     """
     Returns the number of digits after the last '.' in a given number or string.
 
@@ -379,7 +410,7 @@ def get_date(date_string):
     :rtype : Time
     :param date_string: a string in MPC date format
     """
-    _date_precision = _compute_precision(date_string)
+    _date_precision = compute_precision(date_string)
     return Time(date_string, format='mpc', scale='utc', precision=_date_precision)
 
 
@@ -429,28 +460,38 @@ class Observation(object):
 
         :type comment MPCComment
         """
-        self.null_observation_character = "!"
         self._null_observation = False
         self.null_observation = null_observation
         self._provisional_name = ""
         self.provisional_name = provisional_name
+        self._discovery = None
         self.discovery = discovery
+        self._note1 = None
         self.note1 = note1
+        self._note2 = None
         self.note2 = note2
+        self._date = None
+        self._date_precision = None
         self.date = date
+        self._coordinate = None
         self.coordinate = (ra, dec)
         self._mag = None
         self._mag_err = None
-        self._mag_precision = None
+        self._mag_precision = 1
+        self._ra_precision = 1
+        self._dec_precision = 2
         self.mag = mag
         self.mag_err = mag_err
+        self._band = None
         self.band = band
+        self._observatory_code = None
         self.observatory_code = observatory_code
+        self._comment = None
         self.comment = MPCComment(source_name=provisional_name,
                                   frame=frame,
-                                  MPCNote=self.note1,
-                                  X=xpos,
-                                  Y=ypos,
+                                  mpc_note=self.note1,
+                                  x=xpos,
+                                  y=ypos,
                                   mag_uncertainty=mag_err,
                                   magnitude=mag,
                                   plate_uncertainty=plate_uncertainty,
@@ -530,7 +571,7 @@ class Observation(object):
         return comment_line + '\n' + mpc_observation
 
     def to_mpc(self):
-        self.null_observation_character = "#"
+        self.null_observation.null_observation_character = "#"
         return str(self)
 
     @property
@@ -539,26 +580,10 @@ class Observation(object):
 
     @null_observation.setter
     def null_observation(self, null_observation=False):
-
-        class Null_Observation(object):
-            def __init__(self, null_observation=None, null_observation_character=None):
-                if null_observation_character is None:
-                    null_observation_character = "-"
-                self.null_observation_character = null_observation_character
-                if isinstance(null_observation, basestring):
-                    self._null_observation = null_observation[0] in NULL_OBSERVATION_CHARACTERS
-                elif isinstance(null_observation, bool):
-                    self._null_observation = null_observation
-                else:
-                    self._null_observation = False
-
-            def __str__(self):
-                return self._null_observation and self.null_observation_character or " "
-
-            def __bool__(self):
-                return self._null_observation
-
-        self._null_observation = Null_Observation(null_observation, self.null_observation_character)
+        """
+        :param null_observation: is this a null observation marker True/False
+        """
+        self._null_observation = NullObservation(null_observation)
 
     @property
     def provisional_name(self):
@@ -614,16 +639,15 @@ class Observation(object):
     def date(self):
         return self._date
 
-
     @date.setter
-    def date(self, datestr):
-        self._date_precision = self._compute_precision(datestr)
+    def date(self, date_str):
+        self._date_precision = compute_precision(date_str)
         try:
-            self._date = Time(datestr, format='mpc', scale='utc', precision=self._date_precision)
+            self._date = Time(date_str, format='mpc', scale='utc', precision=self._date_precision)
         except:
             raise MPCFieldFormatError("Observation Date",
                                       "does not match expected format",
-                                      datestr)
+                                      date_str)
 
     @property
     def ra(self):
@@ -652,18 +676,6 @@ class Observation(object):
     def coordinate(self):
         return self._coordinate
 
-    def _compute_precision(self, coord):
-        """
-        Returns the number of digits after the last '.' in a given number or string.
-
-        """
-        coord = str(coord).strip(' ')
-        idx = coord.rfind('.')
-        if idx < 0:
-            return 0
-        else:
-            return len(coord) - idx - 1
-
     @coordinate.setter
     def coordinate(self, coord_pair):
         """
@@ -687,10 +699,10 @@ class Observation(object):
             self._coordinate = coordinates.ICRSCoordinates(ra, dec, unit=(units.degree, units.degree))
         except:
             try:
-                self._ra_precision = self._compute_precision(val1)
-                self._dec_precision = self._compute_precision(val2)
+                self._ra_precision = compute_precision(val1)
+                self._dec_precision = compute_precision(val2)
                 self._coordinate = coordinates.ICRSCoordinates(val1, val2, unit=(units.hour, units.degree))
-            except Exception as e:
+            except:
                 raise MPCFieldFormatError("coord_pair",
                                           "must be [ra_deg, dec_deg] or HH MM SS.S[+-]dd mm ss.ss",
                                           coord_pair)
@@ -706,7 +718,7 @@ class Observation(object):
             self._mag = None
         else:
             self._mag = float(mag)
-            self._mag_precision = min(2, self._compute_precision(str(mag)))
+            self._mag_precision = min(2, compute_precision(str(mag)))
 
     @property
     def mag_err(self):
@@ -719,7 +731,6 @@ class Observation(object):
         else:
             self._mag_err = mag_err
 
-
     @property
     def band(self):
         return self._band
@@ -727,7 +738,7 @@ class Observation(object):
     @band.setter
     def band(self, band):
         band = str(band.strip(' '))
-        self._band = ( len(band) > 0 and str(band)[0] ) or None
+        self._band = (len(band) > 0 and str(band)[0]) or None
 
     @property
     def observatory_code(self):
@@ -755,24 +766,31 @@ class MPCComment(object):
     def __init__(self,
                  frame,
                  source_name,
-                 MPCNote,
-                 X,
-                 Y,
+                 mpc_note,
+                 x,
+                 y,
                  magnitude=None,
-                 PNote=None,
+                 photometry_node=None,
                  mag_uncertainty=None,
                  plate_uncertainty=None,
                  comment=None):
 
         self.frame = frame
         self.source_name = source_name
-        self.PNote = PNote
-        self.MPCNote = MPCNote
-        self.X = X
-        self.Y = Y
+        self._photometry_note = None
+        self.photometry_note = photometry_node
+        self.mpc_note = mpc_note
+        self._x = "X"*6
+        self.x = x
+        self._y = "Y"*6
+        self.y = y
+        self._mag = " "*5
         self.mag = magnitude
+        self._mag_uncertainty = " " * 4
         self.mag_uncertainty = mag_uncertainty
+        self._plate_uncertainty = " " * 4
         self.plate_uncertainty = plate_uncertainty
+        self._comment = ""
         self.comment = comment
 
     @classmethod
@@ -797,10 +815,10 @@ class MPCComment(object):
                 values = values[4:]
             retval = MPCComment(frame=values[0],
                                 source_name=values[1],
-                                PNote=values[2][0],
-                                MPCNote=values[2][1:],
-                                X=values[3],
-                                Y=values[4],
+                                photometry_node=values[2][0],
+                                mpc_note=values[2][1:],
+                                x=values[3],
+                                y=values[4],
                                 comment=comment.split('%')[1].lstrip(' '))
             if len(values) > 7:  # a line can have up to 8 values when mag/mag_uncertainty are set
                 retval.mag = values[5]
@@ -812,7 +830,6 @@ class MPCComment(object):
         except:
             return comment
 
-
     @property
     def mag(self):
         return self._mag
@@ -822,12 +839,12 @@ class MPCComment(object):
         try:
             if float(mag) > 0.:
                 self._mag = "{:5.2f}".format(float(mag))
-                self.PNote = "Y"
+                self.photometry_note = "Y"
             else:
                 self._mag = " " * 5
-                self.PNote = "Z"
+                self.photometry_note = "Z"
         except:
-            self.PNote = "Z"
+            self.photometry_note = "Z"
             self._mag = " " * 5
 
     @property
@@ -842,42 +859,42 @@ class MPCComment(object):
             else:
                 self._mag_uncertainty = " " * 4
                 if str(self.mag).isdigit():
-                    self.PNote = "L"
+                    self.photometry_note = "L"
                 else:
-                    self.PNote = "Z"
+                    self.photometry_note = "Z"
         except:
             self._mag_uncertainty = " " * 4
-            self.PNote = "Z"
+            self.photometry_note = "Z"
 
     @property
-    def PNote(self):
-        return self._PNote
+    def photometry_note(self):
+        return self._photometry_note
 
-    @PNote.setter
-    def PNote(self, PNote):
-        self._PNote = PNote
+    @photometry_note.setter
+    def photometry_note(self, photometery_note):
+        self._photometry_note = photometery_note
 
     @property
-    def X(self):
-        return self._X
+    def x(self):
+        return self._x
 
-    @X.setter
-    def X(self, X):
+    @x.setter
+    def x(self, x):
         try:
-            self._X = "{:6.1f}".format(float(X))
+            self._x = "{:6.1f}".format(float(x))
         except:
-            self._X = "X" * 6
+            self._x = "X" * 6
 
     @property
-    def Y(self):
-        return self._Y
+    def y(self):
+        return self._y
 
-    @Y.setter
-    def Y(self, Y):
+    @y.setter
+    def y(self, y):
         try:
-            self._Y = "{:6.1f}".format(float(Y))
+            self._y = "{:6.1f}".format(float(y))
         except:
-            self._Y = "Y" * 6
+            self._y = "Y" * 6
 
     @property
     def plate_uncertainty(self):
@@ -913,8 +930,8 @@ class MPCComment(object):
 
         comm = '{}'.format(self.frame)
         comm += ' {}'.format(self.source_name)
-        comm += ' {}{:1s}'.format(self.PNote, str(self.MPCNote))
-        comm += ' {} {}'.format(self.X, self.Y)
+        comm += ' {}{:1s}'.format(self.photometry_note, str(self.mpc_note))
+        comm += ' {} {}'.format(self.x, self.y)
         comm += ' {} {}'.format(self.mag, self.mag_uncertainty)
         comm += ' {}'.format(self.plate_uncertainty)
         comm += ' % {}'.format(self.comment)  # % denotes comment start
@@ -1167,4 +1184,3 @@ class MPCConverter(object):
         for fn in os.listdir(path):
             if fn.endswith('.mpc') or fn.endswith('.track') or fn.endswith('.checkup') or fn.endswith('.nailing'):
                 cls(path + fn).convert()
-
