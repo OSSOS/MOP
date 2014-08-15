@@ -524,7 +524,7 @@ class Observation(object):
             self._mag_precision = 1
 
         # set the null observation character to the tnodb value
-        self.null_observation_character = "-"
+        self.null_observation.null_observation_character = "-"
         mpc_observation = str(self)
 
         return comment_line + '\n' + mpc_observation
