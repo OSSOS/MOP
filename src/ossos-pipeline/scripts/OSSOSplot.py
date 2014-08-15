@@ -1,5 +1,6 @@
-# !python
+#!python
 from Tkinter import *
+import logging
 import tkFileDialog
 import math
 import optparse
@@ -14,12 +15,37 @@ from ossos import orbfit
 from ossos import storage
 from ossos.coord import Coord
 from ossos import mpc
+import megacam
+
+
+colossos=[ 'O13BL3R9',
+'O13BL3SK',
+'O13BL3RB',
+'O13BL3SC',
+'O13BL3S3',
+'O13BL3QX',
+'O13BL3TF',
+'O13BL3TA',
+'O13BL3SN',
+'O13BL3RE',
+'O13BL3RV',
+'O13BL3SY',
+'O13BL3RG',
+'O13BL3RN',
+'O13BL3SW',
+'O13BL3T7',
+'O13BL3RT',
+'O13BL3RQ',
+'O13BL3SH',
+'O13BL3R1',
+'O13BL3RH']
+
 
 
 class Plot(Canvas):
     """A plot class derived from the the Tkinter.Canvas class"""
 
-    def __init__(self, root, width=640, height=480, background='white'):
+    def __init__(self, root, width=1.5*640, height=1.5*480, background='white'):
 
         self.heliocentric = StringVar()
         self.heliocentric.set("00:00:00.00 +00:00:00.0")
@@ -108,10 +134,12 @@ class Plot(Canvas):
         """convert from plot to canvas coordinates.
 
         See also c2p."""
-        if not p: p = [0, 0]
+        if p is None:
+            p = [0, 0]
 
         x = (p[0] - self.x1) * self.xscale + self.cx1
         y = (p[1] - self.y1) * self.yscale + self.cy1
+        #logging.debug("p2c: ({},{}) -> ({},{})".format(p[0],p[1], x, y))
 
         return (x, y)
 
@@ -126,17 +154,18 @@ class Plot(Canvas):
         """Convert from canvas to screen coordinates"""
         if not p: p = [0, 0]
 
-        return ((p[0] - self.canvasx(self.cx1), p[1] - self.canvasy(self.cy1)))
+        return p[0] - self.canvasx(self.cx1), p[1] - self.canvasy(self.cy1)
 
     def c2p(self, p=None):
         """Convert from canvas to plot coordinates.
 
         See also p2s."""
-        if not p: p = [0, 0]
+        if not p:
+            p = [0, 0]
 
         x = (p[0] - self.cx1) / self.xscale + self.x1
         y = (p[1] - self.cy1) / self.yscale + self.y1
-        return (x, y)
+        return x, y
 
     def _convert(self, s, factor=15):
         p = s.split(":")
@@ -350,7 +379,14 @@ class Plot(Canvas):
         self.doplot()
 
     def center(self, event):
-        (ra, dec) = self.c2p((self.canvasx(event.x), self.canvasy(event.y)))
+        (cx, cy) = self.canvasx(event.x), self.canvasy(event.y)
+        (ra, dec) = self.c2p((cx, cy))
+        logging.debug("SCREEN: {},{} CANVAS: {},{}  RA/DEC: {},{}".format(event.x,
+                                                                          event.y,
+                                                                          cx,
+                                                                          cy,
+                                                                          ra,
+                                                                          dec))
         self.recenter(ra, dec)
 
     def zoom_in(self, event=None):
@@ -518,7 +554,9 @@ class Plot(Canvas):
 
 
     def create_pointing(self, event):
-        """Plot the sky coverage of pointing at event.x,event.y on the canavas"""
+        """Plot the sky coverage of pointing at event.x,event.y on the canvas.
+
+        """
 
         (ra, dec) = self.c2p((self.canvasx(event.x),
                               self.canvasy(event.y)))
@@ -618,6 +656,46 @@ class Plot(Canvas):
         """clear the pointings from the display"""
 
         self.pointings = []
+        self.doplot()
+
+    def get_pointings(self):
+        """
+        Retrieve the MEGACAM pointings that overlap with the current FOV and plot.
+        @return: None
+        """
+
+        this_camera = Camera(camera="MEGACAM_1")
+
+        ra_cen = (self.x1 + self.x2)/2.0
+        dec_cen = (self.y1 + self.y2)/2.0
+        width = math.fabs(self.x1 - self.x2)
+        height = math.fabs(self.y1 - self.y2)
+
+        table = megacam.TAPQuery(ra_cen, dec_cen, width, height)
+
+        for row in table:
+            ra = row['RAJ200']
+            dec = row['DEJ2000']
+            ccds = this_camera.getGeometry(ra, dec)
+            items = []
+            for ccd in ccds:
+                if len(ccd) == 4:
+                    (x1, y1) = self.p2c((ccd[0], ccd[1]))
+                    (x2, y2) = self.p2c((ccd[2], ccd[3]))
+                    item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill='#000')
+                else:
+                    (x1, y1) = self.p2c((ccd[0] - ccd[2] / math.cos(ccd[1]), ccd[1] - ccd[2]))
+                    (x2, y2) = self.p2c((ccd[0] + ccd[2] / math.cos(ccd[1]), ccd[1] + ccd[2]))
+                    item = self.create_oval(x1, y1, x2, y2)
+                items.append(item)
+            label = {}
+            label['text'] = row['target_name']
+            label['id'] = self.label(this_camera.ra, this_camera.dec, label['text'])
+            self.pointings.append({
+                "label": label,
+                "items": items,
+                "camera": this_camera})
+            self.current_pointing(len(self.pointings) - 1)
         self.doplot()
 
     def save_pointings(self):
@@ -754,6 +832,9 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                         color = 'black'
                     if kbo.arc_length > 180:
                         color = 'red'
+                    for cname in colossos :
+			if cname in name:
+			    color = 'blue'
                     w.create_point(ra, dec, size=1, color=color)
                     if w.show_ellipse.get() == 1 and days == trail_mid_point + 1:
                         first_date = False
@@ -890,7 +971,20 @@ class Camera:
                     {"ra": -1.5 * 0.1479 - 0.0036, "dec": 0.1479 + 0.0019, "ddec": 2.0 * 0.1479, "dra": 0.1479, },
                 ],
                 "L2": [{"ra": 0, "dec": +0.98 * 0.5, "ddec": 1.0 * 0.98, "dra": 8.0 * 0.98},
-                       {"ra": 0, "dec": -0.98 * 0.5, "ddec": 1.0 * 0.98, "dra": 8.0 * 0.98}]
+                       {"ra": 0, "dec": -0.98 * 0.5, "ddec": 1.0 * 0.98, "dra": 8.0 * 0.98}],
+                "SSC": [
+            {"ra": -2*(0.20 * 2048 +15.0)/ 3600.0, "dec": 0.5*(4096 * 0.20 + 15.0)/3600.0, "ddec": 0.20*4096/3600.0, "dra": 0.20*2048/3600.0 },
+            {"ra": -1*(0.20 * 2048 +15.0)/ 3600.0, "dec": 0.5*(4096 * 0.20 + 15.0)/3600.0, "ddec": 0.20*4096/3600.0, "dra": 0.20*2048/3600.0 },
+            {"ra": -0*(0.20 * 2048 +15.0)/ 3600.0, "dec": 0.5*(4096 * 0.20 + 15.0)/3600.0, "ddec": 0.20*4096/3600.0, "dra": 0.20*2048/3600.0 },
+            {"ra": 1*(0.20 * 2048 +15.0)/ 3600.0, "dec": 0.5*(4096 * 0.20 + 15.0)/3600.0, "ddec": 0.20*4096/3600.0, "dra": 0.20*2048/3600.0 },
+            {"ra": 2*(0.20 * 2048 +15.0)/ 3600.0, "dec": 0.5*(4096 * 0.20 + 15.0)/3600.0, "ddec": 0.20*4096/3600.0, "dra": 0.20*2048/3600.0 },
+            {"ra": -2*(0.20 * 2048 +15.0)/ 3600.0, "dec": -0.5*(4096 * 0.20 + 15.0)/3600.0, "ddec": 0.20*4096/3600.0, "dra": 0.20*2048/3600.0 },
+            {"ra": -1*(0.20 * 2048 +15.0)/ 3600.0, "dec": -0.5*(4096 * 0.20 + 15.0)/3600.0, "ddec": 0.20*4096/3600.0, "dra": 0.20*2048/3600.0 },
+            {"ra": -0*(0.20 * 2048 +15.0)/ 3600.0, "dec": -0.5*(4096 * 0.20 + 15.0)/3600.0, "ddec": 0.20*4096/3600.0, "dra": 0.20*2048/3600.0 },
+            {"ra": 1*(0.20 * 2048 +15.0)/ 3600.0, "dec": -0.5*(4096 * 0.20 + 15.0)/3600.0, "ddec": 0.20*4096/3600.0, "dra": 0.20*2048/3600.0 },
+            {"ra": 2*(0.20 * 2048 +15.0)/ 3600.0, "dec": -0.5*(4096 * 0.20 + 15.0)/3600.0, "ddec": 0.20*4096/3600.0, "dra": 0.20*2048/3600.0 }
+                        ]
+
     }
 
 
@@ -1042,7 +1136,7 @@ def start(dirname=None, pointings=None):
 
     pointing_menu.add_command(label="Save pointings", command=w.save_pointings)
     pointing_menu.add_command(label="Clear pointings", command=w.clear_pointings)
-    #pointing_menu.add_command(label="Query pointings", command=w.get_pointings)
+    pointing_menu.add_command(label="Query CFHT Archive", command=w.get_pointings)
 
     cameramenu = Menu(pointing_menu, tearoff=0)
     for name in Camera.geometry:
@@ -1071,6 +1165,13 @@ if __name__ == '__main__':
     parser = optparse.OptionParser()
     parser.add_option("-p", "--pointings", help="A file containing some pointings")
     parser.add_option("-d", "--dirname", help="Directory with mpc/ast files of Kuiper belt objects")
+    parser.add_option('--debug', action="store_true")
+
     (opt, files) = parser.parse_args()
+
+    if opt.debug:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.WARNING)
 
     start(opt.dirname, opt.pointings)

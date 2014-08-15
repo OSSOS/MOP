@@ -64,16 +64,6 @@ def plant(expnums, ccd, rmin, rmax, ang, width, version='s', dry_run=False):
         filename =  os.path.basename(uri)
         storage.copy(filename, uri)
 
-        for ext in ['mopheader',
-                    'psf.fits',
-                    'fwhm',
-                    'apcor', 'zeropoint.used', 'trans.jmp']:
-            storage.delete(expnum, ccd, 's', ext, prefix='fk')
-            storage.vlink(expnum, ccd, 's', ext,
-                          expnum, ccd, 's', ext, l_prefix='fk')
-                          
-
-    
     return
 
 if __name__=='__main__':

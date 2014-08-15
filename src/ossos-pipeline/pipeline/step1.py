@@ -59,7 +59,7 @@ def step1(expnum,
     filename = storage.get_image(expnum, ccd, version=version, prefix=prefix)
     mopheader = storage.get_image(expnum, ccd, version=version,
                                   ext='mopheader', prefix=prefix)
-    fwhm = int(math.ceil(storage.get_fwhm(expnum, ccd, prefix=prefix, version=version)))
+    fwhm = storage.get_fwhm(expnum, ccd, prefix=prefix, version=version)
     basename = os.path.splitext(filename)[0]
     
     outfile = util.exec_prog(['step1jmp', 

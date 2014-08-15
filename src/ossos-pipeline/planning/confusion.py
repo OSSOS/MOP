@@ -43,7 +43,7 @@ def desig_unpack(desig):
     
 
 
-f=open('MPCORB.DAT')
+f=open('/Users/kavelaarsj/MPCORB.DAT')
 #f=open('schwamb_orbits.dat')
 lines=f.readlines()
 f.close()
@@ -57,16 +57,22 @@ while (line[0:3]!="---") :
 lines.append(line)
 nobj=0
 lineCount=0
-#2013-11-29 09:59:59| 0:51:16.75|  2:33:57.9|
-#2013-11-30 09:59:59| 0:51:14.24|  2:33:43.0|
-#2013-12-01 09:59:59| 1:26:52.38| 11:41:10.1|
 
-ra_low  = float(ephem.hours("15:20:00.0"))
-ra_high = float(ephem.hours("15:50:00.0"))
+# 2013-11-29 09:59:59| 0:51:16.75|  2:33:57.9|
+# 2013-11-30 09:59:59| 0:51:14.24|  2:33:43.0|
+# 2013-12-01 09:59:59| 1:26:52.38| 11:41:10.1|
+
+
+# 2014-08-26 09:59:59| 1:33:56.25| 11:52:27.4|
+# 2014-08-26 09:59:59| 1:46:14.87| 14:02:27.9|
+# 2014-08-26 09:59:59| 1:21:41.35|  9:40:38.1|
+
+ra_low  = float(ephem.hours("01:21:00.0"))
+ra_high = float(ephem.hours("01:46:00.0"))
 #ra_low  = float(ephem.hours(math.radians(17)))
 #ra_high = float(ephem.hours(math.radians(25)))
-dec_low = float(ephem.degrees("-13:30:00"))
-dec_high = float(ephem.degrees("-11:30:00"))
+dec_low = float(ephem.degrees("09:02:00"))
+dec_high = float(ephem.degrees("14:03:00"))
 #dec_low = float(ephem.degrees("10:00:00"))
 #dec_high = float(ephem.degrees("18:00:00"))
 min_rate = [[],[],[],[],[],[],[],[],[],[],[],[], [],[],[],[],[]]
@@ -107,7 +113,7 @@ for line in lines:
     e= kbo._e
     H= kbo._H
     i= kbo._inc
-    startdate = ephem.date('2014/05/24')
+    startdate = ephem.date('2014/07/25')
     kbo.compute(startdate)
     kbo.name=desig_unpack(line[0:7].strip()) 
     T_J = (5.2/a) + 2.0 * math.sqrt((1-e**2)*(a/5.2)) * math.cos(i)
@@ -138,7 +144,7 @@ for line in lines:
             max_rate[ddays].append(rate)
         startdate = enddate
 
-startdate = ephem.date('2014/05/24')
+startdate = ephem.date('2014/07/25')
 for rate in range(len(min_rate)):
     today = ephem.date(startdate+rate)
     print rate, today, numpy.min(min_rate[rate])

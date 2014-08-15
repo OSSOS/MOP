@@ -620,8 +620,8 @@ class Query(object):
         assert (self.response.status_code == requests.codes.ok )
 
         lines = self.response.content
-        if len(lines) < 1 or str(lines[1]).startswith((
-                "An error occurred getting the ephemeris")):
+        if len(lines) < 2 or str(lines[1]).startswith((
+            "An error occured getting the ephemeris")):
             raise IOError(os.errno.EACCES,
                           "call to SSOIS failed on format error")
 

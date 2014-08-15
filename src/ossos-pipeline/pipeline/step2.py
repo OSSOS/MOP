@@ -66,6 +66,7 @@ def step2(expnums, ccd, version, prefix=None, dry_run=False):
         os.unlink('proc-these-files')
     ptf = open('proc-these-files', 'w')
     ptf.write("# A dummy file that is created so checktrans could run.\n")
+    ptf.write("# Frame FWHM PSF?\n")
     for expnum in expnums:
         filename = os.path.splitext(storage.get_image(expnum,
                                                       ccd,
