@@ -38,8 +38,8 @@ for line in open(sys.argv[1]):
             continue
         expnum = match.group(1)
         ccd = int(match.group(2))
-        X = float(mpc_observation.comment.X)
-        Y = float(mpc_observation.comment.Y)
+        X = float(mpc_observation.comment.x)
+        Y = float(mpc_observation.comment.y)
         x1 = int(max(1,X - width))
         x2 = int(min(2112,X + width))
         y1 = int(max(1,Y - width))

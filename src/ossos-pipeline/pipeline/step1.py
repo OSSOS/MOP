@@ -57,8 +57,7 @@ def step1(expnum,
     """
 
     filename = storage.get_image(expnum, ccd, version=version, prefix=prefix)
-    mopheader = storage.get_image(expnum, ccd, version=version,
-                                  ext='mopheader', prefix=prefix)
+    mopheader = storage.get_image(expnum, ccd, version=version, ext='mopheader', prefix=prefix)
     fwhm = storage.get_fwhm(expnum, ccd, prefix=prefix, version=version)
     basename = os.path.splitext(filename)[0]
     
@@ -83,8 +82,7 @@ def step1(expnum,
 	flat_name = os.path.splitext(parts[0])[0]
     else:	
         flat_name = parts[0]
-    flat_filename = storage.get_image(flat_name, ccd, version='', ext='fits',
-                      subdir='calibrators')
+    flat_filename = storage.get_image(flat_name, ccd, version='', ext='fits', subdir='calibrators')
     if not os.access('weight.fits',os.R_OK):
         os.symlink(flat_filename, 'weight.fits')
     outfile = util.exec_prog(['step1matt',

@@ -112,8 +112,8 @@ if __name__ == '__main__':
     
         header = (args.header is not None and ((
             os.access(args.header, os.W_OK) and args.header ) or (
-            storage.get_image(args.header, ext='head')))) or ( 
-            storage.get_image(args.expnum, ext='head'))
+            storage.get_image(args.header, ext='head')))) or (
+                     storage.get_image(args.expnum, ext='head'))
 
         image = (os.access(args.expnum,os.W_OK) and args.expnum ) or (
             storage.get_image(args.expnum) )

@@ -35,7 +35,7 @@ def mkpsf(expnum, ccd, fversion, dry_run=False, prefix=""):
     """
 
     ## get image from the vospace storage area
-    filename = storage.get_image(expnum, ccd, prefix=prefix, version=fversion)
+    filename = storage.get_image(expnum, ccd, version=fversion, prefix=prefix)
     logging.info("Running mkpsf on %s %d" % (expnum, ccd))
     ## launch the makepsf script
     util.exec_prog(['jmpmakepsf.csh',

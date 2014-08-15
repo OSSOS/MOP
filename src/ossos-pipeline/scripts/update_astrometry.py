@@ -25,8 +25,8 @@ def remeasure(mpc_obs):
     parts = re.search('(?P<expnum>\d{7})(?P<type>\S)(?P<ccd>\d\d)',mpc_obs.comment.frame)
     header = storage.get_astheader(parts.group('expnum'),int(parts.group('ccd')))
     this_wcs = wcs.WCS(header)
-    x = float(mpc_obs.comment.X)
-    y = float(mpc_obs.comment.Y)
+    x = float(mpc_obs.comment.x)
+    y = float(mpc_obs.comment.y)
     (ra,dec) = this_wcs.xy2sky(x,y)
     mpc_obs.coordinate = (ra,dec)
     recompute_mag(mpc_obs)
@@ -48,14 +48,14 @@ def recompute_mag(mpc_obs):
 
     observation =  astrom.Observation(expnum,ftype,ccd)
     observation.header = storage.get_mopheader(int(expnum),int(ccd))
-    reading = astrom.SourceReading(float(mpc_obs.comment.X),
-                                   float(mpc_obs.comment.Y),
-                                   float(mpc_obs.comment.X),
-                                   float(mpc_obs.comment.Y),
+    reading = astrom.SourceReading(float(mpc_obs.comment.x),
+                                   float(mpc_obs.comment.y),
+                                   float(mpc_obs.comment.x),
+                                   float(mpc_obs.comment.y),
                                    mpc_obs.coordinate.ra.degrees,
                                    mpc_obs.coordinate.dec.degrees,
-                                   float(mpc_obs.comment.X),
-                                   float(mpc_obs.comment.Y),
+                                   float(mpc_obs.comment.x),
+                                   float(mpc_obs.comment.y),
                                    observation,
                                    ssos=True,
                                    from_input_file=True,null_observation=False,discovery=mpc_obs.discovery)
@@ -94,7 +94,7 @@ if __name__ == '__main__':
         mpc_in = mpc.Observation.from_string(line)
         mpc_obs = remeasure(mpc_in)
         optr.write(mpc_obs.to_string()+"\n")
-        if not mpc_obs.comment.PNote[0] == "Z" and str(mpc_obs.note1) not in ["I", "H"]:
+        if not mpc_obs.comment.photometry_note[0] == "Z" and str(mpc_obs.note1) not in ["I", "H"]:
             out_mags.append(mpc_obs.mag)
             in_mags.append(mpc_in.mag)
             in_merrs.append(mpc_in.mag_err)
