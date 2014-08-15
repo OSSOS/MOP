@@ -620,6 +620,7 @@ class Query(object):
         assert (self.response.status_code == requests.codes.ok )
 
         lines = self.response.content
+        # note: spelling 'occured' is in SSOIS
         if len(lines) < 2 or str(lines[1]).startswith((
             "An error occured getting the ephemeris")):
             raise IOError(os.errno.EACCES,

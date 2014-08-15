@@ -598,10 +598,10 @@ class Observation(object):
             provisional_name = " " * 7
         else:
             provisional_name = provisional_name.strip()
-            if not provisional_name[0].isalpha():
-                logging.warning("Provisional Name should not be a number: {}".format(provisional_name))
-            if not len(provisional_name) <= 7:
-                logging.warning("Provisional Name too long {}".format(provisional_name))
+            # if not provisional_name[0].isalpha():
+            # logging.warning("Provisional Name should not be a number: {}".format(provisional_name))
+            # if not len(provisional_name) <= 7:
+            #     logging.warning("Provisional Name too long {}".format(provisional_name))
         self._provisional_name = provisional_name
 
     @property
@@ -733,6 +733,7 @@ class Observation(object):
             self._mag_err = None
         else:
             self._mag_err = mag_err
+
 
     @property
     def band(self):
