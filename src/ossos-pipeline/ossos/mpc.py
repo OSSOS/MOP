@@ -111,6 +111,9 @@ class NullObservation(object):
     def __bool__(self):
         return self._null_observation
 
+    def __nonzero__(self):
+        return self.__bool__()
+
 
 class MPCFormatError(Exception):
     """Base class for errors in MPC formatting."""
