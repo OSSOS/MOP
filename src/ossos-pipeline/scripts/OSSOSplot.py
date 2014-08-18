@@ -588,11 +588,13 @@ class Plot(Canvas):
         label = {}
         label['text'] = self.plabel.get()
         label['id'] = self.label(this_camera.ra, this_camera.dec, label['text'])
-        self.append({
+        self.pointings.append({
             "label": label,
             "items": items,
             "camera": this_camera})
+        self.current = len(self.pointings)  - 1
         self.current_pointing(len(self.pointings) - 1)
+
 
     def plot_pointings(self, pointings=None):
         """Plot pointings on canavs"""
