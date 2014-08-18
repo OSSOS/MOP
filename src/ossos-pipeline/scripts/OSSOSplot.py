@@ -513,7 +513,7 @@ class Plot(Canvas):
                     continue
                 d = line.split()
                 if len(d) != 9:
-                    sys.stderr.write("Don't understand pointing format\n%s\n" % ( line))
+                    sys.stderr.write("Don't understand pointing format\n%s\n" % line)
                     continue
                 ras = "%s:%s:%s" % ( d[2], d[3], d[4])
                 decs = "%s:%s:%s" % ( d[5], d[6], d[7])
@@ -549,10 +549,17 @@ class Plot(Canvas):
             label = {}
             label['text'] = point[0]
             (ra, dec) = (ephem.hours(point[1]), ephem.degrees(point[2]))
-            c = Camera(camera=self.camera.get())
-            ccds = c.getGeometry(float(ra), float(dec))
+            this_camera = Camera(camera=self.camera.get())
+            ccds = this_camera.getGeometry(float(ra), float(dec))
+            items = []
+            for ccd in ccds:
+                (x1, y1) = self.p2c((ccd[0], ccd[1]))
+                (x2, y2) = self.p2c((ccd[2], ccd[3]))
+                item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill=None)
+                items.append(item)
             self.pointings.append({"label": label,
-                                   "camera": c})
+                                   "items": items,
+                                   "camera": this_camera})
 
         self.plot_pointings()
         return
@@ -568,30 +575,21 @@ class Plot(Canvas):
         this_camera = Camera(camera=self.camera.get())
         ccds = this_camera.getGeometry(ra, dec)
         items = []
-        polygons = []
         for ccd in ccds:
             if len(ccd) == 4:
                 (x1, y1) = self.p2c((ccd[0], ccd[1]))
                 (x2, y2) = self.p2c((ccd[2], ccd[3]))
                 item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill=None)
-                polygon = Polygon.Polygon(((ccd[0], ccd[1]),
-                                           (ccd[0], ccd[3]),
-                                           (ccd[2], ccd[3]),
-                                           (ccd[2], ccd[1]),
-                                           (ccd[0], ccd[1])))
             else:
-                polygon = None
                 (x1, y1) = self.p2c((ccd[0] - ccd[2] / math.cos(ccd[1]), ccd[1] - ccd[2]))
                 (x2, y2) = self.p2c((ccd[0] + ccd[2] / math.cos(ccd[1]), ccd[1] + ccd[2]))
                 item = self.create_oval(x1, y1, x2, y2)
             items.append(item)
-            polygons.append(polygon)
         label = {}
         label['text'] = self.plabel.get()
         label['id'] = self.label(this_camera.ra, this_camera.dec, label['text'])
-        self.pointings.append({
+        self.append({
             "label": label,
-            "polygons": polygons,
             "items": items,
             "camera": this_camera})
         self.current_pointing(len(self.pointings) - 1)
@@ -692,30 +690,21 @@ class Plot(Canvas):
             dec = row['DEJ2000']
             ccds = this_camera.getGeometry(ra, dec)
             items = []
-            polygons = []
             for ccd in ccds:
                 if len(ccd) == 4:
                     (x1, y1) = self.p2c((ccd[0], ccd[1]))
                     (x2, y2) = self.p2c((ccd[2], ccd[3]))
-                    polygon = Polygon.Polygon(((ccd[0],ccd[1]),
-                                               (ccd[0],ccd[3]),
-                                               (ccd[2],ccd[3]),
-                                               (ccd[2],ccd[1]),
-                                               (ccd[0],ccd[1])))
                     item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill='#000')
                 else:
                     (x1, y1) = self.p2c((ccd[0] - ccd[2] / math.cos(ccd[1]), ccd[1] - ccd[2]))
                     (x2, y2) = self.p2c((ccd[0] + ccd[2] / math.cos(ccd[1]), ccd[1] + ccd[2]))
-                    polygon = None
                     item = self.create_oval(x1, y1, x2, y2)
                 items.append(item)
-                polygons.append(polygon)
             label = {}
             label['text'] = row['target_name']
             label['id'] = self.label(this_camera.ra, this_camera.dec, label['text'])
             self.pointings.append({
                 "label": label,
-                "polygons": polygons,
                 "items": items,
                 "camera": this_camera})
             self.current_pointing(len(self.pointings) - 1)
@@ -728,7 +717,16 @@ class Plot(Canvas):
         if self.pointing_format.get() == 'CFHT ET':
             for pointing in self.pointings:
                 name = pointing["label"]["text"]
-                polygons = pointing["polygons"]
+                camera = pointing["camera"]
+                ccds = camera.getGeometry()
+                polygons = []
+                for ccd in ccds:
+                    polygon = Polygon.Polygon(((ccd[0],ccd[1]),
+                                               (ccd[0],ccd[3]),
+                                               (ccd[2],ccd[3]),
+                                               (ccd[2],ccd[1]),
+                                               (ccd[0],ccd[1])))
+                    polygons.append(polygon)
                 et = EphemTarget(name)
                 # determine the mean motion of KBOs in this field.
                 field_kbos = []
@@ -740,7 +738,6 @@ class Plot(Canvas):
                     ra = kbo.coordinate.ra.radians
                     dec = kbo.coordinate.dec.radians
                     for polygon in polygons:
-                        assert isinstance(polygon, Polygon.Polygon)
                         if polygon.isInside(ra, dec):
                             field_kbos.append(kbo)
                             center_ra += ra
@@ -748,26 +745,27 @@ class Plot(Canvas):
                 start_date = mpc.Time(self.date.get(), scale='utc').jd
                 trail_mid_point = 6
                 for days in range(trail_mid_point * 2 + 1):
-                    today = mpc.Time(start_date - trail_mid_point + days,
-                                     scale='utc',
-                                     format='jd')
-                    mean_motion = (0, 0)
-                    if len(field_kbos) > 0:
-                        current_ra = 0
-                        current_dec = 0
-                        for kbo in field_kbos:
-                            kbo.predict(today)
-                            current_ra += kbo.coordinate.ra.radians
-                            current_dec += kbo.coordinate.dec.radians
-                        mean_motion = ((current_ra - center_ra)/len(field_kbos),
-                                       (current_dec - center_dec)/len(field_kbos))
-                    ra = pointing['camera'].coordinate.ra.radians + mean_motion[0]
-                    dec = pointing['camera'].coordinate.dec.radians + mean_motion[1]
-                    cc = coordinates.ICRSCoordinates(ra=ra,
-                                                     dec=dec,
-                                                     unit=(units.radian, units.radian),
-                                                     obstime=today)
-                    et.coordinates.append(cc)
+                    for hours in range(24):
+                        today = mpc.Time(start_date - trail_mid_point + days + hours/24.0,
+                                         scale='utc',
+                                         format='jd')
+                        mean_motion = (0, 0)
+                        if len(field_kbos) > 0:
+                            current_ra = 0
+                            current_dec = 0
+                            for kbo in field_kbos:
+                                kbo.predict(today)
+                                current_ra += kbo.coordinate.ra.radians
+                                current_dec += kbo.coordinate.dec.radians
+                            mean_motion = ((current_ra - center_ra)/len(field_kbos),
+                                           (current_dec - center_dec)/len(field_kbos))
+                        ra = pointing['camera'].coordinate.ra.radians + mean_motion[0]
+                        dec = pointing['camera'].coordinate.dec.radians + mean_motion[1]
+                        cc = coordinates.ICRSCoordinates(ra=ra,
+                                                         dec=dec,
+                                                         unit=(units.radian, units.radian),
+                                                         obstime=today)
+                        et.coordinates.append(cc)
                 et.save()
             return
         f = tkFileDialog.asksaveasfile()
