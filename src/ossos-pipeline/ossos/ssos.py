@@ -145,12 +145,14 @@ class SSOSParser(object):
         :param provisional_name: name of KBO to assign SSOS data to
         :param input_observations: input observations used in search
         """
-        if not input_observations: input_observations = []
+        if not input_observations:
+            input_observations = []
         self.provisional_name = provisional_name
         self.input_rawnames = []
         self.null_observations = []
         self.skip_previous = skip_previous
         for observation in input_observations:
+            assert isinstance(observation, mpc.Observation)
             try:
                 rawname = observation.comment.frame
                 self.input_rawnames.append(rawname)
