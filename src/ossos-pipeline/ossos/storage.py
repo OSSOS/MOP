@@ -49,7 +49,7 @@ mopheaders = {}
 astheaders = {}
 
 
-def cone_search(ra, dec, dra=0.01, ddec=0.01):
+def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None):
     """Do a QUERY on the TAP service for all observations that are part of OSSOS (*P05/*P016)
     where taken after mjd and have calibration 'observable'.
 
@@ -59,7 +59,8 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01):
     :param ddec: float degrees
     """
 
-    data = dict(QUERY=(" SELECT Observation.observationID as collectionID "
+    data = dict(QUERY=(" SELECT Observation.observationID as collectionID, "
+                       " Plane.time_bounds_cval1 AS mjdate "
                        " FROM caom2.Observation AS Observation "
                        " JOIN caom2.Plane AS Plane "
                        " ON Observation.obsID = Plane.obsID "
@@ -71,8 +72,10 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01):
                 FORMAT="tsv")
 
     data["QUERY"] += (" AND  "
-                      " CONTAINS( BOX('ICRS', {}, {}, {}, {}), "
+                      " INTERSECTS( BOX('ICRS', {}, {}, {}, {}), "
                       " Plane.position_bounds ) = 1 ").format(ra, dec, dra, ddec)
+    if mjdate is not None:
+       data["QUERY"] += " AND Plane.time_bounds_cval1 < {} AND Plane.time_bounds_cval2 > {} ".format(mjdate+1.0/24.0, mjdate-1/24.0)
 
     result = requests.get(TAP_WEB_SERVICE, params=data, verify=False)
     assert isinstance(result, requests.Response)
