@@ -398,8 +398,6 @@ def compute_precision(coord):
     """
     Returns the number of digits after the last '.' in a given number or string.
 
-
-
     """
     coord = str(coord).strip(' ')
     idx = coord.rfind('.')
@@ -484,7 +482,7 @@ class Observation(object):
         self._mag = None
         self._mag_err = None
         self._mag_precision = 1
-        self._ra_precision = 1
+        self._ra_precision = 3
         self._dec_precision = 2
         self.mag = mag
         self.mag_err = mag_err
