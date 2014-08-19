@@ -49,7 +49,7 @@ mopheaders = {}
 astheaders = {}
 
 
-def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None):
+def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2):
     """Do a QUERY on the TAP service for all observations that are part of OSSOS (*P05/*P016)
     where taken after mjd and have calibration 'observable'.
 
@@ -65,12 +65,13 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None):
                        " JOIN caom2.Plane AS Plane "
                        " ON Observation.obsID = Plane.obsID "
                        " WHERE  ( Observation.collection = 'CFHT' ) "
-                       " AND Plane.calibrationLevel=2 "
+                       " AND Plane.calibrationLevel={} "
                        " AND ( Observation.proposal_id LIKE '%P05' or Observation.proposal_id LIKE '%P06' )"),
                 REQUEST="doQuery",
                 LANG="ADQL",
                 FORMAT="tsv")
 
+    data["QUERY"]  = data["QUERY"].format(calibration_level)
     data["QUERY"] += (" AND  "
                       " INTERSECTS( BOX('ICRS', {}, {}, {}, {}), "
                       " Plane.position_bounds ) = 1 ").format(ra, dec, dra, ddec)
