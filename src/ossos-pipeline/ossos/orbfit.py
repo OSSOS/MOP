@@ -184,6 +184,7 @@ class Orbfit(object):
         self.ddec = predict.contents[3]
         self.pa = predict.contents[4]
         self.date = str(date)
+        self.time = date
 
     def rate_of_motion(self, date):
         # rate of motion at a requested date rather than averaged over the arc.
