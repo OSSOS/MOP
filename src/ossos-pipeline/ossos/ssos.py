@@ -628,7 +628,7 @@ class Query(object):
             raise IOError(os.errno.EACCES,
                           "call to SSOIS failed on format error")
 
-        if os.access("backdoor.tsv",os.R_OK):
+        if os.access("backdoor.tsv", os.R_OK):
             lines += open("backdoor.tsv").read()
 
         return lines
