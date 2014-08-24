@@ -23,6 +23,17 @@ from ossos.coord import Coord
 from ossos import mpc
 import megacam
 
+color_key = {"yellow": "Fill colour is yellow == tracking termination",
+             "blue": "Outline is blue == ColOSSOS target.",
+             'red': "Large ephemeris uncertainty object."}
+
+Neptune = {'Halimde': {"RA": ephem.hours("22:32:05.1"), "DEC": ephem.degrees("-10:08:42")},
+	  'Psamathe': {"RA": ephem.hours("22:32:41.0"), "DEC": ephem.degrees("-09:48:06")},
+          'Sao': {"RA": ephem.hours("22:33:48.6"),"DEC": ephem.degrees("-09:50:02")},
+          'Laomedeia': {"RA": ephem.hours("22:32:09.0"),"DEC": ephem.degrees("-10:07:53")},
+	  'Neso': {"RA": ephem.hours("22:31:31.9"),"DEC": ephem.degrees("-10:19:18")},
+	  'Neptune': {"RA": ephem.hours("22:32:49.39"), "DEC": ephem.degrees("-09:57:02.8")}}
+
 
 colossos = ['O13BL3R9',
             'O13BL3SK',
@@ -45,6 +56,42 @@ colossos = ['O13BL3R9',
             'O13BL3SH',
             'O13BL3R1',
             'O13BL3RH']
+tracking_termination = ['o3e01',
+'o3e10',
+'o3e15',
+'o3e16',
+'o3e18',
+'o3e20PD',
+'o3e21',
+'o3e22',
+'o3e23PD',
+'o3e24',
+'o3e25',
+'o3e26',
+'o3e27PD',
+'o3e28',
+'o3e29',
+'o3e30PD',
+'o3e32',
+'o3e33',
+'o3e34PD',
+'o3e35',
+'o3e36',
+'o3e37PD',
+'o3e38',
+'o3e40',
+'o3e51',
+'o3e54',
+"o3o01",
+"o3o22",
+"o3o23",
+"o3o26",
+"o3o28",
+"o3o31",
+"o3o35",
+"uo3o37",
+"uo3o38",
+"uo3o50"]
 
 
 class Plot(Canvas):
@@ -89,25 +136,29 @@ class Plot(Canvas):
         """Load the targets from a file
 
         """
-        print directory_name
-        if directory_name is None:
-            directory_name = tkFileDialog.askdirectory()
-            if directory_name is None:
-                return None
 
-        working_context = context.get_context(directory_name)
+	for name in Neptune:
+	    self.kbos[name] = Neptune[name]
 
-        for filename in working_context.get_listing('ast'):
-            fhandle = working_context.open(filename)
-            observations = []
-            lines = fhandle.read().split('\n')
-            for line in lines:
-                if len(line) > 0 and not line.startswith('#'):  # skip the comments, don't care about them here
-                    observations.append(mpc.Observation.from_string(line))
-            fhandle.close()
-            name = filename.rstrip('.ast')  # observations[0].provisional_name
-            self.kbos[name] = orbfit.Orbfit(observations)
+        if directory_name is not None:
 
+            working_context = context.get_context(directory_name)
+
+            for filename in working_context.get_listing('ast'):
+                fhandle = working_context.open(filename)
+                observations = []
+                lines = fhandle.read().split('\n')
+                fhandle.close()
+                for line in lines:
+                    if len(line) > 0 and not line.startswith('#'):  # skip the comments, don't care about them here
+                        observations.append(mpc.Observation.from_string(line))
+                name = filename.rstrip('.ast')  # observations[0].provisional_name
+                try:
+                   this_orbit = orbfit.Orbfit(observations)
+                except Exception as e:
+  	           print str(e)
+                self.kbos[name] = this_orbit
+               
         self.doplot()
 
 
@@ -368,9 +419,12 @@ class Plot(Canvas):
             assert isinstance(kbo, orbfit.Orbfit)
             date = self.date.get()
             date.replace("/", " ")
-            kbo.predict(self.date.get())
-            self.recenter(kbo.coordinate.ra.radians, kbo.coordinate.dec.radians)
-            self.create_point(kbo.coordinate.ra.radians, kbo.coordinate.dec.radians, color='blue', size=4)
+            try:
+               kbo.predict(self.date.get())
+               self.recenter(kbo.coordinate.ra.radians, kbo.coordinate.dec.radians)
+               self.create_point(kbo.coordinate.ra.radians, kbo.coordinate.dec.radians, color='blue', size=4)
+            except:
+               print "failed to compute KBO position"
 
     def recenter(self, ra, dec):
 
@@ -449,15 +503,18 @@ class Plot(Canvas):
         e1.extend(e2)
         self.create_line(e1, fill='red', width=1)
 
-    def create_point(self, xcen, ycen, size=10, color='red'):
+    def create_point(self, xcen, ycen, size=10, color='red', fill=None):
         """Plot a circle of size at this x,y location"""
+
+        if fill is None:
+            fill=color
 
         (x, y) = self.p2c((xcen, ycen))
         x1 = x - size
         x2 = x + size
         y1 = y - size
         y2 = y + size
-        self.create_rectangle(x1, y1, x2, y2, fill=color, outline=color)
+        self.create_rectangle(x1, y1, x2, y2, fill=fill, outline=color)
 
     def current_pointing(self, index):
         """set the color of the currently selected pointing to 'blue'"""
@@ -553,9 +610,14 @@ class Plot(Canvas):
             ccds = this_camera.getGeometry(float(ra), float(dec))
             items = []
             for ccd in ccds:
-                (x1, y1) = self.p2c((ccd[0], ccd[1]))
-                (x2, y2) = self.p2c((ccd[2], ccd[3]))
-                item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill=None)
+                if len(ccd)==4:
+                    (x1, y1) = self.p2c((ccd[0], ccd[1]))
+                    (x2, y2) = self.p2c((ccd[2], ccd[3]))
+                    item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill=None)
+                else:
+                    (x1, y1) = self.p2c((ccd[0] - ccd[2]/math.cos(ccd[1]), ccd[1] - ccd[2]))
+                    (x2, y2) = self.p2c((ccd[0] + ccd[2]/math.cos(ccd[1]), ccd[1] + ccd[2]))
+                    item = self.create_oval(x1, y1, x2, y2)
                 items.append(item)
             self.pointings.append({"label": label,
                                    "items": items,
@@ -581,8 +643,8 @@ class Plot(Canvas):
                 (x2, y2) = self.p2c((ccd[2], ccd[3]))
                 item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill=None)
             else:
-                (x1, y1) = self.p2c((ccd[0] - ccd[2] / math.cos(ccd[1]), ccd[1] - ccd[2]))
-                (x2, y2) = self.p2c((ccd[0] + ccd[2] / math.cos(ccd[1]), ccd[1] + ccd[2]))
+                (x1, y1) = self.p2c((ccd[0] - ccd[2]), ccd[1] - ccd[2])
+                (x2, y2) = self.p2c((ccd[0] + ccd[2]), ccd[1] + ccd[2])
                 item = self.create_oval(x1, y1, x2, y2)
             items.append(item)
         label = {}
@@ -614,8 +676,8 @@ class Plot(Canvas):
                     (x2, y2) = self.p2c((ccd[2], ccd[3]))
                     item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill=pointing.get('color', ''))
                 else:
-                    (x1, y1) = self.p2c((ccd[0] - ccd[2] / math.cos(ccd[1]), ccd[1] - ccd[2]))
-                    (x2, y2) = self.p2c((ccd[0] + ccd[2] / math.cos(ccd[1]), ccd[1] + ccd[2]))
+                    (x1, y1) = self.p2c((ccd[0] - ccd[2]), ccd[1] - ccd[2])
+                    (x2, y2) = self.p2c((ccd[0] + ccd[2]), ccd[1] + ccd[2])
                     item = self.create_oval(x1, y1, x2, y2)
                 items.append(item)
             if self.show_labels.get() == 1:
@@ -661,8 +723,8 @@ class Plot(Canvas):
                 (x1, y1) = self.p2c((ccd[0], ccd[1]))
                 (x2, y2) = self.p2c((ccd[2], ccd[3]))
             else:
-                (x1, y1) = self.p2c((ccd[0] - ccd[2] / math.cos(ccd[1]), ccd[1] - ccd[2]))
-                (x2, y2) = self.p2c((ccd[0] + ccd[2] / math.cos(ccd[1]), ccd[1] + ccd[2]))
+                (x1, y1) = self.p2c((ccd[0] - ccd[2]), ccd[1] - ccd[2])
+                (x2, y2) = self.p2c((ccd[0] + ccd[2]), ccd[1] + ccd[2])
             self.coords(item, x1, y1, x2, y2)
         self.current_pointing(this_index)
 
@@ -698,8 +760,8 @@ class Plot(Canvas):
                     (x2, y2) = self.p2c((ccd[2], ccd[3]))
                     item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill='#000')
                 else:
-                    (x1, y1) = self.p2c((ccd[0] - ccd[2] / math.cos(ccd[1]), ccd[1] - ccd[2]))
-                    (x2, y2) = self.p2c((ccd[0] + ccd[2] / math.cos(ccd[1]), ccd[1] + ccd[2]))
+                    (x1, y1) = self.p2c((ccd[0] - ccd[2]), ccd[1] - ccd[2])
+                    (x2, y2) = self.p2c((ccd[0] + ccd[2]), ccd[1] + ccd[2])
                     item = self.create_oval(x1, y1, x2, y2)
                 items.append(item)
             label = {}
@@ -771,6 +833,17 @@ class Plot(Canvas):
                 et.save()
             return
         f = tkFileDialog.asksaveasfile()
+        if self.pointing_format.get() == 'Subaru':
+            for pointing in self.pointings:
+                (sra, sdec) = str(pointing["camera"]).split()
+                ra = sra.replace(":","")
+                dec = sdec.replace(":","")
+                name = pointing["label"]["text"]
+                f.write("""{}=OBJECT="{}" RA={} DEC={} EQUINOX=2000.0 INSROT_PA=0\n""".format(name,
+                                                                                            name,
+                                                                                            ra,
+                                                                                            dec))
+            return   
         if self.pointing_format.get() == 'CFHT PH':
             f.write("""<?xml version = "1.0"?>
 <!DOCTYPE ASTRO SYSTEM "http://vizier.u-strasbg.fr/xml/astrores.dtd">
@@ -872,30 +945,36 @@ NAME                |RA         |DEC        |EPOCH |POINT|
             point_color = 'black'
             for cname in colossos:
                 if cname in name:
-                    point_color = 'blue'
+                    fill = 'blue'
+                    break
+            fill = None
+            for cname in tracking_termination:
+                if cname in name:
+                    fill = "yellow"
                     break
             if type(kbos[name]) == type(ephem.EllipticalBody()):
-                kbos[name].compute(w.date.get())
+                try:
+                   kbos[name].compute(w.date.get())
+                except Exceptaion as e:
+                   print "Failed to compute KBO position. {}".format(name)
                 ra = kbos[name].ra
                 dec = kbos[name].dec
                 a = math.radians(10.0 / 3600.0)
                 b = a
                 ang = 0.0
                 point_size = 2
-                point_color = 'yellow'
                 yoffset = +10
                 xoffset = +10
-                w.create_point(ra, dec, size=point_size, color=point_color)
+                w.create_point(ra, dec, size=point_size, color=point_color, fill=fill)
                 if w.show_ellipse.get() == 1:
                     if a < math.radians(5.0):
                         w.create_ellipse(ra, dec, a, b, ang)
                 if w.show_labels.get() == 1:
                     w.label(ra, dec, name, offset=[xoffset, yoffset])
-            else:
+            elif isinstance(kbos[name], orbfit.Orbfit):
                 yoffset = -10
                 xoffset = -10
                 kbo = kbos[name]
-                assert isinstance(kbo, orbfit.Orbfit)
                 start_date = mpc.Time(w.date.get(), scale='utc').jd
                 trail_mid_point = 6
                 for days in range(trail_mid_point * 2 + 1):
@@ -911,12 +990,18 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                         point_color = 'red'
                     if kbo.arc_length > 180 and point_color != 'blue':
                         point_color = 'green'
-                    w.create_point(ra, dec, size=point_size, color=point_color)
+                    w.create_point(ra, dec, size=point_size, color=point_color, fill=fill)
                     if w.show_ellipse.get() == 1 and days == trail_mid_point + 1:
                         if a < math.radians(5.0):
                             w.create_ellipse(ra, dec, a, b, ang)
                         if w.show_labels.get() == 1:
                             w.label(ra, dec, name, offset=[xoffset, yoffset])
+            else:
+	        ra = kbos[name]['RA']
+	        dec = kbos[name]['DEC']
+                w.create_point(ra, dec, size=6, color='cyan')
+                w.label(ra, dec, name, offset=[-15, +15])
+
 
         vlist.sort()
         for v in vlist:
@@ -1223,6 +1308,7 @@ def start(dirname=None, pointings=None):
     pointFormat.add_checkbutton(label='Palomar', variable=w.pointing_format, onvalue='Palomar')
     pointFormat.add_checkbutton(label='KPNO/CTIO', variable=w.pointing_format, onvalue='KPNO/CTIO')
     pointFormat.add_checkbutton(label='SSim', variable=w.pointing_format, onvalue='SSim')
+    pointFormat.add_checkbutton(label='Subaru', variable=w.pointing_format, onvalue='Subaru')
     pointing_menu.add_cascade(label='Save Format', menu=pointFormat)
 
     pointing_menu.add_command(label="Save pointings", command=w.save_pointings)
@@ -1257,6 +1343,9 @@ if __name__ == '__main__':
     parser.add_option("-p", "--pointings", help="A file containing some pointings")
     parser.add_option("-d", "--dirname", help="Directory with mpc/ast files of Kuiper belt objects")
     parser.add_option('--debug', action="store_true")
+
+    for key in color_key:
+        print "{} ==> {}\n".format(key, color_key[key])
 
     (opt, files) = parser.parse_args()
 
