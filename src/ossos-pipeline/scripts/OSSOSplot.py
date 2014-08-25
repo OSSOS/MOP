@@ -684,8 +684,13 @@ class Plot(Canvas):
     def set_pointing_label(self):
         """Let the label of the current pointing to the value in the plabel box"""
 
-        self.pointings[self.current]['label']['text'] = self.plabel.get()
-        self.reset()
+        current = self.current
+        pointing = self.pointings[current]
+        self.delete_pointing(None)
+        pointing["label"]['text'] = self.plabel.get()
+        self.pointings.append(pointing)
+        self.plot_pointings([pointing])
+        self.current = current
 
     def move_pointing(self, event):
         """Grab nearest pointing to event.x,event.y and with cursor"""
