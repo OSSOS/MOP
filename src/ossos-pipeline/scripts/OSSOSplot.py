@@ -10,7 +10,6 @@ import time
 import Polygon
 import Polygon.IO
 
-
 from astropy import coordinates
 from astropy import units
 import ephem
@@ -28,12 +27,11 @@ color_key = {"yellow": "Fill colour is yellow == tracking termination",
              'red': "Large ephemeris uncertainty object."}
 
 Neptune = {'Halimde': {"RA": ephem.hours("22:32:05.1"), "DEC": ephem.degrees("-10:08:42")},
-	  'Psamathe': {"RA": ephem.hours("22:32:41.0"), "DEC": ephem.degrees("-09:48:06")},
-          'Sao': {"RA": ephem.hours("22:33:48.6"),"DEC": ephem.degrees("-09:50:02")},
-          'Laomedeia': {"RA": ephem.hours("22:32:09.0"),"DEC": ephem.degrees("-10:07:53")},
-	  'Neso': {"RA": ephem.hours("22:31:31.9"),"DEC": ephem.degrees("-10:19:18")},
-	  'Neptune': {"RA": ephem.hours("22:32:49.39"), "DEC": ephem.degrees("-09:57:02.8")}}
-
+           'Psamathe': {"RA": ephem.hours("22:32:41.0"), "DEC": ephem.degrees("-09:48:06")},
+           'Sao': {"RA": ephem.hours("22:33:48.6"), "DEC": ephem.degrees("-09:50:02")},
+           'Laomedeia': {"RA": ephem.hours("22:32:09.0"), "DEC": ephem.degrees("-10:07:53")},
+           'Neso': {"RA": ephem.hours("22:31:31.9"), "DEC": ephem.degrees("-10:19:18")},
+           'Neptune': {"RA": ephem.hours("22:32:49.39"), "DEC": ephem.degrees("-09:57:02.8")}}
 
 colossos = ['O13BL3R9',
             'O13BL3SK',
@@ -57,41 +55,41 @@ colossos = ['O13BL3R9',
             'O13BL3R1',
             'O13BL3RH']
 tracking_termination = ['o3e01',
-'o3e10',
-'o3e15',
-'o3e16',
-'o3e18',
-'o3e20PD',
-'o3e21',
-'o3e22',
-'o3e23PD',
-'o3e24',
-'o3e25',
-'o3e26',
-'o3e27PD',
-'o3e28',
-'o3e29',
-'o3e30PD',
-'o3e32',
-'o3e33',
-'o3e34PD',
-'o3e35',
-'o3e36',
-'o3e37PD',
-'o3e38',
-'o3e40',
-'o3e51',
-'o3e54',
-"o3o01",
-"o3o22",
-"o3o23",
-"o3o26",
-"o3o28",
-"o3o31",
-"o3o35",
-"uo3o37",
-"uo3o38",
-"uo3o50"]
+                        'o3e10',
+                        'o3e15',
+                        'o3e16',
+                        'o3e18',
+                        'o3e20PD',
+                        'o3e21',
+                        'o3e22',
+                        'o3e23PD',
+                        'o3e24',
+                        'o3e25',
+                        'o3e26',
+                        'o3e27PD',
+                        'o3e28',
+                        'o3e29',
+                        'o3e30PD',
+                        'o3e32',
+                        'o3e33',
+                        'o3e34PD',
+                        'o3e35',
+                        'o3e36',
+                        'o3e37PD',
+                        'o3e38',
+                        'o3e40',
+                        'o3e51',
+                        'o3e54',
+                        "o3o01",
+                        "o3o22",
+                        "o3o23",
+                        "o3o26",
+                        "o3o28",
+                        "o3o31",
+                        "o3o35",
+                        "uo3o37",
+                        "uo3o38",
+                        "uo3o50"]
 
 
 class Plot(Canvas):
@@ -185,7 +183,6 @@ class Plot(Canvas):
         self.current = None
         self.limits(2 * math.pi, 0, -0.5 * math.pi, 0.5 * math.pi)
         self.pointings = []
-        self.doplot()
 
     def p2c(self, p=None):
         """convert from plot to canvas coordinates.
@@ -253,79 +250,49 @@ class Plot(Canvas):
         dec1 = -1 * math.pi / 2.0
         dec2 = math.pi / 2.0
 
-
-        # # grid space choices
-        # # ra space in hours
-        ra_grids = ["06:00:00",
-                    "03:00:00",
-                    "01:00:00",
-                    "00:30:00",
-                    "00:15:00",
-                    "00:05:00",
-                    "00:01:00",
-                    "00:00:30",
-                    "00:00:15",
-                    "00:00:05"]
-        dec_grids = ["45:00:00",
-                     "30:00:00",
-                     "15:00:00",
-                     "05:00:00",
-                     "01:00:00",
-                     "00:15:00",
-                     "00:05:00",
-                     "00:01:00",
-                     "00:00:30"]
-        dra = (self.x2 - self.x1) / 4.0
-        ddec = (self.y2 - self.y1) / 4.0
-
-        # determine which ra_grid spacing to use
-        ra_grid = ra_grids[0]
-        for ra_grid in ra_grids:
-            if self.hours(ra_grid) < math.fabs(dra):
-                break
-        ra_grid = self.hours(ra_grid)
-
-        # determine which dec_grid spacing to use
-        dec_grid = dec_grids[0]
-        for dec_grid in dec_grids:
-            if self.degrees(dec_grid) < math.fabs(ddec):
-                break
-        dec_grid = self.degrees(dec_grid)
-
-        # plot ra grid lines between East (ra1) and West (ra2) limits of plot
-        ra = ra1
-        # should we label the current line be labelled
+        dra = math.fabs((self.x2 - self.x1) / 4.0)
+        ddec = math.fabs((self.y2 - self.y1) / 4.0)
+        logging.debug("Drawing the grid.")
         label = True
-        while (ra <= ra2):
-
+        ra = ra1
+        while ra <= ra2:
             # create a line that goes from dec1 to dec2 at this ra
             (cx1, cy1) = self.p2c((ra, dec1))
             # ly is the y location mid-way between the top and bottom of the plot
             (cx2, cy2) = self.p2c((ra, dec2))
-            self.create_line(cx1, cy1, cx2, cy2)
-            if label:
-                # lx is the the x screen coordinate location of the ra 
-                ly = (cy2 + cy1)/2.0
-                lx = cx1
-                self.create_text(lx, ly, text=str(ephem.hours(ra)), fill='green')
-            label = not label
-            ra += ra_grid
+            # create a dashed line for un-labeled lines
+            self.create_line(cx1, cy1, cx2, cy2, dash=(20, 20))
+            dec = dec1
+            while dec <= dec2:
+                if label:
+                    # lx is the the x screen coordinate location of the ra
+                    (lx, ly) = self.p2c((ra, dec+ddec/2.0))
+                    self.create_text(lx+5, ly, justify=LEFT,
+                                     font=('Times', '-10'),
+                                     text="\n".join(str(ephem.hours(ra))[:-3]), fill='brown')
+                label = not label
+                dec += ddec
+            ra += dra
 
         # plot dec grid lines bewtween South (dec1) and North (dec2) limits of plot
         dec = dec1
         # should we label the current grid line?
         label = True
-        while ( dec <= dec2 ):
-            (lx, ly) = self.p2c((ra, dec))
+        while dec <= dec2:
+            # create a line the goes from ra1 to ra2 at this dec
             (cx1, cy1) = self.p2c((ra1, dec))
             (cx2, cy2) = self.p2c((ra2, dec))
-            self.create_line(cx1, cy1, cx2, cy2)
-            if label:
-                # lx/ly are the screen coordinates of the label
-                lx = (cx2 + cx1)/2.0
-                ly = cy1
-                self.create_text(lx, ly, text=str(ephem.degrees(dec)), fill='brown')
-            dec += dec_grid
+            self.create_line(cx1, cy1, cx2, cy2, dash=(20,20))
+            ra = ra1
+            while ra <= ra2:
+                if label:
+                    # lx/ly are the screen coordinates of the label
+                    (lx, ly) = self.p2c((ra+dra/2.0, dec))
+                    self.create_text(lx, ly-5, font=('Times', '-10'),
+                                     text=str(ephem.degrees(dec)), fill='brown')
+                ra += dra
+            dec += ddec
+            label = not label
 
     def eq2ec(self, ra, dec):
         sb = math.asin(math.sin(dec) * math.cos(math.radians(23.43)) - math.cos(dec) * math.sin(ra) * math.sin(
@@ -380,7 +347,7 @@ class Plot(Canvas):
     def label(self, x, y, label, offset=[0, 0]):
         """Write label at plot coordinates (x,y)"""
         (xc, yc) = self.p2c([x, y])
-        return self.create_text(xc - offset[0], yc - offset[1], text=label)
+        return self.create_text(xc - offset[0], yc - offset[1], font=('Times', '-5'), text=label)
 
 
     def limits(self, x1, x2, y1, y2):
@@ -394,10 +361,10 @@ class Plot(Canvas):
         self.yscale = (self.cy2 - self.cy1) / (self.y2 - self.y1)
 
         # Determine the limits of the canvas
-        (cx1, cy1) = self.p2c((0, -math.pi/2.0))
-        (cx2, cy2) = self.p2c((2*math.pi, math.pi/2.0))
+        (cx1, cy1) = self.p2c((0, -math.pi / 2.0))
+        (cx2, cy2) = self.p2c((2 * math.pi, math.pi / 2.0))
         ## set the scroll region to the size of the camvas plus a boundary to allow the canvas edge to be at centre
-        self.config(scrollregion=(cx1-self.width/2.0, cy1-self.height/2.0, cx2+self.width/2.0, cy2+self.height/2.0))
+        self.config(scrollregion=(cx2-self.width/2.0, cy2-self.height/2.0, cx1+self.width/2.0, cy1+self.height/2.0))
 
     def reset(self):
         """Expand to the full scale"""
@@ -427,17 +394,17 @@ class Plot(Canvas):
             date = self.date.get()
             date.replace("/", " ")
             try:
-               kbo.predict(self.date.get())
-               self.recenter(kbo.coordinate.ra.radians, kbo.coordinate.dec.radians)
-               self.create_point(kbo.coordinate.ra.radians, kbo.coordinate.dec.radians, color='blue', size=4)
+                kbo.predict(self.date.get())
+                self.recenter(kbo.coordinate.ra.radians, kbo.coordinate.dec.radians)
+                self.create_point(kbo.coordinate.ra.radians, kbo.coordinate.dec.radians, color='blue', size=4)
             except:
-               logging.error("failed to compute KBO position")
+                logging.error("failed to compute KBO position")
 
     def recenter(self, ra, dec):
 
         # Take the given RA/DEC and make that the center of the view frame.
         (cx, cy) = self.p2c((ra, dec))
-        (sx,sy) = self.c2s((cx, cy))
+        (sx, sy) = self.c2s((cx, cy))
         logging.debug("Canvas: {},{} , Screen: {},{}".format(cx, cy, sx, sy))
         self.scan_mark(int(sx), int(sy))
         self.scan_dragto(480, 360, gain=1)
@@ -455,20 +422,22 @@ class Plot(Canvas):
 
         self.zoom(event, scale=0.5)
 
-    def zoom(self, event, scale=2.0):
+    def zoom(self, event=None, scale=2.0):
         """Zoom in"""
 
         # # compute the x,y of the center of the screen
-        sx1 = self.cx1 + (self.cx2 - self.cx1 + 1.0) / 2.0
-        sy1 = self.cy1 + (self.cy2 - self.cy1 + 1.0) / 2.0
+        sx1 = (self.cx1 + self.cx2)/2.0
+        sy1 = (self.cy1 + self.cy2)/2.0
 
         if not event is None:
+            logging.debug("EVENT: {},{}".format(event.x, event.y))
             sx1 = event.x
             sy1 = event.y
 
         (x, y) = self.c2p((self.canvasx(sx1), self.canvasy(sy1)))
         xw = (self.x2 - self.x1) / 2.0 / scale
         yw = (self.y2 - self.y1) / 2.0 / scale
+
 
         ## reset the limits to be centered at x,y with
         ## area of xw*2,y2*2
@@ -502,7 +471,7 @@ class Plot(Canvas):
         """Plot a circle of size at this x,y location"""
 
         if fill is None:
-            fill=color
+            fill = color
 
         (x, y) = self.p2c((xcen, ycen))
         x1 = x - size
@@ -605,13 +574,13 @@ class Plot(Canvas):
             ccds = this_camera.getGeometry(float(ra), float(dec))
             items = []
             for ccd in ccds:
-                if len(ccd)==4:
+                if len(ccd) == 4:
                     (x1, y1) = self.p2c((ccd[0], ccd[1]))
                     (x2, y2) = self.p2c((ccd[2], ccd[3]))
                     item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill=None)
                 else:
-                    (x1, y1) = self.p2c((ccd[0] - ccd[2]/math.cos(ccd[1]), ccd[1] - ccd[2]))
-                    (x2, y2) = self.p2c((ccd[0] + ccd[2]/math.cos(ccd[1]), ccd[1] + ccd[2]))
+                    (x1, y1) = self.p2c((ccd[0] - ccd[2] / math.cos(ccd[1]), ccd[1] - ccd[2]))
+                    (x2, y2) = self.p2c((ccd[0] + ccd[2] / math.cos(ccd[1]), ccd[1] + ccd[2]))
                     item = self.create_oval(x1, y1, x2, y2)
                 items.append(item)
             self.pointings.append({"label": label,
@@ -649,7 +618,7 @@ class Plot(Canvas):
             "label": label,
             "items": items,
             "camera": this_camera})
-        self.current = len(self.pointings)  - 1
+        self.current = len(self.pointings) - 1
         self.current_pointing(len(self.pointings) - 1)
 
 
@@ -786,11 +755,11 @@ class Plot(Canvas):
                 ccds = camera.getGeometry()
                 polygons = []
                 for ccd in ccds:
-                    polygon = Polygon.Polygon(((ccd[0],ccd[1]),
-                                               (ccd[0],ccd[3]),
-                                               (ccd[2],ccd[3]),
-                                               (ccd[2],ccd[1]),
-                                               (ccd[0],ccd[1])))
+                    polygon = Polygon.Polygon(((ccd[0], ccd[1]),
+                                               (ccd[0], ccd[3]),
+                                               (ccd[2], ccd[3]),
+                                               (ccd[2], ccd[1]),
+                                               (ccd[0], ccd[1])))
                     polygons.append(polygon)
                 et = EphemTarget(name)
                 # determine the mean motion of KBOs in this field.
@@ -811,7 +780,7 @@ class Plot(Canvas):
                 trail_mid_point = 6
                 for days in range(trail_mid_point * 2 + 1):
                     for hours in range(24):
-                        today = mpc.Time(start_date - trail_mid_point + days + hours/24.0,
+                        today = mpc.Time(start_date - trail_mid_point + days + hours / 24.0,
                                          scale='utc',
                                          format='jd')
                         mean_motion = (0, 0)
@@ -822,8 +791,8 @@ class Plot(Canvas):
                                 kbo.predict(today)
                                 current_ra += kbo.coordinate.ra.radians
                                 current_dec += kbo.coordinate.dec.radians
-                            mean_motion = ((current_ra - center_ra)/len(field_kbos),
-                                           (current_dec - center_dec)/len(field_kbos))
+                            mean_motion = ((current_ra - center_ra) / len(field_kbos),
+                                           (current_dec - center_dec) / len(field_kbos))
                         ra = pointing['camera'].coordinate.ra.radians + mean_motion[0]
                         dec = pointing['camera'].coordinate.dec.radians + mean_motion[1]
                         cc = coordinates.ICRSCoordinates(ra=ra,
@@ -837,14 +806,14 @@ class Plot(Canvas):
         if self.pointing_format.get() == 'Subaru':
             for pointing in self.pointings:
                 (sra, sdec) = str(pointing["camera"]).split()
-                ra = sra.replace(":","")
-                dec = sdec.replace(":","")
+                ra = sra.replace(":", "")
+                dec = sdec.replace(":", "")
                 name = pointing["label"]["text"]
                 f.write("""{}=OBJECT="{}" RA={} DEC={} EQUINOX=2000.0 INSROT_PA=0\n""".format(name,
-                                                                                            name,
-                                                                                            ra,
-                                                                                            dec))
-            return   
+                                                                                              name,
+                                                                                              ra,
+                                                                                              dec))
+            return
         if self.pointing_format.get() == 'CFHT PH':
             f.write("""<?xml version = "1.0"?>
 <!DOCTYPE ASTRO SYSTEM "http://vizier.u-strasbg.fr/xml/astrores.dtd">
@@ -955,9 +924,10 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                     break
             if type(kbos[name]) == type(ephem.EllipticalBody()):
                 try:
-                   kbos[name].compute(w.date.get())
-                except Exceptaion as e:
-                   loging.error("Failed to compute KBO position. {}".format(name))
+                    kbos[name].compute(w.date.get())
+                except Exception as e:
+                    logging.error("Failed to compute KBO position. {}".format(name))
+                    continue
                 ra = kbos[name].ra
                 dec = kbos[name].dec
                 a = math.radians(10.0 / 3600.0)
@@ -998,8 +968,8 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                         if w.show_labels.get() == 1:
                             w.label(ra, dec, name, offset=[xoffset, yoffset])
             else:
-	        ra = kbos[name]['RA']
-	        dec = kbos[name]['DEC']
+                ra = kbos[name]['RA']
+                dec = kbos[name]['DEC']
                 w.create_point(ra, dec, size=6, color='cyan')
                 w.label(ra, dec, name, offset=[-15, +15])
 
@@ -1233,7 +1203,6 @@ def start(dirname=None, pointings=None):
     w.bind('<B1-Motion>', w.move_pointing)
     w.bind('<Control-equal>', w.zoom_in)
     w.bind('<Control-minus>', w.zoom_out)
-    w.bind('<Key-c>', w.center)
     w.bind('<Control-Button-1>', w.center)
     w.grid(row=0, column=0, sticky=N + S + E + W)
 
@@ -1325,8 +1294,14 @@ def start(dirname=None, pointings=None):
 
     ### Zoom Menu
     viewmenu = Menu(root)
-    viewmenu.add_command(label="Zoom In", command=w.zoom_in)
-    viewmenu.add_command(label="Zoom Out", command=w.zoom_out)
+    viewmenu.add_command(label="Zoom 2", command=lambda: w.zoom(scale=2))
+    viewmenu.add_command(label="Zoom 4", command=lambda: w.zoom(scale=4))
+    viewmenu.add_command(label="Zoom 8", command=lambda: w.zoom(scale=8))
+    viewmenu.add_command(label="Zoom 16", command=lambda: w.zoom(scale=16))
+    viewmenu.add_command(label="Zoom 1/2", command=lambda: w.zoom(scale=0.5))
+    viewmenu.add_command(label="Zoom 1/4", command=lambda: w.zoom(scale=0.25))
+    viewmenu.add_command(label="Zoom 1/8", command=lambda: w.zoom(scale=0.125))
+    viewmenu.add_command(label="Zoom 1/16", command=lambda: w.zoom(scale=0.125/2.0))
     viewmenu.add_command(label="Reset Plot", command=w.reset)
     menubar.add_cascade(label="View", menu=viewmenu)
 
@@ -1335,7 +1310,6 @@ def start(dirname=None, pointings=None):
     root.config(menu=menubar)
     w.newPlot()
     w.load_objects(directory_name=dirname)
-    w.zoom(None, scale=6.0)
     w.recenter(math.pi, 0)
 
     root.mainloop()
