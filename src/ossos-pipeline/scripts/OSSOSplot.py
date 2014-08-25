@@ -129,6 +129,7 @@ class Plot(Canvas):
         self.unit.set('elong')
         self.height = height
         self.kbos = {}
+
         Canvas.__init__(self, root, width=width, height=height, background=background)
         self.tk_focusFollowsMouse()
 
@@ -137,8 +138,8 @@ class Plot(Canvas):
 
         """
 
-	for name in Neptune:
-	    self.kbos[name] = Neptune[name]
+        for name in Neptune:
+            self.kbos[name] = Neptune[name]
 
         if directory_name is not None:
 
@@ -154,11 +155,11 @@ class Plot(Canvas):
                         observations.append(mpc.Observation.from_string(line))
                 name = filename.rstrip('.ast')  # observations[0].provisional_name
                 try:
-                   this_orbit = orbfit.Orbfit(observations)
+                    this_orbit = orbfit.Orbfit(observations)
                 except Exception as e:
-  	           print str(e)
+                    logging.error(str(e))
                 self.kbos[name] = this_orbit
-               
+
         self.doplot()
 
 
@@ -208,9 +209,10 @@ class Plot(Canvas):
 
     def c2s(self, p=None):
         """Convert from canvas to screen coordinates"""
-        if not p: p = [0, 0]
+        if not p:
+            p = [0, 0]
 
-        return p[0] - self.canvasx(self.cx1), p[1] - self.canvasy(self.cy1)
+        return p[0] - self.canvasx(self.cx1), p[1] - self.canvasy(self.cy2)
 
     def c2p(self, p=None):
         """Convert from canvas to plot coordinates.
@@ -273,51 +275,59 @@ class Plot(Canvas):
                      "00:05:00",
                      "00:01:00",
                      "00:00:30"]
-        dra = (self.x2 - self.x1) / 3.0
-        ddec = (self.y2 - self.y1) / 3.0
-        ra_grid = "06:00:00"
+        dra = (self.x2 - self.x1) / 4.0
+        ddec = (self.y2 - self.y1) / 4.0
+
+        # determine which ra_grid spacing to use
+        ra_grid = ra_grids[0]
         for ra_grid in ra_grids:
             if self.hours(ra_grid) < math.fabs(dra):
                 break
         ra_grid = self.hours(ra_grid)
 
-        dec_grid = "45:00:00"
+        # determine which dec_grid spacing to use
+        dec_grid = dec_grids[0]
         for dec_grid in dec_grids:
             if self.degrees(dec_grid) < math.fabs(ddec):
                 break
         dec_grid = self.degrees(dec_grid)
 
+        # plot ra grid lines between East (ra1) and West (ra2) limits of plot
         ra = ra1
-        n = 0
-
+        # should we label the current line be labelled
+        label = True
         while (ra <= ra2):
+
+            # create a line that goes from dec1 to dec2 at this ra
             (cx1, cy1) = self.p2c((ra, dec1))
-            ly = cy1 - 30
+            # ly is the y location mid-way between the top and bottom of the plot
             (cx2, cy2) = self.p2c((ra, dec2))
             self.create_line(cx1, cy1, cx2, cy2)
-            lx = cx1
-            n = n + 1
-            if n == 2:
-                dec = dec1
-                k = 2
-                while ( dec <= dec2 ):
-                    (lx, ly) = self.p2c((ra, dec))
-                    (cx1, cy1) = self.p2c((ra1, dec))
-                    (cx2, cy2) = self.p2c((ra2, dec))
-                    self.create_line(cx1, cy1, cx2, cy2)
-                    k = k + 1
-                    if k == 3:
-                        self.create_text(lx - 45, ly - 12, text=str(ephem.hours(ra)), fill='green')
-                        self.create_text(lx + 40, ly - 12, text=str(ephem.degrees(dec)), fill='brown')
-                        self.create_point(ra, dec, color='black', size=3)
-                        k = 0
-                    dec = dec + dec_grid
-                n = 0
-            ra = ra + ra_grid
+            if label:
+                # lx is the the x screen coordinate location of the ra 
+                ly = (cy2 + cy1)/2.0
+                lx = cx1
+                self.create_text(lx, ly, text=str(ephem.hours(ra)), fill='green')
+            label = not label
+            ra += ra_grid
+
+        # plot dec grid lines bewtween South (dec1) and North (dec2) limits of plot
+        dec = dec1
+        # should we label the current grid line?
+        label = True
+        while ( dec <= dec2 ):
+            (lx, ly) = self.p2c((ra, dec))
+            (cx1, cy1) = self.p2c((ra1, dec))
+            (cx2, cy2) = self.p2c((ra2, dec))
+            self.create_line(cx1, cy1, cx2, cy2)
+            if label:
+                # lx/ly are the screen coordinates of the label
+                lx = (cx2 + cx1)/2.0
+                ly = cy1
+                self.create_text(lx, ly, text=str(ephem.degrees(dec)), fill='brown')
+            dec += dec_grid
 
     def eq2ec(self, ra, dec):
-
-
         sb = math.asin(math.sin(dec) * math.cos(math.radians(23.43)) - math.cos(dec) * math.sin(ra) * math.sin(
             math.radians(23.43)))
         sl = math.acos(math.cos(ra) * math.cos(dec) / math.cos(sb))
@@ -383,14 +393,11 @@ class Plot(Canvas):
         self.xscale = (self.cx2 - self.cx1) / (self.x2 - self.x1)
         self.yscale = (self.cy2 - self.cy1) / (self.y2 - self.y1)
 
-        ra1 = self.x1
-        ra2 = self.x2
-        dec1 = self.y1
-        dec2 = self.y2
-        (sx1, sy2) = self.p2c((ra1, dec1))
-        (sx2, sy1) = self.p2c((ra2, dec2))
-
-        self.config(scrollregion=(sx1 - self.lgutter, sy1 + self.bgutter, sx2 + self.rgutter, sy2 - self.tgutter))
+        # Determine the limits of the canvas
+        (cx1, cy1) = self.p2c((0, -math.pi/2.0))
+        (cx2, cy2) = self.p2c((2*math.pi, math.pi/2.0))
+        ## set the scroll region to the size of the camvas plus a boundary to allow the canvas edge to be at centre
+        self.config(scrollregion=(cx1-self.width/2.0, cy1-self.height/2.0, cx2+self.width/2.0, cy2+self.height/2.0))
 
     def reset(self):
         """Expand to the full scale"""
@@ -424,54 +431,42 @@ class Plot(Canvas):
                self.recenter(kbo.coordinate.ra.radians, kbo.coordinate.dec.radians)
                self.create_point(kbo.coordinate.ra.radians, kbo.coordinate.dec.radians, color='blue', size=4)
             except:
-               print "failed to compute KBO position"
+               logging.error("failed to compute KBO position")
 
     def recenter(self, ra, dec):
 
-        x1 = ra - (self.x2 - self.x1) / 2.0
-        x2 = ra + (self.x2 - self.x1) / 2.0
-        y1 = dec - (self.y2 - self.y1) / 2.0
-        y2 = dec + (self.y2 - self.y1) / 2.0
-        self.limits(x1, x2, y1, y2)
-
-        self.delete(ALL)
-        self.doplot()
+        # Take the given RA/DEC and make that the center of the view frame.
+        (cx, cy) = self.p2c((ra, dec))
+        (sx,sy) = self.c2s((cx, cy))
+        logging.debug("Canvas: {},{} , Screen: {},{}".format(cx, cy, sx, sy))
+        self.scan_mark(int(sx), int(sy))
+        self.scan_dragto(480, 360, gain=1)
 
     def center(self, event):
-        (cx, cy) = self.canvasx(event.x), self.canvasy(event.y)
-        (ra, dec) = self.c2p((cx, cy))
-        logging.debug("SCREEN: {},{} CANVAS: {},{}  RA/DEC: {},{}".format(event.x,
-                                                                          event.y,
-                                                                          cx,
-                                                                          cy,
-                                                                          ra,
-                                                                          dec))
-        self.recenter(ra, dec)
+        logging.debug("EVENT: {} {}".format(event.x, event.y))
+        self.scan_mark(event.x, event.y)
+        self.scan_dragto(480, 360, gain=1)
 
     def zoom_in(self, event=None):
 
-        self.__zoom(event, scale=2.0)
+        self.zoom(event, scale=2.0)
 
     def zoom_out(self, event=None):
 
-        self.__zoom(event, scale=0.5)
+        self.zoom(event, scale=0.5)
 
-    def __zoom(self, event, scale=2.0):
+    def zoom(self, event, scale=2.0):
         """Zoom in"""
 
         # # compute the x,y of the center of the screen
         sx1 = self.cx1 + (self.cx2 - self.cx1 + 1.0) / 2.0
         sy1 = self.cy1 + (self.cy2 - self.cy1 + 1.0) / 2.0
-        # print sx1,sy1
+
         if not event is None:
             sx1 = event.x
             sy1 = event.y
-        #print sx1,sy1
-        ## translate that into a canvas location and then
-        ## and ra/dec position
+
         (x, y) = self.c2p((self.canvasx(sx1), self.canvasy(sy1)))
-        #print math.degrees(x),math.degrees(y),sx1, sy1
-        ## reset the width of the display
         xw = (self.x2 - self.x1) / 2.0 / scale
         yw = (self.y2 - self.y1) / 2.0 / scale
 
@@ -709,7 +704,8 @@ class Plot(Canvas):
                 this_index = index
                 closest = ds
                 this_pointing = pointing
-
+        if this_pointing is None:
+            return
         self.plabel.set(this_pointing['label']['text'])
         ccds = this_pointing["camera"].getGeometry(ra, dec)
         items = this_pointing["items"]
@@ -956,7 +952,7 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                 try:
                    kbos[name].compute(w.date.get())
                 except Exceptaion as e:
-                   print "Failed to compute KBO position. {}".format(name)
+                   loging.error("Failed to compute KBO position. {}".format(name))
                 ra = kbos[name].ra
                 dec = kbos[name].dec
                 a = math.radians(10.0 / 3600.0)
@@ -1334,6 +1330,9 @@ def start(dirname=None, pointings=None):
     root.config(menu=menubar)
     w.newPlot()
     w.load_objects(directory_name=dirname)
+    w.zoom(None, scale=6.0)
+    w.recenter(math.pi, 0)
+
     root.mainloop()
 
 
