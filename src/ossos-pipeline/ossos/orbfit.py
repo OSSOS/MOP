@@ -99,8 +99,8 @@ class Orbfit(object):
             observation.ra_residual = float(coord1.separation(coord2).arcsecs)
             coord2 = coordinates.ICRSCoordinates(self.coordinate.ra, observation.coordinate.dec)
             observation.dec_residual = float(coord1.separation(coord2).arcsecs)
-            _residuals += "{:1s}{:12s} {:+05.2f} {:+05.2f}\n".format(
-                observation.null_observation, observation.date, observation.ra_residual, observation.dec_residual)
+            _residuals += "{:1s}{:12s} {:+05.2f} {:+05.2f} # {}\n".format(
+                observation.null_observation, observation.date, observation.ra_residual, observation.dec_residual, observation)
         return _residuals
 
     @property
@@ -227,7 +227,7 @@ class Orbfit(object):
         fobj.write("\n")
         fobj.write(str(self) + "\n")
         fobj.write(str(self.residuals) + "\n")
-        fobj.write('arclen (days) {}'.format(self.arc_length))
+        fobj.write('arclen (days) {} '.format(self.arc_length))
         fobj.write("Expected accuracy on {:>10s}: {:6.2f}'' {:6.2f}'' moving at {:6.2f} ''/hr\n\n".format(
             at_date, self.dra, self.ddec, self.rate_of_motion(date=date)))
 
