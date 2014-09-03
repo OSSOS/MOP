@@ -7,20 +7,20 @@ import optparse
 import re
 import sys
 import time
+
 import Polygon
 import Polygon.IO
-
 from astropy import coordinates
 from astropy import units
 import ephem
 
 from ossos.ephem_target import EphemTarget
 from ossos.gui import context
-from ossos import orbfit
+from ossos import orbfit, cadc
 from ossos import storage
 from ossos.coord import Coord
 from ossos import mpc
-import megacam
+
 
 color_key = {"yellow": "Fill colour is yellow == tracking termination",
              "blue": "Outline is blue == ColOSSOS target.",
@@ -728,7 +728,7 @@ class Plot(Canvas):
         width = math.degrees(math.fabs(self.x1 - self.x2))
         height = math.degrees(math.fabs(self.y1 - self.y2))
 
-        table = megacam.TAPQuery(ra_cen, dec_cen, width, height)
+        table = cadc.cfht_megacam_tap_query(ra_cen, dec_cen, width, height)
 
         for row in table:
             ra = row['RAJ2000']

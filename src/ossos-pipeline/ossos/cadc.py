@@ -4,9 +4,10 @@ import warnings
 from astropy.table import Table
 import requests
 from cStringIO import StringIO
+from astropy.time import Time
 
 
-def TAPQuery(RAdeg=180.0, DECdeg=0.0, width=1, height=1):
+def cfht_megacam_tap_query(RAdeg=180.0, DECdeg=0.0, width=1, height=1, date=None):
     """Do a query of the CADC Megacam table.
 
     Get all observations inside the box (right now it turns width/height into a radius, should not do this).
@@ -18,7 +19,7 @@ def TAPQuery(RAdeg=180.0, DECdeg=0.0, width=1, height=1):
     @param height: height of search region in degrees
     """
 
-    radius = max(width, height) / 2.0
+    radius = min(90, max(width, height) / 2.0)
 
     query = ("SELECT "
              "COORD1(CENTROID(Plane.position_bounds)) AS RAJ2000,"
@@ -33,6 +34,10 @@ def TAPQuery(RAdeg=180.0, DECdeg=0.0, width=1, height=1):
 
     query = query % (RAdeg, DECdeg, radius)
 
+    if date is not None:
+        mjd = Time(date, scale='utc').mjd
+        query += " AND Plane.time_bounds_cval1 <= {} AND {} <= Plane.time_bounds_cval2 ".format(mjd+0.5, mjd-0.5)
+
     data = {"QUERY": query,
             "REQUEST": "doQuery",
             "LANG": "ADQL",
@@ -41,8 +46,10 @@ def TAPQuery(RAdeg=180.0, DECdeg=0.0, width=1, height=1):
     url = "http://www.cadc.hia.nrc.gc.ca/tap/sync"
 
     warnings.simplefilter('ignore')
-
-    table = votable.parse(StringIO(requests.get(url, params=data).content)).get_first_table().to_table()
+    ff = StringIO(requests.get(url, params=data).content)
+    ff.seek(0)
+    print ff.read()
+    table = votable.parse(ff).get_first_table().to_table()
     assert isinstance(table, Table)
     return table
 
@@ -52,4 +59,4 @@ if __name__ == '__main__':
     dec_cen = (20 + 0) / 2.0
     width = 20 - 0
     height = 37 - 7
-    print TAPQuery(ra_cen, dec_cen, width, height)
+    print cfht_megacam_tap_query(ra_cen, dec_cen, width, height)
