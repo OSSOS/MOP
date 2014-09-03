@@ -164,7 +164,8 @@ class Plot(Canvas):
     def eps(self):
         """Print the canvas to a postscript file"""
 
-        filename = tkFileDialog.asksaveasfilename(message="save postscript to file", filetypes=['eps', 'ps'])
+        #filename = tkFileDialog.asksaveasfile()
+        filename = tkFileDialog.asksaveasfilename(message="save postscript to file")
         if filename is None:
             return
 
@@ -222,6 +223,10 @@ class Plot(Canvas):
         y = (p[1] - self.cy1) / self.yscale + self.y1
         return x, y
 
+    def centre(self):
+        """Return the RA/DEC of the center of the visible Canvas."""
+        return self.p2s(self.canvasx(self.width/2.0)), self.p2s(self.canvasy(self.height/2.0))
+
     def _convert(self, s, factor=15):
         p = s.split(":")
         h = float(p[0])
@@ -268,7 +273,7 @@ class Plot(Canvas):
                     # lx is the the x screen coordinate location of the ra
                     (lx, ly) = self.p2c((ra, dec+ddec/2.0))
                     self.create_text(lx+5, ly, justify=LEFT,
-                                     font=('Times', '-10'),
+                                     font=('Times', '-20'),
                                      text="\n".join(str(ephem.hours(ra))[:-3]), fill='brown')
                 label = not label
                 dec += ddec
@@ -288,7 +293,7 @@ class Plot(Canvas):
                 if label:
                     # lx/ly are the screen coordinates of the label
                     (lx, ly) = self.p2c((ra+dra/2.0, dec))
-                    self.create_text(lx, ly-5, font=('Times', '-10'),
+                    self.create_text(lx, ly-5, font=('Times', '-20'),
                                      text=str(ephem.degrees(dec)), fill='brown')
                 ra += dra
             dec += ddec
@@ -324,17 +329,21 @@ class Plot(Canvas):
 
         (ra, dec) = self.c2p((self.canvasx(event.x), self.canvasy(event.y)))
         p = Coord((ra, dec))
-
+        t1 = Coord((0, p.eb), system='ecliptic')
         for i in range(0, 360):
             a = math.radians(i / 1.0)
             t = Coord((a, p.eb), system='ecliptic')
+            self.create_line(t1.ra, t1.dec, t.ra, t.dec)
             self.create_point(t.ra, t.dec, size=1, color='magenta')
+            t1 = t
 
+        t1 = Coord((p.el, math.radians(-90)), system='ecliptic')
         for i in range(-90, 90):
             b = math.radians(i / 1.0)
             t = Coord((p.el, b), system='ecliptic')
-            self.create_point(t.ra, t.dec, size=1, color='green')
-
+            self.create_line(t1.ra, t1.dec, t.ra, t.dec)
+            self.create_point(t.ra, t.dec, size=1, color='magenta')
+            t1 = t
 
     def tickmark(self, x, y, size=10, orientation=90):
         """Draw a line of size and orientation at x,y"""
@@ -347,7 +356,7 @@ class Plot(Canvas):
     def label(self, x, y, label, offset=[0, 0]):
         """Write label at plot coordinates (x,y)"""
         (xc, yc) = self.p2c([x, y])
-        return self.create_text(xc - offset[0], yc - offset[1], font=('Times', '-5'), text=label)
+        return self.create_text(xc - offset[0], yc - offset[1], font=('Times', '-15'), text=label)
 
 
     def limits(self, x1, x2, y1, y2):
@@ -591,7 +600,7 @@ class Plot(Canvas):
         return
 
 
-    def create_pointing(self, event):
+    def create_pointing(self, event, label_text=None):
         """Plot the sky coverage of pointing at event.x,event.y on the canvas.
 
         """
@@ -612,7 +621,9 @@ class Plot(Canvas):
                 item = self.create_oval(x1, y1, x2, y2)
             items.append(item)
         label = {}
-        label['text'] = self.plabel.get()
+        if label_text is None:
+            label_text = self.plabel.get()
+        label['text'] = label_text
         label['id'] = self.label(this_camera.ra, this_camera.dec, label['text'])
         self.pointings.append({
             "label": label,
@@ -712,37 +723,23 @@ class Plot(Canvas):
 
         this_camera = Camera(camera="MEGACAM_1")
 
-        ra_cen = (self.x1 + self.x2) / 2.0
-        dec_cen = (self.y1 + self.y2) / 2.0
-        width = math.fabs(self.x1 - self.x2)
-        height = math.fabs(self.y1 - self.y2)
+        ra_cen = math.degrees((self.x1 + self.x2) / 2.0)
+        dec_cen = math.degrees((self.y1 + self.y2) / 2.0)
+        width = math.degrees(math.fabs(self.x1 - self.x2))
+        height = math.degrees(math.fabs(self.y1 - self.y2))
 
         table = megacam.TAPQuery(ra_cen, dec_cen, width, height)
 
         for row in table:
-            ra = row['RAJ200']
+            ra = row['RAJ2000']
             dec = row['DEJ2000']
-            ccds = this_camera.getGeometry(ra, dec)
-            items = []
-            for ccd in ccds:
-                if len(ccd) == 4:
-                    (x1, y1) = self.p2c((ccd[0], ccd[1]))
-                    (x2, y2) = self.p2c((ccd[2], ccd[3]))
-                    item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill='#000')
-                else:
-                    (x1, y1) = self.p2c((ccd[0] - ccd[2]), ccd[1] - ccd[2])
-                    (x2, y2) = self.p2c((ccd[0] + ccd[2]), ccd[1] + ccd[2])
-                    item = self.create_oval(x1, y1, x2, y2)
-                items.append(item)
-            label = {}
-            label['text'] = row['target_name']
-            label['id'] = self.label(this_camera.ra, this_camera.dec, label['text'])
-            self.pointings.append({
-                "label": label,
-                "items": items,
-                "camera": this_camera})
-            self.current_pointing(len(self.pointings) - 1)
-        self.doplot()
+            class MyEvent(object):
+                def __init__(self, x, y):
+                    self.x = x
+                    self.y = y
+            (x,y) = MyEventself.p2s((ra,dec))
+            event = MyEvent(x,y)
+            self.create_pointing(event, label=row['target_name'])
 
     def save_pointings(self):
         """Print the currently defined FOVs"""
@@ -809,7 +806,7 @@ class Plot(Canvas):
                 ra = sra.replace(":", "")
                 dec = sdec.replace(":", "")
                 name = pointing["label"]["text"]
-                f.write("""{}=OBJECT="{}" RA={} DEC={} EQUINOX=2000.0 INSROT_PA=0\n""".format(name,
+                f.write("""{}=OBJECT="{}" RA={} DEC={} EQUINOX=2000.0 INSROT_PA=90\n""".format(name,
                                                                                               name,
                                                                                               ra,
                                                                                               dec))
@@ -912,15 +909,18 @@ NAME                |RA         |DEC        |EPOCH |POINT|
             if not re.search(re_string, name):
                 continue
             vlist.append(name)
-            point_color = 'black'
+            fill = None
+            is_colossos_target = False
             for cname in colossos:
                 if cname in name:
-                    fill = 'blue'
+                    is_colossos_target = True
+                    print "ColOSSOS: ",cname
                     break
-            fill = None
+            is_terminated = False
             for cname in tracking_termination:
                 if cname in name:
-                    fill = "yellow"
+                    is_terminated = True
+                    print "Terminated", cname
                     break
             if type(kbos[name]) == type(ephem.EllipticalBody()):
                 try:
@@ -936,18 +936,12 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                 point_size = 2
                 yoffset = +10
                 xoffset = +10
-                w.create_point(ra, dec, size=point_size, color=point_color, fill=fill)
-                if w.show_ellipse.get() == 1:
-                    if a < math.radians(5.0):
-                        w.create_ellipse(ra, dec, a, b, ang)
-                if w.show_labels.get() == 1:
-                    w.label(ra, dec, name, offset=[xoffset, yoffset])
             elif isinstance(kbos[name], orbfit.Orbfit):
                 yoffset = -10
                 xoffset = -10
                 kbo = kbos[name]
                 start_date = mpc.Time(w.date.get(), scale='utc').jd
-                trail_mid_point = 6
+                trail_mid_point = 0
                 for days in range(trail_mid_point * 2 + 1):
                     point_size = days == trail_mid_point and 5 or 1
                     today = mpc.Time(start_date - trail_mid_point + days, scale='utc', format='jd')
@@ -957,16 +951,19 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                     a = math.radians(kbo.dra / 3600.0)
                     b = math.radians(kbo.ddec / 3600.0)
                     ang = math.radians(kbo.pa)
+                    lost = False
                     if a > math.radians(0.3):
-                        point_color = 'red'
-                    if kbo.arc_length > 180 and point_color != 'blue':
-                        point_color = 'green'
-                    w.create_point(ra, dec, size=point_size, color=point_color, fill=fill)
-                    if w.show_ellipse.get() == 1 and days == trail_mid_point + 1:
-                        if a < math.radians(5.0):
-                            w.create_ellipse(ra, dec, a, b, ang)
-                        if w.show_labels.get() == 1:
-                            w.label(ra, dec, name, offset=[xoffset, yoffset])
+                        lost = True
+
+                fill_colour = lost and "red" or "green"
+                fill_colour = is_colossos_target and "blue" or fill_colour
+                point_colour = is_terminated and "red" or "yellow"
+                w.create_point(ra, dec, size=point_size, color=point_colour, fill=fill_colour)
+                if w.show_ellipse.get() == 1 and days == trail_mid_point:
+                    if a < math.radians(5.0):
+                        w.create_ellipse(ra, dec, a, b, ang)
+                    if w.show_labels.get() == 1:
+                        w.label(ra, dec, name, offset=[xoffset, yoffset])
             else:
                 ra = kbos[name]['RA']
                 dec = kbos[name]['DEC']
@@ -1122,9 +1119,9 @@ class Camera:
                     {"ra": 1 * (0.20 * 2048 + 15.0) / 3600.0, "dec": -0.5 * (4096 * 0.20 + 15.0) / 3600.0,
                      "ddec": 0.20 * 4096 / 3600.0, "dra": 0.20 * 2048 / 3600.0},
                     {"ra": 2 * (0.20 * 2048 + 15.0) / 3600.0, "dec": -0.5 * (4096 * 0.20 + 15.0) / 3600.0,
-                     "ddec": 0.20 * 4096 / 3600.0, "dra": 0.20 * 2048 / 3600.0}
-                ]
-
+                     "ddec": 0.20 * 4096 / 3600.0, "dra": 0.20 * 2048 / 3600.0}],
+                "SSC1": [ {"ra": 0.0, "dec": 0.0, "dra": 5*(0.20* 2048/3600.0 + 15.0/3600.0) - 15.0/3600.0, 
+                           "ddec": 2 * 0.20*4096/3600 + 15.0/3600.0} ]
     }
 
     @property
@@ -1245,7 +1242,7 @@ def start(dirname=None, pointings=None):
 
     Label(Frame(infoPanel).grid(row=2, column=0),
           justify=LEFT,
-          font=("Helvetica", 10),
+          font=("Helvetica", -20),
           textvariable=w.object_info).grid(row=1, column=0)
 
     coordsBox.grid(row=0, column=0, sticky=NE)
