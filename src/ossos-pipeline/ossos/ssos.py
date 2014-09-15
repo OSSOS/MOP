@@ -285,10 +285,10 @@ class SSOSParser(object):
             X = row['X']
             Y = row['Y']
 
-            # ADDING THIS TEMPORARILY TO GET THE NON-OSSOS and wallpaper DATA OUT OF THE WAY
+            # Excludes the non-CFHT OSSOS data, and the wallpaper.
             # note: 'Telescope_Insturment' is a typo in SSOIS's return format
-            if (row['Telescope_Insturment'] != 'CFHT/MegaCam') or (row['Filter'] != 'r.MP9601') \
-                    or (row['Filter'] != 'u.MP9301') or row['Image_target'].startswith('WP'):
+            if (row['Telescope_Insturment'] != 'CFHT/MegaCam') or (row['Filter'] not in ['r.MP9601', 'u.MP9301']) \
+                    or row['Image_target'].startswith('WP'):
                 continue
 
             # Build astrom.SourceReading
