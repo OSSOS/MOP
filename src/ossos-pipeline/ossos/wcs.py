@@ -6,14 +6,15 @@ import numpy
 
 PI180 = 57.2957795130823208767981548141052
 
-
-class WCS(object):
+class WCS(astropy_wcs.WCS):
 
     def __init__(self, header):
         """
         Create the bits needed for working with sky2xy
         """
-
+        astropy_header = header
+        del(astropy_header['PV*'])
+        super(WCS, self).__init__(astropy_header)
         self.header = header
 
     @property
@@ -100,7 +101,7 @@ class WCS(object):
                           nord=self.nord
                           )
         except:
-            pos = astropy_wcs.WCS(self.header).wcs_world2pix([[ra,dec]],1)
+            pos = self.wcs_world2pix([[ra,dec]],1)
             return pos[0][0], pos[0][1]
 
 
