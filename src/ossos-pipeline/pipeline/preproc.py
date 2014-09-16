@@ -52,7 +52,7 @@ def get_flat_list(repo='vos:OSSOS/dbimages/calibrators'):
     vospace = vos.Client()
     flats = {}
     for filename in vospace.listdir(repo):
-        flats[filename[0:3]] = filename
+        flats[filename[0:5]] = filename
     return flats
 
 
@@ -371,7 +371,9 @@ if __name__ == '__main__':
                 trim(hdu)
             if opt.flat:
                 qrunid = hdu.header.get('QRUNID',hdu.header.get('CRUNID','13A'))[0:3]
-                flat = flats.get(qrunid, flats.get("ALL", None))
+                filter = hdu.header.get('FILTER', hdu.header.get('CRUNID', '13A'))[0]
+                flat_key = qrunid + "_" + filter
+                flat = flats.get(flat_key, flats.get("ALL", None))
                 if flat is None:
                     raise ValueError("No available flat for {}".format(qrunid))
                 flat = get_from_dbimages(flat, calibrator=True)
