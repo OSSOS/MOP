@@ -3,10 +3,13 @@
 source ${HOME}/.bash_profile
 
 export DBIMAGES=vos:OSSOS/dbimages/
-export MEASURE3=vos:OSSOS/measure3/2013B-H/
+export MEASURE3=vos:OSSOS/measure3/2013A-E_April9/E-2+0/
+# rmin, rmax are constants for the whole OSSOS survey.
 export rmax=15.0
 export rmin=0.5
-export ang=-23
+# -23 for L block. +20 for E block.
+export ang=20
+# width has been constant for a while now
 export width=30
 export field=$4
 export ccd_start=$5

@@ -287,8 +287,8 @@ class SSOSParser(object):
 
             # ADDING THIS TEMPORARILY TO GET THE NON-OSSOS and wallpaper DATA OUT OF THE WAY
             # note: 'Telescope_Insturment' is a typo in SSOIS's return format
-            if (row['Telescope_Insturment'] != 'CFHT/MegaCam') or (row['Filter'] != 'r.MP9601') or row[
-                'Image_target'].startswith('WP'):
+            if (row['Telescope_Insturment'] != 'CFHT/MegaCam') or (row['Filter'] != 'r.MP9601') \
+                    or (row['Filter'] != 'u.MP9301') or row['Image_target'].startswith('WP'):
                 continue
 
             # Build astrom.SourceReading
