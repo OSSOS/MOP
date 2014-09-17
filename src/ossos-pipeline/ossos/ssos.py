@@ -624,7 +624,7 @@ class Query(object):
         lines = self.response.content
         # note: spelling 'occured' is in SSOIS
         if len(lines) < 2 or str(lines[1]).startswith((
-            "An error occured getting the ephemeris")):
+                "An error occured getting the ephemeris")):
             raise IOError(os.errno.EACCES,
                           "call to SSOIS failed on format error")
 
