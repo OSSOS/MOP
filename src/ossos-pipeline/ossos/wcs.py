@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import math
@@ -12,7 +14,7 @@ class WCS(astropy_wcs.WCS):
         """
         Create the bits needed for working with sky2xy
         """
-        astropy_header = header
+        astropy_header = deepcopy(header)
         del(astropy_header['PV*'])
         super(WCS, self).__init__(astropy_header)
         self.header = header
