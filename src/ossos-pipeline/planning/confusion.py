@@ -5,6 +5,8 @@ import math
 import numpy
 #cond=sys.argv[1]
 
+OBSERVATION_DATE='2014/09/15'
+
 #print "# "+cond
 
 Number_Mil={'B': 110000, 'C': 120000, 'D': 130000, 'E': 140000, 'F': 150000}
@@ -67,14 +69,25 @@ lineCount=0
 # 2014-08-26 09:59:59| 1:46:14.87| 14:02:27.9|
 # 2014-08-26 09:59:59| 1:21:41.35|  9:40:38.1|
 
-ra_low  = float(ephem.hours("01:21:00.0"))
-ra_high = float(ephem.hours("01:46:00.0"))
+# 13BL-Block (0:55:00 03:57:00)
+ra_low = float(ephem.hours("00:55:00")-math.radians(3.5))
+ra_high = float(ephem.hours("00:55:00")+math.radians(3.5)) 
+dec_low = float(ephem.degrees("03:57:00")-math.radians(1.5))
+dec_high = float(ephem.degrees("03:57:00")+math.radians(1.5))
+
+
+# 13B-H
+# ra_low  = float(ephem.hours("01:21:00.0"))
+# ra_high = float(ephem.hours("01:46:00.0"))
+# dec_low = float(ephem.degrees("01:02:00"))
+# dec_high = float(ephem.degrees("05:03:00"))
+
 #ra_low  = float(ephem.hours(math.radians(17)))
 #ra_high = float(ephem.hours(math.radians(25)))
-dec_low = float(ephem.degrees("09:02:00"))
-dec_high = float(ephem.degrees("14:03:00"))
 #dec_low = float(ephem.degrees("10:00:00"))
 #dec_high = float(ephem.degrees("18:00:00"))
+
+
 min_rate = [[],[],[],[],[],[],[],[],[],[],[],[], [],[],[],[],[]]
 max_rate = [[],[],[],[],[],[],[],[],[],[],[],[], [],[],[],[],[]]
 count = numpy.zeros(14)
@@ -113,7 +126,7 @@ for line in lines:
     e= kbo._e
     H= kbo._H
     i= kbo._inc
-    startdate = ephem.date('2014/07/25')
+    startdate = ephem.date(OBSERVATION_DATE)
     kbo.compute(startdate)
     kbo.name=desig_unpack(line[0:7].strip()) 
     T_J = (5.2/a) + 2.0 * math.sqrt((1-e**2)*(a/5.2)) * math.cos(i)
@@ -123,28 +136,29 @@ for line in lines:
         kbo.compute(startdate)
         ra1 = kbo.ra
         dec1 = kbo.dec
-        enddate = startdate + 1
+        enddate = startdate + 1/24.0
         kbo.compute(enddate)
         ra2 = kbo.ra
         dec2 = kbo.dec
         delta = math.degrees(ephem.separation((ra1,dec1),(ra2,dec2)))*3600.0
-        retrograde = False
-	if ra1 < ra2 :
-            retrograde = True
-        rate = delta/(24*(enddate-startdate))
+	retrograde = ra1 < ra2
+        rate = delta/(24.0*(enddate-startdate))
         print rate, kbo.earth_distance, kbo._a, retrograde
-        if kbo.earth_distance < 5:
-            if rate < 5:
+        if kbo.earth_distance < 2:
+            if rate < 15:
                 count[ddays] += 1 
             min_rate[ddays].append(rate)
-            #print ddays, numpy.min(min_rate[ddays]), count[ddays]
+            print ddays, numpy.min(min_rate[ddays]), count[ddays]
         if kbo.earth_distance > 10:
             if rate < 5:
                 count[ddays] += 1 
             max_rate[ddays].append(rate)
         startdate = enddate
 
-startdate = ephem.date('2014/07/25')
+startdate = ephem.date(OBSERVATION_DATE)
 for rate in range(len(min_rate)):
-    today = ephem.date(startdate+rate)
-    print rate, today, numpy.min(min_rate[rate])
+    try:
+    	today = ephem.date(startdate+rate)
+    	print rate, today, numpy.min(min_rate[rate]), numpy.max(max_rate[rate])
+    except:
+        pass
