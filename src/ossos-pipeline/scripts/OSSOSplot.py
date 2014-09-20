@@ -91,6 +91,12 @@ tracking_termination = ['o3e01',
                         "uo3o38",
                         "uo3o50"]
 
+class MyEvent(object):
+        def __init__(self, x, y):
+            self.x = x
+            self.y = y
+
+
 
 class Plot(Canvas):
     """A plot class derived from the the Tkinter.Canvas class"""
@@ -154,9 +160,10 @@ class Plot(Canvas):
                 name = filename.rstrip('.ast')  # observations[0].provisional_name
                 try:
                     this_orbit = orbfit.Orbfit(observations)
+                    self.kbos[name] = this_orbit
                 except Exception as e:
+                    logging.error("Failed loading: {}".format(name))
                     logging.error(str(e))
-                self.kbos[name] = this_orbit
 
         self.doplot()
 
@@ -415,8 +422,10 @@ class Plot(Canvas):
         (cx, cy) = self.p2c((ra, dec))
         (sx, sy) = self.c2s((cx, cy))
         logging.debug("Canvas: {},{} , Screen: {},{}".format(cx, cy, sx, sy))
-        self.scan_mark(int(sx), int(sy))
-        self.scan_dragto(480, 360, gain=1)
+        event = MyEvent(int(sx), int(sy))
+        self.center(event)
+        #self.scan_mark(int(sx), int(sy))
+        #self.scan_dragto(480, 360, gain=1)
 
     def center(self, event):
         logging.debug("EVENT: {} {}".format(event.x, event.y))
@@ -721,25 +730,23 @@ class Plot(Canvas):
         @return: None
         """
 
-        this_camera = Camera(camera="MEGACAM_1")
-
-        ra_cen = math.degrees((self.x1 + self.x2) / 2.0)
-        dec_cen = math.degrees((self.y1 + self.y2) / 2.0)
-        width = math.degrees(math.fabs(self.x1 - self.x2))
-        height = math.degrees(math.fabs(self.y1 - self.y2))
-
-        table = cadc.cfht_megacam_tap_query(ra_cen, dec_cen, width, height)
+        self.camera.set("MEGACAM_1")
+        (ra1, dec1) = self.c2p((self.canvasx(1),self.canvasy(1)))
+        (ra2, dec2) = self.c2p((self.canvasx(480*2), self.canvasy(360*2)))
+        ra_cen = math.degrees((ra2+ra1)/2.0)
+        dec_cen = math.degrees((dec2+dec1)/2.0)
+        width = math.degrees(math.fabs(ra1-ra2))
+        height = math.degrees(math.fabs(dec2-dec1))
+        date = mpc.Time(self.date.get(), scale='utc').iso
+        print ra_cen, dec_cen, width, height
+        table = cadc.cfht_megacam_tap_query(ra_cen, dec_cen, width, height, date=date)
 
         for row in table:
             ra = row['RAJ2000']
             dec = row['DEJ2000']
-            class MyEvent(object):
-                def __init__(self, x, y):
-                    self.x = x
-                    self.y = y
-            (x,y) = MyEventself.p2s((ra,dec))
+            (x,y) = self.p2s((math.radians(ra),math.radians(dec)))
             event = MyEvent(x,y)
-            self.create_pointing(event, label=row['target_name'])
+            self.create_pointing(event, label_text="")
 
     def save_pointings(self):
         """Print the currently defined FOVs"""
