@@ -628,8 +628,8 @@ class Plot(Canvas):
                 (x2, y2) = self.p2c((ccd[2], ccd[3]))
                 item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill=None)
             else:
-                (x1, y1) = self.p2c((ccd[0] - ccd[2]), ccd[1] - ccd[2])
-                (x2, y2) = self.p2c((ccd[0] + ccd[2]), ccd[1] + ccd[2])
+                (x1, y1) = self.p2c((ccd[0] - ccd[2], ccd[1] - ccd[2]))
+                (x2, y2) = self.p2c((ccd[0] + ccd[2], ccd[1] + ccd[2]))
                 item = self.create_oval(x1, y1, x2, y2)
             items.append(item)
         label = {}
