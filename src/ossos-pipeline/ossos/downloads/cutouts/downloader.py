@@ -54,13 +54,15 @@ class ImageCutoutDownloader(Downloader):
         dx = max(reading.dx, dx)
         dy = max(reading.dy, dy)
 
+        (NAXIS1, NAXIS2) = reading.get_original_image_size()
+
         cutout_str, converter = self.cutout_calculator.build_cutout_str(
             reading.get_extension(),
             focus,
-            reading.get_original_image_size(),
+            (NAXIS1, NAXIS2),
             dx = dx,
             dy = dy,
-            inverted=reading.is_inverted())
+            inverted=reading.is_inverted)
 
         image_uri = reading.get_image_uri()
         cutout = re.findall(r'(\d+)', cutout_str)
@@ -72,7 +74,6 @@ class ImageCutoutDownloader(Downloader):
         hdulist = self.download_hdulist(image_uri, view="cutout",
                                         cutout=cutout_str)
         # modify the DATASEC to account for possible flip/flop and changes in dimensions of the image.
-        (NAXIS1, NAXIS2) = reading.get_original_image_size()
         DATASEC = hdulist[0].header.get('DATASEC',None)
         if DATASEC is not None:
             datasec = re.findall(r'(\d+)', DATASEC)

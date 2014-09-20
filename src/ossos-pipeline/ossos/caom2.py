@@ -7,7 +7,7 @@ from astropy.table import Table, Column
 
 def ephem_search(mpc_filename, search_date="2014 07 24.0"):
     """
-    builds a TSV file in the format of SSOIS by querying for possilbe observations in CADC/CAOM2.
+    builds a TSV file in the format of SSOIS by querying for possible observations in CADC/CAOM2.
 
     This is a fall back program, should only be useful when SSOIS is behind.
     """

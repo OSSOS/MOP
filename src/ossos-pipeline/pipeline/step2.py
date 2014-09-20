@@ -26,14 +26,33 @@ import os
 import argparse
 import logging
 import errno
+from ossos import wcs
 from ossos import util
 from ossos import storage
-import numpy
+
+
+def compute_trans(expnums, ccd, version, prefix=None):
+
+    wcs_dict = {}
+    for expnum in expnums:
+        this_wcs = wcs.WCS(storage.get_astheader(expnum, ccd, version))
+        wcs_dict[expnum] = this_wcs
+    x0 = wcs_dict[expnums[0]].header['NAXIS1']/2.0
+    y0 = wcs_dict[expnums[0]].header['NAXIS2']/2.0
+    (ra0, dec0) = wcs_dict[expnums[0]].xy2sky(x0, y0)
+    for expnum in expnums:
+        uri = storage.dbimages_uri(expnum, ccd, version, ext='.trans.jmp', prefix=prefix)
+        (x, y) = wcs_dict[expnum].sky2xy(ra0, dec0)
+        trans = storage.open_vos_or_local(uri, "w")
+        trans.write("{:5.2f} 1. 0. {:5.2f} 0. 1.\n".format(x-x0, y-y0))
+        trans.close()
+        print storage.get_image(expnum, ccd, version=version, prefix=prefix, ext="trans.jmp")
+
 
 def step2(expnums, ccd, version, prefix=None, dry_run=False):
     '''run the actual step2  on the given exp/ccd combo'''
 
-    jmp_args = ['step2jmp']
+    jmp_args = ['step2bjmp']
     matt_args = ['step2matt_jmp']
 
     idx = 0
@@ -47,6 +66,7 @@ def step2(expnums, ccd, version, prefix=None, dry_run=False):
             storage.get_image(expnum, ccd=ccd, version=version, ext='obj.matt', prefix=prefix)[0:-9]
             )
 
+    compute_trans(expnums, ccd, version, prefix)
     util.exec_prog(jmp_args)
     util.exec_prog(matt_args)
 
@@ -67,6 +87,8 @@ def step2(expnums, ccd, version, prefix=None, dry_run=False):
                                                     4.0,
                                                     "NO"))
     ptf.close()
+    if os.access('BAD_TRANS', os.F_OK):
+        os.unlink('BAD_TRANS')
     util.exec_prog(check_args)
     if os.access('BAD_TRANS',os.F_OK):
         raise ValueError(errno.EBADEXEC, 'BAD_TRANS')

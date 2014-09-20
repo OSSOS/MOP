@@ -437,7 +437,6 @@ def get_fwhm(expnum, ccd, prefix=None, version='p'):
     """
 
     uri = get_uri(expnum, ccd, version, ext='fwhm', prefix=prefix)
-    print uri
     filename = os.path.basename(uri)
 
     if os.access(filename, os.F_OK):
@@ -747,43 +746,14 @@ def _getheader(uri):
     Internal method for accessing the storage system.
     Given the vospace URI for fits file get the header of the file.
     """
-    #'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/vospace/OSSOS/dbimages/1616100/ccd00/1616100p00.psf.fits'
-
-    data_url = DATA_WEB_SERVICE + "/vospace/"
-    url = data_url + URLparse(uri).path
-    payload = {'fhead': 'true'}
-    logger.info("Requesting URL: {}".format(url))
-    r = requests.get(url, params=payload, cert=CERTFILE, verify=False)
-    if r.status_code != 200:
-        logger.error("{}".format(r.status_code))
-        logger.error(r.content)
-        return None
-    str_header = r.content.split('\n')
-    headers = []
-    fobj = cStringIO.StringIO()
-    for line in str_header:
-        if "END" not in line[0:4]:
-            fobj.write(line + "\n")
-            continue
-        fobj.seek(0)
-        header = fits.Header.fromfile(fobj,
-                                      sep='\n',
-                                      endcard=False,
-                                      padding=False)
-        headers.append(header)
-        fobj.close()
-        fobj = cStringIO.StringIO()
-
-    # check if there are lines left in fobj and try to make a header from those.
-    fobj.seek(0, 2)
-    if fobj.tell() > 0:
-        fobj.seek(0)
-        headers.append(fits.Header.fromfile(fobj,
-                                            sep='\n',
-                                            endcard=False,
-                                            padding=False))
-    fobj.close()
-
+    service = 'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHTSG/'
+    filename = os.path.basename(uri)
+    url = service+filename
+    resp = requests.get(url)
+    header_strs = re.split('END      \n', resp.content)
+    headers = [0]
+    for header_str in header_strs:
+        headers.append(fits.Header.fromstring(header_str, sep='\n'))
     return headers
 
 
@@ -796,12 +766,22 @@ def get_header(uri):
     return astheaders[uri]
 
 
-def get_astheader(expnum, ccd, version='p', ext='.fits'):
-    ast_uri = dbimages_uri(expnum, ccd, version=version, ext=ext)
-    headers = get_header(ast_uri)
-    if headers is None:
-        ast_uri = dbimages_uri(expnum, version=version, ext=ext)
+def get_astheader(expnum, ccd, version='p', ext=None):
+    """
+    Retrieve the header for a given dbimages file.
+
+    @param expnum:  CFHT odometer number
+    @param ccd: which ccd based extension (0..35)
+    @param version: 'o','p', or 's'
+    @return:
+    """
+    print "Getting ast header. for {}".format(expnum)
+    try:
+        ast_uri = dbimages_uri(expnum, version=version, ext='.head')
         header = get_header(ast_uri)[int(ccd) + 1]
-    else:
-        header = headers[0]
+    except IOError as err:
+        print str(err)
+        ast_uri = dbimages_uri(expnum, ccd, version=version, ext='.fits')
+        header = get_header(ast_uri)[0]
+    print "Done."
     return header

@@ -253,10 +253,10 @@ class SSOSParser(object):
             Y = row['Y']
             mjd = row['MJD']
 
-            # ADDING THIS TEMPORARILY TO GET THE NON-OSSOS and wallpaper DATA OUT OF THE WAY
+            # Excludes the non-CFHT OSSOS data, and the wallpaper.
             # note: 'Telescope_Insturment' is a typo in SSOIS's return format
-            if (row['Telescope_Insturment'] != 'CFHT/MegaCam') or (row['Filter'] != 'r.MP9601') or row[
-                'Image_target'].startswith('WP'):
+            if (row['Telescope_Insturment'] != 'CFHT/MegaCam') or (row['Filter'] not in ['r.MP9601', 'u.MP9301']) \
+                    or row['Image_target'].startswith('WP'):
                 continue
 
             # Build astrom.SourceReading
@@ -590,7 +590,7 @@ class Query(object):
         lines = self.response.content
         # note: spelling 'occured' is in SSOIS
         if len(lines) < 2 or str(lines[1]).startswith((
-            "An error occured getting the ephemeris")):
+                "An error occured getting the ephemeris")):
             raise IOError(os.errno.EACCES,
                           "call to SSOIS failed on format error")
 

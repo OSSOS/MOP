@@ -441,12 +441,8 @@ class SourceReading(object):
     Data for a detected point source (which is a potential moving objects).
     """
 
-    def __init__(self, x, y, x0, y0, ra, dec, xref, yref, obs, ssos=False,
-                 from_input_file=False,
-                 null_observation=False,
-                 discovery=False,
-                 dx=0,
-                 dy=0):
+    def __init__(self, x, y, x0, y0, ra, dec, xref, yref, obs, ssos=False, from_input_file=False,
+                 null_observation=False, discovery=False, dx=0, dy=0, is_inverted=True):
         """
         Args:
           x, y: the coordinates of the source in this reading.
@@ -457,6 +453,7 @@ class SourceReading(object):
           xref, yref: coordinates of the source in the reference image, in
             the reference image's coordinate frame.
           obs: the observation in which this reading was taken.
+        @param is_inverted:
         """
         self.x = float(x)
         self.y = float(y)
@@ -480,6 +477,7 @@ class SourceReading(object):
         self.from_input_file = from_input_file
         self.null_observation = null_observation
         self.discovery = discovery
+        self.is_inverted = is_inverted
 
     @property
     def from_input_file(self):
@@ -509,9 +507,10 @@ class SourceReading(object):
         return self.obs.header
 
     def get_original_image_size(self):
-        header = self.get_observation_header()
-        return (int(header[Observation.HEADER_IMG_SIZE_X]),
-                int(header[Observation.HEADER_IMG_SIZE_Y]))
+        return (2112, 4644)
+        # header = self.get_observation_header()
+        # return (int(header[Observation.HEADER_IMG_SIZE_X]),
+        #        int(header[Observation.HEADER_IMG_SIZE_Y]))
 
     def get_exposure_number(self):
         return self.obs.expnum
@@ -568,7 +567,7 @@ class SourceReading(object):
         # Therefore ccd n = extension n + 1
         return str(self.get_ccd_num() + 1)
 
-    def is_inverted(self):
+    def compute_inverted(self):
         """
         Returns:
           inverted: bool
@@ -659,10 +658,10 @@ class Observation(object):
         self.ftype = ftype
         self.ccdnum = ccdnum
         self.fk = fk
+        self._header = {}
 
         self.rawname = fk + expnum + ftype + ccdnum
 
-        self.header = {}
         if image_uri is None:
             self.image_uri = self.get_image_uri()
 
@@ -694,3 +693,9 @@ class Observation(object):
     def get_zmag_uri(self):
         ccd = "ccd{:02d}".format(int(self.ccdnum))
         return "%s/%s/%s/%s.zeropoint.used" % (DATASET_ROOT, self.expnum, ccd, self.rawname)
+
+    @property
+    def header(self):
+        if self._header is None:
+            self._header = storage.get_mopheader(self.expnum, self.ccdnum)
+        return self._header

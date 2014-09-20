@@ -1,4 +1,5 @@
 #!python
+import argparse
 from astropy.io import votable
 import warnings
 from astropy.table import Table
@@ -7,16 +8,17 @@ from cStringIO import StringIO
 from astropy.time import Time
 
 
-def cfht_megacam_tap_query(RAdeg=180.0, DECdeg=0.0, width=1, height=1, date=None):
+def cfht_megacam_tap_query(ra_deg=180.0, dec_deg=0.0, width=1, height=1, date=None):
     """Do a query of the CADC Megacam table.
 
     Get all observations inside the box (right now it turns width/height into a radius, should not do this).
 
     @rtype : Table
-    @param RAdeg: center of search region, in degrees
-    @param DECdeg: center of search region in degrees
+    @param ra_deg: center of search region, in degrees
+    @param dec_deg: center of search region in degrees
     @param width: width of search region in degrees
     @param height: height of search region in degrees
+    @param date: ISO format date string.  Query will be +/- 0.5 days from date given.
     """
 
     radius = min(90, max(width, height) / 2.0)
@@ -32,7 +34,7 @@ def cfht_megacam_tap_query(RAdeg=180.0, DECdeg=0.0, width=1, height=1, date=None
              "AND o.instrument_name = 'MegaPrime' "
              "AND INTERSECTS( CIRCLE('ICRS', %f, %f, %f), Plane.position_bounds ) = 1")
 
-    query = query % (RAdeg, DECdeg, radius)
+    query = query % (ra_deg, dec_deg, radius)
 
     if date is not None:
         mjd = Time(date, scale='utc').mjd
@@ -48,15 +50,27 @@ def cfht_megacam_tap_query(RAdeg=180.0, DECdeg=0.0, width=1, height=1, date=None
     warnings.simplefilter('ignore')
     ff = StringIO(requests.get(url, params=data).content)
     ff.seek(0)
-    print ff.read()
     table = votable.parse(ff).get_first_table().to_table()
     assert isinstance(table, Table)
     return table
 
-if __name__ == '__main__':
 
-    ra_cen = (37 + 7) / 2.0
-    dec_cen = (20 + 0) / 2.0
-    width = 20 - 0
-    height = 37 - 7
-    print cfht_megacam_tap_query(ra_cen, dec_cen, width, height)
+def main(ra_deg, dec_deg, width, height):
+    print cfht_megacam_tap_query(ra_deg, dec_deg, width, height)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('ra', type=float,
+                        help="RA (in degrees) of the centre of the search area.")
+    parser.add_argument('dec', type=float,
+                        help="DEC (in degrees) of the centre of the search area.")
+    parser.add_argument('width', nargs='?', type=float,
+                        help="width (in degrees) of the search area.", default=10.0/60.0)
+    parser.add_argument('height', nargs='?', type=float,
+                        help="height (in degrees) of the search area. (default==width)",
+                        default=None)
+
+    args = parser.parse_args()
+    if args.height is None:
+        args.height = args.width
+    main(args.ra, args.dec, args.width, args.height)
