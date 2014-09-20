@@ -203,7 +203,7 @@ def get_header(image):
     retval = None
     header_text = storage.get_astheader(image, 0)  # zeroth ccd: first see if the preproc'd version is there
     if header_text is None:
-        header_text = storage.get_astheader(image, 0, version='o', ext='.head')  # 'o' for an object acquisition
+        header_text = storage.get_astheader(image, 0, version='o')  # 'o' for an object acquisition
     if header_text is not None:  # checked twice, it must be there now if it's there at all...
         retval = wanted_keys(header_text)
 

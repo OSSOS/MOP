@@ -34,7 +34,10 @@ class SingletViewer(WxMPLFitsViewer):
         assert cutout in self._displayables_by_cutout
 
         x, y = cutout.pixel_source_point
-        fwhm = float(cutout.astrom_header.get("FWHM",10))
+        try:
+            fwhm = float(cutout.astrom_header.get("FWHM",10))
+        except:
+            fwhm = 4.0
         radius = 2 * round(fwhm)
 
         colour = "b"

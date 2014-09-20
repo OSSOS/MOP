@@ -170,8 +170,13 @@ class ValidationModel(object):
                 ("DEC", reading.dec))
 
     def get_header_data_list(self):
-        header = self.get_current_astrom_header()
-        return [(key, value) for key, value in header.iteritems()]
+        try:
+            header = self.get_current_astrom_header()
+            hlist = [(key, value) for key, value in header.iteritems()]
+        except AttributeError as e:
+            logger.error(str(e))
+            hlist = [("NONE", "NONE"), ]
+        return hlist
 
     def get_current_observation_date(self):
         return self.get_current_astrom_header()["MJD_OBS_CENTER"]

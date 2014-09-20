@@ -2,6 +2,7 @@ __author__ = 'jjk, mtb55'
 
 import itertools
 import os
+import re
 import struct
 import time
 import logging
@@ -502,13 +503,13 @@ class Observation(object):
                                   comment=comment)
 
     @classmethod
-    def from_string(cls, mpc_line):
+    def from_string(cls, input_line):
         """
         Given an MPC formatted line, returns an MPC Observation object.
         :param mpc_line: a line in the one-line roving observer format
         """
         mpc_format = '1s11s1s1s1s17s12s12s9x5s1s6x3s'
-        mpc_line = mpc_line.strip('\n')
+        mpc_line = input_line.strip('\n')
         comment = mpc_line[81:]
         mpc_line = mpc_line[0:80]
         if len(mpc_line) > 0 and mpc_line[0] == '#':
@@ -517,7 +518,14 @@ class Observation(object):
             return None
         obsrec = cls(*struct.unpack(mpc_format, mpc_line))
         obsrec.comment = MPCComment.from_string(comment)
-        # TODO set the 'discovery' flags from the binary flags in TNODB style ast lines.
+
+        # Check if there are TNOdb style flag lines. 
+        if len(comment) > 33:
+           flags = comment[24:34].strip()
+	   if re.match('[01]{10}',flags):
+               if flags[0] == '1':
+                   obsrec.discovery.is_discovery = True
+
         return obsrec
 
     def to_string(self):
@@ -535,7 +543,11 @@ class Observation(object):
         # MOP/OSSOS allows the provisional name to take up the full space allocated to the MinorPlanetNumber AND
         # the provisional name.
 
-        padding = " " * min(4, 11 - len(self.provisional_name))
+        if len(self.provisional_name) > 7:
+	    padding = " " 
+        else:
+            padding = " " * 4
+        ## padding = " " * min(4, 11 - len(self.provisional_name))
         mpc_str = "%-12s" % (str(self.null_observation) + padding + self.provisional_name)
 
         mpc_str += str(self.discovery)

@@ -30,17 +30,24 @@ class Downloader(object):
             (http://docs.astropy.org/en/latest/io/fits/api/hdulists.html).
         """
         logger.debug(str(kwargs))
-        vobj = storage.vofile(uri, **kwargs)
-        fobj = cStringIO.StringIO(vobj.read())
-        vobj.close()
-        fobj.seek(0)
+        hdulist = None
         try:
-            hdulist = fits.open(fobj)
+            vobj = storage.vofile(uri, **kwargs)
+            try:
+                fobj = cStringIO.StringIO(vobj.read())
+                fobj.seek(0)
+                hdulist = fits.open(fobj)
+            except Exception as e:
+                sys.stderr.write("ERROR: {}\n".format(str(e)))
+                sys.stderr.write("While loading {} {}\n".format(uri, kwargs))
+                pass
+            finally:
+                vobj.close()
         except Exception as e:
-            sys.stderr.write(str(e))
-            sys.stderr.write("Error trying to get {} {}\n".format(uri, kwargs))
-            return None
-        logger.debug("Got fits hdulist of len {}".format(len(hdulist)))
+            sys.stderr.write(str(e)+"\n")
+            sys.stderr.write("While opening connection to {}.\n".format(uri))
+            sys.stderr.write("Sending back FLAT instead, too keep display happy.")
+            hdulist = self.download_hdulist('vos:OSSOS/dbimages/calibrators/13AQ05_r_flat.fits', **kwargs)
         return hdulist
 
     def download_apcor(self, uri):

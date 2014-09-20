@@ -20,6 +20,7 @@ from ossos import orbfit, cadc
 from ossos import storage
 from ossos.coord import Coord
 from ossos import mpc
+from ossos import wcs
 
 
 color_key = {"yellow": "Fill colour is yellow == tracking termination",
@@ -109,6 +110,7 @@ class Plot(Canvas):
         self.equatorial.set("00:00:00.00 +00:00:00.0")
         self.elongation = StringVar()
         self.object_info = StringVar()
+        self.expnum = StringVar()
         self.objList = None
         self.elongation.set("0.0")
         self.SearchVar = StringVar()
@@ -232,7 +234,7 @@ class Plot(Canvas):
 
     def centre(self):
         """Return the RA/DEC of the center of the visible Canvas."""
-        return self.p2s(self.canvasx(self.width/2.0)), self.p2s(self.canvasy(self.height/2.0))
+        return self.p2s(self.canvasx(self.width / 2.0)), self.p2s(self.canvasy(self.height / 2.0))
 
     def _convert(self, s, factor=15):
         p = s.split(":")
@@ -278,8 +280,8 @@ class Plot(Canvas):
             while dec <= dec2:
                 if label:
                     # lx is the the x screen coordinate location of the ra
-                    (lx, ly) = self.p2c((ra, dec+ddec/2.0))
-                    self.create_text(lx+5, ly, justify=LEFT,
+                    (lx, ly) = self.p2c((ra, dec + ddec / 2.0))
+                    self.create_text(lx + 5, ly, justify=LEFT,
                                      font=('Times', '-20'),
                                      text="\n".join(str(ephem.hours(ra))[:-3]), fill='brown')
                 label = not label
@@ -294,13 +296,13 @@ class Plot(Canvas):
             # create a line the goes from ra1 to ra2 at this dec
             (cx1, cy1) = self.p2c((ra1, dec))
             (cx2, cy2) = self.p2c((ra2, dec))
-            self.create_line(cx1, cy1, cx2, cy2, dash=(20,20))
+            self.create_line(cx1, cy1, cx2, cy2, dash=(20, 20))
             ra = ra1
             while ra <= ra2:
                 if label:
                     # lx/ly are the screen coordinates of the label
-                    (lx, ly) = self.p2c((ra+dra/2.0, dec))
-                    self.create_text(lx, ly-5, font=('Times', '-20'),
+                    (lx, ly) = self.p2c((ra + dra / 2.0, dec))
+                    self.create_text(lx, ly - 5, font=('Times', '-20'),
                                      text=str(ephem.degrees(dec)), fill='brown')
                 ra += dra
             dec += ddec
@@ -380,7 +382,8 @@ class Plot(Canvas):
         (cx1, cy1) = self.p2c((0, -math.pi / 2.0))
         (cx2, cy2) = self.p2c((2 * math.pi, math.pi / 2.0))
         ## set the scroll region to the size of the camvas plus a boundary to allow the canvas edge to be at centre
-        self.config(scrollregion=(cx2-self.width/2.0, cy2-self.height/2.0, cx1+self.width/2.0, cy1+self.height/2.0))
+        self.config(scrollregion=(
+            cx2 - self.width / 2.0, cy2 - self.height / 2.0, cx1 + self.width / 2.0, cy1 + self.height / 2.0))
 
     def reset(self):
         """Expand to the full scale"""
@@ -444,8 +447,8 @@ class Plot(Canvas):
         """Zoom in"""
 
         # # compute the x,y of the center of the screen
-        sx1 = (self.cx1 + self.cx2)/2.0
-        sy1 = (self.cy1 + self.cy2)/2.0
+        sx1 = (self.cx1 + self.cx2) / 2.0
+        sy1 = (self.cy1 + self.cy2) / 2.0
 
         if not event is None:
             logging.debug("EVENT: {},{}".format(event.x, event.y))
@@ -724,6 +727,41 @@ class Plot(Canvas):
         self.pointings = []
         self.doplot()
 
+    def ossos_pointings(self):
+        """
+        plot an OSSOS observation on the OSSOS plot.
+        """
+        match = re.match('(\d+)\D(\d+)', self.expnum.get())
+        if match is not None:
+            expnum = int(match.group(1))
+            ccd = int(match.group(2))
+            x = 2112/2.0
+            y = 4644/2.0
+        else:
+            expnum = int(str(self.expnum.get()))
+            ccd = 22
+            x = 1000
+            y = 4644 - 15/0.185
+        header = None
+        try:
+            header = storage.get_astheader(expnum, ccd=ccd)
+        except:
+            if header is None:
+                print "Didn't get a header... "
+                return
+
+        ossos_wcs = wcs.WCS(header)
+        (ra, dec) = ossos_wcs.xy2sky(x, y)
+        class MyEvent(object):
+            def __init__(self, x, y):
+                self.x = x
+                self.y = y
+
+        (x, y) = self.p2s((math.radians(ra), math.radians(dec)))
+        event = MyEvent(x, y)
+        self.create_pointing(event, label_text=header['OBJECT']+' ccd{}'.format(ccd))
+
+
     def get_pointings(self):
         """
         Retrieve the MEGACAM pointings that overlap with the current FOV and plot.
@@ -814,9 +852,9 @@ class Plot(Canvas):
                 dec = sdec.replace(":", "")
                 name = pointing["label"]["text"]
                 f.write("""{}=OBJECT="{}" RA={} DEC={} EQUINOX=2000.0 INSROT_PA=90\n""".format(name,
-                                                                                              name,
-                                                                                              ra,
-                                                                                              dec))
+                                                                                               name,
+                                                                                               ra,
+                                                                                               dec))
             return
         if self.pointing_format.get() == 'CFHT PH':
             f.write("""<?xml version = "1.0"?>
@@ -921,7 +959,7 @@ NAME                |RA         |DEC        |EPOCH |POINT|
             for cname in colossos:
                 if cname in name:
                     is_colossos_target = True
-                    print "ColOSSOS: ",cname
+                    print "ColOSSOS: ", cname
                     break
             is_terminated = False
             for cname in tracking_termination:
@@ -977,7 +1015,6 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                 w.create_point(ra, dec, size=6, color='cyan')
                 w.label(ra, dec, name, offset=[-15, +15])
 
-
         vlist.sort()
         for v in vlist:
             w.objList.insert(END, v)
@@ -990,43 +1027,43 @@ class Camera:
     geometry = {"MP_CCD": [
         {"ra": 0., "dec": 0., "dra": 0.1052, "ddec": 0.2344}],
                 "HSC": [{"ra": 0.0, "dec": 0.0, "rad": 0.75}],
-                "MEGACAM_36": [
-                    {"ra": -0.46, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": -0.35, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": -0.23, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": -0.12, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": -0.00, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": 0.11, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": 0.23, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": 0.35, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": 0.46, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": -0.47, "dec": -0.12, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": -0.35, "dec": -0.12, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": -0.23, "dec": -0.12, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": -0.12, "dec": -0.12, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": -0.00, "dec": -0.12, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": 0.12, "dec": -0.12, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": 0.23, "dec": -0.12, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": 0.35, "dec": -0.12, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": 0.46, "dec": -0.12, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": -0.47, "dec": 0.12, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": -0.35, "dec": 0.12, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": -0.23, "dec": 0.12, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": -0.12, "dec": 0.12, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": 0.00, "dec": 0.12, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": 0.12, "dec": 0.12, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": 0.23, "dec": 0.12, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": 0.35, "dec": 0.12, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": 0.47, "dec": 0.12, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": -0.46, "dec": 0.38, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": -0.35, "dec": 0.38, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": -0.23, "dec": 0.38, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": -0.12, "dec": 0.38, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": 0.00, "dec": 0.38, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": 0.12, "dec": 0.38, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": 0.23, "dec": 0.38, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": 0.35, "dec": 0.38, "dra": 0.1052, "ddec": 0.2344},
-                    {"ra": 0.47, "dec": 0.38, "dra": 0.1052, "ddec": 0.2344}],
+                "MEGACAM_00": [{"ra": 0, "dec": 0, "dra": 2112*0.185/3600.0, "ddec": 4640*0.185/3600.0}],
+                "MEGACAM_36": [{ "ra": 0.435, "dec": 0.394, "dra": 0.111, "ddec": 0.238},
+{ "ra": 0.327, "dec": 0.394, "dra": 0.112, "ddec": 0.238},
+{ "ra": 0.218, "dec": 0.394, "dra": 0.112, "ddec": 0.239},
+{ "ra": 0.108, "dec": 0.393, "dra": 0.112, "ddec": 0.239},
+{ "ra": -0.001, "dec": 0.392, "dra": 0.111, "ddec": 0.240},
+{ "ra": -0.111, "dec": 0.391, "dra": 0.111, "ddec": 0.240},
+{ "ra": -0.221, "dec": 0.390, "dra": 0.110, "ddec": 0.240},
+{ "ra": -0.330, "dec": 0.389, "dra": 0.109, "ddec": 0.240},
+{ "ra": -0.438, "dec": 0.387, "dra": 0.108, "ddec": 0.239},
+{ "ra": 0.439, "dec": 0.134, "dra": 0.110, "ddec": 0.240},
+{ "ra": 0.330, "dec": 0.134, "dra": 0.111, "ddec": 0.241},
+{ "ra": 0.220, "dec": 0.133, "dra": 0.111, "ddec": 0.241},
+{ "ra": 0.110, "dec": 0.133, "dra": 0.111, "ddec": 0.242},
+{ "ra": 0.000, "dec": 0.132, "dra": 0.112, "ddec": 0.242},
+{ "ra": -0.110, "dec": 0.131, "dra": 0.111, "ddec": 0.242},
+{ "ra": -0.219, "dec": 0.130, "dra": 0.111, "ddec": 0.242},
+{ "ra": -0.329, "dec": 0.129, "dra": 0.110, "ddec": 0.242},
+{ "ra": -0.438, "dec": 0.128, "dra": 0.109, "ddec": 0.241},
+{ "ra": 0.440, "dec": -0.105, "dra": 0.109, "ddec": 0.241},
+{ "ra": 0.331, "dec": -0.106, "dra": 0.110, "ddec": 0.241},
+{ "ra": 0.222, "dec": -0.107, "dra": 0.111, "ddec": 0.242},
+{ "ra": 0.112, "dec": -0.108, "dra": 0.111, "ddec": 0.242},
+{ "ra": 0.002, "dec": -0.109, "dra": 0.112, "ddec": 0.242},
+{ "ra": -0.108, "dec": -0.109, "dra": 0.112, "ddec": 0.242},
+{ "ra": -0.218, "dec": -0.110, "dra": 0.112, "ddec": 0.241},
+{ "ra": -0.327, "dec": -0.111, "dra": 0.111, "ddec": 0.241},
+{ "ra": -0.436, "dec": -0.111, "dra": 0.111, "ddec": 0.240},
+{ "ra": 0.441, "dec": -0.364, "dra": 0.108, "ddec": 0.239},
+{ "ra": 0.332, "dec": -0.365, "dra": 0.109, "ddec": 0.240},
+{ "ra": 0.223, "dec": -0.367, "dra": 0.110, "ddec": 0.240},
+{ "ra": 0.114, "dec": -0.368, "dra": 0.111, "ddec": 0.240},
+{ "ra": 0.004, "dec": -0.369, "dra": 0.111, "ddec": 0.240},
+{ "ra": -0.105, "dec": -0.370, "dra": 0.112, "ddec": 0.239},
+{ "ra": -0.215, "dec": -0.370, "dra": 0.112, "ddec": 0.239},
+{ "ra": -0.324, "dec": -0.370, "dra": 0.112, "ddec": 0.238},
+{ "ra": -0.433, "dec": -0.370, "dra": 0.112, "ddec": 0.238}],
                 "LFCNS": [
                     {"ra": -0.0512, "dec": 0.1045, "dra": .1023, "ddec": 0.2047},
                     {"ra": 0.0512, "dec": 0.1045, "dra": .1023, "ddec": 0.2047},
@@ -1127,8 +1164,8 @@ class Camera:
                      "ddec": 0.20 * 4096 / 3600.0, "dra": 0.20 * 2048 / 3600.0},
                     {"ra": 2 * (0.20 * 2048 + 15.0) / 3600.0, "dec": -0.5 * (4096 * 0.20 + 15.0) / 3600.0,
                      "ddec": 0.20 * 4096 / 3600.0, "dra": 0.20 * 2048 / 3600.0}],
-                "SSC1": [ {"ra": 0.0, "dec": 0.0, "dra": 5*(0.20* 2048/3600.0 + 15.0/3600.0) - 15.0/3600.0, 
-                           "ddec": 2 * 0.20*4096/3600 + 15.0/3600.0} ]
+                "SSC1": [{"ra": 0.0, "dec": 0.0, "dra": 5 * (0.20 * 2048 / 3600.0 + 15.0 / 3600.0) - 15.0 / 3600.0,
+                          "ddec": 2 * 0.20 * 4096 / 3600 + 15.0 / 3600.0}]
     }
 
     @property
@@ -1225,6 +1262,10 @@ def start(dirname=None, pointings=None):
     Label(coordsBox, text="Date: ").grid(row=6, column=0, sticky=E)
     Button(coordsBox, text="Update ", command=w.reset).grid(row=6, column=2, sticky=W)
 
+    Entry(coordsBox, textvariable=w.expnum).grid(row=7, column=1, sticky=W)
+    Label(coordsBox, text="Expnum: ").grid(row=7, column=0, sticky=E)
+    Button(coordsBox, text="Plot ", command=w.ossos_pointings).grid(row=7, column=2, sticky=W)
+
     Label(coordsBox, text="Pointing:").grid(row=8, column=0, sticky=W)
     Entry(coordsBox, textvariable=w.plabel).grid(row=9, column=1, sticky=W)
     Label(coordsBox, text="Label:").grid(row=9, column=0, sticky=E)
@@ -1302,10 +1343,12 @@ def start(dirname=None, pointings=None):
     viewmenu.add_command(label="Zoom 4", command=lambda: w.zoom(scale=4))
     viewmenu.add_command(label="Zoom 8", command=lambda: w.zoom(scale=8))
     viewmenu.add_command(label="Zoom 16", command=lambda: w.zoom(scale=16))
+    viewmenu.add_command(label="Zoom 32", command=lambda: w.zoom(scale=32))
+    viewmenu.add_command(label="Zoom 64", command=lambda: w.zoom(scale=64))
     viewmenu.add_command(label="Zoom 1/2", command=lambda: w.zoom(scale=0.5))
     viewmenu.add_command(label="Zoom 1/4", command=lambda: w.zoom(scale=0.25))
     viewmenu.add_command(label="Zoom 1/8", command=lambda: w.zoom(scale=0.125))
-    viewmenu.add_command(label="Zoom 1/16", command=lambda: w.zoom(scale=0.125/2.0))
+    viewmenu.add_command(label="Zoom 1/16", command=lambda: w.zoom(scale=0.125 / 2.0))
     viewmenu.add_command(label="Reset Plot", command=w.reset)
     menubar.add_cascade(label="View", menu=viewmenu)
 

@@ -150,12 +150,14 @@ if __name__=='__main__':
         args.force = True
 
     level = logging.CRITICAL
+    log_format = "%(message)s"
     if args.debug:
+        log_format = "%(module)s: %(levelname)s: %(message)s"
         level = logging.DEBUG
     elif args.verbose:
         level = logging.INFO
     
-    logging.basicConfig(level=level, format="%(message)s")
+    logging.basicConfig(level=level, format=log_format)
         
     storage.DBIMAGES = args.dbimages
 

@@ -243,5 +243,5 @@ class SourceCutout(object):
         comp_wcs = wcs.WCS(hdu_list[-1].header)
         (x, y) = comp_wcs.sky2xy(ref_ra, ref_dec)
         obs = Observation(str(comparison), 'p', ccdnum=str(hdu_list[-1].header.get('EXTVER', 0)))
-        reading = SourceReading(x, y, ref_x, ref_y, ref_ra, ref_dec, ref_x, ref_y, obs)
+        reading = SourceReading(x, y, ref_x, ref_y, ref_ra, ref_dec, ref_x, ref_y, obs, is_inverted=False)
         self._comparison_image = SourceCutout(reading, hdu_list, CoordinateConverter(0, 0))
