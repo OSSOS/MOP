@@ -117,15 +117,13 @@ class TracksParser(object):
             for idx in range(len(source_readings)):
                 source_reading = source_readings[idx]
                 astrom_observation = astrom_observations[idx]
-                logger.info("About to call orbfit predict")
-                self.orbit.predict(astrom_observation.header['MJD_OBS_CENTER'])
-                logger.info("Finished predict")
+                self.orbit.predict(Time(astrom_observation.mjd, format='mjd', scale='utc'))
                 source_reading.pa = self.orbit.pa
                 # why are these being recorded just in pixels?  Because the error ellipse is drawn in pixels.
                 # TODO: Modify error ellipse drawing routine to use WCS but be sure
                 # that this does not cause trouble with the use of dra/ddec for cutout computer
-                source_reading.dra = self.orbit.dra / astrom_observation.header['SCALE']
-                source_reading.ddec = self.orbit.ddec / astrom_observation.header['SCALE']
+                source_reading.dra = self.orbit.dra / 0.185
+                source_reading.ddec = self.orbit.ddec / 0.185
 
                 frame = astrom_observation.rawname
                 if frame in tracks_data.mpc_observations:
@@ -183,55 +181,24 @@ class SSOSParser(object):
                                          ext='.fits',
                                          subdir=None)
 
-        logger.debug('Trying to access {}'.format(image_uri))
-
-        if not storage.exists(image_uri, force=False):
-            logger.warning('Image not in dbimages? Trying subdir.')
-            image_uri = storage.dbimages_uri(expnum=expnum,
-                                             ccd=ccd,
-                                             version='p')
-
-        if not storage.exists(image_uri, force=False):
-            logger.warning("Image doesn't exist in ccd subdir. %s" % image_uri)
-            return None
-
         slice_rows = config.read("CUTOUTS.SINGLETS.SLICE_ROWS")
         slice_cols = config.read("CUTOUTS.SINGLETS.SLICE_COLS")
 
         if X == -9999 or Y == -9999:
             logger.warning("Skipping {} as x/y not resolved.".format(image_uri))
-            return None
+            raise ValueError("No position resolution from SSOIS")
 
         if not (-slice_cols / 2. < X < 2048 + slice_cols / 2. and -slice_rows / 2. < Y < 4600 + slice_rows / 2.0):
             logger.warning("Central location ({},{}) off image cutout.".format(X, Y))
-            return None
-
-        mopheader_uri = storage.dbimages_uri(expnum=expnum,
-                                             ccd=ccd,
-                                             version='p',
-                                             ext='.mopheader')
-
-        if not storage.exists(mopheader_uri, force=False):
-            # ELEVATE! we need to know to go off and reprocess/include this image.
-            logger.critical('Image exists but processing incomplete. Mopheader missing. {}'.format(image_uri))
-            print 'Image exists but processing incomplete. Mopheader missing. {}'.format(image_uri)
-            return None
-
-        sys.stderr.write("... getting header {:50s} ... \b\b\b\b".format(mopheader_uri))
-        mopheader = get_mopheader(expnum, ccd)
-        sys.stderr.write("done ")
-
-
-        # Build astrom.Observation
+            raise ValueError("Best fit position outside CCD boundaries.")
 
         observation = astrom.Observation(expnum=str(expnum),
                                          ftype='p',
                                          ccdnum=str(ccd),
                                          fk="")
+        observation._header = None
 
         observation.rawname = os.path.splitext(os.path.basename(image_uri))[0] + str(ccd).zfill(2)
-
-        observation.header = mopheader
 
         return observation
 
@@ -284,6 +251,7 @@ class SSOSParser(object):
             expnum = row['Image'].rstrip('p')
             X = row['X']
             Y = row['Y']
+            mjd = row['MJD']
 
             # ADDING THIS TEMPORARILY TO GET THE NON-OSSOS and wallpaper DATA OUT OF THE WAY
             # note: 'Telescope_Insturment' is a typo in SSOIS's return format
@@ -308,17 +276,18 @@ class SSOSParser(object):
                     continue
             sys.stderr.write(
                 "\r{}\r {}: observation {} {} {} {} from SSOS .. ".format(" " * 190, nrows, expnum, ccd, X, Y))
-            observation = self.build_source_reading(expnum, ccd, X, Y)
-            logger.info('built source reading {}'.format(observation))
-            if observation is None:
+            try:
+                observation = self.build_source_reading(expnum, ccd, X, Y)
+                observation.mjd = mjd
+                logger.info('built source reading {}'.format(observation))
+            except Exception as err:
+                sys.stderr.write(str(err)+"\n")
                 continue
             observations.append(observation)
 
             from_input_file = observation.rawname in self.input_rawnames
             null_observation = observation.rawname in self.null_observations
-            mjd = Time(observation.header['MJD_OBS_CENTER'],
-                       format='mpc',
-                       scale='utc').jd
+            ref_x = None
             if ref_x is None or mjd - ref_mjd > 0.5:
                 ref_x = X
                 ref_y = Y
@@ -345,16 +314,11 @@ class SSOSParser(object):
                 x0 = X
                 y0 = Y
 
-            sys.stderr.write(" Building SourceReading .... \b\b\b\b\b")
-            source_reading = astrom.SourceReading(
-                x=row['X'], y=row['Y'],
-                xref=ref_x, yref=ref_y,
-                x0=x0, y0=y0,
-                ra=row['Object_RA'], dec=row['Object_Dec'],
-                obs=observation,
-                ssos=True,
-                from_input_file=from_input_file,
-                null_observation=null_observation)
+            sys.stderr.write(" Building SourceReading .... \n")
+            source_reading = astrom.SourceReading(x=row['X'], y=row['Y'], x0=x0, y0=y0, ra=row['Object_RA'],
+                                                  dec=row['Object_Dec'], xref=ref_x, yref=ref_y, obs=observation,
+                                                  ssos=True, from_input_file=from_input_file,
+                                                  null_observation=null_observation, is_inverted=False)
             sys.stderr.write("done")
 
             source_readings.append(source_reading)
@@ -403,11 +367,9 @@ class SSOSData(object):
 
     def get_arc_length(self):
         mjds = []
-
         for obs in self.observations:
-            mjds.append(Time(obs.header['MJD_OBS_CENTER'],
-                             format='mpc', scale='utc').jd)
-        arc = (len(mjds) > 0 and max(mjds) - min(mjds) ) or 0
+            mjds.append(obs.mjd)
+        arc = (len(mjds) > 0 and max(mjds) - min(mjds)) or 0
         return arc
 
 
@@ -449,7 +411,11 @@ class ParamDictBuilder(object):
 
     @observations.setter
     def observations(self, observations):
-        self._observations = observations
+        self._observations = []
+        for observation in observations:
+            assert isinstance(observation, mpc.Observation)
+            if not observation.null_observation:
+                self._observations.append(observation)
 
     @property
     def verbose(self):
