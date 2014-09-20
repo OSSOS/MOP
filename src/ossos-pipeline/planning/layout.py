@@ -32,7 +32,7 @@ L7MODEL = 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
 L7MODEL = '/Users/kavelaarsj/Dropbox/Research/KuiperBelt/OSSOS/L7SyntheticModel-v09.txt'
 REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/ast/'
 
-PLOT_FIELD_EPOCH = 'Jul14'  # Oct14.00 ==> '0' days since the New Moon on Oct14
+PLOT_FIELD_EPOCH = 'Oct14'  # Oct14.00 ==> '0' days since the New Moon on Oct14
 #TODO the .00 is appended when this variable is used as a keyword that needs that .00 this is bad.
 DISCOVERY_NEW_MOON = 'Nov13'  # this is the date that the RA/DEC in blocks corresponds to.
 
@@ -145,7 +145,7 @@ blocks = {'13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"},  # ,
           }
 
 ## this position is derived from the +0+0 field for 13B observed on November 1st 2013
-#blocks = {'14BH': {'RA': "01:28:32.32", "DEC": "+12:51:06.10"}}
+blocks = {'14BH': {'RA': "01:28:32.32", "DEC": "+12:51:06.10"}}
 
 #spring14
 
@@ -310,8 +310,8 @@ ax = fig.add_subplot(111)
 
 
 ax.set_xlim(ra_cen+width/2.0, ra_cen-width/2.0)
-#ax.set_ylim(dec_cen - height/2.0, dec_cen + height/2.0)
-ax.set_ylim(-30,30)
+ax.set_ylim(dec_cen - height/2.0, dec_cen + height/2.0)
+#ax.set_ylim(-30,30)
 ax.set_xlabel('RA (deg)')
 ax.set_ylabel('DE (deg)')
 
@@ -573,7 +573,7 @@ def tick_function(X):
     month = ( X/30.0 + 8 ) % 12 + 1
     return [ calendar.month_abbr[int(z)] for z in month ]
 print new_tick_locations
-if True:
+if False:
     ax.set_xlim(360,0)
     ax2 = ax.twiny()
     ax2.set_xticks(new_tick_locations)
