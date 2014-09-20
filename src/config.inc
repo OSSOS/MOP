@@ -72,7 +72,7 @@ Linux)
     ;;
 Darwin)
     if [ X"${FC}" == X ]; then
-      FC="g77 -fPIC -fno-common "
+      FC="gfortran -fPIC -fno-common "
       export FC
     fi
     CC="gcc"
