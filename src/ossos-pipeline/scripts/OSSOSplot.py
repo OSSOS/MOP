@@ -25,7 +25,8 @@ from ossos import wcs
 
 color_key = {"yellow": "Fill colour is yellow == tracking termination",
              "blue": "Outline is blue == ColOSSOS target.",
-             'red': "Large ephemeris uncertainty object."}
+             'red': "Large ephemeris uncertainty object.",
+             'magenta': "Needs a double."}
 
 Neptune = {'Halimde': {"RA": ephem.hours("22:32:05.1"), "DEC": ephem.degrees("-10:08:42")},
            'Psamathe': {"RA": ephem.hours("22:32:41.0"), "DEC": ephem.degrees("-09:48:06")},
@@ -90,7 +91,33 @@ tracking_termination = ['o3e01',
                         "o3o35",
                         "uo3o37",
                         "uo3o38",
-                        "uo3o50"]
+                        "uo3o50",
+                        "O13BL3R6",
+                        "O13BL3RW",
+                        "O13BL3SJ",
+                        "O13BL3SM",
+                        "O13BL3SU",
+                        "O13BL3S0",
+                        "O13BL3S5",
+                        "O13BL3RQ"]
+
+doubles = ["O13BL3TL",
+           "O13BL3TE",
+           "O13BL3S8",
+           "O13BL3SB",
+           "O13BL3QT",
+           "O13BL3RS",
+           "O13BL3SV",
+           "O13BL3T0",
+           "O13BL3QU",
+           "O13BL3SO",
+           "O13BL3T6",
+           "O13BL3S6",
+           "O13BL3T5",
+           "O13BL3RJ",
+           "O13BL3RL",
+           "O13BL3S9",
+           "O13BL3SC"]
 
 class MyEvent(object):
         def __init__(self, x, y):
@@ -967,6 +994,12 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                     is_terminated = True
                     print "Terminated", cname
                     break
+            is_double = False
+            for cname in doubles:
+                if cname in name:
+                    is_double = True
+                    print 'Needs double:', cname
+                    break
             if type(kbos[name]) == type(ephem.EllipticalBody()):
                 try:
                     kbos[name].compute(w.date.get())
@@ -1001,6 +1034,7 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                         lost = True
 
                 fill_colour = lost and "red" or "green"
+                fill_colour = is_double and "magenta" or fill_colour
                 fill_colour = is_colossos_target and "blue" or fill_colour
                 point_colour = is_terminated and "red" or "yellow"
                 w.create_point(ra, dec, size=point_size, color=point_colour, fill=fill_colour)
