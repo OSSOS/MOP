@@ -56,6 +56,7 @@ colossos = ['O13BL3R9',
             'O13BL3SH',
             'O13BL3R1',
             'O13BL3RH']
+
 tracking_termination = ['o3e01',
                         'o3e10',
                         'o3e15',
@@ -123,7 +124,6 @@ class MyEvent(object):
         def __init__(self, x, y):
             self.x = x
             self.y = y
-
 
 
 class Plot(Canvas):
@@ -831,12 +831,15 @@ class Plot(Canvas):
                                                (ccd[0], ccd[1])))
                     polygons.append(polygon)
                 et = EphemTarget(name)
-                # determine the mean motion of KBOs in this field.
+                # determine the mean motion of target KBOs in this field.
                 field_kbos = []
                 center_ra = 0
                 center_dec = 0
-                for kbo_name in self.kbos:
-                    kbo = self.kbos[kbo_name]
+
+                for kbo_name, kbo in self.kbos.items():
+                    if kbo_name in Neptune or kbo_name in tracking_termination:
+                        # print 'skipping', kbo_name
+                        continue
                     kbo.predict(mpc.Time(self.date.get(), scale='utc'))
                     ra = kbo.coordinate.ra.radians
                     dec = kbo.coordinate.dec.radians
@@ -845,6 +848,9 @@ class Plot(Canvas):
                             field_kbos.append(kbo)
                             center_ra += ra
                             center_dec += dec
+
+                print field_kbos
+
                 start_date = mpc.Time(self.date.get(), scale='utc').jd
                 trail_mid_point = 6
                 for days in range(trail_mid_point * 2 + 1):
@@ -869,8 +875,10 @@ class Plot(Canvas):
                                                          unit=(units.radian, units.radian),
                                                          obstime=today)
                         et.coordinates.append(cc)
+
                 et.save()
             return
+
         f = tkFileDialog.asksaveasfile()
         if self.pointing_format.get() == 'Subaru':
             for pointing in self.pointings:
