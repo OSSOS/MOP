@@ -2,15 +2,15 @@
 """Create an ephemeris file for a KBO based on the .abg orbit file.
    output is in CFHT format"""
 
-from astropy import units, coordinates, time
-import datetime
-
-from ossos import mpc
-from ossos import orbfit
 import logging
 import argparse
 
+import datetime
+from astropy import units, coordinates, time
 
+from ossos import mpc
+from ossos import orbfit
+from ossos.cameras import Camera
 
 
 class EphemTarget:
@@ -55,7 +55,7 @@ YYYY-MM-DD hh:mm:ss|hh:mm:ss.ss|+dd:mm:ss.s|
         :return: result of close()
         """
         if filename is None:
-            filename = "ET"+self.name+".xml"
+            filename = "ET" + self.name + ".xml"  # FIXME: this method could be handled more smoothly
         et_file = open(filename, 'w')
         et_file.write(self.ASTRO_FORMAT_HEADER)
         for coordinate in self.coordinates:
@@ -67,83 +67,6 @@ YYYY-MM-DD hh:mm:ss|hh:mm:ss.ss|+dd:mm:ss.s|
         et_file.write(self.ASTRO_FORMAT_FOOTER)
         return et_file.close()
 
-
-class Camera:
-    geometry = {
-        "MegaPrime": [
-            {"ra": -0.46, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": -0.35, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": -0.23, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": -0.12, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": -0.00, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": 0.11, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": 0.23, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": 0.35, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": 0.46, "dec": -0.38, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": -0.47, "dec": -0.12, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": -0.35, "dec": -0.12, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": -0.23, "dec": -0.12, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": -0.12, "dec": -0.12, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": -0.00, "dec": -0.12, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": 0.12, "dec": -0.12, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": 0.23, "dec": -0.12, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": 0.35, "dec": -0.12, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": 0.46, "dec": -0.12, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": -0.47, "dec": 0.12, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": -0.35, "dec": 0.12, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": -0.23, "dec": 0.12, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": -0.12, "dec": 0.12, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": 0.00, "dec": 0.12, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": 0.12, "dec": 0.12, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": 0.23, "dec": 0.12, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": 0.35, "dec": 0.12, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": 0.47, "dec": 0.12, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": -0.46, "dec": 0.38, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": -0.35, "dec": 0.38, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": -0.23, "dec": 0.38, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": -0.12, "dec": 0.38, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": 0.00, "dec": 0.38, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": 0.12, "dec": 0.38, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": 0.23, "dec": 0.38, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": 0.35, "dec": 0.38, "dra": 0.1052, "ddec": 0.2344},
-            {"ra": 0.47, "dec": 0.38, "dra": 0.1052, "ddec": 0.2344}],
-        "MegaCam": [
-            {'ra': -0.162500, 'dec': -0.189444, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': -0.162500, 'dec': -0.141944, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': -0.162500, 'dec': -0.095000, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': -0.162500, 'dec': -0.047500, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': -0.162500, 'dec': 0.000000, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': -0.162500, 'dec': 0.047500, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': -0.162500, 'dec': 0.095000, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': -0.162500, 'dec': 0.141944, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': -0.162500, 'dec': 0.189444, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': -0.051389, 'dec': -0.189444, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': -0.051389, 'dec': -0.141944, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': -0.051389, 'dec': -0.095000, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': -0.051389, 'dec': -0.047500, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': -0.051389, 'dec': 0.000000, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': -0.051389, 'dec': 0.047500, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': -0.051389, 'dec': 0.095000, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': -0.051389, 'dec': 0.141944, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': -0.051389, 'dec': 0.189444, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': 0.051389, 'dec': -0.189444, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': 0.051389, 'dec': -0.141944, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': 0.051389, 'dec': -0.095000, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': 0.051389, 'dec': -0.047500, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': 0.051389, 'dec': 0.000000, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': 0.051389, 'dec': 0.047500, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': 0.051389, 'dec': 0.095000, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': 0.051389, 'dec': 0.141944, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': 0.051389, 'dec': 0.189444, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': 0.162500, 'dec': -0.189444, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': 0.162500, 'dec': -0.141944, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': 0.162500, 'dec': -0.095000, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': 0.162500, 'dec': -0.047500, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': 0.162500, 'dec': 0.000000, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': 0.162500, 'dec': 0.047500, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': 0.162500, 'dec': 0.095000, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': 0.162500, 'dec': 0.141944, 'dra': 0.102222, 'ddec': 0.045333},
-            {'ra': 0.162500, 'dec': 0.189444, 'dra': 0.102222, 'ddec': 0.045333}]}
 
 if __name__ == '__main__':
     logger = logging.getLogger()
