@@ -41,7 +41,7 @@ def step3(expnums, ccd, version, rate_min,
         idx += 1
         for ext in ['unid.jmp', 'unid.matt',
                     'trans.jmp' ]:
-            filename = storage.get_image(expnum, ccd=ccd, version=version, ext=ext, prefix=prefix)
+            filename = storage.get_file(expnum, ccd=ccd, version=version, ext=ext, prefix=prefix)
         image = os.path.splitext(os.path.splitext(os.path.basename(filename))[0])[0]
         cmd_args.append('-f%d' % ( idx))
         cmd_args.append(image)

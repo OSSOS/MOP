@@ -34,7 +34,7 @@ def plant(expnums, ccd, rmin, rmax, ang, width, version='s', dry_run=False):
                     'mopheader',
                     'phot',
                     'zeropoint.used']:
-            apcor = storage.get_image(expnum, ccd=ccd, version=version, ext=ext)
+            apcor = storage.get_file(expnum, ccd=ccd, version=version, ext=ext)
 
     ptf.close()
 

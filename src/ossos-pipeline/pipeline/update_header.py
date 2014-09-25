@@ -112,15 +112,15 @@ if __name__ == '__main__':
     
         header = (args.header is not None and ((
             os.access(args.header, os.W_OK) and args.header ) or (
-            storage.get_image(args.header, ext='head')))) or (
-                     storage.get_image(args.expnum, ext='head'))
+            storage.get_file(args.header, ext='head')))) or (
+                     storage.get_file(args.expnum, ext='head'))
 
-        image = (os.access(args.expnum,os.W_OK) and args.expnum ) or (
-            storage.get_image(args.expnum) )
+        image = (os.access(args.expnum, os.W_OK) and args.expnum ) or (
+            storage.get_image(args.expnum))
 
         logging.info(
             "Swapping header for %s for contents in %s \n" % (
-            image, header) )
+            image, header))
 
 
         expnum = fits.open(image)[0].header['EXPNUM'] or args.expnum

@@ -42,10 +42,10 @@ def combine(expnum, ccd, prefix=None, file_type='p', field=None, measure3=MEASUR
     logging.info("Doing combine on field {}".format(field))
 
     for ext in ['moving.matt', 'moving.jmp']:
-        storage.get_image(expnum, ccd=ccd, version=file_type, ext=ext, prefix=prefix)
+        storage.get_file(expnum, ccd=ccd, version=file_type, ext=ext, prefix=prefix)
 
     if prefix is not None and len(prefix) > 0:
-        storage.get_image('Object', version='', ext='planted', subdir=str(expnum) + "/ccd%s" % (str(ccd).zfill(2)))
+        storage.get_file('Object', version='', ext='planted', subdir=str(expnum) + "/ccd%s" % (str(ccd).zfill(2)))
     else:
         prefix = ''
 

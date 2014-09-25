@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## Set up the service variables
-export proc_service="https://www.canfar.phys.uvic.ca/proc/pub"
+export proc_service="http://www.canfar.phys.uvic.ca/proc/auth"
 export proxy_pem=${HOME}/.ssl/cadcproxy.pem
 export condor_header=condor_header.txt
 
@@ -29,7 +29,7 @@ echo "submitting ${job_id} $task $args"
 status=1
 while [ $status -ne 0 ] ;  do 
    echo "/usr/local/bin/curl --fail -k -E ${proxy_pem} -X POST -F condor_submit=<${condor_submit} -F payload=<${payload} ${proc_service}?job=${condor_submit},param:condor_submit&exec=${payload},param:payload"
-   /usr/local/bin/curl --fail -k -E ${proxy_pem} \
+   /usr/local/bin/curl --user jkavelaars:old2 --fail -k -E ${proxy_pem} \
     -X POST \
     -F "condor_submit=<${condor_submit}" \
     -F "payload=<${payload}" \
