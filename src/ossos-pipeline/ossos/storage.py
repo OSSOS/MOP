@@ -324,15 +324,18 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
 
     logger.debug("Building list of possible uri locations")
     ## here is the list of places we will look, in order
-    locations = [(get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix),
-                  cutout is not None and cutout or None)]
+    if version != 'p':
+        locations = [(get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix),
+                      cutout is not None and cutout or None)]
+    else:
+        locations = []
     logger.debug(str(locations))
     if ccd is not None:
         try:
             for this_ext in [ext, ext+".fz"]:
                 ext_no = int(ccd) + 1
                 flip = (cutout is None and "fits" in ext and (ext_no < 19 and "[-*,-*]" or "[*,*]")) or cutout
-                locations.append((get_uri(expnum, version=version, ext=ext, subdir=subdir),
+                locations.append((get_uri(expnum, version=version, ext=this_ext, subdir=subdir),
                                   "[{}]{}".format(ext_no, flip)))
         except Exception as e:
             logger.error(str(e))
