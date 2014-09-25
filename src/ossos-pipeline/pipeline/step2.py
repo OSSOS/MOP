@@ -45,7 +45,13 @@ def compute_trans(expnums, ccd, version, prefix=None):
     wcs_dict = {}
     for expnum in expnums:
         try:
-            this_wcs = wcs.WCS(storage.get_image(expnum, ccd, version, cutout="[1:1,1:1]",
+            # TODO Fix this hack.. we are assuming that p images are not FLIPPED on the storage end.
+            # while others are!
+            if ccd < 19 and version == 'p':
+                cutout = '[2:1,2:1]'
+            else:
+                cutout = '[1:2,1:2]'
+            this_wcs = wcs.WCS(storage.get_image(expnum, ccd, version, cutout=cutout, prefix=prefix,
                                                  return_file=False)[0].header)
         except Exception as err:
             logging.warning("WCS Trans compute failed. {}".format(str(err)))
@@ -59,7 +65,7 @@ def compute_trans(expnums, ccd, version, prefix=None):
         jmp_trans = file(filename, 'r').readline().split()
         (x, y) = wcs_dict[expnum].sky2xy(ra0, dec0)
         print jmp_trans
-        print "{:5.2f} 1. 0. {:5.2f} 0. 1.\n".format(x0-x, y0-y)
+        print "{:5.2f} 1. 0. {:5.2f} 0. 1.\n".format(x0 - x, y0 - y)
         x1 = float(jmp_trans[0]) + float(jmp_trans[1]) * x + float(jmp_trans[2]) * y
         y1 = float(jmp_trans[3]) + float(jmp_trans[4]) * x + float(jmp_trans[5]) * y
         dr = math.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2)
