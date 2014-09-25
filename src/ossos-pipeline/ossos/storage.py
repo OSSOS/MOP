@@ -38,9 +38,6 @@ OBJECT_COUNT = "object_count"
 
 vospace = vos.Client(cadc_short_cut=True)
 vlog = logging.getLogger('vos')
-vlog.setLevel(logging.ERROR)
-sh = logging.StreamHandler(sys.stderr)
-vlog.addHandler(sh)
 
 SUCCESS = 'success'
 
@@ -288,22 +285,27 @@ def set_status(expnum, ccd, program, status, version='p'):
     return set_tag(expnum, get_process_tag(program, ccd, version), status)
 
 
-def get_image(expnum, ccd=None, version='p', ext='fits', subdir=None, prefix=None, cutout=None):
+def get_image(expnum, ccd=None, version='p', ext='fits',
+              subdir=None, prefix=None, cutout=None, return_file=True):
     """Get a FITS file for this expnum/ccd  from VOSpace.
 
 
+    @param cutout: (str)
+    @param return_file: return an filename (True) or HDUList (False)
     @param expnum: CFHT exposure number (int)
     @param ccd:     @param ccd:
     @param version: [p, s, o]  (char)
     @param ext:
     @param subdir:
     @param prefix:
-    @return: basestring
+    @return: basestring or astropy.io.fits.PrimaryHDU
     """
 
     # the filename is based on the Simple FITS images file.
-    filename = os.path.basename(get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix))
-    if os.access(filename, os.F_OK):
+    uri = get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix)
+    filename = os.path.basename(uri)
+
+    if os.access(filename, os.F_OK) and return_file:
         logger.debug("File already on disk: {}".format(filename))
         return filename
 
@@ -312,7 +314,8 @@ def get_image(expnum, ccd=None, version='p', ext='fits', subdir=None, prefix=Non
 
     logger.debug("Building list of possible uri locations")
     ## here is the list of places we will look, in order
-    locations = [(get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix), cutout)]
+    locations = [(get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix),
+                  cutout is None and "[*,*]" or cutout)]
     logger.debug(str(locations))
     if ccd is not None:
         try:
@@ -320,7 +323,6 @@ def get_image(expnum, ccd=None, version='p', ext='fits', subdir=None, prefix=Non
             flip = (cutout is None and (ext_no < 19 and "[-*,-*]" or "[*,*]")) or cutout
             locations.append((get_uri(expnum, version=version, ext=ext, subdir=subdir),
                               "[{}]{}".format(ext_no, flip)))
-            logger.debug(str(locations))
             locations.append((get_uri(expnum, version=version, ext=ext + ".fz", subdir=subdir),
                               "[{}]{}".format(ext_no, flip)))
         except Exception as e:
@@ -329,17 +331,18 @@ def get_image(expnum, ccd=None, version='p', ext='fits', subdir=None, prefix=Non
     while len(locations) > 0:
         (uri, cutout) = locations.pop(0)
         try:
-            if cutout is not None:
-                hdu_list = get_hdu(uri, cutout)
+            hdu_list = get_hdu(uri, cutout)
+            if return_file:
                 hdu_list.writeto(filename)
                 del hdu_list
+                return filename
             else:
-                copy(uri, filename)
-            return filename
+                return hdu_list
         except Exception as e:
+            logger.debug("Failed to open {}{}".format(uri, cutout))
             logger.debug("vos sent back error: {} code: {}".format(str(e), getattr(e, 'errno', 0)))
 
-    return None
+    raise IOError(errno.ENOENT, "Failed to get image using {} {} {} {}.".format(expnum, version, ccd, cutout))
 
 
 def get_hdu(uri, cutout):
@@ -358,7 +361,6 @@ def get_hdu(uri, cutout):
         vos_ptr = vospace.open(uri, view='data')
     fpt = cStringIO.StringIO(vos_ptr.read())
     fpt.seek(0, 2)
-    print fpt.tell()
     fpt.seek(0)
     logger.debug("Read from vospace completed. Building fits object.")
     hdu_list = fits.open(fpt)
@@ -741,20 +743,38 @@ def get_mopheader(expnum, ccd):
     return mopheaders[mopheader_uri]
 
 
-def _getheader(uri):
+def _get_sghead(expnum, version):
     """
-    Internal method for accessing the storage system.
-    Given the vospace URI for fits file get the header of the file.
+    Use the data web service to retrieve the stephen's astrometric header.
+
+    :param expnum: CFHT exposure number you want the header for
+    :param version: Which version of the header? ('p', 's', 'o')
+    :rtype : list of astropy.io.fits.Header objects.
     """
-    service = 'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHTSG/'
-    filename = os.path.basename(uri)
-    url = service+filename
+
+    url = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHTSG/{}{}.head".format(expnum, version)
     resp = requests.get(url)
-    header_strs = re.split('END      \n', resp.content)
-    headers = [0]
-    for header_str in header_strs:
+    if resp.status_code != 200:
+        raise IOError(errno.ENOENT, "Could not get {}".format(url))
+
+    header_str_list = re.split('END      \n', resp.content)
+
+    ## make the first entry in the list a Null
+    headers = [None]
+    for header_str in header_str_list:
         headers.append(fits.Header.fromstring(header_str, sep='\n'))
+
     return headers
+
+
+# def _getheader(uri):
+#     """
+#     Pull a header from a FITS file referenced by the uri.
+#     """
+#     hdulist = get_image(expnum, )
+#     filename = os.path.basename(uri)
+#     url = service+filename
+#     resp = requests.get(url)
 
 
 def get_header(uri):
@@ -762,11 +782,11 @@ def get_header(uri):
     Pull a FITS header from observation at the given URI
     """
     if uri not in astheaders:
-        astheaders[uri] = _getheader(uri)
+        astheaders[uri] = get_image
     return astheaders[uri]
 
 
-def get_astheader(expnum, ccd, version='p', ext=None):
+def get_astheader(expnum, ccd, version='p', prefix=None, ext=None):
     """
     Retrieve the header for a given dbimages file.
 
@@ -775,13 +795,19 @@ def get_astheader(expnum, ccd, version='p', ext=None):
     @param version: 'o','p', or 's'
     @return:
     """
-    print "Getting ast header. for {}".format(expnum)
+    logger.debug("Getting ast header. for {}".format(expnum))
     try:
-        ast_uri = dbimages_uri(expnum, version=version, ext='.head')
-        header = get_header(ast_uri)[int(ccd) + 1]
-    except IOError as err:
-        print str(err)
+        # first try and get this from CFHTSG header repo
+        ast_uri = dbimages_uri(expnum, version, ext='.head')
+        if ast_uri not in astheaders:
+            astheaders[ast_uri] = _get_sghead(expnum, version)
+        header = astheaders[ast_uri][int(ccd) + 1]
+    except Exception as err:
+        # An exception was raised, so try getting directly from a fits images instead.
+        logger.debug(str(err))
         ast_uri = dbimages_uri(expnum, ccd, version=version, ext='.fits')
-        header = get_header(ast_uri)[0]
-    print "Done."
+        if ast_uri not in astheaders:
+            astheaders[ast_uri] = get_image(expnum, ccd=ccd, version=version, prefix=prefix,
+                                            cutout="[1:1,1:1]", return_file=False)[0].header
+        header = astheaders[ast_uri]
     return header
