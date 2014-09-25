@@ -284,6 +284,16 @@ def set_status(expnum, ccd, program, status, version='p'):
 
     return set_tag(expnum, get_process_tag(program, ccd, version), status)
 
+def get_file(expnum, ccd=None, version='p', ext='fits', subdir=None, prefix=None):
+
+    uri = get_uri(expnum=expnum, ccd=ccd, version=version, ext=ext, subdir=subdir, prefix=prefix)
+    filename = os.path.basename(uri)
+
+    if not os.access(filename, os.F_OK):
+        copy(uri, filename)
+
+    return filename
+
 
 def get_image(expnum, ccd=None, version='p', ext='fits',
               subdir=None, prefix=None, cutout=None, return_file=True):
@@ -315,16 +325,15 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     logger.debug("Building list of possible uri locations")
     ## here is the list of places we will look, in order
     locations = [(get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix),
-                  cutout is None and "[*,*]" or cutout)]
+                  cutout is not None and cutout or None)]
     logger.debug(str(locations))
     if ccd is not None:
         try:
-            ext_no = int(ccd) + 1
-            flip = (cutout is None and (ext_no < 19 and "[-*,-*]" or "[*,*]")) or cutout
-            locations.append((get_uri(expnum, version=version, ext=ext, subdir=subdir),
-                              "[{}]{}".format(ext_no, flip)))
-            locations.append((get_uri(expnum, version=version, ext=ext + ".fz", subdir=subdir),
-                              "[{}]{}".format(ext_no, flip)))
+            for this_ext in [ext, ext+".fz"]:
+                ext_no = int(ccd) + 1
+                flip = (cutout is None and "fits" in ext and (ext_no < 19 and "[-*,-*]" or "[*,*]")) or cutout
+                locations.append((get_uri(expnum, version=version, ext=ext, subdir=subdir),
+                                  "[{}]{}".format(ext_no, flip)))
         except Exception as e:
             logger.error(str(e))
             pass
@@ -415,6 +424,7 @@ def get_hdu(uri, cutout):
 
 def get_trans(expnum, ccd, prefix=None, version='p'):
     uri = get_uri(expnum, ccd, version, ext='trans.jmp', prefix=prefix)
+    logging.info("get_trans: {}".format(uri))
     fobj = open_vos_or_local(uri)
     line = fobj.read()
     fobj.close()
@@ -795,7 +805,7 @@ def get_astheader(expnum, ccd, version='p', prefix=None, ext=None):
     @param version: 'o','p', or 's'
     @return:
     """
-    logger.debug("Getting ast header. for {}".format(expnum))
+    logger.info("Getting ast header. for {}".format(expnum))
     try:
         # first try and get this from CFHTSG header repo
         ast_uri = dbimages_uri(expnum, version, ext='.head')
