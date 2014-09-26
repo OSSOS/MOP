@@ -326,7 +326,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     ## here is the list of places we will look, in order
     if version != 'p':
         locations = [(get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix),
-                      cutout is not None and cutout or None)]
+                      cutout)]
     else:
         locations = []
     logger.debug(str(locations))
