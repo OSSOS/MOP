@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/bin/sh
 usage="Usage: daophot.sh -i image -a aperture -c coordinates -z zeropoint"
 ### Given an image and coordinate file, compute the magnitudes
 while [ $# -gt 0 ]; do
@@ -46,17 +46,19 @@ touch daophot.FAILED
 if [ -f $im1.fits ] ; then 
    img=$im1
 elif [ -f $im1 ] ; then 
-   img=`echo -n $im1 | sed s/.fits//`
+   img=`echo $im1 | sed -e 's/.fits//'`
 else
    echo "Can't resolve image name from: $im1"
    exit
 fi
+
 
 maxlin=`gethead $img.fits MAXLIN`
 if [ "X$maxlin" == "X" ]; then
    maxlin=35000
 fi
 
+echo "Staring IRAF"
 curdir=`pwd`
 cd ~/iraf
 cl <<EOF
