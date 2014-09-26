@@ -478,6 +478,8 @@ class SourceReading(object):
         self.null_observation = null_observation
         self.discovery = discovery
         self.is_inverted = is_inverted
+        if self.obs.fk == "fk" or self.obs.ftype == "s":
+            self.is_inverted = False
 
     @property
     def from_input_file(self):
