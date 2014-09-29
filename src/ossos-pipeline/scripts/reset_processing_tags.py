@@ -12,9 +12,10 @@ import sys
 from ossos import storage
 
 
+
 # FIXME: currently this doesn't clear the snr_13 tag
 
-PROGRAMS = {'CALIBRATION': (('', 'fk'), ('mkpsf', 'zeropoint', 'fwhm'), ('p', 's')),
+PROGRAMS = {'CALIBRATION': (('', 'fk'), ('mkpsf', 'zeropoint', 'fwhm', 'step1'), ('p', 's', '')),
             'PLANT': (('',), ('scramble', 'plant'), ('s',)),
             'SCRAMBLE': (('',), ('step1', 'step2', 'step3', 'combine'), ('s',)),
             'FAKES': (('fk',), ('step1', 'step2', 'step3', 'combine'), ('s',)),
@@ -42,7 +43,6 @@ def clear_tags(my_expnum, ops, my_ccds, dry_run=True):
                 for ccd in my_ccds:
                     # print my_expnum, fake, my_program, version, ccd
                     key = storage.get_process_tag(fake + my_program, ccd, version)
-                    print key
                     props[key] = None
                     if dry_run:
                         sys.stdout.write("{} ".format(key))
@@ -73,8 +73,8 @@ if __name__ == '__main__':
 
     ccds = opt.ccd is not None and [opt.ccd] or range(36)
 
-    ccds = [item for sublist in ccds for item in sublist]
-    print ccds
+    # ccds = [item for sublist in ccds for item in sublist]
+    # print ccds
 
     if opt.PREP is not None:
         opt.programs = opt.PREP
@@ -86,7 +86,7 @@ if __name__ == '__main__':
 
     for expnum in opt.expnums:
         for program in opt.programs:
-            #clear_tags(expnum, program, ccds, dry_run=True)
+            # clear_tags(expnum, program, ccds, dry_run=True)
             #ans = None
             #while ans is None or ans not in ['Y','n']:
             #   ans = raw_input('Proceed to clear tags? (Y/n) --> ')
