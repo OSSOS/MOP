@@ -198,11 +198,9 @@ def match_planted(astrom_filename, match_filename, bright_limit=BRIGHT_LIMIT, ob
                     planted_objects_table['measure_merr{}'.format(ridx + 1)][idx] = merr
                 except Exception as e:
                     logger.warning(str(e))
-        print planted_objects_table[idx]
 
     # Count an object as detected if it has a measured magnitude in the first frame of the triplet.
     n_bright_found = numpy.count_nonzero(planted_objects_table['measure_mag1'][bright])
-    print n_bright_found
     # Also compute the offset and standard deviation of the measured magnitude from that planted ones.
     offset = numpy.mean(planted_objects_table['mag'][bright] - planted_objects_table['measure_mag1'][bright])
     std = numpy.std(planted_objects_table['mag'][bright] - planted_objects_table['measure_mag1'][bright])
