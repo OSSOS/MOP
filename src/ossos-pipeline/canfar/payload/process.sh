@@ -1,31 +1,32 @@
-#!/bin/bash
-# Run the Moving Object Pipeline on the given exposure numbers
+#!/bin/sh
 source ${HOME}/.bash_profile
 
 export DBIMAGES=vos:OSSOS/dbimages/
-export MEASURE3=vos:OSSOS/measure3/2013A-E_April9/E-2+0/
+export MEASURE3=vos:OSSOS/measure3/2013B-L_redo/
 # rmin, rmax are constants for the whole OSSOS survey.
 export rmax=15.0
 export rmin=0.5
 # -23 for L block. +20 for E block.
-export ang=20
+export ang=-23
 # width has been constant for a while now
 export width=30
 export field=$4
 export ccd_start=$5
 export ccd_end=$6
-export force=
-basedir=`pwd`
+export force=--force
 
+mkdir -p ${field}
+cd ${field}
+basedir=`pwd`
 for ((ccd=ccd_start;ccd<=ccd_end;ccd++))
   do
-  mkdir ${ccd}
+  mkdir -p ${ccd}
   cd ${ccd}
   ## First do the search images
   mkpsf.py $1 $2 $3 -v --ccd ${ccd} ${force}
   step1.py $1 $2 $3 -v --ccd ${ccd} ${force}
   step2.py $1 $2 $3 -v --ccd ${ccd} ${force}
-  step3.py $1 $2 $3 --ccd $ccd  -v --dbimages ${DBIMAGES} --rate_min ${rmin} --rate_max ${rmax} --angle ${ang} --width ${width}  
+  step3.py $1 $2 $3 --ccd $ccd  -v --dbimages ${DBIMAGES} --rate_min ${rmin} --rate_max ${rmax} --angle ${ang} --width ${width} ${force}
   echo "Running combine.py"
   combine.py $1 -v --measure3 ${MEASURE3} --field ${field}  --ccd ${ccd} ${force}
 
@@ -48,9 +49,8 @@ for ((ccd=ccd_start;ccd<=ccd_end;ccd++))
   step2.py $1 $2 $3 --ccd $ccd --fk --type s -v --dbimages ${DBIMAGES}  ${force}
   step3.py $1 $2 $3 --ccd $ccd --fk --type s -v --dbimages ${DBIMAGES} --rate_min ${rmin} --rate_max ${rmax} --angle ${ang} --width ${width}  ${force}
   combine.py $1 --ccd $ccd --fk --type s -v --dbimages ${DBIMAGES} --measure3 ${MEASURE3} ${force} --field ${field}
+  
+  astrom_mag_check.py ${field} ${ccd} --measure3 ${MEASURE3}  --dbimages ${DBIMAGES} 
 
-  # compute the variation in magnitudes from planeted images
-  astrom_mag_check.py fk$1s*${ccd}.measure3.cands.astrom  --dbimages ${DBIMAGES} 
-  vcp fk$1s*${ccd}.measure3.cands.match ${MEASURE3} 
   cd ${basedir}
 done
