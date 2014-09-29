@@ -137,6 +137,27 @@ def populate(dataset_name,
     return True
 
 
+def get_cands_uri(field, ccd, version='p', ext='measure3.cands.astrom', prefix=None,
+                  block=""):
+    """
+    return the nominal URI for a candidate file.
+    """
+
+    if prefix is None:
+        prefix = ""
+    if len(prefix) > 0:
+        prefix += "_"
+    if len(field) > 0:
+        field += "_"
+
+    if ext is None:
+        ext = ""
+    if len(ext) > 0 and ext[0] != ".":
+        ext = ".{}".format(ext)
+
+    return os.path.join(MEASURE3, "{}{}{}{}{}".format(prefix, field, version, ccd, ext))
+
+
 def get_uri(expnum, ccd=None,
             version='p', ext='fits',
             subdir=None, prefix=None):
@@ -187,6 +208,21 @@ def get_uri(expnum, ccd=None,
 
 
 dbimages_uri = get_uri
+
+
+def set_tags_on_uri(uri, keys, values=None):
+    node = vospace.getNode(uri)
+    if values is None:
+        values = []
+        for idx in range(len(keys)):
+            values.append(None)
+    assert (len(values) == len(keys))
+    for idx in range(len(keys)):
+        key = keys[idx]
+        value = values[idx]
+        tag = tag_uri(key)
+        node.props[tag] = value
+    return vospace.addProps(node)
 
 
 def _set_tags(expnum, keys, values=None):
