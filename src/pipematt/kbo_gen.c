@@ -58,7 +58,7 @@ main(argc, argv)
 
   /* print header */
 
-  printf("#        x          y        mag   pix rate      angle  ''/h rate     id\n");
+  printf("#        x          y        mag   pix_rate      angle  sky_rate     id\n");
 
   /* loop to get n trials */
 
