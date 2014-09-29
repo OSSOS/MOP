@@ -14,8 +14,8 @@ import parameters
 def ossos_release_parser():
     retval = []
     infs = ['/Users/michele/Dropbox/OSSOS/o13eBlockV2.dat', '/Users/michele/Dropbox/OSSOS/OblockStage0_ossosv2.txt',
-            parameters.MOST_RECENT_OSSOS_RELEASE, '/Users/michele/Dropbox/OSSOS/Lstage0.txt']
-    for inf in infs[2:3]:
+            '/Users/michele/Dropbox/OSSOS/Lstage0.txt', parameters.MOST_RECENT_OSSOS_RELEASE]
+    for inf in infs[3:]:
         with open(inf, 'r') as infile:
             if inf == infs[0]:
                 # columns:
@@ -91,29 +91,29 @@ def ossos_release_parser():
                     ln = line.split()
                     obj = parameters.tno()
                     obj.name = ln[0]
-                    if not obj.name.endswith('nt'):
-                        obj.mag = float(ln[1])
-                        obj.mag_stdev = float(ln[2])
-                        obj.dist = float(ln[3])
-                        obj.dist_e = float(ln[4])
-                        obj.nobs = int(ln[5])
-                        obj.arclen = float(ln[6])
-                        obj.a = float(ln[11])
-                        obj.a_e = float(ln[12])
-                        obj.e = float(ln[13])
-                        obj.e_e = float(ln[14])
-                        obj.i = float(ln[15])
-                        obj.i_e = float(ln[16])
-                        obj.node = float(ln[17])
-                        obj.node_e = float(ln[18])
-                        obj.argp = float(ln[19])
-                        obj.argp_e = float(ln[20])
-                        obj.M = float(ln[21])
-                        obj.M_e = float(ln[22])
-                        obj.ra_discov = float(ln[23])
-                        obj.dec_discov = float(ln[24])
-                        obj.peri = obj.a * (1. - obj.e)
-                        retval.append(obj)
+                    # if not obj.name.endswith('nt'):
+                    obj.mag = float(ln[1])
+                    obj.mag_stdev = float(ln[2])
+                    obj.dist = float(ln[3])
+                    obj.dist_e = float(ln[4])
+                    obj.nobs = int(ln[5])
+                    obj.arclen = float(ln[6])
+                    obj.a = float(ln[11])
+                    obj.a_e = float(ln[12])
+                    obj.e = float(ln[13])
+                    obj.e_e = float(ln[14])
+                    obj.i = float(ln[15])
+                    obj.i_e = float(ln[16])
+                    obj.node = float(ln[17])
+                    obj.node_e = float(ln[18])
+                    obj.argp = float(ln[19])
+                    obj.argp_e = float(ln[20])
+                    obj.M = float(ln[21])
+                    obj.M_e = float(ln[22])
+                    obj.ra_discov = float(ln[23])
+                    obj.dec_discov = float(ln[24])
+                    obj.peri = obj.a * (1. - obj.e)
+                    retval.append(obj)
 
     return retval
 
@@ -128,8 +128,7 @@ def ossos_discoveries(no_nt_and_u=True):
     for filename in discovery_files:
         # keep out the not-tracked for now. Some uncharacterised are quite good so keep those.
         if no_nt_and_u:
-            if not filename.__contains__('nt') and not filename.__contains__('O13BL') and not filename.__contains__(
-                    'u'):
+            if not filename.__contains__('nt') and not filename.__contains__('u'):
                 observations = mpc.MPCReader(parameters.REAL_KBO_AST_DIR + filename).mpc_observations
                 orbit = orbfit.Orbfit(observations)
                 retval.append(orbit)
@@ -155,7 +154,7 @@ def ossos_release_with_metadata():
                 obj.H = H
                 obj.T = observation.T
                 obj.discovery_date = obs.date
-                obj.orbit = observation
+                obj.observations = observation
 
     return discoveries  # list of tno() objects
 

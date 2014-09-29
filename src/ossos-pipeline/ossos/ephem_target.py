@@ -55,7 +55,7 @@ YYYY-MM-DD hh:mm:ss|hh:mm:ss.ss|+dd:mm:ss.s|
         :return: result of close()
         """
         if filename is None:
-            filename = "ET" + self.name + ".xml"  # FIXME: this method could be handled more smoothly
+            filename = "ET_" + self.name + ".xml"  # FIXME: this method could be handled more smoothly
         et_file = open(filename, 'w')
         et_file.write(self.ASTRO_FORMAT_HEADER)
         for coordinate in self.coordinates:

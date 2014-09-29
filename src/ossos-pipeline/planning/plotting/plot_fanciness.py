@@ -38,21 +38,26 @@ def remove_border(axes=None, keep=('left', 'bottom'), remove=('right', 'top'), l
     for spine in keep:
         ax.spines[spine].set_linewidth(0.5)
         # ax.spines[spine].set_color('white')
-    # match the label colour to that of the axes
-    ax.xaxis.label.set_color(labelcol)
-    ax.yaxis.label.set_color(labelcol)
 
     # remove all ticks, then add back the ones in keep
     # Does this also need to specify the ticks' colour, given the axes/labels are changed?
     ax.yaxis.set_ticks_position('none')
     ax.xaxis.set_ticks_position('none')
+    # ax.xaxis.set_ticklabels("")
+    # ax.yaxis.set_ticklabels("")
+
     for spine in keep:
         if spine == 'top':
             ax.xaxis.tick_top()
         if spine == 'bottom':
             ax.xaxis.tick_bottom()
+            # match the label colour to that of the axes
+            ax.xaxis.label.set_color(labelcol)
+            ax.xaxis.set_tick_params(color=labelcol, labelcolor=labelcol)
         if spine == 'left':
             ax.yaxis.tick_left()
+            ax.yaxis.label.set_color(labelcol)
+            ax.yaxis.set_tick_params(color=labelcol, labelcolor=labelcol)
         if spine == 'right':
             ax.yaxis.tick_right()
 
