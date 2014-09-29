@@ -5,7 +5,7 @@ import os
 MPCORB_FILE = os.path.join(os.getenv('HOME', '/Users/michele/'), 'MPCORB-Distant.dat')
 L7MODEL = '/Users/michele/Dropbox/OSSOS/L7model-3.0-9.0'  # 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
 REAL_KBO_AST_DIR = '/Users/michele/Dropbox/OSSOS/measure3/ossin/'
-MOST_RECENT_OSSOS_RELEASE = '/Users/michele/Dropbox/OSSOS/OSSOSv3Summary.txt'
+MOST_RECENT_OSSOS_RELEASE = '/Users/michele/Dropbox/OSSOS/Release_summaries/ossos23sept2014.txt'
 PLOT_FIELD_EPOCH = 'Jun14.00'  # Jun14.00 ==> '0' days since the New Moon on Jun14
 
 PLOT_USNO_STARS = True
