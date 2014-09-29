@@ -36,10 +36,10 @@ from ossos import storage
 from ossos import util
 from astropy.io import fits
 
-_SEX_THRESHOLD
-_WAVE_THRESHOLD
-_FWHM
-_MAXCOUNT
+_SEX_THRESHOLD = 1.1
+_WAVE_THRESHOLD = 2.7
+_FWHM = 4.0
+_MAXCOUNT = 30000
 
 def step1(expnum,
           ccd,
