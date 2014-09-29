@@ -36,14 +36,19 @@ from ossos import storage
 from ossos import util
 from astropy.io import fits
 
+_SEX_THRESHOLD = 1.1
+_WAVE_THRESHOLD = 2.7
+_FWHM = 4.0
+_MAXCOUNT = 30000
+
 def step1(expnum,
           ccd,
           prefix='',
           version='p',
-          fwhm=4, 
-          sex_thresh=1.3, 
-          wave_thresh=2.7, 
-          maxcount=30000,
+          fwhm=_FWHM, 
+          sex_thresh=_SEX_THRESHOLD, 
+          wave_thresh=_WAVE_THRESHOLD,
+          maxcount=_MAXCOUNT,
           dry_run=False):
     """run the actual step1jmp/matt codes.
 
@@ -120,11 +125,11 @@ if __name__=='__main__':
     parser.add_argument("--sex_thresh",
                         action="store",
                         type=float,
-                        default=1.3,
+                        default=_SEX_THRESHOLD,
                         help="sExtractor detection threhold")
     parser.add_argument("--wavelet_thresh",
                         type=float,
-                        default=2.7,
+                        default=_WAVE_THRESHOLD,
                         help="Wavelet detection threhold")
     parser.add_argument("expnum",
                         type=int,

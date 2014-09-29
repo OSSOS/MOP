@@ -31,6 +31,8 @@ from ossos import util
 from ossos import storage
 
 
+_FWHM = 4.0
+
 def compute_trans(expnums, ccd, version, prefix=None):
     """
     Pull the astrometric header for each image, compute an x/y transform and compare to trans.jmp
@@ -119,7 +121,7 @@ def step2(expnums, ccd, version, prefix=None, dry_run=False):
         if not os.access(filename + ".obj.psf", os.R_OK):
             os.link(filename + ".obj.jmp", filename + ".obj.psf")
         ptf.write("{:>19s}{:>10.1f}{:>5s}\n".format(filename,
-                                                    4.0,
+                                                    _FWHM,
                                                     "NO"))
     ptf.close()
     if os.access('BAD_TRANS', os.F_OK):

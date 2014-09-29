@@ -28,6 +28,11 @@ import logging
 from ossos import util
 from ossos import storage
 
+_RATE_MIN = 0.5
+_RATE_MAX = 15.0
+_ANGLE_CENTRE = 23.0
+_ANGLE_WIDTH = 30.0
+
 def step3(expnums, ccd, version, rate_min,
               rate_max, angle, width, field=None, prefix=None, dry_run=False):
     '''run the actual step2  on the given exp/ccd combo'''
@@ -119,16 +124,16 @@ if __name__ == '__main__':
     parser.add_argument("--verbose","-v",
                         action="store_true")
     parser.add_argument("--debug", action="store_true")
-    parser.add_argument("--rate_min", default=0.4,
+    parser.add_argument("--rate_min", default=_RATE_MIN,
                         help='minimum rate to accept',
                         type=float)
-    parser.add_argument('--rate_max', default=15,
+    parser.add_argument('--rate_max', default=_RATE_MAX,
                         help='maximum rate to accept',
                         type=float)
-    parser.add_argument('--angle', default=20,
+    parser.add_argument('--angle', default=_ANGLE_CENTRE,
                         help='angle of x/y motion, West is 0, North 90',
                         type=float)
-    parser.add_argument('--width', default=30,
+    parser.add_argument('--width', default=_ANGLE_WIDTH,
                         help='openning angle of search cone',
                         type=float)
     parser.add_argument("--dry_run", action="store_true", help="do not copy to VOSpace, implies --force")
