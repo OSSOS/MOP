@@ -49,7 +49,7 @@ def compute_trans(expnums, ccd, version, prefix=None):
         try:
             # TODO Fix this hack.. we are assuming that p images are not FLIPPED on the storage end.
             # while others are!
-            if ccd < 19 and version == 'p':
+            if ccd < 18 and version == 'p':
                 cutout = '[2:1,2:1]'
             else:
                 cutout = '[1:2,1:2]'
