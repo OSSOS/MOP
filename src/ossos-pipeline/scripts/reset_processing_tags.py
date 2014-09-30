@@ -13,6 +13,8 @@ from ossos import storage
 
 
 
+
+
 # FIXME: currently this doesn't clear the snr_13 tag
 
 PROGRAMS = {'CALIBRATION': (('', 'fk'), ('mkpsf', 'zeropoint', 'fwhm', 'step1'), ('p', 's', '')),
@@ -21,7 +23,7 @@ PROGRAMS = {'CALIBRATION': (('', 'fk'), ('mkpsf', 'zeropoint', 'fwhm', 'step1'),
             'FAKES': (('fk',), ('step1', 'step2', 'step3', 'combine'), ('s',)),
             'DETECT': (('',), ('step1', 'step2', 'step3', 'combine'), ('p', ))}
 PREP = ((('',), ('update_header',), ('o', 'p')),)
-ALL_CCDS = range(36)
+ALL_CCDS = range(37)
 
 logging.basicConfig(level=logging.INFO)
 
@@ -71,7 +73,7 @@ if __name__ == '__main__':
 
     opt = parser.parse_args()
 
-    ccds = opt.ccd is not None and [opt.ccd] or range(36)
+    ccds = opt.ccd is not None and [opt.ccd] or ALL_CCDS
 
     # ccds = [item for sublist in ccds for item in sublist]
     # print ccds
