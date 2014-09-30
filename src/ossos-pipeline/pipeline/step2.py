@@ -20,18 +20,20 @@
 ##    along with OSSOS-MOP.  If not, see <http://www.gnu.org/licenses/>.      ##
 ##                                                                            ##
 ################################################################################
-'''run step2 of the OSSOS pipeline.'''
+"""Run step2 of the OSSOS pipeline."""
 
-import os, sys, math
 import argparse
-import logging
 import errno
-from ossos import wcs
-from ossos import util
+import logging
+import math
+import os
 from ossos import storage
-
+from ossos import util
+from ossos import wcs
+import sys
 
 _FWHM = 4.0
+
 
 def compute_trans(expnums, ccd, version, prefix=None):
     """
@@ -81,8 +83,9 @@ def compute_trans(expnums, ccd, version, prefix=None):
             trans.close()
     return
 
+
 def step2(expnums, ccd, version, prefix=None, dry_run=False):
-    '''run the actual step2  on the given exp/ccd combo'''
+    """run the actual step2  on the given exp/ccd combo"""
 
     jmp_trans = ['step2ajmp']
     jmp_args = ['step2bjmp']
@@ -97,7 +100,7 @@ def step2(expnums, ccd, version, prefix=None, dry_run=False):
             storage.get_file(expnum, ccd=ccd, version=version, ext='obj.jmp', prefix=prefix)[0:-8]
         )
         idx += 1
-        matt_args.append('-f%d' % ( idx))
+        matt_args.append('-f%d' % idx)
         matt_args.append(
             storage.get_file(expnum, ccd=ccd, version=version, ext='obj.matt', prefix=prefix)[0:-9]
         )
@@ -145,7 +148,7 @@ def step2(expnums, ccd, version, prefix=None, dry_run=False):
     return
 
 
-if __name__ == '__main__':
+def main():
     ### Must be running as a script
 
     parser = argparse.ArgumentParser(
@@ -171,8 +174,7 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--type',
                         help='which type of image to process',
                         choices=['s', 'p', 'o'],
-                        default='p'
-    )
+                        default='p')
     parser.add_argument('--no-sort',
                         help='preserve input exposure order',
                         action='store_true')
@@ -196,26 +198,27 @@ if __name__ == '__main__':
     storage.DBIMAGES = args.dbimages
 
     if args.ccd is None:
-        ccdlist = range(0, 36)
+        ccd_list = range(0, 36)
     else:
-        ccdlist = [args.ccd]
+        ccd_list = [args.ccd]
 
-    prefix = ( args.fk and "fk") or ""
+    prefix = args.fk and "fk" or ""
 
     if not args.no_sort:
         args.expnums.sort()
 
-    for ccd in ccdlist:
+    exit_status = 0
+    for ccd in ccd_list:
         try:
             message = storage.SUCCESS
             for expnum in args.expnums:
                 if not storage.get_status(expnum, ccd, prefix + 'step1', version=args.type):
-                    raise IOError(35, "missing step1 for %s" % ( expnum))
+                    raise IOError(35, "missing step1 for %s" % expnum)
             if storage.get_status(args.expnums[0],
                                   ccd,
                                   prefix + 'step2',
                                   version=args.type) and not args.force:
-                logging.info("Already did %s %s, skipping" % (str(expnum),
+                logging.info("Already did %s %s, skipping" % (str(args.expnums[0]),
                                                               str(ccd)))
                 continue
             logging.info("step2 on expnums :%s, ccd: %d" % (
@@ -224,6 +227,7 @@ if __name__ == '__main__':
 
         except Exception as e:
             message = str(e)
+            exit_status = message
         logging.error(message)
         if not args.dry_run:
             storage.set_status(args.expnums[0],
@@ -231,5 +235,7 @@ if __name__ == '__main__':
                                prefix + 'step2',
                                version=args.type,
                                status=message)
+    return exit_status
             
-            
+if __name__ == '__main__':
+    sys.exit(main())
