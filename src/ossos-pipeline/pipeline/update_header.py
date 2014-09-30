@@ -1,5 +1,5 @@
 #!python
-'''replace arg1 header with arg2s.'''
+"""replace arg1 header with arg2s."""
 
 import argparse
 import logging
@@ -10,8 +10,8 @@ from astropy.io import fits
 
 from ossos import storage
 
-
 hlines = None
+
 
 def run_update_header(image, header_filename):
 
@@ -19,12 +19,12 @@ def run_update_header(image, header_filename):
                          do_not_scale_image_data=True,
                          mode='update')
     for hdu in hdu_list[1:]:
-        extname = hdu.header.get('EXTNAME',None)
-        logging.info("Got extno %s from header." % (extname))
+        extname = hdu.header.get('EXTNAME', None)
+        logging.info("Got extno %s from header." % extname)
         new_header = get_header_object(header_filename,
                                        extname)
         for key in ['BZERO', 'BSCALE', 'CADCPROC']:
-            v = hdu.header.get(key,None)
+            v = hdu.header.get(key, None)
             if v is None:
                 del(new_header[key])
                 continue
@@ -36,7 +36,7 @@ def run_update_header(image, header_filename):
     return hdu_list.close()
 
 
-def get_header_object(header_filename,extname=None):
+def get_header_object(header_filename, extname=None):
     """Given astGwyn header file build a Header object.
 
     astGwyn produces a single text file that contains all the
@@ -48,7 +48,7 @@ def get_header_object(header_filename,extname=None):
     """
     global hlines
     hlines = hlines or (
-        open(header_filename).readlines() )
+        open(header_filename).readlines())
 
     while len(hlines) > 0:
         sbuff = ''
@@ -67,61 +67,58 @@ def get_header_object(header_filename,extname=None):
 
         header = fits.Header.fromstring(sbuff)
         
-        if extname is None or header.get('EXTNAME',None) == extname:
+        if extname is None or header.get('EXTNAME', None) == extname:
             return header
 
     raise ValueError('requested EXTNAME not found')
 
-        
 
-if __name__ == '__main__':
+def main():
+    """Do the script."""
     parser = argparse.ArgumentParser(
         description='replace image header')
     parser.add_argument('--extname',
                         help='name of extension to in header')
-    parser.add_argument('expnum',type=str,
-                      help='exposure to update')
-    parser.add_argument('header',type=str,
+    parser.add_argument('expnum', type=str,
+                        help='exposure to update')
+    parser.add_argument('header', type=str,
                         nargs='?',
                         help='filename of replacement header')
-    parser.add_argument('-r','--replace',
-                      action='store_true',
-                      help='store modified image back to VOSpace?')
-    parser.add_argument('-v','--verbose', action='store_true')
+    parser.add_argument('-r', '--replace',
+                        action='store_true',
+                        help='store modified image back to VOSpace?')
+    parser.add_argument('-v', '--verbose', action='store_true')
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--force', action='store_true', help="Re-run even if previous success recorded")
 
     args = parser.parse_args()
 
     level = logging.CRITICAL
-    format = "%(message)s"
+    message_format = "%(message)s"
     if args.verbose:
         level = logging.INFO
     if args.debug:
         level = logging.DEBUG
-        format = "%(module)s %(funcName)s %(lineno)s %(message)s"
-    logging.basicConfig(level=level, format=format)
+        message_format = "%(module)s %(funcName)s %(lineno)s %(message)s"
+    logging.basicConfig(level=level, format=message_format)
 
     message = storage.SUCCESS
-    expnum=args.expnum
+    expnum = args.expnum
+    exit_status = 0
     try:
         # skip if already succeeded and not in force mode
         if storage.get_status(expnum, 36, 'update_header') and not args.force:
             logging.info("Already updated, skipping")
             sys.exit(0)
     
-        header = (args.header is not None and ((
-            os.access(args.header, os.W_OK) and args.header ) or (
-            storage.get_file(args.header, ext='head')))) or (
-                     storage.get_file(args.expnum, ext='head'))
+        header = (args.header is not None and ((os.access(args.header, os.W_OK) and args.header) or (
+            storage.get_file(args.header, ext='head')))) or (storage.get_file(args.expnum, ext='head'))
 
-        image = (os.access(args.expnum, os.W_OK) and args.expnum ) or (
-            storage.get_image(args.expnum))
+        image = (os.access(args.expnum, os.W_OK) and args.expnum) or (storage.get_image(args.expnum))
 
         logging.info(
             "Swapping header for %s for contents in %s \n" % (
             image, header))
-
 
         expnum = fits.open(image)[0].header['EXPNUM'] or args.expnum
 
@@ -139,5 +136,10 @@ if __name__ == '__main__':
         if args.replace:
             message = str(e)
             storage.set_status(expnum, 36, 'update_header', message)
+        exit_status = message
         logging.error(str(e))
 
+    return exit_status
+
+if __name__ == '__main__':
+    sys.exit(main())
