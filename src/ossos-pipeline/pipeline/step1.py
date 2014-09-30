@@ -1,5 +1,5 @@
 #!python
-################################################################################
+# ###############################################################################
 ##                                                                            ##
 ## Copyright 2013 by its authors                                              ##
 ## See COPYING, AUTHORS                                                       ##
@@ -27,28 +27,27 @@ step1matt is a script from M. Holman that runs E. Bertain's sExtractor.
 
 """
 
-
 import argparse
+from astropy.io import fits
 import logging
-import math
 import os
 from ossos import storage
 from ossos import util
-from astropy.io import fits
+import sys
 
 _SEX_THRESHOLD = 1.1
 _WAVE_THRESHOLD = 2.7
 _FWHM = 4.0
-_MAXCOUNT = 30000
+_MAX_COUNT = 30000
+
 
 def step1(expnum,
           ccd,
           prefix='',
           version='p',
-          fwhm=_FWHM, 
-          sex_thresh=_SEX_THRESHOLD, 
+          sex_thresh=_SEX_THRESHOLD,
           wave_thresh=_WAVE_THRESHOLD,
-          maxcount=_MAXCOUNT,
+          maxcount=_MAX_COUNT,
           dry_run=False):
     """run the actual step1jmp/matt codes.
 
@@ -64,53 +63,54 @@ def step1(expnum,
     filename = storage.get_image(expnum, ccd, version=version, prefix=prefix)
     fwhm = storage.get_fwhm(expnum, ccd, prefix=prefix, version=version)
     basename = os.path.splitext(filename)[0]
-    
-    outfile = util.exec_prog(['step1jmp', 
-                              '-f', basename,
-                              '-t', str(wave_thresh),
-                              '-w', str(fwhm),
-                              '-m', str(maxcount)])
-    
-    obj_uri = storage.get_uri(expnum,ccd,version=version,ext='obj.jmp',
+
+    util.exec_prog(['step1jmp',
+                    '-f', basename,
+                    '-t', str(wave_thresh),
+                    '-w', str(fwhm),
+                    '-m', str(maxcount)])
+
+    obj_uri = storage.get_uri(expnum, ccd, version=version, ext='obj.jmp',
                               prefix=prefix)
-    obj_filename = basename+".obj.jmp"
+    obj_filename = basename + ".obj.jmp"
 
     if not dry_run:
-        storage.copy(obj_filename,obj_uri)
+        storage.copy(obj_filename, obj_uri)
 
     ## for step1matt we need the weight image
     hdulist = fits.open(filename)
-    flat_name = hdulist[0].header.get('FLAT','weight.fits')
+    flat_name = hdulist[0].header.get('FLAT', 'weight.fits')
     parts = os.path.splitext(flat_name)
     if parts[1] == '.fz':
         flat_name = os.path.splitext(parts[0])[0]
-    else:	
+    else:
         flat_name = parts[0]
     flat_filename = storage.get_image(flat_name, ccd, version='', ext='fits', subdir='calibrators')
-    if not os.access('weight.fits',os.R_OK):
+    if not os.access('weight.fits', os.R_OK):
         os.symlink(flat_filename, 'weight.fits')
-    outfile = util.exec_prog(['step1matt',
-                              '-f', basename,
-                              '-t', str(sex_thresh),
-                              '-w', str(fwhm),
-                              '-m', str(maxcount)])
+    util.exec_prog(['step1matt',
+                    '-f', basename,
+                    '-t', str(sex_thresh),
+                    '-w', str(fwhm),
+                    '-m', str(maxcount)])
 
-    obj_uri = storage.get_uri(expnum,ccd,version=version,ext='obj.matt',
+    obj_uri = storage.get_uri(expnum, ccd, version=version, ext='obj.matt',
                               prefix=prefix)
-    obj_filename = basename+".obj.matt"
+    obj_filename = basename + ".obj.matt"
 
     if not dry_run:
-        storage.copy(obj_filename,obj_uri)
+        storage.copy(obj_filename, obj_uri)
 
     return True
 
-if __name__=='__main__':
+
+def main():
     ### Must be running as a script
 
-    parser=argparse.ArgumentParser(
+    parser = argparse.ArgumentParser(
         description='Run step1jmp and step1matt on a given exposure.')
 
-    parser.add_argument("--ccd","-c",
+    parser.add_argument("--ccd", "-c",
                         action="store",
                         default=None,
                         type=int,
@@ -139,16 +139,16 @@ if __name__=='__main__':
                         action='version',
                         version='%(prog)s 1.0')
     parser.add_argument('--type', default='p',
-                        choices=['o','p','s'], help="which type of image")
+                        choices=['o', 'p', 's'], help="which type of image")
     parser.add_argument('--log', default=None, help="Write standard out to this file")
-    parser.add_argument("--verbose","-v",
+    parser.add_argument("--verbose", "-v",
                         action="store_true")
-    parser.add_argument("--debug",'-d',
+    parser.add_argument("--debug", '-d',
                         action='store_true')
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--dry_run", action="store_true", help="Do a dry run, not changes to vospce, implies --force")
 
-    args=parser.parse_args()
+    args = parser.parse_args()
 
     if args.dry_run:
         args.force = True
@@ -160,42 +160,46 @@ if __name__=='__main__':
         level = logging.DEBUG
     elif args.verbose:
         level = logging.INFO
-    
+
     logging.basicConfig(level=level, format=log_format)
-        
+
     storage.DBIMAGES = args.dbimages
 
     if args.ccd is None:
-        ccdlist = range(0,36)
+        ccdlist = range(0, 36)
     else:
         ccdlist = [args.ccd]
 
-    prefix = ( args.fk and 'fk') or ''
+    prefix = (args.fk and 'fk') or ''
 
-
+    exit_code = 0
     for expnum in args.expnum:
         for ccd in ccdlist:
             try:
                 message = storage.SUCCESS
                 if not storage.get_status(expnum, ccd, 'mkpsf', version=args.type):
                     raise IOError(35, "mkpsf hasn't run?")
-                if storage.get_status(expnum, ccd, prefix+'step1', version=args.type) and not args.force:
+                if storage.get_status(expnum, ccd, prefix + 'step1', version=args.type) and not args.force:
                     logging.critical(
-                        "Step1 completed for %s%s, skipping" %(prefix+str(expnum),
-                                                        str(args.type)+str(ccd)))
+                        "Step1 completed for %s%s, skipping" % (prefix + str(expnum),
+                                                                str(args.type) + str(ccd)))
                     continue
                 logging.info("step1_p on expnum: %s, ccd: %s" % (
-                    prefix+str(expnum), str(ccd)))
+                    prefix + str(expnum), str(ccd)))
                 step1(expnum, ccd, prefix=prefix, version=args.type, dry_run=args.dry_run)
             except Exception as e:
                 message = str(e)
-                logging.error("Error running step1_p: %s " %(message))
+                logging.error("Error running step1_p: %s " % message)
+                exit_code = str(e)
 
             if not args.dry_run:
                 storage.set_status(expnum,
                                    ccd,
-                                   prefix+'step1',
+                                   prefix + 'step1',
                                    version=args.type,
                                    status=message)
-        
-            
+    return exit_code
+
+
+if __name__ == '__main__':
+    sys.exit(main())
