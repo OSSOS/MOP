@@ -1,4 +1,4 @@
-# !python
+#!python
 """
 Given an exposure number and optional ccd values clear the OSSOS processing tags associated with the expnum in dbimages.
 
@@ -23,7 +23,7 @@ PROGRAMS = {'CALIBRATION': (('', 'fk'), ('mkpsf', 'zeropoint', 'fwhm', 'step1'),
 PREP = ((('',), ('update_header',), ('o', 'p')),)
 ALL_CCDS = range(36)
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 def clear_tags(my_expnum, ops, my_ccds, dry_run=True):
