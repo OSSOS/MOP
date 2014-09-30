@@ -62,13 +62,13 @@ set datasec=( `gethead DATASEC $im.fits | sed -e 's/[\,\:\[\]]*/] /g' | awk -F] 
 # here is a typical KBO planting line
 set rand=`date '+%N'`
 echo "kbo_gen ${datasec[1]} ${datasec[2]} ${datasec[3]} ${datasec[4]} $rmin $rmax $ang $aw 21.0 23.5 10 10 $rand $pixs "
-kbo_gen ${datasec[1]} ${datasec[2]} ${datasec[3]} ${datasec[4]} $rmin $rmax $ang $aw 21.0 23.5 10 10 $rand $pixs  > Object.planted
+kbo_gen ${datasec[1]} ${datasec[2]} ${datasec[3]} ${datasec[4]} $rmin $rmax $ang $aw 21.0 22.9 10 10 $rand $pixs  > Object.planted
 set rand=`date '+%N'`
-kbo_gen ${datasec[1]} ${datasec[2]} ${datasec[3]} ${datasec[4]}  $rmin $rmax $ang $aw 23.5 25.2 25 25 $rand $pixs | grep -v "#" >> Object.planted
+kbo_gen ${datasec[1]} ${datasec[2]} ${datasec[3]} ${datasec[4]}  $rmin $rmax $ang $aw 22.9 25.2 25 25 $rand $pixs | grep -v "#" >> Object.planted
 set ravg=`echo $rmax $rmin | awk ' { print( ($1 - $2)/2.0 ) } '`
 echo $ravg
 set rand=`date '+%N'`
-kbo_gen ${datasec[1]} ${datasec[2]} ${datasec[3]} ${datasec[4]} $rmin $ravg $ang $aw 23.5 25.2 25 25 $rand $pixs | grep -v "#" >> Object.planted
+kbo_gen ${datasec[1]} ${datasec[2]} ${datasec[3]} ${datasec[4]} $rmin $ravg $ang $aw 22.9 25.2 25 25 $rand $pixs | grep -v "#" >> Object.planted
 
 
 # go into IRAF and do the planting.
