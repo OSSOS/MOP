@@ -128,17 +128,13 @@ def match_planted(astrom_filename, match_filename, bright_limit=BRIGHT_LIMIT, ob
     rdr = ascii.get_reader(Reader=ascii.CommentedHeader)
     planted_objects_table = rdr.read(new_lines)
 
-
     # The match_list method expects a list that contains a position, not an x and a y vector, so we transpose.
     planted_pos = numpy.transpose([planted_objects_table['x'].data, planted_objects_table['y'].data])
-
 
     # match_idx is an order list.  The list is in the order of the first list of positions and each entry
     # is the index of the matching position from the second list.
     match_idx = match_lists(numpy.array(planted_pos), numpy.array(found_pos))
-    assert isinstance(match_idx, numpy.ndarray)
-
-
+    assert isinstance(match_idx, numpy.ma.MaskedArray)
 
     # Once we've matched the two lists we'll need some new columns to store the information in.
     # these are masked columns so that object.planted entries that have no detected match are left 'blank'.
@@ -151,11 +147,8 @@ def match_planted(astrom_filename, match_filename, bright_limit=BRIGHT_LIMIT, ob
                    MaskedColumn(name="measure_mag2", length=len(planted_objects_table), mask=True),
                    MaskedColumn(name="measure_merr2", length=len(planted_objects_table), mask=True),
                    MaskedColumn(name="measure_mag3", length=len(planted_objects_table), mask=True),
-                   MaskedColumn(name="measure_merr3", length=len(planted_objects_table), mask=True),
-    ]
+                   MaskedColumn(name="measure_merr3", length=len(planted_objects_table), mask=True)]
     planted_objects_table.add_columns(new_columns)
-
-
 
     # We do some 'checks' on the Object.planted match to diagnose pipeline issues.  Those checks are made using just
     # those planted sources we should have detected.
@@ -168,27 +161,27 @@ def match_planted(astrom_filename, match_filename, bright_limit=BRIGHT_LIMIT, ob
 
     for idx in range(len(match_idx)):
         # The match_idx value is False if nothing was found.
-        detection_idx = match_idx[idx]
-        if detection_idx:
+        if not match_idx.mask[idx]:
             # Each 'source' has multiple 'readings'
+            measures = detections[match_idx[idx]].get_readings()
             try:
-                measures = detections[detection_idx].get_readings()
                 start_jd = Time(measures[0].obs.header['MJD_OBS_CENTER'], format='mpc', scale='utc').jd
                 end_jd = Time(measures[-1].obs.header['MJD_OBS_CENTER'], format='mpc', scale='utc').jd
                 planted_objects_table['measure_x'][idx] = measures[0].x
                 planted_objects_table['measure_y'][idx] = measures[0].y
 
                 rate = math.sqrt((measures[-1].x - measures[0].x) ** 2 + (measures[-1].y - measures[0].y) ** 2) / (
-                24 * (end_jd - start_jd))
-                rate = int(rate*100)/100.0
+                    24 * (end_jd - start_jd))
+                rate = int(rate * 100) / 100.0
                 planted_objects_table['measure_rate'][idx] = rate
 
                 angle = math.degrees(math.atan2(measures[-1].y - measures[0].y, measures[-1].x - measures[0].x))
-                angle = int(angle*100)/100.0
+                angle = int(angle * 100) / 100.0
                 planted_objects_table['measure_angle'][idx] = angle
-            except:
-                logger.error("FAIL")
+            except Exception as err:
+                logger.critical("ERROR: "+str(err))
                 pass
+
             for ridx in range(3):
                 measures[ridx].is_inverted = False
                 cutout = image_slice_downloader.download_cutout(measures[ridx], needs_apcor=True)
@@ -232,9 +225,9 @@ def match_planted(astrom_filename, match_filename, bright_limit=BRIGHT_LIMIT, ob
         fout.write("{:10s} ".format(keyword))
     fout.write("\n")
     fout.write("#V {:<10d}{:<10d}{:<10.2f}{:<10.2f}\n".format(n_bright_planted,
-                                                          n_bright_found,
-                                                          offset,
-                                                          std))
+                                                              n_bright_found,
+                                                              offset,
+                                                              std))
 
     try:
         ascii.write(planted_objects_table, output=fout, Writer=ascii.FixedWidth, delimiter=None)
@@ -245,7 +238,7 @@ def match_planted(astrom_filename, match_filename, bright_limit=BRIGHT_LIMIT, ob
     finally:
         fout.close()
 
-    return "{} {} {} {}".format(n_bright_found, n_bright_planted, offset, std)
+    return "{} {} {} {}".format(n_bright_planted, n_bright_found, offset, std)
 
 
 def main():
@@ -277,13 +270,15 @@ def main():
         storage.DBIMAGES = args.dbimages
         astrom.DATASET_ROOT = args.dbimages
 
-    astrom_filename = storage.get_cands_uri(args.field,
-                                            ccd=args.ccd,
-                                            version=args.type,
-                                            prefix=prefix,
-                                            ext="measure3.{}.astrom".format(ext))
-    if os.access(os.path.basename(astrom_filename), os.F_OK):
-        astrom_filename = os.path.basename(astrom_filename)
+    astrom_uri = storage.get_cands_uri(args.field,
+                                       ccd=args.ccd,
+                                       version=args.type,
+                                       prefix=prefix,
+                                       ext="measure3.{}.astrom".format(ext))
+    if os.access(os.path.basename(astrom_uri), os.F_OK):
+        astrom_filename = os.path.basename(astrom_uri)
+    else:
+        astrom_filename = astrom_uri
 
     match_filename = os.path.splitext(astrom_filename)[0] + '.match'
 
@@ -300,8 +295,8 @@ def main():
         message = str(err)
         exit_status = err.message
 
-    uri = os.path.dirname(astrom_filename)
-    keys = [storage.tag_uri(os.path.basename(astrom_filename))]
+    uri = os.path.dirname(astrom_uri)
+    keys = [storage.tag_uri(os.path.basename(astrom_uri))]
     values = [message]
     storage.set_tags_on_uri(uri, keys, values)
 
