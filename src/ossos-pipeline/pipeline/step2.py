@@ -202,7 +202,7 @@ def main():
     else:
         ccd_list = [args.ccd]
 
-    prefix = args.fk and "fk" or ""
+    prefix = (args.fk and "fk") or ""
 
     if not args.no_sort:
         args.expnums.sort()

@@ -49,7 +49,7 @@ def step3(expnums, ccd, version, rate_min,
         for ext in ['unid.jmp', 'unid.matt',
                     'trans.jmp']:
             storage.get_file(expnum, ccd=ccd, version=version, ext=ext, prefix=prefix)
-        image = os.path.splitext(os.path.basename(storage.get_uri(expnum, ccd)))[0]
+        image = os.path.splitext(os.path.basename(storage.get_uri(expnum, ccd, version=version, prefix=prefix)))[0]
         cmd_args.append('-f%d' % idx)
         cmd_args.append(image)
 
@@ -158,7 +158,7 @@ def main():
     if not args.no_sort:
         args.expnums.sort()
 
-    prefix = args.fk and 'fk' or ''
+    prefix = (args.fk and 'fk') or ''
 
     exit_status = 0
     for ccd in ccdlist:
