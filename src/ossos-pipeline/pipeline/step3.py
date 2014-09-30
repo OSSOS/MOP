@@ -1,5 +1,5 @@
 #!python
-################################################################################
+# ###############################################################################
 ##                                                                            ##
 ## Copyright 2013 by its authors                                              ##
 ## See COPYING, AUTHORS                                                       ##
@@ -20,11 +20,12 @@
 ##    along with OSSOS-MOP.  If not, see <http://www.gnu.org/licenses/>.      ##
 ##                                                                            ##
 ################################################################################
-'''run step3 of the OSSOS pipeline.'''
+"""run step3 of the OSSOS pipeline."""
 
 import os
 import argparse
 import logging
+import sys
 from ossos import util
 from ossos import storage
 
@@ -33,9 +34,10 @@ _RATE_MAX = 15.0
 _ANGLE_CENTRE = 23.0
 _ANGLE_WIDTH = 30.0
 
+
 def step3(expnums, ccd, version, rate_min,
-              rate_max, angle, width, field=None, prefix=None, dry_run=False):
-    '''run the actual step2  on the given exp/ccd combo'''
+          rate_max, angle, width, field=None, prefix=None, dry_run=False):
+    """run the actual step2  on the given exp/ccd combo"""
 
     jmp_args = ['step3jmp']
     matt_args = ['step3matt']
@@ -45,10 +47,10 @@ def step3(expnums, ccd, version, rate_min,
     for expnum in expnums:
         idx += 1
         for ext in ['unid.jmp', 'unid.matt',
-                    'trans.jmp' ]:
-            filename = storage.get_file(expnum, ccd=ccd, version=version, ext=ext, prefix=prefix)
-        image = os.path.splitext(os.path.splitext(os.path.basename(filename))[0])[0]
-        cmd_args.append('-f%d' % ( idx))
+                    'trans.jmp']:
+            storage.get_file(expnum, ccd=ccd, version=version, ext=ext, prefix=prefix)
+        image = os.path.splitext(os.path.basename(storage.get_uri(expnum, ccd)))[0]
+        cmd_args.append('-f%d' % idx)
         cmd_args.append(image)
 
     cmd_args.extend(['-rn', str(rate_min),
@@ -65,12 +67,10 @@ def step3(expnums, ccd, version, rate_min,
 
     if field is None:
         field = str(expnums[0])
-    storage.mkdir(os.path.dirname(
-            storage.get_uri(field,
-                            ccd=ccd,
-                            version=version,
-                            ext=ext,
-                            prefix=prefix)))
+    storage.mkdir(os.path.dirname(storage.get_uri(field,
+                                                  ccd=ccd,
+                                                  version=version,
+                                                  prefix=prefix)))
 
     for ext in ['moving.jmp', 'moving.matt']:
         uri = storage.get_uri(field,
@@ -78,22 +78,22 @@ def step3(expnums, ccd, version, rate_min,
                               version=version,
                               ext=ext,
                               prefix=prefix)
-        filename = '%s%d%s%s.%s' % ( prefix, expnums[0],
-                                   version,
-                                   str(ccd).zfill(2),
-                                   ext)
+        filename = '%s%d%s%s.%s' % (prefix, expnums[0],
+                                    version,
+                                    str(ccd).zfill(2),
+                                    ext)
         storage.copy(filename, uri)
-
 
     return
 
-if __name__ == '__main__':
+
+def main():
     ### Must be running as a script
 
-    parser=argparse.ArgumentParser(
+    parser = argparse.ArgumentParser(
         description='Run step3jmp and step3matt on a given triple.')
 
-    parser.add_argument("--ccd","-c",
+    parser.add_argument("--ccd", "-c",
                         action="store",
                         default=None,
                         type=int,
@@ -109,11 +109,10 @@ if __name__ == '__main__':
     parser.add_argument("--version",
                         action='version',
                         version='%(prog)s 1.0')
-    parser.add_argument('-t','--type',
+    parser.add_argument('-t', '--type',
                         help='which type of image to process',
-                        choices=['s','p','o'],
-                        default='p'
-                        )
+                        choices=['s', 'p', 'o'],
+                        default='p')
     parser.add_argument('--fk', help='Do fakes?', default=False, action='store_true')
     parser.add_argument('--field',
                         help='a string that identifies which field is being searched',
@@ -121,7 +120,7 @@ if __name__ == '__main__':
     parser.add_argument('--no-sort',
                         help='preserve input exposure order',
                         action='store_true')
-    parser.add_argument("--verbose","-v",
+    parser.add_argument("--verbose", "-v",
                         action="store_true")
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--rate_min", default=_RATE_MIN,
@@ -139,7 +138,7 @@ if __name__ == '__main__':
     parser.add_argument("--dry_run", action="store_true", help="do not copy to VOSpace, implies --force")
     parser.add_argument("--force", action="store_true")
 
-    args=parser.parse_args()
+    args = parser.parse_args()
 
     if args.dry_run:
         args.force = True
@@ -152,24 +151,25 @@ if __name__ == '__main__':
     storage.DBIMAGES = args.dbimages
 
     if args.ccd is None:
-        ccdlist = range(0,36)
+        ccdlist = range(0, 36)
     else:
         ccdlist = [args.ccd]
 
     if not args.no_sort:
         args.expnums.sort()
 
-    prefix = ( args.fk and 'fk') or ''
+    prefix = args.fk and 'fk' or ''
 
+    exit_status = 0
     for ccd in ccdlist:
         message = storage.SUCCESS
 
         try:
-            if not storage.get_status(args.expnums[0], ccd, prefix+'step2', version=args.type):
-                raise IOError(35, "did step2 run on %s" % ( str(args.expnums)))
-            if storage.get_status(args.expnums[0], ccd, prefix+'step3', version=args.type) and not args.force:
+            if not storage.get_status(args.expnums[0], ccd, prefix + 'step2', version=args.type):
+                raise IOError(35, "did step2 run on %s" % str(args.expnums))
+            if storage.get_status(args.expnums[0], ccd, prefix + 'step3', version=args.type) and not args.force:
                 logging.critical("step3 alread ran on expnum :%s, ccd: %d" % (
-                        str(args.expnums), ccd))
+                    str(args.expnums), ccd))
                 continue
             step3(args.expnums, ccd, version=args.type,
                   rate_min=args.rate_min,
@@ -181,15 +181,18 @@ if __name__ == '__main__':
                   dry_run=args.dry_run)
         except Exception as e:
             message = str(e)
+            exit_status = message
 
         logging.error(message)
         if not args.dry_run:
             storage.set_status(args.expnums[0],
                                ccd,
-                               prefix+'step3',
+                               prefix + 'step3',
                                version=args.type,
                                status=message)
-            
-            
+
+    return exit_status
 
 
+if __name__ == '__main__':
+    sys.exit(main())
