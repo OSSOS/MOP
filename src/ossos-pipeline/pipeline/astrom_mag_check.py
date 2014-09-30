@@ -245,6 +245,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('field')
     parser.add_argument('ccd')
+    parser.add_argument('--astrom-filename', default=None, help="Give the astrom file directly instead of looking-up "
+                                                                "using the field/ccd naming scheme.")
     parser.add_argument('--reals', action='store_true', default=False)
     parser.add_argument('--type', choices=['o', 'p', 's'], help="Which type of image.", default='s')
     parser.add_argument('--measure3', default='vos:OSSOS/measure3/2013B-L_redo/')
@@ -275,10 +277,14 @@ def main():
                                        version=args.type,
                                        prefix=prefix,
                                        ext="measure3.{}.astrom".format(ext))
-    if os.access(os.path.basename(astrom_uri), os.F_OK):
+
+    if args.astrom_filename is None:
         astrom_filename = os.path.basename(astrom_uri)
     else:
-        astrom_filename = astrom_uri
+        astrom_filename = args.astrom_filename
+
+    if not os.access(astrom_filename, os.F_OK):
+        astrom_filename = os.path.dirname(astrom_uri)+"/"+astrom_filename
 
     match_filename = os.path.splitext(astrom_filename)[0] + '.match'
 
