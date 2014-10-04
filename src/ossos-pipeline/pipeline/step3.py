@@ -59,11 +59,15 @@ def step3(expnums, ccd, version, rate_min,
                      '-w', str(width)])
     jmp_args.extend(cmd_args)
     matt_args.extend(cmd_args)
-    util.exec_prog(jmp_args)
-    util.exec_prog(matt_args)
+    output = util.exec_prog(jmp_args)
+    output += util.exec_prog(matt_args)
 
     if dry_run:
+        logging.info(output)
         return
+
+    storage.log_output("step3", expnums[0], ccd, version, prefix, output)
+
 
     if field is None:
         field = str(expnums[0])

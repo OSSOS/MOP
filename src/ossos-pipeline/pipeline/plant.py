@@ -8,6 +8,7 @@ prior to planting, the headers of the objects may be swapped around.'''
 
 import argparse
 import os
+from subprocess import CalledProcessError
 from ossos import storage
 from ossos import util
 import logging
@@ -41,11 +42,14 @@ def plant(expnums, ccd, rmin, rmax, ang, width, version='s', dry_run=False):
     cmd_args = ['plant.csh',os.curdir,
              str(rmin), str(rmax), str(ang), str(width)]
 
-    util.exec_prog(cmd_args)
+    output = util.exec_prog(cmd_args)
     
     if dry_run:
         # Don't push back to VOSpace
+        logging.info(output)
         return 
+    storage.log_output("plant", expnums[0], ccd, version, "", output)
+
 
     uri = storage.get_uri('Object',ext='planted',version='',
                           subdir=str(
@@ -143,6 +147,10 @@ if __name__=='__main__':
                   args.rmin, args.rmax, args.ang, args.width,
                   version=args.type,
                   dry_run=args.dry_run)
+        except CalledProcessError as cpe:
+            storage.log_output("plant", args.expnums[0], ccd, args.type, "", cpe.output)
+            message = str(cpe)
+            exit_code = message
         except Exception as e:
             message = str(e)
             logging.error(str(e))
@@ -153,4 +161,3 @@ if __name__=='__main__':
                                'plant',
                                version=args.type,
                                status=message)
-            

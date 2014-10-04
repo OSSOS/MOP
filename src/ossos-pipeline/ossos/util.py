@@ -13,9 +13,9 @@ def exec_prog(args):
 
     program_name = args[0]
     logging.info(" ".join(args))
-    output = subprocess.check_call(args)
+    output = subprocess.check_output(args, stderr=subprocess.STDOUT)
     if not os.access(program_name+".OK", os.F_OK):
-        logging.error("No %s file?" % ( program_name+".OK"))
+        logging.error("No {}.OK file?".format(program_name))
         raise subprocess.CalledProcessError(-1, ' '.join(args), output)
     os.unlink(program_name+".OK")
     if os.access(program_name+".FAILED", os.F_OK) :
