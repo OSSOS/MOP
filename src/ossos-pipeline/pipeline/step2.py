@@ -27,6 +27,7 @@ import errno
 import logging
 import math
 import os
+from subprocess import CalledProcessError
 from ossos import storage
 from ossos import util
 from ossos import wcs
@@ -64,24 +65,24 @@ def compute_trans(expnums, ccd, version, prefix=None):
     x0 = wcs_dict[expnums[0]].header['NAXIS1'] / 2.0
     y0 = wcs_dict[expnums[0]].header['NAXIS2'] / 2.0
     (ra0, dec0) = wcs_dict[expnums[0]].xy2sky(x0, y0)
+    result = ""
     for expnum in expnums:
         filename = storage.get_file(expnum, ccd, version, ext='.trans.jmp', prefix=prefix)
         jmp_trans = file(filename, 'r').readline().split()
         (x, y) = wcs_dict[expnum].sky2xy(ra0, dec0)
-        print jmp_trans
-        print "{:5.2f} 1. 0. {:5.2f} 0. 1.\n".format(x0 - x, y0 - y)
         x1 = float(jmp_trans[0]) + float(jmp_trans[1]) * x + float(jmp_trans[2]) * y
         y1 = float(jmp_trans[3]) + float(jmp_trans[4]) * x + float(jmp_trans[5]) * y
         dr = math.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2)
-        print x1, y1, x, y, x0, y0
         if dr > 0.5:
-            logging.warning("mis-matched transforms, reverting to using wcs.")
+            result += "WARNING: WCS-JMP transforms mis-matched {} reverting to using wcs.\n".format(expnum)
             uri = storage.dbimages_uri(expnum, ccd, version, ext='.trans.jmp', prefix=prefix)
             filename = os.path.basename(uri)
             trans = file(filename, 'w')
             trans.write("{:5.2f} 1. 0. {:5.2f} 0. 1.\n".format(x0 - x, y0 - y))
             trans.close()
-    return
+        else:
+            result += "WCS-JMP transforms match {}\n".format(expnum)
+    return result
 
 
 def step2(expnums, ccd, version, prefix=None, dry_run=False):
@@ -105,10 +106,24 @@ def step2(expnums, ccd, version, prefix=None, dry_run=False):
             storage.get_file(expnum, ccd=ccd, version=version, ext='obj.matt', prefix=prefix)[0:-9]
         )
 
-    util.exec_prog(jmp_trans)
-    compute_trans(expnums, ccd, version, prefix)
-    util.exec_prog(jmp_args)
-    util.exec_prog(matt_args)
+    output = util.exec_prog(jmp_trans)
+    if not dry_run:
+        storage.log_output("step2", expnums[0], ccd, version, prefix, output)
+    else:
+        logging.info(output)
+    output += compute_trans(expnums, ccd, version, prefix)
+
+    output += util.exec_prog(jmp_args)
+    if not dry_run:
+        storage.log_output("step2", expnums[0], ccd, version, prefix, output)
+    else:
+        logging.info(output)
+
+    output += util.exec_prog(matt_args)
+    if not dry_run:
+        storage.log_output("step2", expnums[0], ccd, version, prefix, output)
+    else:
+        logging.info(output)
 
     ## check that the shifts from step2 are rational
     check_args = ['checktrans']
@@ -129,7 +144,11 @@ def step2(expnums, ccd, version, prefix=None, dry_run=False):
     ptf.close()
     if os.access('BAD_TRANS', os.F_OK):
         os.unlink('BAD_TRANS')
-    util.exec_prog(check_args)
+    output += util.exec_prog(check_args)
+    if not dry_run:
+        storage.log_output("step2", expnums[0], ccd, version, prefix, output)
+    else:
+        logging.info(output)
     if os.access('BAD_TRANS', os.F_OK):
         raise ValueError(errno.EBADEXEC, 'BAD_TRANS')
 
@@ -224,7 +243,12 @@ def main():
             logging.info("step2 on expnums :%s, ccd: %d" % (
                 str(args.expnums), ccd))
             step2(args.expnums, ccd, version=args.type, prefix=prefix, dry_run=args.dry_run)
-
+        except CalledProcessError as cpe:
+            output = storage.log_output("step2", args.expnums[0], ccd, args.type, prefix, None)
+            output += cpe.output
+            storage.log_output("step2", args.expnums[0], ccd, args.type, prefix, output)
+            message = str(cpe)
+            exit_status = message
         except Exception as e:
             message = str(e)
             exit_status = message

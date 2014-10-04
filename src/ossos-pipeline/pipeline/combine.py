@@ -22,6 +22,7 @@
 ################################################################################
 
 import os
+from subprocess import CalledProcessError
 from ossos import storage
 from ossos import util
 from ossos import mop_file
@@ -51,7 +52,7 @@ def combine(expnum, ccd, prefix=None, file_type='p', field=None, measure3=MEASUR
 
     cmd_args = ['comb-list', prefix + str(expnum) + file_type + str(ccd).zfill(2)]
     logging.info(str(cmd_args))
-    util.exec_prog(cmd_args)
+    output = util.exec_prog(cmd_args)
     ext_list = ['cands.comb']
     if prefix is not None and len(prefix) > 0:
         ext_list.extend(['jmp.missed', 'matt.missed',
@@ -98,12 +99,16 @@ def combine(expnum, ccd, prefix=None, file_type='p', field=None, measure3=MEASUR
 
     cmd_args = ['measure3', prefix + str(expnum) + file_type + str(ccd).zfill(2)]
     logging.info("Running measure3")
-    util.exec_prog(cmd_args)
+    output += util.exec_prog(cmd_args)
 
     if not dry_run:
         filename = base_name + ".measure3.cands.astrom"
         vospace_filename = "%s.measure3.cands.astrom" % field
         storage.copy(filename, os.path.join(measure3, vospace_filename))
+        storage.log_output("combine", expnum, ccd, file_type, prefix, output)
+    else:
+        logging.info(output)
+
 
     return storage.SUCCESS
 
@@ -162,6 +167,7 @@ def main():
 
     ccd_list = (args.ccd is None and range(0, 36)) or [args.ccd]
 
+    exit_code = 0
     for ccd in ccd_list:
         if not storage.get_status(args.expnum, ccd, prefix + 'step3', version=args.type) and not args.dry_run:
             logging.error(storage.get_status(
@@ -175,19 +181,27 @@ def main():
                               prefix + 'combine',
                               version=args.type) and not args.force:
             continue
-
-        message = combine(args.expnum,
-                          ccd,
-                          prefix=prefix,
-                          file_type=args.type,
-                          field=args.field,
-                          measure3=args.measure3,
-                          dry_run=args.dry_run)
+        try:
+           message = combine(args.expnum,
+                             ccd,
+                             prefix=prefix,
+                             file_type=args.type,
+                             field=args.field,
+                             measure3=args.measure3,
+                             dry_run=args.dry_run)
+        except CalledProcessError as cpe:
+            storage.log_output("combine", args.expnums[0], ccd, args.type, "", cpe.output)
+            message = str(cpe)
+            exit_code = message
+        except Exception as e:
+            message = str(e)
+            exit_code = message
         if not args.dry_run:
             storage.set_status(args.expnum, ccd,
                                prefix + 'combine',
                                version=args.type,
                                status=message)
+        return exit_code
 
 if __name__ == '__main__':
     main()

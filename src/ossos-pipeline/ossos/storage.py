@@ -860,3 +860,25 @@ def get_astheader(expnum, ccd, version='p', prefix=None, ext=None):
                                             cutout="[1:1,1:1]", return_file=False)[0].header
         header = astheaders[ast_uri]
     return header
+
+def log_output(program, expnum, ccd, version, prefix=None, output=None):
+    """Write the contents of output to a processing log file.  If output=None then read
+     the contents of the logfile and return as a buffer.
+
+    """
+    if prefix is None:
+       prefix = ""
+    prefix = len(prefix) > 0 and "{}_".format(prefix) or prefix
+    log_filename = os.path.dirname(get_uri(expnum, ccd=ccd, version=version))+"/{}{}_{}.txt".format(
+        prefix, program, version)
+    if output is not None and len(output) > 0:
+       logging.info("Writing log to {}".format(log_filename))
+       file_handle = open_vos_or_local(log_filename, 'w')
+       file_handle.write(output)
+       return file_handle.close()
+    if exists(log_filename):
+        logging.info("Reading log {}".format(log_filename))
+        file_handle = open_vos_or_local(log_filename, 'r')
+        output = file_handle.read()
+        file_handle.close()
+    return output

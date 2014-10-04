@@ -25,7 +25,7 @@
 import argparse
 import logging
 import os
-import os
+from subprocess import CalledProcessError
 from ossos import storage
 from ossos import util 
 
@@ -38,13 +38,14 @@ def mkpsf(expnum, ccd, fversion, dry_run=False, prefix=""):
     filename = storage.get_image(expnum, ccd, version=fversion, prefix=prefix)
     logging.info("Running mkpsf on %s %d" % (expnum, ccd))
     ## launch the makepsf script
-    util.exec_prog(['jmpmakepsf.csh',
-                          './',
-                          filename,
-                          'no'])
+    output = util.exec_prog(['jmpmakepsf.csh',
+                             './',
+                             filename,
+                             'no'])
 
     if dry_run:
         return
+    storage.log_output("mkpsf", expnum, ccd, fversion, prefix, output)
 
     ## place the results into VOSpace
     basename = os.path.splitext(filename)[0]
@@ -154,15 +155,17 @@ if __name__ == '__main__':
                                    version=args.type,
                                    status=str(storage.get_zeropoint(
                     expnum, ccd, version=args.type)))
-                                         
+            except CalledProcessError as cpe:
+                storage.log_output("mkpsf", expnum, ccd, args.type, prefix, cpe.output)
+                message = str(cpe)
+                exit_code = message
             except Exception as e:
                 message = str(e)
 
             logging.error(message)
             if not args.dry_run:
-                storage.set_status( expnum,
-                                    ccd,
-                                    prefix+'mkpsf',
-                                    version=args.type,
-                                    status=message)
-                       
+                storage.set_status(expnum,
+                                   ccd,
+                                   prefix + 'mkpsf',
+                                   version=args.type,
+                                   status=message)
