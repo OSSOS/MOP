@@ -55,6 +55,7 @@ YYYY-MM-DD hh:mm:ss|hh:mm:ss.ss|+dd:mm:ss.s|
         :return: result of close()
         """
         if filename is None:
+            # SG would like us to ALWAYS have the block name in the OBJECT keyword for a given observation.
             filename = "ET_" + self.name + ".xml"  # FIXME: this method could be handled more smoothly
         et_file = open(filename, 'w')
         et_file.write(self.ASTRO_FORMAT_HEADER)
@@ -73,10 +74,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('mpc_files', nargs='+', help='mpc_file to base ephemeris from.')
     parser.add_argument('--verbose', '-v', action='store_true', default=None, help='verbose feedback')
-    parser.add_argument('--start', '-s', default=None, help='Date as YYYY/MM/DD, default is curernt date')
+    parser.add_argument('--start', '-s', default=None, help='Date as YYYY/MM/DD, default is current date')
     parser.add_argument('--range', '-r', default=30, help='Length of ephemeris is days', type=int)
     parser.add_argument('--ccd', '-c', default=22, help='Offset so target is on this CCD (0 is the first CCD)')
-    parser.add_argument('--geometry', '-g', default="MegaPrime", help='camera geometry (MegaCam or MegaPrime)')
+    parser.add_argument('--geometry', '-g', default="MEGACAM_36",
+                        help='camera geometry (see ossos.cameras for options); default is MEGACAM_36')
     parser.add_argument('--dra', default=0, help='Additional RA offset (arcmin)')
     parser.add_argument('--ddec', default=0, help='Additional DECA offset (arcmin)')
 
@@ -84,7 +86,8 @@ if __name__ == '__main__':
     if opt.verbose:
         logger.setLevel(logging.INFO)
 
-    start_date = opt.start is not None and time.Time(opt.start, scale='utc') or datetime.datetime.utcnow().isoformat()
+    start_date = (opt.start is not None and time.Time(opt.start, scale='utc')) or \
+                 time.Time(datetime.datetime.utcnow().isoformat(), scale='utc')
 
     offset = Camera.geometry[opt.geometry]
 
