@@ -442,7 +442,7 @@ class SourceReading(object):
     """
 
     def __init__(self, x, y, x0, y0, ra, dec, xref, yref, obs, ssos=False, from_input_file=False,
-                 null_observation=False, discovery=False, dx=0, dy=0, is_inverted=True):
+                 null_observation=False, discovery=False, dx=0, dy=0, is_inverted=None):
         """
         Args:
           x, y: the coordinates of the source in this reading.
@@ -478,8 +478,12 @@ class SourceReading(object):
         self.null_observation = null_observation
         self.discovery = discovery
         self.is_inverted = is_inverted
-        if self.obs.fk == "fk" or self.obs.ftype == "s":
-            self.is_inverted = False
+        if self.is_inverted is None:
+            if self.obs.fk == "fk" or self.obs.ftype == "s":
+                self.is_inverted = False
+            else:
+                self.is_inverted = self.compute_inverted()
+
 
     @property
     def from_input_file(self):
