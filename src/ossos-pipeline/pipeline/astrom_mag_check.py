@@ -22,7 +22,7 @@ from astropy.io import ascii
 from astropy.table import MaskedColumn
 
 logger = logging.getLogger('vos')
-logger.setLevel(logging.CRITICAL)
+logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler())
 
 BRIGHT_LIMIT = 23.0
@@ -198,13 +198,6 @@ def match_planted(astrom_filename, match_filename, bright_limit=BRIGHT_LIMIT, ob
     offset = numpy.mean(planted_objects_table['mag'][bright] - planted_objects_table['measure_mag1'][bright])
     std = numpy.std(planted_objects_table['mag'][bright] - planted_objects_table['measure_mag1'][bright])
 
-    # Some simple checks to report a failure how we're doing.
-    if n_bright_planted < minimum_bright_detections:
-        raise RuntimeError(1, "Too few bright objects planted.")
-
-    if n_bright_found / float(n_bright_planted) < bright_fraction:
-        raise RuntimeError(2, "Too few bright objects found.")
-
     fout = storage.open_vos_or_local(match_filename, 'w')
     fout.write("#K {:10s} {:10s}\n".format("EXPNUM", "FWHM"))
     for measure in detections[0].get_readings():
@@ -224,10 +217,10 @@ def match_planted(astrom_filename, match_filename, bright_limit=BRIGHT_LIMIT, ob
     for keyword in ["NBRIGHT", "NFOUND", "OFFSET", "STDEV"]:
         fout.write("{:10s} ".format(keyword))
     fout.write("\n")
-    fout.write("#V {:<10d}{:<10d}{:<10.2f}{:<10.2f}\n".format(n_bright_planted,
-                                                              n_bright_found,
-                                                              offset,
-                                                              std))
+    fout.write("#V {} {} {} {}\n".format(n_bright_planted,
+                                         n_bright_found,
+                                         offset,
+                                         std))
 
     try:
         ascii.write(planted_objects_table, output=fout, Writer=ascii.FixedWidth, delimiter=None)
@@ -238,6 +231,13 @@ def match_planted(astrom_filename, match_filename, bright_limit=BRIGHT_LIMIT, ob
     finally:
         fout.close()
 
+    # Some simple checks to report a failure how we're doing.
+    if n_bright_planted < minimum_bright_detections:
+        raise RuntimeError(1, "Too few bright objects planted.")
+
+    if n_bright_found / float(n_bright_planted) < bright_fraction:
+        raise RuntimeError(2, "Too few bright objects found.")
+
     return "{} {} {} {}".format(n_bright_planted, n_bright_found, offset, std)
 
 
@@ -245,12 +245,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('field')
     parser.add_argument('ccd')
+    parser.add_argument('--expnum', default=None, help="Which exposure is the lead for this astrom file?")
     parser.add_argument('--astrom-filename', default=None, help="Give the astrom file directly instead of looking-up "
                                                                 "using the field/ccd naming scheme.")
     parser.add_argument('--reals', action='store_true', default=False)
     parser.add_argument('--type', choices=['o', 'p', 's'], help="Which type of image.", default='s')
     parser.add_argument('--measure3', default='vos:OSSOS/measure3/2013B-L_redo/')
     parser.add_argument('--dbimages', default=None)
+    parser.add_argument('--force', action='store_true', default=False)
 
     parser.add_argument('--object-planted', default=OBJECT_PLANTED,
                         help="Name of file contains list of planted objects.")
@@ -286,25 +288,34 @@ def main():
     if not os.access(astrom_filename, os.F_OK):
         astrom_filename = os.path.dirname(astrom_uri)+"/"+astrom_filename
 
-    match_filename = os.path.splitext(astrom_filename)[0] + '.match'
+    match_filename = os.path.splitext(os.path.basename(astrom_filename))[0] + '.match'
 
     exit_status = 0
+    status = storage.SUCCESS
     try:
-        message = match_planted(astrom_filename=astrom_filename,
-                                match_filename=match_filename,
-                                object_planted=args.object_planted,
-                                bright_limit=args.bright_limit,
-                                minimum_bright_detections=args.minimum_bright_detections,
-                                bright_fraction=args.minimum_bright_fraction)
+        if (not storage.get_status(args.expnum, ccd=args.ccd, program='astrom_mag_check', version='')) or args.force:
+            message = match_planted(astrom_filename=astrom_filename,
+                                    match_filename=match_filename,
+                                    object_planted=args.object_planted,
+                                    bright_limit=args.bright_limit,
+                                    minimum_bright_detections=args.minimum_bright_detections,
+                                    bright_fraction=args.minimum_bright_fraction)
+            match_uri = storage.get_cands_uri(args.field,
+                                              ccd=args.ccd,
+                                              version=args.type,
+                                              prefix=prefix,
+                                              ext="measure3.{}.match".format(ext))
+            storage.copy(match_filename, match_uri)
+            uri = os.path.dirname(astrom_uri)
+            keys = [storage.tag_uri(os.path.basename(astrom_uri))]
+            values = [message]
+            storage.set_tags_on_uri(uri, keys, values)
     except Exception as err:
         sys.stderr.write(str(err))
-        message = str(err)
+        status = str(err)
         exit_status = err.message
 
-    uri = os.path.dirname(astrom_uri)
-    keys = [storage.tag_uri(os.path.basename(astrom_uri))]
-    values = [message]
-    storage.set_tags_on_uri(uri, keys, values)
+    storage.set_status(args.expnum, args.ccd, 'astrom_mag_check', version='', status=status)
 
     return exit_status
 
