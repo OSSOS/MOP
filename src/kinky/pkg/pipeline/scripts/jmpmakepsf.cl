@@ -315,7 +315,7 @@ begin
 
 	# Run PHOT with a range of apertures.
 	kdelete(t_image//".mag.2")
-    	photpars.apertures=apmin//":"//apmax//":1"
+    photpars.apertures=apmin//":"//apmax//":1"
 	naps = apmax - apmin +1
 	if (naps < 3) {
 	    print("inner ("//apmin//") and outer ("//apmax//") aperatures must differ by more than 2 pixels\n")
@@ -327,9 +327,11 @@ begin
 
 	# fit that range of apertures to a curve of growth.
 	kdelete(t_image//".mkap")
+
 	failedflag=1
 	iferr { mkapfile(t_image//".mag.2",naps,t_image//".mkap",interactive-,verify-,nparams=t_order) }
-	     goto finalproc
+	    goto finalproc
+
 	failedflag=0
 
 	### Read in the aperture correction file and convert to CFEPS Pipeline format
