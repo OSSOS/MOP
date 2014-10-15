@@ -127,6 +127,9 @@ fits_handles = {}
 
 
 def get_from_dbimages(file_id, ext='o.fits.fz', calibrator=False):
+    if os.access(file_id, os.F_OK):
+        return fits.open(file_id, mode='readonly', memmap=True)
+
     if not calibrator:
         filename = "{}{}".format(file_id, ext)
     else:
