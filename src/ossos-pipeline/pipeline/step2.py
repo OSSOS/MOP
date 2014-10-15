@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!python
 # ###############################################################################
 ##                                                                            ##
 ## Copyright 2013 by its authors                                              ##
@@ -28,6 +28,7 @@ import logging
 import math
 import os
 from subprocess import CalledProcessError
+from astropy.io import fits
 from ossos import storage
 from ossos import util
 from ossos import wcs
@@ -50,14 +51,10 @@ def compute_trans(expnums, ccd, version, prefix=None):
     wcs_dict = {}
     for expnum in expnums:
         try:
-            # TODO Fix this hack.. we are assuming that p images are not FLIPPED on the storage end.
-            # while others are!
-            if ccd < 18 and version == 'p':
-                cutout = '[2:1,2:1]'
-            else:
-                cutout = '[1:2,1:2]'
-            this_wcs = wcs.WCS(storage.get_image(expnum, ccd, version, cutout=cutout, prefix=prefix,
-                                                 return_file=False)[0].header)
+            # TODO This assumes that the image is already N/E flipped.
+            # If compute_trans is called after the image is retrieved from archive then we get the disk version.
+            filename = storage.get_image(expnum, ccd, version, prefix=prefix)
+            this_wcs = wcs.WCS(fits.open(filename)[0].header)
         except Exception as err:
             logging.warning("WCS Trans compute failed. {}".format(str(err)))
             return
