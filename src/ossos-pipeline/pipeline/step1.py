@@ -60,6 +60,7 @@ def step1(expnum,
     maxcount: saturation level
 
     """
+    storage.get_file(expnum, ccd, prefix=prefix, version=version, ext='mopheader')
     filename = storage.get_image(expnum, ccd, version=version, prefix=prefix)
     fwhm = storage.get_fwhm(expnum, ccd, prefix=prefix, version=version)
     basename = os.path.splitext(filename)[0]
@@ -90,10 +91,10 @@ def step1(expnum,
     if not os.access('weight.fits', os.R_OK):
         os.symlink(flat_filename, 'weight.fits')
     output += util.exec_prog(['step1matt',
-                    '-f', basename,
-                    '-t', str(sex_thresh),
-                    '-w', str(fwhm),
-                    '-m', str(maxcount)])
+                              '-f', basename,
+                              '-t', str(sex_thresh),
+                              '-w', str(fwhm),
+                              '-m', str(maxcount)])
 
     obj_uri = storage.get_uri(expnum, ccd, version=version, ext='obj.matt',
                               prefix=prefix)
@@ -106,7 +107,7 @@ def step1(expnum,
     return True
 
 
-def main():
+def main(task='step1'):
     ### Must be running as a script
 
     parser = argparse.ArgumentParser(
@@ -179,15 +180,13 @@ def main():
         for ccd in ccdlist:
             try:
                 message = storage.SUCCESS
-                if not storage.get_status(expnum, ccd, 'mkpsf', version=args.type):
-                    raise IOError(35, "mkpsf hasn't run?")
-                if storage.get_status(expnum, ccd, prefix + 'step1', version=args.type) and not args.force:
-                    logging.critical(
-                        "Step1 completed for %s%s, skipping" % (prefix + str(expnum),
-                                                                str(args.type) + str(ccd)))
+                if storage.get_status(expnum, ccd, prefix+task, version=args.type):
+                    logging.critical("{} completed successfully for {} {} {} {}".format(task, prefix,
+                                                                                        expnum, args.type, ccd))
                     continue
-                logging.info("step1_p on expnum: %s, ccd: %s" % (
-                    prefix + str(expnum), str(ccd)))
+                if not storage.get_status(expnum, ccd, prefix+'mkpsf', version=args.type):
+                    raise IOError(35, "mkpsf hasn't run for {} {} {} {}".format(task, prefix,
+                                                                                expnum, args.type, ccd))
                 step1(expnum, ccd, prefix=prefix, version=args.type, dry_run=args.dry_run)
             except CalledProcessError as cpe:
                 storage.log_output("step1", expnum, ccd, args.type, prefix, cpe.output)
