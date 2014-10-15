@@ -19,8 +19,8 @@ from ossos import storage
 
 PROGRAMS = {'CALIBRATION': ((('', 'fk'), ('mkpsf', 'zeropoint', 'fwhm', 'snr_13'), ('p', 's')),),
             'REAL': ((('',), ('step1', 'step2', 'step3', 'combine'), ('p',)),),
-            'SCRAMBLE': ((('',), ('step1', 'step2', 'step3', 'combine'), ('s',)),),
-            'PLANT': ((('',), ('scramble', 'plant', 'astrom_mag_check'), ('s',)),),
+            'SCRAMBLE': ((('',), ('scramble', 'step1', 'step2', 'step3', 'combine'), ('s',)),),
+            'PLANT': ((('',), ('plant',), ('s',)),),
             'FAKES': (('fk',), ('step1', 'step2', 'step3', 'combine'), ('s',)),
             }
 PROGRAMS['FAKES'] = (PROGRAMS['FAKES'], (('',), ('astrom_mag_check',),('',)))
