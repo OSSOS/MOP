@@ -4,13 +4,11 @@ import errno
 import fnmatch
 from glob import glob
 import os
-import sys
 import re
 import logging
 
 from astropy.io import ascii
 import vos
-from vos.vos import URLparse
 from astropy.io import fits
 import requests
 
@@ -41,7 +39,7 @@ vlog = logging.getLogger('vos')
 
 SUCCESS = 'success'
 
-### some cache holders.
+# ## some cache holders.
 mopheaders = {}
 astheaders = {}
 
@@ -68,12 +66,14 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2):
                 LANG="ADQL",
                 FORMAT="tsv")
 
-    data["QUERY"]  = data["QUERY"].format(calibration_level)
+    data["QUERY"] = data["QUERY"].format(calibration_level)
     data["QUERY"] += (" AND  "
                       " INTERSECTS( BOX('ICRS', {}, {}, {}, {}), "
                       " Plane.position_bounds ) = 1 ").format(ra, dec, dra, ddec)
     if mjdate is not None:
-       data["QUERY"] += " AND Plane.time_bounds_cval1 < {} AND Plane.time_bounds_cval2 > {} ".format(mjdate+1.0/24.0, mjdate-1/24.0)
+        data["QUERY"] += " AND Plane.time_bounds_cval1 < {} AND Plane.time_bounds_cval2 > {} ".format(
+            mjdate + 1.0 / 24.0,
+            mjdate - 1 / 24.0)
 
     result = requests.get(TAP_WEB_SERVICE, params=data, verify=False)
     assert isinstance(result, requests.Response)
@@ -138,10 +138,13 @@ def populate(dataset_name,
 
 
 def get_cands_uri(field, ccd, version='p', ext='measure3.cands.astrom', prefix=None,
-                  block=""):
+                  block=None):
     """
     return the nominal URI for a candidate file.
     """
+
+    if block is not None:
+        logger.warning("Use of block in get_cands_uri is ignored.")
 
     if prefix is None:
         prefix = ""
@@ -227,7 +230,7 @@ def set_tags_on_uri(uri, keys, values=None):
 
 def _set_tags(expnum, keys, values=None):
     uri = os.path.join(DBIMAGES, str(expnum))
-    node = vospace.getNode(uri)
+    node = vospace.getNode(uri, force=True)
     if values is None:
         values = []
         for idx in range(len(keys)):
@@ -235,8 +238,8 @@ def _set_tags(expnum, keys, values=None):
     assert (len(values) == len(keys))
     for idx in range(len(keys)):
         key = keys[idx]
-        value = values[idx]
         tag = tag_uri(key)
+        value = values[idx]
         node.props[tag] = value
     return vospace.addProps(node)
 
@@ -248,10 +251,7 @@ def set_tags(expnum, props):
     @param props: dict
     @return: success
     """
-    # first clear all the props
-    _set_tags(expnum, props.keys())
-
-    # now set all the props 
+    # now set all the props
     return _set_tags(expnum, props.keys(), props.values())
 
 
@@ -320,8 +320,8 @@ def set_status(expnum, ccd, program, status, version='p'):
 
     return set_tag(expnum, get_process_tag(program, ccd, version), status)
 
-def get_file(expnum, ccd=None, version='p', ext='fits', subdir=None, prefix=None):
 
+def get_file(expnum, ccd=None, version='p', ext='fits', subdir=None, prefix=None):
     uri = get_uri(expnum=expnum, ccd=ccd, version=version, ext=ext, subdir=subdir, prefix=prefix)
     filename = os.path.basename(uri)
 
@@ -344,16 +344,13 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     @param ext:
     @param subdir:
     @param prefix:
-    @return: basestring or astropy.io.fits.PrimaryHDU
+    @return: astropy.io.fits.PrimaryHDU
     """
 
-    # the filename is based on the Simple FITS images file.
-    uri = get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix)
-    filename = os.path.basename(uri)
-
+    filename = os.path.basename(get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix))
     if os.access(filename, os.F_OK) and return_file:
-        logger.debug("File already on disk: {}".format(filename))
         return filename
+
 
     if not subdir:
         subdir = str(expnum)
@@ -368,7 +365,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     logger.debug(str(locations))
     if ccd is not None:
         try:
-            for this_ext in [ext, ext+".fz"]:
+            for this_ext in [ext, ext + ".fz"]:
                 ext_no = int(ccd) + 1
                 flip = (cutout is None and "fits" in ext and (ext_no < 19 and "[-*,-*]" or "[*,*]")) or cutout
                 locations.append((get_uri(expnum, version=version, ext=this_ext, subdir=subdir),
@@ -376,6 +373,9 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
         except Exception as e:
             logger.error(str(e))
             pass
+    else:
+        uri = get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix)
+        locations.append((uri, cutout))
     while len(locations) > 0:
         (uri, cutout) = locations.pop(0)
         try:
@@ -402,17 +402,23 @@ def get_hdu(uri, cutout):
     @return: fits.HDU
     """
 
+    # the filename is based on the Simple FITS images file.
+    filename = os.path.basename(uri)
+    if os.access(filename, os.F_OK):
+        logger.debug("File already on disk: {}".format(filename))
+        return fits.open(filename, scale_back=True)
+
     logger.debug("Pulling: {} from VOSpace".format(uri))
     if cutout is not None:
         vos_ptr = vospace.open(uri, view='cutout', cutout=cutout)
     else:
         vos_ptr = vospace.open(uri, view='data')
     fpt = cStringIO.StringIO(vos_ptr.read())
+    vos_ptr.close()
     fpt.seek(0, 2)
     fpt.seek(0)
     logger.debug("Read from vospace completed. Building fits object.")
-    hdu_list = fits.open(fpt)
-    vos_ptr.close()
+    hdu_list = fits.open(fpt, scale_back=True)
     logger.debug("Got image from vospace")
 
     if cutout is None:
@@ -516,7 +522,8 @@ def get_zeropoint(expnum, ccd, prefix=None, version='p'):
     uri = get_uri(expnum, ccd, version, ext='zeropoint.used', prefix=prefix)
     try:
         return float(open_vos_or_local(uri).read())
-    except:
+    except Exception as err:
+        logger.debug(str(err))
         url = uri.replace('vos:', 'https://www.canfar.phys.uvic.ca/data/pub/vospace/')
         return float(requests.get(url, cert=vospace.conn.vospace_certfile, verify=False).content)
 
@@ -820,7 +827,7 @@ def _get_sghead(expnum, version):
 #     """
 #     Pull a header from a FITS file referenced by the uri.
 #     """
-#     hdulist = get_image(expnum, )
+#     hdulist = (expnum, )
 #     filename = os.path.basename(uri)
 #     url = service+filename
 #     resp = requests.get(url)
@@ -831,7 +838,7 @@ def get_header(uri):
     Pull a FITS header from observation at the given URI
     """
     if uri not in astheaders:
-        astheaders[uri] = get_image
+        astheaders[uri] = get_hdu(uri, cutout="[1:1,1:1]")[0].header
     return astheaders[uri]
 
 
@@ -844,22 +851,29 @@ def get_astheader(expnum, ccd, version='p', prefix=None, ext=None):
     @param version: 'o','p', or 's'
     @return:
     """
+    if ext is not None:
+        logger.warning("Use of ext keyword for get_astheader is ignored.")
     logger.info("Getting ast header. for {}".format(expnum))
     try:
         # first try and get this from CFHTSG header repo
-        ast_uri = dbimages_uri(expnum, version, ext='.head')
+        ast_uri = dbimages_uri(expnum, ccd=None, version=version, ext='.head')
         if ast_uri not in astheaders:
             astheaders[ast_uri] = _get_sghead(expnum, version)
+        if ccd is None:
+            return astheaders[ast_uri]
         header = astheaders[ast_uri][int(ccd) + 1]
     except Exception as err:
         # An exception was raised, so try getting directly from a fits images instead.
         logger.debug(str(err))
         ast_uri = dbimages_uri(expnum, ccd, version=version, ext='.fits')
         if ast_uri not in astheaders:
-            astheaders[ast_uri] = get_image(expnum, ccd=ccd, version=version, prefix=prefix,
-                                            cutout="[1:1,1:1]", return_file=False)[0].header
+            hdulist = get_image(expnum, ccd=ccd, version=version, prefix=prefix,
+                                            cutout="[1:1,1:1]", return_file=False)
+            assert isinstance(hdulist, fits.HDUList)
+            astheaders[ast_uri] = hdulist[0].header
         header = astheaders[ast_uri]
     return header
+
 
 def log_output(program, expnum, ccd, version, prefix=None, output=None):
     """Write the contents of output to a processing log file.  If output=None then read
@@ -867,15 +881,16 @@ def log_output(program, expnum, ccd, version, prefix=None, output=None):
 
     """
     if prefix is None:
-       prefix = ""
+        prefix = ""
     prefix = len(prefix) > 0 and "{}_".format(prefix) or prefix
-    log_filename = os.path.dirname(get_uri(expnum, ccd=ccd, version=version))+"/{}{}_{}.txt".format(
-        prefix, program, version)
+    log_filename = "{}{}_{}.txt".format(prefix, program, version)
+    vospace_filename = os.path.dirname(get_uri(expnum, ccd=ccd, version=version)) + "/" + log_filename
     if output is not None and len(output) > 0:
-       logging.info("Writing log to {}".format(log_filename))
-       file_handle = open_vos_or_local(log_filename, 'w')
-       file_handle.write(output)
-       return file_handle.close()
+        file_handle = open(log_filename, 'w')
+        file_handle.write(output)
+        file_handle.close()
+        logging.info("Writing log to {}".format(log_filename))
+        return copy(log_filename, vospace_filename)
     if exists(log_filename):
         logging.info("Reading log {}".format(log_filename))
         file_handle = open_vos_or_local(log_filename, 'r')
