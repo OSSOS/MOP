@@ -1,5 +1,5 @@
-#!python 
-################################################################################
+#!/usr/bin/python 
+# ###############################################################################
 ##                                                                            ##
 ## Copyright 2013 by its authors                                              ##
 ## See COPYING, AUTHORS                                                       ##
@@ -26,16 +26,18 @@ import argparse
 import logging
 import os
 from subprocess import CalledProcessError
+import sys
 from ossos import storage
-from ossos import util 
+from ossos import util
 
-def mkpsf(expnum, ccd, fversion, dry_run=False, prefix=""):
-    """Run the OSSOS makepsf script.
+
+def mkpsf(expnum, ccd, version, dry_run=False, prefix=""):
+    """Run the OSSOS jmpmakepsf script.
 
     """
 
     ## get image from the vospace storage area
-    filename = storage.get_image(expnum, ccd, version=fversion, prefix=prefix)
+    filename = storage.get_image(expnum, ccd, version=version, prefix=prefix)
     logging.info("Running mkpsf on %s %d" % (expnum, ccd))
     ## launch the makepsf script
     output = util.exec_prog(['jmpmakepsf.csh',
@@ -45,30 +47,29 @@ def mkpsf(expnum, ccd, fversion, dry_run=False, prefix=""):
 
     if dry_run:
         return
-    storage.log_output("mkpsf", expnum, ccd, fversion, prefix, output)
 
     ## place the results into VOSpace
     basename = os.path.splitext(filename)[0]
 
     ## confirm destination directory exists.
     destdir = os.path.dirname(
-        storage.dbimages_uri(expnum, ccd, prefix=prefix, version=fversion,ext='fits'))
+        storage.dbimages_uri(expnum, ccd, prefix=prefix, version=version, ext='fits'))
     logging.info("Checking that destination directories exist")
     storage.mkdir(destdir)
-
+    storage.log_output("mkpsf", expnum, ccd, version, prefix, output)
 
     for ext in ('mopheader', 'psf.fits',
                 'zeropoint.used', 'apcor', 'fwhm', 'phot'):
-        dest = storage.dbimages_uri(expnum, ccd, prefix=prefix, version=fversion, ext=ext)
+        dest = storage.dbimages_uri(expnum, ccd, prefix=prefix, version=version, ext=ext)
         source = basename + "." + str(ext)
-        logging.info("Copying %s -> %s" % ( source, dest))
+        logging.info("Copying %s -> %s" % (source, dest))
         #storage.remove(dest)
         storage.copy(source, dest)
 
     return
 
 
-if __name__ == '__main__':
+def main(task='mkpsf'):
 
     parser = argparse.ArgumentParser(
         description='Run makepsf chunk of the OSSOS pipeline')
@@ -78,29 +79,24 @@ if __name__ == '__main__':
                         type=int,
                         dest='ccd',
                         default=None,
-                        help='which ccd to process, default is all'
-                        )
+                        help='which ccd to process, default is all')
     parser.add_argument('--ignore-update-headers', action='store_true', dest='ignore_update_headers')
-
     parser.add_argument("--dbimages",
                         action="store",
                         default="vos:OSSOS/dbimages",
-                        help='vospace dbimages containerNode'
-                        )
-
+                        help='vospace dbimages containerNode')
     parser.add_argument("expnum",
                         type=int,
                         nargs='+',
-                        help="expnum(s) to process"
-                        )
-
+                        help="expnum(s) to process")
     parser.add_argument("--dry_run",
-                       action="store_true",
-                       help="DRY RUN, don't copy results to VOSpace, implies --force")
+                        action="store_true",
+                        help="DRY RUN, don't copy results to VOSpace, implies --force")
 
-    parser.add_argument("--fk",action="store_true", help="Run fk images")
+    parser.add_argument("--fk", action="store_true", help="Run fk images")
 
-    parser.add_argument("--type", "-t", choices=['o','p','s'], help="which type of image: o-RAW, p-ELIXIR, s-SCRAMBLE", default='p')
+    parser.add_argument("--type", "-t", choices=['o', 'p', 's'],
+                        help="which type of image: o-RAW, p-ELIXIR, s-SCRAMBLE", default='p')
     parser.add_argument("--verbose", "-v",
                         action="store_true")
     parser.add_argument("--force", default=False,
@@ -117,47 +113,46 @@ if __name__ == '__main__':
         logging.basicConfig(level=logging.INFO,
                             format='%(message)s')
     if args.debug:
-        logging.basicConfig(level=logging.DEBUG,         format="%(asctime)s - %(module)s.%(funcName)s %(lineno)d: %(message)s")
+        logging.basicConfig(level=logging.DEBUG,
+                            format="%(asctime)s - %(module)s.%(funcName)s %(lineno)d: %(message)s")
 
-
-    prefix = ( args.fk and 'fk') or ''
-
+    prefix = (args.fk and 'fk') or ''
 
     storage.DBIMAGES = args.dbimages
 
     if args.ccd is None:
-        ccdlist = range(0,36)
+        ccdlist = range(0, 36)
     else:
         ccdlist = [args.ccd]
 
+    exit_code = 0
     for expnum in args.expnum:
         for ccd in ccdlist:
-            if storage.get_status(expnum, ccd, prefix+'mkpsf', version=args.type) and not args.force:
-                logging.info("Already did %s %s, skipping" %( str(expnum),
-                                                                  str(ccd)))
+            if storage.get_status(expnum, ccd, prefix + task, version=args.type) and not args.force:
+                logging.info("{} completed successfully for {} {} {} {}".format(task, prefix, expnum, args.type, ccd))
                 continue
             message = 'success'
             try:
-                if not storage.get_status(expnum, 36, 'update_header') and not args.ignore_update_headers :
-                     raise IOError("update_header not yet run for {}".format(expnum))
+                if not storage.get_status(expnum, 36, 'update_header') and not args.ignore_update_headers:
+                    raise IOError("update_header not yet run for {}".format(expnum))
                 mkpsf(expnum, ccd, args.type, args.dry_run, prefix=prefix)
                 if args.dry_run:
                     continue
                 storage.set_status(expnum,
                                    ccd,
-                                   prefix+'fwhm',
+                                   prefix + 'fwhm',
                                    version=args.type,
                                    status=str(storage.get_fwhm(
-                    expnum, ccd, version=args.type)))
+                                       expnum, ccd, version=args.type)))
                 storage.set_status(expnum,
                                    ccd,
-                                   prefix+'zeropoint',
+                                   prefix + 'zeropoint',
                                    version=args.type,
                                    status=str(storage.get_zeropoint(
-                    expnum, ccd, version=args.type)))
+                                       expnum, ccd, version=args.type)))
             except CalledProcessError as cpe:
-                storage.log_output("mkpsf", expnum, ccd, args.type, prefix, cpe.output)
-                message = str(cpe)
+                storage.log_output(task, expnum, ccd, args.type, prefix, cpe.output)
+                message = str(cpe.output)
                 exit_code = message
             except Exception as e:
                 message = str(e)
@@ -169,3 +164,7 @@ if __name__ == '__main__':
                                    prefix + 'mkpsf',
                                    version=args.type,
                                    status=message)
+    return exit_code
+
+if __name__ == '__main__':
+    sys.exit(main())
