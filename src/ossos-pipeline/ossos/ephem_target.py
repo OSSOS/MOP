@@ -1,7 +1,3 @@
-#!/usr/bin/env python
-"""Create an ephemeris file for a KBO based on the .abg orbit file.
-   output is in CFHT format"""
-
 from astropy import units
 from xml.dom import minidom
 import xml
@@ -9,12 +5,14 @@ import xml
 COLUMN_SEPARATOR = "|"
 
 
-def get_document():
+def create_astrores_document():
     implementation = xml.dom.getDOMImplementation()
     doctype = implementation.createDocumentType('ASTRO',
                                                 None,
                                                 "http://vizier.u-strasbg.fr/xml/astrores.dtd")
     dom = implementation.createDocument("http://vizier.u-strasbg.fr/doc/astrores.htx", "ASTRO", doctype)
+    dom.getElementsByTagName("ASTRO")[0].setAttribute("ID", "v0.8")
+    dom.getElementsByTagName("ASTRO")[0].setAttribute("xmlns:ASTRO", "http://vizier.u-strasbg.fr/doc/astrores.htx")
     assert isinstance(dom, minidom.Document)
     return dom
 
@@ -38,7 +36,8 @@ class EphemTarget(object):
         """
 
         self.name = str(name)
-        self.doc = get_document()
+
+        self.doc = create_astrores_document()
         table = self.doc.createElement("TABLE")
         table.setAttribute("ID", "Table")
         self.doc.lastChild.appendChild(table)
@@ -126,15 +125,26 @@ class EphemTarget(object):
 
         return header_lines
 
-    def append(self, date, coordinate):
+    def append(self, coordinate):
         """
         Append an target location to the ephemeris listing.
         """
         fields = self.fields
         sra = coordinate.ra.format(units.hour, sep=':', precision=100, pad=True)
-        sdec = coordinate.dec.format(units.degree, sep=':', alwayssign=True)
-        sdate = str(date.replicate(format('iso')))
+        sdec = coordinate.dec.format(units.degree, sep=':', precision=100, alwayssign=True)
+        sdate = str(coordinate.obstime.replicate(format('iso')))
         self.cdata.appendData(self._entry(sdate, fields["DATE_UTC"]['attr']['width'], colsep=self.column_separator))
         self.cdata.appendData(self._entry(sra, fields["RA_J2000"]['attr']['width'], colsep=self.column_separator))
         self.cdata.appendData(self._entry(sdec, fields["DEC_J2000"]["attr"]["width"], colsep=self.column_separator))
         self.cdata.appendData("\n")
+
+    def writer(self, f_handle):
+            self.doc.writexml(f_handle, indent="  ", addindent="  ", newl='\n')
+
+    def save(self, filename=None):
+        if filename is None:
+            filename = "ET_"+self.name+".xml"
+        with file(filename, 'w') as f_handle:
+            self.writer(f_handle)
+
+
