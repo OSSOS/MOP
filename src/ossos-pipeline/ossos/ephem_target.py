@@ -1,6 +1,7 @@
 from astropy import units
 from xml.dom import minidom
 import xml
+from astropy.coordinates import ICRSCoordinates
 
 COLUMN_SEPARATOR = "|"
 
@@ -130,8 +131,11 @@ class EphemTarget(object):
         Append an target location to the ephemeris listing.
         """
         fields = self.fields
-        sra = coordinate.ra.format(units.hour, sep=':', precision=100, pad=True)
-        sdec = coordinate.dec.format(units.degree, sep=':', precision=100, alwayssign=True)
+        sra = coordinate.ra.format(units.hour, sep=':', precision=2, pad=True)
+        sdec = coordinate.dec.format(units.degree, sep=':', precision=1, alwayssign=True)
+        coord = ICRSCoordinates(sra+" "+sdec, unit=(units.hour, units.degree))
+        sra = coord.ra.format(units.hour, sep=":", precision=2, pad=True)
+        sdec = coord.dec.format(units.degree, sep=":", precision=1, pad=True)
         sdate = str(coordinate.obstime.replicate(format('iso')))
         self.cdata.appendData(self._entry(sdate, fields["DATE_UTC"]['attr']['width'], colsep=self.column_separator))
         self.cdata.appendData(self._entry(sra, fields["RA_J2000"]['attr']['width'], colsep=self.column_separator))
