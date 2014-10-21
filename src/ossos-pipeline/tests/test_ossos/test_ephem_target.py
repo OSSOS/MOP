@@ -28,18 +28,18 @@ class TestEphemTarget(TestCase):
         line = et.doc.getElementsByTagName("CSV")[0].firstChild.wholeText.split('\n')[-2]
         values = line.split('|')
         self.assertEqual(len(values), 4)
-        self.assertEqual(values[1], "11:59:59.99")
-        self.assertEqual(values[2], "-10:00:59.9")
+        self.assertEqual(values[1], "12:00:00.00")
+        self.assertEqual(values[2], "-10:01:00.0")
 
     def test_file_write(self):
         """Check that we are writing the file."""
 
         et = ephem_target.EphemTarget("")
-        coordinate = coordinates.ICRSCoordinates("01:27:30.260 +13:40:30.60",
+        coordinate = coordinates.ICRSCoordinates("01:27:30.26 +13:40:30.60",
                                                  unit=(units.hour, units.degree),
                                                  obstime=Time("2014-12-28 09:59:59", scale='utc'))
         et.append(coordinate)
-        coordinate = coordinates.ICRSCoordinates("01:27:29.390 +13:40:20.90",
+        coordinate = coordinates.ICRSCoordinates("01:27:29.39 +13:40:20.90",
                                                  unit=(units.hour, units.degree),
                                                  obstime=Time("2014-12-29 09:59:59", scale='utc'))
         et.append(coordinate)
