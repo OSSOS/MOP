@@ -49,6 +49,7 @@ begin
 	string temp_mag
 	real apmin
 	real apmax
+        real flux_aperture
 	int naps
 	int niters
 	real apcor, aperr
@@ -84,11 +85,15 @@ begin
 
 	apmin = t_fwhm*t_apin
 	apmax = t_fwhm*t_apout
+	naps = (apmax - apmin) +1
+        apmax = apmin + naps
+	naps = (apmax - apmin) +1
 
     # In case of failure, record paramaters
 	print("FWHM  : ", t_fwhm, >> t_image//".jmpmakepsf.FAILED")
 	print("apmin : ", apmin, >> t_image//".jmpmakepsf.FAILED")
 	print("apmax : ", apmax, >> t_image//".jmpmakepsf.FAILED")
+	print("naps  : ", naps, >> t_image//".jmpmakepsf.FAILED")
 	print("thresh: ", t_threshold, >> t_image//".jmpmakepsf.FAILED")
 	print("maxlin: ", t_maxlin, >> t_image//".jmpmakepsf.FAILED")
 	print("base  : ", t_base, >> t_image//".jmpmakepsf.FAILED")
@@ -105,7 +110,7 @@ begin
 	cache("apcor")  
 	cache("photpars")  
 	cache("daopars")	
-    cache("psf")	
+        cache("psf")	
 	
 	# Turn off verbosity and parameter checking in DAOPHOT
 	daophot.verify=no
@@ -113,8 +118,6 @@ begin
 	daophot.update=no
 	psf.showplots=no
 	psf.interactive=no
-
-
 
 	# set the basic 'datapars' for the images.
 	datapars.exposure=""
@@ -156,17 +159,20 @@ begin
 
 	# Reject stars which have bad pixels in the fitting radius.
 	# This is done by computing the aperture photometry on those stars
-	photpars.apertures = apmax
+	photpars.apertures = apmin
 	photpars.zmag = t_zeropoint
 	fitskypars.dannulus = t_swidth*t_fwhm
 	fitskypars.annulus =  apmax + 2
 
  	kdelete(t_image//".mag")
-	phot( t_image, 
-		  t_image//".bright.psf",
-		  t_image//".bright.mag",
-		  centerpars.calgori="centroid",
-		  centerpars.maxshift=3 )
+        flux_aperture = 18.0
+	phot(t_image, 
+	     t_image//".bright.psf",
+	     t_image//".bright.mag",
+	     photpars.apertures=flux_aperture,
+   	     centerpars.calgori="centroid",
+             centerpars.maxshift=3)
+        print (apmin)
 
 	# reject stars with any error in the calculation 
 	# of their photometric magnitude
@@ -200,6 +206,12 @@ begin
 
 	    apmin = int(10*t_apin*t_fwhm + 0.5) / 10.0
             apmax = int(10*t_apout*t_fwhm + 0.5) / 10.0	
+	    naps = (apmax - apmin) + 1
+            apmax = apmin + naps 
+	    naps = (apmax - apmin) + 1
+  	    print("apmin : ", apmin)
+	    print("apmax : ", apmax)
+	    print("naps  : ", naps)
 
 	    # using an aperture smaller than 1.5 pixels under samples
 	    if ( apmin < 1.5 )  {
@@ -220,7 +232,8 @@ begin
 	    ## small aperture and do the photometry to get PSF onto scale of small ap photometry
 	    photpars.apertures = apmin
 	    kdelete(t_image//".mag")
-	    phot(t_image,t_image//".coo.1",t_image//".mag",centerpars.calgori="centroid")
+	    phot(t_image,t_image//".coo.1",t_image//".mag",centerpars.calgori="centroid",photpars.apertures=flux_aperture)
+            print (apmin)
 
 	    ## select out those that have bad values of centroid and photometry issues.
 	    ## the first step removes those stars that have INDEF values for MSKY since those 
@@ -229,15 +242,15 @@ begin
 	    pselect(t_image//".mag",temp_mag,"(CIER==0)&&(PIER==0)&&(SIER==0)&&(MSKY>0 && MSKY < 1e5 && MSKY!=INDEF )")
 
 	    ## now the 'INDEF' values of MSKY are gone so remove stars with large MSKY deviations
-	    kdelete(t_image//".phot")
-	    pselect(temp_mag,t_image//".phot",\
+	    kdelete(t_image//".mag")
+	    pselect(temp_mag,t_image//".mag",\
 		    "CIER == 0 && (abs(MSKY - "//sig//") < 3.0*"//ssig//")")
 	    kdelete(temp_mag)
 
 	    ## time to select upto 25 PSF stars, from the good stars we have left.
-	    print "Selecting upto 25 PSF stars from "//t_image//".phot"
+	    print "Selecting upto 25 PSF stars from "//t_image//".mag"
 	    kdelete(t_image//".pst.1")
-	    pstselect(t_image,t_image//".phot",t_image//".pst.1",25)
+	    pstselect(t_image,t_image//".mag",t_image//".pst.1",25)
 
 	    # use those stars to build an actual PSF
 	    kdelete ( t_image//".pst.2")
@@ -247,7 +260,7 @@ begin
 	       imdelete(t_psf,verify-)
 	    }
 
-	    psf(t_image,t_image//".phot",t_image//".pst.1",
+	    psf(t_image,t_image//".mag",t_image//".pst.1",
 		    t_psf,
 		    t_image//".pst.2",
 		    t_image//".psg.1",showplots-,interactive-)
@@ -315,14 +328,17 @@ begin
 
 	# Run PHOT with a range of apertures.
 	kdelete(t_image//".mag.2")
-    photpars.apertures=apmin//":"//apmax//":1"
-	naps = apmax - apmin +1
+    	photpars.apertures=apmin//":"//apmax+0.1//":1"
+	naps = (apmax - apmin) +1
+	print("apmin : ", apmin)
+	print("apmax : ", apmax)
+	print("naps  : ", naps)
 	if (naps < 3) {
 	    print("inner ("//apmin//") and outer ("//apmax//") aperatures must differ by more than 2 pixels\n")
 	    failedflag=1
 	    goto finalproc
 	}	
-	phot(t_image,t_image//".coo.2",t_image//".mag.2")
+	phot(t_image,t_image//".coo.2",t_image//".mag.2", photpars.apertures=apmin//":"//apmax+0.1//":1")
 	
 
 	# fit that range of apertures to a curve of growth.
