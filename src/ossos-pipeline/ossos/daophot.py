@@ -80,11 +80,13 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
     iraf.photpars.zmag = zmag
     iraf.datapars.datamin = 0
     iraf.datapars.datamax = maxcount
-    #iraf.datapars.exposur="EXPTIME"
     iraf.datapars.exposur = ""
     iraf.datapars.itime = exptime
     iraf.fitskypars.annulus = sky
     iraf.fitskypars.dannulus = swidth
+    iraf.fitskypars.salgorithm = "mode"
+    iraf.fitskypars.sloclip = 5.0
+    iraf.fitskypars.shiclip = 5.0
     iraf.centerpars.calgori = "centroid"
     iraf.centerpars.cbox = 5.
     iraf.centerpars.cthreshold = 0.
@@ -111,9 +113,17 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
     os.remove(magfile.name)
 
     iraf.phot(fits_filename, coofile.name, magfile.name)
+
+    # TODO: Move this filtering downstream to the user.
+    phot_filter = "PIER==0 && CIER==0 && SIER==0"
+
     pdump_out = iraf.pdump(magfile.name, "XCENTER,YCENTER,MAG,MERR,ID,XSHIFT,YSHIFT,LID",
-                           "MERR < 0.4 && MERR != INDEF && MAG != INDEF && PIER==0", header='no', parameters='yes',
+                           phot_filter, header='no', parameters='yes',
                            Stdout=1)
+
+    if not len(pdump_out) > 0:
+        mag_content = open(magfile.name).read()
+        raise TaskError("photometry failed. {}".format(mag_content))
 
     os.remove(coofile.name)
     os.remove(magfile.name)
@@ -165,6 +175,5 @@ def phot_mag(*args, **kwargs):
     try:
         return hdu["data"]["X"][0], hdu["data"]["Y"][0], hdu["data"]["MAG"][0], hdu["data"]["MERR"][0],
     except IndexError:
-        raise TaskError("Photometry cannot be performed.  "
-                        "No magnitude calculated.")
+        raise TaskError("Photometry cannot be performed.  "+str(hdu))
 
