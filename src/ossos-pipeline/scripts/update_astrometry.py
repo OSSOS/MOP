@@ -13,6 +13,8 @@ from ossos.downloads.cutouts import ImageCutoutDownloader
 from ossos import mpc, storage, wcs, astrom
 import argparse
 
+TOLERANCE = 0.25
+
 
 def remeasure(mpc_obs):
     """
