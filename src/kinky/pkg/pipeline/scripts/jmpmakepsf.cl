@@ -17,13 +17,13 @@ real	swidth {15,prompt="swidth as fraction of FWHM"}
 string  base  {"./",prompt="Working directory (include trailing /)."}
 int     order  {3, prompt="Order of the psf. 3 is vary in x and y"}
 real    zeropt {26.0,prompt="Photometric zeropoint"}
-bool    keep_files {no, prompt="Do you want to keep the intermediate files?"}
+bool    keep_files {yes, prompt="Do you want to keep the intermediate files?"}
 
 string  *aplist
 
 begin 	
   
-# 	task parameters 
+# 	task parameters
 	string t_image 
 	string t_psf 
 	string t_base  
@@ -284,7 +284,7 @@ begin
 	    # loops is less than 0.05 (5%)
 	}
 
-	## Check that the output fwhm is reasonablely close to the input one.
+	## Check that the output fwhm is reasonably close to the input one.
 	# and overwrite the input value with the computed one
 	list = t_image//".fwhm"
 	dum = fscan(list, p_fwhm)

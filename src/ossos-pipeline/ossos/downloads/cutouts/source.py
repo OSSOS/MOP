@@ -122,17 +122,14 @@ class SourceCutout(object):
 
     def get_observed_magnitude(self):
         if self.apcor is None:
-            raise TaskError("Photometry cannot be performed.  "
-                            "No magnitude calculated.")
+            raise TaskError("No aperture correction available. Photometry cannot be performed.  ")
 
         # NOTE: this import is only here so that we don't load up IRAF
         # unnecessarily (ex: for candidates processing).
         from ossos import daophot
 
         maxcount = float(self.astrom_header["MAXCOUNT"])
-        mag = -1
-        try:
-            mag = daophot.phot_mag(self._hdulist_on_disk(),
+        return daophot.phot_mag(self._hdulist_on_disk(),
                                    self.pixel_x, self.pixel_y,
                                    aperture=self.apcor.aperture,
                                    sky=self.apcor.sky,
@@ -140,10 +137,6 @@ class SourceCutout(object):
                                    apcor=self.apcor.apcor,
                                    zmag=self.zmag,
                                    maxcount=maxcount)
-        except Exception as e:
-            logger.critical(str(e))
-
-        return mag
 
     def _hdulist_on_disk(self):
         """

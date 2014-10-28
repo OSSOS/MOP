@@ -2,6 +2,7 @@
 """
 Compare the measured fluxes of planted sources against those returned for by digiphot.
 """
+import pprint
 import numpy
 import sys
 
@@ -22,7 +23,7 @@ from astropy.io import ascii
 from astropy.table import MaskedColumn
 
 logger = logging.getLogger('vos')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.CRITICAL)
 logger.addHandler(logging.StreamHandler())
 
 BRIGHT_LIMIT = 23.0
@@ -140,8 +141,8 @@ def match_planted(astrom_filename, match_filename, bright_limit=BRIGHT_LIMIT, ob
     # these are masked columns so that object.planted entries that have no detected match are left 'blank'.
     new_columns = [MaskedColumn(name="measure_x", length=len(planted_objects_table), mask=True),
                    MaskedColumn(name="measure_y", length=len(planted_objects_table), mask=True),
-                   MaskedColumn(name="measure_angle", length=len(planted_objects_table), mask=True),
                    MaskedColumn(name="measure_rate", length=len(planted_objects_table), mask=True),
+                   MaskedColumn(name="measure_angle", length=len(planted_objects_table), mask=True),
                    MaskedColumn(name="measure_mag1", length=len(planted_objects_table), mask=True),
                    MaskedColumn(name="measure_merr1", length=len(planted_objects_table), mask=True),
                    MaskedColumn(name="measure_mag2", length=len(planted_objects_table), mask=True),
@@ -157,7 +158,7 @@ def match_planted(astrom_filename, match_filename, bright_limit=BRIGHT_LIMIT, ob
 
     # This image_slice_downloader handles pulling a small cutout of the image from VOSpace so we can do photometry
     # on this small chunk of the image.
-    image_slice_downloader = ImageCutoutDownloader(slice_rows=20, slice_cols=20)
+    image_slice_downloader = ImageCutoutDownloader(slice_rows=60, slice_cols=60)
 
     for idx in range(len(match_idx)):
         # The match_idx value is False if nothing was found.
@@ -179,24 +180,39 @@ def match_planted(astrom_filename, match_filename, bright_limit=BRIGHT_LIMIT, ob
                 angle = int(angle * 100) / 100.0
                 planted_objects_table['measure_angle'][idx] = angle
             except Exception as err:
-                logger.critical("ERROR: "+str(err))
+                logger.debug("ERROR: "+str(err))
                 pass
 
             for ridx in range(3):
                 measures[ridx].is_inverted = False
                 cutout = image_slice_downloader.download_cutout(measures[ridx], needs_apcor=True)
+                result = None
                 try:
-                    (x, y, mag, merr) = cutout.get_observed_magnitude()
+                    result = cutout.get_observed_magnitude()
+                    (x, y, mag, merr) = result
                     planted_objects_table['measure_mag{}'.format(ridx + 1)][idx] = mag
                     planted_objects_table['measure_merr{}'.format(ridx + 1)][idx] = merr
                 except Exception as e:
-                    logger.warning(str(e))
+                    logger.debug("get_observed_magnitude returned: {}".format(result))
+                    logger.debug("Failed while computing magnitude for source")
+                    logger.debug(pprint.pformat(measures))
+                    logger.debug(str(e))
+                    pass
 
     # Count an object as detected if it has a measured magnitude in the first frame of the triplet.
     n_bright_found = numpy.count_nonzero(planted_objects_table['measure_mag1'][bright])
     # Also compute the offset and standard deviation of the measured magnitude from that planted ones.
     offset = numpy.mean(planted_objects_table['mag'][bright] - planted_objects_table['measure_mag1'][bright])
+    try:
+        offset = "{:5.2f}".format(offset)
+    except:
+        offest = "indef"
+
     std = numpy.std(planted_objects_table['mag'][bright] - planted_objects_table['measure_mag1'][bright])
+    try:
+        std = "{:5.2f}".format(std)
+    except:
+        std = "indef"
 
     fout = storage.open_vos_or_local(match_filename, 'w')
     fout.write("#K {:10s} {:10s}\n".format("EXPNUM", "FWHM"))
@@ -217,13 +233,16 @@ def match_planted(astrom_filename, match_filename, bright_limit=BRIGHT_LIMIT, ob
     for keyword in ["NBRIGHT", "NFOUND", "OFFSET", "STDEV"]:
         fout.write("{:10s} ".format(keyword))
     fout.write("\n")
-    fout.write("#V {} {} {} {}\n".format(n_bright_planted,
-                                         n_bright_found,
-                                         offset,
-                                         std))
-
+    fout.write("#V {:<10} {:<10} {:<10} {:<10}\n".format(n_bright_planted,
+                                          n_bright_found,
+                                          offset,
+                                          std))
+        
     try:
-        ascii.write(planted_objects_table, output=fout, Writer=ascii.FixedWidth, delimiter=None)
+        writer = ascii.FixedWidth
+        # add a hash to the start of line that will have header columns: for JMP
+        fout.write("# ")
+        ascii.write(planted_objects_table, output=fout, Writer=writer, delimiter=None)
     except Exception as e:
         print e
         print str(e)
@@ -252,6 +271,7 @@ def main():
     parser.add_argument('--type', choices=['o', 'p', 's'], help="Which type of image.", default='s')
     parser.add_argument('--measure3', default='vos:OSSOS/measure3/2013B-L_redo/')
     parser.add_argument('--dbimages', default=None)
+    parser.add_argument('--dry-run', action='store_true', default=False)
     parser.add_argument('--force', action='store_true', default=False)
 
     parser.add_argument('--object-planted', default=OBJECT_PLANTED,
@@ -305,17 +325,19 @@ def main():
                                               version=args.type,
                                               prefix=prefix,
                                               ext="measure3.{}.match".format(ext))
-            storage.copy(match_filename, match_uri)
-            uri = os.path.dirname(astrom_uri)
-            keys = [storage.tag_uri(os.path.basename(astrom_uri))]
-            values = [message]
-            storage.set_tags_on_uri(uri, keys, values)
+            if not args.dry_run:
+               storage.copy(match_filename, match_uri)
+               uri = os.path.dirname(astrom_uri)
+               keys = [storage.tag_uri(os.path.basename(astrom_uri))]
+               values = [message]
+               storage.set_tags_on_uri(uri, keys, values)
     except Exception as err:
         sys.stderr.write(str(err))
         status = str(err)
         exit_status = err.message
 
-    storage.set_status(args.expnum, args.ccd, 'astrom_mag_check', version='', status=status)
+    if not args.dry_run:
+       storage.set_status(args.expnum, args.ccd, 'astrom_mag_check', version='', status=status)
 
     return exit_status
 

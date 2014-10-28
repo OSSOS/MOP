@@ -376,6 +376,8 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     else:
         uri = get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix)
         locations.append((uri, cutout))
+        uri = get_uri(expnum, ccd, version, ext=ext+".fz", subdir=subdir, prefix=prefix)
+        locations.append((uri, cutout))
     while len(locations) > 0:
         (uri, cutout) = locations.pop(0)
         try:
