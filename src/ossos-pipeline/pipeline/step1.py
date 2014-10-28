@@ -180,7 +180,7 @@ def main(task='step1'):
         for ccd in ccdlist:
             try:
                 message = storage.SUCCESS
-                if storage.get_status(expnum, ccd, prefix+task, version=args.type):
+                if storage.get_status(expnum, ccd, prefix+task, version=args.type) and not args.force:
                     logging.critical("{} completed successfully for {} {} {} {}".format(task, prefix,
                                                                                         expnum, args.type, ccd))
                     continue
