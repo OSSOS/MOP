@@ -1,0 +1,11 @@
+pyraf
+astropy==0.2.5
+vos
+pyephem
+requests
+pyOpenSSL
+numpy
+wxPython
+pyds9
+matplotlib
+Polygon2
