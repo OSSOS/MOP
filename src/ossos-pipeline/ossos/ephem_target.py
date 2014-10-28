@@ -1,116 +1,154 @@
-#!/usr/bin/env python
-"""Create an ephemeris file for a KBO based on the .abg orbit file.
-   output is in CFHT format"""
+from astropy import units
+from xml.dom import minidom
+import xml
+from astropy.coordinates import ICRSCoordinates
 
-import logging
-import argparse
-
-import datetime
-from astropy import units, coordinates, time
-
-from ossos import mpc
-from ossos import orbfit
-from ossos.cameras import Camera
+COLUMN_SEPARATOR = "|"
 
 
-class EphemTarget:
+def create_astrores_document():
+    implementation = xml.dom.getDOMImplementation()
+    doctype = implementation.createDocumentType('ASTRO',
+                                                None,
+                                                "http://vizier.u-strasbg.fr/xml/astrores.dtd")
+    dom = implementation.createDocument("http://vizier.u-strasbg.fr/doc/astrores.htx", "ASTRO", doctype)
+    dom.getElementsByTagName("ASTRO")[0].setAttribute("ID", "v0.8")
+    dom.getElementsByTagName("ASTRO")[0].setAttribute("xmlns:ASTRO", "http://vizier.u-strasbg.fr/doc/astrores.htx")
+    assert isinstance(dom, minidom.Document)
+    return dom
 
-    ASTRO_FORMAT_HEADER="""<?xml version = "1.0"?>
-<!DOCTYPE ASTRO SYSTEM "http://vizier.u-strasbg.fr/xml/astrores.dtd"> <ASTRO ID="v0.8" xmlns:ASTRO="http://vizier.u-strasbg.fr/doc/astrores.htx">
-<TABLE ID="Table">
-<NAME>Ephemeris</NAME>
-<TITLE>Ephemeris for CFHT QSO</TITLE>
-<!-- Definition of each field -->
-<FIELD name="DATE_UTC" datatype="A" width="19" format="YYYY-MM-DD hh:mm:ss">
-<DESCRIPTION>UTC Date</DESCRIPTION></FIELD>
-<FIELD name="RA_J2000" datatype="A" width="11" unit="h" format="RAh:RAm:RAs">  <DESCRIPTION>Right ascension of target</DESCRIPTION>  </FIELD>
-<FIELD name="DEC_J2000" datatype="A" width="11" unit="deg" format="DEd:DEm:DEs">  <DESCRIPTION>Declination of target</DESCRIPTION>  </FIELD>
-<!-- Data table -->
-<DATA><CSV headlines="4" colsep="|">
-<![CDATA[
-DATE_UTC           |RA_J2000   |DEC_J2000  |
-YYYY-MM-DD hh:mm:ss|hh:mm:ss.ss|+dd:mm:ss.s|
-1234567890123456789|12345678901|12345678901|
--------------------|-----------|-----------|
-"""
-    ASTRO_FORMAT_FOOTER="""]]></CSV></DATA>
-</TABLE>
-</ASTRO>
-"""
 
-    def __init__(self, name):
+class EphemTarget(object):
+
+    nodes = {"NAME": "Ephemeris",
+             "TITLE": "Ephemeris for CFHT QSO"}
+    fields = {"DATE_UTC": {"attr": {"datatype": "A", "width": "19", "format": "YYYY-MM-DD hh:mm:ss"},
+                           "DESCRIPTION": "UTC Date"},
+              "RA_J2000": {"attr": {"datatype": "A", "width": "11", "format": "RAh:RAm:RAs", "unit": "h"},
+                           "DESCRIPTION": "Right ascension of target"},
+              "DEC_J2000": {"attr": {"datatype": "A", "width": "11", "format": "DEd:DEm:DEs", "unit": "deg"},
+                            "DESCRIPTION": "Declination of target"}}
+
+    def __init__(self, name, column_separator=COLUMN_SEPARATOR):
         """
         create an ephmeris target, either with a 'orbfit' object or some mean rate of motion.
 
         :param name: a string containing the name of the target.
         """
+
         self.name = str(name)
-        self.coordinates = []
+
+        self.doc = create_astrores_document()
+        table = self.doc.createElement("TABLE")
+        table.setAttribute("ID", "Table")
+        self.doc.lastChild.appendChild(table)
+
+        self.nodes = EphemTarget.nodes
+        self.fields = EphemTarget.fields
+        self.column_separator = column_separator
+        nodes = self.nodes
+        fields = self.fields
+        self.field_names = ["DATE_UTC", "RA_J2000", "DEC_J2000"]
+
+        for (key, value) in nodes.iteritems():
+            element = self.doc.createElement(key)
+            element.appendChild(self.doc.createTextNode(value))
+            table.appendChild(element)
+
+        table.getElementsByTagName("TITLE")[0].lastChild.appendData(" target {}".format(self.name))
+
+        table.appendChild(self.doc.createComment("Definition of each field"))
+
+        for fieldName in self.field_names:
+            field = self.doc.createElement("FIELD")
+            field.setAttribute("name", fieldName)
+            for (key, value) in fields[fieldName]['attr'].iteritems():
+                field.setAttribute(key, value)
+            description = self.doc.createElement("DESCRIPTION")
+            description.appendChild(self.doc.createTextNode(fields[fieldName]['DESCRIPTION']))
+            field.appendChild(description)
+            table.appendChild(field)
+
+        table.appendChild(self.doc.createComment("Data table"))
+
+        data = self.doc.createElement("DATA")
+        table.appendChild(data)
+
+        header_lines = self._cdata_header(colsep=self.column_separator)
+
+        csv = self.doc.createElement("CSV")
+        csv.setAttribute("headlines", str(len(header_lines)))
+        csv.setAttribute("colsep", self.column_separator)
+        data.appendChild(csv)
+
+        self.cdata = self.doc.createCDATASection("\n"+"\n".join(header_lines)+"\n")
+        csv.appendChild(self.cdata)
+
+    @staticmethod
+    def _entry(value, width, colsep):
+        return "{value:{width}.{width}}{colsep}".format(value=value, width=width, colsep=colsep)
+
+    def _cdata_header(self, colsep="|"):
+        """
+        Create a header for the CDATA section, as a visual guide.
+        """
+        fields = self.fields
+        header_lines = []
+        line = ""
+        for fieldName in self.field_names:
+            width = int(fields[fieldName]['attr']['width'])
+            line += self._entry(fieldName, width, colsep)
+        header_lines.append(line)
+
+        line = ""
+        for fieldName in self.field_names:
+            width = int(fields[fieldName]['attr']['width'])
+            line += self._entry(fields[fieldName]['attr']['format'], width=width, colsep=colsep)
+        header_lines.append(line)
+
+        line = ""
+        for fieldName in self.field_names:
+            width = int(fields[fieldName]['attr']['width'])
+            (l, m) = divmod(width, 10)
+            guide = ""
+            for i in range(l):
+                guide += "".join(map(str, range(10)))
+            guide += "".join(map(str, range(m)))
+            line += self._entry(guide, width=width, colsep=colsep)
+        header_lines.append(line)
+
+        line = ""
+        for fieldName in self.field_names:
+            width = int(fields[fieldName]['attr']['width'])
+            guide = "-" * width
+            line += self._entry(guide, width=width, colsep=colsep)
+        header_lines.append(line)
+
+        return header_lines
+
+    def append(self, coordinate):
+        """
+        Append an target location to the ephemeris listing.
+        """
+        fields = self.fields
+        sra = coordinate.ra.format(units.hour, sep=':', precision=2, pad=True)
+        sdec = coordinate.dec.format(units.degree, sep=':', precision=1, alwayssign=True)
+        coord = ICRSCoordinates(sra+" "+sdec, unit=(units.hour, units.degree))
+        sra = coord.ra.format(units.hour, sep=":", precision=2, pad=True)
+        sdec = coord.dec.format(units.degree, sep=":", precision=1, pad=True)
+        sdate = str(coordinate.obstime.replicate(format('iso')))
+        self.cdata.appendData(self._entry(sdate, fields["DATE_UTC"]['attr']['width'], colsep=self.column_separator))
+        self.cdata.appendData(self._entry(sra, fields["RA_J2000"]['attr']['width'], colsep=self.column_separator))
+        self.cdata.appendData(self._entry(sdec, fields["DEC_J2000"]["attr"]["width"], colsep=self.column_separator))
+        self.cdata.appendData("\n")
+
+    def writer(self, f_handle):
+            self.doc.writexml(f_handle, indent="  ", addindent="  ", newl='\n')
 
     def save(self, filename=None):
-        """
-        Save the ephemeris to a CFHT ETarget formated file.
-
-        :param filename: name of file to write to, defaults to "ET"+name+".xml"
-        :return: result of close()
-        """
         if filename is None:
-            # SG would like us to ALWAYS have the block name in the OBJECT keyword for a given observation.
-            filename = "ET_" + self.name + ".xml"  # FIXME: this method could be handled more smoothly
-        et_file = open(filename, 'w')
-        et_file.write(self.ASTRO_FORMAT_HEADER)
-        for coordinate in self.coordinates:
-            assert isinstance(coordinate, coordinates.ICRSCoordinates)
-            sra = coordinate.ra.format(units.hour, sep=':')
-            sdec = coordinate.dec.format(units.degree, sep=':')
-            sdate = str(coordinate.obstime.replicate(format('iso')))
-            et_file.write("%19s|%11s|%11s|\n" % (sdate[0:19], sra[0:11], sdec[0:11]))
-        et_file.write(self.ASTRO_FORMAT_FOOTER)
-        return et_file.close()
+            filename = "ET_"+self.name+".xml"
+        with file(filename, 'w') as f_handle:
+            self.writer(f_handle)
 
-
-if __name__ == '__main__':
-    logger = logging.getLogger()
-    parser = argparse.ArgumentParser()
-    parser.add_argument('mpc_files', nargs='+', help='mpc_file to base ephemeris from.')
-    parser.add_argument('--verbose', '-v', action='store_true', default=None, help='verbose feedback')
-    parser.add_argument('--start', '-s', default=None, help='Date as YYYY/MM/DD, default is current date')
-    parser.add_argument('--range', '-r', default=30, help='Length of ephemeris is days', type=int)
-    parser.add_argument('--ccd', '-c', default=22, help='Offset so target is on this CCD (0 is the first CCD)')
-    parser.add_argument('--geometry', '-g', default="MEGACAM_36",
-                        help='camera geometry (see ossos.cameras for options); default is MEGACAM_36')
-    parser.add_argument('--dra', default=0, help='Additional RA offset (arcmin)')
-    parser.add_argument('--ddec', default=0, help='Additional DECA offset (arcmin)')
-
-    opt = parser.parse_args()
-    if opt.verbose:
-        logger.setLevel(logging.INFO)
-
-    start_date = (opt.start is not None and time.Time(opt.start, scale='utc')) or \
-                 time.Time(datetime.datetime.utcnow().isoformat(), scale='utc')
-
-    offset = Camera.geometry[opt.geometry]
-
-    ## build orbit instance for object
-    for mpc_file in opt.mpc_files:
-        obs = []
-        for line in open(mpc_file, 'r'):
-            if not line.startswith('#'):
-                ob = mpc.Observation.from_string(line)
-                ob.null_observation = False
-                obs.append(ob)
-        orbit = orbfit.Orbfit(obs)
-
-        et = EphemTarget(orbit.name)
-        for day in range(opt.range):
-            orbit.predict(time.Time(start_date.jd+day, scale='utc', format='jd'))
-            if opt.ccd:
-                orbit.coordinate.ra = orbit.coordinate.ra + coordinates.RA(offset[int(opt.ccd)]["ra"], units.degree)
-                orbit.coordinate.dec = orbit.coordinate.dec + coordinates.Dec(offset[int(opt.ccd)]["dec"], units.degree)
-            if opt.dra:
-                orbit.coordinate.ra = orbit.coordinate.ra + coordinates.RA(float(opt.dra), units.degree)
-            if opt.ddec:
-                orbit.coordinate.dec = orbit.coordinate.dec + coordinates.Dec(float(opt.ddec), units.degree)
-            et.coordinates.append(orbit.coordinate)
-        et.save()
 
