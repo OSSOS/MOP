@@ -444,6 +444,8 @@ class SourceReading(object):
     def __init__(self, x, y, x0, y0, ra, dec, xref, yref, obs, ssos=False, from_input_file=False,
                  null_observation=False, discovery=False, dx=0, dy=0, is_inverted=None):
         """
+
+        :rtype : SourceReading
         Args:
           x, y: the coordinates of the source in this reading.
           x0, y0: the coordinates of the source in this reading, but in
@@ -472,6 +474,7 @@ class SourceReading(object):
         self.dx = dx
         self.dy = dy
         self._from_input_file = None
+        assert isinstance(obs, Observation)
         self.obs = obs
         self.ssos = ssos
         self.from_input_file = from_input_file
