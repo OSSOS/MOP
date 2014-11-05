@@ -5,9 +5,13 @@ observation.
  """
 from copy import deepcopy
 import os
-from astropy.coordinates import ICRSCoordinates
 import math
+
+from astropy.coordinates import ICRSCoordinates
 import numpy
+
+from scripts import summary_plot
+
 
 __author__ = 'jjk'
 
@@ -15,7 +19,7 @@ import logging
 import re
 
 from ossos import mpc, storage, wcs, astrom
-from ossos import orbfit, summary_plot
+from ossos import orbfit
 import argparse
 
 # Maximum allowed change in angle during re-measure
