@@ -7,7 +7,7 @@ import numpy
 import ephem
 import math
 
-import figures
+from ossos import figures
 
 figures.setFigForm()
 
