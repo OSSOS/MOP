@@ -34,6 +34,7 @@ class Orbfit(object):
         accessing that orbit.
 
         Requires at least 3 mpc.Observations in the list.
+        :rtype : Orbfit
         """
         assert isinstance(observations, tuple) or isinstance(observations, list)
         if len(observations) < 3:
@@ -54,13 +55,13 @@ class Orbfit(object):
         self.orbfit.fitradec.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
         for observation in self.observations:
             assert isinstance(observation, mpc.Observation)
-            if observation.null_observation == True:
+            if observation.null_observation:
                 continue
             obs = observation
             self.name = observation.provisional_name
             ra = obs.ra.replace(" ", ":")
             dec = obs.dec.replace(" ", ":")
-            res = 0.3
+            res = obs.comment.plate_uncertainty
             _mpc_file.write("{} {} {} {} {}\n".format(obs.date.jd, ra, dec, res, 568, ))
         _mpc_file.seek(0)
         result = self.orbfit.fitradec(ctypes.c_char_p(_mpc_file.name),
@@ -97,8 +98,10 @@ class Orbfit(object):
             coord1 = coordinates.ICRSCoordinates(self.coordinate.ra, self.coordinate.dec)
             coord2 = coordinates.ICRSCoordinates(observation.coordinate.ra, self.coordinate.dec)
             observation.ra_residual = float(coord1.separation(coord2).arcsecs)
+            observation.ra_residual = (coord1.ra.degrees - coord2.ra.degrees)*3600.0
             coord2 = coordinates.ICRSCoordinates(self.coordinate.ra, observation.coordinate.dec)
             observation.dec_residual = float(coord1.separation(coord2).arcsecs)
+            observation.dec_residual = (coord1.dec.degrees - coord2.dec.degrees)*3600.0
             _residuals += "{:1s}{:12s} {:+05.2f} {:+05.2f} # {}\n".format(
                 observation.null_observation, observation.date, observation.ra_residual, observation.dec_residual, observation)
         return _residuals
