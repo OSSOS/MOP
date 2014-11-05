@@ -6,6 +6,7 @@ from glob import glob
 import os
 import re
 import logging
+import warnings
 
 from astropy.io import ascii
 import vos
@@ -35,7 +36,6 @@ OSSOS_TAG_URI_BASE = 'ivo://canfar.uvic.ca/ossos'
 OBJECT_COUNT = "object_count"
 
 vospace = vos.Client(cadc_short_cut=True)
-vlog = logging.getLogger('vos')
 
 SUCCESS = 'success'
 
@@ -332,7 +332,7 @@ def get_file(expnum, ccd=None, version='p', ext='fits', subdir=None, prefix=None
 
 
 def get_image(expnum, ccd=None, version='p', ext='fits',
-              subdir=None, prefix=None, cutout=None, return_file=True):
+              subdir=None, prefix=None, cutout=None, return_file=True, flip_image=True):
     """Get a FITS file for this expnum/ccd  from VOSpace.
 
 
@@ -367,7 +367,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
         try:
             for this_ext in [ext, ext + ".fz"]:
                 ext_no = int(ccd) + 1
-                flip = (cutout is None and "fits" in ext and (ext_no < 19 and "[-*,-*]" or "[*,*]")) or cutout
+                flip = (cutout is None and "fits" in ext and ((ext_no < 19 and flip_image) and "[-*,-*]" or "[*,*]")) or cutout
                 locations.append((get_uri(expnum, version=version, ext=this_ext, subdir=subdir),
                                   "[{}]{}".format(ext_no, flip)))
         except Exception as e:
@@ -410,7 +410,7 @@ def get_hdu(uri, cutout):
         logger.debug("File already on disk: {}".format(filename))
         return fits.open(filename, scale_back=True)
 
-    logger.debug("Pulling: {} from VOSpace".format(uri))
+    logger.debug("Pulling: {}{} from VOSpace".format(uri, cutout))
     if cutout is not None:
         vos_ptr = vospace.open(uri, view='cutout', cutout=cutout)
     else:
@@ -756,13 +756,16 @@ def increment_object_counter(node_uri, epoch_field, dry_run=False):
     return new_count
 
 
-def get_mopheader(expnum, ccd):
+def get_mopheader(expnum, ccd, version='p', prefix=None):
     """
     Retrieve the mopheader, either from cache or from vospace
+    :rtype : fits.Header
     """
+    prefix = prefix is None and "" or prefix
     mopheader_uri = dbimages_uri(expnum=expnum,
                                  ccd=ccd,
-                                 version='p',
+                                 version=version,
+                                 prefix=prefix,
                                  ext='.mopheader')
     if mopheader_uri in mopheaders:
         return mopheaders[mopheader_uri]
@@ -811,6 +814,7 @@ def _get_sghead(expnum, version):
     """
 
     url = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHTSG/{}{}.head".format(expnum, version)
+    logging.getLogger("requests").setLevel(logging.WARNING)
     resp = requests.get(url)
     if resp.status_code != 200:
         raise IOError(errno.ENOENT, "Could not get {}".format(url))
@@ -835,7 +839,7 @@ def _get_sghead(expnum, version):
 #     resp = requests.get(url)
 
 
-def get_header(uri):
+def get_header(uri, flip_flop=False):
     """
     Pull a FITS header from observation at the given URI
     """
@@ -854,8 +858,8 @@ def get_astheader(expnum, ccd, version='p', prefix=None, ext=None):
     @return:
     """
     if ext is not None:
-        logger.warning("Use of ext keyword for get_astheader is ignored.")
-    logger.info("Getting ast header. for {}".format(expnum))
+        warnings.warn("Use of ext keyword for get_astheader is ignored.")
+    logger.debug("Getting ast header for {}".format(expnum))
     try:
         # first try and get this from CFHTSG header repo
         ast_uri = dbimages_uri(expnum, ccd=None, version=version, ext='.head')
@@ -866,6 +870,7 @@ def get_astheader(expnum, ccd, version='p', prefix=None, ext=None):
         header = astheaders[ast_uri][int(ccd) + 1]
     except Exception as err:
         # An exception was raised, so try getting directly from a fits images instead.
+        warnings.warn("Failed trying to retrieve .head file: {}".format(ast_uri))
         logger.debug(str(err))
         ast_uri = dbimages_uri(expnum, ccd, version=version, ext='.fits')
         if ast_uri not in astheaders:
