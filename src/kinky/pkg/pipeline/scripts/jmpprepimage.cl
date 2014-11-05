@@ -76,17 +76,17 @@ begin
 
 	print ( trymakepsf)
 
-        if ( trymakepsf == 1 ) {
-	    print "Failing over to makepsf from jmpmakepsf"
-	    makepsf(timage,"psf",fwhm=t_fwhm,thresh=t_thresh,maxlin=50000,apmin=3,apmax=15)
-            if ( access(timage//".makepsf.OK") ) {
-	        kdelete (timage//".makepsf.FAILED")
-	        rename(timage//".jmpmakepsf.FAILED",timage//".jmpmakepsf.ERROR")
-	        kdelete (timage//".makepsf.OK")
-	    } else {
-	        print("Makepsf Failed")
-            } ;;
-	}
+        #if ( trymakepsf == 1 ) {
+	#    print "Failing over to makepsf from jmpmakepsf"
+	#    makepsf(timage,"psf",fwhm=t_fwhm,thresh=t_thresh,maxlin=50000,apmin=3,apmax=15)
+        #    if ( access(timage//".makepsf.OK") ) {
+	#        kdelete (timage//".makepsf.FAILED")
+	#        rename(timage//".jmpmakepsf.FAILED",timage//".jmpmakepsf.ERROR")
+	#        kdelete (timage//".makepsf.OK")
+	#    } else {
+	#        print("Makepsf Failed")
+        #    } ;;
+	#}
 
 
 	t_fwhm = datapars.fwhm
