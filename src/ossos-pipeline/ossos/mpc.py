@@ -549,7 +549,7 @@ class Observation(object):
         # the provisional name.
 
         if len(self.provisional_name) > 7:
-            padding = " "
+            padding = ""
         else:
             padding = " " * 4
         ## padding = " " * min(4, 11 - len(self.provisional_name))
