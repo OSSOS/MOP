@@ -508,6 +508,25 @@ class Observation(object):
     def __eq__(self, other):
         return str(self) == str(other)
 
+    def __eq__(self, other):
+        return str(self) == str(other)
+
+    def __ne__(self, other):
+        return str(self) != str(other)
+
+    def __le__(self, other):
+        return self.date <= other.date
+
+    def __lt__(self, other):
+        return self.date < other.date
+
+    def __ge__(self, other):
+        return self.date >= other.date
+
+    def __gt__(self, other):
+        return self.date > other.date
+
+
     @classmethod
     def from_string(cls, input_line):
         """
@@ -818,6 +837,15 @@ class OSSOSComment(object):
 
     def __eq__(self, other):
         return str(self) == str(other)
+
+    def __ne__(self, other):
+        return str(self) != str(other)
+
+    def __le__(self, other):
+        raise NotImplemented
+
+    def __ge__(self, other):
+        raise NotImplemented
 
     @classmethod
     def from_string(cls, comment):
