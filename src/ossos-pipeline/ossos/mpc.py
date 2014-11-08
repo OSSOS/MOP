@@ -120,6 +120,43 @@ class MPCFormatError(Exception):
     """Base class for errors in MPC formatting."""
 
 
+class TNOdbFlags(object):
+    """
+    The OSSOS/CFEPS database has a 'flag' field that indicates OSSOS specific issues associated with an
+    MPC formatted line in the database.
+    """
+
+    def __init__(self, flags):
+
+        if not re.match("[10]{12}", flags):
+            raise ValueError("illegal flag string: {}".format(flags))
+        self.__flags = flags
+
+    def __str__(self):
+        return self.__flags
+
+    @property
+    def is_discovery(self):
+        """
+        Is this observation part of the discovery triplet?  bit 1
+        :return: bool
+        """
+        return self.__flags[0] == 1
+
+    @is_discovery.setter
+    def is_discovery(self, is_discovery):
+        self.__flags[0] == bool(is_discovery) and "1" or "0"
+
+    @property
+    def is_secret(self):
+        """
+        Is this observation secret? bit 2
+        :return: bool
+        """
+        return self.__flags[1] == 1
+
+
+
 class MPCFieldFormatError(MPCFormatError):
     def __init__(self, field, requirement, actual):
         super(MPCFieldFormatError, self).__init__(
@@ -737,7 +774,7 @@ class Observation(object):
 
     @mag.setter
     def mag(self, mag):
-        if mag is None or len(str(str(mag).strip(' '))) == 0:
+        if mag is None or len(str(str(mag).strip(' '))) == 0 or float(mag) < 0:
             self._mag_precision = 0
             self._mag = None
         else:
