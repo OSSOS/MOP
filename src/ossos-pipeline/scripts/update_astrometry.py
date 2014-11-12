@@ -10,7 +10,7 @@ import math
 from astropy.coordinates import ICRSCoordinates
 import numpy
 
-from scripts import summary_plot
+import summary_plot
 
 
 __author__ = 'jjk'
@@ -213,7 +213,6 @@ def main(mpc_file, cor_file, skip_mags=False):
             logging.error("Large offset: {} arc-sec".format(sep))
             logging.error("orig: {}".format(mpc_in.to_string()))
             logging.error(" new: {}".format(mpc_mag.to_string()))
-            raise ValueError("RA/DEC offset exceeds tolerance.")
         logging.info("modi: {}".format(mpc_mag.to_string()))
         logging.info("")
         original_obs.append(mpc_in)
@@ -232,7 +231,7 @@ def main(mpc_file, cor_file, skip_mags=False):
         mval = getattr(modified, element)
         dmval = getattr(modified, "d"+element)
         precision = max(int(-1*math.floor(math.log10(dmval))), int(-1*math.floor(math.log10(doval)))) + 1
-        precision = precision < 0 and 0 or precision
+        precision = max(0, precision)
         vdigits = 12
         ddigits = 6
         vpadding = " "*int(vdigits-precision)
