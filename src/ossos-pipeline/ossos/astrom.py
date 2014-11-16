@@ -682,27 +682,27 @@ class Observation(object):
         return self.fk == FAKE_PREFIX or self.ftype == 's'
 
     def get_image_uri(self):
-        # TODO: make more general - have logic for trying alternative locations
-        uri = "%s/%s/" % (DATASET_ROOT, self.expnum)
-
-        if self.is_fake():
-            uri += "ccd%s/%s.fits" % (self.ccdnum, self.rawname)
-        else:
-            uri += "%s%s.fits" % (self.expnum, self.ftype)
-        logger.debug("sending back URI: {}".format(uri))
-        return uri
+        return storage.dbimages_uri(self.expnum,
+                                    ccd=self.ccdnum,
+                                    version=self.ftype,
+                                    prefix=self.fk, )
 
     def get_object_planted_uri(self):
-        return "%s/%s/ccd%s/Object.planted" % (DATASET_ROOT, self.expnum,
-                                               self.ccdnum)
+        return os.path.dirname(self.get_image_uri())+"/Object.planted"
 
     def get_apcor_uri(self):
-        ccd = "ccd{:02d}".format(int(self.ccdnum))
-        return "%s/%s/%s/%s.apcor" % (DATASET_ROOT, self.expnum, ccd, self.rawname)
+        return storage.dbimages_uri(self.expnum,
+                                    ccd=self.ccdnum,
+                                    version=self.ftype,
+                                    prefix=self.fk,
+                                    ext=storage.APCOR_EXT)
 
     def get_zmag_uri(self):
-        ccd = "ccd{:02d}".format(int(self.ccdnum))
-        return "%s/%s/%s/%s.zeropoint.used" % (DATASET_ROOT, self.expnum, ccd, self.rawname)
+        return storage.dbimages_uri(self.expnum,
+                                    ccd=self.ccdum,
+                                    version=self.ftype,
+                                    prefix=self.fk,
+                                    ext=storage.ZEROPOINT_USED_EXT)
 
     @property
     def header(self):
