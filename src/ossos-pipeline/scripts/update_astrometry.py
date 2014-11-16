@@ -10,8 +10,6 @@ import math
 from astropy.coordinates import ICRSCoordinates
 import numpy
 
-import summary_plot
-
 
 __author__ = 'jjk'
 
@@ -283,8 +281,6 @@ def main(mpc_file, cor_file, skip_mags=False):
         if inp != out:
             optr.write(out.to_tnodb()+"\n")
     optr.close()
-
-    summary_plot.build_summary_plot(original_obs, modified_obs, cor_file+".pdf")
     return True
 
 if __name__ == '__main__':
