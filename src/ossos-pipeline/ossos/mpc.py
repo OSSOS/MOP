@@ -246,9 +246,13 @@ class MPCNote(object):
 
         if _code.isdigit():
             if self.note_type != 'Note1':
-                logging.debug("code {}".format(_code))
+                raise MPCFieldFormatError(self.note_type,
+                                          "Must be a character",
+                                          _code)
             if _code not in range(10):
-                logging.debug("code {}".format(_code))
+                raise MPCFieldFormatError(self.note_type,
+                                          "numeric value must be between 0 and 9",
+                                          _code)
         else:
             if len(_code) > 1:
                 raise MPCFieldFormatError(self.note_type,
@@ -480,7 +484,6 @@ class Observation(object):
                  frame=None,
                  plate_uncertainty=None,
                  astrometric_level=0):
-
         """
 
         :param provisional_name:
@@ -1159,10 +1162,11 @@ class MPCWriter(object):
                 not self._discovery_written):
             obs.discovery = True
 
-        if obs.discovery and self._discovery_written:
-            obs.discovery.is_initial_discovery = False
-        else:
-            self._discovery_written = True
+        if obs.discovery:
+            if self._discovery_written:
+                obs.discovery.is_initial_discovery = False
+            else:
+                self._discovery_written = True
 
         if obs.date.jd not in self._written_mpc_observations:
             self._written_mpc_observations.append(obs.date.jd)
@@ -1213,20 +1217,38 @@ def make_tnodb_header(observations, observatory_code=None, observers=DEFAULT_OBS
 
 class MPCReader(object):
     """
-    Takes the filename of either a .mpc or .ast format file and parses that file
-    to instantiate an array of mpc.Observation objects.
+    A class to read in MPC files.
+
+    Can be initialized with a filename, will then initialize the mpc_observations attribute to hold the observations.
     """
 
-    def __init__(self, filename, replace_provisional=None):
-        self.mpc_observations = []
-        filehandle = storage.open_vos_or_local(filename, "rb")
+    def __init__(self, filename=None, replace_provisional=None, provisional_name=None):
+        self.replace_provisional = replace_provisional
+        self._provisional_name = provisional_name
+        if filename is not None:
+            self.filename = filename
+            self.mpc_observations = self.read(filename)
+
+    def read(self, filename):
+        """
+        Read  MPC records from filename:
+
+        :param filename: filename of file like object.
+        :rtype : numpy.ndarray
+        """
+
+        self.filename = filename
+        # can be a file like objects,
+        if isinstance(filename, basestring):
+            filehandle = storage.open_vos_or_local(filename, "rb")
+        else:
+            filehandle = filename
+
         filestr = filehandle.read()
         filehandle.close()
-
         input_mpc_lines = filestr.split('\n')
-
+        mpc_observations = []
         next_comment = None
-
         for line in input_mpc_lines:
             mpc_observation = Observation.from_string(line)
             if isinstance(mpc_observation, OSSOSComment):
@@ -1237,11 +1259,31 @@ class MPCReader(object):
                     mpc_observation.comment = next_comment
                     next_comment = None
 
-                if replace_provisional is not None:  # then it has an OSSOS designation: set that in preference
-                    mpc_observation.provisional_name = replace_provisional
-                self.mpc_observations.append(mpc_observation)
+                if self.replace_provisional is not None:  # then it has an OSSOS designation: set that in preference
+                    mpc_observation.provisional_name = self.provisional_name
+                mpc_observations.append(mpc_observation)
+        return numpy.array(mpc_observations)
 
-        self.mpc_observations.sort(key=lambda obs: obs.date.jd)
+    @property
+    def provisional_name(self):
+        """
+        Determine the provisional name based on the file being accessed.
+        :return: str
+        """
+        if self._provisional_name is not None:
+            return self._provisional_name
+        if isinstance(self.filename, basestring):
+            self._provisional_name = self.filename
+        elif hasattr(self.filename, 'name'):
+            self._provisional_name = self.filename.name
+        elif hasattr(self.filename, 'filename'):
+            self._provisional_name = self.filename.filename
+        elif hasattr(self.filename, '__class__'):
+            self._provisional_name = str(self.filename.__class__)
+        else:
+            self._provisional_name = str(type(self.filename))
+        self._provisional_name = os.path.basename(self._provisional_name)
+        return self._provisional_name
 
 
 class Index(object):
