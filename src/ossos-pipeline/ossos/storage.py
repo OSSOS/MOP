@@ -43,6 +43,10 @@ SUCCESS = 'success'
 mopheaders = {}
 astheaders = {}
 
+APCOR_EXT = "apcor"
+ZEROPOINT_USED_EXT = "zeropoint.used"
+PSF_EXT = "psf.fits"
+
 
 def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2):
     """Do a QUERY on the TAP service for all observations that are part of OSSOS (*P05/*P016)
