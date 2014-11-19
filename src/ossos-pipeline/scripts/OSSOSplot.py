@@ -639,7 +639,6 @@ class Plot(Canvas):
         self.plot_pointings()
         return
 
-
     def create_pointing(self, event, label_text=None):
         """Plot the sky coverage of pointing at event.x,event.y on the canvas.
 
@@ -672,7 +671,6 @@ class Plot(Canvas):
         self.current = len(self.pointings) - 1
         self.current_pointing(len(self.pointings) - 1)
 
-
     def plot_pointings(self, pointings=None):
         """Plot pointings on canavs"""
 
@@ -699,7 +697,6 @@ class Plot(Canvas):
                 label['id'] = self.label(pointing["camera"].ra, pointing["camera"].dec, label['text'])
             pointing["items"] = items
             pointing["label"] = label
-
 
     def set_pointing_label(self):
         """Let the label of the current pointing to the value in the plabel box"""
