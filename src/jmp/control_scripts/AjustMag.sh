@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/bin/bash
 
 fwhm="4.0"
 thresh="4.0"

@@ -1,4 +1,4 @@
-#! /bin/csh
+#!/bin/csh
 echo $0 $*
 # Builds a psf of image $2 which is waiting in directory $1
 # 
