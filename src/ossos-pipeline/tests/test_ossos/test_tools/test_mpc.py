@@ -608,8 +608,7 @@ class MPCWriterTest(unittest.TestCase):
         self.undertest = mpc.MPCWriter(self.outputfile, auto_flush=False,
                                        include_comments=False)
 
-        obs1 = mpc.Observation(minor_planet_number="12345",
-                               provisional_name="A234567",
+        obs1 = mpc.Observation(provisional_name="A234567",
                                note1="H",
                                note2="N",
                                date="2012 10 21.405160",
@@ -618,8 +617,7 @@ class MPCWriterTest(unittest.TestCase):
                                mag="123.5",
                                band="A",
                                observatory_code="523")
-        obs2 = mpc.Observation(minor_planet_number="12345",
-                               provisional_name="A234567",
+        obs2 = mpc.Observation(provisional_name="A234567",
                                note1="H",
                                note2="N",
                                date="2012 11 21.405160",
