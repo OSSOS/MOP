@@ -120,7 +120,7 @@ class SourceCutout(object):
         """
         return self.coordinate_converter.get_inverse_converter().convert(point)
 
-    def get_observed_magnitude(self):
+    def get_observed_magnitude(self, **kwargs):
         if self.apcor is None:
             raise TaskError("No aperture correction available. Photometry cannot be performed.  ")
 
@@ -128,7 +128,7 @@ class SourceCutout(object):
         # unnecessarily (ex: for candidates processing).
         from ossos import daophot
 
-        maxcount = float(self.astrom_header["MAXCOUNT"])
+        maxcount = float(self.astrom_header.get("MAXCOUNT", 30000))
         return daophot.phot_mag(self._hdulist_on_disk(),
                                    self.pixel_x, self.pixel_y,
                                    aperture=self.apcor.aperture,

@@ -50,7 +50,7 @@ class ImageCutoutDownloader(Downloader):
             focus = reading.source_point
 
         assert isinstance(reading, SourceReading)
-        dx = dy = 2* max(reading.dra, reading.ddec)
+        dx = dy = 2 * max(reading.dra, reading.ddec)
         dx = max(reading.dx, dx)
         dy = max(reading.dy, dy)
 
@@ -68,7 +68,7 @@ class ImageCutoutDownloader(Downloader):
         cutout = re.findall(r'(\d+)', cutout_str)
         y2 = int(cutout[-1])
         y1 = int(cutout[-2])
-        logger.info("Calculated cutout: %s for %s"
+        logger.debug("Calculated cutout: %s for %s"
                      % (cutout_str, image_uri))
 
         hdulist = self.download_hdulist(image_uri, view="cutout",
@@ -82,7 +82,7 @@ class ImageCutoutDownloader(Downloader):
                 x1 = int(NAXIS1) - int(datasec[1]) + 1
                 y2 = int(NAXIS2) - int(datasec[2]) + 1
                 y1 = int(NAXIS2) - int(datasec[3]) + 1
-                logger.info("Flip/Flopped DATASEC from {} to [{}:{}:{}:{}]".format(DATASEC, x1,x2,y1,y2))
+                logger.debug("Flip/Flopped DATASEC from {} to [{}:{}:{}:{}]".format(DATASEC, x1,x2,y1,y2))
                 datasec = (x1,x2,y1,y2)
             (x1,y1) = converter.convert((int(datasec[0]),int(datasec[2])))
             x1 = max(1,x1)
@@ -91,7 +91,7 @@ class ImageCutoutDownloader(Downloader):
             x2 = min(x2, int(hdulist[0].header['NAXIS1']))
             y2 = min(y2, int(hdulist[0].header['NAXIS2']))
             datasec = "[{}:{},{}:{}]".format(x1,x2,y1,y2)
-            logger.info("Trimmed and offset DATASEC from {} to {}".format(DATASEC, datasec))
+            logger.debug("Trimmed and offset DATASEC from {} to {}".format(DATASEC, datasec))
 
             hdulist[0].header['DATASEC'] = datasec
 

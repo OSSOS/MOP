@@ -442,8 +442,11 @@ class SourceReading(object):
     """
 
     def __init__(self, x, y, x0, y0, ra, dec, xref, yref, obs, ssos=False, from_input_file=False,
-                 null_observation=False, discovery=False, dx=0, dy=0, is_inverted=None):
+                 null_observation=False, discovery=False, dx=0, dy=0, is_inverted=None,
+                 naxis1=2112, naxis2=4644):
         """
+
+        :rtype : SourceReading
         Args:
           x, y: the coordinates of the source in this reading.
           x0, y0: the coordinates of the source in this reading, but in
@@ -453,6 +456,7 @@ class SourceReading(object):
           xref, yref: coordinates of the source in the reference image, in
             the reference image's coordinate frame.
           obs: the observation in which this reading was taken.
+          naxis1, naxis2: the size of the FITS image where this detection is from.
         @param is_inverted:
         """
         self.x = float(x)
@@ -463,6 +467,9 @@ class SourceReading(object):
         self.dec = float(dec)
         self.xref = float(xref)
         self.yref = float(yref)
+        # Making these parameters saves a trip vospace.
+        self.naxis1 = int(naxis1)
+        self.naxis2 = int(naxis2)
         self.dra = 0
         self.ddec = 0
         self.pa = 0
@@ -472,6 +479,7 @@ class SourceReading(object):
         self.dx = dx
         self.dy = dy
         self._from_input_file = None
+        assert isinstance(obs, Observation)
         self.obs = obs
         self.ssos = ssos
         self.from_input_file = from_input_file
@@ -483,7 +491,6 @@ class SourceReading(object):
                 self.is_inverted = False
             else:
                 self.is_inverted = self.compute_inverted()
-
 
     @property
     def from_input_file(self):
@@ -513,7 +520,7 @@ class SourceReading(object):
         return self.obs.header
 
     def get_original_image_size(self):
-        return (2112, 4644)
+        return self.naxis1, self.naxis2
         # header = self.get_observation_header()
         # return (int(header[Observation.HEADER_IMG_SIZE_X]),
         #        int(header[Observation.HEADER_IMG_SIZE_Y]))
@@ -647,15 +654,12 @@ class Observation(object):
             logger.critical('Image exists but processing incomplete. Mopheader missing. {}'.format(image_uri))
             return None
 
-        mopheader = storage.get_mopheader(expnum, ccd)
-
         # Build astrom.Observation
         observation = Observation(expnum=str(expnum),
                                   ftype='p',
                                   ccdnum=str(ccd),
                                   fk="")
         observation.rawname = os.path.splitext(os.path.basename(image_uri))[0]+str(ccd).zfill(2)
-        observation.header = mopheader
 
         return observation
 
@@ -678,27 +682,27 @@ class Observation(object):
         return self.fk == FAKE_PREFIX or self.ftype == 's'
 
     def get_image_uri(self):
-        # TODO: make more general - have logic for trying alternative locations
-        uri = "%s/%s/" % (DATASET_ROOT, self.expnum)
-
-        if self.is_fake():
-            uri += "ccd%s/%s.fits" % (self.ccdnum, self.rawname)
-        else:
-            uri += "%s%s.fits" % (self.expnum, self.ftype)
-        logger.debug("sending back URI: {}".format(uri))
-        return uri
+        return storage.dbimages_uri(self.expnum,
+                                    ccd=self.ccdnum,
+                                    version=self.ftype,
+                                    prefix=self.fk, )
 
     def get_object_planted_uri(self):
-        return "%s/%s/ccd%s/Object.planted" % (DATASET_ROOT, self.expnum,
-                                               self.ccdnum)
+        return os.path.dirname(self.get_image_uri())+"/Object.planted"
 
     def get_apcor_uri(self):
-        ccd = "ccd{:02d}".format(int(self.ccdnum))
-        return "%s/%s/%s/%s.apcor" % (DATASET_ROOT, self.expnum, ccd, self.rawname)
+        return storage.dbimages_uri(self.expnum,
+                                    ccd=self.ccdnum,
+                                    version=self.ftype,
+                                    prefix=self.fk,
+                                    ext=storage.APCOR_EXT)
 
     def get_zmag_uri(self):
-        ccd = "ccd{:02d}".format(int(self.ccdnum))
-        return "%s/%s/%s/%s.zeropoint.used" % (DATASET_ROOT, self.expnum, ccd, self.rawname)
+        return storage.dbimages_uri(self.expnum,
+                                    ccd=self.ccdum,
+                                    version=self.ftype,
+                                    prefix=self.fk,
+                                    ext=storage.ZEROPOINT_USED_EXT)
 
     @property
     def header(self):
