@@ -19,7 +19,11 @@ class Camera:
                 "MEGACAM_00": [
                     {"ra": 0, "dec": 0, "dra": 2112 * 0.185 / 3600.0, "ddec": 4640 * 0.185 / 3600.0}
                 ],
-                "MEGACAM_36": [
+                "MEGACAM_40": [
+                    {"ra": +0.440 + 0.111, "dec": -0.105, "ddec": 0.241, "dra": 0.111},
+                    {"ra": +0.438 + 0.111, "dec": +0.128, "ddec": 0.241, "dra": 0.111},
+                    {"ra": -0.438 - 0.111, "dec": -0.111, "ddec": 0.241, "dra": 0.111},
+                    {"ra": -0.438 - 0.111, "dec": +0.128, "ddec": 0.241, "dra": 0.111},
                     {"ra": 0.435, "dec": 0.394, "dra": 0.111, "ddec": 0.238},
                     {"ra": 0.327, "dec": 0.394, "dra": 0.112, "ddec": 0.238},
                     {"ra": 0.218, "dec": 0.394, "dra": 0.112, "ddec": 0.239},
@@ -175,9 +179,9 @@ class Camera:
             dec=math.degrees(self.dec),
             unit=(units.degree, units.degree))
 
-    def __init__(self, camera="MEGACAM_36"):
+    def __init__(self, camera="MEGACAM_1"):
         if camera == '':
-            camera = "MEGACAM_36"
+            camera = "MEGACAM_1"
         self.camera = camera
 
     def __str__(self):

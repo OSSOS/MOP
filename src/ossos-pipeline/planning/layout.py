@@ -29,16 +29,17 @@ def plot_line(axes, fname, ltype):
 
 MPCORB_FILE = os.path.join(os.getenv('HOME', '/Users/jjk'), 'MPCORB.DAT')
 L7MODEL = 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
-L7MODEL = '/Users/kavelaarsj/Dropbox/Research/KuiperBelt/OSSOS/L7SyntheticModel-v09.txt'
+L7MODEL = '/Users/jjk/Dropbox/Research/KuiperBelt'
+L7MODEL = '/tmp/vospace/OSSOS/CFEPS/L7SyntheticModel-v09.txt'
 REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/ast/'
 
-PLOT_FIELD_EPOCH = 'Oct14'  # Oct14.00 ==> '0' days since the New Moon on Oct14
+PLOT_FIELD_EPOCH = 'Nov15'  # Oct14.00 ==> '0' days since the New Moon on Oct14
 #TODO the .00 is appended when this variable is used as a keyword that needs that .00 this is bad.
-DISCOVERY_NEW_MOON = 'Nov13'  # this is the date that the RA/DEC in blocks corresponds to.
+DISCOVERY_NEW_MOON = 'Nov15'  # this is the date that the RA/DEC in blocks corresponds to.
 
 
 PLOT_USNO_STARS = True
-PLOT_MEGACAM_ARCHIVE_FIELDS = True   ## TODO Make this work when True
+PLOT_MEGACAM_ARCHIVE_FIELDS = False   ## TODO Make this work when True
 PLOT_SYNTHETIC_KBOS = True
 PLOT_SYNTHETIC_KBO_TRAILS = False
 PLOT_REAL_KBOS = False and os.access(REAL_KBO_AST_DIR,os.F_OK)
@@ -58,11 +59,11 @@ fig_height = fig_width * golden_mean * 1.5
 fig_size = [fig_width, fig_height]
 
 params = {'backend': 'pdf',
-          'axes.labelsize': 10,
-          'text.fontsize': 10,
+          'axes.labelsize': 12,
+          'text.fontsize': 12,
           'legend.fontsize': 10,
-          'xtick.labelsize': 8,
-          'ytick.labelsize': 8,
+          'xtick.labelsize': 10,
+          'ytick.labelsize': 10,
           'text.usetex': False,
           'font.serif': 'Times',
           'font.family': 'serif',
@@ -147,33 +148,65 @@ blocks = {'13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"},  # ,
 ## this position is derived from the +0+0 field for 13B observed on November 1st 2013
 blocks = {'14BH': {'RA': "01:28:32.32", "DEC": "+12:51:06.10"}}
 
+#fall 2015
+blocks = {'15BD': {'RA': "03:15:00.00", "DEC": "+16:30:00.00"}}
+
 #spring14
 
 
-newMoons = {'Feb13': "2013/02/10 10:00:00",
-            'Mar13': "2013/03/11 10:00:00",
-            'Apr13': "2013/04/10 10:00:00",
-            'May13': "2013/05/09 10:00:00",
-            'Jun13': "2013/06/08 10:00:00",
-            'Jul13': "2013/07/08 10:00:00",
-            'Aug13': "2013/08/06 10:00:00",
-            'Sep13': '2013/09/05 10:00:00',
-            'Oct13': '2013/10/04 10:00:00',
-            'Nov13': '2013/11/03 10:00:00',
-            'Dec13': '2013/12/02 10:00:00',
-            'Jan14': '2014/01/01 10:00:00',
-            'Feb14': '2014/01/31 10:00:00',
-            'Mar14': '2014/03/28 10:00:00',
-            'Apr14': '2014/04/01 10:00:00',
-            'May14': '2014/05/28 10:00:00',
-            'Jun14': '2014/06/26 10:00:00',
-            'Jul14': '2014/07/26 10:00:00',
-            'Aug14': "2014/08/25 10:00:00",
-            'Sep14': '2014/09/24 10:00:00',
-            'Oct14': '2014/10/23 10:00:00',
-            'Nov14': '2014/11/22 10:00:00',
-            'Dec14': '2014/12/22 10:00:00',
-            }
+newMoons = {
+#    'Feb13': "2013/02/10 10:00:00",
+#    'Mar13': "2013/03/11 10:00:00",
+#    'Apr13': "2013/04/10 10:00:00",
+#    'May13': "2013/05/09 10:00:00",
+#    'Jun13': "2013/06/08 10:00:00",
+#    'Jul13': "2013/07/08 10:00:00",
+#    'Aug13': "2013/08/06 10:00:00",
+#    'Sep13': '2013/09/05 10:00:00',
+#    'Oct13': '2013/10/04 10:00:00',
+#    'Nov13': '2013/11/03 10:00:00',
+#    'Dec13': '2013/12/02 10:00:00',
+#    'Jan14': '2014/01/01 10:00:00',
+#    'Feb14': '2014/01/31 10:00:00',
+#    'Mar14': '2014/03/28 10:00:00',
+#    'Apr14': '2014/04/01 10:00:00',
+#    'May14': '2014/05/28 10:00:00',
+#    'Jun14': '2014/06/26 10:00:00',
+#    'Jul14': '2014/07/26 10:00:00',
+#    'Aug14': "2014/08/25 10:00:00",
+#    'Sep14': '2014/09/24 10:00:00',
+#    'Oct14': '2014/10/23 10:00:00',
+    'Nov14': '2014/11/22 10:00:00',
+    'Dec14': '2014/12/22 10:00:00',
+    'Jan15': '2015/01/20 10:00:00',
+    'Feb15': '2015/02/18 10:00:00',
+    'Mar15': '2015/03/19 10:00:00',
+    'Apr15': '2015/04/18 10:00:00',
+    'May15': '2015/05/17 10:00:00',
+    'Jun15': '2015/06/16 10:00:00',
+    'Jul15': '2015/07/15 10:00:00',
+    'Aug15': '2015/08/14 10:00:00',
+    'Sep15': '2015/09/12 10:00:00',
+    'Oct15': '2015/10/12 10:00:00',
+    'Nov15': '2015/11/11 10:00:00',
+    'Dec15': '2015/12/11 10:00:00',
+    'Jan16': '2016/01/09 10:00:00',
+    'Feb16': '2016/03/08 10:00:00',
+    'Mar16': '2016/03/09 10:00:00',
+    'Apr16': '2016/04/08 10:00:00',
+    'May16': '2016/05/07 10:00:00',
+    'Jun16': '2016/06/05 10:00:00',
+    'Jul16': '2016/07/05 10:00:00',
+    'Aug16': '2016/08/03 10:00:00',
+    'Sep16': '2016/09/01 10:00:00',
+    'Oct16': '2016/10/01 10:00:00',
+    'Nov16': '2016/11/01 10:00:00',
+    'Dec16': '2016/12/01 10:00:00',
+    'Jan17': '2017/01/01 10:00:00',
+    'Feb17': '2017/02/01 10:00:00',
+    }
+
+
 
 xgrid = {'2014': [-3, -2, -1, 0, 1, 2, 3],
          '2014r': [-3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5],
@@ -303,6 +336,10 @@ ra_cen = 180.0
 dec_cen = 0.0
 width = 360
 height = 70
+ra_cen = 45.0
+dec_cen = 17.5
+width = 30
+height = 30
 
 ## lets make a plot of the field selections.
 fig = figure()
@@ -369,7 +406,7 @@ dates = {}
 
 ## build a list of dates that we will need field locations for.
 for month in newMoons:
-    for night in range(-7, 8):
+    for night in range(-8, 9):
         epoch = "%s.%s" % (month, string.zfill(night, 2))
         dates[epoch] = ephem.date(ephem.date(newMoons[month]) + night)
         seps[epoch] = {'dra': 0, 'ddec': 0}
@@ -450,7 +487,7 @@ if PLOT_USNO_STARS:
     print "PLOTTING LOCATIONS NEARBY BRIGHT USNO B1 STARS"
     for ra in range(int(ra_cen - width/2.0),int(ra_cen + width/2.), 10):
         for dec in range(int(dec_cen - height/2.0),int(dec_cen + height/2.), 10):
-	    file_name = "/Users/kavelaarsj/usno/usno{:5.2f}{:5.2f}.xml".format(ra,dec)
+	    file_name = "/Users/jjk/usno/usno{:5.2f}{:5.2f}.xml".format(ra,dec)
 	    if not os.access(file_name, os.R_OK):
                 usno = usnoB1.TAPQuery(ra, dec, 10.0, 10.0)
 		fobj=open(file_name,'w')
@@ -484,7 +521,7 @@ if PLOT_MEGACAM_ARCHIVE_FIELDS:
 
     for qra in range(int(ra_cen - width/2.0),int(ra_cen + width/2.), 60):
         for qdec in range(int(dec_cen - height/2.0),int(dec_cen + height/2.), 30):
-            filename = "/Users/kavelaarsj/usno/megacam{:+6.2f}{:+6.2f}.xml".format(qra,qdec)
+            filename = "/Users/jjk/usno/megacam{:+6.2f}{:+6.2f}.xml".format(qra,qdec)
             if not os.access(filename, os.R_OK):
                 data = megacam.TAPQuery(qra, qdec, 60.0, 30.0).read()
                 fobj = open(filename, 'w')
