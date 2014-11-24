@@ -546,13 +546,10 @@ class Observation(object):
                                     comment=comment)
 
     def __eq__(self, other):
-        return str(self) == str(other)
-
-    def __eq__(self, other):
-        return str(self) == str(other)
+        return self.to_string() == other.to_string() 
 
     def __ne__(self, other):
-        return str(self) != str(other)
+        return self.to_string() != other.to_string()
 
     def __le__(self, other):
         return self.date <= other.date
