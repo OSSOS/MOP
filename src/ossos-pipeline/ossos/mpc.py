@@ -929,6 +929,8 @@ class OSSOSComment(object):
 
 
         retval.version = values[0]
+        logging.debug("length of values: {}".format(len(values)))
+        logging.debug("Values: {}".format(str(values)))
         # the format of the last section evolved during the survey, but the following flags should handle this.
         if len(values) == 7:
             retval.plate_uncertainty = values[6]
@@ -944,7 +946,7 @@ class OSSOSComment(object):
             retval.astrometric_level = values[9]
             retval.mag = values[6]
             retval.mag_uncertainty = values[7]
-
+        logging.debug("DONE.")
         return retval
 
 
@@ -1421,10 +1423,11 @@ class TNOdbComment(OSSOSComment):
     @classmethod
     def from_string(cls, line):
         if len(line) < 56:
-            raise ValueError("Not a valid TNOdb comment string: {}".format(line))
+            raise ValueError("Line too short, not a valid TNOdb comment string: {}".format(line))
         index = line[0:14].strip()
         if not re.match(r'\d{8}_\S{3}_\S', index):
-            raise ValueError("Not a valid TNOdb comment string: {}".format(line))
+            raise ValueError("No valid flags, not a valid TNOdb comment string: {}".format(line))
+
         date = line[15:23].strip()
         flags = line[24:34].strip()
         comment = line[56:].strip()
@@ -1479,6 +1482,13 @@ class TNOdbComment(OSSOSComment):
         comm += str(self)
         return comm
 
+class RealOSSOSComment(OSSOSComment):
+
+    @classmethod
+    def from_string(cls, comment):
+        if comment.strip()[0] != "O":
+            comment = "O "+comment
+        return super(RealOSSOSComment, cls).from_string(comment)
 
 class MPCComment(OSSOSComment):
     """
@@ -1490,12 +1500,15 @@ class MPCComment(OSSOSComment):
         comment = line
         for func in [TNOdbComment.from_string,
                      OSSOSComment.from_string,
+                     RealOSSOSComment.from_string,
                      CFEPSComment.from_string,
                      str]:
             try:
                 comment = func(line)
             except ValueError as verr:
+                logging.debug(str(func))
                 logging.debug(str(verr))
+                logging.debug("NEXT")
                 continue
             break
         return comment
