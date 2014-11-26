@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 usage="Usage: daophot.sh -i image -a aperture -c coordinates -z zeropoint"
 ### Given an image and coordinate file, compute the magnitudes
 while [ $# -gt 0 ]; do

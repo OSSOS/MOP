@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 f1=$1
 f2=$2
