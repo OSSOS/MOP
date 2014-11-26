@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 #for b in 05[AB]Q*L5?; do
 #for b in L7a; do

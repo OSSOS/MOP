@@ -50,10 +50,10 @@ set zerop=`gethead $dir/${image}.fits PHOTZP`
 if ( "X$zerop" == "X" ) then
     echo -n "Didn't find SGWYN ZP, Trying to set zeropoint by scaling ELIXIR value, got: "
     set zerop=`gethead $dir/${image}.fits PHOT_C`
-    if ( "X$phot_c" == "X" ) then
+    if ( "X$zerop" == "X" ) then
         set zerop=`gethead $dir/${image}.fits PHOT_C0`
     endif
-    if ( "X$phot_c" == "X" ) then
+    if ( "X$zerop" == "X" ) then
         set zerop="26.0"
     endif
     set exptime=`gethead $dir/${image}.fits EXPTIME`
@@ -75,7 +75,7 @@ set term = none
 
 cd ~/iraf
 
-ecl << EOF
+cl << EOF
 
 flpr
 

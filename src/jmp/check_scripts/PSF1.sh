@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 cd 03AQ02-L3f
 chmod 755 jmpmakepsf.input

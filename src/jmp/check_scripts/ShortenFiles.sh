@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 for c in chip??; do
     cd $c
