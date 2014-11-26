@@ -37,7 +37,7 @@ import sys
 _FWHM = 4.0
 
 
-def compute_trans(expnums, ccd, version, prefix=None):
+def compute_trans(expnums, ccd, version, prefix=None, default="WCS"):
     """
     Pull the astrometric header for each image, compute an x/y transform and compare to trans.jmp
 
@@ -71,18 +71,19 @@ def compute_trans(expnums, ccd, version, prefix=None):
         y1 = float(jmp_trans[3]) + float(jmp_trans[4]) * x + float(jmp_trans[5]) * y
         dr = math.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2)
         if dr > 0.5:
-            result += "WARNING: WCS-JMP transforms mis-matched {} reverting to using wcs.\n".format(expnum)
-            uri = storage.dbimages_uri(expnum, ccd, version, ext='.trans.jmp', prefix=prefix)
-            filename = os.path.basename(uri)
-            trans = file(filename, 'w')
-            trans.write("{:5.2f} 1. 0. {:5.2f} 0. 1.\n".format(x0 - x, y0 - y))
-            trans.close()
+            result += "WARNING: WCS-JMP transforms mis-matched {} reverting to using {}.\n".format(expnum, default)
+            if default == "WCS": 
+               uri = storage.dbimages_uri(expnum, ccd, version, ext='.trans.jmp', prefix=prefix)
+               filename = os.path.basename(uri)
+               trans = file(filename, 'w')
+               trans.write("{:5.2f} 1. 0. {:5.2f} 0. 1.\n".format(x0 - x, y0 - y))
+               trans.close()
         else:
             result += "WCS-JMP transforms match {}\n".format(expnum)
     return result
 
 
-def step2(expnums, ccd, version, prefix=None, dry_run=False):
+def step2(expnums, ccd, version, prefix=None, dry_run=False, default="WCS"):
     """run the actual step2  on the given exp/ccd combo"""
 
     jmp_trans = ['step2ajmp']
@@ -108,7 +109,8 @@ def step2(expnums, ccd, version, prefix=None, dry_run=False):
         storage.log_output("step2", expnums[0], ccd, version, prefix, output)
     else:
         logging.info(output)
-    output += compute_trans(expnums, ccd, version, prefix)
+    if default == "WCS":
+        output += compute_trans(expnums, ccd, version, prefix, default=default)
 
     output += util.exec_prog(jmp_args)
     if not dry_run:
@@ -196,6 +198,9 @@ def main():
                         action='store_true')
     parser.add_argument("--verbose", "-v",
                         action="store_true")
+    parser.add_argument("--default", default="WCS", 
+			choices=['WCS', 'JMP'], 
+			help="Which shift should be used if they dis-agree?")
     parser.add_argument("--debug",
                         action="store_true")
     parser.add_argument("--dry_run", action="store_true", help="run without pushing back to VOSpace, implies --force")
@@ -239,7 +244,7 @@ def main():
                 continue
             logging.info("step2 on expnums :%s, ccd: %d" % (
                 str(args.expnums), ccd))
-            step2(args.expnums, ccd, version=args.type, prefix=prefix, dry_run=args.dry_run)
+            step2(args.expnums, ccd, version=args.type, prefix=prefix, dry_run=args.dry_run, default=args.default)
         except CalledProcessError as cpe:
             output = storage.log_output("step2", args.expnums[0], ccd, args.type, prefix, None)
             output += cpe.output
