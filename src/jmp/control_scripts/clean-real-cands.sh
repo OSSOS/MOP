@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 for i in `find . -name "*.cands.comb.real" -print`; do
   nl=`cat $i | wc -l`
