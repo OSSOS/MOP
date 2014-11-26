@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 \rm -f PBstep3jmp-dir PBstep3jmp-list PBstep3jmp-val
 for f in chip??/*; do
