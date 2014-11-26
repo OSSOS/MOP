@@ -75,7 +75,7 @@ set term = none
 
 cd ~/iraf
 
-ecl << EOF
+cl << EOF
 
 flpr
 
