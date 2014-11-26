@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 ExpandFile() {
   j=`echo $1 | sed "s/.fz//"`
