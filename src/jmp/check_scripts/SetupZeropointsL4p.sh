@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 if [ ! -d ZeroPoint ]; then
     mkdir ZeroPoint
@@ -11,7 +11,7 @@ fi
 #touch GetFiles.sh
 #chmod 755 GetFiles.sh
 
-#echo "#! /bin/sh" >> GetFiles.sh
+#echo "#! /bin/bash" >> GetFiles.sh
 #echo "" >> GetFiles.sh
 
 for b in 04BQ01A-L4p; do

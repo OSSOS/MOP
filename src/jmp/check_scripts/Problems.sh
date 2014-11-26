@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 \rm -f Problems.trans
 for d in chip??/*; do
