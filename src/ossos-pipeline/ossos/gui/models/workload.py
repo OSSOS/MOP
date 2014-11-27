@@ -773,7 +773,8 @@ class TracksWorkUnitBuilder(WorkUnitBuilder):
                            output_context,
                            dry_run):
 
-        self.move_discovery_to_front(data)
+        # Doesn't work... TODO: FixMe
+        # self.move_discovery_to_front(data)
 
         return TracksWorkUnit(self,
             filename, data, progress_manager, output_context, dry_run=dry_run)
