@@ -1,4 +1,5 @@
 import re
+from ossos import storage
 from ossos.astrom import SourceReading
 from ossos.gui import logger
 
@@ -71,8 +72,16 @@ class ImageCutoutDownloader(Downloader):
         logger.debug("Calculated cutout: %s for %s"
                      % (cutout_str, image_uri))
 
-        hdulist = self.download_hdulist(image_uri, view="cutout",
-                                        cutout=cutout_str)
+        hdulist = storage.get_image(expnum=reading.get_exposure_number(),
+                                    ccd=reading.get_ccd_num(),
+                                    cutout=cutout_str,
+                                    version=reading.get_observation().ftype,
+                                    prefix=reading.get_observation().fk,
+                                    return_file=False
+                                    )
+
+        #hdulist = self.download_hdulist(image_uri, view="cutout",
+        #                                cutout=cutout_str)
         # modify the DATASEC to account for possible flip/flop and changes in dimensions of the image.
         DATASEC = hdulist[0].header.get('DATASEC',None)
         if DATASEC is not None:
