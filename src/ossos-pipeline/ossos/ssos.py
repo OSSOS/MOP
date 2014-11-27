@@ -143,7 +143,7 @@ class SSOSParser(object):
         :param provisional_name: name of KBO to assign SSOS data to
         :param input_observations: input observations used in search
         """
-        if not input_observations:
+        if input_observations is None:
             input_observations = []
         self.provisional_name = provisional_name
         self.input_rawnames = []

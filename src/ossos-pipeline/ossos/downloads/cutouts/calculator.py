@@ -40,7 +40,7 @@ class CutoutCalculator(object):
         """
         (x0, x1, y0, y1), converter = self.calc_cutout(focus, img_size, dx, dy, inverted)
 
-        cutout_str = "[%s][%d:%d,%d:%d]" % (extnum, x0, x1, y0, y1)
+        cutout_str = "[%d:%d,%d:%d]" % (x0, x1, y0, y1)
 
         return cutout_str, converter
 
