@@ -355,7 +355,6 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     if os.access(filename, os.F_OK) and return_file:
         return filename
 
-
     if not subdir:
         subdir = str(expnum)
 
@@ -424,7 +423,7 @@ def get_hdu(uri, cutout):
     fpt.seek(0, 2)
     fpt.seek(0)
     logger.debug("Read from vospace completed. Building fits object.")
-    hdu_list = fits.open(fpt, scale_back=True)
+    hdu_list = fits.open(fpt, scale_back=False)
     logger.debug("Got image from vospace")
 
     if cutout is None:
