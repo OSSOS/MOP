@@ -29,7 +29,7 @@ for ccd in {0..35}
   plant.py $1 $2 $3 --ccd $ccd -v --dbimages ${DBIMAGES} --type s --rmin ${rmin} --rmax ${rmax} --ang ${ang} --width ${width} --force
 
   # Now run the standard pipeline on the artificial sources.
-  mkpsf.py $1 $2 $3 --ccd $ccd --fk -v --type s --dbimages ${DBIMAGES} --type s --force --ignore-update-headers
+  mkpsf.py $1 $2 $3 --ccd $ccd --fk -v --type s --dbimages ${DBIMAGES} --force --ignore-update-headers
   step1.py $1 $2 $3 --ccd $ccd --fk --type s -v --dbimages ${DBIMAGES} --force
   step2.py $1 $2 $3 --ccd $ccd --fk --type s -v --dbimages ${DBIMAGES} --force
   step3.py $1 $2 $3 --ccd $ccd --fk --type s -v --dbimages ${DBIMAGES} --rate_min ${rmin} --rate_max ${rmax} --angle ${ang} --width ${width} --force

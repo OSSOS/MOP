@@ -683,9 +683,10 @@ class Observation(object):
     def is_fake(self):
         return self.fk == FAKE_PREFIX or self.ftype == 's'
 
+    # TODO Remove get_image_uri from here, use the storage methods.
     def get_image_uri(self):
         return storage.dbimages_uri(self.expnum,
-                                    ccd=None,
+                                    ccd=self.ccdnum,
                                     version=self.ftype,
                                     prefix=self.fk,
                                     ext='.fits')
@@ -702,7 +703,7 @@ class Observation(object):
 
     def get_zmag_uri(self):
         return storage.dbimages_uri(self.expnum,
-                                    ccd=self.ccdum,
+                                    ccd=self.ccdnum,
                                     version=self.ftype,
                                     prefix=self.fk,
                                     ext=storage.ZEROPOINT_USED_EXT)
