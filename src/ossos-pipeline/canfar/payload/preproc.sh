@@ -29,7 +29,7 @@ echo " flat = ${flat} "
 if [ ${status} != "'success'" ]
 then
   echo "Running preproc on ${expnum} using flat ${flat}"
-  preproc.py --overscan --flat ${flat} --short --verbose $expnum  || exit -1
+  preproc.py --overscan --flat ${flat} --short --megapipe --verbose $expnum  || exit -1
   vcp ${expnum}p.fits vos:OSSOS/dbimages/${expnum}/${expnum}p.fits || exit -1
   vtag vos:OSSOS/dbimages/${expnum} ivo://canfar.uvic.ca/ossos#preproc_o36=success
   rm ${expnum}p.fits
