@@ -27,6 +27,7 @@ CERTFILE = os.path.join(os.getenv('HOME'),
 
 DBIMAGES = 'vos:OSSOS/dbimages'
 MEASURE3 = 'vos:OSSOS/measure3'
+POSTAGE_STAMPS = 'vos:OSSOS/postage_stamps'
 
 DATA_WEB_SERVICE = 'https://www.canfar.phys.uvic.ca/data/pub/'
 VOSPACE_WEB_SERVICE = 'https://www.canfar.phys.uvic.ca/vospace/nodes/'
@@ -359,7 +360,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
         subdir = str(expnum)
 
     logger.debug("Building list of possible uri locations")
-    ## here is the list of places we will look, in order
+    # # here is the list of places we will look, in order
     if version != 'p':
         locations = [(get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix),
                       cutout)]
@@ -370,7 +371,8 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
         try:
             for this_ext in [ext, ext + ".fz"]:
                 ext_no = int(ccd) + 1
-                flip = (cutout is None and "fits" in ext and ((ext_no < 19 and flip_image) and "[-*,-*]" or "[*,*]")) or cutout
+                flip = (cutout is None and "fits" in ext and (
+                (ext_no < 19 and flip_image) and "[-*,-*]" or "[*,*]")) or cutout
                 locations.append((get_uri(expnum, version=version, ext=this_ext, subdir=subdir),
                                   "[{}]{}".format(ext_no, flip)))
         except Exception as e:
@@ -379,7 +381,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     else:
         uri = get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix)
         locations.append((uri, cutout))
-        uri = get_uri(expnum, ccd, version, ext=ext+".fz", subdir=subdir, prefix=prefix)
+        uri = get_uri(expnum, ccd, version, ext=ext + ".fz", subdir=subdir, prefix=prefix)
         locations.append((uri, cutout))
     while len(locations) > 0:
         (uri, cutout) = locations.pop(0)
@@ -788,7 +790,7 @@ def get_mopheader(expnum, ccd, version='p', prefix=None):
 
     mopheader = fits.open(mopheader_fpt)
 
-    ## add some values to the mopheader so it can be an astrom header too.
+    # # add some values to the mopheader so it can be an astrom header too.
     header = mopheader[0].header
     try:
         header['FWHM'] = get_fwhm(expnum, ccd)
@@ -824,7 +826,7 @@ def _get_sghead(expnum, version):
 
     header_str_list = re.split('END      \n', resp.content)
 
-    ## make the first entry in the list a Null
+    # # make the first entry in the list a Null
     headers = [None]
     for header_str in header_str_list:
         headers.append(fits.Header.fromstring(header_str, sep='\n'))
@@ -833,7 +835,7 @@ def _get_sghead(expnum, version):
 
 
 # def _getheader(uri):
-#     """
+# """
 #     Pull a header from a FITS file referenced by the uri.
 #     """
 #     hdulist = (expnum, )
@@ -878,7 +880,7 @@ def get_astheader(expnum, ccd, version='p', prefix=None, ext=None):
         ast_uri = dbimages_uri(expnum, ccd, version=version, ext='.fits')
         if ast_uri not in astheaders:
             hdulist = get_image(expnum, ccd=ccd, version=version, prefix=prefix,
-                                            cutout="[1:1,1:1]", return_file=False)
+                                cutout="[1:1,1:1]", return_file=False)
             assert isinstance(hdulist, fits.HDUList)
             astheaders[ast_uri] = hdulist[0].header
         header = astheaders[ast_uri]
