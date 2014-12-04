@@ -12,7 +12,7 @@ procedure ccmatch(simg,sscale,sminmag,smaxmag,strial)
 
 #	string sinput {"", prompt=" filename of RA/DECs/MAG/ID?"}
 	string simg   {"", prompt=" image to match"}
-	real sscale   {0.2, prompt=" pixel scale (arcsec/pix) "}
+	real sscale   {0.1454, prompt=" pixel scale (arcsec/pix) "}
 	real sminmag  {10., prompt=" BRIGHTEST star to keep (Bmag) "}
 	real smaxmag  {14., prompt=" FAINTEST  star to keep (Bmag) "}
         int  strial   {4, prompt=" Number of trial stars?" }
@@ -65,17 +65,13 @@ begin
 	buf = sbuf
 	box = sbox
 
-	imgets(inimg,'i_naxis1')
-	xsize = int(imgets.value)
-	imgets(inimg,'i_naxis2')
-	ysize = int(imgets.value)
-
 #--------------------------------------------
 # Attempt to identify telescope
 #
 	imgets(inimg,'TELESCOP')
         stringtel = imgets.value
         telesc = 'UNKN'
+	if(stringtel == 'Gemini-North') telesc = 'GEMN'
 	if(stringtel == 'MPG/ESO-2.2') telesc = 'ESO2'
 	if(stringtel == 'ESO-3P6')     telesc = 'ESO3'
 	if(stringtel == 'ESO-VLT-U1')  telesc = 'UT-1'
@@ -92,6 +88,20 @@ begin
 	   if(stringtel == 'CCDMosaThin1') telesc = 'KP4m'
         }
 	print(' TELESCOPE : ',telesc)
+#
+#--------------------------------------------
+# Get the xsize and ysize
+        if(telesc=='GEMN'){
+        imgets(inimg,'naxis1')
+        xsize = int(imgets.value)
+        imgets(inimg,'naxis2')
+        ysize = int(imgets.value)
+        } else {
+        imgets(inimg,'i_naxis1')
+        xsize = int(imgets.value)
+        imgets(inimg,'i_naxis2')
+        ysize = int(imgets.value)
+        } ;
 #--------------------------------------------
 # Get field center estimate from header
 #
@@ -104,7 +114,7 @@ begin
 	imgets(inimg,'DEC')
         stringdec = imgets.value
 #	if(telesc=='NOT'||telesc=='ESO2'||telesc=='UT-1'){
-	if(telesc=='NOT'||telesc=='ESO2'){
+	if(telesc=='NOT'||telesc=='ESO2'||telesc=='GEMN'){
             racent = real(stringra) 
         } else {
             racent = real(stringra) * 15.0
@@ -127,6 +137,7 @@ begin
         if (telesc == 'UT-2') command = "v"
         if (telesc == 'KP4m') command = "k"
         if (telesc == 'FLW1') command = "f"
+	if (telesc == 'GEMN') command = "g"
 	
         if (telesc == 'UNKN') goto centchk
 	print(' ')
@@ -188,6 +199,39 @@ begin
 	    print(' m - manually input RA/DEC of image center. ')
 	    print(' Q - Quit CCMATCH.cl ')
 	    print("   >>IMCURSOR<<  ")
+            now= fscan(imcur, x1, y1, wcs, command)
+        }
+#--------------------------------------------
+# Gemini North  (repike)
+        if (command == "g" && offlag == 0) {
+            offlag = 1
+            imgets(inimg,'CRPIX1')
+            crpix1 = real(imgets.value)
+            imgets(inimg,'CRPIX2')
+            crpix2 = real(imgets.value)
+            imgets(inimg,'CRVAL1')
+            crval1 = real(imgets.value)
+            imgets(inimg,'CRVAL2')
+            crval2 = real(imgets.value)
+            imgets(inimg,'CD1_1')
+            cd1_1 = real(imgets.value)
+            imgets(inimg,'CD2_2')
+            cd2_2 = real(imgets.value)
+            imgets(inimg,'CD1_2')
+            cd1_2 = real(imgets.value)
+            imgets(inimg, 'CD2_1')
+            cd2_1 = real(imgets.value)
+            print('*nominal  RA    : ',racent)
+            print('*nominal  DEC   : ',deccent)
+            print('------>>>> USEFUL INFORMATION <<<<------- ')
+            pwd
+            print('usnoget ',racent,' ',deccent,' 13.0')
+            print(' ')
+            print(' Do you wish to : ')
+            print(' u - use this as image center and CONTINUE. ')
+            print(' m - manually input RA/DEC of image center. ')
+            print(' Q - Quit CCMATCH.cl ')
+            print("   >>IMCURSOR<<  ")
             now= fscan(imcur, x1, y1, wcs, command)
         }
 #--------------------------------------------
