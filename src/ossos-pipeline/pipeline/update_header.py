@@ -51,6 +51,7 @@ def main():
         level = logging.DEBUG
         message_format = "%(module)s %(funcName)s %(lineno)s %(message)s"
     logging.basicConfig(level=level, format=message_format)
+    storage.set_logger(os.path.splitext(os.path.basename(sys.argv[0]))[0], None, args.expnum, None, None, False)
 
     message = storage.SUCCESS
     expnum = args.expnum

@@ -141,13 +141,13 @@ def measure_mags(measures, table_row):
 def match_planted(fk_candidate_observations, match_filename, bright_limit=BRIGHT_LIMIT, object_planted=OBJECT_PLANTED,
                   minimum_bright_detections=MINIMUM_BRIGHT_DETECTIONS, bright_fraction=MINIMUM_BRIGHT_FRACTION):
     """
-    Using the astrom_filename as input get the Object.planted file from VOSpace and match
+    Using the fk_candidate_observations as input get the Object.planted file from VOSpace and match
     planted sources with found sources.
 
     The Object.planted list is pulled from VOSpace based on the standard file-layout and name of the
     first exposure as read from the .astrom file.
 
-    :param astrom_filename: name of the fk*reals.astrom file to check against Object.planted
+    :param fk_candidate_observations: name of the fk*reals.astrom file to check against Object.planted
     :param match_filename: a file that will contain a list of all planted sources and the matched found source
 
     """
@@ -320,6 +320,8 @@ def main():
                         help="minimum fraction of objects above bright limit that should be found.")
     args = parser.parse_args()
 
+    logging.basicConfig(level=logging.INFO)
+
     prefix = 'fk'
     ext = args.reals and 'reals' or 'cands'
 
@@ -343,13 +345,14 @@ def main():
     if not os.access(astrom_filename, os.F_OK):
         astrom_filename = os.path.dirname(astrom_uri) + "/" + astrom_filename
 
-
     # Load the list of astrometric observations that will be looked at.
     fk_candidate_observations = astrom.parse(astrom_filename)
     if args.expnum is None:
         expnum = fk_candidate_observations.observations[0].expnum
     else:
         expnum = args.expnum
+
+    storage.set_logger(os.path.splitext(os.path.basename(sys.argv[0]))[0], prefix, expnum, "", ext, args.dry_run)
 
     match_filename = os.path.splitext(os.path.basename(astrom_filename))[0] + '.match'
 

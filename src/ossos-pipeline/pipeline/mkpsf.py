@@ -30,20 +30,24 @@ import sys
 from ossos import storage
 from ossos import util
 
-
 def mkpsf(expnum, ccd, version, dry_run=False, prefix=""):
     """Run the OSSOS jmpmakepsf script.
 
     """
+    ## confirm destination directory exists.
+    destdir = os.path.dirname(
+        storage.dbimages_uri(expnum, ccd, prefix=prefix, version=version, ext='fits'))
+    if not dry_run:
+        storage.mkdir(destdir)
 
     ## get image from the vospace storage area
     filename = storage.get_image(expnum, ccd, version=version, prefix=prefix)
     logging.info("Running mkpsf on %s %d" % (expnum, ccd))
     ## launch the makepsf script
-    output = util.exec_prog(['jmpmakepsf.csh',
-                             './',
-                             filename,
-                             'no'])
+    logging.info(util.exec_prog(['jmpmakepsf.csh',
+                                 './',
+                                 filename,
+                                 'no']))
 
     if dry_run:
         return
@@ -51,19 +55,10 @@ def mkpsf(expnum, ccd, version, dry_run=False, prefix=""):
     ## place the results into VOSpace
     basename = os.path.splitext(filename)[0]
 
-    ## confirm destination directory exists.
-    destdir = os.path.dirname(
-        storage.dbimages_uri(expnum, ccd, prefix=prefix, version=version, ext='fits'))
-    logging.info("Checking that destination directories exist")
-    storage.mkdir(destdir)
-    storage.log_output("mkpsf", expnum, ccd, version, prefix, output)
-
     for ext in ('mopheader', 'psf.fits',
                 'zeropoint.used', 'apcor', 'fwhm', 'phot'):
         dest = storage.dbimages_uri(expnum, ccd, prefix=prefix, version=version, ext=ext)
         source = basename + "." + str(ext)
-        logging.info("Copying %s -> %s" % (source, dest))
-        #storage.remove(dest)
         storage.copy(source, dest)
 
     return
@@ -109,12 +104,10 @@ def main(task='mkpsf'):
     if args.dry_run:
         args.force = True
 
-    if args.verbose:
-        logging.basicConfig(level=logging.INFO,
-                            format='%(message)s')
     if args.debug:
-        logging.basicConfig(level=logging.DEBUG,
-                            format="%(asctime)s - %(module)s.%(funcName)s %(lineno)d: %(message)s")
+        logging.basicConfig(level=logging.DEBUG)
+    elif args.verbose:
+        logging.basicConfig(level=logging.INFO)
 
     prefix = (args.fk and 'fk') or ''
 
@@ -128,6 +121,8 @@ def main(task='mkpsf'):
     exit_code = 0
     for expnum in args.expnum:
         for ccd in ccdlist:
+            storage.set_logger(os.path.splitext(os.path.basename(sys.argv[0]))[0],
+                               prefix, expnum, ccd, args.type, args.dry_run)
             if storage.get_status(expnum, ccd, prefix + task, version=args.type) and not args.force:
                 logging.info("{} completed successfully for {} {} {} {}".format(task, prefix, expnum, args.type, ccd))
                 continue
@@ -151,7 +146,6 @@ def main(task='mkpsf'):
                                    status=str(storage.get_zeropoint(
                                        expnum, ccd, version=args.type)))
             except CalledProcessError as cpe:
-                storage.log_output(task, expnum, ccd, args.type, prefix, cpe.output)
                 message = str(cpe.output)
                 exit_code = message
             except Exception as e:
