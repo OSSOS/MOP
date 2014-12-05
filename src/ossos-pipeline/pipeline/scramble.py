@@ -24,7 +24,7 @@ def scramble(expnums, ccd, version='p', dry_run=False):
         # as otherwise we get pointers...
         mjds.append(fobjs[-1][0].header['MJD-OBS'])
 
-    order = [1, 0, 2]
+    order = [0, 2, 1]
     for idx in range(len(fobjs)):
         logging.info("Flipping %d to %d" % (fobjs[idx][0].header['EXPNUM'],
                                             expnums[order[idx]]))
@@ -104,6 +104,8 @@ def main():
     if args.ccd is None:
         ccds = range(0, 36)
     for ccd in ccds:
+        storage.set_logger(os.path.splitext(os.path.basename(sys.argv[0]))[0],
+                           "", args.expnums[0], ccd, args.type, args.dry_run)
         expnums = args.expnums
         if storage.get_status(expnums[0], ccd,
                               'scramble', version='s') and not args.force:

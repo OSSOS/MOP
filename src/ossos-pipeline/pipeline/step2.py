@@ -33,7 +33,7 @@ from ossos import storage
 from ossos import util
 from ossos import wcs
 import sys
-
+import time
 _FWHM = 4.0
 
 
@@ -81,7 +81,7 @@ def compute_trans(expnums, ccd, version, prefix=None, default="WCS"):
         else:
             result += "WCS-JMP transforms match {}\n".format(expnum)
     return result
-
+    
 
 def step2(expnums, ccd, version, prefix=None, dry_run=False, default="WCS"):
     """run the actual step2  on the given exp/ccd combo"""
@@ -104,25 +104,13 @@ def step2(expnums, ccd, version, prefix=None, dry_run=False, default="WCS"):
             storage.get_file(expnum, ccd=ccd, version=version, ext='obj.matt', prefix=prefix)[0:-9]
         )
 
-    output = util.exec_prog(jmp_trans)
-    if not dry_run:
-        storage.log_output("step2", expnums[0], ccd, version, prefix, output)
-    else:
-        logging.info(output)
+    logging.info(util.exec_prog(jmp_trans))
+
     if default == "WCS":
-        output += compute_trans(expnums, ccd, version, prefix, default=default)
+        logging.info(compute_trans(expnums, ccd, version, prefix, default=default))
 
-    output += util.exec_prog(jmp_args)
-    if not dry_run:
-        storage.log_output("step2", expnums[0], ccd, version, prefix, output)
-    else:
-        logging.info(output)
-
-    output += util.exec_prog(matt_args)
-    if not dry_run:
-        storage.log_output("step2", expnums[0], ccd, version, prefix, output)
-    else:
-        logging.info(output)
+    logging.info(util.exec_prog(jmp_args))
+    logging.info(util.exec_prog(matt_args))
 
     ## check that the shifts from step2 are rational
     check_args = ['checktrans']
@@ -143,11 +131,9 @@ def step2(expnums, ccd, version, prefix=None, dry_run=False, default="WCS"):
     ptf.close()
     if os.access('BAD_TRANS', os.F_OK):
         os.unlink('BAD_TRANS')
-    output += util.exec_prog(check_args)
-    if not dry_run:
-        storage.log_output("step2", expnums[0], ccd, version, prefix, output)
-    else:
-        logging.info(output)
+
+    logging.info(util.exec_prog(check_args))
+
     if os.access('BAD_TRANS', os.F_OK):
         raise ValueError(errno.EBADEXEC, 'BAD_TRANS')
 
@@ -230,6 +216,8 @@ def main():
 
     exit_status = 0
     for ccd in ccd_list:
+        storage.set_logger(os.path.splitext(os.path.basename(sys.argv[0]))[0],
+                           prefix, args.expnums[0], ccd, args.type, args.dry_run)
         try:
             message = storage.SUCCESS
             for expnum in args.expnums:
