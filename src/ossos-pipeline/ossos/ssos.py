@@ -252,6 +252,7 @@ class SSOSParser(object):
             X = row['X']
             Y = row['Y']
             mjd = row['MJD']
+            sys.stderr.write("{}".format(row))
 
             # Excludes the non-CFHT OSSOS data, and the wallpaper.
             # note: 'Telescope_Insturment' is a typo in SSOIS's return format
@@ -579,10 +580,11 @@ class Query(object):
         :raise: AssertionError
         """
         params = self.param_dict_builder.params
+        sys.stderr.write("{}\n".format(params))
         self.response = requests.post(SSOS_URL,
                                       data=params,
                                       headers=self.headers)
-        logger.debug(self.response.url)
+        logger.info(self.response.url)
         assert isinstance(self.response, requests.Response)
 
         assert (self.response.status_code == requests.codes.ok )
