@@ -15,6 +15,7 @@ import requests
 
 import coding
 from mpc import Time
+import util
 
 
 logger = logging
@@ -101,13 +102,7 @@ def populate(dataset_name,
     data_dest = get_uri(dataset_name, version='o', ext='fits.fz')
     data_source = "%s/%so.fits.fz" % (data_web_service_url, dataset_name)
 
-    try:
-        vospace.mkdir(os.path.dirname(data_dest))
-    except IOError as e:
-        if e.errno == errno.EEXIST:
-            pass
-        else:
-            raise e
+    mkdir(os.path.dirname(data_dest))
 
     try:
         vospace.link(data_source, data_dest)
@@ -353,7 +348,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     """
 
     filename = os.path.basename(get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix))
-    if os.access(filename, os.F_OK) and return_file:
+    if os.access(filename, os.F_OK) and return_file and cutout is None:
         return filename
 
     if not subdir:
@@ -372,7 +367,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
             for this_ext in [ext, ext + ".fz"]:
                 ext_no = int(ccd) + 1
                 flip = (cutout is None and "fits" in ext and (
-                (ext_no < 19 and flip_image) and "[-*,-*]" or "[*,*]")) or cutout
+                    (ext_no < 19 and flip_image) and "[-*,-*]" or "[*,*]")) or cutout
                 locations.append((get_uri(expnum, version=version, ext=this_ext, subdir=subdir),
                                   "[{}]{}".format(ext_no, flip)))
         except Exception as e:
@@ -411,7 +406,7 @@ def get_hdu(uri, cutout):
 
     # the filename is based on the Simple FITS images file.
     filename = os.path.basename(uri)
-    if os.access(filename, os.F_OK):
+    if os.access(filename, os.F_OK) and cutout is None:
         logger.debug("File already on disk: {}".format(filename))
         return fits.open(filename, scale_back=True)
 
@@ -546,8 +541,14 @@ def mkdir(dirname):
         dir_list.append(dirname)
         dirname = os.path.dirname(dirname)
     while len(dir_list) > 0:
-        logging.debug("Creating directory: %s" % (dir_list[-1]))
-        vospace.mkdir(dir_list.pop())
+        logging.info("Creating directory: %s" % (dir_list[-1]))
+        try:
+            vospace.mkdir(dir_list.pop())
+        except IOError as e:
+            if e.errno == errno.EEXIST:
+                pass
+            else:
+                raise e
 
 
 def vofile(filename, **kwargs):
@@ -579,13 +580,13 @@ def open_vos_or_local(path, mode="rb"):
 def copy(source, dest):
     """use the vospace service to get a file. """
 
-    logger.debug("deleting {} ".format(dest))
-    try:
-        vospace.delete(dest)
-    except Exception as e:
-        logger.debug(str(e))
-        pass
-    logger.debug("copying {} -> {}".format(source, dest))
+    #logger.debug("deleting {} ".format(dest))
+    #try:
+    #    vospace.delete(dest)
+    #except Exception as e:
+    #    logger.debug(str(e))
+    #    pass
+    logger.info("copying {} -> {}".format(source, dest))
 
     return vospace.copy(source, dest)
 
@@ -887,25 +888,26 @@ def get_astheader(expnum, ccd, version='p', prefix=None, ext=None):
     return header
 
 
-def log_output(program, expnum, ccd, version, prefix=None, output=None):
-    """Write the contents of output to a processing log file.  If output=None then read
-     the contents of the logfile and return as a buffer.
+def log_filename(prefix, task, version, ccd):
+    return "{}{}_{}{}.txt".format(prefix, task, version, ccd)
 
-    """
-    if prefix is None:
-        prefix = ""
-    prefix = len(prefix) > 0 and "{}_".format(prefix) or prefix
-    log_filename = "{}{}_{}.txt".format(prefix, program, version)
-    vospace_filename = os.path.dirname(get_uri(expnum, ccd=ccd, version=version)) + "/" + log_filename
-    if output is not None and len(output) > 0:
-        file_handle = open(log_filename, 'w')
-        file_handle.write(output)
-        file_handle.close()
-        logging.info("Writing log to {}".format(log_filename))
-        return copy(log_filename, vospace_filename)
-    if exists(log_filename):
-        logging.info("Reading log {}".format(log_filename))
-        file_handle = open_vos_or_local(log_filename, 'r')
-        output = file_handle.read()
-        file_handle.close()
-    return output
+
+def log_location(expnum, ccd):
+    return os.path.dirname(get_uri(expnum, ccd=ccd))
+
+
+def set_logger(task, prefix, expnum, ccd, version, dry_run):
+    logger = logging.getLogger()
+    log_format = logging.Formatter('%(asctime)s - %(module)s.%(funcName)s %(lineno)d: %(message)s')
+
+    filename = log_filename(prefix, task, ccd=ccd, version=version)
+    location = log_location(expnum, ccd)
+    if not dry_run:
+        vo_handler = util.VOFileHandler("/".join([location, filename]))
+        vo_handler.setFormatter(log_format)
+        logger.addHandler(vo_handler)
+
+    file_handler = logging.FileHandler(filename=filename)
+    file_handler.setFormatter(log_format)
+    logger.addHandler(file_handler)
+
