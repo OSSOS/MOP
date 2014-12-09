@@ -43,7 +43,6 @@ def cutout(obj, obj_dir, args):
                   "DIRECTION": direction,
                   "cutout": cutout,
                   "view": view}
-
         try:
             r = requests.get(BASEURL, params=params, auth=(args.username, args.password))
             r.raise_for_status()  # confirm the connection worked as hoped
@@ -109,8 +108,10 @@ def main():
         obj = mpc.MPCReader(args.ossin + fn)  # let MPCReader's logic determine the provisional name
         for block in args.blocks:
             if obj.provisional_name.startswith(block):
-                obj_dir = '{}/{}/{}'.format(storage.POSTAGE_STAMPS, args.version, obj.provisional_name)
-                if not storage.exists(obj_dir):
+                obj_dir = '{}/{}/{}'.format(storage.POSTAGE_STAMPS, args.version[0], obj.provisional_name)
+                try:
+                    storage.exists(obj_dir, force=True)
+                except IOError:
                     storage.mkdir(obj_dir)
                 cutout(obj, obj_dir, args)
 
