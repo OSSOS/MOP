@@ -10,6 +10,7 @@ import logging
 from datetime import datetime
 from astropy import coordinates
 
+
 try:
     from astropy.time import sofa_time
 except ImportError:
@@ -250,7 +251,7 @@ class MPCNote(object):
                 raise MPCFieldFormatError(self.note_type,
                                           "Must be a character",
                                           _code)
-            if _code not in range(10):
+            if int(_code) not in range(10):
                 raise MPCFieldFormatError(self.note_type,
                                           "numeric value must be between 0 and 9",
                                           _code)
@@ -1251,18 +1252,21 @@ class MPCReader(object):
         mpc_observations = []
         next_comment = None
         for line in input_mpc_lines:
-            mpc_observation = Observation.from_string(line)
-            if isinstance(mpc_observation, OSSOSComment):
-                next_comment = mpc_observation
-                continue
-            if isinstance(mpc_observation, Observation):
-                if next_comment is not None:
-                    mpc_observation.comment = next_comment
-                    next_comment = None
+            try:
+                mpc_observation = Observation.from_string(line)
+                if isinstance(mpc_observation, OSSOSComment):
+                    next_comment = mpc_observation
+                    continue
+                if isinstance(mpc_observation, Observation):
+                    if next_comment is not None:
+                        mpc_observation.comment = next_comment
+                        next_comment = None
 
-                if self.replace_provisional is not None:  # then it has an OSSOS designation: set that in preference
-                    mpc_observation.provisional_name = self.provisional_name
-                mpc_observations.append(mpc_observation)
+                    if self.replace_provisional is not None:  # then it has an OSSOS designation: set that in preference
+                        mpc_observation.provisional_name = self.provisional_name
+                    mpc_observations.append(mpc_observation)
+            except:
+                continue
         return numpy.array(mpc_observations)
 
     @property
