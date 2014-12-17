@@ -9,6 +9,7 @@ import logging
 
 from datetime import datetime
 from astropy import coordinates
+
 try:
     from astropy.time import sofa_time
 except ImportError:
@@ -944,6 +945,7 @@ class OSSOSComment(object):
         elif len(values) == 10:  # if there are 9 values then the new astrometric level value is set.
             retval.plate_uncertainty = values[8]
             retval.astrometric_level = values[9]
+            logging.debug('here now')
             retval.mag = values[6]
             retval.mag_uncertainty = values[7]
         logging.debug("DONE.")
@@ -1000,8 +1002,8 @@ class OSSOSComment(object):
         self._astrometric_level = astrometric_level
 
     @photometry_note.setter
-    def photometry_note(self, photometery_note):
-        self._photometry_note = str(photometery_note)
+    def photometry_note(self, photometry_note):
+        self._photometry_note = str(photometry_note)
 
     @property
     def x(self):
@@ -1272,7 +1274,7 @@ class MPCReader(object):
         if self._provisional_name is not None:
             return self._provisional_name
         if isinstance(self.filename, basestring):
-            self._provisional_name = self.filename
+            self._provisional_name = self.filename.rstrip('.ast')
         elif hasattr(self.filename, 'name'):
             self._provisional_name = self.filename.name
         elif hasattr(self.filename, 'filename'):
@@ -1498,6 +1500,7 @@ class MPCComment(OSSOSComment):
     @classmethod
     def from_string(cls, line):
         comment = line
+        logging.debug('Here is the comment. ' + comment)
         for func in [TNOdbComment.from_string,
                      OSSOSComment.from_string,
                      RealOSSOSComment.from_string,
@@ -1508,7 +1511,6 @@ class MPCComment(OSSOSComment):
             except ValueError as verr:
                 logging.debug(str(func))
                 logging.debug(str(verr))
-                logging.debug("NEXT")
                 continue
             break
         return comment
