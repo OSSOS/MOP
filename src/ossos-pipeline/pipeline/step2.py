@@ -233,16 +233,15 @@ def main():
             logging.info("step2 on expnums :%s, ccd: %d" % (
                 str(args.expnums), ccd))
             step2(args.expnums, ccd, version=args.type, prefix=prefix, dry_run=args.dry_run, default=args.default)
+            logging.info(message)
         except CalledProcessError as cpe:
-            output = storage.log_output("step2", args.expnums[0], ccd, args.type, prefix, None)
-            output += cpe.output
-            storage.log_output("step2", args.expnums[0], ccd, args.type, prefix, output)
             message = str(cpe)
+            logging.error(message)
             exit_status = message
         except Exception as e:
             message = str(e)
+            logging.error(message)
             exit_status = message
-        logging.error(message)
         if not args.dry_run:
             storage.set_status(args.expnums[0],
                                ccd,
