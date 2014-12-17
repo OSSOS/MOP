@@ -41,6 +41,7 @@ begin
 	real xsig
 	real ysig
 	real sig, ssig
+        real achi, schi
 	int nsamp
 	real dum
 	int	wc, ac
@@ -260,17 +261,27 @@ begin
 	       imdelete(t_psf,verify-)
 	    }
 
-	    psf(t_image,t_image//".mag",t_image//".pst.1",
+	    iferr { psf(t_image,t_image//".mag",t_image//".pst.1",
 		    t_psf,
 		    t_image//".pst.2",
-		    t_image//".psg.1",showplots-,interactive-)
+		    t_image//".psg.1",showplots-,interactive-) }
+	    goto finalproc
 
-        print("Usnig nstar to find the good matches to the PSF...")
+            print("Usnig nstar to find the good matches to the PSF...")
 	    kdelete (t_image//".nst.1")
 	    kdelete (t_image//".nrj.1")
 	    nstar(t_image,t_image//".psg.1", psfimage=t_psf, nstarfile=t_image//".nst.1", rejfile=t_image//".nrj.1")
 	    kdelete(t_image//".mag")
-	    pselect(t_image//".nst.1",t_image//".mag","CHI < 2.5")
+            # reject stars whose chi2 is large compared to the mean chi2 of stars in the PSF
+	    txdump(t_image//".nst.1",
+                   "CHI","(PIER==0)") | average | scan(achi,schi,nsamp);
+            print("Average CHI2 "//achi//" +/- "//schi)
+            x=achi+schi
+            if ( x < 2.5 ) { 
+               x = 2.5 
+            }
+	    pselect(t_image//".nst.1",t_image//".mag","CHI < "//x)
+            type(t_image//".mag")
 
 	    # use those stars to build an actual PSF
 	    kdelete ( t_image//".pst.2")
@@ -279,28 +290,36 @@ begin
 	       imdelete(t_psf,verify-)
 	    }
 
-	    psf(t_image,t_image//".mag",t_image//".pst.1",
+	    iferr { psf(t_image,t_image//".mag",t_image//".pst.1",
 		    t_psf,
 		    t_image//".pst.2",
-		    t_image//".psg.1",showplots-,interactive-)
+		    t_image//".psg.1",showplots-,interactive-) }
+	    goto finalproc
 
-        # Use nstar to find the fluxes of psg stars
+            # Use nstar to find the fluxes of psg stars
 	    kdelete(t_image//".nst.1")
 	    kdelete(t_image//".nrj.1")
 	    nstar(t_image,t_image//".psg.1", psfimage=t_psf, nstarfile=t_image//".nst.1", rejfile=t_image//".nrj.1")
 
-		print("Using the new PSF and FLUX to subtract the neighbouring stars.")
-		if ( imaccess(t_image//".sub.1") ) {
-            imdelete(t_image//".sub.1")
-        }
+            print("Using the new PSF and FLUX to subtract the neighbouring stars.")
+	    if ( imaccess(t_image//".sub.1") ) {
+              imdelete(t_image//".sub.1")
+            }
 
-		substar(image=t_image, photfile=t_image//".nst.1",
-		        exfile=t_image//".pst.2", psfimage=t_psf, subimage=t_image//".sub.1", verify-, update-, verbose+)
+            substar(image=t_image, photfile=t_image//".nst.1",
+                    exfile=t_image//".pst.2", psfimage=t_psf, subimage=t_image//".sub.1", verify-, update-, verbose+)
 
-		# run PHOT on the subtracted image to get the flux zeropoint correct.
+    	    # run PHOT on the subtracted image to get the flux zeropoint correct.
 	    kdelete(t_image//".mag")
 	    kdelete(t_image//".coo.1")
-	    txdump(t_image//".nst.1","XCEN,YCEN,ID","CHI < 2.5", > t_image//".coo.1")
+	    txdump(t_image//".nst.1",
+                   "CHI","(PIER==0)") | average | scan(achi,schi,nsamp);
+            print("Average CHI2 "//achi//" +/- "//schi)
+            x=achi+schi
+            if ( x < 2.5 ) { 
+               x = 2.5 
+            }
+	    txdump(t_image//".nst.1","XCEN,YCEN,ID","CHI < "//x, > t_image//".coo.1")
 
 	    phot(t_image,t_image//".coo.1",t_image//".mag",centerpars.calgori="centroid",photpars.apertures=apmax)
 
@@ -311,17 +330,18 @@ begin
 	       imdelete(t_psf,verify-)
 	    }
 
-	    psf(t_image//".sub.1",t_image//".mag",t_image//".pst.1",
+	    iferr { psf(t_image//".sub.1",t_image//".mag",t_image//".pst.1",
 		    t_psf,
 		    t_image//".pst.2",
-		    t_image//".psg.1",showplots-,interactive-)
+		    t_image//".psg.1",showplots-,interactive-) }
+	    goto finalproc
 
-        # Estimate the FWHM using the gaussian fit to the PSF
+            # Estimate the FWHM using the gaussian fit to the PSF
 	    hselect(t_psf,"PAR1",yes) | scan(xsig)
 	    hselect(t_psf,"PAR2",yes) | scan(ysig)
 	    hselect(t_psf,"NPSFSTAR",yes) | scan(npsfstar)
 	    t_fwhm = sqrt((xsig*xsig + ysig*ysig)/2.0)
-        print "Sigma -> "//t_fwhm
+            print "Sigma -> "//t_fwhm
 	    if ( abs((xsig - ysig)/t_fwhm) > 0.2 ) {
 		   #JJK Added a warning message here. March 2002
 		   touch (t_image//".psf.WARNING")
@@ -372,11 +392,18 @@ begin
 		 rejfile=t_image//".nrj.1");
 
 	kdelete(t_image//".phot")
-	pselect(t_image//".nst.1",t_image//".phot","CHI < 2.5")
+	txdump(t_image//".nst.1",
+               "CHI","(PIER==0)") | average | scan(achi,schi,nsamp);
+        print("Average CHI2 "//achi//" +/- "//schi)
+        x=achi+schi
+        if ( x < 2.5 ) { 
+           x = 2.5 
+        }
+	pselect(t_image//".nst.1",t_image//".phot","CHI < "//x)
 
 	#build a file for use as input into phot
 	kdelete(t_image//".coo.2")
-	txdump(t_image//".nst.1","XCENTER,YCENTER,MAG,SHARPNESS,ID","CHI < 2.5", \
+	txdump(t_image//".nst.1","XCENTER,YCENTER,MAG,SHARPNESS,ID","CHI < "//x, \
 	       headers+, > t_image//".coo.2")
 
 	# Run PHOT with a range of apertures.
