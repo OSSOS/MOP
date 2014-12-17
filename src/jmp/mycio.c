@@ -7,7 +7,7 @@
  *
  *   C_OPENER  --  Open A NEW File
  */
-c_opener__(bb)
+int c_opener__(bb)
 char bb[];
 {
 	return(creat(bb,0644));
@@ -17,7 +17,7 @@ char bb[];
  *
  *   C_CLOSER  --  Close A File
  */
-c_closer__(fd)
+int c_closer__(fd)
 int *fd;
 {
 	return(close(*fd));
@@ -27,7 +27,7 @@ int *fd;
  *
  *  C_WRITER  --  Use HTONL() To Select ENDIAN
  */
-c_writer__(fd,buf,n)
+int c_writer__(fd,buf,n)
 int *fd, *n;
 char buf[];
 {
@@ -58,7 +58,7 @@ char buf[];
  *
  *  C_READER  --  Use HTONL() To Select ENDIAN
  */
-c_reader__(fd,buf,n)
+int c_reader__(fd,buf,n)
 int *fd, *n;
 char buf[];
 {
@@ -89,7 +89,7 @@ char buf[];
  *
  *   C_ROOPEN -- Open A ReadOnly File
  */
-c_roopen__(bb)
+int c_roopen__(bb)
 char bb[];
 {
 	return(open(bb,0));
@@ -99,7 +99,7 @@ char bb[];
  *
  *  C_GENLEN  --  Return The Length Of A File
  */
-c_genlen__(bb)
+int c_genlen__(bb)
 char bb[];
 {
 	int fd, n;
@@ -115,7 +115,7 @@ char bb[];
  *
  *   position  --  Move file pointer
  */
-c_position__(fd,nb)
+int c_position__(fd,nb)
 int *fd,*nb;
 {
 	return(lseek(*fd, *nb, SEEK_SET));
@@ -125,7 +125,7 @@ int *fd,*nb;
  *
  *   rawwriter  --  Just scribble
  */
-c_rawwriter__(fd,bb,n)
+int c_rawwriter__(fd,bb,n)
 int *fd,*n;
 char bb[];
 {
@@ -143,7 +143,7 @@ char bb[];
  *
  *   rawreader -- Just read
  */
-c_rawreader__(fd,bb,n)
+int c_rawreader__(fd,bb,n)
 int *fd,*n;
 char bb[];
 {
