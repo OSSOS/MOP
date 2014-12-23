@@ -7,7 +7,10 @@ import tempfile
 from StringIO import StringIO
 
 import datetime
-from astropy import coordinates
+try:
+    from astropy.coordinates import ICRSCoordinates
+except ImportError:
+    from astropy.coordinates import ICRS as ICRSCoordinates
 from astropy import units
 import math
 
@@ -61,7 +64,7 @@ class Orbfit(object):
             self.name = observation.provisional_name
             ra = obs.ra.replace(" ", ":")
             dec = obs.dec.replace(" ", ":")
-            res = obs.comment.plate_uncertainty
+            res = getattr(obs.comment,'plate_uncertainty',0.2)
             _mpc_file.write("{} {} {} {} {}\n".format(obs.date.jd, ra, dec, res, 568, ))
         _mpc_file.seek(0)
         result = self.orbfit.fitradec(ctypes.c_char_p(_mpc_file.name),
@@ -95,11 +98,11 @@ class Orbfit(object):
         _residuals = ""
         for observation in self.observations:
             self.predict(observation.date)
-            coord1 = coordinates.ICRSCoordinates(self.coordinate.ra, self.coordinate.dec)
-            coord2 = coordinates.ICRSCoordinates(observation.coordinate.ra, self.coordinate.dec)
+            coord1 = ICRSCoordinates(self.coordinate.ra, self.coordinate.dec)
+            coord2 = ICRSCoordinates(observation.coordinate.ra, self.coordinate.dec)
             observation.ra_residual = float(coord1.separation(coord2).arcsecs)
             observation.ra_residual = (coord1.ra.degrees - coord2.ra.degrees)*3600.0
-            coord2 = coordinates.ICRSCoordinates(self.coordinate.ra, observation.coordinate.dec)
+            coord2 = ICRSCoordinates(self.coordinate.ra, observation.coordinate.dec)
             observation.dec_residual = float(coord1.separation(coord2).arcsecs)
             observation.dec_residual = (coord1.dec.degrees - coord2.dec.degrees)*3600.0
             _residuals += "{:1s}{:12s} {:+05.2f} {:+05.2f} # {}\n".format(
@@ -186,10 +189,10 @@ class Orbfit(object):
         predict = self.orbfit.predict(ctypes.c_char_p(abg_file.name),
                                       jd,
                                       ctypes.c_int(obs_code))
-        self.coordinate = coordinates.ICRSCoordinates(predict.contents[0],
-                                                      predict.contents[1],
-                                                      unit=(units.degree, units.degree),
-                                                      obstime=date)
+        self.coordinate = ICRSCoordinates(predict.contents[0],
+                                          predict.contents[1],
+                                          unit=(units.degree, units.degree),
+                                          obstime=date)
         self.dra = predict.contents[2]
         self.ddec = predict.contents[3]
         self.pa = predict.contents[4]
