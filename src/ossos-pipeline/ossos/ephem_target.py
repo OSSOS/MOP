@@ -1,7 +1,10 @@
 from astropy import units
 from xml.dom import minidom
 import xml
-from astropy.coordinates import ICRSCoordinates
+try:
+    from astropy.coordinates import ICRSCoordinates
+except:
+    from astropy.coordinates import ICRS as ICRSCoordinates
 
 COLUMN_SEPARATOR = "|"
 
