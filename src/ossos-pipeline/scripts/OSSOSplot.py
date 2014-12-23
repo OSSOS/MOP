@@ -10,8 +10,15 @@ import time
 
 import Polygon
 import Polygon.IO
-from astropy import coordinates
+from astropy.time import Time
+
+try:
+    from astropy.coordinates import ICRSCoordinates
+except:
+    from astropy.coordinates import ICRS as ICRSCoordinates
+
 from astropy import units
+
 import ephem
 
 from ossos.ephem_target import EphemTarget
@@ -121,10 +128,11 @@ doubles = ["O13BL3TL",
            "O13BL3S9",
            "O13BL3SC"]
 
+
 class MyEvent(object):
-        def __init__(self, x, y):
-            self.x = x
-            self.y = y
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
 
 
 class Plot(Canvas):
@@ -201,7 +209,7 @@ class Plot(Canvas):
     def eps(self):
         """Print the canvas to a postscript file"""
 
-        #filename = tkFileDialog.asksaveasfile()
+        # filename = tkFileDialog.asksaveasfile()
         filename = tkFileDialog.asksaveasfilename(message="save postscript to file")
         if filename is None:
             return
@@ -231,7 +239,7 @@ class Plot(Canvas):
 
         x = (p[0] - self.x1) * self.xscale + self.cx1
         y = (p[1] - self.y1) * self.yscale + self.cy1
-        #logging.debug("p2c: ({},{}) -> ({},{})".format(p[0],p[1], x, y))
+        # logging.debug("p2c: ({},{}) -> ({},{})".format(p[0],p[1], x, y))
 
         return (x, y)
 
@@ -409,7 +417,7 @@ class Plot(Canvas):
         # Determine the limits of the canvas
         (cx1, cy1) = self.p2c((0, -math.pi / 2.0))
         (cx2, cy2) = self.p2c((2 * math.pi, math.pi / 2.0))
-        ## set the scroll region to the size of the camvas plus a boundary to allow the canvas edge to be at centre
+        # # set the scroll region to the size of the camvas plus a boundary to allow the canvas edge to be at centre
         self.config(scrollregion=(
             cx2 - self.width / 2.0, cy2 - self.height / 2.0, cx1 + self.width / 2.0, cy1 + self.height / 2.0))
 
@@ -442,8 +450,8 @@ class Plot(Canvas):
             date.replace("/", " ")
             try:
                 kbo.predict(self.date.get())
-                self.recenter(kbo.coordinate.ra.radians, kbo.coordinate.dec.radians)
-                self.create_point(kbo.coordinate.ra.radians, kbo.coordinate.dec.radians, color='blue', size=4)
+                self.recenter(kbo.coordinate.ra.radian, kbo.coordinate.dec.radian)
+                self.create_point(kbo.coordinate.ra.radian, kbo.coordinate.dec.radian, color='blue', size=4)
             except:
                 logging.error("failed to compute KBO position")
 
@@ -455,8 +463,8 @@ class Plot(Canvas):
         logging.debug("Canvas: {},{} , Screen: {},{}".format(cx, cy, sx, sy))
         event = MyEvent(int(sx), int(sy))
         self.center(event)
-        #self.scan_mark(int(sx), int(sy))
-        #self.scan_dragto(480, 360, gain=1)
+        # self.scan_mark(int(sx), int(sy))
+        # self.scan_dragto(480, 360, gain=1)
 
     def center(self, event):
         logging.debug("EVENT: {} {}".format(event.x, event.y))
@@ -488,8 +496,8 @@ class Plot(Canvas):
         yw = (self.y2 - self.y1) / 2.0 / scale
 
 
-        ## reset the limits to be centered at x,y with
-        ## area of xw*2,y2*2
+        # # reset the limits to be centered at x,y with
+        # # area of xw*2,y2*2
         self.limits(x - xw, x + xw, y - yw, y + yw)
 
         self.delete(ALL)
@@ -617,8 +625,20 @@ class Plot(Canvas):
 
         for point in points:
             label = {}
-            label['text'] = point[0]
-            (ra, dec) = (ephem.hours(point[1]), ephem.degrees(point[2]))
+            try:
+                not_ephem = False
+                date = Time(point[0], scale='utc')
+            except:
+                not_ephem = True
+            if not_ephem:
+                label['text'] = point[0]
+            else:
+                label['text'] = "EPHEM"
+            try:
+                (ra, dec) = (ephem.hours(point[1]), ephem.degrees(point[2]))
+            except:
+                logging.warn("Failed to convert {} {} to RA/DEC".format(point[1], point[2]))
+                continue
             this_camera = Camera(camera=self.camera.get())
             ccds = this_camera.getGeometry(float(ra), float(dec))
             items = []
@@ -635,7 +655,8 @@ class Plot(Canvas):
             self.pointings.append({"label": label,
                                    "items": items,
                                    "camera": this_camera})
-
+            if not not_ephem:
+                break
         self.plot_pointings()
         return
 
@@ -760,13 +781,13 @@ class Plot(Canvas):
         if match is not None:
             expnum = int(match.group(1))
             ccd = int(match.group(2))
-            x = 2112/2.0
-            y = 4644/2.0
+            x = 2112 / 2.0
+            y = 4644 / 2.0
         else:
             expnum = int(str(self.expnum.get()))
             ccd = 22
             x = 1000
-            y = 4644 - 15/0.185
+            y = 4644 - 15 / 0.185
         header = None
         try:
             header = storage.get_astheader(expnum, ccd=ccd)
@@ -777,6 +798,7 @@ class Plot(Canvas):
 
         ossos_wcs = wcs.WCS(header)
         (ra, dec) = ossos_wcs.xy2sky(x, y)
+
         class MyEvent(object):
             def __init__(self, x, y):
                 self.x = x
@@ -784,7 +806,7 @@ class Plot(Canvas):
 
         (x, y) = self.p2s((math.radians(ra), math.radians(dec)))
         event = MyEvent(x, y)
-        self.create_pointing(event, label_text=header['OBJECT']+' ccd{}'.format(ccd))
+        self.create_pointing(event, label_text=header['OBJECT'] + ' ccd{}'.format(ccd))
 
 
     def get_pointings(self):
@@ -794,12 +816,12 @@ class Plot(Canvas):
         """
 
         self.camera.set("MEGACAM_1")
-        (ra1, dec1) = self.c2p((self.canvasx(1),self.canvasy(1)))
-        (ra2, dec2) = self.c2p((self.canvasx(480*2), self.canvasy(360*2)))
-        ra_cen = math.degrees((ra2+ra1)/2.0)
-        dec_cen = math.degrees((dec2+dec1)/2.0)
-        width = math.degrees(math.fabs(ra1-ra2))
-        height = math.degrees(math.fabs(dec2-dec1))
+        (ra1, dec1) = self.c2p((self.canvasx(1), self.canvasy(1)))
+        (ra2, dec2) = self.c2p((self.canvasx(480 * 2), self.canvasy(360 * 2)))
+        ra_cen = math.degrees((ra2 + ra1) / 2.0)
+        dec_cen = math.degrees((dec2 + dec1) / 2.0)
+        width = math.degrees(math.fabs(ra1 - ra2))
+        height = math.degrees(math.fabs(dec2 - dec1))
         date = mpc.Time(self.date.get(), scale='utc').iso
         print ra_cen, dec_cen, width, height
         table = cadc.cfht_megacam_tap_query(ra_cen, dec_cen, width, height, date=date)
@@ -807,8 +829,8 @@ class Plot(Canvas):
         for row in table:
             ra = row['RAJ2000']
             dec = row['DEJ2000']
-            (x,y) = self.p2s((math.radians(ra),math.radians(dec)))
-            event = MyEvent(x,y)
+            (x, y) = self.p2s((math.radians(ra), math.radians(dec)))
+            event = MyEvent(x, y)
             self.create_pointing(event, label_text="")
 
     def save_pointings(self):
@@ -834,26 +856,26 @@ class Plot(Canvas):
                 center_ra = 0
                 center_dec = 0
 
+                # Compute the mean position of KBOs in the field on current date.
                 for kbo_name, kbo in self.kbos.items():
                     if kbo_name in Neptune or kbo_name in tracking_termination:
                         # print 'skipping', kbo_name
                         continue
                     kbo.predict(mpc.Time(self.date.get(), scale='utc'))
-                    ra = kbo.coordinate.ra.radians
-                    dec = kbo.coordinate.dec.radians
+                    ra = kbo.coordinate.ra.radian
+                    dec = kbo.coordinate.dec.radian
                     for polygon in polygons:
                         if polygon.isInside(ra, dec):
                             field_kbos.append(kbo)
                             center_ra += ra
                             center_dec += dec
 
-                print field_kbos
+                logging.info("KBOs in field {0}: {1}".format(name, field_kbos))
 
                 start_date = mpc.Time(self.date.get(), scale='utc').jd
-                trail_mid_point = 6
-                for days in range(trail_mid_point * 2 + 1):
-                    for hours in range(24):
-                        today = mpc.Time(start_date - trail_mid_point + days + hours / 24.0,
+                for days in range(-90, 90, 1):
+                    for hours in range(0, 23, 12):
+                        today = mpc.Time(start_date + days + hours / 24.0,
                                          scale='utc',
                                          format='jd')
                         mean_motion = (0, 0)
@@ -862,17 +884,17 @@ class Plot(Canvas):
                             current_dec = 0
                             for kbo in field_kbos:
                                 kbo.predict(today)
-                                current_ra += kbo.coordinate.ra.radians
-                                current_dec += kbo.coordinate.dec.radians
+                                current_ra += kbo.coordinate.ra.radian
+                                current_dec += kbo.coordinate.dec.radian
                             mean_motion = ((current_ra - center_ra) / len(field_kbos),
                                            (current_dec - center_dec) / len(field_kbos))
-                        ra = pointing['camera'].coordinate.ra.radians + mean_motion[0]
-                        dec = pointing['camera'].coordinate.dec.radians + mean_motion[1]
-                        cc = coordinates.ICRSCoordinates(ra=ra,
-                                                         dec=dec,
-                                                         unit=(units.radian, units.radian),
-                                                         obstime=today)
-                        et.coordinates.append(cc)
+                        ra = pointing['camera'].coordinate.ra.radian + mean_motion[0]
+                        dec = pointing['camera'].coordinate.dec.radian + mean_motion[1]
+                        cc = ICRSCoordinates(ra=ra,
+                                             dec=dec,
+                                             unit=(units.radian, units.radian),
+                                             obstime=today)
+                        et.append(cc)
 
                 et.save()
             return
@@ -1029,8 +1051,8 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                     point_size = days == trail_mid_point and 5 or 1
                     today = mpc.Time(start_date - trail_mid_point + days, scale='utc', format='jd')
                     kbo.predict(today, 568)
-                    ra = kbo.coordinate.ra.radians
-                    dec = kbo.coordinate.dec.radians
+                    ra = kbo.coordinate.ra.radian
+                    dec = kbo.coordinate.dec.radian
                     a = math.radians(kbo.dra / 3600.0)
                     b = math.radians(kbo.ddec / 3600.0)
                     ang = math.radians(kbo.pa)
@@ -1072,8 +1094,8 @@ def start(dirname=None, pointings=None):
     pframe.rowconfigure(0, weight=1)
     pframe.columnconfigure(0, weight=1)
 
-    ### Make a plot (w) in the plotFrame
-    ## with scroll bars
+    # ## Make a plot (w) in the plotFrame
+    # # with scroll bars
     w = Plot(pframe)
     sx = Scrollbar(pframe, orient=HORIZONTAL, command=w.xview)
     sy = Scrollbar(pframe, orient=VERTICAL, command=w.yview)
