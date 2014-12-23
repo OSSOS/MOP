@@ -93,7 +93,7 @@ class TracksParser(object):
                 lunation_count * self._nights_separating_darkruns)),
                                    format='jd', scale='utc')
 
-        sys.stderr.write("Sending query to SSOS\n")
+        sys.stderr.write("Sending query to SSOS start_date: {} end_data: {}\n".format(search_start_date, search_start_end))
         query = Query(mpc_observations,
                       search_start_date=search_start_date,
                       search_end_date=search_end_date)
