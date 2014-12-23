@@ -902,7 +902,8 @@ def log_output(program, expnum, ccd, version, prefix=None, output=None):
         file_handle.close()
         logging.info("Writing log to {}".format(log_filename))
         return copy(log_filename, vospace_filename)
-    if exists(log_filename):
+    output = ""
+    if exists(vospace_filename):
         logging.info("Reading log {}".format(log_filename))
         file_handle = open_vos_or_local(log_filename, 'r')
         output = file_handle.read()
