@@ -159,8 +159,11 @@ def recompute_mag(mpc_in):
     cutout = image_slice_downloader.download_cutout(reading, needs_apcor=True)
     cutout.zmag = new_zp
 
+    if math.fabs(new_zp - old_zp) > 0.3:
+        logging.warning("Large change in zeropoint detected: {}  -> {}".format(old_zp, new_zp))
+
     try:
-        (x, y, mag, merr) = cutout.get_observed_magnitude(zmag=old_zp)
+        (x, y, mag, merr) = cutout.get_observed_magnitude(zmag=new_zp)
         (x, y) = cutout.get_observed_coordinates((x, y))
     except:
         logging.warn("Failed to do photometry.")

@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 if [ $# != 1 ]; then
     echo "Please enter block name (Lnx):"

@@ -15,6 +15,7 @@ import requests
 
 import coding
 from mpc import Time
+import util
 
 
 logger = logging
@@ -27,6 +28,7 @@ CERTFILE = os.path.join(os.getenv('HOME'),
 
 DBIMAGES = 'vos:OSSOS/dbimages'
 MEASURE3 = 'vos:OSSOS/measure3'
+POSTAGE_STAMPS = 'vos:OSSOS/postage_stamps'
 
 DATA_WEB_SERVICE = 'https://www.canfar.phys.uvic.ca/data/pub/'
 VOSPACE_WEB_SERVICE = 'https://www.canfar.phys.uvic.ca/vospace/nodes/'
@@ -100,13 +102,7 @@ def populate(dataset_name,
     data_dest = get_uri(dataset_name, version='o', ext='fits.fz')
     data_source = "%s/%so.fits.fz" % (data_web_service_url, dataset_name)
 
-    try:
-        vospace.mkdir(os.path.dirname(data_dest))
-    except IOError as e:
-        if e.errno == errno.EEXIST:
-            pass
-        else:
-            raise e
+    mkdir(os.path.dirname(data_dest))
 
     try:
         vospace.link(data_source, data_dest)
@@ -352,7 +348,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     """
 
     filename = os.path.basename(get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix))
-    if os.access(filename, os.F_OK) and return_file:
+    if os.access(filename, os.F_OK) and return_file and cutout is None:
         return filename
 
 
@@ -360,7 +356,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
         subdir = str(expnum)
 
     logger.debug("Building list of possible uri locations")
-    ## here is the list of places we will look, in order
+    # # here is the list of places we will look, in order
     if version != 'p':
         locations = [(get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix),
                       cutout)]
@@ -371,7 +367,8 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
         try:
             for this_ext in [ext, ext + ".fz"]:
                 ext_no = int(ccd) + 1
-                flip = (cutout is None and "fits" in ext and ((ext_no < 19 and flip_image) and "[-*,-*]" or "[*,*]")) or cutout
+                flip = (cutout is None and "fits" in ext and (
+                    (ext_no < 19 and flip_image) and "[-*,-*]" or "[*,*]")) or cutout
                 locations.append((get_uri(expnum, version=version, ext=this_ext, subdir=subdir),
                                   "[{}]{}".format(ext_no, flip)))
         except Exception as e:
@@ -380,7 +377,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     else:
         uri = get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix)
         locations.append((uri, cutout))
-        uri = get_uri(expnum, ccd, version, ext=ext+".fz", subdir=subdir, prefix=prefix)
+        uri = get_uri(expnum, ccd, version, ext=ext + ".fz", subdir=subdir, prefix=prefix)
         locations.append((uri, cutout))
     while len(locations) > 0:
         (uri, cutout) = locations.pop(0)
@@ -410,7 +407,7 @@ def get_hdu(uri, cutout):
 
     # the filename is based on the Simple FITS images file.
     filename = os.path.basename(uri)
-    if os.access(filename, os.F_OK):
+    if os.access(filename, os.F_OK) and cutout is None:
         logger.debug("File already on disk: {}".format(filename))
         return fits.open(filename, scale_back=True)
 
@@ -424,7 +421,7 @@ def get_hdu(uri, cutout):
     fpt.seek(0, 2)
     fpt.seek(0)
     logger.debug("Read from vospace completed. Building fits object.")
-    hdu_list = fits.open(fpt, scale_back=True)
+    hdu_list = fits.open(fpt, scale_back=False)
     logger.debug("Got image from vospace")
 
     if cutout is None:
@@ -545,8 +542,14 @@ def mkdir(dirname):
         dir_list.append(dirname)
         dirname = os.path.dirname(dirname)
     while len(dir_list) > 0:
-        logging.debug("Creating directory: %s" % (dir_list[-1]))
-        vospace.mkdir(dir_list.pop())
+        logging.info("Creating directory: %s" % (dir_list[-1]))
+        try:
+            vospace.mkdir(dir_list.pop())
+        except IOError as e:
+            if e.errno == errno.EEXIST:
+                pass
+            else:
+                raise e
 
 
 def vofile(filename, **kwargs):
@@ -578,13 +581,13 @@ def open_vos_or_local(path, mode="rb"):
 def copy(source, dest):
     """use the vospace service to get a file. """
 
-    logger.debug("deleting {} ".format(dest))
-    try:
-        vospace.delete(dest)
-    except Exception as e:
-        logger.debug(str(e))
-        pass
-    logger.debug("copying {} -> {}".format(source, dest))
+    #logger.debug("deleting {} ".format(dest))
+    #try:
+    #    vospace.delete(dest)
+    #except Exception as e:
+    #    logger.debug(str(e))
+    #    pass
+    logger.info("copying {} -> {}".format(source, dest))
 
     return vospace.copy(source, dest)
 
@@ -825,7 +828,7 @@ def _get_sghead(expnum, version):
 
     header_str_list = re.split('END      \n', resp.content)
 
-    ## make the first entry in the list a Null
+    # # make the first entry in the list a Null
     headers = [None]
     for header_str in header_str_list:
         headers.append(fits.Header.fromstring(header_str, sep='\n'))
@@ -834,7 +837,7 @@ def _get_sghead(expnum, version):
 
 
 # def _getheader(uri):
-#     """
+# """
 #     Pull a header from a FITS file referenced by the uri.
 #     """
 #     hdulist = (expnum, )
@@ -879,33 +882,33 @@ def get_astheader(expnum, ccd, version='p', prefix=None, ext=None):
         ast_uri = dbimages_uri(expnum, ccd, version=version, ext='.fits')
         if ast_uri not in astheaders:
             hdulist = get_image(expnum, ccd=ccd, version=version, prefix=prefix,
-                                            cutout="[1:1,1:1]", return_file=False)
+                                cutout="[1:1,1:1]", return_file=False)
             assert isinstance(hdulist, fits.HDUList)
             astheaders[ast_uri] = hdulist[0].header
         header = astheaders[ast_uri]
     return header
 
 
-def log_output(program, expnum, ccd, version, prefix=None, output=None):
-    """Write the contents of output to a processing log file.  If output=None then read
-     the contents of the logfile and return as a buffer.
+def log_filename(prefix, task, version, ccd):
+    return "{}{}_{}{}.txt".format(prefix, task, version, ccd)
 
-    """
-    if prefix is None:
-        prefix = ""
-    prefix = len(prefix) > 0 and "{}_".format(prefix) or prefix
-    log_filename = "{}{}_{}.txt".format(prefix, program, version)
-    vospace_filename = os.path.dirname(get_uri(expnum, ccd=ccd, version=version)) + "/" + log_filename
-    if output is not None and len(output) > 0:
-        file_handle = open(log_filename, 'w')
-        file_handle.write(output)
-        file_handle.close()
-        logging.info("Writing log to {}".format(log_filename))
-        return copy(log_filename, vospace_filename)
-    output = ""
-    if exists(vospace_filename):
-        logging.info("Reading log {}".format(log_filename))
-        file_handle = open_vos_or_local(log_filename, 'r')
-        output = file_handle.read()
-        file_handle.close()
-    return output
+
+def log_location(expnum, ccd):
+    return os.path.dirname(get_uri(expnum, ccd=ccd))
+
+
+def set_logger(task, prefix, expnum, ccd, version, dry_run):
+    logger = logging.getLogger()
+    log_format = logging.Formatter('%(asctime)s - %(module)s.%(funcName)s %(lineno)d: %(message)s')
+
+    filename = log_filename(prefix, task, ccd=ccd, version=version)
+    location = log_location(expnum, ccd)
+    if not dry_run:
+        vo_handler = util.VOFileHandler("/".join([location, filename]))
+        vo_handler.setFormatter(log_format)
+        logger.addHandler(vo_handler)
+
+    file_handler = logging.FileHandler(filename=filename)
+    file_handler.setFormatter(log_format)
+    logger.addHandler(file_handler)
+

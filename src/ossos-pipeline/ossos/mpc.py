@@ -10,6 +10,7 @@ import logging
 
 from datetime import datetime
 from astropy import coordinates
+
 try:
     from astropy.time import sofa_time
 except ImportError:
@@ -553,13 +554,10 @@ class Observation(object):
                                     comment=comment)
 
     def __eq__(self, other):
-        return str(self) == str(other)
-
-    def __eq__(self, other):
-        return str(self) == str(other)
+        return self.to_string() == other.to_string() 
 
     def __ne__(self, other):
-        return str(self) != str(other)
+        return self.to_string() != other.to_string()
 
     def __le__(self, other):
         return self.date <= other.date
@@ -940,6 +938,8 @@ class OSSOSComment(object):
 
 
         retval.version = values[0]
+        logging.debug("length of values: {}".format(len(values)))
+        logging.debug("Values: {}".format(str(values)))
         # the format of the last section evolved during the survey, but the following flags should handle this.
         if len(values) == 7:
             retval.plate_uncertainty = values[6]
@@ -953,9 +953,10 @@ class OSSOSComment(object):
         elif len(values) == 10:  # if there are 9 values then the new astrometric level value is set.
             retval.plate_uncertainty = values[8]
             retval.astrometric_level = values[9]
+            logging.debug('here now')
             retval.mag = values[6]
             retval.mag_uncertainty = values[7]
-
+        logging.debug("DONE.")
         return retval
 
 
@@ -1009,8 +1010,8 @@ class OSSOSComment(object):
         self._astrometric_level = astrometric_level
 
     @photometry_note.setter
-    def photometry_note(self, photometery_note):
-        self._photometry_note = str(photometery_note)
+    def photometry_note(self, photometry_note):
+        self._photometry_note = str(photometry_note)
 
     @property
     def x(self):
@@ -1281,7 +1282,7 @@ class MPCReader(object):
         if self._provisional_name is not None:
             return self._provisional_name
         if isinstance(self.filename, basestring):
-            self._provisional_name = self.filename
+            self._provisional_name = self.filename.rstrip('.ast')
         elif hasattr(self.filename, 'name'):
             self._provisional_name = self.filename.name
         elif hasattr(self.filename, 'filename'):
@@ -1432,10 +1433,11 @@ class TNOdbComment(OSSOSComment):
     @classmethod
     def from_string(cls, line):
         if len(line) < 56:
-            raise ValueError("Not a valid TNOdb comment string: {}".format(line))
+            raise ValueError("Line too short, not a valid TNOdb comment string: {}".format(line))
         index = line[0:14].strip()
         if not re.match(r'\d{8}_\S{3}_\S', index):
-            raise ValueError("Not a valid TNOdb comment string: {}".format(line))
+            raise ValueError("No valid flags, not a valid TNOdb comment string: {}".format(line))
+
         date = line[15:23].strip()
         flags = line[24:34].strip()
         comment = line[56:].strip()
@@ -1490,6 +1492,13 @@ class TNOdbComment(OSSOSComment):
         comm += str(self)
         return comm
 
+class RealOSSOSComment(OSSOSComment):
+
+    @classmethod
+    def from_string(cls, comment):
+        if comment.strip()[0] != "O":
+            comment = "O "+comment
+        return super(RealOSSOSComment, cls).from_string(comment)
 
 class MPCComment(OSSOSComment):
     """
@@ -1499,13 +1508,16 @@ class MPCComment(OSSOSComment):
     @classmethod
     def from_string(cls, line):
         comment = line
+        logging.debug('Here is the comment. ' + comment)
         for func in [TNOdbComment.from_string,
                      OSSOSComment.from_string,
+                     RealOSSOSComment.from_string,
                      CFEPSComment.from_string,
                      str]:
             try:
                 comment = func(line)
             except ValueError as verr:
+                logging.debug(str(func))
                 logging.debug(str(verr))
                 continue
             break

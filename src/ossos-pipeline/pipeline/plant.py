@@ -3,12 +3,13 @@
 
 prior to planting, the headers of the objects may be swapped around.'''
 
-#command="plant.csh ./ -rmin %s -rmax %s -ang %s -width %s " % ( opt.rmin, opt.rmax, opt.angle, opt.width)
+# command="plant.csh ./ -rmin %s -rmax %s -ang %s -width %s " % ( opt.rmin, opt.rmax, opt.angle, opt.width)
 
 
 import argparse
 import os
 from subprocess import CalledProcessError
+import sys
 from ossos import storage
 from ossos import util
 import logging
@@ -17,17 +18,17 @@ import logging
 def plant(expnums, ccd, rmin, rmax, ang, width, version='s', dry_run=False):
     '''run the plant script on this combination of exposures'''
 
-    if os.access('proc-these-files',os.F_OK):
+    if os.access('proc-these-files', os.F_OK):
         os.unlink('proc-these-files')
-    ptf = open('proc-these-files','w')
+    ptf = open('proc-these-files', 'w')
     ptf.write("# Files to be planted and search\n")
     ptf.write("# image fwhm plant\n")
 
     for expnum in expnums:
-        fwhm = storage.get_fwhm(expnum,ccd, version=version)
+        fwhm = storage.get_fwhm(expnum, ccd, version=version)
         filename = storage.get_image(expnum, ccd=ccd, version=version)
         ptf.write("%s %3.1f YES\n" % ( filename[0:-5],
-                                    fwhm ))
+                                       fwhm ))
         for ext in ['apcor',
                     'obj.jmp',
                     'trans.jmp',
@@ -39,24 +40,21 @@ def plant(expnums, ccd, rmin, rmax, ang, width, version='s', dry_run=False):
 
     ptf.close()
 
-    cmd_args = ['plant.csh',os.curdir,
-             str(rmin), str(rmax), str(ang), str(width)]
+    cmd_args = ['plant.csh', os.curdir,
+                str(rmin), str(rmax), str(ang), str(width)]
 
     output = util.exec_prog(cmd_args)
-    
+
     if dry_run:
         # Don't push back to VOSpace
         logging.info(output)
-        return 
-    storage.log_output("plant", expnums[0], ccd, version, "", output)
+        return
 
-
-    uri = storage.get_uri('Object',ext='planted',version='',
+    uri = storage.get_uri('Object', ext='planted', version='',
                           subdir=str(
-        expnums[0])+"/ccd%s" % (str(ccd).zfill(2)))
+                              expnums[0]) + "/ccd%s" % (str(ccd).zfill(2)))
 
-
-    storage.copy('Object.planted',uri)
+    storage.copy('Object.planted', uri)
     uri = os.path.join(os.path.dirname(uri), 'plant.shifts')
     storage.copy('shifts', uri)
     for expnum in expnums:
@@ -64,18 +62,19 @@ def plant(expnums, ccd, rmin, rmax, ang, width, version='s', dry_run=False):
                               ccd=ccd,
                               version=version,
                               ext='fits', prefix='fk')
-        filename =  os.path.basename(uri)
+        filename = os.path.basename(uri)
         storage.copy(filename, uri)
 
     return
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--ccd',
                         action='store',
                         type=int,
                         default=None,
-                         help='which ccd to process')
+                        help='which ccd to process')
     parser.add_argument("--dbimages",
                         action="store",
                         default="vos:OSSOS/dbimages",
@@ -93,9 +92,9 @@ if __name__=='__main__':
                         action='store_true',
                         default=False,
                         help='do not sort exposure list by expnum before processing')
-    parser.add_argument("--verbose","-v",
+    parser.add_argument("--verbose", "-v",
                         action="store_true")
-    parser.add_argument("--debug",'-d',
+    parser.add_argument("--debug", '-d',
                         action='store_true')
     parser.add_argument("--rmin", default=0.5,
                         type=float, help="minimum motion rate")
@@ -106,8 +105,8 @@ if __name__=='__main__':
     parser.add_argument("--ang", default=20,
                         type=float, help="angle of motion, 0 is West")
     parser.add_argument("--force", action="store_true")
-    parser.add_argument("--dry_run", action="store_true")
-    args=parser.parse_args()
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args()
 
     if args.dry_run:
         args.force = True
@@ -124,23 +123,23 @@ if __name__=='__main__':
 
     storage.DBIMAGES = args.dbimages
 
-
     logging.basicConfig(level=level, format="%(message)s")
 
     ccds = [args.ccd]
     if args.ccd is None:
-        ccds = range(0,36)
-    
+        ccds = range(0, 36)
+
     for ccd in ccds:
         message = storage.SUCCESS
         try:
-            if not storage.get_status(args.expnums[0], ccd, 
+            storage.set_logger(os.path.splitext(os.path.basename(sys.argv[0]))[0], "", args.expnums[0], ccd, args.type, args.dry_run)
+            if not storage.get_status(args.expnums[0], ccd,
                                       'scramble', version=args.type):
-                raise IOError("scramble not yet run for %s ccd%s" % ( 
+                raise IOError("scramble not yet run for %s ccd%s" % (
                     str(args.expnums), str(ccd).zfill(2)))
             if storage.get_status(args.expnums[0], ccd,
                                   'plant', version=args.type) and not args.force:
-                logging.info("plant done for %s[%s]" % ( args.expnums[0], ccd))
+                logging.info("plant done for %s[%s]" % (args.expnums[0], ccd))
                 continue
             plant(args.expnums,
                   ccd,
@@ -148,12 +147,11 @@ if __name__=='__main__':
                   version=args.type,
                   dry_run=args.dry_run)
         except CalledProcessError as cpe:
-            storage.log_output("plant", args.expnums[0], ccd, args.type, "", cpe.output)
             message = str(cpe)
             exit_code = message
         except Exception as e:
             message = str(e)
-            logging.error(str(e))
+        logging.critical(message)
 
         if not args.dry_run:
             storage.set_status(args.expnums[0],

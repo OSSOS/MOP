@@ -49,11 +49,25 @@ echo "Getting SGWYN ZP from ${image}"
 set zerop=`gethead $dir/${image}.fits PHOTZP`
 if ( "X$zerop" == "X" ) then
     echo -n "Didn't find SGWYN ZP, Trying to set zeropoint by scaling ELIXIR value, got: "
-    set zerop=`gethead $dir/${image}.fits EXPTIME PHOT_C0 | awk ' { print 2.5*log($1)/log(10)+$2 } ' `
-    echo $zerop
+    set zerop=`gethead $dir/${image}.fits PHOT_C`
+    if ( "X$zerop" == "X" ) then
+        set zerop=`gethead $dir/${image}.fits PHOT_C0`
+    endif
     if ( "X$zerop" == "X" ) then
         set zerop="26.0"
     endif
+    set exptime=`gethead $dir/${image}.fits EXPTIME`
+    set airmass=`gethead $dir/${image}.fits AIRMASS`
+    set phot_k=`gethead $dir/${image}.fits PHOT_K`
+    if ( "X$exptime" == "X" || "X$airmass" == "X" || "X$phot_k" == "X" ) then 
+        set zerop="30.0"
+    else
+        set zerop=`echo $zerop $exptime $phot_k $airmass | awk ' { print $1 + 2.5*log($2)/log(10) + $3*($4-1) } ' `
+    endif
+    if ( "X$zerop" == "X" ) then
+        set zerop="30.0"
+    endif
+    echo $zerop
 endif
 
 set term = none 
@@ -61,7 +75,7 @@ set term = none
 
 cd ~/iraf
 
-ecl << EOF
+cl << EOF
 
 flpr
 

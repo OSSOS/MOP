@@ -177,6 +177,7 @@ c Reads in transform.
       close (1)
 
 c Reads in other catalog.
+      write (6,*) "Reading other catalogs"
 
       open (1, file=infile(nf), status='old')
       do i = 1, 7
@@ -204,15 +205,20 @@ c Reads in other catalog.
       close (1)
 
 c Apply transform to every body.
+      write (6,*) "Applying transform to 1 "
 
       call trans_xy (x1(1,nf), y1(1,nf), n1(nf), x1_sys1(1,nf),
      $  y1_sys1(1,nf), coeff, n_c, trans)
+
+      write(6,*) "Lists transformed"
 
 c Now find the matching stars.
 
       call match_lists_new (x1_sys1(1,1), y1_sys1(1,1), ident1(1,nf),
      $  n1(1), x1_sys1(1,nf), y1_sys1(1,nf), ident1(1,1), n1(nf),
      $  tmpr, tol_dist, indxt1)
+   
+      write(6,*) "Lists matched"
 
 c Check for fortuituous matching of unlike objects.
 
@@ -235,6 +241,7 @@ c Check for fortuituous matching of unlike objects.
       end do
 
 c End of catalog loop.
+      write(6,*) "Catalogs matched"
 
       goto 10
 
