@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 # This script tries to run the whole pipeline. Makes some assumptions as to
 # what files exist and where they are.

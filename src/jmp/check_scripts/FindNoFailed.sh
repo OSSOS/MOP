@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 # This script tries to run the detection part only on directories without
 # failure before that point. Will also generate a file to run the detection

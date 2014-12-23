@@ -59,15 +59,11 @@ def step3(expnums, ccd, version, rate_min,
                      '-w', str(width)])
     jmp_args.extend(cmd_args)
     matt_args.extend(cmd_args)
-    output = util.exec_prog(jmp_args)
-    output += util.exec_prog(matt_args)
+    logging.info(util.exec_prog(jmp_args))
+    logging.info(util.exec_prog(matt_args))
 
     if dry_run:
-        logging.info(output)
         return
-
-    storage.log_output("step3", expnums[0], ccd, version, prefix, output)
-
 
     if field is None:
         field = str(expnums[0])
@@ -166,8 +162,9 @@ def main():
 
     exit_status = 0
     for ccd in ccdlist:
+        storage.set_logger(os.path.splitext(os.path.basename(sys.argv[0]))[0], prefix,
+                           args.expnums[0], ccd, args.type, args.dry_run)
         message = storage.SUCCESS
-
         try:
             if not storage.get_status(args.expnums[0], ccd, prefix + 'step2', version=args.type):
                 raise IOError(35, "did step2 run on %s" % str(args.expnums))

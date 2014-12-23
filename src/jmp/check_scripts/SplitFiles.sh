@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 pat="*"
 if [ $# -ge 1 ]; then

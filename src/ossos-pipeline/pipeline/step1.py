@@ -60,16 +60,17 @@ def step1(expnum,
     maxcount: saturation level
 
     """
+
     storage.get_file(expnum, ccd, prefix=prefix, version=version, ext='mopheader')
     filename = storage.get_image(expnum, ccd, version=version, prefix=prefix)
     fwhm = storage.get_fwhm(expnum, ccd, prefix=prefix, version=version)
     basename = os.path.splitext(filename)[0]
 
-    output = util.exec_prog(['step1jmp',
-                             '-f', basename,
-                             '-t', str(wave_thresh),
-                             '-w', str(fwhm),
-                             '-m', str(maxcount)])
+    logging.info(util.exec_prog(['step1jmp',
+                                 '-f', basename,
+                                 '-t', str(wave_thresh),
+                                 '-w', str(fwhm),
+                                 '-m', str(maxcount)]))
 
     obj_uri = storage.get_uri(expnum, ccd, version=version, ext='obj.jmp',
                               prefix=prefix)
@@ -77,7 +78,6 @@ def step1(expnum,
 
     if not dry_run:
         storage.copy(obj_filename, obj_uri)
-        storage.log_output("step1", expnum, ccd, version, prefix, output)
 
     ## for step1matt we need the weight image
     hdulist = fits.open(filename)
@@ -88,13 +88,15 @@ def step1(expnum,
     else:
         flat_name = parts[0]
     flat_filename = storage.get_image(flat_name, ccd, version='', ext='fits', subdir='calibrators')
+
     if not os.access('weight.fits', os.R_OK):
         os.symlink(flat_filename, 'weight.fits')
-    output += util.exec_prog(['step1matt',
-                              '-f', basename,
-                              '-t', str(sex_thresh),
-                              '-w', str(fwhm),
-                              '-m', str(maxcount)])
+
+    logging.info(util.exec_prog(['step1matt',
+                                 '-f', basename,
+                                 '-t', str(sex_thresh),
+                                 '-w', str(fwhm),
+                                 '-m', str(maxcount)]))
 
     obj_uri = storage.get_uri(expnum, ccd, version=version, ext='obj.matt',
                               prefix=prefix)
@@ -102,7 +104,6 @@ def step1(expnum,
 
     if not dry_run:
         storage.copy(obj_filename, obj_uri)
-        storage.log_output("step1", expnum, ccd, version, prefix, output)
 
     return True
 
@@ -118,6 +119,9 @@ def main(task='step1'):
                         default=None,
                         type=int,
                         dest="ccd")
+    parser.add_argument("--ignore", help="Try to run even in previous step failed.",
+                        default=False,
+                        action="store_true")
     parser.add_argument("--fk", help="add the fk prefix on processing?",
                         default=False,
                         action='store_true')
@@ -178,24 +182,26 @@ def main(task='step1'):
     exit_code = 0
     for expnum in args.expnum:
         for ccd in ccdlist:
+            storage.set_logger(os.path.splitext(os.path.basename(sys.argv[0]))[0],
+                               prefix, expnum, ccd, args.type, args.dry_run)
             try:
                 message = storage.SUCCESS
                 if storage.get_status(expnum, ccd, prefix+task, version=args.type) and not args.force:
                     logging.critical("{} completed successfully for {} {} {} {}".format(task, prefix,
                                                                                         expnum, args.type, ccd))
                     continue
-                if not storage.get_status(expnum, ccd, prefix+'mkpsf', version=args.type):
+                if not storage.get_status(expnum, ccd, prefix+'mkpsf', version=args.type) and not args.ignore:
                     raise IOError(35, "mkpsf hasn't run for {} {} {} {}".format(task, prefix,
                                                                                 expnum, args.type, ccd))
                 step1(expnum, ccd, prefix=prefix, version=args.type, dry_run=args.dry_run)
             except CalledProcessError as cpe:
-                storage.log_output("step1", expnum, ccd, args.type, prefix, cpe.output)
                 message = str(cpe)
                 exit_code = message
             except Exception as e:
                 message = str(e)
-                logging.error("Error running step1_p: %s " % message)
                 exit_code = str(e)
+
+            logging.error("Error running step1_p: %s " % message)
 
             if not args.dry_run:
                 storage.set_status(expnum,

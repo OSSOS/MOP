@@ -11,9 +11,9 @@ string  psf   {prompt="PSF output file EXTENSION."}
 real    fwhm  {4.,prompt="Guess the seeing."}
 real    thresh {4,prompt="Threshold for PSF stars."}
 real	maxlin {20000,prompt="Maximum counts for linearity."}
-real	apin {3,prompt="Small aperture as fraction of FWHM"}
-real	apout {15,prompt="apout as fraction of FWHM"}
-real	swidth {15,prompt="swidth as fraction of FWHM"}
+real	apin {1.1,prompt="Small aperture as fraction of FWHM"}
+real	apout {5,prompt="apout as fraction of FWHM"}
+real	swidth {2,prompt="swidth as fraction of FWHM"}
 string  base  {"./",prompt="Working directory (include trailing /)."}
 int     order  {3, prompt="Order of the psf. 3 is vary in x and y"}
 real    zeropt {26.0,prompt="Photometric zeropoint"}
@@ -23,7 +23,7 @@ string  *aplist
 
 begin 	
   
-# 	task parameters
+    # task parameters
 	string t_image 
 	string t_psf 
 	string t_base  
@@ -36,11 +36,12 @@ begin
 	real t_maxlin
 	real t_threshold
 	bool t_keep_files
-# procedure variables
+    # procedure variables
 	int failedflag, npsfstar
 	real xsig
 	real ysig
 	real sig, ssig
+        real achi, schi
 	int nsamp
 	real dum
 	int	wc, ac
@@ -86,7 +87,7 @@ begin
 	apmin = t_fwhm*t_apin
 	apmax = t_fwhm*t_apout
 	naps = (apmax - apmin) +1
-        apmax = apmin + naps
+    apmax = apmin + naps
 	naps = (apmax - apmin) +1
 
     # In case of failure, record paramaters
@@ -165,14 +166,12 @@ begin
 	fitskypars.annulus =  apmax + 2
 
  	kdelete(t_image//".mag")
-        flux_aperture = 18.0
 	phot(t_image, 
 	     t_image//".bright.psf",
 	     t_image//".bright.mag",
-	     photpars.apertures=flux_aperture,
+	     photpars.apertures=apmin,
    	     centerpars.calgori="centroid",
              centerpars.maxshift=3)
-        print (apmin)
 
 	# reject stars with any error in the calculation 
 	# of their photometric magnitude
@@ -205,18 +204,22 @@ begin
 	    # and the second time using the FWHM determined from the PSF stars
 
 	    apmin = int(10*t_apin*t_fwhm + 0.5) / 10.0
-            apmax = int(10*t_apout*t_fwhm + 0.5) / 10.0	
+	    # using an aperture smaller than 3.0 pixels under samples
+	    if ( apmin < 1.5 )  {
+		   apmin = 3.0
+	    }
+        apmax = int(10*t_apout*t_fwhm + 0.5) / 10.0
+        if ( apmax < apmin ) {
+           apmax = apmin + 1
+        }
 	    naps = (apmax - apmin) + 1
-            apmax = apmin + naps 
+        apmax = apmin + naps
 	    naps = (apmax - apmin) + 1
+
   	    print("apmin : ", apmin)
 	    print("apmax : ", apmax)
 	    print("naps  : ", naps)
 
-	    # using an aperture smaller than 1.5 pixels under samples
-	    if ( apmin < 1.5 )  {
-		apmin = 1.5
-	    }
 
 	    # Adjust the large aperture size too, and the sky fitting parameters
 	    fitskypars.dannulus = t_swidth*t_fwhm
@@ -224,16 +227,14 @@ begin
 
 	    # set the PSF radius and fitting radius
 	    daopars.fitrad = apmin
-	    daopars.psfrad = apmax
+	    daopars.psfrad = apmax+3
 	    datapars.fwhm = t_fwhm
 	    print "Using fwhm of --> "//t_fwhm
 
 	    ## using the good stars found outside the loop, reduce the aperture to the 
 	    ## small aperture and do the photometry to get PSF onto scale of small ap photometry
-	    photpars.apertures = apmin
 	    kdelete(t_image//".mag")
-	    phot(t_image,t_image//".coo.1",t_image//".mag",centerpars.calgori="centroid",photpars.apertures=flux_aperture)
-            print (apmin)
+	    phot(t_image,t_image//".coo.1",t_image//".mag",centerpars.calgori="centroid",photpars.apertures=apmax)
 
 	    ## select out those that have bad values of centroid and photometry issues.
 	    ## the first step removes those stars that have INDEF values for MSKY since those 
@@ -260,11 +261,81 @@ begin
 	       imdelete(t_psf,verify-)
 	    }
 
-	    psf(t_image,t_image//".mag",t_image//".pst.1",
+	    iferr { psf(t_image,t_image//".mag",t_image//".pst.1",
 		    t_psf,
 		    t_image//".pst.2",
-		    t_image//".psg.1",showplots-,interactive-)
-	
+		    t_image//".psg.1",showplots-,interactive-) }
+	    goto finalproc
+
+            print("Usnig nstar to find the good matches to the PSF...")
+	    kdelete (t_image//".nst.1")
+	    kdelete (t_image//".nrj.1")
+	    nstar(t_image,t_image//".psg.1", psfimage=t_psf, nstarfile=t_image//".nst.1", rejfile=t_image//".nrj.1")
+	    kdelete(t_image//".mag")
+            # reject stars whose chi2 is large compared to the mean chi2 of stars in the PSF
+	    txdump(t_image//".nst.1",
+                   "CHI","(PIER==0)") | average | scan(achi,schi,nsamp);
+            print("Average CHI2 "//achi//" +/- "//schi)
+            x=achi+schi
+            if ( x < 2.5 ) { 
+               x = 2.5 
+            }
+	    pselect(t_image//".nst.1",t_image//".mag","CHI < "//x)
+            type(t_image//".mag")
+
+	    # use those stars to build an actual PSF
+	    kdelete ( t_image//".pst.2")
+	    kdelete ( t_image//".psg.1")
+	    if ( imaccess(t_psf) ) {
+	       imdelete(t_psf,verify-)
+	    }
+
+	    iferr { psf(t_image,t_image//".mag",t_image//".pst.1",
+		    t_psf,
+		    t_image//".pst.2",
+		    t_image//".psg.1",showplots-,interactive-) }
+	    goto finalproc
+
+            # Use nstar to find the fluxes of psg stars
+	    kdelete(t_image//".nst.1")
+	    kdelete(t_image//".nrj.1")
+	    nstar(t_image,t_image//".psg.1", psfimage=t_psf, nstarfile=t_image//".nst.1", rejfile=t_image//".nrj.1")
+
+            print("Using the new PSF and FLUX to subtract the neighbouring stars.")
+	    if ( imaccess(t_image//".sub.1") ) {
+              imdelete(t_image//".sub.1")
+            }
+
+            substar(image=t_image, photfile=t_image//".nst.1",
+                    exfile=t_image//".pst.2", psfimage=t_psf, subimage=t_image//".sub.1", verify-, update-, verbose+)
+
+    	    # run PHOT on the subtracted image to get the flux zeropoint correct.
+	    kdelete(t_image//".mag")
+	    kdelete(t_image//".coo.1")
+	    txdump(t_image//".nst.1",
+                   "CHI","(PIER==0)") | average | scan(achi,schi,nsamp);
+            print("Average CHI2 "//achi//" +/- "//schi)
+            x=achi+schi
+            if ( x < 2.5 ) { 
+               x = 2.5 
+            }
+	    txdump(t_image//".nst.1","XCEN,YCEN,ID","CHI < "//x, > t_image//".coo.1")
+
+	    phot(t_image,t_image//".coo.1",t_image//".mag",centerpars.calgori="centroid",photpars.apertures=apmax)
+
+	    # build a PSF using the PSF neighbour subtracted image.
+	    kdelete ( t_image//".pst.2")
+	    kdelete ( t_image//".psg.1")
+	    if ( imaccess(t_psf) ) {
+	       imdelete(t_psf,verify-)
+	    }
+
+	    iferr { psf(t_image//".sub.1",t_image//".mag",t_image//".pst.1",
+		    t_psf,
+		    t_image//".pst.2",
+		    t_image//".psg.1",showplots-,interactive-) }
+	    goto finalproc
+
             # Estimate the FWHM using the gaussian fit to the PSF
 	    hselect(t_psf,"PAR1",yes) | scan(xsig)
 	    hselect(t_psf,"PAR2",yes) | scan(ysig)
@@ -272,9 +343,9 @@ begin
 	    t_fwhm = sqrt((xsig*xsig + ysig*ysig)/2.0)
             print "Sigma -> "//t_fwhm
 	    if ( abs((xsig - ysig)/t_fwhm) > 0.2 ) {
-		#JJK Added a warning message here. March 2002
-		touch (t_image//".psf.WARNING")
-		print("ERROR: The PSF is too elliptical for planting. image"//t_image, >> t_image//".psf.WARNING" )
+		   #JJK Added a warning message here. March 2002
+		   touch (t_image//".psf.WARNING")
+		   print("ERROR: The PSF is too elliptical for planting. image"//t_image, >> t_image//".psf.WARNING" )
 	    }
 	    
 	    ## we must have 10 or more stars to get a good psf...
@@ -284,8 +355,8 @@ begin
 	        goto finalproc
 	    }
 
-            # for MEGACAM the FWHM is about 84% of the
-            # value you would get based on a guassian fit to the PSF
+        # for MEGACAM the FWHM is about 84% of the
+        # value you would get based on a guassian fit to the PSF
 	    t_fwhm = 0.84*t_fwhm*sqrt(8*log(2))
 	    print "Got FWHM of "//t_fwhm
 	    if ( t_fwhm > 8 ) { 
@@ -295,6 +366,8 @@ begin
 	    }
 	    # keep going until change in t_fwhm between
 	    # loops is less than 0.05 (5%)
+	    # compute the apcor using the PSF stars.
+
 	}
 
 	## Check that the output fwhm is reasonably close to the input one.
@@ -319,16 +392,23 @@ begin
 		 rejfile=t_image//".nrj.1");
 
 	kdelete(t_image//".phot")
-	pselect(t_image//".nst.1",t_image//".phot","CHI < 2.5")
+	txdump(t_image//".nst.1",
+               "CHI","(PIER==0)") | average | scan(achi,schi,nsamp);
+        print("Average CHI2 "//achi//" +/- "//schi)
+        x=achi+schi
+        if ( x < 2.5 ) { 
+           x = 2.5 
+        }
+	pselect(t_image//".nst.1",t_image//".phot","CHI < "//x)
 
 	#build a file for use as input into phot
 	kdelete(t_image//".coo.2")
-	txdump(t_image//".nst.1","XCENTER,YCENTER,MAG,SHARPNESS,ID","CHI < 2.5", \
+	txdump(t_image//".nst.1","XCENTER,YCENTER,MAG,SHARPNESS,ID","CHI < "//x, \
 	       headers+, > t_image//".coo.2")
 
 	# Run PHOT with a range of apertures.
 	kdelete(t_image//".mag.2")
-    	photpars.apertures=apmin//":"//apmax+0.1//":1"
+    photpars.apertures=apmin//":"//apmax+0.1//":1"
 	naps = (apmax - apmin) +1
 	print("apmin : ", apmin)
 	print("apmax : ", apmax)

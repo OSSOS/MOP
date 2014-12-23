@@ -4,9 +4,11 @@ Reads and writes .astrom files.
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import os
-from ossos.gui import logger
 import re
+
+from ossos.gui import logger
 from ossos import storage, wcs
+
 
 DATASET_ROOT = storage.DBIMAGES
 
@@ -681,11 +683,13 @@ class Observation(object):
     def is_fake(self):
         return self.fk == FAKE_PREFIX or self.ftype == 's'
 
+    # TODO Remove get_image_uri from here, use the storage methods.
     def get_image_uri(self):
         return storage.dbimages_uri(self.expnum,
                                     ccd=self.ccdnum,
                                     version=self.ftype,
-                                    prefix=self.fk, )
+                                    prefix=self.fk,
+                                    ext='.fits')
 
     def get_object_planted_uri(self):
         return os.path.dirname(self.get_image_uri())+"/Object.planted"

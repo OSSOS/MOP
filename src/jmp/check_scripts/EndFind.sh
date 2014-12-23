@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 sort -u PBstep3jmp-dir > PBstep3jmp-dir-u
 \cp find.input3 endfind.input2

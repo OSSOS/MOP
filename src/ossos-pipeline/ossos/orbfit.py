@@ -7,6 +7,8 @@ import tempfile
 from StringIO import StringIO
 
 import datetime
+import numpy
+from astropy import coordinates
 try:
     from astropy.coordinates import ICRSCoordinates
 except ImportError:
@@ -39,7 +41,9 @@ class Orbfit(object):
         Requires at least 3 mpc.Observations in the list.
         :rtype : Orbfit
         """
-        assert isinstance(observations, tuple) or isinstance(observations, list)
+        assert isinstance(observations, tuple) or isinstance(observations, list) or isinstance(observations,
+                                                                                               numpy.ndarray)
+
         if len(observations) < 3:
             raise OrbfitError()
         self.orbfit = ctypes.CDLL(LIBORBFIT)

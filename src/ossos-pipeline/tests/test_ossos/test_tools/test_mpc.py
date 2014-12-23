@@ -585,11 +585,15 @@ class TestMPCReader(unittest.TestCase):
 
     def setUp(self):
         self.fileobj = tempfile.NamedTemporaryFile()
-        self.fileobj.write("""#O 1698860p25 O13AE2O Y   990.0 3698.0 22.79 0.08 0.096    3 % This is a comment.\n""")
+        self.fileobj.write("""#O  1698860p25 O13AE2O Y   990.0 3698.0 22.79 0.08 0.096    3 % This is a comment.\n""")
         self.fileobj.write("""     o3e05    C2013 06 12.37153 14 19 34.135-14 01 53.33                     568\n""")
         self.fileobj.write("-    O13AE3M   2014 02 03.59026 14 28 51.800-15 18 59.40                     568 20140201_568_1 20140221 0000000000                      O 1686862p28 O13AE3M Z    22.0  112.7   UUUU %  in chip gap\n")
         self.fileobj.write("     o3e01    C2014 02 24.60898 14 28 39.810-15 20 16.67         21.8 r      568 20140224_568_1 20141108 0000000000                      O 1691684p19 O13AE3M     Y   469.54 2711.47 0.06 3 21.76 0.03 %                 \n")
         self.fileobj.write(" O13BL3T0     C2014 08 28.46592 00 56 32.810+02 46 18.64         24.5 r      568 20131007_568_1 20141002 0000000000                      O 1736297p04 O13BL3T0 Y   696.5 4022.8 24.46 0.19 UUUU % great                  \n")
+        self.fileobj.write("     L3XO   * C2013 09 29.34928 00 48 17.902+03 06 58.63         24.15r      568 1656885p20 L3XO Y   288.5 4308.3 24.15 0.13 UUUU % \n")
+        self.fileobj.write("     L3XO   &VC2013 09 29.38812 00 48 17.721+03 06 57.86         24.44r      568 1656895p20 L3XO YV  299.3 4304.7 24.44 0.16 UUUU % \n")
+        self.fileobj.write("     L3XO   & C2013 09 29.43193 00 48 17.524+03 06 56.57         24.70r      568 1656906p20 L3XO Y   311.2 4298.9 24.70 0.23 UUUU % \n")
+
         self.fileobj.flush()
         self.fileobj.seek(0)
         self._default_provisional = os.path.basename(self.fileobj.name)
@@ -628,6 +632,14 @@ class TestMPCReader(unittest.TestCase):
         self.assertEqual(str(obs[3])[1:1+len(self.long_test_name)], self.long_test_name,
                          "got >{}< expected >{}<".format(self.long_test_name,
                                                          str(obs[3])[1:1+len(self.long_test_name)]))
+
+    def test_mpc_real_to_ossos(self):
+        reader = mpc.MPCReader()
+        obs = reader.read(self.fileobj)
+        assert isinstance(obs[5].comment, mpc.OSSOSComment)
+        self.assertEqual(obs[5].comment.version, "O")
+        self.assertEqual(obs[5].provisional_name, "L3XO")
+        self.assertAlmostEqual(obs[5].comment.mag, 24.44, places=2)
 
 
 if __name__ == '__main__':
