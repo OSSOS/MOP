@@ -699,7 +699,7 @@ class Observation(object):
 
     def get_zmag_uri(self):
         return storage.dbimages_uri(self.expnum,
-                                    ccd=self.ccdum,
+                                    ccd=self.ccdnum,
                                     version=self.ftype,
                                     prefix=self.fk,
                                     ext=storage.ZEROPOINT_USED_EXT)
