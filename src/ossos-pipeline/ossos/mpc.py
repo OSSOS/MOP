@@ -4,17 +4,21 @@ import itertools
 import os
 import re
 import struct
+import sys
 import time
 import logging
 
 from datetime import datetime
 from astropy import coordinates
 
-
 try:
     from astropy.time import sofa_time
 except ImportError:
     from astropy.time import erfa_time as sofa_time
+try:
+    from astropy.coordinates import ICRSCoordinates
+except ImportError:
+    from astropy.coordinates import ICRS as ICRSCoordinates
 from astropy.time import TimeString
 from astropy.time import Time
 from astropy import units
@@ -186,8 +190,8 @@ def format_ra_dec(ra_deg, dec_deg):
       formatted_ra: str
       formatted_dec: str
     """
-    coords = coordinates.ICRSCoordinates(ra=ra_deg, dec=dec_deg,
-                                         unit=(units.degree, units.degree))
+    coords = ICRSCoordinates(ra=ra_deg, dec=dec_deg,
+                             unit=(units.degree, units.degree))
 
     # decimal=False results in using sexagesimal form
     formatted_ra = coords.ra.format(unit=units.hour, decimal=False,
@@ -251,7 +255,9 @@ class MPCNote(object):
                 raise MPCFieldFormatError(self.note_type,
                                           "Must be a character",
                                           _code)
-            if int(_code) not in range(10):
+            if not 0 < int(_code) < 10:
+                print 0, _code, 10
+                print 0 < int(_code) < 10
                 raise MPCFieldFormatError(self.note_type,
                                           "numeric value must be between 0 and 9",
                                           _code)
@@ -778,13 +784,14 @@ class Observation(object):
         try:
             ra = float(val1)
             dec = float(val2)
-            self._coordinate = coordinates.ICRSCoordinates(ra, dec, unit=(units.degree, units.degree))
+            self._coordinate = ICRSCoordinates(ra, dec, unit=(units.degree, units.degree))
         except:
             try:
                 self._ra_precision = compute_precision(val1)
                 self._dec_precision = compute_precision(val2)
-                self._coordinate = coordinates.ICRSCoordinates(val1, val2, unit=(units.hour, units.degree))
-            except:
+                self._coordinate = ICRSCoordinates(val1, val2, unit=(units.hour, units.degree))
+            except Exception as e:
+                sys.stderr.write(str(e)+"\n")
                 raise MPCFieldFormatError("coord_pair",
                                           "must be [ra_deg, dec_deg] or HH MM SS.S[+-]dd mm ss.ss",
                                           coord_pair)

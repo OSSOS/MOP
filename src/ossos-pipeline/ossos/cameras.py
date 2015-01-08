@@ -3,8 +3,12 @@ __author__ = 'Michele Bannister   git:@mtbannister'
 import math
 
 import ephem
-from astropy import coordinates
 from astropy import units
+try:
+    from astropy.coordinates import ICRSCoordinates
+except:
+    from astropy.coordinates import ICRS as ICRSCoordinates
+
 
 
 class Camera:
@@ -174,7 +178,7 @@ class Camera:
 
     @property
     def coordinate(self):
-        return coordinates.ICRSCoordinates(
+        return ICRSCoordinates(
             ra=math.degrees(self.ra),
             dec=math.degrees(self.dec),
             unit=(units.degree, units.degree))

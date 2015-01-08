@@ -119,6 +119,9 @@ def main(task='step1'):
                         default=None,
                         type=int,
                         dest="ccd")
+    parser.add_argument("--ignore", help="Try to run even in previous step failed.",
+                        default=False,
+                        action="store_true")
     parser.add_argument("--fk", help="add the fk prefix on processing?",
                         default=False,
                         action='store_true')
@@ -187,7 +190,7 @@ def main(task='step1'):
                     logging.critical("{} completed successfully for {} {} {} {}".format(task, prefix,
                                                                                         expnum, args.type, ccd))
                     continue
-                if not storage.get_status(expnum, ccd, prefix+'mkpsf', version=args.type):
+                if not storage.get_status(expnum, ccd, prefix+'mkpsf', version=args.type) and not args.ignore:
                     raise IOError(35, "mkpsf hasn't run for {} {} {} {}".format(task, prefix,
                                                                                 expnum, args.type, ccd))
                 step1(expnum, ccd, prefix=prefix, version=args.type, dry_run=args.dry_run)

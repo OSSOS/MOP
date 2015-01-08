@@ -351,6 +351,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     if os.access(filename, os.F_OK) and return_file and cutout is None:
         return filename
 
+
     if not subdir:
         subdir = str(expnum)
 
@@ -791,7 +792,7 @@ def get_mopheader(expnum, ccd, version='p', prefix=None):
 
     mopheader = fits.open(mopheader_fpt)
 
-    # # add some values to the mopheader so it can be an astrom header too.
+    ## add some values to the mopheader so it can be an astrom header too.
     header = mopheader[0].header
     try:
         header['FWHM'] = get_fwhm(expnum, ccd)
