@@ -93,12 +93,12 @@ class TracksParser(object):
                 lunation_count * self._nights_separating_darkruns)),
                                    format='jd', scale='utc')
 
-        sys.stderr.write("Sending query to SSOS\n")
+        logger.info("Sending query to SSOS start_date: {} end_data: {}\n".format(search_start_date, search_end_date))
         query = Query(mpc_observations,
                       search_start_date=search_start_date,
                       search_end_date=search_end_date)
 
-        sys.stderr.write("Parsing query results...")
+        logger.debug("Parsing query results...")
         tracks_data = self.ssos_parser.parse(query.get(), mpc_observations=mpc_observations)
 
         tracks_data.mpc_observations = {}
@@ -157,7 +157,7 @@ class SSOSParser(object):
                 if observation.null_observation:
                     self.null_observations.append(rawname)
             except:
-                sys.stderr.write("failed to get original filename from {}".format(observation.comment))
+                logger.error("Failed to get original filename from {}".format(observation.comment))
 
     def _skip_missing_data(self, str_vals, ncols):
         """
@@ -167,6 +167,7 @@ class SSOSParser(object):
             str_vals.append('None')
             return str_vals
         else:
+            logger.error("Failed to parse row: {}".format(str_vals))
             raise ValueError("not enough columns in table")
 
     def build_source_reading(self, expnum, ccd, X, Y):
@@ -244,7 +245,7 @@ class SSOSParser(object):
         ref_expnum = None
         ref_ccd = None
         nrows = len(table)
-        sys.stderr.write("Loading {} observations\n".format(nrows))
+        logger.info("Loading {} observations\n".format(nrows))
         for row in table:
             # check if a dbimages object exists
             ccd = int(row['Ext']) - 1
@@ -252,7 +253,7 @@ class SSOSParser(object):
             X = row['X']
             Y = row['Y']
             mjd = row['MJD']
-            sys.stderr.write("{}".format(row))
+            logger.debug("{}".format(row))
 
             # Excludes the non-CFHT OSSOS data, and the wallpaper.
             # note: 'Telescope_Insturment' is a typo in SSOIS's return format
@@ -268,21 +269,21 @@ class SSOSParser(object):
                     try:
                         if mpc_observation.comment.frame == "{}p{:02d}".format(expnum, ccd) \
                                 and not mpc_observation.discovery.is_initial_discovery:
-                            sys.stderr.write("Skipping {}p{:02d}: already measured\n".format(expnum, ccd))
+                            logger.info("Skipping {}p{:02d}: already measured\n".format(expnum, ccd))
                             previous = True
                             break
                     except Exception as e:
                         pass
                 if previous:
                     continue
-            sys.stderr.write(
+            logger.info(
                 "\r{}\r {}: observation {} {} {} {} from SSOS .. ".format(" " * 190, nrows, expnum, ccd, X, Y))
             try:
                 observation = self.build_source_reading(expnum, ccd, X, Y)
                 observation.mjd = mjd
                 logger.info('built source reading {}'.format(observation))
             except Exception as err:
-                sys.stderr.write(str(err)+"\n")
+                logger.error(str(err)+"\n")
                 continue
             observations.append(observation)
 
@@ -315,12 +316,12 @@ class SSOSParser(object):
                 x0 = X
                 y0 = Y
 
-            sys.stderr.write(" Building SourceReading .... \n")
+            logger.info(" Building SourceReading .... \n")
             source_reading = astrom.SourceReading(x=row['X'], y=row['Y'], x0=x0, y0=y0, ra=row['Object_RA'],
                                                   dec=row['Object_Dec'], xref=ref_x, yref=ref_y, obs=observation,
                                                   ssos=True, from_input_file=from_input_file,
                                                   null_observation=null_observation, is_inverted=False)
-            sys.stderr.write("done")
+            logger.info("done")
 
             source_readings.append(source_reading)
 
@@ -580,7 +581,7 @@ class Query(object):
         :raise: AssertionError
         """
         params = self.param_dict_builder.params
-        sys.stderr.write("{}\n".format(params))
+        logger.debug("{}\n".format(params))
         self.response = requests.post(SSOS_URL,
                                       data=params,
                                       headers=self.headers)
@@ -591,8 +592,7 @@ class Query(object):
 
         lines = self.response.content
         # note: spelling 'occured' is in SSOIS
-        if len(lines) < 2 or str(lines[1]).startswith((
-                "An error occured getting the ephemeris")):
+        if len(lines) < 2 or "An error occured getting the ephemeris" in lines:
             raise IOError(os.errno.EACCES,
                           "call to SSOIS failed on format error")
 
