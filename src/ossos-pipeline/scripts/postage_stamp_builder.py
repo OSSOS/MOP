@@ -23,7 +23,7 @@ BASEURL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/vospace/auth/synctrans"
 
 
 def cutout(obj, obj_dir, args):
-    for obs in obj.mpc_observations:
+    for obs in obj.mpc_observations[10:11]:  # FIXME: TESTING ONLY
         if obs.null_observation:
             continue
         expnum = obs.comment.frame.split('p')[0]  # only want calibrated images
@@ -57,8 +57,6 @@ def cutout(obj, obj_dir, args):
                 # os.remove(postage_stamp_filename)   # easier not to have them hanging around
         except requests.exceptions.HTTPError, e:
             logging.error("{}".format(str(e)))
-
-        break
 
     return
 
@@ -104,15 +102,14 @@ def main():
     elif args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    for fn in storage.listdir(args.ossin)[0:1]:
+    for fn in storage.listdir(args.ossin)[10:11]:  #FIXME: TESTING ONLY
         obj = mpc.MPCReader(args.ossin + fn)  # let MPCReader's logic determine the provisional name
         for block in args.blocks:
             if obj.provisional_name.startswith(block):
                 obj_dir = '{}/{}/{}'.format(storage.POSTAGE_STAMPS, args.version[0], obj.provisional_name)
-                try:
-                    storage.exists(obj_dir, force=True)
-                except IOError:
+                if not storage.exists(obj_dir, force=True):
                     storage.mkdir(obj_dir)
+                    # assert storage.exists(obj_dir, force=True)
                 cutout(obj, obj_dir, args)
 
 

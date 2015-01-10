@@ -653,12 +653,11 @@ def list_dbimages():
 def exists(uri, force=False):
     try:
         return vospace.getNode(uri, force=force) is not None
-    except IOError as e:
-        logger.error(str(e))
+    except EnvironmentError as e:
+        logger.error(str(e))  # not critical enough to raise
         # Sometimes the error code returned is the OS version, sometimes the HTTP version
         if e.errno in [404, os.errno.ENOENT]:
             return False
-        raise e
 
 
 def move(old_uri, new_uri):
