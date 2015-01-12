@@ -100,12 +100,10 @@ class tno(object):
         Combining both class methods is the most reliable way of instantiating these objects from a data release.
     '''
 
-    def __init__(self, name, mag, mag_stdev, dist, dist_e, nobs, arclen, av_xres, av_yres, max_x, max_y,
+    def __init__(self, name, dist, dist_e, nobs, arclen, av_xres, av_yres, max_x, max_y,
                  a, a_e, e, e_e, i, i_e, node, node_e, argperi, argperi_e, time_peri, time_peri_e):
         # self.classification = str(classification)
         self.name = str(name)
-        self.mag = float(mag)
-        self.mag_stdev = float(mag_stdev)
         self.dist = float(dist)
         self.dist_e = float(dist_e)
         self.nobs = int(nobs)
@@ -140,7 +138,10 @@ class tno(object):
             params = summaryLine.split()
             if len(params) != 25:
                 raise TypeError('Expected 25 columns, {0} given'.format(len(params)))
-            retval = cls(*params[0:23])
+            input_params = params[0:1] + params[3:23]
+            retval = cls(*input_params)
+            retval.mean_mag = float(params[1])
+            retval.mean_mag_stdev = float(params[2])
             retval.ra_discov = params[23]
             retval.dec_discov = params[24]
         else:
@@ -161,16 +162,15 @@ class tno(object):
             params = classLine.split()
             if len(params) != 31:
                 raise TypeError('Expected 31 columns, {0} given'.format(len(params)))
-            input_params = params[5:8] + params[10:30]  # the elements that are in common
+            input_params = params[5] + params[10:30]  # the elements that are in common
             retval = cls(*input_params)
-            # FIXME: need to set a flag here that mag is average rather than average at discovery if instantiated
-            # this way
-            # or just have two mag settings: yes, that'd be better
             retval.classification = params[0]
             retval.wrt = params[1]
             retval.n = int(params[2])
             retval.m = int(params[3])
             retval.security = params[4]
+            retval.mag_discov = params[6]
+            retval.mag_discov_e = params[7]
             retval.filter = params[8]
             retval.H = params[9]  # H_r magnitude, using the average m_r and the discovery geometry (same error as m_r)
             retval.rate = params[30]
