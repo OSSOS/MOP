@@ -37,7 +37,7 @@ TAP_WEB_SERVICE = 'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/tap/sync'
 OSSOS_TAG_URI_BASE = 'ivo://canfar.uvic.ca/ossos'
 OBJECT_COUNT = "object_count"
 
-vospace = vos.Client(cadc_short_cut=True)
+vospace = vos.Client()
 
 SUCCESS = 'success'
 
