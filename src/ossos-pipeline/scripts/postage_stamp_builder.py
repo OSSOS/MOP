@@ -14,6 +14,7 @@ import argparse
 import logging
 import getpass
 import requests
+import os
 
 from ossos import mpc
 from ossos import storage
@@ -22,7 +23,7 @@ BASEURL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/vospace/auth/synctrans"
 
 
 def cutout(obj, obj_dir, radius, username, password):
-    for obs in obj.mpc_observations[10:11]:  # FIXME: TESTING ONLY
+    for obs in obj.mpc_observations:  # FIXME: TESTING ONLY
         if obs.null_observation:
             continue
         expnum = obs.comment.frame.split('p')[0]  # only want calibrated images
@@ -43,22 +44,18 @@ def cutout(obj, obj_dir, radius, username, password):
                   "DIRECTION": direction,
                   "cutout": this_cutout,
                   "view": view}
-        try:
-            r = requests.get(BASEURL, params=params, auth=(username, password))
-            r.raise_for_status()  # confirm the connection worked as hoped
-            postage_stamp_filename = "{}_{:11.5f}_{:09.5f}_{:+09.5f}.fits".format(obj.provisional_name,
-                                                                                  obs.date.mjd,
-                                                                                  obs.coordinate.ra.degree,
-                                                                                  obs.coordinate.dec.degree)
-            logging.info("{}".format(postage_stamp_filename))
-            with open(postage_stamp_filename, 'w') as tmp_file:
-                tmp_file.write(r.content)
-                # storage.copy(postage_stamp_filename, obj_dir)
-                # os.remove(postage_stamp_filename)   # easier not to have them hanging around
-        except requests.exceptions.HTTPError, e:
-            logging.error("{}".format(str(e)))
+        r = requests.get(BASEURL, params=params, auth=(username, password))
+        r.raise_for_status()  # confirm the connection worked as hoped
+        postage_stamp_filename = "{}_{:11.5f}_{:09.5f}_{:+09.5f}.fits".format(obj.provisional_name,
+                                                                              obs.date.mjd,
+                                                                              obs.coordinate.ra.degree,
+                                                                              obs.coordinate.dec.degree)
+        logging.info("{}".format(postage_stamp_filename))
+        with open(postage_stamp_filename, 'w') as tmp_file:
+            tmp_file.write(r.content)
+            storage.copy(postage_stamp_filename, obj_dir + "/" + postage_stamp_filename)
+        os.unlink(postage_stamp_filename)  # easier not to have them hanging around
 
-    return
 
 
 def main():
@@ -102,7 +99,7 @@ def main():
         obj = mpc.MPCReader(args.ossin + fn)  # let MPCReader's logic determine the provisional name
         for block in args.blocks:
             if obj.provisional_name.startswith(block):
-                obj_dir = '{}/{}/{}'.format(storage.POSTAGE_STAMPS, args.version[0], obj.provisional_name)
+                obj_dir = '{}/{}/{}'.format(storage.POSTAGE_STAMPS, args.version, obj.provisional_name)
                 if not storage.exists(obj_dir, force=True):
                     storage.mkdir(obj_dir)
                 # assert storage.exists(obj_dir, force=True)
