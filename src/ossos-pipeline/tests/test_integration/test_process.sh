@@ -4,7 +4,24 @@ source ${HOME}/.bash_profile
 export exp2=1667740
 export exp3=1667751
 export exp1=1667729
-export DBIMAGES=vos:OSSOS/TEST/
+
+if [ ! -d "TEST" ] 
+then
+# Create a clean testing area
+    vrmdir vos:OSSOS/TEST/dbimages
+    vmkdir vos:OSSOS/TEST/dbimages
+    vmkdir vos:OSSOS/TEST/dbimages/measure3
+    
+# link Test files into new area
+    for exp in ${exp1} ${exp2} ${exp3}
+    do
+	vmkdir vos:OSSOS/TEST/dbimages/${exp}
+	vln vos:OSSOS/TEST/${exp}/${exp}p.fits  vos:OSSOS/TEST/dbimages/${exp}/${exp}p.fits
+    done
+    vln vos:OSSOS/TEST/calibrators vos:OSSOS/TEST/dbimages/calibrators
+fi
+
+export DBIMAGES=vos:OSSOS/TEST/dbimages
 export MEASURE3=${DBIMAGES}/measure3/
 # rmin, rmax are constants for the whole OSSOS survey.
 export rmax=15.0
@@ -14,9 +31,10 @@ export ang=-23
 # width has been constant for a while now
 export width=30
 export field=TEST
-export ccd_start=1
-export ccd_end=1
-export force=--force
+export ccd_start=0
+export ccd_end=35
+export force=
+#export force=--force
 
 echo "field "$field
 
@@ -60,7 +78,7 @@ for ((ccd=ccd_start;ccd<=ccd_end;ccd++))
   step3.py $exp1 $exp2 $exp3 --ccd $ccd --fk --type s -v --dbimages ${DBIMAGES} --rate_min ${rmin} --rate_max ${rmax} --angle ${ang} --width ${width}  ${force}
   combine.py $exp1 --ccd $ccd --fk --type s -v --dbimages ${DBIMAGES} --measure3 ${MEASURE3} ${force} --field ${field}
   
-  astrom_mag_check.py ${field} ${ccd} --measure3 ${MEASURE3}  --dbimages ${DBIMAGES}  --expnum ${exp1} ${force} --force
+  astrom_mag_check.py ${field} ${ccd} --measure3 ${MEASURE3}  --dbimages ${DBIMAGES}  ${force} 
 
   cd ${basedir}
 done
