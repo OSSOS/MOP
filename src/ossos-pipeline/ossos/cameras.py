@@ -183,9 +183,9 @@ class Camera:
             dec=math.degrees(self.dec),
             unit=(units.degree, units.degree))
 
-    def __init__(self, camera="MEGACAM_1"):
+    def __init__(self, camera="MEGACAM_40"):
         if camera == '':
-            camera = "MEGACAM_1"
+            camera = "MEGACAM_40"
         self.camera = camera
 
     def __str__(self):
