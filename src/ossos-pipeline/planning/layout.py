@@ -487,7 +487,8 @@ if PLOT_USNO_STARS:
     print "PLOTTING LOCATIONS NEARBY BRIGHT USNO B1 STARS"
     for ra in range(int(ra_cen - width/2.0),int(ra_cen + width/2.), 10):
         for dec in range(int(dec_cen - height/2.0),int(dec_cen + height/2.), 10):
-	    file_name = "/Users/jjk/usno/usno{:5.2f}{:5.2f}.xml".format(ra,dec)
+	    file_name = "/tmp/vospace/OSSOS/dbimages/usno/usno{:5.2f}{:5.2f}.xml".format(ra,dec)
+            file_name = file_name.replace(" ","")
 	    if not os.access(file_name, os.R_OK):
                 usno = usnoB1.TAPQuery(ra, dec, 10.0, 10.0)
 		fobj=open(file_name,'w')
