@@ -32,7 +32,7 @@ export ang=-23
 export width=30
 export field=TEST
 export ccd_start=0
-export ccd_end=35
+export ccd_end=0
 export force=
 #export force=--force
 
@@ -47,7 +47,7 @@ for expnum in $exp1 $exp2 $exp3
   done
 
 for ((ccd=ccd_start;ccd<=ccd_end;ccd++))
-  do
+do
   mkdir -p ${ccd}
   cd ${ccd}
   ## First do the search images
@@ -69,16 +69,20 @@ for ((ccd=ccd_start;ccd<=ccd_end;ccd++))
   combine.py $exp1 --ccd $ccd --type s -v --dbimages ${DBIMAGES} --measure3 ${MEASURE3} --field ${field} ${force}
 
   # Now plant artificial sources.
-  plant.py $exp1 $exp2 $exp3 --ccd $ccd -v --dbimages ${DBIMAGES} --type s --rmin ${rmin} --rmax ${rmax} --ang ${ang} --width ${width}  ${force}
+  align.py $exp1 $exp2 $exp3 --ccd $ccd -v --dbimages ${DBIMAGES} --type s --force
+  plant.py $exp1 $exp2 $exp3 --ccd $ccd -v --dbimages ${DBIMAGES} --type s --rmin ${rmin} --rmax ${rmax} --ang ${ang} --width ${width} --force 
 
   # Now run the standard pipeline on the artificial sources.
   mkpsf.py $exp1 $exp2 $exp3 --ccd $ccd --fk -v --type s --dbimages ${DBIMAGES} --type s ${force} --ignore-update-headers
-  step1.py $exp1 $exp2 $exp3 --ccd $ccd --fk --type s -v --dbimages ${DBIMAGES}  ${force}
-  step2.py $exp1 $exp2 $exp3 --ccd $ccd --fk --type s -v --dbimages ${DBIMAGES}  ${force}
-  step3.py $exp1 $exp2 $exp3 --ccd $ccd --fk --type s -v --dbimages ${DBIMAGES} --rate_min ${rmin} --rate_max ${rmax} --angle ${ang} --width ${width}  ${force}
-  combine.py $exp1 --ccd $ccd --fk --type s -v --dbimages ${DBIMAGES} --measure3 ${MEASURE3} ${force} --field ${field}
-  
-  astrom_mag_check.py ${field} ${ccd} --measure3 ${MEASURE3}  --dbimages ${DBIMAGES}  ${force} 
+  for ((loop=0;loop<=100;loop++)) 
+  do
+     plant.py $exp1 $exp2 $exp3 --ccd $ccd -v --dbimages ${DBIMAGES} --type s --rmin ${rmin} --rmax ${rmax} --ang ${ang} --width ${width}  --force
+     step1.py $exp1 $exp2 $exp3 --ccd $ccd --fk --type s -v --dbimages ${DBIMAGES} --force
+     step2.py $exp1 $exp2 $exp3 --ccd $ccd --fk --type s -v --dbimages ${DBIMAGES} --force
+     step3.py $exp1 $exp2 $exp3 --ccd $ccd --fk --type s -v --dbimages ${DBIMAGES} --force --rate_min ${rmin} --rate_max ${rmax} --angle ${ang} --width ${width} 
+     combine.py $exp1 --ccd $ccd --fk --type s -v --dbimages ${DBIMAGES} --measure3 ${MEASURE3} --force --field ${field}
+     astrom_mag_check.py ${field} ${ccd} --measure3 ${MEASURE3}  --dbimages ${DBIMAGES}  --force
+  done
 
   cd ${basedir}
 done

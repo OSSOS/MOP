@@ -35,10 +35,10 @@ REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/ast/'
 
 PLOT_FIELD_EPOCH = 'Nov15'  # Oct14.00 ==> '0' days since the New Moon on Oct14
 #TODO the .00 is appended when this variable is used as a keyword that needs that .00 this is bad.
-DISCOVERY_NEW_MOON = 'Nov15'  # this is the date that the RA/DEC in blocks corresponds to.
+DISCOVERY_NEW_MOON = 'Nov13'  # this is the date that the RA/DEC in blocks corresponds to.
 
 
-PLOT_USNO_STARS = True
+PLOT_USNO_STARS = False
 PLOT_MEGACAM_ARCHIVE_FIELDS = False   ## TODO Make this work when True
 PLOT_SYNTHETIC_KBOS = True
 PLOT_SYNTHETIC_KBO_TRAILS = False
@@ -149,7 +149,7 @@ blocks = {'13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"},  # ,
 blocks = {'14BH': {'RA': "01:28:32.32", "DEC": "+12:51:06.10"}}
 
 #fall 2015
-blocks = {'15BD': {'RA': "03:15:00.00", "DEC": "+16:30:00.00"}}
+# blocks = {'15BD': {'RA': "03:15:00.00", "DEC": "+16:30:00.00"}}
 
 #spring14
 
@@ -164,7 +164,7 @@ newMoons = {
 #    'Aug13': "2013/08/06 10:00:00",
 #    'Sep13': '2013/09/05 10:00:00',
 #    'Oct13': '2013/10/04 10:00:00',
-#    'Nov13': '2013/11/03 10:00:00',
+    'Nov13': '2013/11/03 10:00:00',
 #    'Dec13': '2013/12/02 10:00:00',
 #    'Jan14': '2014/01/01 10:00:00',
 #    'Feb14': '2014/01/31 10:00:00',
