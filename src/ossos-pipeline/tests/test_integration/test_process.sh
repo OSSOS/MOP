@@ -37,14 +37,14 @@ export loops=100
 export force=
 #export force=--force
 
-echo "field "$field
+echo "field "${field}
 
 mkdir -p ${field}
 cd ${field}
 basedir=`pwd`
-for expnum in $exp1 $exp2 $exp3
+for expnum in ${exp1} ${exp2} ${exp3}
   do
-    update_header.py --replace $expnum --dbimages ${DBIMAGES}
+    update_header.py --replace ${expnum} --dbimages ${DBIMAGES}
   done
 
 for ((ccd=ccd_start;ccd<=ccd_end;ccd++))
@@ -52,36 +52,36 @@ do
   mkdir -p ${ccd}
   cd ${ccd}
   ## First do the search images
-  mkpsf.py $exp1 $exp2 $exp3 -v --ccd ${ccd} ${force} --dbimages ${DBIMAGES}
-  step1.py $exp1 $exp2 $exp3 -v --ccd ${ccd} ${force} --dbimages ${DBIMAGES}
-  step2.py $exp1 $exp2 $exp3 -v --ccd ${ccd} ${force} --dbimages ${DBIMAGES}
-  step3.py $exp1 $exp2 $exp3 --ccd $ccd  -v --dbimages ${DBIMAGES} --rate_min ${rmin} --rate_max ${rmax} --angle ${ang} --width ${width} ${force}
+  mkpsf.py ${exp1} ${exp2} ${exp3} -v --ccd ${ccd} ${force} --dbimages ${DBIMAGES}
+  step1.py ${exp1} ${exp2} ${exp3} -v --ccd ${ccd} ${force} --dbimages ${DBIMAGES}
+  step2.py ${exp1} ${exp2} ${exp3} -v --ccd ${ccd} ${force} --dbimages ${DBIMAGES}
+  step3.py ${exp1} ${exp2} ${exp3} --ccd ${ccd}  -v --dbimages ${DBIMAGES} --rate_min ${rmin} --rate_max ${rmax} --angle ${ang} --width ${width} ${force}
   echo "Running combine.py"
-  combine.py $exp1 -v --dbimages ${DBIMAGES} --measure3 ${MEASURE3} --field ${field}  --ccd ${ccd} ${force}
+  combine.py ${exp1} -v --dbimages ${DBIMAGES} --measure3 ${MEASURE3} --field ${field}  --ccd ${ccd} ${force}
 
   # First scramble the images.
-  scramble.py $exp1 $exp2 $exp3 --ccd $ccd -v --dbimages ${DBIMAGES}  ${force}
+  scramble.py ${exp1} ${exp2} ${exp3} --ccd ${ccd} -v --dbimages ${DBIMAGES}  ${force}
 
   # now run the standard pipeline on the scramble images..
-  mkpsf.py $exp1 $exp2 $exp3 --ccd $ccd -v --type s --dbimages ${DBIMAGES}  ${force} --ignore-update-headers
-  step1.py $exp1 $exp2 $exp3 --ccd $ccd -v --type s --dbimages ${DBIMAGES}  ${force}
-  step2.py $exp1 $exp2 $exp3 --ccd $ccd -v --type s --dbimages ${DBIMAGES}  ${force}
-  step3.py $exp1 $exp2 $exp3 --ccd $ccd -v --type s --dbimages ${DBIMAGES} --rate_min ${rmin} --rate_max ${rmax} --angle ${ang} --width ${width} ${force}
-  combine.py $exp1 --ccd $ccd --type s -v --dbimages ${DBIMAGES} --measure3 ${MEASURE3} --field ${field} ${force}
+  mkpsf.py ${exp1} ${exp2} ${exp3} --ccd ${ccd} -v --type s --dbimages ${DBIMAGES}  ${force} --ignore-update-headers
+  step1.py ${exp1} ${exp2} ${exp3} --ccd ${ccd} -v --type s --dbimages ${DBIMAGES}  ${force}
+  step2.py ${exp1} ${exp2} ${exp3} --ccd ${ccd} -v --type s --dbimages ${DBIMAGES}  ${force}
+  step3.py ${exp1} ${exp2} ${exp3} --ccd ${ccd} -v --type s --dbimages ${DBIMAGES} --rate_min ${rmin} --rate_max ${rmax} --angle ${ang} --width ${width} ${force}
+  combine.py ${exp1} --ccd ${ccd} --type s -v --dbimages ${DBIMAGES} --measure3 ${MEASURE3} --field ${field} ${force}
 
   # Now plant artificial sources.
   for ((loop=1;loop<=${loops};loop++)) 
   do
-      align.py $exp1 $exp2 $exp3 --ccd $ccd -v --dbimages ${DBIMAGES} --type s
-      plant.py $exp1 $exp2 $exp3 --ccd $ccd -v --dbimages ${DBIMAGES} --type s --rmin ${rmin} --rmax ${rmax} --ang ${ang} --width ${width}
+      align.py ${exp1} ${exp2} ${exp3} --ccd ${ccd} -v --dbimages ${DBIMAGES} --type s
+      plant.py ${exp1} ${exp2} ${exp3} --ccd ${ccd} -v --dbimages ${DBIMAGES} --type s --rmin ${rmin} --rmax ${rmax} --ang ${ang} --width ${width}
 
   # Now run the standard pipeline on the artificial sources.
-     mkpsf.py $exp1 $exp2 $exp3 --ccd $ccd --fk -v --type s --dbimages ${DBIMAGES} --type s ${force} --ignore-update-headers
-     plant.py $exp1 $exp2 $exp3 --ccd $ccd -v --dbimages ${DBIMAGES} --type s --rmin ${rmin} --rmax ${rmax} --ang ${ang} --width ${width}  --force
-     step1.py $exp1 $exp2 $exp3 --ccd $ccd --fk --type s -v --dbimages ${DBIMAGES} --force
-     step2.py $exp1 $exp2 $exp3 --ccd $ccd --fk --type s -v --dbimages ${DBIMAGES} --force
-     step3.py $exp1 $exp2 $exp3 --ccd $ccd --fk --type s -v --dbimages ${DBIMAGES} --force --rate_min ${rmin} --rate_max ${rmax} --angle ${ang} --width ${width} 
-     combine.py $exp1 --ccd $ccd --fk --type s -v --dbimages ${DBIMAGES} --measure3 ${MEASURE3} --force --field ${field}
+     mkpsf.py ${exp1} ${exp2} ${exp3} --ccd ${ccd} --fk -v --type s --dbimages ${DBIMAGES} --type s ${force} --ignore-update-headers
+     plant.py ${exp1} ${exp2} ${exp3} --ccd ${ccd} -v --dbimages ${DBIMAGES} --type s --rmin ${rmin} --rmax ${rmax} --ang ${ang} --width ${width}  --force
+     step1.py ${exp1} ${exp2} ${exp3} --ccd ${ccd} --fk --type s -v --dbimages ${DBIMAGES} --force
+     step2.py ${exp1} ${exp2} ${exp3} --ccd ${ccd} --fk --type s -v --dbimages ${DBIMAGES} --force
+     step3.py ${exp1} ${exp2} ${exp3} --ccd ${ccd} --fk --type s -v --dbimages ${DBIMAGES} --force --rate_min ${rmin} --rate_max ${rmax} --angle ${ang} --width ${width}
+     combine.py ${exp1} --ccd ${ccd} --fk --type s -v --dbimages ${DBIMAGES} --measure3 ${MEASURE3} --force --field ${field}
      astrom_mag_check.py ${field} ${ccd} --measure3 ${MEASURE3}  --dbimages ${DBIMAGES}  --force
   done
 
