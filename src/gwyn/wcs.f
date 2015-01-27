@@ -496,6 +496,8 @@
       integer reclen,bitpix
       character*8 keyword
       character*70 value
+      naxis1=0
+      naxis2=0
       do 10 i=1,3
          open(1,file=filename,status='old',
      &        access='direct',recl=irectry(i))
