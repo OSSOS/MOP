@@ -138,13 +138,14 @@ def plant(expnums, ccd, rmin, rmax, ang, width, number=10, mmin=21.0, mmax=25.5,
     header = fits.open(filename)[0].header
     bounds = util.get_pixel_bounds_from_datasec_keyword(header.get('DATASEC', '[33:2080,1:4612]'))
 
-    # generate a set of artifical KBOs to add to the image.
-    kbos = KBOGenerator.get_object_planted_file(num=number,
-                                                x=(bounds[0][0], bounds[0][1]),
-                                                y=(bounds[1][0], bounds[1][1]),
-                                                rate=(rmin, rmax),
-                                                angle=(ang - width, ang + width),
-                                                mag=(mmin, mmax))
+    # generate a set of artificial KBOs to add to the image.
+    kbos = KBOGenerator.get_kbos(n=number,
+                                 rate=(rmin, rmax),
+                                 angle=(ang - width, ang + width),
+                                 mag=(mmin, mmax),
+                                 x=(bounds[0][0], bounds[0][1]),
+                                 y=(bounds[1][0], bounds[1][1]),
+                                 filename='Object.planted')
 
     for expnum in expnums:
         filename = storage.get_image(expnum, ccd, version)
