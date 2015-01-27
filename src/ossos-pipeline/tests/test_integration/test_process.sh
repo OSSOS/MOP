@@ -33,6 +33,7 @@ export width=30
 export field=TEST
 export ccd_start=0
 export ccd_end=0
+export loops=100
 export force=
 #export force=--force
 
@@ -69,13 +70,13 @@ do
   combine.py $exp1 --ccd $ccd --type s -v --dbimages ${DBIMAGES} --measure3 ${MEASURE3} --field ${field} ${force}
 
   # Now plant artificial sources.
-  align.py $exp1 $exp2 $exp3 --ccd $ccd -v --dbimages ${DBIMAGES} --type s --force
-  plant.py $exp1 $exp2 $exp3 --ccd $ccd -v --dbimages ${DBIMAGES} --type s --rmin ${rmin} --rmax ${rmax} --ang ${ang} --width ${width} --force 
+  for ((loop=1;loop<=${loops};loop++)) 
+  do
+      align.py $exp1 $exp2 $exp3 --ccd $ccd -v --dbimages ${DBIMAGES} --type s
+      plant.py $exp1 $exp2 $exp3 --ccd $ccd -v --dbimages ${DBIMAGES} --type s --rmin ${rmin} --rmax ${rmax} --ang ${ang} --width ${width}
 
   # Now run the standard pipeline on the artificial sources.
-  mkpsf.py $exp1 $exp2 $exp3 --ccd $ccd --fk -v --type s --dbimages ${DBIMAGES} --type s ${force} --ignore-update-headers
-  for ((loop=0;loop<=100;loop++)) 
-  do
+     mkpsf.py $exp1 $exp2 $exp3 --ccd $ccd --fk -v --type s --dbimages ${DBIMAGES} --type s ${force} --ignore-update-headers
      plant.py $exp1 $exp2 $exp3 --ccd $ccd -v --dbimages ${DBIMAGES} --type s --rmin ${rmin} --rmax ${rmax} --ang ${ang} --width ${width}  --force
      step1.py $exp1 $exp2 $exp3 --ccd $ccd --fk --type s -v --dbimages ${DBIMAGES} --force
      step2.py $exp1 $exp2 $exp3 --ccd $ccd --fk --type s -v --dbimages ${DBIMAGES} --force
