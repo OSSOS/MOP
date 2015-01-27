@@ -13,28 +13,35 @@ ivo://ivoa.net/vospace/core%23httpget&view=cutout&cutout=CIRCLE+ICRS+242.1318+-1
 import argparse
 import logging
 import getpass
-import requests
 import os
+
+import requests
 
 from ossos import mpc
 from ossos import storage
+
 
 BASEURL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/vospace/auth/synctrans"
 
 
 def cutout(obj, obj_dir, radius, username, password):
-    for obs in obj.mpc_observations:  # FIXME: TESTING ONLY
+    for obs in obj.mpc_observations[12:]:  # FIXME: TESTING ONLY
         if obs.null_observation:
             continue
         expnum = obs.comment.frame.split('p')[0]  # only want calibrated images
+        if not expnum.isdigit():
+            # implies the comment parsing failed.
+            logging.error('expnum {} parsed from comment line invalid. Check comment parsing.\n{}'.format(expnum, str(
+                obs.comment)))
+            continue
         # Using the WCS rather than the X/Y, as the X/Y can be unreliable on a long-term basis
         this_cutout = "CIRCLE ICRS {} {} {}".format(obs.coordinate.ra.degree,
                                                obs.coordinate.dec.degree,
                                                radius)
-        print this_cutout
+
         # FIXME: should be able to use line below, but bug in VOSpace requires direct-access workaround, for now.
         # postage_stamp = storage.get_image(expnum, cutout=cutout)
-
+        logging.info('cutout {} from {}'.format(this_cutout, expnum))
         target = storage.vospace.fixURI(storage.get_uri(expnum))
         direction = "pullFromVoSpace"
         protocol = "ivo://ivoa.net/vospace/core#httpget"
@@ -95,15 +102,18 @@ def main():
     elif args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    for fn in storage.listdir(args.ossin)[10:11]:  #FIXME: TESTING ONLY
+    for fn in storage.listdir(args.ossin):  # DEBUGGING
         obj = mpc.MPCReader(args.ossin + fn)  # let MPCReader's logic determine the provisional name
         for block in args.blocks:
             if obj.provisional_name.startswith(block):
-                obj_dir = '{}/{}/{}'.format(storage.POSTAGE_STAMPS, args.version, obj.provisional_name)
-                if not storage.exists(obj_dir, force=True):
-                    storage.mkdir(obj_dir)
-                # assert storage.exists(obj_dir, force=True)
-                cutout(obj, obj_dir, args.radius, username, password)
+                if obj.provisional_name.startswith('o3e06'):
+                    obj_dir = '{}/{}/{}'.format(storage.POSTAGE_STAMPS, args.version, obj.provisional_name)
+                    if not storage.exists(obj_dir, force=True):
+                        storage.mkdir(obj_dir)
+                    # assert storage.exists(obj_dir, force=True)
+                    print('{} beginning...\n'.format(obj.provisional_name))
+                    cutout(obj, obj_dir, args.radius, username, password)
+                    print('{} complete.\n'.format(obj.provisional_name))
 
 
 if __name__ == '__main__':
