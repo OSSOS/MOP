@@ -36,8 +36,15 @@ class MatchFile(object):
 class Range(object):
     """A custom object that is initialized with a range and when called returns a random value in that range."""
 
-    def __init__(self, minimum, maximum, seed=None):
+    def __init__(self, minimum, maximum=None, seed=None):
         random.seed(seed)
+        if maximum is None:
+            if len(minimum) == 2:
+                maximum = minimum[1]
+                minimum = minimum[0]
+            else:
+                raise ValueError("Range should be initialize with a tuple or two arguments giving min and max.")
+
         self.min = minimum
         self.max = maximum
         self.value = None
@@ -96,19 +103,27 @@ class KBOGenerator(object):
         return {'x': self.x(), 'y': self.y(), 'mag': self.mag(), 'sky_rate': self.rate(), 'angle': self.angle(),
                 'id': self.id}
 
+    @classmethod
+    def get_kbos(cls, n, rate, angle, mag, x, y, filename=None):
 
-planted = Table(names=('x', 'y', 'mag', 'sky_rate', 'angle', 'id'))
+        kbos = Table(names=('x', 'y', 'mag', 'sky_rate', 'angle', 'id'))
 
-for kbo in KBOGenerator(10,
-                        rate=Range(0.5, 15.0),
-                        angle=Range(-30, 30),
-                        mag=Range(21, 25),
-                        x=Range(1, 2048),
-                        y=Range(1, 4096)):
-    planted.add_row(kbo)
+        # generate the KBOs.
+        for kbo in cls(n,
+                       rate=Range(rate),
+                       angle=Range(angle),
+                       mag=Range(mag),
+                       x=Range(x),
+                       y=Range(y)):
+            kbos.add_row(kbo)
 
-fd = open('Object.planted', 'w')
-fd.write("# ")
-planted.write(fd, format='ascii.fixed_width', delimiter=None)
-fd.close()
+        # Write to a local file if filename given.
+        if filename is not None:
+            fd = open(filename, 'w')
+            fd.write("#K {:10s} {:10s} {:10s} {:10s} {:10s}\n".format("rate", "angle", "mag", "x_range", "y_range"))
+            fd.write("#V {:10s} {:10s} {:10s} {:10s} {:10s}\n".format(rate, angle, mag, x, y))
+            fd.write("# ")
+            kbos.write(fd, format='ascii.fixed_width', delimiter=None)
+            fd.close()
 
+        return kbos

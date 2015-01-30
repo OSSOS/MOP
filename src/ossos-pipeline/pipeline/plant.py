@@ -13,14 +13,12 @@ import tempfile
 from astropy.io import fits
 import math
 import errno
-import numpy
 from ossos import storage
 from ossos import util
 import logging
-from astropy.table import Table
-from ossos.plant import Range, KBOGenerator
+from ossos.plant import KBOGenerator
 from pyraf import iraf
-
+from numpy import radians, fabs, log10, rint, cos, sin, transpose
 
 def plant_kbos(filename, psf, kbos, shifts, prefix):
     """
@@ -56,7 +54,7 @@ def plant_kbos(filename, psf, kbos, shifts, prefix):
 
     # transform KBO locations to this frame using the shifts provided.
     w = get_wcs(shifts)
-    x, y = w.wcs_world2pix(kbos['x'], kbos['y'], 1)
+
     header = fits.open(filename)[0].header
 
     # set the rate of motion in units of pixels/hour instead of ''/hour
@@ -67,16 +65,22 @@ def plant_kbos(filename, psf, kbos, shifts, prefix):
 
     # offset magnitudes from the reference frame to the current one.
     mag = kbos['mag'] - shifts['dmag']
-    angle = numpy.radians(kbos['angle'])
+    angle = radians(kbos['angle'])
+
+    # Move the x/y locations to account for the sky motion of the source.
+    x = kbos['x'] - rate*24.0*shifts['dmjd']*cos(angle)
+    y = kbos['y'] - rate*24.0*shifts['dmjd']*sin(angle)
+    x, y = w.wcs_world2pix(x, y, 1)
+
     # Each source will be added as a series of PSFs so that a new PSF is added for each pixel the source moves.
     itime = float(header['EXPTIME'])/(3600.0*24.0)
-    x += rate*24.0*shifts['dmjd']*numpy.cos(angle)
-    y += rate*24.0*shifts['dmjd']*numpy.sin(angle)
-    npsf = numpy.fabs(numpy.rint(rate * itime)) + 1
-    mag += 2.5*numpy.log10(npsf)
+    npsf = fabs(rint(rate * itime)) + 1
+    mag += 2.5*log10(npsf)
     dt_per_psf = itime/npsf
+
+    # Build an addstar file to be used in the planting of source.
     idx = 0
-    for record in numpy.transpose([x, y, mag, npsf, dt_per_psf, rate, angle]):
+    for record in transpose([x, y, mag, npsf, dt_per_psf, rate, angle]):
         x = record[0]
         y = record[1]
         mag = record[2]
@@ -100,8 +104,10 @@ def plant_kbos(filename, psf, kbos, shifts, prefix):
         else:
             raise
 
+    # add the sources to the image.
     iraf.daophot.addstar(filename, addstar.name, psf, fk_image,
                          simple=True, verify=False, verbose=False)
+    # convert the image to short integers.
     iraf.images.chpix(fk_image, fk_image, 'ushort')
 
 
@@ -111,7 +117,7 @@ def get_wcs(shifts):
     return wcs.WCS(header=shifts, naxis=2)
 
 
-def plant(expnums, ccd, rmin, rmax, ang, width, number=10, version='s', dry_run=False):
+def plant(expnums, ccd, rmin, rmax, ang, width, number=10, mmin=21.0, mmax=25.5, version='s', dry_run=False):
     """Plant artificial sources into the list of images provided.
 
     :param expnums: list of MegaPrime exposure numbers to add artificial KBOs to
@@ -132,20 +138,15 @@ def plant(expnums, ccd, rmin, rmax, ang, width, number=10, version='s', dry_run=
     header = fits.open(filename)[0].header
     bounds = util.get_pixel_bounds_from_datasec_keyword(header.get('DATASEC', '[33:2080,1:4612]'))
 
-    # generate a set of artifical KBOs to add to the image.
-    kbos = Table(names=('x', 'y', 'mag', 'sky_rate', 'angle', 'id'))
-    for kbo in KBOGenerator(n=number,
-                            x=Range(bounds[0][0], bounds[0][1]),
-                            y=Range(bounds[1][0], bounds[1][1]),
-                            rate=Range(rmin, rmax),
-                            angle=Range(ang - width, ang + width),
-                            mag=Range(21.0, 25.0)):
-        kbos.add_row(kbo)
+    # generate a set of artificial KBOs to add to the image.
+    kbos = KBOGenerator.get_kbos(n=number,
+                                 rate=(rmin, rmax),
+                                 angle=(ang - width, ang + width),
+                                 mag=(mmin, mmax),
+                                 x=(bounds[0][0], bounds[0][1]),
+                                 y=(bounds[1][0], bounds[1][1]),
+                                 filename='Object.planted')
 
-    fd = open('Object.planted', 'w')
-    fd.write("# ")
-    kbos.write(fd, format='ascii.fixed_width', delimiter=None)
-    fd.close()
     for expnum in expnums:
         filename = storage.get_image(expnum, ccd, version)
         psf = storage.get_file(expnum, ccd, version, ext='psf.fits')
@@ -174,7 +175,12 @@ def get_shifts(expnum, ccd, version):
     return json.loads(open(storage.get_file(expnum, ccd, version, ext='shifts')).read())
 
 
-if __name__ == '__main__':
+def main(argv):
+    """
+
+    @param argv: an array of arguments to be parsed, normally sys.argv
+    @return: None
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument('--ccd',
                         action='store',
@@ -203,6 +209,8 @@ if __name__ == '__main__':
     parser.add_argument("--debug", '-d',
                         action='store_true')
     parser.add_argument("--number", "-n", type=int, help="Number of KBOs to plant into images.", default=10)
+    parser.add_argument("--mmin", type=float, help="Minimum magnitude value to add source with.", default=21.0)
+    parser.add_argument("--mmax", type=float, help="Maximum magnitude value to add source with.", default=25.5)
     parser.add_argument("--rmin", default=0.5,
                         type=float, help="minimum motion rate")
     parser.add_argument("--rmax", default=15,
@@ -213,7 +221,7 @@ if __name__ == '__main__':
                         type=float, help="angle of motion, 0 is West")
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if args.dry_run:
         args.force = True
@@ -236,6 +244,7 @@ if __name__ == '__main__':
     if args.ccd is None:
         ccds = range(0, 36)
 
+    exit_code = 0
     for ccd in ccds:
         message = storage.SUCCESS
         try:
@@ -252,7 +261,7 @@ if __name__ == '__main__':
             plant(args.expnums,
                   ccd,
                   args.rmin, args.rmax, args.ang, args.width,
-                  number=args.number,
+                  number=args.number, mmin=args.mmin, mmax=args.mmax,
                   version=args.type,
                   dry_run=args.dry_run)
         except CalledProcessError as cpe:
@@ -268,3 +277,8 @@ if __name__ == '__main__':
                                'plant',
                                version=args.type,
                                status=message)
+    return exit_code
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv))
