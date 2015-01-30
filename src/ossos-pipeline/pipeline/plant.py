@@ -50,7 +50,6 @@ def plant_kbos(filename, psf, kbos, shifts, prefix):
         fd.close()
 
     addstar = tempfile.NamedTemporaryFile(suffix=".add", delete=False)
-    addstar.write("# ")
 
     # transform KBO locations to this frame using the shifts provided.
     w = get_wcs(shifts)
