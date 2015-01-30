@@ -135,7 +135,7 @@ def step2(expnums, ccd, version, prefix=None, dry_run=False, default="WCS"):
     logging.info(util.exec_prog(check_args))
 
     if os.access('BAD_TRANS', os.F_OK):
-        raise ValueError(errno.EBADEXEC, 'BAD_TRANS')
+        raise OSError(errno.EBADMSG, 'BAD_TRANS')
 
     if os.access('proc-these-files', os.F_OK):
         os.unlink('proc-these-files')
