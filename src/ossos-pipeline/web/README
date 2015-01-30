@@ -1,0 +1,21 @@
+Website presenting metadata on the CFHT observations for OSSOS.
+A Pyramid-framework Python 2.7 website front-end communicating via SQLAlchemy to a PostgreSQL database.
+The database is populated from the raw data and processing products stored in CADC's VOSpace.
+
+development.ini and ossos.overview.__init__.py are the primary files for setup and configuration of ports,
+db addresses, included modules and the like.
+Also, ossos.overview.OssuaryTable points to the local installation of your postgres database.
+
+Each page of the website lives in a separate module, all within the ossos namespace.
+To add a new module (webpage or JS), named 'newmodule':
+- create three new folders within ossos_webdev, with the form ossos.newmodule/ossos/newmodule
+- copy the setup.py from the top level of another module, eg. ossos.flot/setup.py, put it in ossos.newmodule/ ,
+and change the name= parameter to 'newmodule'
+- copy the next level's __init__.py, eg. ossos.flot/ossos/__init__.py, and place it verbatim in ossos.newmodule/ossos/.
+This extends the namespace to the new module.
+- copy the final level down's __init__.py, eg. ossos.flot/ossos/flot/__init__.py, and place it in
+ossos.newmodule/ossos/newmodule/. Change the name= parameter to 'newmodule'. The second parameter dictates the url path
+and can be set accordingly.
+- Finally, make ossos.newmodule visible to Pyramid when it scans for routes: in development.ini, add ossos.newmodule to
+the list in pyramid.includes =.
+- Run the setup.py to create a python egg in-place.

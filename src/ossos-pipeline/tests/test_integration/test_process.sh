@@ -16,7 +16,7 @@ then
     for exp in ${exp1} ${exp2} ${exp3}
     do
 	vmkdir vos:OSSOS/TEST/dbimages/${exp}
-	vln vos:OSSOS/TEST/${exp}/${exp}p.fits  vos:OSSOS/TEST/dbimages/${exp}/${exp}p.fits
+	vln vos:OSSOS/dbimages/${exp}/${exp}p.fits  vos:OSSOS/TEST/dbimages/${exp}/${exp}p.fits
     done
     vln vos:OSSOS/TEST/calibrators vos:OSSOS/TEST/dbimages/calibrators
 fi

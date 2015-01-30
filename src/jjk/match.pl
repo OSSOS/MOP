@@ -3,6 +3,8 @@
 # USAGE:  match.pl
 # nothing get sent here.. the "proc-these-files" is hardwired in...
 
+touch "match.pl.FAILED"
+
 $file_name = "proc-these-files";
 
 # get the image names from the file $file_name
@@ -32,5 +34,7 @@ if ( -e $file_name ){
     print "match.csh ".$images[1]." ".$images[2]." ".$images[3]."\n" ;
     $result = `match.csh $images[1] $images[2] $images[3]` ;
 }
+
+touch "match.pl.OK"
 
 exit
