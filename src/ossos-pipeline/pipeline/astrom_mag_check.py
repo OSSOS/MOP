@@ -2,25 +2,21 @@
 """
 Compare the measured fluxes of planted sources against those returned for by digiphot.
 """
+__author__ = 'jjk'
+
 import pprint
 import numpy
 import sys
-
-__author__ = 'jjk'
-
 import math
 import os
-
 from ossos import astrom
 from ossos.mpc import Time
 from ossos.downloads.cutouts import ImageCutoutDownloader
 from ossos import storage
 import argparse
 import logging
-from ossos import  util
-
+from ossos import util
 from astropy.io import ascii
-
 from astropy.table import MaskedColumn, Table
 
 logger = logging.getLogger('vos')
@@ -35,8 +31,6 @@ MINIMUM_BRIGHT_FRACTION = 0.5
 # This image_slice_downloader handles pulling a small cutout of the image from VOSpace so we can do photometry
 # on this small chunk of the image.
 image_slice_downloader = ImageCutoutDownloader(slice_rows=60, slice_cols=60)
-
-
 
 
 def measure_mags(measures, table_row):
@@ -106,12 +100,10 @@ def match_planted(fk_candidate_observations, match_filename, bright_limit=BRIGHT
     # there are some old Object.planted files out there so we do these string/replace calls to reset those.
     new_lines = lines.replace("pix rate", "pix_rate")
     new_lines = new_lines.replace("""''/h rate""", "sky_rate")
-    rdr = ascii.get_reader(Reader=ascii.CommentedHeader)
+    rdr = ascii.get_reader(Reader=ascii.CommentedHeader, header_start=2)
     planted_objects_table = rdr.read(new_lines)
-
     # The match_list method expects a list that contains a position, not an x and a y vector, so we transpose.
     planted_pos = numpy.transpose([planted_objects_table['x'].data, planted_objects_table['y'].data])
-
     # match_idx is an order list.  The list is in the order of the first list of positions and each entry
     # is the index of the matching position from the second list.
     (match_idx, match_fnd) = util.match_lists(numpy.array(planted_pos), numpy.array(found_pos))
@@ -119,7 +111,6 @@ def match_planted(fk_candidate_observations, match_filename, bright_limit=BRIGHT
     assert isinstance(match_fnd, numpy.ma.MaskedArray)
 
     false_positives_table = Table()
-
     # Once we've matched the two lists we'll need some new columns to store the information in.
     # these are masked columns so that object.planted entries that have no detected match are left 'blank'.
     new_columns = [MaskedColumn(name="measure_x", length=len(planted_objects_table), mask=True),
@@ -145,7 +136,6 @@ def match_planted(fk_candidate_observations, match_filename, bright_limit=BRIGHT
                    MaskedColumn(name="measure_mag3", length=tlength, mask=True),
                    MaskedColumn(name="measure_merr3", length=tlength, mask=True)]
     false_positives_table.add_columns(new_columns)
-    print len(false_positives_table)
 
     # We do some 'checks' on the Object.planted match to diagnose pipeline issues.  Those checks are made using just
     # those planted sources we should have detected.
@@ -179,7 +169,6 @@ def match_planted(fk_candidate_observations, match_filename, bright_limit=BRIGHT
         std = "{:5.2f}".format(std)
     except:
         std = "indef"
-
 
     if os.access(match_filename, os.R_OK):
         fout = open(match_filename, 'a')
@@ -221,8 +210,7 @@ def match_planted(fk_candidate_observations, match_filename, bright_limit=BRIGHT
         else:
             fpout.write(" no false positives\n")
     except Exception as e:
-        print e
-        print str(e)
+        sys.stderr.write(str(e))
         raise e
     finally:
         fout.close()
@@ -303,6 +291,8 @@ def main():
     status = storage.SUCCESS
     try:
         if (not storage.get_status(expnum, ccd=args.ccd, program='astrom_mag_check', version='')) or args.force:
+            logging.info(("Comparing planted and measured magnitudes "
+                          "for sources in {} and {}\n".format(args.object_planted, astrom_filename)))
             message = match_planted(fk_candidate_observations,
                                     match_filename=match_filename,
                                     object_planted=args.object_planted,
