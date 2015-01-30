@@ -100,8 +100,7 @@ def match_planted(fk_candidate_observations, match_filename, bright_limit=BRIGHT
     # there are some old Object.planted files out there so we do these string/replace calls to reset those.
     new_lines = lines.replace("pix rate", "pix_rate")
     new_lines = new_lines.replace("""''/h rate""", "sky_rate")
-    rdr = ascii.get_reader(Reader=ascii.CommentedHeader, header_start=2)
-    planted_objects_table = rdr.read(new_lines)
+    planted_objects_table = ascii.read(new_lines, header_start=-1, data_start=0)
     # The match_list method expects a list that contains a position, not an x and a y vector, so we transpose.
     planted_pos = numpy.transpose([planted_objects_table['x'].data, planted_objects_table['y'].data])
     # match_idx is an order list.  The list is in the order of the first list of positions and each entry
