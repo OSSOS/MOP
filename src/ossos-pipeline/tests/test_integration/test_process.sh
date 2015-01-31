@@ -33,7 +33,8 @@ export width=30
 export field=TEST
 export ccd_start=0
 export ccd_end=0
-export loops=100
+export number=20
+export loops=1
 export force=
 #export force=--force
 
@@ -73,7 +74,7 @@ do
   for ((loop=1;loop<=${loops};loop++)) 
   do
       align.py ${exp1} ${exp2} ${exp3} --ccd ${ccd} -v --dbimages ${DBIMAGES} --type s
-      plant.py ${exp1} ${exp2} ${exp3} --ccd ${ccd} -v --dbimages ${DBIMAGES} --type s --rmin ${rmin} --rmax ${rmax} --ang ${ang} --width ${width}
+      plant.py ${exp1} ${exp2} ${exp3} --ccd ${ccd} -v --dbimages ${DBIMAGES} --type s --rmin ${rmin} --rmax ${rmax} --ang ${ang} --width ${width} --number ${number}
 
   # Now run the standard pipeline on the artificial sources.
      mkpsf.py ${exp1} ${exp2} ${exp3} --ccd ${ccd} --fk -v --type s --dbimages ${DBIMAGES} --type s ${force} --ignore-update-headers
