@@ -17,7 +17,7 @@ for script in os.listdir(script_dir):
     scripts.append(os.path.join(script_dir,script))
 scripts.append('validate.py')
 
-version = "0.2.1"
+version = "0.3.2"
 
 setup(name='ossos',
       version=version,
