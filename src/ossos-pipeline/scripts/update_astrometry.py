@@ -42,7 +42,7 @@ def remeasure(mpc_in):
         return mpc_in
 
     start_coordinate = mpc_in.coordinate
-    assert isinstance(start_coordinate, ICRSCoordinates)
+    #assert isinstance(start_coordinate, ICRSCoordinates)
 
     try:
         header = storage.get_astheader(parts.group('expnum'), int(parts.group('ccd')))
@@ -66,7 +66,7 @@ def remeasure(mpc_in):
     (ra, dec) = this_wcs.xy2sky(x, y)
     mpc_obs.coordinate = (ra, dec)
     logging.debug("rm updat: {}".format(mpc_obs.to_string()))
-    sep = start_coordinate.separation(mpc_obs.coordinate).degrees * 3600.0
+    sep = start_coordinate.separation(mpc_obs.coordinate).degree * 3600.0
     if sep > TOLERANCE and mpc_in.discovery:
         logging.warn("{} --> Using the unflipped X/Y for a discovery observation line.".format(sep))
         logging.debug("{} {} {} {} {}".format(sep, x, y, mpc_obs.comment.x, mpc_obs.comment.y))
@@ -76,7 +76,7 @@ def remeasure(mpc_in):
         (ra, dec) = this_wcs.xy2sky(x, y)
         #print "--> x/y coordinates ({},{}) and recomputing ra/dec ({},{})".format(x, y, ra, dec)
         mpc_obs.coordinate = (ra, dec)
-        sep = start_coordinate.separation(mpc_obs.coordinate).degrees * 3600.0
+        sep = start_coordinate.separation(mpc_obs.coordinate).degree * 3600.0
         logging.debug("remod: {}".format(mpc_obs.coordinate))
         logging.debug("SEP: {}".format(sep))
         logging.debug("rm  flip: {}".format(mpc_obs.to_string()))
@@ -88,7 +88,7 @@ def remeasure(mpc_in):
                                     return_file=False,
                                     flip_image=False)[0].header
         image_wcs = wcs.WCS(header2)
-        (x, y) = image_wcs.sky2xy(mpc_in.coordinate.ra.degrees, mpc_in.coordinate.dec.degrees)
+        (x, y) = image_wcs.sky2xy(mpc_in.coordinate.ra.degree, mpc_in.coordinate.dec.degree)
         (ra, dec) = this_wcs.xy2sky(x, y)
         logging.debug("({},{}) --> ({},{})".format(mpc_obs.comment.x, mpc_obs.comment.y, x, y))
         mpc_obs.coordinate = (ra, dec)
@@ -147,8 +147,8 @@ def recompute_mag(mpc_in):
     # The ZP in the image header is likely the one used for the original photometry.
     old_zp = storage.get_zeropoint(int(expnum), int(ccd))
     reading = astrom.SourceReading(float(mpc_obs.comment.x), float(mpc_obs.comment.y), float(mpc_obs.comment.x),
-                                   float(mpc_obs.comment.y), mpc_obs.coordinate.ra.degrees,
-                                   mpc_obs.coordinate.dec.degrees, float(mpc_obs.comment.x),
+                                   float(mpc_obs.comment.y), mpc_obs.coordinate.ra.degree,
+                                   mpc_obs.coordinate.dec.degree, float(mpc_obs.comment.x),
                                    float(mpc_obs.comment.y),
                                    observation, ssos=True, from_input_file=True, null_observation=False,
                                    discovery=mpc_obs.discovery)
@@ -209,7 +209,7 @@ def main(mpc_file, cor_file, skip_mags=False):
         else:
             mpc_mag = mpc_obs
 
-        sep = mpc_in.coordinate.separation(mpc_mag.coordinate).degrees * 3600.0
+        sep = mpc_in.coordinate.separation(mpc_mag.coordinate).degree * 3600.0
         if sep > TOLERANCE:
             logging.error("Large offset: {} arc-sec".format(sep))
             logging.error("orig: {}".format(mpc_in.to_string()))
