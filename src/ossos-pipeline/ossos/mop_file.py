@@ -1,9 +1,7 @@
 
 import vos
 import urlparse
-import re
-from astropy.time.core import Time
-import ephem
+from astropy.time import Time
 
 VOS_SCHEME = 'vos'
 FILE_SCHEME = 'file'
@@ -90,8 +88,7 @@ class HeaderParser(object):
     def _compute_mjd(self, year, month, day):
         """Look through the dictionary and create a new keyword list
         by replacing mjd-obs-center keyword value with actual mjd"""
-        d = ephem.date("%s-%s-%s" % ( year, month, day))
-        return ephem.julian_date(d) - MJD_OFFSET
+        return Time("{}-{}-{} 00:00:00".format(year, month, day), scale='utc').mjd
 
 
     def _append_keywords(self, keywords, values):
