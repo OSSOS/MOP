@@ -2,7 +2,9 @@ import fcntl
 import os
 import random
 from astropy.table import Table
+import numpy
 from ossos import storage
+from scipy import interpolate
 
 
 class MatchFile(object):
@@ -36,7 +38,7 @@ class MatchFile(object):
 class Range(object):
     """A custom object that is initialized with a range and when called returns a random value in that range."""
 
-    def __init__(self, minimum, maximum=None, seed=None):
+    def __init__(self, minimum, maximum=None, seed=None, func=None):
         random.seed(seed)
         if maximum is None:
             if len(minimum) == 2:
@@ -48,10 +50,28 @@ class Range(object):
         self.min = minimum
         self.max = maximum
         self.value = None
+        self._dist = None
+        self.func = func
+
+    @property
+    def dist(self):
+        """
+        How should the values in range be sampled, uniformly or via some function.
+        :return:
+        """
+        if self.func is None:
+            return random.uniform(self.min, self.max)
+        if self._dist is None:
+            x = numpy.arange(self.min, self.max, (self.max-self.min)/1000.0)
+            p = self.func(x).cumsum()
+            p -= p.min()
+            p /= p.max()
+            self._dist = interpolate.interp1d(p, x)
+        return self._dist(random.random())
 
     def __call__(self, new=True):
         if new or self.value is None:
-            self.value = random.uniform(self.min, self.max)
+            self.value = self.dist
         return self.value
 
     def __eq__(self, other):
@@ -110,7 +130,7 @@ class KBOGenerator(object):
 
         # generate the KBOs.
         for kbo in cls(n,
-                       rate=Range(rate),
+                       rate=Range(rate, func=lambda value: value**-0.75),
                        angle=Range(angle),
                        mag=Range(mag),
                        x=Range(x),
