@@ -1,5 +1,9 @@
 #!/bin/bash
-source ${HOME}/.bash_profile
+
+if [ -f ${HOME}/.bashrc ]
+then
+   source ${HOME}/.bashrc
+fi
 
 export exp2=1667740
 export exp3=1667751
