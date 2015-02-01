@@ -22,7 +22,7 @@ then
 	vmkdir vos:OSSOS/TEST/dbimages/${exp}
 	vln vos:OSSOS/dbimages/${exp}/${exp}p.fits  vos:OSSOS/TEST/dbimages/${exp}/${exp}p.fits
     done
-    vln vos:OSSOS/TEST/calibrators vos:OSSOS/TEST/dbimages/calibrators
+    vln vos:OSSOS/dbimages/calibrators vos:OSSOS/TEST/dbimages/calibrators
 fi
 
 export DBIMAGES=vos:OSSOS/TEST/dbimages
