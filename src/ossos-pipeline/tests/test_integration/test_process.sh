@@ -20,7 +20,7 @@ then
     for exp in ${exp1} ${exp2} ${exp3}
     do
 	vmkdir vos:OSSOS/TEST/dbimages/${exp}
-	vln vos:OSSOS/TEST/${exp}/${exp}p.fits  vos:OSSOS/TEST/dbimages/${exp}/${exp}p.fits
+	vln vos:OSSOS/dbimages/${exp}/${exp}p.fits  vos:OSSOS/TEST/dbimages/${exp}/${exp}p.fits
     done
     vln vos:OSSOS/TEST/calibrators vos:OSSOS/TEST/dbimages/calibrators
 fi
@@ -37,7 +37,8 @@ export width=30
 export field=TEST
 export ccd_start=0
 export ccd_end=0
-export loops=100
+export number=20
+export loops=1
 export force=
 #export force=--force
 
@@ -77,7 +78,7 @@ do
   for ((loop=1;loop<=${loops};loop++)) 
   do
       align.py ${exp1} ${exp2} ${exp3} --ccd ${ccd} -v --dbimages ${DBIMAGES} --type s
-      plant.py ${exp1} ${exp2} ${exp3} --ccd ${ccd} -v --dbimages ${DBIMAGES} --type s --rmin ${rmin} --rmax ${rmax} --ang ${ang} --width ${width}
+      plant.py ${exp1} ${exp2} ${exp3} --ccd ${ccd} -v --dbimages ${DBIMAGES} --type s --rmin ${rmin} --rmax ${rmax} --ang ${ang} --width ${width} --number ${number}
 
   # Now run the standard pipeline on the artificial sources.
      mkpsf.py ${exp1} ${exp2} ${exp3} --ccd ${ccd} --fk -v --type s --dbimages ${DBIMAGES} --type s ${force} --ignore-update-headers
