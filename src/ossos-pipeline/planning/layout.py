@@ -20,7 +20,9 @@ import usnoB1
 
 import megacam
 from ossos import storage
+from ossos import orbfit
 
+from ossos import mpc
 
 def plot_line(axes, fname, ltype):
     """plot the ecliptic plane line on the given axes."""
@@ -32,20 +34,21 @@ L7MODEL = 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
 L7MODEL = '/Users/jjk/Dropbox/Research/KuiperBelt'
 L7MODEL = '/tmp/vospace/OSSOS/CFEPS/L7SyntheticModel-v09.txt'
 REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/ast/'
+REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/Research/KuiperBelt/dbase/TNOdb/dbase/data/ast/'
 
-PLOT_FIELD_EPOCH = 'Nov15'  # Oct14.00 ==> '0' days since the New Moon on Oct14
+PLOT_FIELD_EPOCH = 'Apr15'  # Oct14.00 ==> '0' days since the New Moon on Oct14
 #TODO the .00 is appended when this variable is used as a keyword that needs that .00 this is bad.
-DISCOVERY_NEW_MOON = 'Nov13'  # this is the date that the RA/DEC in blocks corresponds to.
+DISCOVERY_NEW_MOON = 'Apr15'  # this is the date that the RA/DEC in blocks corresponds to.
 
 
-PLOT_USNO_STARS = False
+PLOT_USNO_STARS = True
 PLOT_MEGACAM_ARCHIVE_FIELDS = False   ## TODO Make this work when True
 PLOT_SYNTHETIC_KBOS = True
 PLOT_SYNTHETIC_KBO_TRAILS = False
 PLOT_REAL_KBOS = False and os.access(REAL_KBO_AST_DIR,os.F_OK)
 PLOT_FIELD_LAYOUT = True
 
-PLOT_MPCORB = True and os.access(MPCORB_FILE, os.F_OK)
+PLOT_MPCORB = False and os.access(MPCORB_FILE, os.F_OK)
 
 
 LABEL_FIELDS = False
@@ -153,6 +156,7 @@ blocks = {'14BH': {'RA': "01:28:32.32", "DEC": "+12:51:06.10"}}
 
 #spring14
 
+blocks = {'15AP': {'RA': "13:30:00", "DEC": "-07:00:00"}}
 
 newMoons = {
 #    'Feb13': "2013/02/10 10:00:00",
@@ -164,7 +168,7 @@ newMoons = {
 #    'Aug13': "2013/08/06 10:00:00",
 #    'Sep13': '2013/09/05 10:00:00',
 #    'Oct13': '2013/10/04 10:00:00',
-    'Nov13': '2013/11/03 10:00:00',
+#    'Nov13': '2013/11/03 10:00:00',
 #    'Dec13': '2013/12/02 10:00:00',
 #    'Jan14': '2014/01/01 10:00:00',
 #    'Feb14': '2014/01/31 10:00:00',
@@ -176,9 +180,9 @@ newMoons = {
 #    'Aug14': "2014/08/25 10:00:00",
 #    'Sep14': '2014/09/24 10:00:00',
 #    'Oct14': '2014/10/23 10:00:00',
-    'Nov14': '2014/11/22 10:00:00',
-    'Dec14': '2014/12/22 10:00:00',
-    'Jan15': '2015/01/20 10:00:00',
+#    'Nov14': '2014/11/22 10:00:00',
+#    'Dec14': '2014/12/22 10:00:00',
+#    'Jan15': '2015/01/20 10:00:00',
     'Feb15': '2015/02/18 10:00:00',
     'Mar15': '2015/03/19 10:00:00',
     'Apr15': '2015/04/18 10:00:00',
@@ -327,19 +331,20 @@ if year == "astr":
 
 ras = np.array(ras)
 decs = np.array(decs)
-
-ra_cen = 15.0
-dec_cen = 5.0
-width = 245 - 205
-height = -8 + 25
-ra_cen = 180.0
-dec_cen = 0.0
-width = 360
-height = 70
-ra_cen = 45.0
-dec_cen = 17.5
-width = 30
-height = 30
+ra_cen = math.degrees(ras.mean())
+dec_cen = math.degrees(decs.mean())
+#ra_cen = 15.0
+#dec_cen = 5.0
+#width = 245 - 205
+#height = -8 + 25
+#ra_cen = 180.0
+#dec_cen = 0.0
+#width = 360
+#height = 70
+#ra_cen = 45.0
+#dec_cen = 17.5
+width = 25
+height = 25
 
 ## lets make a plot of the field selections.
 fig = figure()
@@ -487,15 +492,19 @@ if PLOT_USNO_STARS:
     print "PLOTTING LOCATIONS NEARBY BRIGHT USNO B1 STARS"
     for ra in range(int(ra_cen - width/2.0),int(ra_cen + width/2.), 10):
         for dec in range(int(dec_cen - height/2.0),int(dec_cen + height/2.), 10):
-	    file_name = "/tmp/vospace/OSSOS/dbimages/usno/usno{:5.2f}{:5.2f}.xml".format(ra,dec)
+	    file_name = "/Users/jjk/new_usno/usno{:5.2f}{:5.2f}.xml".format(ra,dec).replace(" ","")
+            print file_name
             file_name = file_name.replace(" ","")
 	    if not os.access(file_name, os.R_OK):
                 usno = usnoB1.TAPQuery(ra, dec, 10.0, 10.0)
 		fobj=open(file_name,'w')
 	        fobj.write(usno.read())
                 fobj.close()
-            t = votable.parse(open(file_name,'r')).get_first_table()
-
+            try:
+               t = votable.parse(open(file_name,'r')).get_first_table()
+            except:
+               print "No USNO stars found for: {} {}\n".format(ra,dec)
+               continue
 	    select = t.array['Bmag'] < 9.3
             Rmag = t.array['Bmag'][select]
             min_mag = max(Rmag.min(), 11)
@@ -560,21 +569,24 @@ if PLOT_MPCORB:
                    facecolor='g',
                    edgecolor='g', alpha=0.3)
 
+
 if PLOT_REAL_KBOS:
+    reader = mpc.MPCReader()
     print "PLOTTING LOCATIONS OF OSSOS KBOs (using directory {})".format(REAL_KBO_AST_DIR)
     for ast in os.listdir(REAL_KBO_AST_DIR):
-        obs = []
-        for line in open(REAL_KBO_AST_DIR+ast):
-            obs.append(mpc.Observation.from_string(line))
-        kbo = orbfit.Orbfit(obs)
+        obs = reader.read(REAL_KBO_AST_DIR+ast)
+        try:
+           kbo = orbfit.Orbfit(obs)
+        except:
+           continue
         kbo.predict(ephem.julian_date(ephem.date(plot_date)))
         #if not field_polygon.isInside(float(kbo.coordinate.ra.degrees), float(kbo.coordinate.dec.degrees)):
         #    continue
         if obs[0].mag < 23.6:
             c = 'b'
             if LABEL_FIELDS : 
-                ax.text(kbo.coordinate.ra.degrees,
-                    kbo.coordinate.dec.degrees,
+                ax.text(kbo.coordinate.ra.degree,
+                    kbo.coordinate.dec.degree,
                     ast.split('.')[0],
                     horizontalalignment='center',
                     verticalalignment='baseline',
@@ -582,22 +594,22 @@ if PLOT_REAL_KBOS:
                               'color': 'darkred'})
         else:
             c = 'g'
-        ax.text(kbo.coordinate.ra.degrees,
-                kbo.coordinate.dec.degrees,
+        ax.text(kbo.coordinate.ra.degree,
+                kbo.coordinate.dec.degree,
                 ast.split('.')[0],
                 horizontalalignment='center',
                 verticalalignment='baseline',
                 fontdict={'size': 6,
                 'color': 'darkred'})
-        ax.add_artist(Ellipse((kbo.coordinate.ra.degrees, kbo.coordinate.dec.degrees,),
+        ax.add_artist(Ellipse((kbo.coordinate.ra.degree, kbo.coordinate.dec.degree,),
                               width=2.0*kbo.dra / 3600.0,
                               height=2.0*kbo.ddec / 3600.0,
                               angle=360 - (kbo.pa + 90),
                               edgecolor='none',
                               facecolor='k',
                               alpha=0.2))
-        ax.scatter(kbo.coordinate.ra.degrees,
-                   kbo.coordinate.dec.degrees,
+        ax.scatter(kbo.coordinate.ra.degree,
+                   kbo.coordinate.dec.degree,
                    marker='o',
                    s=1,
                    facecolor='none',

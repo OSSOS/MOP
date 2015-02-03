@@ -1,5 +1,9 @@
 #!/bin/bash
-source ${HOME}/.bash_profile
+
+if [ -f ${HOME}/.bashrc ]
+then
+   source ${HOME}/.bashrc
+fi
 
 export exp2=1667740
 export exp3=1667751
@@ -18,7 +22,7 @@ then
 	vmkdir vos:OSSOS/TEST/dbimages/${exp}
 	vln vos:OSSOS/dbimages/${exp}/${exp}p.fits  vos:OSSOS/TEST/dbimages/${exp}/${exp}p.fits
     done
-    vln vos:OSSOS/TEST/calibrators vos:OSSOS/TEST/dbimages/calibrators
+    vln vos:OSSOS/dbimages/calibrators vos:OSSOS/TEST/dbimages/calibrators
 fi
 
 export DBIMAGES=vos:OSSOS/TEST/dbimages
