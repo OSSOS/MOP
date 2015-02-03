@@ -16,12 +16,12 @@ c     ----------------------------------------------------------
      $  image(nx,ny), coeff(nx,ny), mask(nx,ny), moments(7,*), sky,
      $  max_int(*), rn, kk, tmp, angle, ca, sa, pi, pi2, rn1, rn2,
      $  max_el, im_sky(nx,ny), tmp11, tmp21, tmp2, cm, cur_val, cmm,
-     $  l_sky, g_sky, echelle, echelle_c, s1, s2, sfl(*)
+     $  l_sky, g_sky, echelle, echelle_c, s1, s2, sfl(*), sh_max
 
       integer*4
      $  first_emp, current, i, j, n, im, jm, n1, n2, liste(size_max),
      $  ic, jc, iv, jv, i_incr(4), j_incr(4), nt, ii, jmm, imm, nb,
-     $  back_size, jvm, ivm, jvm1, ivm1
+     $  back_size, jvm, ivm, jvm1, ivm1, k
 
       logical
      $  cr_reject
@@ -34,6 +34,7 @@ c     ----------------------------------------------------------
      $  (j_incr(i), i=1,4) /+1, -1, 0, 0/
 
       back_size = nint(4.0*echelle_c)
+      sh_max = 2.*exp(log(2.)*(float(nint(echelle/2.))*2./echelle)**2)
 
 c Detect objects
 
@@ -510,7 +511,8 @@ c Get rid of objects with very pronounced central peak.
                               end if
                               if (cr_reject
      $                          .and. (((tmp2 .gt. sqrt(sky))
-     $                          .and. (tmp11 .gt. 4.*tmp2))
+c     $                          .and. (tmp11 .gt. 4.*tmp2))
+     $                          .and. (tmp11 .gt. sh_max*tmp2))
      $                          .or. (tmp11 .gt. 10.*tmp2))) then
 c                                 write (50, *) 'Obj. 1, sharp.',
 c     $                             moments(1,n), moments(2,n), tmp11,
