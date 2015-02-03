@@ -5,7 +5,7 @@ import math
 import numpy
 #cond=sys.argv[1]
 
-OBSERVATION_DATE='2015/01/19'
+OBSERVATION_DATE='2014/07/26'
 
 #print "# "+cond
 
@@ -86,10 +86,15 @@ dec_high = float(ephem.degrees("05:03:00"))
 #ra_high = float(ephem.hours(math.radians(25)))
 #dec_low = float(ephem.degrees("10:00:00"))
 #dec_high = float(ephem.degrees("18:00:00"))
-
+# 14BH
+ra_low = float(ephem.hours("01:39:26.86"))
+ra_high = float(ephem.hours("01:51:45.76"))
+dec_low = float(ephem.degrees("+13:12:10.8"))
+dec_high = float(ephem.degrees("+15:58:55.9"))
 
 min_rate = [[],[],[],[],[],[],[],[],[],[],[],[], [],[],[],[],[]]
 max_rate = [[],[],[],[],[],[],[],[],[],[],[],[], [],[],[],[],[]]
+kbo_angle = [[],[],[],[],[],[],[],[],[],[],[],[], [],[],[],[],[]]
 count = numpy.zeros(14)
 for line in lines:
     lineCount=lineCount+1
@@ -141,6 +146,7 @@ for line in lines:
         ra2 = kbo.ra
         dec2 = kbo.dec
         delta = math.degrees(ephem.separation((ra1,dec1),(ra2,dec2)))*3600.0
+        angle = math.degrees(math.atan2((dec2-dec1),(ra2-ra1)))
 	retrograde = ra1 < ra2
         rate = delta/(24.0*(enddate-startdate))
         if kbo.earth_distance < 2:
@@ -151,12 +157,13 @@ for line in lines:
             if rate < 5:
                 count[ddays] += 1 
             max_rate[ddays].append(rate)
+            kbo_angle[ddays].append(angle)
         startdate = enddate
 
 startdate = ephem.date(OBSERVATION_DATE)
 for rate in range(len(min_rate)):
     try:
     	today = ephem.date(startdate+rate)
-    	print rate, today, numpy.min(min_rate[rate]), numpy.max(max_rate[rate]), numpy.min(max_rate[rate])
+    	print rate, today, numpy.min(min_rate[rate]), numpy.max(max_rate[rate]), numpy.min(max_rate[rate]), numpy.min(kbo_angle[rate]), numpy.max(kbo_angle[rate])
     except:
         pass
