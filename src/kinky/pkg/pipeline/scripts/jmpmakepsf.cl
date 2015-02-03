@@ -204,9 +204,9 @@ begin
 	    # and the second time using the FWHM determined from the PSF stars
 
 	    apmin = int(10*t_apin*t_fwhm + 0.5) / 10.0
-	    # using an aperture smaller than 3.0 pixels under samples
+	    # using an aperture smaller than 3 pixels under samples
 	    if ( apmin < 1.5 )  {
-		   apmin = 3.0
+		   apmin = 1.5
 	    }
         apmax = int(10*t_apout*t_fwhm + 0.5) / 10.0
         if ( apmax < apmin ) {
@@ -227,7 +227,7 @@ begin
 
 	    # set the PSF radius and fitting radius
 	    daopars.fitrad = apmin
-	    daopars.psfrad = apmax+3
+	    daopars.psfrad = apmax + 1
 	    datapars.fwhm = t_fwhm
 	    print "Using fwhm of --> "//t_fwhm
 
