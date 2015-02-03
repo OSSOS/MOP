@@ -1,7 +1,14 @@
 
 import vos
+import math
 import urlparse
+import re
+import sys
 from astropy.time import Time
+from ossos.mpc_time import TimeMPC
+
+Time.FORMATS[TimeMPC.name] = TimeMPC
+
 
 VOS_SCHEME = 'vos'
 FILE_SCHEME = 'file'
@@ -88,7 +95,8 @@ class HeaderParser(object):
     def _compute_mjd(self, year, month, day):
         """Look through the dictionary and create a new keyword list
         by replacing mjd-obs-center keyword value with actual mjd"""
-        return Time("{}-{}-{} 00:00:00".format(year, month, day), scale='utc').mjd
+        mjd = Time("{} {} {}".format(year, month, day), format='mpc', scale='utc').mjd
+        return mjd
 
 
     def _append_keywords(self, keywords, values):
