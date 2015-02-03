@@ -291,7 +291,7 @@ c-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
       call sortreal (n2, y2, indx)
       do i = 1, n2
          j = int(y2(indx(i))/step) + 1
-         if ( j .lt. 0 ) j = 0
+         if ( j .lt. 1 ) j = 1
          sy(j) = i
       end do
       do i = 2, indsize
