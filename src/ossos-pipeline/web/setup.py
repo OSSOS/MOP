@@ -2,6 +2,7 @@ from setuptools import setup, find_packages
 
 requires = [
     'pyramid',
+    'pyramid_chameleon',  # new dependency: Pyramid 1.5 separates out templating support
     'zope.cachedescriptors',
     'astropy',
     'sqlalchemy',
