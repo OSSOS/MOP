@@ -1,0 +1,54 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+    "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <title>OSSOS Authorization</title>
+  <meta http-equiv="Content-Type" name="robots"
+        content="noindex; text/html; charset=utf-8"/>
+  <link rel="stylesheet" type="text/css" href="/css/bootstrap.css"/>
+</head>
+<body>
+<div class="container-fluid">
+  <div class="page-header">
+    <h1>OSSOS
+      <small>Outer Solar System Origins Survey</small>
+    </h1>
+  </div>
+  <!--page-header-->
+  <tal:block tal:condition="failed_attempt">
+    <div class="alert alert-error">
+      Invalid credentials, please try again.
+    </div>
+  </tal:block>
+
+  <form class="form-horizontal" method="post" action="${ request.path }">
+    <div class="control-group">
+      <label class="control-label" for="login">CADC username</label>
+
+      <div class="controls">
+        <input type="text" name="login" value="${ login }"
+               autofocus="true">
+      </div>
+    </div>
+    <div class="control-group">
+      <label class="control-label" for="passwd">Password</label>
+
+      <div class="controls">
+        <input type="password" name="passwd">
+      </div>
+    </div>
+    <!-- control-group -->
+    <div class="control-group">
+      <div class="controls">
+        <input type="hidden" name="next" value="${ next }">
+        <button type="submit" class="btn" name="submit">Sign in</button>
+        <a style="margin-left: 40px;s"
+           href="http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/auth/forgot.html">Reset password</a>
+      </div>
+    </div>
+    <!-- control-group -->
+  </form>
+</div>
+<!-- container-fluid -->
+</body>
+</html>
