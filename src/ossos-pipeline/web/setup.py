@@ -21,7 +21,7 @@ setup(name='web',
       namespace_packages=['web'],
       packages=find_packages(),
       install_requires=requires,
-      entry_points="""\
+      entry_points="""
       [paste.app_factory]
       main = web.overview:main
       """,
