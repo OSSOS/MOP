@@ -5,6 +5,7 @@ import fnmatch
 from glob import glob
 import os
 import re
+import tempfile
 import logging
 import warnings
 
@@ -390,7 +391,8 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
             else:
                 return hdu_list
         except Exception as e:
-            logger.debug("Failed to open {}{}".format(uri, cutout))
+            logger.debug("{}".format(type(e)))
+            logger.debug("Failed to open {} cutout:{}".format(uri, cutout))
             logger.debug("vos sent back error: {} code: {}".format(str(e), getattr(e, 'errno', 0)))
 
     raise IOError(errno.ENOENT, "Failed to get image using {} {} {} {}.".format(expnum, version, ccd, cutout))
@@ -412,12 +414,24 @@ def get_hdu(uri, cutout):
         return fits.open(filename, scale_back=True)
 
     logger.debug("Pulling: {}{} from VOSpace".format(uri, cutout))
-    if cutout is not None:
-        vos_ptr = vospace.open(uri, view='cutout', cutout=cutout)
-    else:
-        vos_ptr = vospace.open(uri, view='data')
-    fpt = cStringIO.StringIO(vos_ptr.read())
-    vos_ptr.close()
+    fpt = tempfile.NamedTemporaryFile(suffix='.fits')
+    cutout = cutout is not None and cutout or ""
+    vospace.copy(uri+cutout, fpt.name)
+    #if cutout is not None:
+    #    vos_ptr = vospace.open(uri, view='cutout', cutout=cutout)
+    #else:
+    #    vos_ptr = vospace.open(uri, view='data') 
+    #t = 0
+    #while True:
+    #    buff = vos_ptr.read(2**20)
+    #	if not len(buff) > 0:
+    #	   break
+    #	t += len(buff)
+    #	logger.debug("Read: {}".format(t))
+    #	fpt.write(buff)
+    #   fpt.flush()
+    # fpt = cStringIO.StringIO(vos_ptr.read())
+    #vos_ptr.close()
     fpt.seek(0, 2)
     fpt.seek(0)
     logger.debug("Read from vospace completed. Building fits object.")
