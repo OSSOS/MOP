@@ -4,8 +4,11 @@ import os
 
 MPCORB_FILE = os.path.join(os.getenv('HOME', '/Users/michele/'), 'MPCORB-Distant.dat')
 L7MODEL = '/Users/michele/Dropbox/OSSOS/Release_summaries/L7model-3.0-9.0'  # 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
+L7_HOME = '/Users/michele/Dropbox/OSSOS/Release_summaries/'
 REAL_KBO_AST_DIR = '/Users/michele/Dropbox/OSSOS/measure3/ossin/'  # 'vos:OSSOS/dbaseclone/ast/'
-MOST_RECENT_OSSOS_RELEASE = '/Users/michele/Dropbox/OSSOS/Release_summaries/OSSOSv4/OSSOSv4summary.dat'
+RELEASE_VERSION = 4
+RELEASE_SUMMARY = '/Users/michele/Dropbox/OSSOS/Release_summaries/OSSOSv4/OSSOSv4summary.dat'
+RELEASE_CLASSIFICATION = '/Users/michele/Dropbox/OSSOS/Release_summaries/OSSOSv4/OSSOSv4class.dat'
 PLOT_FIELD_EPOCH = 'Jun14.00'  # Jun14.00 ==> '0' days since the New Moon on Jun14
 
 PLOT_USNO_STARS = True
@@ -16,27 +19,6 @@ PLOT_REAL_KBOS = True and os.access(REAL_KBO_AST_DIR, os.F_OK)
 PLOT_FIELD_LAYOUT = True
 
 PLOT_MPCORB = True and os.access(MPCORB_FILE, os.F_OK)
-
-# ORIGINAL: DON't USE, does not match the location of the data as pointed & taken!
-# Ablocks={'13AE': {"RA": "14:32:30.29","DEC":"-13:54:01.4"},
-# '13AO': {"RA": "16:17:04.41","DEC":"-13:14:45.8"}}
-BLOCKS = {
-    '13AE': {"RA": "14:15:28.89", "DEC": "-12:32:28.4"},
-    # E+0+0: image 1616681, ccd21 on April 9. E block discovery triplets are April 4,9,few 19
-    '13AO': {"RA": "15:58:01.35", "DEC": "-12:19:54.2"},  # O+0+0: image 1625346, ccd21 on May 8. O block are May 7,8.
-    '13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"},  # 13B blocks are at their opposition locations
-    '13BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"},  # due to bad weather, discovery wasn't until Dec/Jan
-}
-
-FUTURE_BLOCKS = {
-    '15AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"},  # at its 2014 initial observation
-    '15BD': {'RA': "03:15:00.00", "DEC": "+16:30:00.00"},
-    '15A?': {'RA': "14:45:00.00", "DEC": "-16:00:00.00"},
-    # '15A??': {'RA': "12:00:00.00", "DEC": "-1:00:00.00"},
-    '15B?': {'RA': "00:45:00.00", "DEC": "+00:05:00.00"},
-}
-
-DISCOVERY_NEW_MOON = 'Oct13'  # applies to the 13B blocks
 
 NEWMOONS = {'Feb13': "2013/02/10 10:00:00",
             'Mar13': "2013/03/11 10:00:00",
@@ -89,6 +71,47 @@ NEWMOONS = {'Feb13': "2013/02/10 10:00:00",
             'Feb17': '2017/02/01 10:00:00',
 }
 
+# ORIGINAL: DON't USE, does not match the location of the data as pointed & taken!
+# Ablocks={'13AE': {"RA": "14:32:30.29","DEC":"-13:54:01.4"},
+# '13AO': {"RA": "16:17:04.41","DEC":"-13:14:45.8"}}
+BLOCKS = {
+    '13AE': {"RA": "14:15:28.89", "DEC": "-12:32:28.4"},
+    # E+0+0: image 1616681, ccd21 on April 9. E block discovery triplets are April 4,9,few 19
+    '13AO': {"RA": "15:58:01.35", "DEC": "-12:19:54.2"},  # O+0+0: image 1625346, ccd21 on May 8. O block are May 7,8.
+    '13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"},  # 13B blocks are at their opposition locations
+    '13BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"},  # due to bad weather, discovery wasn't until Dec/Jan
+}
+
+FUTURE_BLOCKS = {
+    '15AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"},  # at its 2014 initial observation.
+    '15AP': {'RA': "13:30:00.00", "DEC": "-7:00:00.00"},  # on-plane
+    '15BD': {'RA': "03:15:00.00", "DEC": "+16:30:00.00"},
+    '15B?': {'RA': "00:45:00.00", "DEC": "+00:05:00.00"},  # FIXME: NOT CHECKED against lunations etc yet. Indicative.
+}
+
+DISCOVERY_DATES = {"13AE": "2013/04/09 08:50:00",
+                   "13AO": "2013/05/08 08:50:00",
+                   "15AP": NEWMOONS['Apr15'],  # FIXME: set when observations taken
+                   "15AM": NEWMOONS['May15'],  # Backup triplet: split on 2014/05/29, 2014/06/01
+                   "13BL": "2013/09/29 08:50:00",  # HOWEVER: discovery date is split between months (earliest)
+                   "13BH": "2014/10/22 09:30:00",  # Note: Col3N triplet differs: is instead 2014/01/03.
+                   "15BD": NEWMOONS['Nov15'],  # FIXME: set when observations taken
+                   "15B?": NEWMOONS['Oct15']  # FIXME: set when observations taken
+}
+
+DISCOVERY_NEW_MOON = 'Apr13'  # applies to the 13A blocks
+
+OPPOSITION_DATES = {"13AE": NEWMOONS['Apr13'],
+                    "13AO": NEWMOONS['May13'],
+                    "15AP": NEWMOONS['Apr15'],
+                    "15AM": NEWMOONS['May15'],
+                    "13BL": NEWMOONS['Oct13'],
+                    "13BH": NEWMOONS['Oct13'],
+                    "15B?": NEWMOONS['Oct15'],
+                    "15BD": NEWMOONS['Nov15'],
+
+}
+
 
 class VersionError(Exception):
     'An error with the TNO summary-file version'
@@ -127,7 +150,7 @@ class tno(object):
         self.peri = self.a * (1. - self.e)
 
     @classmethod
-    def from_summary_line(cls, summaryLine, version=4):
+    def from_summary_line(cls, summaryLine, version=4, existing_object=None):
         ''' Summary format:
         object  mag  stdev   dist  ..E nobs time av_xres av_yres max_x max_y
         a ..E  e  ..E  i ..E    node     ..E    argperi     ..E           M        ..E   ra_dis  dec_dis
@@ -137,20 +160,26 @@ class tno(object):
         if version == 4:
             params = summaryLine.split()
             if len(params) != 25:
+                print params
                 raise TypeError('Expected 25 columns, {0} given'.format(len(params)))
             input_params = params[0:1] + params[3:23]
-            retval = cls(*input_params)
+            if not existing_object:
+                retval = cls(*input_params)
+            else:
+                assert isinstance(existing_object, tno)
+                assert existing_object.name == params[0]
+                retval = existing_object
             retval.mean_mag = float(params[1])
             retval.mean_mag_stdev = float(params[2])
-            retval.ra_discov = params[23]
-            retval.dec_discov = params[24]
+            retval.ra_discov = float(params[23])
+            retval.dec_discov = float(params[24])
         else:
             raise VersionError('Unknown version "{0}"'.format(version))
         assert retval
         return retval
 
     @classmethod
-    def from_class_line(cls, classLine, version=4):
+    def from_class_line(cls, classLine, version=4, existing_object=None):
         '''
         Class format:
         class wrt n m security object  mag  stdev F H_sur  dist     ..E    nobs   time  av_xres av_yres max_x  max_y
@@ -161,19 +190,27 @@ class tno(object):
         if version == 4:
             params = classLine.split()
             if len(params) != 31:
+                print params
                 raise TypeError('Expected 31 columns, {0} given'.format(len(params)))
-            input_params = params[5] + params[10:30]  # the elements that are in common
-            retval = cls(*input_params)
+            input_params = [params[5]] + params[10:30]  # the elements that are in common
+            if not existing_object:
+                # can later add more tests that the values match those in the existing object
+                retval = cls(*input_params)
+            else:
+                assert isinstance(existing_object, tno)
+                assert existing_object.name == params[5]
+                retval = existing_object
             retval.classification = params[0]
             retval.wrt = params[1]
             retval.n = int(params[2])
             retval.m = int(params[3])
             retval.security = params[4]
-            retval.mag_discov = params[6]
-            retval.mag_discov_e = params[7]
+            retval.mag_discov = float(params[6])
+            retval.mag_discov_e = float(params[7])
             retval.filter = params[8]
-            retval.H = params[9]  # H_r magnitude, using the average m_r and the discovery geometry (same error as m_r)
-            retval.rate = params[30]
+            retval.H = float(
+                params[9])  # H_r magnitude, using the average m_r and the discovery geometry (same error as m_r)
+            retval.rate = float(params[30])
         else:
             raise VersionError('Unknown version "{0}"'.format(version))
         assert retval

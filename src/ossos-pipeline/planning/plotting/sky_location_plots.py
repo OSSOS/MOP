@@ -17,58 +17,29 @@ import parsers
 import parameters
 import plot_fanciness
 
+# from ossos import cameras  # bit over the top to show all the ccds?
+
 
 HAVE_HORIZONS=True
 try:
     from ossos import horizons
 except:
     HAVE_HORIZONS=False
-    
 
 PLOT_MPCORB = True and os.access(parameters.MPCORB_FILE, os.F_OK)
 
-# FIXME: correct 13AO extent, tweak 13B extents into individual blocks
-# 13A all: [[245, 208, -18, -8]] 13B all: [30, 5, -2, 18]
-plot_extents = {"13AE": [209.8, 218.2, -15.5, -9.5],  # reversed: [219, 209, -16, -9],
-                "13AO": [235.4, 243.8, -15.5, -9.5],  # reversed: [244, 234, -15, -10],
-                "13A": [209, 244, -22, -9],
-                "15AM": [225, 240, -18, -5],
+plot_extents = {"13AE": [209.8, 218.2, -15.5, -9.5],
+                "13AO": [235.4, 243.8, -15.5, -9.5],
+                "13A": [209, 244, -22, -9],  # for both 13A blocks together
+                "15AM": [228, 237, -15, -9],
+                "15AP": [198, 207, -10, -4],
+                "13B": [30, 5, -2, 18],  # for both 13B blocks together
                 "13BL": [9, 18, 1, 7],
-                "13BH": [18, 27, 10, 16]
+                "13BH": [18, 27, 10, 16],
+                "15BD": [44, 54, 13, 20],
+                "15B?": [7, 16, -4, 4]
 }
 
-discovery_dates = {"13AE": "2013/04/09 08:50:00",
-                   "13AO": "2013/05/08 08:50:00",
-                   "15AM": "2014/05/30 08:50:00",
-                   "13BL": "2013/09/29 08:50:00",
-                   "13BH": "2014/01/03 08:50:00"
-}
-
-opposition_dates = {"13AE": parameters.NEWMOONS['Apr13'],
-                    "13AO": parameters.NEWMOONS['May13'],
-                    "15AM": parameters.NEWMOONS['May14'],
-                    "13BL": parameters.NEWMOONS['Oct13'],
-                    "13BH": parameters.NEWMOONS['Oct13']
-}
-
-newMoons = {'Feb13': "2013/02/10 10:00:00",
-            'Mar13': "2013/03/11 10:00:00",
-            'Apr13': "2013/04/10 10:00:00",
-            'May13': "2013/05/09 10:00:00",
-            'Jun13': "2013/06/08 10:00:00",
-            'Jul13': "2013/07/08 10:00:00",
-            'Aug13': "2013/08/06 10:00:00",
-            'Sep13': '2013/09/05 10:00:00',
-            'Oct13': '2013/10/04 10:00:00',
-            'Nov13': '2013/11/03 10:00:00',
-            'Dec13': '2013/12/02 10:00:00',
-            'Jan14': '2014/01/01 10:00:00',
-            'Feb14': '2014/01/31 10:00:00',
-            'Mar14': '2014/03/28 10:00:00',
-            'Apr14': '2014/04/01 10:00:00',
-            'May14': '2014/05/28 10:00:00',
-            'Jun14': '2014/06/26 10:00:00'
-            }
 
 xgrid = {'2013': [-3, -2, -1, 0, 1, 2, 3],
          '2014r': [-3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5],
@@ -267,7 +238,7 @@ def build_ossos_footprint(ax, blocks, field_offset, plot=True):
                                             width=dimen,
                                             edgecolor='b',
                                             facecolor='b',
-                                            lw=0.5, fill=True, alpha=0.2))
+                                            lw=0.5, fill=True, alpha=0.15))
 
             rac += field_offset / math.cos(decc)
             for i in range(3):
@@ -449,7 +420,12 @@ def plot_ossos_discoveries(ax, discoveries, prediction_date=False):  # , blockID
         else:  # specific date on which discovery was made: use discovery locations
             ra = math.degrees(ephem.degrees(ephem.hours(str(kbo.ra_discov))))
             dec = math.degrees(ephem.degrees(str(kbo.dec_discov)))
-        ax.scatter(ra, dec, marker='+', facecolor='k')
+        if (kbo.classification == 'res' and kbo.n == 3 and kbo.m == 2):
+            print kbo.name
+            fc = '#E47833'
+        else:
+            fc = 'b'
+        ax.scatter(ra, dec, marker='o', facecolor=fc, alpha=0.8, edgecolor='w', linewidth=0.4, s=25)
         ax.annotate(kbo.name[3:],
                     (ra - .07, dec - 0.14),  # confirm this is being added properly
                     size=7,
@@ -546,7 +522,8 @@ if __name__ == '__main__':
         for b in args.blocks:
             blocks[b] = parameters.BLOCKS[b]
     else:
-        blocks = parameters.BLOCKS  # Coordinates at opposition of currently-determined OSSOS blocks (2013: 4; 2015: 8 total).
+        blocks = parameters.FUTURE_BLOCKS  # Coordinates at opposition of currently-determined OSSOS blocks (2013: 4;
+        #  2015: 8 total).
 
     discoveries = parsers.ossos_release_parser()
 
@@ -557,7 +534,7 @@ if __name__ == '__main__':
 
         if args.opposition:
             # 13AE is a month different in opposition from 13AO, but 13B are both in October
-            date = opposition_dates[blockname]
+            date = parameters.OPPOSITION_DATES[blockname]
             file_id = 'opposition-'
 
         if args.discovery:
@@ -565,7 +542,7 @@ if __name__ == '__main__':
             # FIXME: discovery times
             # BL is 09-29 AND 10-31. Need to implement way to accommodate split.
             # 15AM is 2014-05-29 and 2014-06-01
-            date = discovery_dates[blockname]
+            date = parameters.DISCOVERY_DATES[blockname]
             file_id = 'discovery-'
 
         if args.date:

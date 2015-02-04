@@ -21,7 +21,11 @@ from matplotlib.patches import Rectangle
 from matplotlib.backends.backend_pdf import PdfPages
 import logging
 
-OSSOS_RUNIDS = list(('13AP05', '13AP06', '13BP05', '13BP06', '14AP05', '14AP06', '14BP05', '14BP06'))
+OSSOS_RUNIDS = []
+for year in range(13, 17, 1):
+    for semester in ['AP', 'BP']:
+        for code in ['05', '06']:
+            OSSOS_RUNIDS.append('{}{}{}'.format(year, semester, code))
 
 
 def query_for_observations(mjd, observable, runids):
@@ -254,4 +258,4 @@ if __name__ == '__main__':
 
     create_ascii_table(obs_table, opt.outfile + ".txt")
 
-    create_sky_plot(obs_table, opt.outfile + ".pdf", stack=opt.stack)
+    # create_sky_plot(obs_table, opt.outfile + ".pdf", stack=opt.stack)
