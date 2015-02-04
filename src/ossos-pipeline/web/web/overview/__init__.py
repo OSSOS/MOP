@@ -1,9 +1,13 @@
 # package
-
 from pyramid.config import Configurator
 from pyramid.security import Allow, Authenticated
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
+
+import web.auth
+import web.block
+import web.bootstrap
+import web.field_obs
 
 
 class Root(object):
@@ -26,9 +30,17 @@ def main(global_config, **settings):
 
     # then continue as normal
     config.add_route(name='overview', path='/')
-    config.scan(package='web')
 
-    # the first place it will go is ossos.auth.model.py's @view_config 'login'
+    config.include(web.auth)
+    config.include(web.block)
+    config.include(web.bootstrap)
+    config.include(web.field_obs)
+
+    config.scan()
+
+    print(config.registry.keys())
+
+    # the first place it will go is web.auth.model.py's @view_config 'login'
     # which has a def login_view(request) which we want to set first.
 
     return config.make_wsgi_app()
