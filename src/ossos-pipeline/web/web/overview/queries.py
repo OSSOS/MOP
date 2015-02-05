@@ -45,7 +45,7 @@ class SurveyQuery(object):
         # next_new_moon = pytz.utc.localize(next_new_moon)  # it's calculated in UTC
         # hst = pytz.timezone('HST')
 
-        retval = next_new_moon  #.astimezone(hst)
+        retval = next_new_moon  # .astimezone(hst)
 
         return retval
 
@@ -92,5 +92,18 @@ class SurveyQuery(object):
                 retval = "in " + '%2.1f' % hrs + " hours."
 
         return retval
-		
+
+    def num_discoveries(self):
+        # Characterized discoveries only.
+        status = self.bk.all_blocks()['status']
+
+        return sum([int(n[1]) for n in status.values() if (n is not None and n[1].isdigit())])
+
+
+    def mpc_informed(self):
+        # status = self.bk.all_blocks()['blocks']
+        # Implement more comprehensive info later
+        # return sum([n[1] for n in status.values() if n[1].isdigit()])
+
+        return 0
 

@@ -7,14 +7,7 @@
   <meta http-equiv="Content-Type" name="robots"
         content="noindex; text/html; charset=utf-8"/>
   <link rel="stylesheet" type="text/css" href="/css/bootstrap.css"/>
-  <!--[if IE]>
-    <script language="javascript" type="text/javascript" src="./flot/excanvas.js"></script><![endif]-->
-  <script language="javascript" type="text/javascript" src="./flot/jquery.js"></script>
-  <script language="javascript" type="text/javascript" src="./flot/jquery.flot.js"></script>
-  <script language="javascript" type="text/javascript" src="./flot/jquery.flot.errorbars.js"></script>
-  <script language="javascript" type="text/javascript" src="./flot/jquery.flot.navigate.js"></script>
-  <script language="javascript" type="text/javascript" src="./flot/jquery.flot.axislabels.js"></script>
-  <script language="javascript" type="text/javascript" src="./flot/jquery.flot.togglelegend.js"></script>
+  <!--[if IE]>-->
 </head>
 
 <body>
@@ -53,7 +46,8 @@
       <dl>
         <dt>Most recent observations:</dt>
         <dd><span class="val"
-                  title="Most recent observations available on VOSpace (ie. have been preprocessed for IQ but not run through Elixir).">
+                  title="Most recent observations available on VOSpace
+                         (may not yet have been processed to plate solution).">
                 ${most_recent_obs}
         </span>
         </dd>
@@ -61,28 +55,33 @@
       <p>
         <strong>Next observations</strong> anticipated
             	<span class="val"
-                      title="We observe if the near-new moon is down, or if the moon is up but we are within 3 days of new moon.">${next_obs} </span><br/>
+                      title="We observe if the near-new moon is down, or if the moon is up
+                             but we are within 3 days of new moon.">${next_obs}
+                </span>
+        <br/>
         moon-dark UTC: ${next_moondark.strftime('%Y-%m-%d')}.
         <strong>MegaPrime</strong> on telescope ${nearest_megacam_run}
+        <br/>
+        CFHT <a href="http://cal.cfht.hawaii.edu/instrument_schedule/current_instrument_schedule.html">schedule</a>.
+      </p>
+
+      <!-- CFHT times out links, so pages don't connect <p>
+        QSO status:
+        <a href="http://qso.cfht.hawaii.edu:2001/Instruments/Queue/NR/exp.cfm?Type=PS&RunID=13AP05">13A</a>,
+        <a href="http://qso.cfht.hawaii.edu:2001/Instruments/Queue/NR/exp.cfm?Type=PS&RunID=13BP05">13B</a>,
+        <a href="http://qso.cfht.hawaii.edu:2001/Instruments/Queue/NR/exp.cfm?Type=PS&RunID=14AP05">14A</a>,
+        <a href="http://qso.cfht.hawaii.edu:2001/Instruments/Queue/NR/exp.cfm?Type=PS&RunID=14BP05">14B</a>,
+        <a href="http://qso.cfht.hawaii.edu:2001/Instruments/Queue/NR/exp.cfm?Type=PS&RunID=15AP05">15A</a>
+      </p> -->
+
+      <p>
+        <a href="http://www.canfar.phys.uvic.ca/data/auth/vospace/OSSOS/ObservingStatus/obsList.txt">
+          raw</a> nightly observations
+        (plots <a href="http://www.canfar.phys.uvic.ca/data/pub/vospace/OSSOS/ObservingStatus/obsList.pdf">pdfs</a>)
       </p>
 
       <p>
-        QSO status: <a
-          href="http://qso.cfht.hawaii.edu:2001/Instruments/Queue/NR/exp.cfm?Type=PS&RunID=13AP05">13AP05</a>, <a
-          href="http://qso.cfht.hawaii.edu:2001/Instruments/Queue/NR/exp.cfm?Type=PS&RunID=13BP05">13BP05</a>.
-        <a
-            href="http://cal.cfht.hawaii.edu/instrument_schedule/current_instrument_schedule.html">CFHT schedule</a>.
-      </p>
-
-      <p>
-        <a href="http://www.canfar.phys.uvic.ca/data/auth/vospace/OSSOS/ObservingStatus/obsList.txt">raw Observing
-          Status page</a>
-        <a href="http://www.canfar.phys.uvic.ca/data/pub/vospace/OSSOS/ObservingStatus/obsList.pdf">(plots pdf)
-        </a>
-      </p>
-
-      <p>
-        <a href="http://hokukea.soest.hawaii.edu/forecast/mko/">Mauna Kea weather</a>
+        Maunakea <a href="http://hokukea.soest.hawaii.edu/forecast/mko/">weather</a>
       </p>
     </div>
     <!-- row-region -->
