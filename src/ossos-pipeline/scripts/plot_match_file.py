@@ -60,9 +60,16 @@ plt.ylabel('sky_rate*sin(angle)')
 plt.subplot(2,2,4)
 
 
+T.sort('mag')
+
+n_ma = 50
+
 for measure in ['measure_mag1', 'measure_mag2', 'measure_mag3']:
    dmag = T['mag'] - T[measure]
+   cum = dmag.cumsum()
+   ma = (dmag[n_ma:] - dmag[:-n_ma])/n_ma
    plt.plot(T['mag'], dmag, ',')
+   plt.plot(T['mag'][n_ma:], ma, '-')
 
 plt.xlabel('mag')
 plt.ylabel('plant_mag - measure_mag')
