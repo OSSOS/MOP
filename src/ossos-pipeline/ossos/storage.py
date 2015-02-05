@@ -449,7 +449,7 @@ def get_hdu(uri, cutout):
     hdu_list[0].header['OLDSEC'] = datasec
     datasec = re.findall(r'(\d+)', datasec)
     for idx in range(len(datasec)):
-        datasec[idx] = int(datasec)
+        datasec[idx] = int(datasec[idx])
 
     parts = re.findall(r'(\d+?)[:,\]]+', cutout)
     if parts is not None and len(parts) == 4:

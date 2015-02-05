@@ -1,3 +1,4 @@
+from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib import rcParams
 from matplotlib import pyplot as plt
 from astropy.io import ascii
@@ -28,52 +29,53 @@ params = {'backend': 'pdf',
 
 rcParams.update(params)
 
-match_file=sys.argv[1]
+pp = PdfPages('eff.pdf')
 
-T = ascii.read(match_file, header_start=-1, fill_values=['--', 0])
-(nadd, bins) = numpy.histogram(T['mag'], bins=numpy.arange(21,26,0.25))
-(nfnd, bins) = numpy.histogram(T['mag'][T['measure_mag1'].mask == False], bins=numpy.arange(21,26,0.25))
+for match_file in sys.argv[1:]:
 
-f = nfnd[nadd>0]/(1.0*nadd[nadd>0])
-m = bins[nadd>0]
+   T = ascii.read(match_file, header_start=-1, fill_values=['--', 0])
+   (nadd, bins) = numpy.histogram(T['mag'], bins=numpy.arange(21,26,0.25))
+   (nfnd, bins) = numpy.histogram(T['mag'][T['measure_mag1'].mask == False], bins=numpy.arange(21,26,0.25))
 
-plt.subplot(2,2,1)
-plt.plot(m, f, 'o-')
-plt.xlabel('mag')
-plt.ylabel('f')
+   f = nfnd[nadd>0]/(1.0*nadd[nadd>0])
+   m = bins[nadd>0]
 
-plt.subplot(2,2,2)
-plt.plot(T['x'],T['y'],'ob', alpha=0.1)
-plt.plot(T['x'][T['measure_mag1'].mask==False],T['y'][T['measure_mag1'].mask==False],'or', alpha=0.1)
-plt.xlabel('X-pixel')
-plt.ylabel('Y-pixel')
-plt.xlim(min(0,T['x'].min()),max(2048,T['x'].max()))
-plt.ylim(min(0,T['y'].min()),max(4600,T['y'].max()))
+   plt.suptitle(match_file)
 
-plt.subplot(2,2,3)
-dx = T['sky_rate']*numpy.cos(numpy.radians(T['angle']))
-dy = T['sky_rate']*numpy.sin(numpy.radians(T['angle']))
-plt.plot(dx, dy, 'o', alpha=0.1)
-plt.xlabel('sky_rate*cos(angle)')
-plt.ylabel('sky_rate*sin(angle)')
+   plt.subplot(2,2,1)
+   plt.plot(m, f, 'o-')
+   plt.xlabel('mag')
+   plt.ylabel('f')
 
-plt.subplot(2,2,4)
+   plt.subplot(2,2,2)
+   plt.plot(T['x'],T['y'],'ob', alpha=0.1)
+   plt.plot(T['x'][T['measure_mag1'].mask==False],T['y'][T['measure_mag1'].mask==False],'or', alpha=0.1)
+   plt.xlabel('X-pixel')
+   plt.ylabel('Y-pixel')
+   plt.xlim(min(0,T['x'].min()),max(2048,T['x'].max()))
+   plt.ylim(min(0,T['y'].min()),max(4600,T['y'].max()))
+   
+   plt.subplot(2,2,3)
+   dx = T['sky_rate']*numpy.cos(numpy.radians(T['angle']))
+   dy = T['sky_rate']*numpy.sin(numpy.radians(T['angle']))
+   plt.plot(dx, dy, 'o', alpha=0.1)
+   plt.xlabel('sky_rate*cos(angle)')
+   plt.ylabel('sky_rate*sin(angle)')
+   
+   plt.subplot(2,2,4)
+   
+   
+   for measure in ['measure_mag1', 'measure_mag2', 'measure_mag3']:
+      dmag = T['mag'] - T[measure]
+      plt.plot(T['mag'], dmag, '.', alpha=0.2)
 
+   plt.plot((20,26),(0,0),'-k')
+   plt.xlabel('mag')
+   plt.ylabel('plant_mag - measure_mag')
+   plt.ylim(-0.4,0.4)
+   pp.savefig()
+   plt.clf()
 
-T.sort('mag')
-
-n_ma = 50
-
-for measure in ['measure_mag1', 'measure_mag2', 'measure_mag3']:
-   dmag = T['mag'] - T[measure]
-   cum = dmag.cumsum()
-   ma = (dmag[n_ma:] - dmag[:-n_ma])/n_ma
-   plt.plot(T['mag'], dmag, ',')
-   plt.plot(T['mag'][n_ma:], ma, '-')
-
-plt.xlabel('mag')
-plt.ylabel('plant_mag - measure_mag')
-plt.ylim(-0.4,0.4)
-plt.savefig('{}.pdf'.format(match_file))
+pp.close()
 
 

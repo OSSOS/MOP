@@ -4,11 +4,6 @@ from pyramid.security import Allow, Authenticated
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 
-import web.auth
-import web.block
-import web.bootstrap
-import web.field_obs
-
 
 class Root(object):
     __acl__ = [
@@ -31,14 +26,14 @@ def main(global_config, **settings):
     # then continue as normal
     config.add_route(name='overview', path='/')
 
-    config.include(web.auth)
-    config.include(web.block)
-    config.include(web.bootstrap)
-    config.include(web.field_obs)
-
+    config.include('pyramid_chameleon')  # required with Pyramid >= 1.5
+    # .include() adds routes.
+    config.include('web.auth')
+    config.include('web.block')
+    config.include('web.bootstrap')
+    config.include('web.field_obs')
+    # .scan() adds the views that go with the routes that were just added.
     config.scan()
-
-    print(config.registry.keys())
 
     # the first place it will go is web.auth.model.py's @view_config 'login'
     # which has a def login_view(request) which we want to set first.

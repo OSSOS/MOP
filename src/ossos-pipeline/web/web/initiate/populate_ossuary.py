@@ -10,9 +10,9 @@ from subprocess import Popen
 import datetime
 import sqlalchemy as sa
 import pyfits
+from ossos import storage
 
 import web.field_obs.queries
-from ossos import storage
 
 
 """
@@ -143,7 +143,7 @@ def get_iq_and_zeropoint(image, header_extract):
 
 def parse_sgwn_comments():
     retval = {}
-    lines = storage.vofile('vos:sgwyn/tkBAD', 'r').read().splitlines()
+    lines = storage.vofile('vos:sgwyn/tkBAD').read().splitlines()
     for line in lines:
         ln = line.partition(' ')
         retval[ln[0]] = ln[2]

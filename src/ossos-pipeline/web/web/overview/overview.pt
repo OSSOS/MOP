@@ -42,7 +42,7 @@
                 title="Blocks run entirely through the processing pipeline.">
                   ${'%.1f' % processed_sqdeg}</abbr> deg&#xb2;
         </dd>
-        <dt>Objects <a href="discoveries">discovered</a></dt>
+        <dt>Objects discovered</dt>
         <dd>${num_discoveries}</dd>
         <dt>Reported to MPC</dt>
         <dd>${mpc_told}</dd>
@@ -70,8 +70,8 @@
         QSO status: <a
           href="http://qso.cfht.hawaii.edu:2001/Instruments/Queue/NR/exp.cfm?Type=PS&RunID=13AP05">13AP05</a>, <a
           href="http://qso.cfht.hawaii.edu:2001/Instruments/Queue/NR/exp.cfm?Type=PS&RunID=13BP05">13BP05</a>.
-        CFHT schedule <a
-          href="http://cal.cfht.hawaii.edu/instrument_schedule/current_instrument_schedule.html">2013B</a>.
+        <a
+            href="http://cal.cfht.hawaii.edu/instrument_schedule/current_instrument_schedule.html">CFHT schedule</a>.
       </p>
 
       <p>

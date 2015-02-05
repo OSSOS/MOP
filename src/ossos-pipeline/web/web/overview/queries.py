@@ -25,7 +25,7 @@ class SurveyQuery(object):
         return retval
 
     def fields_processed(self):
-        retval = 42 * self.field_area  # FIXME: currently hardwired for field 13AE & 13AO only
+        retval = 3 * 21 * self.field_area  # 3 blocks processed at 04-02-2015
         return retval
 
     def most_recent_observation(self):
@@ -65,25 +65,24 @@ class SurveyQuery(object):
 
     def megacam_schedule(self):
         # tuples bracket the ends of date ranges that MegaCam is on the telescope
-        schedule = [(datetime.datetime(2014, 1, 27), datetime.datetime(2014, 2, 03)),
-                    (datetime.datetime(2014, 2, 21), datetime.datetime(2014, 3, 06)),
-                    (datetime.datetime(2014, 3, 24), datetime.datetime(2014, 4, 07)),
-                    (datetime.datetime(2014, 4, 24), datetime.datetime(2014, 5, 06)),
-                    (datetime.datetime(2014, 5, 20), datetime.datetime(2014, 6, 02)),
-                    (datetime.datetime(2014, 6, 20), datetime.datetime(2014, 7, 02)),
-                    (datetime.datetime(2014, 7, 17), datetime.datetime(2014, 7, 28))
+        schedule = [(datetime.datetime(2015, 2, 11), datetime.datetime(2015, 2, 26)),
+                    (datetime.datetime(2015, 3, 11), datetime.datetime(2015, 3, 24)),
+                    (datetime.datetime(2015, 5, 13), datetime.datetime(2015, 5, 27)),
+                    (datetime.datetime(2015, 6, 10), datetime.datetime(2015, 6, 24)),
+                    (datetime.datetime(2015, 7, 8), datetime.datetime(2015, 7, 21)),
         ]
         return schedule
 
     def nearest_megacam_run(self):
         now = datetime.datetime.now()
         schedule = self.megacam_schedule()
+        nearest_run = []
         for run in schedule:
             if (run[0] - now > datetime.timedelta(0)) or (run[1] - now > datetime.timedelta(0)):
                 nearest_run = run
                 break
 
-        if (nearest_run[0] <= now <= nearest_run[1]):
+        if nearest_run[0] <= now <= nearest_run[1]:
             retval = 'now.'
         else:
             if (nearest_run[0] - now).days > 0:
