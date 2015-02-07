@@ -41,7 +41,7 @@ PLOT_FIELD_EPOCH = 'Apr15'  # Oct14.00 ==> '0' days since the New Moon on Oct14
 DISCOVERY_NEW_MOON = 'Apr15'  # this is the date that the RA/DEC in blocks corresponds to.
 
 
-PLOT_USNO_STARS = True
+PLOT_USNO_STARS = False
 PLOT_MEGACAM_ARCHIVE_FIELDS = False   ## TODO Make this work when True
 PLOT_SYNTHETIC_KBOS = True
 PLOT_SYNTHETIC_KBO_TRAILS = False
@@ -214,13 +214,15 @@ newMoons = {
 
 xgrid = {'2014': [-3, -2, -1, 0, 1, 2, 3],
          '2014r': [-3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5],
-         'astr': [1, 2, 3, 4]}
+         'astr': [1, 2, 3, 4],
+         '40ccd': [-2, -1, 0, 1, 2]}
 # 2013
 #       'astr':[-5.5,-4.5,-3.5,-2.5,-1.5,-0.5,0.5,1.5,2.5,3.5,4.5,5.5]}
 
 ygrid = {'2014': [-1, 0, 1],
          'astr': [-2.5, -1.5, -0.5, 0.5, 1.5],
-         '2014r': [-1.5, -0.5, 0.5, 1.5]}
+         '2014r': [-1.5, -0.5, 0.5, 1.5],
+         '40ccd': [-1.5, -0.5, 0.5, 1.5]}
 # 2013
 #       'astr':  [-2.2,-1.2, -0.2, 0.8, 1.8],
 
@@ -230,7 +232,7 @@ field_centre = ephem.Ecliptic(0, 0)
 ## foffset is the offset (in RA and DEC) between fields
 field_offset = math.radians(1.00)
 # which year, for the x/y offset grids, are we using.
-year = '2014'
+year = '40ccd'
 
 # the 'astr' year indicates astrometric grid,  this should have more overlap so reduce the field_offset for those.
 if year == 'astr':
@@ -238,8 +240,16 @@ if year == 'astr':
 
 ## camera_dimen is the size of the field.
 camera_dimen = 0.98
+camera_width =  camera_dimen*10/9.0
+camera_height = camera_dimen
 
 years = {"2014": {"ra_off": ephem.hours("00:00:00"),
+                  "dec_off": ephem.hours("00:00:00"),
+                  "fill": False,
+                  "facecolor": 'k',
+                  "alpha": 0.5,
+                  "color": 'b'},
+         "40ccd": {"ra_off": ephem.hours("00:00:00"),
                   "dec_off": ephem.hours("00:00:00"),
                   "fill": False,
                   "facecolor": 'k',
@@ -277,18 +287,18 @@ field_names = []
 field_polygon = None
 
 for block in blocks.keys():
-    rac = ephem.hours(blocks[block]["RA"]) + years[year]["ra_off"]
-    decc = ephem.degrees(blocks[block]["DEC"]) + years[year]["dec_off"]
-    width = field_offset / math.cos(decc)
-    block_centre.from_radec(rac, decc)
-    block_centre.set(block_centre.lon + xgrid[year][0] * width, block_centre.lat)
-    field_centre.set(block_centre.lon, block_centre.lat)
+    ra_start = ephem.hours(blocks[block]["RA"]) + years[year]["ra_off"]
+    dec_start = ephem.degrees(blocks[block]["DEC"]) + years[year]["dec_off"]
+    width = math.radians(camera_width / math.cos(dec_start))
+    height = math.radians(camera_height)
     for dx in xgrid[year]:
-        (rac, decc) = field_centre.to_radec()
+        rac = ephem.hours(ra_start + dx*width)
+        decc = ephem.degrees(dec_start - dx*height/2.0)
         for dy in ygrid[year]:
-            ddec = dy * field_offset
-            dec = math.degrees(decc + ddec)
+            this_decc = decc + dy * height
+            dec = math.degrees(this_decc)
             ra = math.degrees(rac)
+            print "{} {}".format(rac, dec)
             field_name = "%s%+d%+d" % (block, dx, dy)
             field_names.append(field_name)
             decs.append(np.radians(dec))
@@ -307,11 +317,6 @@ for block in blocks.keys():
                 (xcen - dimen / 2.0, ycen - dimen / 2.0)))
             field_polygon = field_polygon is None and this_point_polygon or this_point_polygon | field_polygon
 
-        rac += field_offset / math.cos(decc)
-        for i in range(3):
-            field_centre.from_radec(rac, decc)
-            field_centre.set(field_centre.lon, block_centre.lat)
-            (ttt, decc) = field_centre.to_radec()
 
 fix.write("""]]</CSV></DATA>
 </TABLE>
@@ -470,10 +475,20 @@ for idx in range(len(ras)):
             tdate[0], zf(tdate[1], 2), zf(tdate[2], 2), zf(tdate[3], 2), zf(tdate[4], 2), zf(int(tdate[5]), 2))
         f.write('%19s|%11s|%11s|\n' % (sdate, ephem.hours(ra), ephem.degrees(dec)))
         if epoch == PLOT_FIELD_EPOCH+".00" and PLOT_FIELD_LAYOUT:
-            ax.add_artist(Rectangle(xy=(math.degrees(ra) - dimen / 2.0, math.degrees(dec) - dimen / 2.0),
-                                    height=camera_dimen,
-                                    width=camera_dimen,
-                                    edgecolor='b',
+            ax.add_artist(Rectangle(xy=(math.degrees(ra) - 11*camera_width/10.0/2.0, math.degrees(dec) - camera_height / 4.0 ),
+                                    width= 11*camera_width/10.0,
+                                    height= camera_height/2.0,
+                                    color='b',
+                                    lw=0.5, fill=True, alpha=0.3)) 
+            ax.add_artist(Rectangle(xy=(math.degrees(ra) - 9*camera_width/10.0/ 2.0, math.degrees(dec) - camera_height / 2.0),
+                                    height=camera_height/4.0,
+                                    width=camera_width*9/10.0,
+                                    color='g',
+                                    lw=0.5, fill=True, alpha=0.3))
+            ax.add_artist(Rectangle(xy=(math.degrees(ra) - 9*camera_width/10.0/ 2.0, math.degrees(dec) + camera_height / 4.0),
+                                    height=camera_height/4.0,
+                                    width=camera_width*9/10.0,
+                                    color='r',
                                     lw=0.5, fill=True, alpha=0.3))
             if LABEL_FIELDS :
                 ax.text(math.degrees(ra), math.degrees(dec),
