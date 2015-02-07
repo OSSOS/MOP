@@ -1,42 +1,44 @@
 from math import degrees
 import os
+from collections import OrderedDict
 
 import sqlalchemy as sa
 import ephem
+from planning.plotting import parameters
 
 from web.field_obs.queries import ImagesQuery
 
 
-
 # these are the raw IDs as the telescope has programmed them into the headers
-OSSOS_BLOCKS = ['E', 'O', 'WP-E', 'WP-O', \
-                '13BL', '13BH', 'WP-13BL', 'WP-13BH']
+# OSSOS_BLOCKS = ['E', 'O', 'WP-E', 'WP-O', \
+# '13BL', '13BH', 'WP-13BL', 'WP-13BH']
 
 
 class BlockQuery(object):
     def __init__(self):
         self.bk = ImagesQuery()
 
-
     def all_blocks(self):
-        retval = {}
-        bks = retval.get('blocks', [])
-        status = {'E': ['complete', '52', '24.05'], 'O': ['blinking', '', ''],
-                  '13BL': ['triplets observed!', '', ''], '13BH': ['partial observations', '', '']}
-        for block in OSSOS_BLOCKS:
-            bk = []
-            bk.append(block)
-            bk.append(self.num_block_images(block))  # no. observations
-            if block in status:
-                for val in status[block]:
-                    bk.append(val)
-            elif block.__contains__('WP'):  # Wallpaper can't have discoveries or efficiency
-                for k in range(1, 4):
-                    bk.append('-')
 
+        status = OrderedDict.fromkeys(parameters.BLOCKS.keys())
+        status['13AE'] = ['discovery complete', '50', '24.05']
+        status['13AO'] = ['discovery complete', '36', '24.40']
+        status['13BL'] = ['discovery complete', '80', '24.48']
+        status['14BH'] = ['discovery running', '-', '-']
+
+        '''Overview tal table is expecting:
+        ID   observations   processing status   discoveries  m_r 40%
+        '''
+        bks = []
+        for block in status.iterkeys():
+            bk = [block, self.num_block_images(block)]  # if set in the .fromkeys(), doesn't give a unique list
+            if status[block] is not None:
+                bk = bk + status[block]
+            else:
+                bk = bk + ['awaiting triplets', '-', '-']
             bks.append(bk)
 
-        retval['blocks'] = bks
+        retval = {'blocks': bks, 'status': status}
 
         return retval
 

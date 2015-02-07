@@ -12,6 +12,7 @@ import Polygon
 import Polygon.IO
 from astropy.time import Time
 
+
 try:
     from astropy.coordinates import ICRSCoordinates
 except:
@@ -43,7 +44,7 @@ Neptune = {'Halimde': {"RA": ephem.hours("22:32:05.1"), "DEC": ephem.degrees("-1
            'Neso': {"RA": ephem.hours("22:31:31.9"), "DEC": ephem.degrees("-10:19:18")},
            'Neptune': {"RA": ephem.hours("22:32:49.39"), "DEC": ephem.degrees("-09:57:02.8")}}
 
-colossos = ['O13BL3R9',
+COLOSSOS = ['O13BL3R9',
             'O13BL3SK',
             'O13BL3RB',
             'O13BL3SC',
@@ -66,67 +67,62 @@ colossos = ['O13BL3R9',
             'O13BL3RH']
 
 tracking_termination = ['o3e01',
-                        'o3e10',
-                        'o3e15',
-                        'o3e16',
-                        'o3e18',
-                        'o3e20PD',
-                        'o3e21',
-                        'o3e22',
-                        'o3e23PD',
-                        'o3e24',
-                        'o3e25',
-                        'o3e26',
-                        'o3e27PD',
-                        'o3e28',
-                        'o3e29',
-                        'o3e30PD',
-                        'o3e32',
-                        'o3e33',
-                        'o3e34PD',
-                        'o3e35',
-                        'o3e36',
-                        'o3e37PD',
-                        'o3e38',
-                        'o3e40',
-                        'o3e51',
-                        'o3e54',
-                        "o3o01",
-                        "o3o22",
-                        "o3o23",
-                        "o3o26",
-                        "o3o28",
-                        "o3o31",
-                        "o3o35",
-                        "uo3o37",
-                        "uo3o38",
-                        "uo3o50",
+                        # 'o3e10',
+                        #                         'o3e15',
+                        #                         'o3e16',
+                        #                         'o3e18',
+                        #                         'o3e20PD',
+                        #                         'o3e21',
+                        #                         'o3e22',
+                        #                         'o3e23PD',
+                        #                         'o3e24',
+                        #                         'o3e25',
+                        #                         'o3e26',
+                        #                         'o3e27PD',
+                        #                         'o3e28',
+                        #                         'o3e29',
+                        #                         'o3e30PD',
+                        #                         'o3e32',
+                        #                         'o3e33',
+                        #                         'o3e34PD',
+                        #                         'o3e35',
+                        #                         'o3e36',
+                        #                         'o3e37PD',
+                        #                         'o3e38',
+                        #                         'o3e40',
+                        #                         'o3e51',
+                        #                         'o3e54',
+                        #                         "o3o01",
+                        #                         "o3o22",
+                        #                         "o3o23",
+                        #                         "o3o26",
+                        #                         "o3o28",
+                        #                         "o3o31",
+                        #                         "o3o35",
+                        #                         "uo3o37",
+                        #                         "uo3o38",
+                        #                         "uo3o50",
                         "O13BL3R6",
                         "O13BL3RW",
                         "O13BL3SJ",
                         "O13BL3SM",
-                        "O13BL3SU",
                         "O13BL3S0",
                         "O13BL3S5",
-                        "O13BL3RQ"]
+                        "O13BL3S8",
+                        "O13BL3QZ"]  # centaur
 
-doubles = ["O13BL3TL",
-           "O13BL3TE",
-           "O13BL3S8",
-           "O13BL3SB",
-           "O13BL3QT",
-           "O13BL3RS",
-           "O13BL3SV",
-           "O13BL3T0",
-           "O13BL3QU",
-           "O13BL3SO",
-           "O13BL3T6",
-           "O13BL3S6",
-           "O13BL3T5",
-           "O13BL3RJ",
-           "O13BL3RL",
-           "O13BL3S9",
-           "O13BL3SC"]
+doubles = ['o3e09',
+           'o3e11',
+           'o3e12',
+           'o3e17',
+           'o3e19',
+           'o3e39',
+           'o3e45',
+           'o3e48',
+           'o3e49',
+           'o3e52',
+           'o3e55'
+]
 
 
 class MyEvent(object):
@@ -179,6 +175,7 @@ class Plot(Canvas):
         """Load the targets from a file
 
         """
+        # FIXME: rewrite this to use mpc.MPCReader.read()
 
         for name in Neptune:
             self.kbos[name] = Neptune[name]
@@ -815,7 +812,7 @@ class Plot(Canvas):
         @return: None
         """
 
-        self.camera.set("MEGACAM_1")
+        self.camera.set("MEGACAM_40")
         (ra1, dec1) = self.c2p((self.canvasx(1), self.canvasy(1)))
         (ra2, dec2) = self.c2p((self.canvasx(480 * 2), self.canvasy(360 * 2)))
         ra_cen = math.degrees((ra2 + ra1) / 2.0)
@@ -835,9 +832,9 @@ class Plot(Canvas):
 
     def save_pointings(self):
         """Print the currently defined FOVs"""
-
         i = 0
         if self.pointing_format.get() == 'CFHT ET':
+            logging.info('Beginning ephemeris pointing save.')
             for pointing in self.pointings:
                 name = pointing["label"]["text"]
                 camera = pointing["camera"]
@@ -870,10 +867,10 @@ class Plot(Canvas):
                             center_ra += ra
                             center_dec += dec
 
-                logging.info("KBOs in field {0}: {1}".format(name, field_kbos))
+                logging.critical("KBOs in field {0}: {1}".format(name, field_kbos))
 
                 start_date = mpc.Time(self.date.get(), scale='utc').jd
-                for days in range(-90, 90, 1):
+                for days in range(-10, 20, 1):
                     for hours in range(0, 23, 12):
                         today = mpc.Time(start_date + days + hours / 24.0,
                                          scale='utc',
@@ -1010,7 +1007,7 @@ NAME                |RA         |DEC        |EPOCH |POINT|
             vlist.append(name)
             fill = None
             is_colossos_target = False
-            for cname in colossos:
+            for cname in COLOSSOS:
                 if cname in name:
                     is_colossos_target = True
                     print "ColOSSOS: ", cname
@@ -1103,7 +1100,7 @@ def start(dirname=None, pointings=None):
     sx.grid(row=1, column=0, sticky=E + W)
     sy.grid(row=0, column=1, sticky=N + S)
 
-    ### Get the mouse to do intersting stuff
+    # ## Get the mouse to do intersting stuff
     w.bind('<Key-g>', w.helio_grid)
     w.bind('<Motion>', w.pos_update)
     w.bind('<Double-Button-1>', w.create_pointing)
@@ -1226,6 +1223,7 @@ def start(dirname=None, pointings=None):
     w.newPlot()
     w.load_objects(directory_name=dirname)
     w.recenter(math.pi, 0)
+    w.zoom(scale=64)  # want to start in closer
 
     root.mainloop()
 

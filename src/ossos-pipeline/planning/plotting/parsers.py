@@ -1,5 +1,8 @@
 __author__ = 'Michele Bannister   git:@mtbannister'
 
+import os
+import cPickle
+
 import ephem
 
 from ossos import mpc
@@ -12,9 +15,9 @@ from parameters import tno
 def ossos_release_parser():
     retval = []
     with open(parameters.RELEASE_CLASSIFICATION, 'r') as classfile:
-        classlines = classfile.readlines()
+        classlines = classfile.readlines()[1:]  # first line is column definitions
     with open(parameters.RELEASE_SUMMARY, 'r') as summary:
-        for i, line in enumerate(summary.readlines()):
+        for i, line in enumerate(summary.readlines()[1:]):
             obj = tno.from_summary_line(line, version=parameters.RELEASE_VERSION)
             obj = tno.from_class_line(classlines[i], version=parameters.RELEASE_VERSION, existing_object=obj)
             retval.append(obj)
@@ -60,7 +63,7 @@ def ossos_release_with_metadata():
 
     # for obj in discoveries:
     # observation = [n for n in observations if n.observations[-1].provisional_name == obj.name][0]
-    #     for obs in observation.observations:
+    # for obs in observation.observations:
     #         if obs.discovery.is_discovery:
     #             if obj.mag is not None:
     #                 H = obj.mag + 2.5 * math.log10(1. / ((obj.dist ** 2) * ((obj.dist - 1.) ** 2)))
@@ -77,49 +80,63 @@ def ossos_release_with_metadata():
 def synthetic_model_kbos(at_date=parameters.NEWMOONS[parameters.DISCOVERY_NEW_MOON], maglimit=24.5, kbotype=False,
                          arrays=False):
     # # build a list of Synthetic KBOs
-    print "LOADING SYNTHETIC MODEL KBOS FROM: {}".format(parameters.L7MODEL)
     kbos = []
-    if arrays:  # much easier to use for plt.scatter()
-        ra = []
-        dist = []
-        hlat = []
-    lines = storage.open_vos_or_local(parameters.L7MODEL).read().split('\n')
-    counter = 0
-    for line in lines:
-        if len(line) == 0 or line[0] == '#':  # skip initial column descriptors and the final blank line
-            continue
-        kbo = ephem.EllipticalBody()
-        values = line.split()
-        kbo.name = values[8]
-        if kbotype and (kbo.name == kbotype) and (values[9] == '3'):
-            kbo._a = float(values[0])
-            kbo._e = float(values[1])
-            kbo._inc = float(values[2])
-            kbo._Om = float(values[3])
-            kbo._om = float(values[4])
-            kbo._M = float(values[5])
-            kbo._H = float(values[6])
-            epoch = ephem.date(2453157.50000 - ephem.julian_date(0))
-            kbo._epoch_M = epoch
-            kbo._epoch = epoch
-            date = ephem.date(at_date)
-            kbo.compute(date)
-            counter += 1
+    print "LOADING SYNTHETIC MODEL KBOS FROM: {}".format(parameters.L7MODEL)
+    pastpath = parameters.L7_HOME + str(at_date).split()[0].replace('/', '-') + '_' + str(maglimit) + (
+    kbotype or '') + '.dat'
+    print(pastpath)
+    if os.path.exists(pastpath):
+        with open(pastpath) as infile:
+            ra, dist, hlat, Hmag = cPickle.load(infile)
+        print('{} synthetic model kbos brighter than {} at {} in L7 model'.format(len(ra), maglimit, at_date))
+    else:
+        if arrays:  # much easier to use for plt.scatter()
+            ra = []
+            dist = []
+            hlat = []
+            Hmag = []
 
-            # ## only keep objects that are brighter than limit
-            if (kbo.mag < maglimit):
-                kbos.append(kbo)
-                if arrays:
-                    ra.append(kbo.ra)
-                    dist.append(kbo.sun_distance)
-                    hlat.append(kbo.hlat)
+        lines = storage.open_vos_or_local(parameters.L7MODEL).read().split('\n')
+        counter = 0
+        for line in lines:
+            if len(line) == 0 or line[0] == '#':  # skip initial column descriptors and the final blank line
+                continue
+            kbo = ephem.EllipticalBody()
+            values = line.split()
+            kbo.name = values[8]
+            if kbotype and (kbo.name == kbotype) and (values[9] == '3' and values[10] == '2'):  # keeping 3:2 resonators
+                kbo._a = float(values[0])
+                kbo._e = float(values[1])
+                kbo._inc = float(values[2])
+                kbo._Om = float(values[3])
+                kbo._om = float(values[4])
+                kbo._M = float(values[5])
+                kbo._H = float(values[6])
+                epoch = ephem.date(2453157.50000 - ephem.julian_date(0))
+                kbo._epoch_M = epoch
+                kbo._epoch = epoch
+                date = ephem.date(at_date)
+                kbo.compute(date)
+                counter += 1
 
-    print '%d synthetic model kbos brighter than %d retained from %d in L7 model'.format(len(kbos), maglimit,
-                                                                                         counter)
+                # ## only keep objects that are brighter than limit
+                if (kbo.mag < maglimit):
+                    kbos.append(kbo)
+                    if arrays:
+                        ra.append(float(kbo.ra))
+                        dist.append(float(kbo.sun_distance))
+                        hlat.append(float(kbo.hlat))
+                        Hmag.append(float(kbo._H))
+
+        print '{} synthetic model kbos brighter than {} at {} retained from {} in L7 model'.format(len(kbos), maglimit,
+                                                                                                   at_date, counter)
     if not arrays:
         return kbos
     else:
-        return ra, dist, hlat
+        if not os.path.exists(pastpath):
+            with open(pastpath, 'w') as outfile:
+                cPickle.dump((ra, dist, hlat, Hmag), outfile)
+        return ra, dist, hlat, Hmag
 
 
 def output_discoveries_for_animation():
