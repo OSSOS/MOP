@@ -6,8 +6,6 @@ observation.
 from copy import deepcopy
 import os
 import math
-
-from astropy.coordinates import ICRSCoordinates
 import numpy
 
 
@@ -24,11 +22,10 @@ import argparse
 TOLERANCE = 0.35
 
 
-def remeasure(mpc_in):
+def remeasure(mpc_in, recentroided=False):
     """
     re-measure the astrometry and photometry of the given mpc line
     """
-    # TODO  Actually implement this.
     if mpc_in.null_observation:
         return mpc_in
     mpc_obs = deepcopy(mpc_in)
@@ -55,7 +52,7 @@ def remeasure(mpc_in):
     try:
         x = float(mpc_obs.comment.x)
         y = float(mpc_obs.comment.y)
-        if mpc_in.discovery:
+        if mpc_in.discovery and int(parts.group('ccd')) < 18:
             logging.debug("Discovery astrometric lines are normally flipped relative to storage.")
             x = header['NAXIS1'] - x + 1
             y = header['NAXIS2'] - y + 1
@@ -67,7 +64,7 @@ def remeasure(mpc_in):
     mpc_obs.coordinate = (ra, dec)
     logging.debug("rm updat: {}".format(mpc_obs.to_string()))
     sep = start_coordinate.separation(mpc_obs.coordinate).degree * 3600.0
-    if sep > TOLERANCE and mpc_in.discovery:
+    if sep > TOLERANCE and mpc_in.discovery and not recentroided :
         logging.warn("{} --> Using the unflipped X/Y for a discovery observation line.".format(sep))
         logging.debug("{} {} {} {} {}".format(sep, x, y, mpc_obs.comment.x, mpc_obs.comment.y))
         # Try un-flipping.
@@ -80,7 +77,7 @@ def remeasure(mpc_in):
         logging.debug("remod: {}".format(mpc_obs.coordinate))
         logging.debug("SEP: {}".format(sep))
         logging.debug("rm  flip: {}".format(mpc_obs.to_string()))
-    if sep > TOLERANCE:
+    if sep > TOLERANCE and not recentroided:
         ## use the old header RA/DEC to predict the X/Y and then use that X/Y to get new RA/DEC
         logging.debug("Ignoring recorded X/Y and using previous to RA/DEC and WCS to compute X/Y")
         header2 = storage.get_image(parts.group('expnum'),
@@ -169,12 +166,12 @@ def recompute_mag(mpc_in):
         logging.warn("Failed to do photometry.")
         return mpc_obs
     if mpc_obs.comment.mag is not None and math.fabs(mpc_obs.comment.mag - mag) > 3.5 * mpc_obs.comment.mag_uncertainty:
-        logging.warn("recomputed magnitude shift large: {} --> {}".format(mpc_obs.mag, mag))
+        logging.error("recomputed magnitude shift large: {} --> {}".format(mpc_obs.mag, mag))
     if math.sqrt((x - mpc_obs.comment.x) ** 2 + (y - mpc_obs.comment.y) ** 2) > 1.0:
         logging.warn("Centroid shifted ({},{}) -> ({},{})".format(mpc_obs.comment.x,
-                                                                      mpc_obs.comment.y,
-                                                                      x,
-                                                                      y))
+                                                                  mpc_obs.comment.y,
+                                                                  x,
+                                                                  y))
     # Don't use the new X/Y for Hand measured entries.
     if str(mpc_obs.note1) != "H":
         mpc_obs.comment.x = x
@@ -205,7 +202,7 @@ def main(mpc_file, cor_file, skip_mags=False):
         mpc_obs = remeasure(mpc_in)
 
         if skip_mags and not mpc_obs.comment.photometry_note[0] == "Z":
-            mpc_mag = remeasure(recompute_mag(mpc_obs))
+            mpc_mag = remeasure(recompute_mag(mpc_obs), recentroided=True)
         else:
             mpc_mag = mpc_obs
 
@@ -214,11 +211,24 @@ def main(mpc_file, cor_file, skip_mags=False):
             logging.error("Large offset: {} arc-sec".format(sep))
             logging.error("orig: {}".format(mpc_in.to_string()))
             logging.error(" new: {}".format(mpc_mag.to_string()))
+            new_comment = raw_input("COMMENT: ")
+            mpc_mag.comment.comment = mpc_mag.comment.comment + " " + new_comment
         logging.info("modi: {}".format(mpc_mag.to_string()))
         logging.info("")
         original_obs.append(mpc_in)
         modified_obs.append(mpc_mag)
 
+    optr = file(cor_file+".tlf", 'w')
+    for idx in range(len(modified_obs)):
+        inp = original_obs[idx]
+        out = modified_obs[idx]
+        if inp != out:
+            optr.write(out.to_tnodb()+"\n")
+    optr.close()
+    return True
+
+
+def compare_orbits(original_obs, modified_obs):
     origin = orbfit.Orbfit(original_obs)
     modified = orbfit.Orbfit(modified_obs)
 
@@ -277,14 +287,6 @@ def main(mpc_file, cor_file, skip_mags=False):
 
     orbpt.close()
 
-    optr = file(cor_file+".tlf", 'w')
-    for idx in range(len(modified_obs)):
-        inp = original_obs[idx]
-        out = modified_obs[idx]
-        if inp != out:
-            optr.write(out.to_tnodb()+"\n")
-    optr.close()
-    return True
 
 if __name__ == '__main__':
     description = """This program takes as input a set of OSSOS measurements and adjusts the astrometric and photometric
@@ -298,10 +300,14 @@ if __name__ == '__main__':
     parser.add_argument('--debug', action='store_true')
 
     args = parser.parse_args()
-    level = logging.INFO
+
+    level = logging.ERROR
     if args.debug:
         level = logging.DEBUG
-    logging.basicConfig(level=level)
+
+    logger = logging.getLogger('update_astrom')
+    import coloredlogs
+    coloredlogs.install(level=level)
 
     # set the VOS logging off, its too noisy.
     vos = logging.getLogger('vos')

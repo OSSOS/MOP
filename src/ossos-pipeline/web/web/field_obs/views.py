@@ -76,6 +76,8 @@ class Field(object):
         else:
             self.fieldId = fi
 
+        print self.fieldId
+
     @Lazy
     def discovery_triplet(self):
         retval = self.imagesQuery.discovery_triplet(self.fieldId)
@@ -141,6 +143,7 @@ class Field(object):
         retval = self.imagesQuery.num_doubles(self.fieldId)
         return retval
 
+    # Only uncomment and set this active when a triplet file in vos:OSSOS/triplets needs to be generated.
     # @property
     # def export_triplet(self):   # CHECK TMPFILE HAS BEEN SET TO CORRECT BLOCK
     # retval = self.imagesQuery.export_discovery_triplet(self.fieldId)
@@ -160,7 +163,7 @@ class Field(object):
                   'totalObs': self.numObs,
                   'precoveries': self.num_precoveries,
                   'nailings': self.num_nailings,
-                  'doubles': self.num_doubles
+                  'doubles': self.num_doubles,
                   # 'update_vospace': self.export_triplet
         }
         return retval

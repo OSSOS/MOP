@@ -3,9 +3,9 @@ import cPickle
 import sqlalchemy as sa
 import ephem
 import datetime
+from ossos import storage
 
 from web.overview.ossuary import OssuaryTable
-from ossos import storage
 
 
 class ImagesQuery(object):
@@ -38,7 +38,8 @@ class ImagesQuery(object):
         ret_images = []
         for row in ims_query:
             retrow = [r for r in row[1:]]  # trim off the unnecessary field
-            if row[2] is None:  # catch None fwhm, zeropoint from unprocessed images.
+            if (row[2] is None) or (
+                    row[4] is None and row[2] == 0.74):  # catch None fwhm, zeropoint from unprocessed images.
                 retrow[1] = -1.  # displaced by one as retrow starts after field_id. This one is iq_ossos
                 retrow[3] = -1.  # zeropoint
             if row[7] is None:
@@ -273,7 +274,7 @@ class ImagesQuery(object):
         for row in tplus_res:
             # keep year, month, day, image_id, obs_end, iq_ossos
             rr = list(row[1:])
-            if row[6] is None:  # iq_ossos hasn't been calculated yet
+            if (row[6] is None) or (row[7] is None and row[6] == 0.74):  # iq_ossos hasn't been calculated yet!
                 rr[5] = -1.
                 rr[6] = -1.
             ret_images.append(rr)
@@ -328,7 +329,7 @@ class ImagesQuery(object):
             # if there's multiple sets, keep only the one where there's FWHM info available for everything in the set.
             clean_triple_sets = []
             for tset in triple_sets:
-                fwhms = [ts[2] for ts in tset if ts is not None]
+                fwhms = [ts[2] for ts in tset[0:3] if ts is not None]  # ts[0:3] guards against unset IQ (None) in ts[3]
                 if len(fwhms) == 3:  # it's fine, none of the fwhms haven't been set
                     clean_triple_sets.append(tset)
 
@@ -418,7 +419,7 @@ class ImagesQuery(object):
         if triplet:
             stem = 'vos:OSSOS/triplets/'
             # TESTING TESTING REMOVE BEFORE FLIGHT
-            tmpfile = 'test_13A_discovery_expnums.txt'
+            tmpfile = 'H_14B_discovery_expnums.txt'
             blockuri = stem + tmpfile
 
             # does a file for this block already exist in VOSpace? If so, copy it back.

@@ -89,7 +89,8 @@ def verify_ossos_image(header):
     # integration should be within ~10 sec of: normal field: 287 s, wallpaper: 30 s, long nail: 387 s
     assert (280. < float(header['EXPTIME']) < 297.) \
            or (25. < float(header['EXPTIME']) < 35.) \
-           or (380. < float(header['EXPTIME']) < 397.), \
+           or (380. < float(header['EXPTIME']) < 397.) \
+           or (315. < float(header['EXPTIME']) < 325.), \
         'Exposure %s s, not in OSSOS range.' % header['EXPTIME']
 
     assert (header['FILTER'] == 'r.MP9601'), 'Filter not r. Instead %s' % header['FILTER']
