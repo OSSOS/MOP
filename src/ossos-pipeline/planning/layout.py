@@ -36,7 +36,7 @@ L7MODEL = '/tmp/vospace/OSSOS/CFEPS/L7SyntheticModel-v09.txt'
 REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/ast/'
 REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/Research/KuiperBelt/dbase/TNOdb/dbase/data/ast/'
 
-PLOT_FIELD_EPOCH = 'Apr15'  # Oct14.00 ==> '0' days since the New Moon on Oct14
+PLOT_FIELD_EPOCH = 'Apr14'  # Oct14.00 ==> '0' days since the New Moon on Oct14
 #TODO the .00 is appended when this variable is used as a keyword that needs that .00 this is bad.
 DISCOVERY_NEW_MOON = 'Apr15'  # this is the date that the RA/DEC in blocks corresponds to.
 
@@ -154,9 +154,9 @@ blocks = {'14BH': {'RA': "01:28:32.32", "DEC": "+12:51:06.10"}}
 #fall 2015
 # blocks = {'15BD': {'RA': "03:15:00.00", "DEC": "+16:30:00.00"}}
 
-#spring14
-
+#spring15
 blocks = {'15AP': {'RA': "13:30:00", "DEC": "-07:00:00"}}
+blocks = {'14AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"}}
 
 newMoons = {
 #    'Feb13': "2013/02/10 10:00:00",
@@ -173,7 +173,7 @@ newMoons = {
 #    'Jan14': '2014/01/01 10:00:00',
 #    'Feb14': '2014/01/31 10:00:00',
 #    'Mar14': '2014/03/28 10:00:00',
-#    'Apr14': '2014/04/01 10:00:00',
+    'Apr14': '2014/04/01 10:00:00',
 #    'May14': '2014/05/28 10:00:00',
 #    'Jun14': '2014/06/26 10:00:00',
 #    'Jul14': '2014/07/26 10:00:00',
@@ -239,7 +239,7 @@ if year == 'astr':
     field_offset *= 0.75
 
 ## camera_dimen is the size of the field.
-camera_dimen = 0.98
+camera_dimen = 1.0
 camera_width =  camera_dimen*10/9.0
 camera_height = camera_dimen
 
@@ -348,8 +348,8 @@ dec_cen = math.degrees(decs.mean())
 #height = 70
 #ra_cen = 45.0
 #dec_cen = 17.5
-width = 25
-height = 25
+width = 10
+height = 10
 
 ## lets make a plot of the field selections.
 fig = figure()
@@ -458,6 +458,9 @@ for month in seps:
 
 
 sorted_epochs = sorted(dates.iteritems(), key=operator.itemgetter(1))
+
+camera_width=0.983*camera_width
+camera_height=0.983*camera_height
 
 print "CREATING ET XML FILES USING BASE POINTING AND NOMINAL MOTION RATES"
 for idx in range(len(ras)):
