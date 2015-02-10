@@ -9,7 +9,7 @@ from matplotlib.patches import Rectangle
 from matplotlib.patches import Ellipse
 from matplotlib import rcParams
 import numpy as np
-from matplotlib.pyplot import figure, savefig, xlabel, ylabel
+from matplotlib.pyplot import figure, savefig
 from astropy.io import votable
 import ephem
 import Polygon
@@ -17,24 +17,25 @@ import Polygon.IO
 
 import mpcread
 import usnoB1
-
 import megacam
 from ossos import storage
 from ossos import orbfit
-
 from ossos import mpc
+
 
 def plot_line(axes, fname, ltype):
     """plot the ecliptic plane line on the given axes."""
     x = np.genfromtxt(fname, unpack=True)
     axes.plot(x[0], x[1], ltype)
 
-MPCORB_FILE = os.path.join(os.getenv('HOME', '/Users/jjk'), 'MPCORB.DAT')
+
+MPCORB_FILE = os.path.join(os.getenv('HOME', '/Users/michele'), 'MPCORB-Distant.DAT')
 L7MODEL = 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
-L7MODEL = '/Users/jjk/Dropbox/Research/KuiperBelt'
-L7MODEL = '/tmp/vospace/OSSOS/CFEPS/L7SyntheticModel-v09.txt'
-REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/ast/'
-REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/Research/KuiperBelt/dbase/TNOdb/dbase/data/ast/'
+# L7MODEL = '/Users/jjk/Dropbox/Research/KuiperBelt'
+# L7MODEL = '/tmp/vospace/OSSOS/CFEPS/L7SyntheticModel-v09.txt'
+# REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/ast/'
+# REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/Research/KuiperBelt/dbase/TNOdb/dbase/data/ast/'
+REAL_KBO_AST_DIR = '/Users/michele/Dropbox/OSSOS/measure3/ossin/'
 
 PLOT_FIELD_EPOCH = 'Apr15'  # Oct14.00 ==> '0' days since the New Moon on Oct14
 #TODO the .00 is appended when this variable is used as a keyword that needs that .00 this is bad.
@@ -299,7 +300,7 @@ for block in blocks.keys():
             dec = math.degrees(this_decc)
             ra = math.degrees(rac)
             print "{} {}".format(rac, dec)
-            field_name = "%s%+d%+d" % (block, dx, dy)
+            field_name = "{0}{1:+}{2:+}".format(block, dx, dy)
             field_names.append(field_name)
             decs.append(np.radians(dec))
             ras.append(np.radians(ra))
@@ -348,8 +349,8 @@ dec_cen = math.degrees(decs.mean())
 #height = 70
 #ra_cen = 45.0
 #dec_cen = 17.5
-width = 25
-height = 25
+width = 7
+height = 7
 
 ## lets make a plot of the field selections.
 fig = figure()
