@@ -9,7 +9,7 @@ from matplotlib.patches import Rectangle
 from matplotlib.patches import Ellipse
 from matplotlib import rcParams
 import numpy as np
-from matplotlib.pyplot import figure, savefig, xlabel, ylabel
+from matplotlib.pyplot import figure, savefig
 from astropy.io import votable
 import ephem
 import Polygon
@@ -17,26 +17,27 @@ import Polygon.IO
 
 import mpcread
 import usnoB1
-
 import megacam
 from ossos import storage
 from ossos import orbfit
-
 from ossos import mpc
+
+
+USER = '/Users/michele/'
 
 def plot_line(axes, fname, ltype):
     """plot the ecliptic plane line on the given axes."""
     x = np.genfromtxt(fname, unpack=True)
     axes.plot(x[0], x[1], ltype)
 
-MPCORB_FILE = os.path.join(os.getenv('HOME', '/Users/jjk'), 'MPCORB.DAT')
-L7MODEL = 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
-L7MODEL = '/Users/jjk/Dropbox/Research/KuiperBelt'
-L7MODEL = '/tmp/vospace/OSSOS/CFEPS/L7SyntheticModel-v09.txt'
-L7MODEL = '/Users/kavelaarsj/Dropbox/Research/KuiperBelt/OSSOS/L7SyntheticModel-v09.txt'
 
-REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/ast/'
-REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/Research/KuiperBelt/dbase/TNOdb/dbase/data/ast/'
+MPCORB_FILE = os.path.join(os.getenv('HOME', USER), 'MPCORB-Distant.DAT')
+L7MODEL = 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
+# L7MODEL = '/Users/jjk/Dropbox/Research/KuiperBelt'
+# L7MODEL = '/tmp/vospace/OSSOS/CFEPS/L7SyntheticModel-v09.txt'
+# REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/ast/'
+# REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/Research/KuiperBelt/dbase/TNOdb/dbase/data/ast/'  # this is CFEPS
+REAL_KBO_AST_DIR = USER + 'Dropbox/OSSOS/measure3/ossin/'
 
 PLOT_FIELD_EPOCH = 'Apr14'  # Oct14.00 ==> '0' days since the New Moon on Oct14
 #TODO the .00 is appended when this variable is used as a keyword that needs that .00 this is bad.
@@ -52,8 +53,7 @@ PLOT_FIELD_LAYOUT = False
 
 PLOT_MPCORB = False and os.access(MPCORB_FILE, os.F_OK)
 
-
-LABEL_FIELDS = False
+LABEL_FIELDS = True
 LABEL_PLANETS = True
 # # EmulateApJ columnwidth=245.26 pts
 fig_width_pt = 246.0 * 3.0
@@ -299,7 +299,7 @@ for block in blocks.keys():
             dec = math.degrees(this_decc)
             ra = math.degrees(rac)
             print "{} {}".format(rac, dec)
-            field_name = "%s%+d%+d" % (block, dx, dy)
+            field_name = "{0}{1:+}{2:+}".format(block, dx, dy)
             field_names.append(field_name)
             decs.append(np.radians(dec))
             ras.append(np.radians(ra))
@@ -348,8 +348,8 @@ dec_cen = math.degrees(decs.mean())
 #height = 70
 #ra_cen = 45.0
 #dec_cen = 17.5
-width = 10
-height = 10
+width = 7
+height = 7
 
 ## lets make a plot of the field selections.
 fig = figure()
@@ -368,6 +368,23 @@ ax.grid()
 ## plot the galactic plane line ..
 plot_line(ax, 'eplane.radec', 'b-')
 plot_line(ax, 'gplane.radec', 'g-')
+
+
+# Plot the invariable plane: values from DE405, table 5, Souami and Souchay 2012
+# http://www.aanda.org/articles/aa/pdf/2012/07/aa19011-12.pdf
+# Ecliptic J2000
+invar_i = ephem.degrees('1.57870566')
+invar_Om = ephem.degrees('107.58228062')
+# print invar_i, invar_Om
+invar = []
+for n in range(1, 360):
+    ec = ephem.Ecliptic(ephem.degrees(str(n)) + invar_Om, invar_i)  # lon then lat
+    eq = ephem.Equatorial(ec)
+    invar.append(eq)
+    # print n, ec.lat, ec.lon, eq.ra, eq.dec, math.degrees(eq.ra), math.degrees(eq.dec)
+ax.plot([math.degrees(eq.ra) for eq in invar], [math.degrees(eq.dec) for eq in invar], 'k-')
+
+
 
 ## build a list of Synthetic KBOs that will be in the discovery fields.
 print "LOADING SYNTHETIC MODEL KBOS FROM: {}".format(L7MODEL)
@@ -403,11 +420,12 @@ for line in lines:
     ## keep a list of KBOs that are in the discovery pointings
     if field_polygon.isInside(math.degrees(float(kbo.ra)), math.degrees(float(kbo.dec))):
         ### only keep objects that are brighter than limit
-        if kbo.mag < 25.0:
+        if kbo.mag < 25.0:  # and (kbo.name == 'classical' and values[9] == 'm'): # and values[10] == 'k'):
             kbos.append(kbo)
-        if PLOT_SYNTHETIC_KBOS:
-            kbo.compute(plot_date)
-            ax.scatter(math.degrees(float(kbo.ra)), math.degrees(float(kbo.dec)), c='k', marker='o', s=2, alpha=0.8)
+
+            if PLOT_SYNTHETIC_KBOS:
+                kbo.compute(plot_date)
+                ax.scatter(math.degrees(float(kbo.ra)), math.degrees(float(kbo.dec)), c='k', marker='o', s=2, alpha=0.8)
 
 print "{} KBOs found in coverage on {}".format(len(kbos), discovery_date)
 ## Now we work out how far to move the fields at different lunations
@@ -510,7 +528,7 @@ if PLOT_USNO_STARS:
     print "PLOTTING LOCATIONS NEARBY BRIGHT USNO B1 STARS"
     for ra in range(int(ra_cen - width/2.0),int(ra_cen + width/2.), 10):
         for dec in range(int(dec_cen - height/2.0),int(dec_cen + height/2.), 10):
-	    file_name = "/Users/jjk/new_usno/usno{:5.2f}{:5.2f}.xml".format(ra,dec).replace(" ","")
+            file_name = USER + "new_usno/usno{:5.2f}{:5.2f}.xml".format(ra, dec).replace(" ", "")
             print file_name
             file_name = file_name.replace(" ","")
 	    if not os.access(file_name, os.R_OK):
