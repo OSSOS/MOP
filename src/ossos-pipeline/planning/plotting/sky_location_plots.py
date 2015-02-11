@@ -1,5 +1,4 @@
 import math
-import os
 import sys
 import argparse
 
@@ -7,35 +6,28 @@ import numpy as np
 import ephem
 from astropy.io import votable
 import Polygon
-import datetime
 from matplotlib.patches import Rectangle
 from matplotlib.font_manager import FontProperties
 import matplotlib.pyplot as plt
 
-import mpcread
 import parsers
 import parameters
 import plot_fanciness
+import plot_objects
+
+
 
 # from ossos import cameras  # bit over the top to show all the ccds?
 
-
-HAVE_HORIZONS=True
-try:
-    from ossos import horizons
-except:
-    HAVE_HORIZONS=False
-
-PLOT_MPCORB = True and os.access(parameters.MPCORB_FILE, os.F_OK)
 
 plot_extents = {"13AE": [209.8, 218.2, -15.5, -9.5],
                 "13AO": [235.4, 243.8, -15.5, -9.5],
                 "13A": [209, 244, -22, -9],  # for both 13A blocks together
                 "15AM": [228, 237, -15, -9],
-                "15AP": [198, 207, -10, -4],
+                "15AP": [198, 207, -12, -4],
                 "13B": [30, 5, -2, 18],  # for both 13B blocks together
                 "13BL": [9, 18, 1, 7],
-                "13BH": [18, 27, 10, 16],
+                "14BH": [18, 27, 10, 16],
                 "15BD": [44, 54, 13, 20],
                 "15B?": [7, 16, -4, 4]
 }
@@ -79,10 +71,6 @@ years = {"2014": {"ra_off": ephem.hours("00:00:00"),
                   "color": 'none'}
 }
 
-saturn_moons = ['Phoebe', 'Ymir', 'Paaliaq', 'Tarvos', 'Ijiraq', 'Suttungr', 'Kiviuq', 'Mundilfari',
-                'Albiorix', 'Skathi', 'Erriapus', 'Siarnaq', 'Thrymr', 'Narvi', 'Bestla', 'Hyrrokkin', 'Kari']
-# pulled out 'Iapetus', on Saturn
-
 # FIXME: redo this to have brewermpl colours?
 def colsym():
     # needs a light grey to get the original populations shown as background.
@@ -107,7 +95,7 @@ def basic_skysurvey_plot_setup():
     labels = []
     handles, labels = plot_galactic_plane(handles, labels)
     handles, labels = plot_ecliptic_plane(handles, labels)
-    # handles, labels = plot_invariant_plane(handles, labels)
+    handles, labels = plot_invariable_plane(handles, labels)
 
     fontP = FontProperties()
     fontP.set_size('small')  # make the fonts smaller
@@ -146,50 +134,20 @@ def plot_ecliptic_plane(handles, labels):
     return handles, labels
 
 
-def plot_invariant_plane(handles, labels):
-    # inclined to ecliptic by 1 deg 34'43.3"
-    ep = [ephem.Ecliptic(str(lon), str(0)) for lon in
-          range(0, 360)]  # this line is fine: need Ecliptic(long, lat) format in creation
-    ecPlane = [ephem.Equatorial(coord) for coord in ep]  # so this must be where the issue is.
-    ra_ecPlane = [math.degrees(coord.ra) for coord in ecPlane]
-    dec_ecPlane = [math.degrees(coord.dec) for coord in ecPlane]
-    handles.append(plt.plot(ra_ecPlane, dec_ecPlane, '#E47833'))
-    labels.append('ecliptic')
-    #plt.plot([rr+360 for rr in ra_ecPlane], dec_ecPlane, '#E47833')  # echo
+def plot_invariable_plane(handles, labels):
+    # Plot the invariable plane: values from DE405, table 5, Souami and Souchay 2012
+    # http://www.aanda.org/articles/aa/pdf/2012/07/aa19011-12.pdf
+    # Ecliptic J2000
+    invar_i = ephem.degrees('1.57870566')
+    invar_Om = ephem.degrees('107.58228062')
+    ec = [ephem.Ecliptic(ephem.degrees(str(lon)) + invar_Om, invar_i) for lon in range(1, 360)]  # lon then lat
+    eq = [ephem.Equatorial(coord) for coord in ec]
+    handles.append(plt.plot([math.degrees(coord.ra) for coord in eq], [math.degrees(coord.dec) for coord in eq], 'k-'))
+    labels.append('invariable')
 
     return handles, labels
 
 
-def plot_planets(ax, plot, date, hill_sphere=False):
-    #     # only add the planets that would actually fall in this plot
-    #     plot_polygon = Polygon.Polygon(((plot[0],plot[2]),
-    #                                    (plot[0],plot[3]),
-    #                                    (plot[1],plot[3]),
-    #                                    (plot[0],plot[3]),
-    #                                    (plot[0],plot[2])))
-    # #    print plot_polygon
-    mass = {"Sun": 1.989 * 10 ** 30, "Mars": 639 * 10 ** 21, "Jupiter": 1.898 * 10 ** 27, "Saturn": 568.3 * 10 ** 24,
-            "Uranus": 86.81 * 10 ** 24, "Neptune": 102.4 * 10 ** 24}  # kg
-    for planet in [ephem.Mars(), ephem.Jupiter(), ephem.Saturn(), ephem.Uranus(), ephem.Neptune()]:
-        planet.compute(ephem.date(date))
-        pos = (math.degrees(planet.ra), math.degrees(planet.dec))
-        #        if plot_polygon.isInside(math.degrees(planet.ra), math.degrees(planet.dec)):
-        ax.scatter(pos[0], pos[1],
-                   marker='o',
-                   s=30,
-                   facecolor='#E47833',
-                   edgecolor='#E47833')
-        ax.annotate(planet.name, (pos[0] - .4, pos[1] + 0.1))  #(pos[0]+.9, pos[1]+0.5))  # offset to make it readable
-
-        if hill_sphere:
-            print planet.name, planet.sun_distance, mass[planet.name],
-            hs_radius = (planet.sun_distance * ephem.meters_per_au) * (
-            (mass[planet.name] / 3 * mass['Sun']) ** (1 / 3.))
-            angular_size = planet.earth_distance * hs_radius  # FIXME
-            print 'Hill sphere', hs_radius, hs_radius / ephem.meters_per_au, angular_size
-            ax.add_patch(plt.Circle(pos, radius=angular_size, fill=False))
-
-    return ax
 
 
 def build_ossos_footprint(ax, blocks, field_offset, plot=True):
@@ -268,13 +226,6 @@ def synthetic_model_kbos(coverage, input_date=parameters.DISCOVERY_NEW_MOON):
     #                 break
     #
     # return ra, dec, kbos
-
-
-def plot_synthetic_kbos(ax, coverage):
-    ra, dec, hlat, Hmag = parsers.synthetic_model_kbos(kbotype='resonant', arrays=True, maglimit=24.7)
-    ax.scatter(ra, dec, c='k', marker='.', s=1, alpha=0.8)
-
-    return ax
 
 
 def keplerian_sheared_field_locations(ax, kbos, date, ras, decs, names, elongation=False, plot=False):
@@ -368,121 +319,12 @@ def plot_existing_CFHT_Megacam_observations_in_area(ax):
 
     return ax
 
-def plot_known_tnos_batch(handles, labels, date):
-    rate_cut = 'a > 15'
-    if os.access(MPCORB, os.F_OK):
-        kbos = mpcread.getKBOs(MPCORB, cond=rate_cut)
-        kbo_ra = []
-        kbo_dec = []
-        for kbo in kbos:
-            kbo.compute(ephem.date(date))
-            kbo_ra.append(math.degrees(kbo.ra))
-            kbo_dec.append(math.degrees(kbo.dec))
-            ax.scatter(kbo_ra, kbo_dec,
-                       marker='+', facecolor='none', edgecolor='g')
-
-    return ax
-
-
-def plot_known_tnos_singly(ax, extent, date):
-    rate_cut = 'a > 15'
-    print "PLOTTING LOCATIONS OF KNOWN KBOs (using {})".format(parameters.MPCORB_FILE)
-    kbos = mpcread.getKBOs(parameters.MPCORB_FILE)
-    print('Known KBOs: {}'.format(len(kbos)))
-    retkbos = []
-    for kbo in kbos:
-        kbo.compute(date)
-        # # keep only the ones that'd make it onto this plot
-        if not ((extent[0] <= math.degrees(kbo.ra) <= extent[1])
-                and (extent[2] <= math.degrees(kbo.dec) <= extent[3])):
-            continue
-        pos = (math.degrees(kbo.ra), math.degrees(kbo.dec))
-        ax.scatter(pos[0],
-                   pos[1],
-                   marker='x',
-                   facecolor='r')
-        if len(kbo.name) >= 10:  # sorted out for Sofia Pro Light
-            ra_shift = -0.45
-        else:
-            ra_shift = -0.22
-        ax.annotate(kbo.name, (pos[0] + ra_shift, pos[1] + 0.06), size=7, color='r')
-        retkbos.append(kbo)
-    print('Retained KBOs: {}'.format(len(retkbos)))
-    return ax, retkbos
-
-
-def plot_ossos_discoveries(ax, discoveries, prediction_date=False):  # , blockID='O13AE', date="2013/04/09 08:50:00"):
-    for kbo in discoveries:
-        if prediction_date:
-            kbo.orbit.predict(date.replace('/', '-'))
-            ra = kbo.orbit.coordinate.ra.degrees
-            dec = kbo.orbit.coordinate.dec.degrees
-        else:  # specific date on which discovery was made: use discovery locations
-            ra = math.degrees(ephem.degrees(ephem.hours(str(kbo.ra_discov))))
-            dec = math.degrees(ephem.degrees(str(kbo.dec_discov)))
-        if (kbo.classification == 'res' and kbo.n == 3 and kbo.m == 2):
-            print kbo.name
-            fc = '#E47833'
-        else:
-            fc = 'b'
-        ax.scatter(ra, dec, marker='o', facecolor=fc, alpha=0.8, edgecolor='w', linewidth=0.4, s=25)
-        ax.annotate(kbo.name[3:],
-                    (ra - .07, dec - 0.14),  # confirm this is being added properly
-                    size=7,
-                    color='k')
-
-    return ax
-
-
-def plot_single_known_tno(ax, name, date, close=[]):
-    # date formatted as %Y-%m-%d %H:%M
-    # FIXME: rewrite this to use astroquery.mpc's single-object retrieval. Where did my Horizons script go?
-    if not HAVE_HORIZONS:
-        return ax
-    dateplus1hr = (datetime.datetime.strptime(date, '%Y-%m-%d %H:%M') + datetime.timedelta(1 / 24.)).strftime(
-        '%Y-%m-%d %H:%M')
-    obj_elems, single_ephem = horizons.batch(name, date, dateplus1hr, None, su='d')  # pull back one position only
-    ra = math.degrees(ephem.degrees(ephem.hours(single_ephem[0]['RA'])))
-    dec = math.degrees(ephem.degrees(single_ephem[0]['DEC']))
-    if name == 'Ijiraq':
-        fc = ec = 'k'
-    else:
-        fc = ec = 'r'
-    ax.scatter(ra,
-               dec,
-               marker='.',
-               facecolor=fc,
-               edgecolor=ec,
-               alpha=0.4)
-    if name in close:  # keep the names from falling on top of each other
-        if name == 'Hyrrokkin':
-            ax.annotate(name, (ra - .07, dec + .03), size='5', color='r')
-        if name == 'Ijiraq':
-            ax.annotate(name, (ra - .25, dec + .03), size='5', color='k')
-        if name == 'Bestla':
-            ax.annotate(name, (ra - .05, dec + .03), size='5', color='r')
-        if name == 'Kiviuq':
-            ax.annotate(name, (ra, dec + .03), size='5', color='r')
-    else:
-        ax.annotate(name, (ra - 0.2, dec + .03), size='5', color='r')
-
-    return ax
-
-
-def plot_saturn_moons(ax):
-    for s_moon in saturn_moons:  # get Saturn's irregular moons
-        # 'Kiviuq' to left. Hyr mag 24.3, Bestla mag 24.5, Kiviuq 22.6, Iji 23.3
-        close = ['Ijiraq', 'Bestla', 'Hyrrokkin', 'Kiviuq']
-        ax = plot_single_known_tno(ax, s_moon, "2013-04-09 08:50", close=close)
-
-    return ax
-
-
 def plot_discovery_uncertainty_ellipses(ax, date):
     # plot objects at time of triplet with an X, location each 3 days with a single grey pixel, actual observations
     # with a solid dot. Will give suitable corkscrew effect.
     # plot wireframe of footprint at discovery triplet
     # plot hollow circle as location at start of dark run, ellipse (no fill I think) for orbit uncertainty.
+    raise NotImplementedError
     return ax
 
 
@@ -499,31 +341,33 @@ def saving_closeout(blockname, date, extents, file_id):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-opposition", "-op", action="store_true",
+    parser.add_argument("-opposition",
                         help="Plots blocks at their opposition dates (the date .")
-    parser.add_argument("-discovery", "-d", action="store_false",
+    parser.add_argument("-discovery",
+                        action="store_false",
                         help="Plots blocks at their discovery dates.")
-    parser.add_argument("-date", action="store_true",
+    parser.add_argument("-date",
                         help="Plot blocks at a specific user-provided date, format yyyy/mm/dd HH:MM:SS.")
-    parser.add_argument("-elongation", action="store_true",
+    parser.add_argument("-elongation",
                         help="Display text of block IDs and arc distance of blocks from opposition on the given date")
-    parser.add_argument("-synthetic", '-s', action="store_true",
+    parser.add_argument("-synthetic",
+                        action="store_true",
                         help="Use L7 model to slew blocks, or plot L7 model objects that fall in a given block.")
     parser.add_argument("blocks",
                         nargs='*',
-                        help="specify blocks to be plotted, e.g. 13AE. Without specifying, will do all N(blocks) that"
-                             "exist, making N(blocks) separate plots.")
+                        help="specify blocks to be plotted, e.g. 13AE. Without specifying, will do all eight blocks,"
+                             "making eight separate plots.")
     args = parser.parse_args()
     print(args)
 
     file_id = ""
-    if args.blocks:
+    if args.blocks:  # Coordinates at discovery-opposition of currently-determined OSSOS blocks (2013: 4; 2015: 8 total).
         blocks = {}
         for b in args.blocks:
+            assert b in parameters.BLOCKS
             blocks[b] = parameters.BLOCKS[b]
-    else:
-        blocks = parameters.FUTURE_BLOCKS  # Coordinates at opposition of currently-determined OSSOS blocks (2013: 4;
-        #  2015: 8 total).
+    else:  # do them all!
+        blocks = parameters.BLOCKS
 
     discoveries = parsers.ossos_release_parser()
 
@@ -539,18 +383,16 @@ if __name__ == '__main__':
 
         if args.discovery:
             # E block discovery triplets are April 4,9,few 19; O block are May 7,8.
-            # FIXME: discovery times
             # BL is 09-29 AND 10-31. Need to implement way to accommodate split.
             # 15AM is 2014-05-29 and 2014-06-01
+            # Not sure this is properly implemented, honestly
             date = parameters.DISCOVERY_DATES[blockname]
             file_id = 'discovery-'
 
         if args.date:
-            # if it's not a list (multiple dates), wrap the single date into being a list
-            if not args.date.isinstance('list'):
-                date = [args.date]
-                # FIXME: calculate the appropriate extents given that date and the given blocks
-            file_id = args.date
+            date = args.date
+            args.synthetic = True
+            file_id = '-at-date-'
 
         if args.elongation:
             file_id = 'elongation-'
@@ -559,19 +401,19 @@ if __name__ == '__main__':
         print blockname, date
 
         handles, labels, ax, fontP = basic_skysurvey_plot_setup()
-        ax, kbos = plot_known_tnos_singly(ax, extent, date)
+        ax, kbos = plot_objects.plot_known_tnos_singly(ax, extent, date)
         ras, decs, coverage, names, ax = build_ossos_footprint(ax, blocks, field_offset, plot=True)
         if args.synthetic:  # defaults to discovery new moon: FIXME: set date appropriately
             ra, dec, kbos = synthetic_model_kbos(coverage)
             ax = keplerian_sheared_field_locations(ax, kbos, date, ras, decs, names,
                                                    elongation=args.elongation, plot=True)
-            ax = plot_synthetic_kbos(ax, coverage)
+            ax = plot_objects.plot_synthetic_kbos(ax, coverage)
 
-        ax = plot_planets(ax, extent, date)
-        ax = plot_ossos_discoveries(ax, discoveries)  # will predict for dates other than discovery
+        ax = plot_objects.plot_planets(ax, extent, date)
+        ax = plot_objects.plot_ossos_discoveries(ax, discoveries)  # will predict for dates other than discovery
         # ax = plot_discovery_uncertainty_ellipses(ax, date)
         if blockname == '13AE':  # special case: Saturn was adjacent at discovery
-            ax = plot_saturn_moons(ax)
+            ax = plot_objects.plot_saturn_moons(ax)
 
         saving_closeout(blockname, date, plot_extents[blockname], file_id)
     # saving_closeout('13A', date, extent, file_id)

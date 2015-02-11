@@ -92,7 +92,7 @@ BLOCKS = OrderedDict([
 DISCOVERY_DATES = {"13AE": "2013/04/09 08:50:00",
                    "13AO": "2013/05/08 08:50:00",
                    "15AP": NEWMOONS['Apr15'],  # FIXME: set when observations taken
-                   "15AM": NEWMOONS['May15'],  # Backup triplet: split on 2014/05/29, 2014/06/01
+                   "15AM": NEWMOONS['May14'],  # Backup triplet: split on 2014/05/29, 2014/06/01
                    "13BL": "2013/09/29 08:50:00",  # HOWEVER: discovery date is split between months (earliest)
                    "14BH": "2014/10/22 09:30:00",  # Note: Col3N triplet is instead 2014/01/03.
                    "15BD": NEWMOONS['Nov15'],  # FIXME: set when observations taken
