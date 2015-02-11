@@ -33,12 +33,14 @@ MPCORB_FILE = os.path.join(os.getenv('HOME', '/Users/jjk'), 'MPCORB.DAT')
 L7MODEL = 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
 L7MODEL = '/Users/jjk/Dropbox/Research/KuiperBelt'
 L7MODEL = '/tmp/vospace/OSSOS/CFEPS/L7SyntheticModel-v09.txt'
+L7MODEL = '/Users/kavelaarsj/Dropbox/Research/KuiperBelt/OSSOS/L7SyntheticModel-v09.txt'
+
 REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/ast/'
 REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/Research/KuiperBelt/dbase/TNOdb/dbase/data/ast/'
 
 PLOT_FIELD_EPOCH = 'Apr15'  # Oct14.00 ==> '0' days since the New Moon on Oct14
 #TODO the .00 is appended when this variable is used as a keyword that needs that .00 this is bad.
-DISCOVERY_NEW_MOON = 'Apr15'  # this is the date that the RA/DEC in blocks corresponds to.
+DISCOVERY_NEW_MOON = 'Apr14'  # this is the date that the RA/DEC in blocks corresponds to.
 
 
 PLOT_USNO_STARS = True
@@ -46,7 +48,7 @@ PLOT_MEGACAM_ARCHIVE_FIELDS = False   ## TODO Make this work when True
 PLOT_SYNTHETIC_KBOS = True
 PLOT_SYNTHETIC_KBO_TRAILS = False
 PLOT_REAL_KBOS = False and os.access(REAL_KBO_AST_DIR,os.F_OK)
-PLOT_FIELD_LAYOUT = True
+PLOT_FIELD_LAYOUT = False
 
 PLOT_MPCORB = False and os.access(MPCORB_FILE, os.F_OK)
 
@@ -154,9 +156,10 @@ blocks = {'14BH': {'RA': "01:28:32.32", "DEC": "+12:51:06.10"}}
 #fall 2015
 # blocks = {'15BD': {'RA': "03:15:00.00", "DEC": "+16:30:00.00"}}
 
-#spring14
+#spring15
+#blocks = {'15AP': {'RA': "13:30:00", "DEC": "-07:00:00"}}
+blocks = {'14AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"}}
 
-blocks = {'15AP': {'RA': "13:30:00", "DEC": "-07:00:00"}}
 
 newMoons = {
 #    'Feb13': "2013/02/10 10:00:00",
@@ -173,7 +176,7 @@ newMoons = {
 #    'Jan14': '2014/01/01 10:00:00',
 #    'Feb14': '2014/01/31 10:00:00',
 #    'Mar14': '2014/03/28 10:00:00',
-#    'Apr14': '2014/04/01 10:00:00',
+    'Apr14': '2014/04/01 10:00:00',
 #    'May14': '2014/05/28 10:00:00',
 #    'Jun14': '2014/06/26 10:00:00',
 #    'Jul14': '2014/07/26 10:00:00',
@@ -213,14 +216,14 @@ newMoons = {
 
 
 xgrid = {'2014': [-3, -2, -1, 0, 1, 2, 3],
-         '2014r': [-3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5],
+         '2014r': [-4, -3, -2, -1, 0.0, 1],
          'astr': [1, 2, 3, 4]}
 # 2013
 #       'astr':[-5.5,-4.5,-3.5,-2.5,-1.5,-0.5,0.5,1.5,2.5,3.5,4.5,5.5]}
 
 ygrid = {'2014': [-1, 0, 1],
          'astr': [-2.5, -1.5, -0.5, 0.5, 1.5],
-         '2014r': [-1.5, -0.5, 0.5, 1.5]}
+         '2014r': [-2.3, -1.3, -0.3, 0.7]}
 # 2013
 #       'astr':  [-2.2,-1.2, -0.2, 0.8, 1.8],
 
@@ -343,8 +346,8 @@ dec_cen = math.degrees(decs.mean())
 #height = 70
 #ra_cen = 45.0
 #dec_cen = 17.5
-width = 25
-height = 25
+width = 10
+height = 10
 
 ## lets make a plot of the field selections.
 fig = figure()
