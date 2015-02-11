@@ -33,15 +33,16 @@ MPCORB_FILE = os.path.join(os.getenv('HOME', '/Users/jjk'), 'MPCORB.DAT')
 L7MODEL = 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
 L7MODEL = '/Users/jjk/Dropbox/Research/KuiperBelt'
 L7MODEL = '/tmp/vospace/OSSOS/CFEPS/L7SyntheticModel-v09.txt'
+L7MODEL = '/Users/kavelaarsj/Dropbox/Research/KuiperBelt/OSSOS/L7SyntheticModel-v09.txt'
 REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/ast/'
 REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/Research/KuiperBelt/dbase/TNOdb/dbase/data/ast/'
 
-PLOT_FIELD_EPOCH = 'Apr14'  # Oct14.00 ==> '0' days since the New Moon on Oct14
+PLOT_FIELD_EPOCH = 'Apr15'  # Oct14.00 ==> '0' days since the New Moon on Oct14
 #TODO the .00 is appended when this variable is used as a keyword that needs that .00 this is bad.
 DISCOVERY_NEW_MOON = 'Apr15'  # this is the date that the RA/DEC in blocks corresponds to.
 
 
-PLOT_USNO_STARS = False
+PLOT_USNO_STARS = True
 PLOT_MEGACAM_ARCHIVE_FIELDS = False   ## TODO Make this work when True
 PLOT_SYNTHETIC_KBOS = True
 PLOT_SYNTHETIC_KBO_TRAILS = False
@@ -51,7 +52,7 @@ PLOT_FIELD_LAYOUT = True
 PLOT_MPCORB = False and os.access(MPCORB_FILE, os.F_OK)
 
 
-LABEL_FIELDS = False
+LABEL_FIELDS = True
 LABEL_PLANETS = True
 # # EmulateApJ columnwidth=245.26 pts
 fig_width_pt = 246.0 * 3.0
@@ -155,8 +156,8 @@ blocks = {'14BH': {'RA': "01:28:32.32", "DEC": "+12:51:06.10"}}
 # blocks = {'15BD': {'RA': "03:15:00.00", "DEC": "+16:30:00.00"}}
 
 #spring15
-blocks = {'15AP': {'RA': "13:30:00", "DEC": "-07:00:00"}}
-blocks = {'14AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"}}
+blocks = {'15AP': {'RA': "13:30:00", "DEC": "-07:45:00"}}
+#blocks = {'14AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"}}
 
 newMoons = {
 #    'Feb13': "2013/02/10 10:00:00",
@@ -239,9 +240,25 @@ if year == 'astr':
     field_offset *= 0.75
 
 ## camera_dimen is the size of the field.
-camera_dimen = 1.0
-camera_width =  camera_dimen*10/9.0
-camera_height = camera_dimen
+## this is the 40 CD Layout.  The width is set to exlcude one of the 
+## Ears.  dimen is really the height
+pixscale = 0.184
+detsec_ccd09 = ((4161, 2114), (14318, 9707))
+detsec_ccd10 = ((6279, 4232), (14317, 9706))
+detsec_ccd36 = ((2048, 1), (14318, 9707))
+detsec_ccd37 = ((23219, 21172), (14309, 9698))
+detsec_ccd00 = ((4160, 2113), (19351, 14740))
+detsec_ccd17 = ((21097, 19050), (14309, 9698))
+detsec_ccd35 = ((16934, 18981), (11, 4622))
+
+print detsec_ccd09[0][0] - detsec_ccd10[0][1], detsec_ccd09[0][1] - detsec_ccd36[0][0]
+
+camera_width =  (max(detsec_ccd37[0]) - min(detsec_ccd09[0]) + 1 )* pixscale / 3600.0
+camera_height = (max(detsec_ccd00[1]) - min(detsec_ccd35[1]) + 1 )* pixscale / 3600.0
+camera_width_40 =  (max(detsec_ccd37[0]) - min(detsec_ccd36[0]) + 1 )* pixscale / 3600.0
+camera_width_36 = (max(detsec_ccd17[0]) - min(detsec_ccd09[0]) + 1 ) * pixscale / 3600.0 
+
+print camera_width, camera_width_40, camera_width_36, camera_height
 
 years = {"2014": {"ra_off": ephem.hours("00:00:00"),
                   "dec_off": ephem.hours("00:00:00"),
@@ -289,17 +306,20 @@ field_polygon = None
 for block in blocks.keys():
     ra_start = ephem.hours(blocks[block]["RA"]) + years[year]["ra_off"]
     dec_start = ephem.degrees(blocks[block]["DEC"]) + years[year]["dec_off"]
-    width = math.radians(camera_width / math.cos(dec_start))
     height = math.radians(camera_height)
+    idy = 0
     for dx in xgrid[year]:
-        rac = ephem.hours(ra_start + dx*width)
-        decc = ephem.degrees(dec_start - dx*height/2.0)
+        idx = int(dx)
         for dy in ygrid[year]:
+            idy = int(math.floor(dy))
+            decc = ephem.degrees(dec_start - dx*height/2.0)
             this_decc = decc + dy * height
+            width = 1.007*math.radians(camera_width / math.cos(this_decc))
+            rac = ephem.hours(ra_start + dx*width)
             dec = math.degrees(this_decc)
             ra = math.degrees(rac)
-            print "{} {}".format(rac, dec)
-            field_name = "%s%+d%+d" % (block, dx, dy)
+            print "{} {} {}".format(rac, dec, math.degrees(width))
+            field_name = "%s%+d%+d" % (block, idx, idy)
             field_names.append(field_name)
             decs.append(np.radians(dec))
             ras.append(np.radians(ra))
@@ -308,13 +328,14 @@ for block in blocks.keys():
             fix.write('%20s|%10s|%10s|2000.0|    1|\n' % (field_name,
                                                           ephem.hours(math.radians(ra)),
                                                           ephem.degrees(math.radians(dec))))
-            dimen = camera_dimen
+            dimenw = math.degrees(width)
+            dimenh = math.degrees(height)
             this_point_polygon = Polygon.Polygon((
-                (xcen - dimen / 2.0, ycen - dimen / 2.0),
-                (xcen - dimen / 2.0, ycen + dimen / 2.0),
-                (xcen + dimen / 2.0, ycen + dimen / 2.0),
-                (xcen + dimen / 2.0, ycen - dimen / 2.0),
-                (xcen - dimen / 2.0, ycen - dimen / 2.0)))
+                (xcen - dimenw / 2.0, ycen - dimenh / 2.0),
+                (xcen - dimenw / 2.0, ycen + dimenh / 2.0),
+                (xcen + dimenw / 2.0, ycen + dimenh / 2.0),
+                (xcen + dimenw / 2.0, ycen - dimenh / 2.0),
+                (xcen - dimenw / 2.0, ycen - dimenh / 2.0)))
             field_polygon = field_polygon is None and this_point_polygon or this_point_polygon | field_polygon
 
 
@@ -478,19 +499,19 @@ for idx in range(len(ras)):
             tdate[0], zf(tdate[1], 2), zf(tdate[2], 2), zf(tdate[3], 2), zf(tdate[4], 2), zf(int(tdate[5]), 2))
         f.write('%19s|%11s|%11s|\n' % (sdate, ephem.hours(ra), ephem.degrees(dec)))
         if epoch == PLOT_FIELD_EPOCH+".00" and PLOT_FIELD_LAYOUT:
-            ax.add_artist(Rectangle(xy=(math.degrees(ra) - 11*camera_width/10.0/2.0, math.degrees(dec) - camera_height / 4.0 ),
-                                    width= 11*camera_width/10.0,
+            ax.add_artist(Rectangle(xy=(math.degrees(ra) - camera_width_40/2.0, math.degrees(dec) - camera_height / 4.0 ),
+                                    width= camera_width_40,
                                     height= camera_height/2.0,
                                     color='b',
                                     lw=0.5, fill=True, alpha=0.3)) 
-            ax.add_artist(Rectangle(xy=(math.degrees(ra) - 9*camera_width/10.0/ 2.0, math.degrees(dec) - camera_height / 2.0),
+            ax.add_artist(Rectangle(xy=(math.degrees(ra) - camera_width_36/2.0, math.degrees(dec) - camera_height / 2.0),
                                     height=camera_height/4.0,
-                                    width=camera_width*9/10.0,
+                                    width=camera_width_36,
                                     color='g',
                                     lw=0.5, fill=True, alpha=0.3))
-            ax.add_artist(Rectangle(xy=(math.degrees(ra) - 9*camera_width/10.0/ 2.0, math.degrees(dec) + camera_height / 4.0),
+            ax.add_artist(Rectangle(xy=(math.degrees(ra) - camera_width_36/2.0, math.degrees(dec) + camera_height / 4.0),
                                     height=camera_height/4.0,
-                                    width=camera_width*9/10.0,
+                                    width=camera_width_36,
                                     color='r',
                                     lw=0.5, fill=True, alpha=0.3))
             if LABEL_FIELDS :
@@ -651,6 +672,6 @@ if False:
 
 
 print "SAVING FILE"
-savefig('layout.pdf')
+savefig('layout40.pdf')
 
 sys.stderr.write("FINISHED\n")
