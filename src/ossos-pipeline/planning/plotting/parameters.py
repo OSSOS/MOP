@@ -83,7 +83,7 @@ BLOCKS = OrderedDict([
     ('13BL', {'RA': "00:54:00.00", "DEC": "+03:50:00.00"}),  # 13B blocks are at their opposition locations
     ('14BH', {'RA': "01:30:00.00", "DEC": "+13:00:00.00"}),  # due to bad weather, discovery wasn't until 2014, so 14
 
-    ('15AP', {'RA': "13:30:00.00", "DEC": "-7:00:00.00"}),  # on-plane
+    ('15AP', {'RA': "13:30:00.00", "DEC": "-7:45:00.00"}),  # on-plane
     ('15AM', {'RA': "15:30:00.00", "DEC": "-12:20:00.0"}),  # at its 2014 initial observation.
     ('15B?', {'RA': "00:45:00.00", "DEC": "+00:05:00.00"}),  # FIXME: NOT CHECKED against lunations etc yet. Indicative.
     ('15BD', {'RA': "03:15:00.00", "DEC": "+16:30:00.00"})
