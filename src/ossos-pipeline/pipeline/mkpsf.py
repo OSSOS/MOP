@@ -1,5 +1,5 @@
 #!/usr/bin/python 
-# ###############################################################################
+################################################################################
 ##                                                                            ##
 ## Copyright 2013 by its authors                                              ##
 ## See COPYING, AUTHORS                                                       ##
@@ -47,7 +47,7 @@ def mkpsf(expnum, ccd, version, dry_run=False, prefix=""):
     logging.info(util.exec_prog(['jmpmakepsf.csh',
                                  './',
                                  filename,
-                                 'no']))
+                                 'yes', 'yes']))
 
     if dry_run:
         return
