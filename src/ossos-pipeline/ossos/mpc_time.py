@@ -6,7 +6,7 @@ from datetime import datetime
 import time
 import numpy
 
-from astropy.time import sofa_time
+from astropy.time import erfa_time as sofa_time
 from astropy.time import TimeString
 from astropy.time import Time
 
