@@ -41,6 +41,7 @@ from ossos.plant import KBOGenerator
 from pyraf import iraf
 from numpy import radians, fabs, log10, rint, cos, sin, transpose
 
+
 def plant_kbos(filename, psf, kbos, shifts, prefix):
     """
     Add KBOs to an image
