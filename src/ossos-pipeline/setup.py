@@ -1,10 +1,9 @@
 import os
-
 from distutils.core import setup
 import sys
 
 if sys.version_info[0] > 2:
-    print 'The MOP package is only compatible with Python version 2.7+'
+    print 'The MOP package is only compatible with Python version 2.7+, not yet with 3.x'
     sys.exit(-1)
 
 # # Build the list of scripts to be installed.
@@ -16,25 +15,43 @@ for script in os.listdir(script_dir):
     scripts.append(os.path.join(script_dir, script))
 scripts.append('validate.py')
 
-version = "0.3.2"
-
 setup(name='ossos',
-      version=version,
+      version="0.3.2",
       url='http://github.com/OSSOS/MOP',
-      author_email='ossoscore@gmail.com',
+      author='''JJ Kavelaars (jjk@uvic.ca),
+              Brett Gladman (gladman@astro.ubc.ca),
+              Jean-Marc Petit (jmpetit@obs-besancon.fr),
+              Matt Holman (holman@cfa.harvard.edu),
+              Hans Scholl,
+              Michele Bannister (micheleb@uvic.ca),
+              David Rusk''',
+      maintainer='M Bannister and JJ Kavelaars',
+      maintainer_email='jjk@uvic.ca',
       description="Outer Solar System Origins Survey (OSSOS) Pipeline",
+      long_description='See http://www.ossos-survey.org/ for science details.',
+      classifiers=['Intended Audience :: Science/Research',
+                   'Topic :: Scientific/Engineering :: Astronomy',
+                   'Development Status :: 4 - Beta',
+                   'Programming Language :: Python :: 2 :: Only',
+                   'Operating System :: MacOS :: MacOS X',
+                   'Environment :: X11 Applications',
+                   'License :: OSI Approved :: GNU General Public License (GPL)',
+      ],
       package_data={'ossos': ['gui/*.json']},
-      install_requires=['pyraf',
-                        'astropy (==0.2.5)',
-                        'vos',
+      python_version='2.7',
+      install_requires=['pyraf >= 2.1.1',
+                        'astropy >= 0.2.5',
+                        'vos >= 1.11.3',
                         'pyephem',
                         'requests',
                         'pyOpenSSL',
-                        'numpy',
-                        'wxPython',
+                        'numpy >= 1.6.1',
+                        'wxPython >= 2.8.12.1',
                         'pyds9',
                         'matplotlib',
-                        'Polygon2'
+                        'Polygon2',
+                        'd2to1 >= 0.2.10',
+                        'stsci.numdisplay >= 1.6',
       ],
       scripts=scripts,
       packages=['ossos',
