@@ -25,21 +25,20 @@ BASEURL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/vospace/auth/synctrans"
 
 
 def cutout(obj, obj_dir, radius, username, password):
-    for obs in obj.mpc_observations[12:]:  # FIXME: TESTING ONLY
+    for obs in obj.mpc_observations:
         if obs.null_observation:
             continue
         expnum = obs.comment.frame.split('p')[0]  # only want calibrated images
         if not expnum.isdigit():
-            # implies the comment parsing failed.
             logging.error('expnum {} parsed from comment line invalid. Check comment parsing.\n{}'.format(expnum, str(
                 obs.comment)))
             continue
         # Using the WCS rather than the X/Y, as the X/Y can be unreliable on a long-term basis
         this_cutout = "CIRCLE ICRS {} {} {}".format(obs.coordinate.ra.degree,
-                                               obs.coordinate.dec.degree,
-                                               radius)
+                                                    obs.coordinate.dec.degree,
+                                                    radius)
 
-        # FIXME: should be able to use line below, but bug in VOSpace requires direct-access workaround, for now.
+        # should be able to use line below, but bug in VOSpace requires direct-access workaround, for now.
         # postage_stamp = storage.get_image(expnum, cutout=cutout)
         logging.info('cutout {} from {}'.format(this_cutout, expnum))
         target = storage.vospace.fixURI(storage.get_uri(expnum))
@@ -52,7 +51,13 @@ def cutout(obj, obj_dir, radius, username, password):
                   "cutout": this_cutout,
                   "view": view}
         r = requests.get(BASEURL, params=params, auth=(username, password))
-        r.raise_for_status()  # confirm the connection worked as hoped
+        try:
+            r.raise_for_status()  # confirm the connection worked as hoped
+        except requests.HTTPError, e:
+            if r.status_code == 404:  # this one we can get away with just skipping
+                continue
+            else:
+                raise e
         postage_stamp_filename = "{}_{:11.5f}_{:09.5f}_{:+09.5f}.fits".format(obj.provisional_name,
                                                                               obs.date.mjd,
                                                                               obs.coordinate.ra.degree,
@@ -62,7 +67,6 @@ def cutout(obj, obj_dir, radius, username, password):
             tmp_file.write(r.content)
             storage.copy(postage_stamp_filename, obj_dir + "/" + postage_stamp_filename)
         os.unlink(postage_stamp_filename)  # easier not to have them hanging around
-
 
 
 def main():
@@ -80,7 +84,7 @@ def main():
                              "holding the .ast files of astrometry/photometry measurements.")
     parser.add_argument("--blocks", "-b",
                         action="store",
-                        default=["o3e", "o3o"],
+                        default=["o3o"],
                         choices=["o3e", "o3o", "O13BL", "Col3N"],
                         help="Prefixes of object designations to include.")
     parser.add_argument("--radius", '-r',
@@ -102,18 +106,17 @@ def main():
     elif args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    for fn in storage.listdir(args.ossin):  # DEBUGGING
+    for fn in storage.listdir(args.ossin):
         obj = mpc.MPCReader(args.ossin + fn)  # let MPCReader's logic determine the provisional name
         for block in args.blocks:
             if obj.provisional_name.startswith(block):
-                if obj.provisional_name.startswith('o3e06'):
-                    obj_dir = '{}/{}/{}'.format(storage.POSTAGE_STAMPS, args.version, obj.provisional_name)
-                    if not storage.exists(obj_dir, force=True):
-                        storage.mkdir(obj_dir)
-                    # assert storage.exists(obj_dir, force=True)
-                    print('{} beginning...\n'.format(obj.provisional_name))
-                    cutout(obj, obj_dir, args.radius, username, password)
-                    print('{} complete.\n'.format(obj.provisional_name))
+                obj_dir = '{}/{}/{}'.format(storage.POSTAGE_STAMPS, args.version, obj.provisional_name)
+                if not storage.exists(obj_dir, force=True):
+                    storage.mkdir(obj_dir)
+                # assert storage.exists(obj_dir, force=True)
+                print('{} beginning...\n'.format(obj.provisional_name))
+                cutout(obj, obj_dir, args.radius, username, password)
+                print('{} complete.\n'.format(obj.provisional_name))
 
 
 if __name__ == '__main__':

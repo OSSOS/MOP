@@ -5,7 +5,7 @@ import math
 import numpy
 #cond=sys.argv[1]
 
-OBSERVATION_DATE='2014/07/26'
+OBSERVATION_DATE='2015/03/26'
 
 #print "# "+cond
 
@@ -92,10 +92,23 @@ ra_high = float(ephem.hours("01:51:45.76"))
 dec_low = float(ephem.degrees("+13:12:10.8"))
 dec_high = float(ephem.degrees("+15:58:55.9"))
 
-min_rate = [[],[],[],[],[],[],[],[],[],[],[],[], [],[],[],[],[]]
-max_rate = [[],[],[],[],[],[],[],[],[],[],[],[], [],[],[],[],[]]
-kbo_angle = [[],[],[],[],[],[],[],[],[],[],[],[], [],[],[],[],[]]
-count = numpy.zeros(14)
+# 15AP?
+ra_low = float(ephem.hours("13:21:12.50"))
+ra_high = float(ephem.hours("13:51:12.50"))
+dec_low = float(ephem.degrees("08:00:11.6"))
+dec_high = float(ephem.degrees("11:00:00"))
+
+n_days_to_check = 61
+min_rate = []
+max_rate = []
+kbo_angle = []
+[ min_rate.append([]) for n in range(n_days_to_check) ]
+[ max_rate.append([]) for n in range(n_days_to_check) ]
+[ kbo_angle.append([]) for n in range(n_days_to_check) ]
+# min_rate = [[],[],[],[],[],[],[],[],[],[],[],[], [],[],[],[],[]]
+# max_rate = [[],[],[],[],[],[],[],[],[],[],[],[], [],[],[],[],[]]
+# kbo_angle = [[],[],[],[],[],[],[],[],[],[],[],[], [],[],[],[],[]]
+count = numpy.zeros(n_days_to_check)
 for line in lines:
     lineCount=lineCount+1
     if lineCount %1000 == 0 : 
@@ -137,7 +150,7 @@ for line in lines:
     T_J = (5.2/a) + 2.0 * math.sqrt((1-e**2)*(a/5.2)) * math.cos(i)
     if not ra_low < float(kbo.ra) < ra_high or not dec_low < float(kbo.dec) < dec_high :
         continue
-    for ddays in range(14):
+    for ddays in range(n_days_to_check):
         kbo.compute(startdate)
         ra1 = kbo.ra
         dec1 = kbo.dec

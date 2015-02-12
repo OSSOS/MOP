@@ -2,10 +2,13 @@ from setuptools import setup, find_packages
 
 requires = [
     'pyramid',
+    'pyramid_chameleon',  # new dependency: Pyramid 1.5 separates out templating support
+    'waitress',
     'zope.cachedescriptors',
     'astropy',
     'sqlalchemy',
-    # also uses ossos.storage and OpenSSL
+    'pyOpenSSL',
+    'psycopg2',
 ]
 
 setup(name='web',

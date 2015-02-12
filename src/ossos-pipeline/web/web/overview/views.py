@@ -21,12 +21,12 @@ class Overview(object):
 
     @property.Lazy
     def numDiscoveries(self):
-        retval = 86  # self.surveyQuery.disc.num_discoveries()
+        retval = self.surveyQuery.num_discoveries()
         return retval
 
     @property.Lazy
     def mpcTold(self):
-        retval = 0  # self.surveyQuery.disc.mpc_informed()
+        retval = self.surveyQuery.mpc_informed()
         return retval
 
     @property.Lazy

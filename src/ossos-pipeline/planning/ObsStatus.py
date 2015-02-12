@@ -27,6 +27,8 @@ for year in range(13, 17, 1):
         for code in ['05', '06']:
             OSSOS_RUNIDS.append('{}{}{}'.format(year, semester, code))
 
+SURVEY_START = '2013-01-01'
+
 
 def query_for_observations(mjd, observable, runids):
     """Do a QUERY on the TAP service for all observations that are part of runid, 
@@ -94,7 +96,7 @@ def create_ascii_table(obsTable, outfile):
 
     stamp = "#\n# Last Updated: " + time.asctime() + "\n#\n"
     header = "| %20s | %20s | %20s | %20s | %20s | %20s | %20s |\n" % (
-    "EXPNUM", "OBS-DATE", "FIELD", "EXPTIME(s)", "RA", "DEC", "RUNID")
+        "EXPNUM", "OBS-DATE", "FIELD", "EXPTIME(s)", "RA", "DEC", "RUNID")
     bar = "=" * (len(header) - 1) + "\n"
 
     if outfile[0:4] == "vos:":
@@ -222,7 +224,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Query the CADC for OSSOS observations.")
 
     parser.add_argument('date', nargs='?', action='store',
-                        default='2013-01-01')
+                        default=SURVEY_START)
 
     parser.add_argument('--runid', nargs='*', action='store',
                         default=OSSOS_RUNIDS)

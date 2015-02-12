@@ -17,7 +17,7 @@ import sys
 cfht = ephem.Observer()
 cfht.lat = 0.344
 cfht.lon = -2.707
-cfht.horizon = math.radians(40)
+cfht.horizon = math.radians(20)
 cfht.elevation = 3900
 o=cfht
 target_latitude = math.radians(0)
@@ -49,7 +49,7 @@ if len(sys.argv) != 3 :
     sun_rise = o.next_rising(Sun)
 
     # flip back to requiring source above airmass 1.5
-    o.horizon = math.radians(40)
+    o.horizon = math.radians(20)
 
     Moon.compute(o)
     
