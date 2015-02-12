@@ -1,5 +1,5 @@
 #!python 
-# ###############################################################################
+################################################################################
 ##                                                                            ##
 ## Copyright 2013 by its authors                                              ##
 ## See COPYING, AUTHORS                                                       ##
@@ -170,10 +170,15 @@ def main():
                            args.expnum, ccd, args.type,
                            args.dry_run)
         if not storage.get_status(args.expnum, ccd, prefix + 'step3', version=args.type) and not args.dry_run:
+            print storage.get_status(
+                args.expnum,
+                ccd,
+                prefix+'step3',
+                return_message=True)
             logging.error(storage.get_status(
                 args.expnum,
                 ccd,
-                'step3',
+                prefix+'step3',
                 return_message=True))
             raise IOError(35, "need to run step3 first")
 
