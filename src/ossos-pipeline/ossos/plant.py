@@ -3,7 +3,7 @@ import os
 import random
 from astropy.table import Table
 import numpy
-from ossos import storage
+import storage
 from scipy import interpolate
 
 
@@ -130,7 +130,7 @@ class KBOGenerator(object):
 
         # generate the KBOs.
         for kbo in cls(n,
-                       rate=Range(rate, func=lambda value: value**-0.75),
+                       rate=Range(rate, func=lambda value: value**0.25),
                        angle=Range(angle),
                        mag=Range(mag),
                        x=Range(x),
