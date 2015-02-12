@@ -398,6 +398,72 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     raise IOError(errno.ENOENT, "Failed to get image using {} {} {} {}.".format(expnum, version, ccd, cutout))
 
 
+def reset_datasec(cutout, datasec, naxis1, naxis2):
+    """
+    reset the datasec to account for a possible cutout.
+
+    @param cutout:
+    @param datasec:
+    @return:
+    """
+
+    if cutout is None or cutout == "[*,*]":
+        return datasec
+
+    # attempt to dissect the datasec provided, if fail then just return the input stirng.
+    try:
+        datasec = [int(x) for x in re.findall(r"([-+]?[\*\d]+?)[:,\]]+", datasec)]
+    except:
+        logger.debug("Failed to processes the datasec pattern: {}".format(datasec))
+        return datasec
+
+    # check for '-*' in the cutout string and replace is naxis:1
+    cutout = cutout.replace(" ", "")
+    cutout = cutout.replace("[-*,", "{}:1,".format(naxis1))
+    cutout = cutout.replace(",-*]", ",{}:1]".format(naxis2))
+    cutout = cutout.replace("[*,", "[1:{},".format(naxis1))
+    cutout = cutout.replace(",*]", ",1:{}]".format(naxis1))
+
+    try:
+        cutout = [int(x) for x in re.findall(r"([-+]?[\*\d]+?)[:,\]]+", cutout)]
+    except:
+        logger.debug("Failed to processes the cutout pattern: {}".format(cutout))
+        return datasec
+
+    if len(cutout) == 5:
+        # cutout likely starts with extension, remove
+        cutout = cutout[1:]
+
+    # -ve integer offsets indicate offset from the end of array.
+    for idx in [0, 1]:
+        if cutout[idx] < 0:
+            cutout[idx] = naxis1 - cutout[idx] + 1
+    for idx in [2, 3]:
+        if cutout[idx] < 0:
+            cutout[idx] = naxis2 - cutout[idx] + 1
+
+    flip = cutout[0] > cutout[1]
+    flop = cutout[2] > cutout[3]
+
+    logger.debug("Working with cutout: {}".format(cutout))
+
+    if flip:
+        cutout = [naxis1 - cutout[0] + 1, naxis1 - cutout[1] + 1, cutout[2], cutout[3]]
+        datasec = [naxis1 - datasec[1] + 1, naxis1 - datasec[0] + 1, datasec[2], datasec[3]]
+
+    if flop:
+        cutout = [cutout[0], cutout[1], naxis2 - cutout[2] + 1, naxis2 - cutout[3] + 1]
+        datasec = [datasec[0], datasec[1], naxis2 - datasec[3] + 1, naxis2 - datasec[2] + 1]
+
+    datasec = [max(datasec[0] - cutout[0] + 1, 1),
+               min(datasec[1] - cutout[0] + 1, naxis1),
+               max(datasec[2] - cutout[2] + 1, 1),
+               min(datasec[3] - cutout[2] + 1, naxis2)]
+
+    return "[{}:{},{}:{}]".format(datasec[0], datasec[1], datasec[2], datasec[3])
+
+
+
 def get_hdu(uri, cutout):
     """Get a at the given uri from VOSpace, possibly doing a cutout.
 
@@ -417,70 +483,14 @@ def get_hdu(uri, cutout):
     fpt = tempfile.NamedTemporaryFile(suffix='.fits')
     cutout = cutout is not None and cutout or ""
     vospace.copy(uri+cutout, fpt.name)
-    #if cutout is not None:
-    #    vos_ptr = vospace.open(uri, view='cutout', cutout=cutout)
-    #else:
-    #    vos_ptr = vospace.open(uri, view='data') 
-    #t = 0
-    #while True:
-    #    buff = vos_ptr.read(2**20)
-    #	if not len(buff) > 0:
-    #	   break
-    #	t += len(buff)
-    #	logger.debug("Read: {}".format(t))
-    #	fpt.write(buff)
-    #   fpt.flush()
-    # fpt = cStringIO.StringIO(vos_ptr.read())
-    #vos_ptr.close()
     fpt.seek(0, 2)
     fpt.seek(0)
     logger.debug("Read from vospace completed. Building fits object.")
     hdu_list = fits.open(fpt, scale_back=False)
     logger.debug("Got image from vospace")
-
-    if cutout is None:
-        return hdu_list
-    flip_datasec = '[-*' in cutout
-    flop_datasec = '-*]' in cutout
-
-    datasec = hdu_list[0].header.get('DATASEC', "[33:2080,1:4612]")
-    if datasec is None or len(datasec) != 4:
-        return hdu_list
-    hdu_list[0].header['OLDSEC'] = datasec
-    datasec = re.findall(r'(\d+)', datasec)
-    for idx in range(len(datasec)):
-        datasec[idx] = int(datasec[idx])
-
-    parts = re.findall(r'(\d+?)[:,\]]+', cutout)
-    if parts is not None and len(parts) == 4:
-        for idx in range(len(parts)):
-            parts[idx] = int(parts[idx])
-        flip_datasec = parts[0] < parts[1]
-        flop_datasec = parts[2] < parts[3]
-    else:
-        parts = datasec
-
-    naxis1 = hdu_list[0].header['NAXIS1']
-    naxis2 = hdu_list[0].header['NAXIS2']
-
-    x1 = min(parts[0:2])
-    x2 = max(parts[0:2])
-    y1 = min(parts[2:])
-    y2 = max(parts[2:])
-    datasec[0] = max(1, 1 + int(datasec[0]) - x1)
-    datasec[1] = min(naxis1, naxis1 - (x2 - int(datasec[1])))
-    datasec[2] = max(1, 1 + int(datasec[2]) - y1)
-    datasec[3] = min(naxis2, naxis2 - (y2 - int(datasec[3])))
-
-    if flip_datasec:
-        x2 = naxis1 - int(datasec[0]) + 1
-        x1 = naxis1 - int(datasec[1]) + 1
-    if flop_datasec:
-        y2 = naxis2 - int(datasec[2]) + 1
-        y1 = naxis2 - int(datasec[3]) + 1
-
-    datasec = "[{}:{},{}:{}]".format(x1, x2, y1, y2)
-    hdu_list[0].header['DATASEC'] = datasec
+    hdu_list[0].header['DATASEC'] = reset_datasec(cutout, hdu_list[0].header['DATASEC'],
+                                                  hdu_list[0].header['NAXIS1'],
+                                                  hdu_list[0].header['NAXIS2'])
     return hdu_list
 
 
