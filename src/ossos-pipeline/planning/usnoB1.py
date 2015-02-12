@@ -14,13 +14,13 @@ def TAPQuery(RAdeg, DECdeg, width, height):
 
 
     QUERY=( """ SELECT """
-            """  RAJ2000, """
-            """ DEJ2000, """
-            """ Bmag, """
-            """ Vmag, """
-            """ rmag """
-            """ FROM "I/322/out" """
-            """ WHERE 1=CONTAINS(POINT('ICRS',RAJ2000, DEJ2000), BOX('ICRS', %f, %f, %f, %f)) AND Bmag < 12 """ % ( RAdeg, DECdeg, width, height))
+            """ "I/322A/out".RAJ2000, """
+            """ "I/322A/out".DEJ2000, """
+            """ "I/322A/out".Bmag, """
+            """ "I/322A/out".Vmag, """
+            """ "I/322A/out".rmag """
+            """ FROM "I/322A/out" """
+            """ WHERE 1=CONTAINS(POINT('ICRS',"I/322A/out".RAJ2000, "I/322A/out".DEJ2000), BOX('ICRS', %f, %f, %f, %f)) AND "I/322A/out".Bmag < 12 """ % ( RAdeg, DECdeg, width, height))
     
     
     data={"query": QUERY,
@@ -31,7 +31,6 @@ def TAPQuery(RAdeg, DECdeg, width, height):
     
     url="http://tapvizier.u-strasbg.fr/TAPVizieR/tap/sync"
     
-    #print url, data
     return urllib.urlopen(url, urllib.urlencode(data))
 
 

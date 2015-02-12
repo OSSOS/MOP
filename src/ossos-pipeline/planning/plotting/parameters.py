@@ -2,6 +2,8 @@ __author__ = 'Michele Bannister   git:@mtbannister'
 
 import os
 
+from collections import OrderedDict
+
 MPCORB_FILE = os.path.join(os.getenv('HOME', '/Users/michele/'), 'MPCORB-Distant.dat')
 L7MODEL = '/Users/michele/Dropbox/OSSOS/Release_summaries/L7model-3.0-9.0'  # 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
 L7_HOME = '/Users/michele/Dropbox/OSSOS/Release_summaries/'
@@ -74,27 +76,25 @@ NEWMOONS = {'Feb13': "2013/02/10 10:00:00",
 # ORIGINAL: DON't USE, does not match the location of the data as pointed & taken!
 # Ablocks={'13AE': {"RA": "14:32:30.29","DEC":"-13:54:01.4"},
 # '13AO': {"RA": "16:17:04.41","DEC":"-13:14:45.8"}}
-BLOCKS = {
-    '13AE': {"RA": "14:15:28.89", "DEC": "-12:32:28.4"},
+BLOCKS = OrderedDict([
     # E+0+0: image 1616681, ccd21 on April 9. E block discovery triplets are April 4,9,few 19
-    '13AO': {"RA": "15:58:01.35", "DEC": "-12:19:54.2"},  # O+0+0: image 1625346, ccd21 on May 8. O block are May 7,8.
-    '13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"},  # 13B blocks are at their opposition locations
-    '13BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"},  # due to bad weather, discovery wasn't until Dec/Jan
-}
+    ('13AE', {"RA": "14:15:28.89", "DEC": "-12:32:28.4"}),
+    ('13AO', {"RA": "15:58:01.35", "DEC": "-12:19:54.2"}),  # O+0+0: image 1625346, ccd21 on May 8. O block are May 7,8.
+    ('13BL', {'RA': "00:54:00.00", "DEC": "+03:50:00.00"}),  # 13B blocks are at their opposition locations
+    ('14BH', {'RA': "01:30:00.00", "DEC": "+13:00:00.00"}),  # due to bad weather, discovery wasn't until 2014, so 14
 
-FUTURE_BLOCKS = {
-    '15AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"},  # at its 2014 initial observation.
-    '15AP': {'RA': "13:30:00.00", "DEC": "-7:00:00.00"},  # on-plane
-    '15BD': {'RA': "03:15:00.00", "DEC": "+16:30:00.00"},
-    '15B?': {'RA': "00:45:00.00", "DEC": "+00:05:00.00"},  # FIXME: NOT CHECKED against lunations etc yet. Indicative.
-}
+    ('15AP', {'RA': "13:30:00.00", "DEC": "-7:45:00.00"}),  # on-plane
+    ('15AM', {'RA': "15:30:00.00", "DEC": "-12:20:00.0"}),  # at its 2014 initial observation.
+    ('15B?', {'RA': "00:45:00.00", "DEC": "+00:05:00.00"}),  # FIXME: NOT CHECKED against lunations etc yet. Indicative.
+    ('15BD', {'RA': "03:15:00.00", "DEC": "+16:30:00.00"})
+])
 
 DISCOVERY_DATES = {"13AE": "2013/04/09 08:50:00",
                    "13AO": "2013/05/08 08:50:00",
                    "15AP": NEWMOONS['Apr15'],  # FIXME: set when observations taken
-                   "15AM": NEWMOONS['May15'],  # Backup triplet: split on 2014/05/29, 2014/06/01
+                   "15AM": NEWMOONS['May14'],  # Backup triplet: split on 2014/05/29, 2014/06/01
                    "13BL": "2013/09/29 08:50:00",  # HOWEVER: discovery date is split between months (earliest)
-                   "13BH": "2014/10/22 09:30:00",  # Note: Col3N triplet differs: is instead 2014/01/03.
+                   "14BH": "2014/10/22 09:30:00",  # Note: Col3N triplet is instead 2014/01/03.
                    "15BD": NEWMOONS['Nov15'],  # FIXME: set when observations taken
                    "15B?": NEWMOONS['Oct15']  # FIXME: set when observations taken
 }
@@ -106,7 +106,7 @@ OPPOSITION_DATES = {"13AE": NEWMOONS['Apr13'],
                     "15AP": NEWMOONS['Apr15'],
                     "15AM": NEWMOONS['May15'],
                     "13BL": NEWMOONS['Oct13'],
-                    "13BH": NEWMOONS['Oct13'],
+                    "14BH": NEWMOONS['Oct13'],
                     "15B?": NEWMOONS['Oct15'],
                     "15BD": NEWMOONS['Nov15'],
 

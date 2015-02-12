@@ -10,9 +10,9 @@ from subprocess import Popen
 import datetime
 import sqlalchemy as sa
 import pyfits
+from ossos import storage
 
 import web.field_obs.queries
-from ossos import storage
 
 
 """
@@ -89,7 +89,8 @@ def verify_ossos_image(header):
     # integration should be within ~10 sec of: normal field: 287 s, wallpaper: 30 s, long nail: 387 s
     assert (280. < float(header['EXPTIME']) < 297.) \
            or (25. < float(header['EXPTIME']) < 35.) \
-           or (380. < float(header['EXPTIME']) < 397.), \
+           or (380. < float(header['EXPTIME']) < 397.) \
+           or (315. < float(header['EXPTIME']) < 325.), \
         'Exposure %s s, not in OSSOS range.' % header['EXPTIME']
 
     assert (header['FILTER'] == 'r.MP9601'), 'Filter not r. Instead %s' % header['FILTER']
@@ -143,7 +144,7 @@ def get_iq_and_zeropoint(image, header_extract):
 
 def parse_sgwn_comments():
     retval = {}
-    lines = storage.vofile('vos:sgwyn/tkBAD', 'r').read().splitlines()
+    lines = storage.vofile('vos:sgwyn/tkBAD').read().splitlines()
     for line in lines:
         ln = line.partition(' ')
         retval[ln[0]] = ln[2]

@@ -1,8 +1,0 @@
-wxPython==2.8.12.1
-numpy==1.6.1
-matplotlib==1.1.1rc
-astropy==0.2.1
-vos
-pyraf==2.1.1
-d2to1==0.2.10
-stsci.numdisplay==1.6
