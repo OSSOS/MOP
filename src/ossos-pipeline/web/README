@@ -1,21 +1,34 @@
-Website presenting metadata on the CFHT observations for OSSOS.
-A Pyramid-framework Python 2.7 website front-end communicating via SQLAlchemy to a PostgreSQL database.
+Purpose
+-------
+A Pyramid-framework website front-end communicating via SQLAlchemy to a PostgreSQL database: it presents the metadata
+of the CFHT observations made for OSSOS.
+
 The database is populated from the raw data and processing products stored in CADC's VOSpace.
 
+Installation
+------------
 development.ini and ossos.overview.__init__.py are the primary files for setup and configuration of ports,
-db addresses, included modules and the like.
-Also, ossos.overview.OssuaryTable points to the local installation of your postgres database.
+database addresses, included packages and the like.
+Also, ossos.overview.OssuaryTable points to the local installation of your postgres database. This location needs to
+match what's in the development.ini.
 
-Each page of the website lives in a separate module, all within the ossos namespace.
-To add a new module (webpage or JS), named 'newmodule':
-- create three new folders within ossos_webdev, with the form ossos.newmodule/ossos/newmodule
-- copy the setup.py from the top level of another module, eg. ossos.flot/setup.py, put it in ossos.newmodule/ ,
-and change the name= parameter to 'newmodule'
-- copy the next level's __init__.py, eg. ossos.flot/ossos/__init__.py, and place it verbatim in ossos.newmodule/ossos/.
-This extends the namespace to the new module.
-- copy the final level down's __init__.py, eg. ossos.flot/ossos/flot/__init__.py, and place it in
-ossos.newmodule/ossos/newmodule/. Change the name= parameter to 'newmodule'. The second parameter dictates the url path
-and can be set accordingly.
-- Finally, make ossos.newmodule visible to Pyramid when it scans for routes: in development.ini, add ossos.newmodule to
-the list in pyramid.includes =.
-- Run the setup.py to create a python egg in-place.
+Development
+-----------
+Each page of the website lives in a separate package, all within the 'web' namespace.
+
+To add a new webpage or JS, named 'newpage', create a package and hook it in to the namespace and the framework:
+- Create a new folder within web (this extends the namespace automatically)::
+  web/web/newpage
+- Copy the __init__.py from any package except overview, eg. web/field_obs/__init__.py
+- Alter the .add_route() in the new __init__.py's includeme() to appropriate names to match those of the @view_config()
+decorators on the view defs in /web/web/newpage/newpage.py. The second parameter dictates the url path
+and can be set accordingly. This hooks the module to the framework. You need to keep the .scan(__name__) in place,
+otherwise the routes don't get picked up.
+- In web/web/overview/__init__.py, add ::
+  config.include('web.newmodule')
+to the list of .include() statements, before the config.scan().
+- Add any new packages your new page needs in its Python scripts to ossos-pipeline/web/setup.py's install_requires
+- Run ::
+  cd ossos-pipeline/web
+  python setup.py install
+and restart the server.
