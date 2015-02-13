@@ -41,11 +41,11 @@ REAL_KBO_AST_DIR = USER + 'Dropbox/OSSOS/measure3/ossin/'
 
 PLOT_FIELD_EPOCH = 'Feb15'  # Oct14.00 ==> '0' days since the New Moon on Oct14
 #TODO the .00 is appended when this variable is used as a keyword that needs that .00 this is bad.
-DISCOVERY_NEW_MOON = 'Oct14'  # this is the date that the RA/DEC in blocks corresponds to.
+DISCOVERY_NEW_MOON = 'Nov13'  # this is the date that the RA/DEC in blocks corresponds to.
 
 
 PLOT_USNO_STARS = False
-PLOT_MEGACAM_ARCHIVE_FIELDS = False   ## TODO Make this work when True
+PLOT_MEGACAM_ARCHIVE_FIELDS = True
 PLOT_SYNTHETIC_KBOS = True
 PLOT_SYNTHETIC_KBO_TRAILS = False
 PLOT_REAL_KBOS = False and os.access(REAL_KBO_AST_DIR,os.F_OK)
@@ -170,7 +170,7 @@ newMoons = {
 #    'Aug13': "2013/08/06 10:00:00",
 #    'Sep13': '2013/09/05 10:00:00',
 #    'Oct13': '2013/10/04 10:00:00',
-#    'Nov13': '2013/11/03 10:00:00',
+'Nov13': '2013/11/03 10:00:00',
 #    'Dec13': '2013/12/02 10:00:00',
 #    'Jan14': '2014/01/01 10:00:00',
 #    'Feb14': '2014/01/31 10:00:00',
@@ -181,36 +181,36 @@ newMoons = {
 #    'Jul14': '2014/07/26 10:00:00',
 #    'Aug14': "2014/08/25 10:00:00",
 #    'Sep14': '2014/09/24 10:00:00',
-'Oct14': '2014/10/23 10:00:00',
-#    'Nov14': '2014/11/22 10:00:00',
+#     'Oct14': '2014/10/23 10:00:00',
+'Nov14': '2014/11/22 10:00:00',
 #    'Dec14': '2014/12/22 10:00:00',
 #    'Jan15': '2015/01/20 10:00:00',
     'Feb15': '2015/02/18 10:00:00',
     'Mar15': '2015/03/19 10:00:00',
-    'Apr15': '2015/04/18 10:00:00',
-    'May15': '2015/05/17 10:00:00',
-    'Jun15': '2015/06/16 10:00:00',
-    'Jul15': '2015/07/15 10:00:00',
-    'Aug15': '2015/08/14 10:00:00',
-    'Sep15': '2015/09/12 10:00:00',
-    'Oct15': '2015/10/12 10:00:00',
-    'Nov15': '2015/11/11 10:00:00',
-    'Dec15': '2015/12/11 10:00:00',
-    'Jan16': '2016/01/09 10:00:00',
-    'Feb16': '2016/03/08 10:00:00',
-    'Mar16': '2016/03/09 10:00:00',
-    'Apr16': '2016/04/08 10:00:00',
-    'May16': '2016/05/07 10:00:00',
-    'Jun16': '2016/06/05 10:00:00',
-    'Jul16': '2016/07/05 10:00:00',
-    'Aug16': '2016/08/03 10:00:00',
-    'Sep16': '2016/09/01 10:00:00',
-    'Oct16': '2016/10/01 10:00:00',
-    'Nov16': '2016/11/01 10:00:00',
-    'Dec16': '2016/12/01 10:00:00',
-    'Jan17': '2017/01/01 10:00:00',
-    'Feb17': '2017/02/01 10:00:00',
-    }
+    # 'Apr15': '2015/04/18 10:00:00',
+    # 'May15': '2015/05/17 10:00:00',
+    # 'Jun15': '2015/06/16 10:00:00',
+    # 'Jul15': '2015/07/15 10:00:00',
+    # 'Aug15': '2015/08/14 10:00:00',
+    # 'Sep15': '2015/09/12 10:00:00',
+    # 'Oct15': '2015/10/12 10:00:00',
+    # 'Nov15': '2015/11/11 10:00:00',
+    # 'Dec15': '2015/12/11 10:00:00',
+    # 'Jan16': '2016/01/09 10:00:00',
+    # 'Feb16': '2016/03/08 10:00:00',
+    # 'Mar16': '2016/03/09 10:00:00',
+    # 'Apr16': '2016/04/08 10:00:00',
+    # 'May16': '2016/05/07 10:00:00',
+    # 'Jun16': '2016/06/05 10:00:00',
+    # 'Jul16': '2016/07/05 10:00:00',
+    # 'Aug16': '2016/08/03 10:00:00',
+    # 'Sep16': '2016/09/01 10:00:00',
+    # 'Oct16': '2016/10/01 10:00:00',
+    # 'Nov16': '2016/11/01 10:00:00',
+    # 'Dec16': '2016/12/01 10:00:00',
+    # 'Jan17': '2017/01/01 10:00:00',
+    # 'Feb17': '2017/02/01 10:00:00',
+}
 
 
 
@@ -550,7 +550,7 @@ if PLOT_MEGACAM_ARCHIVE_FIELDS:
 
     for qra in range(int(ra_cen - width/2.0),int(ra_cen + width/2.), 60):
         for qdec in range(int(dec_cen - height/2.0),int(dec_cen + height/2.), 30):
-            filename = "/Users/jjk/usno/megacam{:+6.2f}{:+6.2f}.xml".format(qra,qdec)
+            filename = USER + "megacam{:+6.2f}{:+6.2f}.xml".format(qra, qdec)
             if not os.access(filename, os.R_OK):
                 data = megacam.TAPQuery(qra, qdec, 60.0, 30.0).read()
                 fobj = open(filename, 'w')
