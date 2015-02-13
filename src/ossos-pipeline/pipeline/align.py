@@ -1,4 +1,25 @@
 #!python 
+################################################################################
+##                                                                            ##
+## Copyright 2013 by its authors                                              ##
+## See COPYING, AUTHORS                                                       ##
+##                                                                            ##
+## This file is part of OSSOS Moving Object Pipeline (OSSOS-MOP)              ##
+##                                                                            ##
+##    OSSOS-MOP is free software: you can redistribute it and/or modify       ##
+##    it under the terms of the GNU General Public License as published by    ##
+##    the Free Software Foundation, either version 3 of the License, or       ##
+##    (at your option) any later version.                                     ##
+##                                                                            ##
+##    OSSOS-MOP is distributed in the hope that it will be useful,            ##
+##    but WITHOUT ANY WARRANTY; without even the implied warranty of          ##
+##    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the           ##
+##    GNU General Public License for more details.                            ##
+##                                                                            ##
+##    You should have received a copy of the GNU General Public License       ##
+##    along with OSSOS-MOP.  If not, see <http://www.gnu.org/licenses/>.      ##
+##                                                                            ##
+################################################################################
 """plant synthetic moving objects into a set of observations.
 
 prior to planting, the headers of the objects may be swapped around."""
@@ -73,8 +94,8 @@ if __name__ == '__main__':
             storage.set_logger(os.path.splitext(os.path.basename(sys.argv[0]))[0],
                                "", args.expnums[0], ccd, args.type, args.dry_run)
             if not storage.get_status(args.expnums[0], ccd,
-                                      'step2', version=args.type):
-                raise IOError("scramble not yet run for %s ccd%s" % (
+                                      'mkpsf', version=args.type):
+                raise IOError("mkpsf not yet run for %s ccd%s, can't run align" % (
                     str(args.expnums), str(ccd).zfill(2)))
             if storage.get_status(args.expnums[0], ccd,
                                   'align', version=args.type) and not args.force:

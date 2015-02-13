@@ -1,9 +1,9 @@
 import fcntl
 import os
-import random
+from numpy import random
 from astropy.table import Table
 import numpy
-from ossos import storage
+import storage
 from scipy import interpolate
 
 
@@ -124,15 +124,22 @@ class KBOGenerator(object):
                 'id': self.id}
 
     @classmethod
+    def _step(cls, mag):
+        low = mag * 0 + 0.3
+        high = mag * 0 + 0.7
+        g = [mag < 23.3] * low + [mag >= 23.3] * high
+        return g[0]
+
+    @classmethod
     def get_kbos(cls, n, rate, angle, mag, x, y, filename=None):
 
         kbos = Table(names=('x', 'y', 'mag', 'sky_rate', 'angle', 'id'))
 
         # generate the KBOs.
         for kbo in cls(n,
-                       rate=Range(rate, func=lambda value: value**-0.75),
+                       rate=Range(rate, func=lambda value: value**0.25),
                        angle=Range(angle),
-                       mag=Range(mag),
+                       mag=Range(mag, func=cls._step),
                        x=Range(x),
                        y=Range(y)):
             kbos.add_row(kbo)

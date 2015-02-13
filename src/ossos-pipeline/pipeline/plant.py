@@ -1,4 +1,25 @@
 #!python 
+################################################################################
+##                                                                            ##
+## Copyright 2013 by its authors                                              ##
+## See COPYING, AUTHORS                                                       ##
+##                                                                            ##
+## This file is part of OSSOS Moving Object Pipeline (OSSOS-MOP)              ##
+##                                                                            ##
+##    OSSOS-MOP is free software: you can redistribute it and/or modify       ##
+##    it under the terms of the GNU General Public License as published by    ##
+##    the Free Software Foundation, either version 3 of the License, or       ##
+##    (at your option) any later version.                                     ##
+##                                                                            ##
+##    OSSOS-MOP is distributed in the hope that it will be useful,            ##
+##    but WITHOUT ANY WARRANTY; without even the implied warranty of          ##
+##    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the           ##
+##    GNU General Public License for more details.                            ##
+##                                                                            ##
+##    You should have received a copy of the GNU General Public License       ##
+##    along with OSSOS-MOP.  If not, see <http://www.gnu.org/licenses/>.      ##
+##                                                                            ##
+################################################################################
 """plant synthetic moving objects into a set of observations.
 
 prior to planting, the headers of the objects may be swapped around."""
@@ -49,7 +70,7 @@ def plant_kbos(filename, psf, kbos, shifts, prefix):
         fd.write("Mag shift hsa large uncertainty.")
         fd.close()
 
-    addstar = tempfile.NamedTemporaryFile(suffix=".add", delete=False)
+    addstar = tempfile.NamedTemporaryFile(suffix=".add")
 
     # transform KBO locations to this frame using the shifts provided.
     w = get_wcs(shifts)
