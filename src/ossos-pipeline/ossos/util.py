@@ -9,7 +9,6 @@ from astropy.io import ascii
 import numpy
 import re
 import vos
-from ossos import daophot
 
 MATCH_TOLERANCE = 100.0
 
@@ -108,17 +107,6 @@ def get_pixel_bounds_from_datasec_keyword(datasec):
     y2 = max(int(datasec[2]), int(datasec[3]))
 
     return (x1, x2), (y1, y2)
-
-# def mag_align(set1, set2):
-#
-#     phot1 = ascii.read(set1[0], format='ascii.daophot')
-#     trans1 = [float(x) for x in open(set1[1], 'r').split()]
-#
-#     phot1 = ascii.read(set2[0], format='ascii.daophot')
-#     trans1 = [float(x) for x in open(set2[1], 'r').split()]
-#
-#     daophot.phot(phot1['XCENTER'], phot1['YCENTER'],
-#                 )
 
 def match_lists(pos1, pos2, tolerance=MATCH_TOLERANCE):
     """
