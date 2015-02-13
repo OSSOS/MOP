@@ -260,7 +260,7 @@ begin
 		    showplots-, interactive-, verbose+) }
 		    goto finalproc
 
-            print("Usnig nstar to find the good matches to the PSF...")
+            print("Using nstar to find the good matches to the PSF...")
 	    kdelete (t_image//".nst.1")
 	    kdelete (t_image//".nrj.1")
 	    nstar(t_image,t_image//".psg", psfimage=t_psf, nstarfile=t_image//".nst.1", rejfile=t_image//".nrj.1")
@@ -268,7 +268,7 @@ begin
             # reject stars whose chi2 is large compared to the mean chi2 of stars in the PSF
 	    txdump(t_image//".nst.1",
                    "CHI","(PIER==0)") | average | scan(achi,schi,nsamp);
-            print("Average CHI2 "//achi//" +/- "//schi)
+            print("1st Average CHI2 "//achi//" +/- "//schi)
             x=achi+schi
             if ( x < 2.5 ) { 
                x = 2.5 
@@ -276,6 +276,7 @@ begin
 
 	    kdelete(t_phot)
 	    pselect(t_image//".nst.1", t_phot, "(CHI<"//x//")&&(PIER==0)")
+	    psort(t_phot, "CHI", ascend+)
 
 	    # use those stars to build an new PSF
 	    kdelete ( t_image//".pst")
@@ -306,13 +307,16 @@ begin
     	    # run PHOT on the subtracted image to get the flux zeropoint correct.
 	    kdelete(t_phot)
 	    kdelete(t_image//".coo.1")
+
 	    txdump(t_image//".nst.1",
                    "CHI","(PIER==0)") | average | scan(achi,schi,nsamp);
-            print("Average CHI2 "//achi//" +/- "//schi)
+            print("2nd Average CHI2 "//achi//" +/- "//schi)
             x=achi+schi
             if ( x < 1.5 ) { 
                x = 1.5 
             }
+
+	    psort(t_image//".nst.1", "CHI", ascend+)
 	    txdump(t_image//".nst.1","XCEN,YCEN,ID","(CHI < "//x//")&&(PIER==0)", > t_image//".coo.1")
 
 	    phot(t_image,t_image//".coo.1",t_phot, photpars.apertures=apmax)
