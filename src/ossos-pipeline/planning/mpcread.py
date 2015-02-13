@@ -1,7 +1,8 @@
-
 import re
-import ephem
 import sys
+
+import ephem
+
 
 #Number_Mil={'B': 110000, 'C': 120000, 'D': 130000, 'E': 140000, 'F': 150000}
 #Number_Cent={'J': 1900, 'K': 2000}
@@ -46,9 +47,9 @@ def getKBOs(mpc_file, cond='a > 30'):
     lines=f.readlines()
     f.close()
 
-    while "------" not in lines[0]:
-        lines.pop(0)
-    lines.pop(0)
+    # while "------" not in lines[0]:
+    # lines.pop(0)
+    # lines.pop(0)
     nobj=0
     lineCount=0
     kbos = []
