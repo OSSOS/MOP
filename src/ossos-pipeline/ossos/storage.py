@@ -352,7 +352,6 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     if os.access(filename, os.F_OK) and return_file and cutout is None:
         return filename
 
-
     if not subdir:
         subdir = str(expnum)
 
@@ -862,17 +861,7 @@ def _get_sghead(expnum, version):
     return headers
 
 
-# def _getheader(uri):
-# """
-#     Pull a header from a FITS file referenced by the uri.
-#     """
-#     hdulist = (expnum, )
-#     filename = os.path.basename(uri)
-#     url = service+filename
-#     resp = requests.get(url)
-
-
-def get_header(uri, flip_flop=False):
+def get_header(uri):
     """
     Pull a FITS header from observation at the given URI
     """
@@ -893,9 +882,9 @@ def get_astheader(expnum, ccd, version='p', prefix=None, ext=None):
     if ext is not None:
         warnings.warn("Use of ext keyword for get_astheader is ignored.")
     logger.debug("Getting ast header for {}".format(expnum))
+    ast_uri = dbimages_uri(expnum, ccd=None, version=version, ext='.head')
     try:
         # first try and get this from CFHTSG header repo
-        ast_uri = dbimages_uri(expnum, ccd=None, version=version, ext='.head')
         if ast_uri not in astheaders:
             astheaders[ast_uri] = _get_sghead(expnum, version)
         if ccd is None:
@@ -924,7 +913,7 @@ def log_location(expnum, ccd):
 
 
 def set_logger(task, prefix, expnum, ccd, version, dry_run):
-    logger = logging.getLogger()
+    this_logger = logging.getLogger()
     log_format = logging.Formatter('%(asctime)s - %(module)s.%(funcName)s %(lineno)d: %(message)s')
 
     filename = log_filename(prefix, task, ccd=ccd, version=version)
@@ -932,9 +921,8 @@ def set_logger(task, prefix, expnum, ccd, version, dry_run):
     if not dry_run:
         vo_handler = util.VOFileHandler("/".join([location, filename]))
         vo_handler.setFormatter(log_format)
-        logger.addHandler(vo_handler)
+        this_logger.addHandler(vo_handler)
 
     file_handler = logging.FileHandler(filename=filename)
     file_handler.setFormatter(log_format)
-    logger.addHandler(file_handler)
-
+    this_logger.addHandler(file_handler)
