@@ -488,9 +488,12 @@ def get_hdu(uri, cutout):
     logger.debug("Read from vospace completed. Building fits object.")
     hdu_list = fits.open(fpt, scale_back=False)
     logger.debug("Got image from vospace")
-    hdu_list[0].header['DATASEC'] = reset_datasec(cutout, hdu_list[0].header['DATASEC'],
-                                                  hdu_list[0].header['NAXIS1'],
-                                                  hdu_list[0].header['NAXIS2'])
+    try:
+        hdu_list[0].header['DATASEC'] = reset_datasec(cutout, hdu_list[0].header['DATASEC'],
+                                                      hdu_list[0].header['NAXIS1'],
+                                                      hdu_list[0].header['NAXIS2'])
+    except Exception as e:
+        logging.debug("error converting datasec: {}".format(str(e)))
     return hdu_list
 
 

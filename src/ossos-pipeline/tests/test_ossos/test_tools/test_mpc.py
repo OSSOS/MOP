@@ -1,5 +1,7 @@
 import os
+
 import numpy
+
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -34,8 +36,8 @@ class ObservationTest(unittest.TestCase):
 
     def test_format_line(self):
         actual = str(mpc.Observation(None, "A234567", "*", "H", "N", "2012 10 21.405160",
-                                     "26.683336700", # 01 46 44.001
-                                     "29.220353200", # +29 13 13.27
+                                     "26.683336700",  # 01 46 44.001
+                                     "29.220353200",  # +29 13 13.27
                                      "12.4",
                                      "A",
                                      "523"))
@@ -168,8 +170,8 @@ class MPCWriterTest(unittest.TestCase):
                               note1="H",
                               note2="N",
                               date="2012 10 21.405160",
-                              ra="26.683336700", # 01 46 44.001
-                              dec="29.220353200", # +29 13 13.27
+                              ra="26.683336700",  # 01 46 44.001
+                              dec="29.220353200",  # +29 13 13.27
                               mag="123.5",
                               band="A",
                               observatory_code="523")
@@ -190,8 +192,8 @@ class MPCWriterTest(unittest.TestCase):
                               note1="H",
                               note2="N",
                               date="2012 10 21.405160",
-                              ra=26.683336700, # 01 46 44.001
-                              dec=29.220353200, # +29 13 13.27
+                              ra=26.683336700,  # 01 46 44.001
+                              dec=29.220353200,  # +29 13 13.27
                               mag=123.5,
                               band="A",
                               observatory_code=523)
@@ -212,8 +214,8 @@ class MPCWriterTest(unittest.TestCase):
                               note1="H",
                               note2="N",
                               date="2012 10 21.405160",
-                              ra=26.683336700, # 01 46 44.001
-                              dec=29.220353200, # +29 13 13.27
+                              ra=26.683336700,  # 01 46 44.001
+                              dec=29.220353200,  # +29 13 13.27
                               mag=22.5211,
                               band="A",
                               observatory_code=523)
@@ -236,7 +238,7 @@ class MPCWriterTest(unittest.TestCase):
                               date="2012 10 21.405160",
                               ra=26.683336700,
                               dec=29.220353200,
-                              mag="22.5211", # In string form
+                              mag="22.5211",  # In string form
                               band="A",
                               observatory_code=523)
 
@@ -254,8 +256,8 @@ class MPCWriterTest(unittest.TestCase):
                               note1="H",
                               note2="N",
                               date="2013 04 09.36658",
-                              ra="26.683336700", # 01 46 44.001
-                              dec="29.220353200", # +29 13 13.27
+                              ra="26.683336700",  # 01 46 44.001
+                              dec="29.220353200",  # +29 13 13.27
                               mag="123.5",
                               band="A",
                               observatory_code="523")
@@ -274,8 +276,8 @@ class MPCWriterTest(unittest.TestCase):
                               note1="",
                               note2="",
                               date="2013 04 09.36658",
-                              ra="26.683336700", # 01 46 44.001
-                              dec="29.220353200", # +29 13 13.27
+                              ra="26.683336700",  # 01 46 44.001
+                              dec="29.220353200",  # +29 13 13.27
                               mag="123.5",
                               band="A",
                               observatory_code="523")
@@ -293,8 +295,8 @@ class MPCWriterTest(unittest.TestCase):
                               note1="H",
                               note2="N",
                               date="2012 10 21.405160",
-                              ra="26.683336700", # 01 46 44.001
-                              dec="29.220353200", # +29 13 13.27
+                              ra="26.683336700",  # 01 46 44.001
+                              dec="29.220353200",  # +29 13 13.27
                               mag="123.5",
                               band="A",
                               observatory_code="523")
@@ -332,8 +334,8 @@ class MPCWriterTest(unittest.TestCase):
                               note1="H",
                               note2="N",
                               date="2012 10 21.405160",
-                              ra="26.683336700", # 01 46 44.001
-                              dec="29.220353200", # +29 13 13.27
+                              ra="26.683336700",  # 01 46 44.001
+                              dec="29.220353200",  # +29 13 13.27
                               mag="",
                               band="",
                               observatory_code="523")
@@ -384,8 +386,8 @@ class MPCWriterTest(unittest.TestCase):
         comment = "Something fishy."
         obs = mpc.Observation(provisional_name="A234567",
                               date="2012 10 21.405160",
-                              ra="26.683336700", # 01 46 44.001
-                              dec="29.220353200", # +29 13 13.27
+                              ra="26.683336700",  # 01 46 44.001
+                              dec="29.220353200",  # +29 13 13.27
                               comment=comment,
                               frame=frame,
                               xpos=xpos,
@@ -412,8 +414,8 @@ class MPCWriterTest(unittest.TestCase):
                                note1="H",
                                note2="N",
                                date="2012 10 21.405160",
-                               ra="26.683336700", # 01 46 44.001
-                               dec="29.220353200", # +29 13 13.27
+                               ra="26.683336700",  # 01 46 44.001
+                               dec="29.220353200",  # +29 13 13.27
                                mag="123.5",
                                band="A",
                                observatory_code="523")
@@ -423,8 +425,8 @@ class MPCWriterTest(unittest.TestCase):
         self.assertEqual(self.read_outputfile(), "")
 
         obs2 = mpc.Observation(date="2012 10 22.405160",
-                               ra="26.683336700", # 01 46 44.001
-                               dec="29.220353200", # +29 13 13.27
+                               ra="26.683336700",  # 01 46 44.001
+                               dec="29.220353200",  # +29 13 13.27
         )
 
         obs2.null_observation = True
@@ -448,8 +450,8 @@ class MPCWriterTest(unittest.TestCase):
                                note1="H",
                                note2="N",
                                date="2012 10 21.405160",
-                               ra="26.683336700", # 01 46 44.001
-                               dec="29.220353200", # +29 13 13.27
+                               ra="26.683336700",  # 01 46 44.001
+                               dec="29.220353200",  # +29 13 13.27
                                mag="123.5",
                                band="A",
                                observatory_code="523")
@@ -458,8 +460,8 @@ class MPCWriterTest(unittest.TestCase):
                                note1="H",
                                note2="N",
                                date="2012 11 21.405160",
-                               ra="26.683336700", # 01 46 44.001
-                               dec="29.220353200", # +29 13 13.27
+                               ra="26.683336700",  # 01 46 44.001
+                               dec="29.220353200",  # +29 13 13.27
                                mag="123.5",
                                band="A",
                                observatory_code="523")
@@ -468,8 +470,8 @@ class MPCWriterTest(unittest.TestCase):
                                note1="H",
                                note2="N",
                                date="2012 12 21.405160",
-                               ra="26.683336700", # 01 46 44.001
-                               dec="29.220353200", # +29 13 13.27
+                               ra="26.683336700",  # 01 46 44.001
+                               dec="29.220353200",  # +29 13 13.27
                                mag="123.5",
                                band="A",
                                observatory_code="523")
@@ -490,8 +492,8 @@ class MPCWriterTest(unittest.TestCase):
                                note1="H",
                                note2="N",
                                date="2012 10 21.405160",
-                               ra="26.683336700", # 01 46 44.001
-                               dec="29.220353200", # +29 13 13.27
+                               ra="26.683336700",  # 01 46 44.001
+                               dec="29.220353200",  # +29 13 13.27
                                mag="123.5",
                                band="A",
                                observatory_code="523")
@@ -499,8 +501,8 @@ class MPCWriterTest(unittest.TestCase):
                                note1="H",
                                note2="N",
                                date="2012 11 21.405160",
-                               ra="26.683336700", # 01 46 44.001
-                               dec="29.220353200", # +29 13 13.27
+                               ra="26.683336700",  # 01 46 44.001
+                               dec="29.220353200",  # +29 13 13.27
                                mag="123.5",
                                band="A",
                                observatory_code="523")
@@ -513,20 +515,19 @@ class MPCWriterTest(unittest.TestCase):
         expected_first_line = ("     A234567*HN2012 10 21.40516001 46 44.001"
                                "+29 13 13.27         123.5A      523\n")
         expected_second_line = ("     A234567 HN2012 11 21.40516001 46 44.001"
-                               "+29 13 13.27         123.5A      523\n")
+                                "+29 13 13.27         123.5A      523\n")
 
         self.assertEqual(self.read_outputfile(), expected_first_line + expected_second_line)
 
     def test_rejected_line_not_discovery_asterisk(self):
-
         self.undertest = mpc.MPCWriter(self.outputfile,
                                        auto_flush=False,
                                        include_comments=False)
 
         obs1 = mpc.Observation(provisional_name="A234567",
                                date="2012 10 21.405160",
-                               ra="26.683336700", # 01 46 44.001
-                               dec="29.220353200", # +29 13 13.27
+                               ra="26.683336700",  # 01 46 44.001
+                               dec="29.220353200",  # +29 13 13.27
                                observatory_code="523")
         obs1.null_observation = True
 
@@ -535,8 +536,8 @@ class MPCWriterTest(unittest.TestCase):
                                note1="H",
                                note2="N",
                                date="2012 11 21.405160",
-                               ra="26.683336700", # 01 46 44.001
-                               dec="29.220353200", # +29 13 13.27
+                               ra="26.683336700",  # 01 46 44.001
+                               dec="29.220353200",  # +29 13 13.27
                                mag="23.5",
                                band="A",
                                observatory_code="523")
@@ -547,8 +548,8 @@ class MPCWriterTest(unittest.TestCase):
 
         self.undertest.flush()
 
-        expected_first_line =  ("!    A234567   2012 10 21.40516001 46 44.001+29 13 13.27                     523\n")
-                                # "     A234567 HN2012 11 21.40516001 46 44.001+29 13 13.27         123.5A      523\n"
+        expected_first_line = ("!    A234567   2012 10 21.40516001 46 44.001+29 13 13.27                     523\n")
+        # "     A234567 HN2012 11 21.40516001 46 44.001+29 13 13.27         123.5A      523\n"
         expected_second_line = ("     A234567*HN2012 11 21.40516001 46 44.001+29 13 13.27         23.5 A      523\n")
 
         self.assertEqual(self.read_outputfile(),
@@ -575,24 +576,41 @@ class MPCWriterTest(unittest.TestCase):
         self.assertEqual(formatted_ra, "00 42 44.299")
         self.assertEqual(formatted_dec, "+41 16 09.01")
 
+
 class TestOSSOSComment(unittest.TestCase):
     def test_from_string(self):
         ossos_style_comment = """#O 1698860p25 O13AE2O Y   990.0 3698.0 22.79 0.08 0.096    3 % This is a comment."""
-        self.assertIsInstance(mpc.OSSOSComment.from_string(ossos_style_comment),mpc.OSSOSComment)
+        self.assertIsInstance(mpc.OSSOSComment.from_string(ossos_style_comment), mpc.OSSOSComment)
 
 
 class TestMPCReader(unittest.TestCase):
-
     def setUp(self):
         self.fileobj = tempfile.NamedTemporaryFile()
         self.fileobj.write("""#O  1698860p25 O13AE2O Y   990.0 3698.0 22.79 0.08 0.096    3 % This is a comment.\n""")
         self.fileobj.write("""     o3e05    C2013 06 12.37153 14 19 34.135-14 01 53.33                     568\n""")
-        self.fileobj.write("-    O13AE3M   2014 02 03.59026 14 28 51.800-15 18 59.40                     568 20140201_568_1 20140221 0000000000                      O 1686862p28 O13AE3M Z    22.0  112.7   UUUU %  in chip gap\n")
-        self.fileobj.write("     o3e01    C2014 02 24.60898 14 28 39.810-15 20 16.67         21.8 r      568 20140224_568_1 20141108 0000000000                      O 1691684p19 O13AE3M     Y   469.54 2711.47 0.06 3 21.76 0.03 %                 \n")
-        self.fileobj.write(" O13BL3T0     C2014 08 28.46592 00 56 32.810+02 46 18.64         24.5 r      568 20131007_568_1 20141002 0000000000                      O 1736297p04 O13BL3T0 Y   696.5 4022.8 24.46 0.19 UUUU % great                  \n")
-        self.fileobj.write("     L3XO   * C2013 09 29.34928 00 48 17.902+03 06 58.63         24.15r      568 1656885p20 L3XO Y   288.5 4308.3 24.15 0.13 UUUU % \n")
-        self.fileobj.write("     L3XO   &VC2013 09 29.38812 00 48 17.721+03 06 57.86         24.44r      568 1656895p20 L3XO YV  299.3 4304.7 24.44 0.16 UUUU % \n")
-        self.fileobj.write("     L3XO   & C2013 09 29.43193 00 48 17.524+03 06 56.57         24.70r      568 1656906p20 L3XO Y   311.2 4298.9 24.70 0.23 UUUU % \n")
+        self.fileobj.write(
+            "-    O13AE3M   2014 02 03.59026 14 28 51.800-15 18 59.40                     568 20140201_568_1 20140221 "
+            "0000000000                      O 1686862p28 O13AE3M Z    22.0  112.7   UUUU %  in chip gap\n")
+        self.fileobj.write(
+            "     o3e01    C2014 02 24.60898 14 28 39.810-15 20 16.67         21.8 r      568 20140224_568_1 20141108 "
+            "0000000000                      O 1691684p19 O13AE3M     Y   469.54 2711.47 0.06 3 21.76 0.03 %          "
+            "       \n")
+        self.fileobj.write(
+            " O13BL3T0     C2014 08 28.46592 00 56 32.810+02 46 18.64         24.5 r      568 20131007_568_1 20141002 "
+            "0000000000                      O 1736297p04 O13BL3T0 Y   696.5 4022.8 24.46 0.19 UUUU % great           "
+            "       \n")
+        self.fileobj.write(
+            "     L3XO   * C2013 09 29.34928 00 48 17.902+03 06 58.63         24.15r      568 1656885p20 L3XO Y   "
+            "288.5 4308.3 24.15 0.13 UUUU % \n")
+        self.fileobj.write(
+            "     L3XO   &VC2013 09 29.38812 00 48 17.721+03 06 57.86         24.44r      568 1656895p20 L3XO YV  "
+            "299.3 4304.7 24.44 0.16 UUUU % \n")
+        self.fileobj.write(
+            "     L3XO   & C2013 09 29.43193 00 48 17.524+03 06 56.57         24.70r      568 1656906p20 L3XO Y   "
+            "311.2 4298.9 24.70 0.23 UUUU % \n")
+        self.fileobj.write(
+            "!    L3UV      2013 10 09.51275 00 55 10.734+04 38 52.78                     568 O 1658282p30 L3UV       "
+            " Z    -5.30 4353.00 0.20 0 ----- ---- % in chip gap")
 
         self.fileobj.flush()
         self.fileobj.seek(0)
@@ -629,9 +647,9 @@ class TestMPCReader(unittest.TestCase):
         obs = reader.read(self.fileobj)
         self.assertEqual(obs[3].provisional_name, self.long_test_name,
                          "got >{}< expected >{}<".format(obs[3].provisional_name, self.long_test_name))
-        self.assertEqual(str(obs[3])[1:1+len(self.long_test_name)], self.long_test_name,
+        self.assertEqual(str(obs[3])[1:1 + len(self.long_test_name)], self.long_test_name,
                          "got >{}< expected >{}<".format(self.long_test_name,
-                                                         str(obs[3])[1:1+len(self.long_test_name)]))
+                                                         str(obs[3])[1:1 + len(self.long_test_name)]))
 
     def test_mpc_real_to_ossos(self):
         reader = mpc.MPCReader()
@@ -640,6 +658,15 @@ class TestMPCReader(unittest.TestCase):
         self.assertEqual(obs[5].comment.version, "O")
         self.assertEqual(obs[5].provisional_name, "L3XO")
         self.assertAlmostEqual(obs[5].comment.mag, 24.44, places=2)
+
+    def test_rejection_line_writing(self):
+        """
+        Ensure the MPCReader is picking up the
+        """
+        reader = mpc.MPCReader()
+        obs = reader.read(self.fileobj)
+        print obs[8].comment
+        self.assertEqual(obs[8].comment.mag_uncertainty, '----')
 
 
 if __name__ == '__main__':

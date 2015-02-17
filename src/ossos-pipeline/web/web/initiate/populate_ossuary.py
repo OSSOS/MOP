@@ -87,10 +87,12 @@ def verify_ossos_image(header):
     assert (abs(header['EXPTIME'] - header['EXPREQ']) < 5.), \
         'Requested %d s exposure, took %d exposure' % (header['EXPTIME'], header['EXPREQ'])
     # integration should be within ~10 sec of: normal field: 287 s, wallpaper: 30 s, long nail: 387 s
+    # u-band: 320 s, deep 15BM fields in 2014B: 500 s
     assert (280. < float(header['EXPTIME']) < 297.) \
            or (25. < float(header['EXPTIME']) < 35.) \
            or (380. < float(header['EXPTIME']) < 397.) \
-           or (315. < float(header['EXPTIME']) < 325.), \
+           or (315. < float(header['EXPTIME']) < 325.) \
+           or (495. < float(header['EXPTIME']) < 505.), \
         'Exposure %s s, not in OSSOS range.' % header['EXPTIME']
 
     assert (header['FILTER'] == 'r.MP9601'), 'Filter not r. Instead %s' % header['FILTER']
@@ -185,7 +187,7 @@ def iq_unmeasured_images(ims):
 
 def snr_unmeasured_images(ims):
     ss = sa.select([ims.images.c.image_id, ims.images.c.snr], order_by=ims.images.c.image_id)
-    ss.append_whereclause(ims.images.c.snr == None)
+    ss.append_whereclause(ims.images.c.snr == None)  # RERUN THIS AGAIN WITH SNR==0.74 TO CATCH THE FAILURES
     query = ims.conn.execute(ss)
     retval = [s[0] for s in query if isinstance(s[0], long)]
 
@@ -346,7 +348,7 @@ def main():
     sys.stdout.write('%d images in ossuary; updating with %d new in VOspace.\n' %
                      (len(processed_images), len(unprocessed_images)))
 
-    for n, image in enumerate(unprocessed_images[29:]):  # FIXME: remove this when PlutoHazard images taken out by JJ
+    for n, image in enumerate(unprocessed_images):
         sys.stdout.write('%s %d/%d ' % (image, n + 1, len(unprocessed_images)))
         try:
             subheader, fullheader = get_header(image)
