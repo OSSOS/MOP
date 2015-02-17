@@ -9,7 +9,7 @@ from matplotlib.patches import Rectangle
 from matplotlib.patches import Ellipse
 from matplotlib import rcParams
 import numpy as np
-from matplotlib.pyplot import figure, savefig, xlabel, ylabel
+from matplotlib.pyplot import figure, savefig
 from astropy.io import votable
 import ephem
 import Polygon
@@ -17,39 +17,42 @@ import Polygon.IO
 
 import mpcread
 import usnoB1
-
 import megacam
 from ossos import storage
 from ossos import orbfit
-
 from ossos import mpc
+
+
+USER = '/Users/michele/'
+
 
 def plot_line(axes, fname, ltype):
     """plot the ecliptic plane line on the given axes."""
     x = np.genfromtxt(fname, unpack=True)
     axes.plot(x[0], x[1], ltype)
 
-MPCORB_FILE = os.path.join(os.getenv('HOME', '/Users/jjk'), 'MPCORB.DAT')
-L7MODEL = 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
-L7MODEL = '/Users/jjk/Dropbox/Research/KuiperBelt'
-L7MODEL = '/tmp/vospace/OSSOS/CFEPS/L7SyntheticModel-v09.txt'
-L7MODEL = '/Users/kavelaarsj/Dropbox/Research/KuiperBelt/OSSOS/L7SyntheticModel-v09.txt'
-REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/ast/'
-REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/Research/KuiperBelt/dbase/TNOdb/dbase/data/ast/'
 
-PLOT_FIELD_EPOCH = 'Apr15'  # Oct14.00 ==> '0' days since the New Moon on Oct14
+MPCORB_FILE = os.path.join(USER, 'MPCORB-Distant.dat')
+L7MODEL = 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
+# L7MODEL = '/Users/jjk/Dropbox/Research/KuiperBelt'
+# L7MODEL = '/tmp/vospace/OSSOS/CFEPS/L7SyntheticModel-v09.txt'
+# L7MODEL = '/Users/kavelaarsj/Dropbox/Research/KuiperBelt/OSSOS/L7SyntheticModel-v09.txt'
+# REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/ast/'
+# REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/Research/KuiperBelt/dbase/TNOdb/dbase/data/ast/'
+
+PLOT_FIELD_EPOCH = 'May15'  # Oct14.00 ==> '0' days since the New Moon on Oct14
 #TODO the .00 is appended when this variable is used as a keyword that needs that .00 this is bad.
-DISCOVERY_NEW_MOON = 'Apr15'  # this is the date that the RA/DEC in blocks corresponds to.
+DISCOVERY_NEW_MOON = 'May15'  # this is the date that the RA/DEC in blocks corresponds to.
 
 
 PLOT_USNO_STARS = True
-PLOT_MEGACAM_ARCHIVE_FIELDS = False   ## TODO Make this work when True
+PLOT_MEGACAM_ARCHIVE_FIELDS = True
 PLOT_SYNTHETIC_KBOS = True
 PLOT_SYNTHETIC_KBO_TRAILS = False
 PLOT_REAL_KBOS = False and os.access(REAL_KBO_AST_DIR,os.F_OK)
 PLOT_FIELD_LAYOUT = True
 
-PLOT_MPCORB = False and os.access(MPCORB_FILE, os.F_OK)
+PLOT_MPCORB = True and os.access(MPCORB_FILE, os.F_OK)
 
 
 LABEL_FIELDS = True
@@ -142,22 +145,24 @@ NAME                |RA         |DEC        |EPOCH |POINT|
 
 
 #fall13
-blocks = {'13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"},  # ,
-          '13AE': {"RA": "14:15:28.89", "DEC": "-12:32:28.4"},  # E+0+0: image 1616681, ccd21 on April 9
-          '13AO': {"RA": "15:58:01.35", "DEC": "-12:19:54.2"},  # O+0+0: image 1625346, ccd21 on May 8
-          '13BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"},
-          '14AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"}
-          }
+# blocks = {'13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"},  # ,
+# '13AE': {"RA": "14:15:28.89", "DEC": "-12:32:28.4"},  # E+0+0: image 1616681, ccd21 on April 9
+#           '13AO': {"RA": "15:58:01.35", "DEC": "-12:19:54.2"},  # O+0+0: image 1625346, ccd21 on May 8
+#           '13BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"},
+#           '14AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"}
+#           }
 
 ## this position is derived from the +0+0 field for 13B observed on November 1st 2013
-blocks = {'14BH': {'RA': "01:28:32.32", "DEC": "+12:51:06.10"}}
+# blocks = {'14BH': {'RA': "01:28:32.32", "DEC": "+12:51:06.10"}}
 
 #fall 2015
 # blocks = {'15BD': {'RA': "03:15:00.00", "DEC": "+16:30:00.00"}}
 
 #spring15
-blocks = {'15AP': {'RA': "13:30:00", "DEC": "-07:45:00"}}
-#blocks = {'14AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"}}
+# blocks = {'15AP': {'RA': "13:30:00", "DEC": "-07:45:00"}}
+# blocks = {'14AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"}}  # the centre when set in May 2014.
+# will then define a 15AM to work properly.
+blocks = {'15AM': {'RA': "15:35:00.00", "DEC": "-12:10:00.0"}}  # the centre for discovery in May 2015.
 
 newMoons = {
 #    'Feb13': "2013/02/10 10:00:00",
@@ -174,8 +179,8 @@ newMoons = {
 #    'Jan14': '2014/01/01 10:00:00',
 #    'Feb14': '2014/01/31 10:00:00',
 #    'Mar14': '2014/03/28 10:00:00',
-    'Apr14': '2014/04/01 10:00:00',
-#    'May14': '2014/05/28 10:00:00',
+#    'Apr14': '2014/04/01 10:00:00',
+# 'May14': '2014/05/28 10:00:00',
 #    'Jun14': '2014/06/26 10:00:00',
 #    'Jul14': '2014/07/26 10:00:00',
 #    'Aug14': "2014/08/25 10:00:00",
@@ -369,8 +374,8 @@ dec_cen = math.degrees(decs.mean())
 #height = 70
 #ra_cen = 45.0
 #dec_cen = 17.5
-width = 10
-height = 10
+width = 12
+height = 7
 
 ## lets make a plot of the field selections.
 fig = figure()
@@ -426,9 +431,9 @@ for line in lines:
         ### only keep objects that are brighter than limit
         if kbo.mag < 25.0:
             kbos.append(kbo)
-        if PLOT_SYNTHETIC_KBOS:
-            kbo.compute(plot_date)
-            ax.scatter(math.degrees(float(kbo.ra)), math.degrees(float(kbo.dec)), c='k', marker='o', s=2, alpha=0.8)
+            if PLOT_SYNTHETIC_KBOS:
+                kbo.compute(plot_date)
+                ax.scatter(math.degrees(float(kbo.ra)), math.degrees(float(kbo.dec)), c='k', marker='o', s=2, alpha=0.8)
 
 print "{} KBOs found in coverage on {}".format(len(kbos), discovery_date)
 ## Now we work out how far to move the fields at different lunations
@@ -514,7 +519,7 @@ for idx in range(len(ras)):
                                     width=camera_width_36,
                                     color='r',
                                     lw=0.5, fill=True, alpha=0.3))
-            if LABEL_FIELDS :
+            if LABEL_FIELDS:
                 ax.text(math.degrees(ra), math.degrees(dec),
                         name,
                         horizontalalignment='center',
@@ -531,8 +536,8 @@ if PLOT_USNO_STARS:
     print "PLOTTING LOCATIONS NEARBY BRIGHT USNO B1 STARS"
     for ra in range(int(ra_cen - width/2.0),int(ra_cen + width/2.), 10):
         for dec in range(int(dec_cen - height/2.0),int(dec_cen + height/2.), 10):
-	    file_name = "/Users/jjk/new_usno/usno{:5.2f}{:5.2f}.xml".format(ra,dec).replace(" ","")
-            print file_name
+	    file_name = USER + "new_usno/usno{:5.2f}{:5.2f}.xml".format(ra, dec).replace(" ", "")
+        print file_name
             file_name = file_name.replace(" ","")
 	    if not os.access(file_name, os.R_OK):
                 usno = usnoB1.TAPQuery(ra, dec, 10.0, 10.0)
@@ -570,7 +575,7 @@ if PLOT_MEGACAM_ARCHIVE_FIELDS:
 
     for qra in range(int(ra_cen - width/2.0),int(ra_cen + width/2.), 60):
         for qdec in range(int(dec_cen - height/2.0),int(dec_cen + height/2.), 30):
-            filename = "/Users/jjk/usno/megacam{:+6.2f}{:+6.2f}.xml".format(qra,qdec)
+            filename = USER + "new_usno/megacam{:+6.2f}{:+6.2f}.xml".format(qra, qdec)
             if not os.access(filename, os.R_OK):
                 data = megacam.TAPQuery(qra, qdec, 60.0, 30.0).read()
                 fobj = open(filename, 'w')
@@ -582,9 +587,9 @@ if PLOT_MEGACAM_ARCHIVE_FIELDS:
             ra = t.array['RAJ2000']
             dec = t.array['DEJ2000']
 
-            rects = [Rectangle(xy=(ra[idx] - dimen / 2.0, dec[idx] - dimen / 2.0),
-                               height=camera_dimen,
-                               width=camera_dimen,
+            rects = [Rectangle(xy=(ra[idx] - camera_width_36 / 2.0, dec[idx] - camera_width_36 / 2.0),
+                               height=camera_height,
+                               width=camera_width_36,
                                edgecolor='m',
                                alpha=0.1,
                                lw=0.1, zorder=-100,
@@ -598,16 +603,13 @@ if PLOT_MPCORB:
     kbos = mpcread.getKBOs(MPCORB_FILE)
     for kbo in kbos:
         kbo.compute(plot_date)
-        if not ((ra_cen + width / 2.0 > kbo.ra > ra_cen - width / 2.0)
-                and (dec_cen + height / 2.0 > kbo.dec > dec_cen - height / 2.0)):
-            continue
-        ax.scatter(math.degrees(kbo.ra),
-                   math.degrees(kbo.dec),
-                   marker='h',
-                   s=1,
-                   facecolor='g',
-                   edgecolor='g', alpha=0.3)
-
+        if field_polygon.isInside(math.degrees(float(kbo.ra)), math.degrees(float(kbo.dec))):
+            ax.scatter(math.degrees(kbo.ra),
+                       math.degrees(kbo.dec),
+                       marker='x',
+                       s=4,
+                       facecolor='r',
+                       edgecolor='r', alpha=0.3)
 
 if PLOT_REAL_KBOS:
     reader = mpc.MPCReader()
@@ -672,6 +674,6 @@ if False:
 
 
 print "SAVING FILE"
-savefig('layout40.pdf')
+savefig('layout40-at' + PLOT_FIELD_EPOCH + '-discov_on-' + DISCOVERY_NEW_MOON + '.pdf')
 
 sys.stderr.write("FINISHED\n")
