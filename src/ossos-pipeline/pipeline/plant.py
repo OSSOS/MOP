@@ -41,6 +41,7 @@ from ossos.plant import KBOGenerator
 from pyraf import iraf
 from numpy import radians, fabs, log10, rint, cos, sin, transpose
 
+
 def plant_kbos(filename, psf, kbos, shifts, prefix):
     """
     Add KBOs to an image
@@ -93,7 +94,7 @@ def plant_kbos(filename, psf, kbos, shifts, prefix):
     x, y = w.wcs_world2pix(x, y, 1)
 
     # Each source will be added as a series of PSFs so that a new PSF is added for each pixel the source moves.
-    itime = float(header['EXPTIME'])/(3600.0*24.0)
+    itime = float(header['EXPTIME'])/3600.0
     npsf = fabs(rint(rate * itime)) + 1
     mag += 2.5*log10(npsf)
     dt_per_psf = itime/npsf
