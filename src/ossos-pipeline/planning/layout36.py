@@ -39,17 +39,17 @@ L7MODEL = 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
 # REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/Research/KuiperBelt/dbase/TNOdb/dbase/data/ast/'  # this is CFEPS
 REAL_KBO_AST_DIR = USER + 'Dropbox/OSSOS/measure3/ossin/'
 
-PLOT_FIELD_EPOCH = 'Apr14'  # Oct14.00 ==> '0' days since the New Moon on Oct14
+PLOT_FIELD_EPOCH = 'Feb15'  # Oct14.00 ==> '0' days since the New Moon on Oct14
 #TODO the .00 is appended when this variable is used as a keyword that needs that .00 this is bad.
-DISCOVERY_NEW_MOON = 'Apr14'  # this is the date that the RA/DEC in blocks corresponds to.
+DISCOVERY_NEW_MOON = 'Nov13'  # this is the date that the RA/DEC in blocks corresponds to.
 
 
 PLOT_USNO_STARS = False
-PLOT_MEGACAM_ARCHIVE_FIELDS = False   ## TODO Make this work when True
+PLOT_MEGACAM_ARCHIVE_FIELDS = True
 PLOT_SYNTHETIC_KBOS = True
 PLOT_SYNTHETIC_KBO_TRAILS = False
 PLOT_REAL_KBOS = False and os.access(REAL_KBO_AST_DIR,os.F_OK)
-PLOT_FIELD_LAYOUT = False
+PLOT_FIELD_LAYOUT = True
 
 PLOT_MPCORB = False and os.access(MPCORB_FILE, os.F_OK)
 
@@ -86,7 +86,7 @@ etHeader = """<?xml version = "1.0"?>
     <NAME>Ephemeris</NAME>
     <TITLE>Ephemeris for CFHT QSO</TITLE>
     <!-- Definition of each field -->
-    <FIELD name="DATE_UTC"  datatype="A" width="19" format="YYYY-MM-DD hh:mm:ss"> 
+    <FIELD name="DATE_UTC"  datatype="A" width="19" format="YYYY-MM-DD hh:mm:ss">
         <DESCRIPTION>UTC Date</DESCRIPTION>
     </FIELD>
     <FIELD name="RA_J2000"  datatype="A" width="11" unit="h"   format="RAh:RAm:RAs">
@@ -116,17 +116,17 @@ header = """<?xml version = "1.0"?>
 </FIELD>
 <FIELD name="RA" ref="" datatype="A" width="11" unit="&quot;h:m:s&quot;">
    <DESCRIPTION>Right ascension of target</DESCRIPTION>
-</FIELD>     
+</FIELD>
 <FIELD name="DEC" ref="" datatype="A" width="11" unit="&quot;d:m:s&quot;">
    <DESCRIPTION>Declination of target</DESCRIPTION>
-</FIELD>     
+</FIELD>
 <FIELD name="EPOCH" datatype="F" width="6">
     <DESCRIPTION>Epoch of coordinates</DESCRIPTION>
-</FIELD>     
+</FIELD>
 <FIELD name="POINT" datatype="A" width="5">
 <DESCRIPTION>Pointing name</DESCRIPTION>
-</FIELD>     
-<!-- Data table --> 
+</FIELD>
+<!-- Data table -->
 <DATA><CSV headlines="4" colsep="|"><![CDATA[
 NAME                |RA         |DEC        |EPOCH |POINT|
                     |hh:mm:ss.ss|+dd:mm:ss.s|      |     |
@@ -156,9 +156,9 @@ blocks = {'14BH': {'RA': "01:28:32.32", "DEC": "+12:51:06.10"}}
 #fall 2015
 # blocks = {'15BD': {'RA': "03:15:00.00", "DEC": "+16:30:00.00"}}
 
-#spring15
-#blocks = {'15AP': {'RA': "13:30:00", "DEC": "-07:00:00"}}
-blocks = {'14AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"}}
+# spring14
+
+# blocks = {'15AP': {'RA': "13:30:00", "DEC": "-07:00:00"}}
 
 newMoons = {
 #    'Feb13': "2013/02/10 10:00:00",
@@ -170,59 +170,59 @@ newMoons = {
 #    'Aug13': "2013/08/06 10:00:00",
 #    'Sep13': '2013/09/05 10:00:00',
 #    'Oct13': '2013/10/04 10:00:00',
-#    'Nov13': '2013/11/03 10:00:00',
+'Nov13': '2013/11/03 10:00:00',
 #    'Dec13': '2013/12/02 10:00:00',
 #    'Jan14': '2014/01/01 10:00:00',
 #    'Feb14': '2014/01/31 10:00:00',
 #    'Mar14': '2014/03/28 10:00:00',
-    'Apr14': '2014/04/01 10:00:00',
+# 'Apr14': '2014/04/01 10:00:00',
 #    'May14': '2014/05/28 10:00:00',
 #    'Jun14': '2014/06/26 10:00:00',
 #    'Jul14': '2014/07/26 10:00:00',
 #    'Aug14': "2014/08/25 10:00:00",
 #    'Sep14': '2014/09/24 10:00:00',
-#    'Oct14': '2014/10/23 10:00:00',
-#    'Nov14': '2014/11/22 10:00:00',
+#     'Oct14': '2014/10/23 10:00:00',
+'Nov14': '2014/11/22 10:00:00',
 #    'Dec14': '2014/12/22 10:00:00',
 #    'Jan15': '2015/01/20 10:00:00',
     'Feb15': '2015/02/18 10:00:00',
     'Mar15': '2015/03/19 10:00:00',
-    'Apr15': '2015/04/18 10:00:00',
-    'May15': '2015/05/17 10:00:00',
-    'Jun15': '2015/06/16 10:00:00',
-    'Jul15': '2015/07/15 10:00:00',
-    'Aug15': '2015/08/14 10:00:00',
-    'Sep15': '2015/09/12 10:00:00',
-    'Oct15': '2015/10/12 10:00:00',
-    'Nov15': '2015/11/11 10:00:00',
-    'Dec15': '2015/12/11 10:00:00',
-    'Jan16': '2016/01/09 10:00:00',
-    'Feb16': '2016/03/08 10:00:00',
-    'Mar16': '2016/03/09 10:00:00',
-    'Apr16': '2016/04/08 10:00:00',
-    'May16': '2016/05/07 10:00:00',
-    'Jun16': '2016/06/05 10:00:00',
-    'Jul16': '2016/07/05 10:00:00',
-    'Aug16': '2016/08/03 10:00:00',
-    'Sep16': '2016/09/01 10:00:00',
-    'Oct16': '2016/10/01 10:00:00',
-    'Nov16': '2016/11/01 10:00:00',
-    'Dec16': '2016/12/01 10:00:00',
-    'Jan17': '2017/01/01 10:00:00',
-    'Feb17': '2017/02/01 10:00:00',
-    }
+    # 'Apr15': '2015/04/18 10:00:00',
+    # 'May15': '2015/05/17 10:00:00',
+    # 'Jun15': '2015/06/16 10:00:00',
+    # 'Jul15': '2015/07/15 10:00:00',
+    # 'Aug15': '2015/08/14 10:00:00',
+    # 'Sep15': '2015/09/12 10:00:00',
+    # 'Oct15': '2015/10/12 10:00:00',
+    # 'Nov15': '2015/11/11 10:00:00',
+    # 'Dec15': '2015/12/11 10:00:00',
+    # 'Jan16': '2016/01/09 10:00:00',
+    # 'Feb16': '2016/03/08 10:00:00',
+    # 'Mar16': '2016/03/09 10:00:00',
+    # 'Apr16': '2016/04/08 10:00:00',
+    # 'May16': '2016/05/07 10:00:00',
+    # 'Jun16': '2016/06/05 10:00:00',
+    # 'Jul16': '2016/07/05 10:00:00',
+    # 'Aug16': '2016/08/03 10:00:00',
+    # 'Sep16': '2016/09/01 10:00:00',
+    # 'Oct16': '2016/10/01 10:00:00',
+    # 'Nov16': '2016/11/01 10:00:00',
+    # 'Dec16': '2016/12/01 10:00:00',
+    # 'Jan17': '2017/01/01 10:00:00',
+    # 'Feb17': '2017/02/01 10:00:00',
+}
 
 
 
 xgrid = {'2014': [-3, -2, -1, 0, 1, 2, 3],
-         '2014r': [-4, -3, -2, -1, 0.0, 1],
+         '2014r': [-3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5],
          'astr': [1, 2, 3, 4]}
 # 2013
 #       'astr':[-5.5,-4.5,-3.5,-2.5,-1.5,-0.5,0.5,1.5,2.5,3.5,4.5,5.5]}
 
 ygrid = {'2014': [-1, 0, 1],
          'astr': [-2.5, -1.5, -0.5, 0.5, 1.5],
-         '2014r': [-2.3, -1.3, -0.3, 0.7]}
+         '2014r': [-1.5, -0.5, 0.5, 1.5]}
 # 2013
 #       'astr':  [-2.2,-1.2, -0.2, 0.8, 1.8],
 
@@ -232,24 +232,16 @@ field_centre = ephem.Ecliptic(0, 0)
 ## foffset is the offset (in RA and DEC) between fields
 field_offset = math.radians(1.00)
 # which year, for the x/y offset grids, are we using.
-year = '40ccd'
+year = '2014'
 
 # the 'astr' year indicates astrometric grid,  this should have more overlap so reduce the field_offset for those.
 if year == 'astr':
     field_offset *= 0.75
 
 ## camera_dimen is the size of the field.
-camera_dimen = 1.0
-camera_width =  camera_dimen*10/9.0
-camera_height = camera_dimen
+camera_dimen = 0.98
 
 years = {"2014": {"ra_off": ephem.hours("00:00:00"),
-                  "dec_off": ephem.hours("00:00:00"),
-                  "fill": False,
-                  "facecolor": 'k',
-                  "alpha": 0.5,
-                  "color": 'b'},
-         "40ccd": {"ra_off": ephem.hours("00:00:00"),
                   "dec_off": ephem.hours("00:00:00"),
                   "fill": False,
                   "facecolor": 'k',
@@ -287,19 +279,19 @@ field_names = []
 field_polygon = None
 
 for block in blocks.keys():
-    ra_start = ephem.hours(blocks[block]["RA"]) + years[year]["ra_off"]
-    dec_start = ephem.degrees(blocks[block]["DEC"]) + years[year]["dec_off"]
-    width = math.radians(camera_width / math.cos(dec_start))
-    height = math.radians(camera_height)
+    rac = ephem.hours(blocks[block]["RA"]) + years[year]["ra_off"]
+    decc = ephem.degrees(blocks[block]["DEC"]) + years[year]["dec_off"]
+    width = field_offset / math.cos(decc)
+    block_centre.from_radec(rac, decc)
+    block_centre.set(block_centre.lon + xgrid[year][0] * width, block_centre.lat)
+    field_centre.set(block_centre.lon, block_centre.lat)
     for dx in xgrid[year]:
-        rac = ephem.hours(ra_start + dx*width)
-        decc = ephem.degrees(dec_start - dx*height/2.0)
+        (rac, decc) = field_centre.to_radec()
         for dy in ygrid[year]:
-            this_decc = decc + dy * height
-            dec = math.degrees(this_decc)
+            ddec = dy * field_offset
+            dec = math.degrees(decc + ddec)
             ra = math.degrees(rac)
-            print "{} {}".format(rac, dec)
-            field_name = "{0}{1:+}{2:+}".format(block, dx, dy)
+            field_name = "%s%+d%+d" % (block, dx, dy)
             field_names.append(field_name)
             decs.append(np.radians(dec))
             ras.append(np.radians(ra))
@@ -317,6 +309,11 @@ for block in blocks.keys():
                 (xcen - dimen / 2.0, ycen - dimen / 2.0)))
             field_polygon = field_polygon is None and this_point_polygon or this_point_polygon | field_polygon
 
+        rac += field_offset / math.cos(decc)
+        for i in range(3):
+            field_centre.from_radec(rac, decc)
+            field_centre.set(field_centre.lon, block_centre.lat)
+            (ttt, decc) = field_centre.to_radec()
 
 fix.write("""]]</CSV></DATA>
 </TABLE>
@@ -348,8 +345,8 @@ dec_cen = math.degrees(decs.mean())
 #height = 70
 #ra_cen = 45.0
 #dec_cen = 17.5
-width = 7
-height = 7
+width = 10
+height = 10
 
 ## lets make a plot of the field selections.
 fig = figure()
@@ -422,7 +419,6 @@ for line in lines:
         ### only keep objects that are brighter than limit
         if kbo.mag < 25.0:  # and (kbo.name == 'classical' and values[9] == 'm'): # and values[10] == 'k'):
             kbos.append(kbo)
-
             if PLOT_SYNTHETIC_KBOS:
                 kbo.compute(plot_date)
                 ax.scatter(math.degrees(float(kbo.ra)), math.degrees(float(kbo.dec)), c='k', marker='o', s=2, alpha=0.8)
@@ -477,9 +473,6 @@ for month in seps:
 
 sorted_epochs = sorted(dates.iteritems(), key=operator.itemgetter(1))
 
-camera_width=0.983*camera_width
-camera_height=0.983*camera_height
-
 print "CREATING ET XML FILES USING BASE POINTING AND NOMINAL MOTION RATES"
 for idx in range(len(ras)):
     name = field_names[idx]
@@ -496,20 +489,10 @@ for idx in range(len(ras)):
             tdate[0], zf(tdate[1], 2), zf(tdate[2], 2), zf(tdate[3], 2), zf(tdate[4], 2), zf(int(tdate[5]), 2))
         f.write('%19s|%11s|%11s|\n' % (sdate, ephem.hours(ra), ephem.degrees(dec)))
         if epoch == PLOT_FIELD_EPOCH+".00" and PLOT_FIELD_LAYOUT:
-            ax.add_artist(Rectangle(xy=(math.degrees(ra) - 11*camera_width/10.0/2.0, math.degrees(dec) - camera_height / 4.0 ),
-                                    width= 11*camera_width/10.0,
-                                    height= camera_height/2.0,
-                                    color='b',
-                                    lw=0.5, fill=True, alpha=0.3)) 
-            ax.add_artist(Rectangle(xy=(math.degrees(ra) - 9*camera_width/10.0/ 2.0, math.degrees(dec) - camera_height / 2.0),
-                                    height=camera_height/4.0,
-                                    width=camera_width*9/10.0,
-                                    color='g',
-                                    lw=0.5, fill=True, alpha=0.3))
-            ax.add_artist(Rectangle(xy=(math.degrees(ra) - 9*camera_width/10.0/ 2.0, math.degrees(dec) + camera_height / 4.0),
-                                    height=camera_height/4.0,
-                                    width=camera_width*9/10.0,
-                                    color='r',
+            ax.add_artist(Rectangle(xy=(math.degrees(ra) - dimen / 2.0, math.degrees(dec) - dimen / 2.0),
+                                    height=camera_dimen,
+                                    width=camera_dimen,
+                                    edgecolor='b',
                                     lw=0.5, fill=True, alpha=0.3))
             if LABEL_FIELDS :
                 ax.text(math.degrees(ra), math.degrees(dec),
@@ -544,7 +527,7 @@ if PLOT_USNO_STARS:
 	    select = t.array['Bmag'] < 9.3
             Rmag = t.array['Bmag'][select]
             min_mag = max(Rmag.min(), 11)
-            scale = 0.5 * 10 ** ((min_mag - Rmag) / 2.5) 
+            scale = 0.5 * 10 ** ((min_mag - Rmag) / 2.5)
             ax.scatter(t.array['RAJ2000'][select], t.array['DEJ2000'][select], s=scale, marker='o', facecolor='y', alpha=0.3, edgecolor='',
                        zorder=-10)
 
@@ -567,7 +550,7 @@ if PLOT_MEGACAM_ARCHIVE_FIELDS:
 
     for qra in range(int(ra_cen - width/2.0),int(ra_cen + width/2.), 60):
         for qdec in range(int(dec_cen - height/2.0),int(dec_cen + height/2.), 30):
-            filename = "/Users/jjk/usno/megacam{:+6.2f}{:+6.2f}.xml".format(qra,qdec)
+            filename = USER + "megacam{:+6.2f}{:+6.2f}.xml".format(qra, qdec)
             if not os.access(filename, os.R_OK):
                 data = megacam.TAPQuery(qra, qdec, 60.0, 30.0).read()
                 fobj = open(filename, 'w')
@@ -588,7 +571,6 @@ if PLOT_MEGACAM_ARCHIVE_FIELDS:
                                fill=False) for idx in xrange(ra.size)]
             for r in rects:
                 ax.add_artist(r)
-                
 
 if PLOT_MPCORB:
     print "PLOTTING LOCATIONS OF KNOWN KBOs (using {})".format(MPCORB_FILE)
@@ -620,7 +602,7 @@ if PLOT_REAL_KBOS:
         #    continue
         if obs[0].mag < 23.6:
             c = 'b'
-            if LABEL_FIELDS : 
+            if LABEL_FIELDS:
                 ax.text(kbo.coordinate.ra.degree,
                     kbo.coordinate.dec.degree,
                     ast.split('.')[0],
@@ -664,7 +646,7 @@ if False:
     ax2 = ax.twiny()
     ax2.set_xticks(new_tick_locations)
     ax2.set_xticklabels(tick_function(new_tick_locations))
-    ax2.set_xlabel("Opp. Month")    
+    ax2.set_xlabel("Opp. Month")
     ax2.set_xlim(360,0)
 
 
