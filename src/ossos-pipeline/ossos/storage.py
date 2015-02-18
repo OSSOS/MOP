@@ -352,6 +352,54 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     if os.access(filename, os.F_OK) and return_file and cutout is None:
         return filename
 
+    cutout_string = cutout
+    try:
+        if os.access(filename, os.F_OK) and cutout:
+            cutout = datasec_to_list(cutout)
+            hdulist = fits.open(filename)
+            if len(hdulist) > 1:
+                raise ValueError("Local cutout access not designed to work on MEFs yet.")
+            header = hdulist[0].header
+            cutout[0] = cutout[0] < 0 and header['NAXIS1'] - cutout[0] + 1 or cutout[0]
+            cutout[1] = cutout[1] < 0 and header['NAXIS1'] - cutout[1] + 1 or cutout[1]
+            cutout[2] = cutout[2] < 0 and header['NAXIS2'] - cutout[2] + 1 or cutout[2]
+            cutout[3] = cutout[3] < 0 and header['NAXIS2'] - cutout[3] + 1 or cutout[3]
+            logger.debug("DATA array shape: {}".format(hdulist[0].data.shape))
+            logger.debug("CUTOUT array: {} {} {} {}".format(cutout[0],
+                                                            cutout[1],
+                                                            cutout[2],
+                                                            cutout[3]))
+            flip = cutout[0] < cutout[1] and 1 or -1
+            flop = cutout[2] < cutout[3] and 1 or -1
+            header['CRPIX1'] = (header.get("CRPIX1", 1) - cutout[0]) * flip + 1
+            header['CRPIX2'] = (header.get("CRPIX2", 1) - cutout[2]) * flop + 1
+            header['CD1_1'] = header.get("CD1_1", 1) * flip
+            header['CD2_1'] = header.get("CD2_1", 1) * flip
+            header['CD2_2'] = header.get("CD2_2", 1) * flop
+            header['CD1_2'] = header.get("CD1_2", 1) * flop
+
+            data = hdulist[0].data[cutout[2]-1:cutout[3], cutout[0]-1:cutout[1]]
+            hdulist[0].data = data
+            header['DATASEC'] = reset_datasec(cutout_string,
+                                              header['DATASEC'],
+                                              header['NAXIS1'],
+                                              header['NAXIS2'])
+            if return_file:
+                cutout_filename = os.path.splitext(filename)[0]+"_{}_{}_{}_{}.fits".format(cutout[0],
+                                                                                           cutout[1],
+                                                                                           cutout[2],
+                                                                                           cutout[3])
+                hdulist.writeto(cutout_filename)
+                return cutout_filename
+            else:
+                return hdulist
+    except Exception as e:
+        logger.debug(str(e))
+        logger.debug("Failed trying to access local copy: {} with cutout [{}:{}, {}:{}], using VOSpace".format(
+            filename, cutout[2]-1, cutout[3], cutout[0]-1, cutout[1]))
+
+    cutout = cutout_string
+
     if not subdir:
         subdir = str(expnum)
 
@@ -397,6 +445,16 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     raise IOError(errno.ENOENT, "Failed to get image using {} {} {} {}.".format(expnum, version, ccd, cutout))
 
 
+def datasec_to_list(datasec):
+    """
+    convert an IRAF style PIXEL DATA section as to a list of integers.
+    @param datasec: str
+    @return: list
+    """
+
+    return [int(x) for x in re.findall(r"([-+]?[\*\d]+?)[:,\]]+", datasec)]
+
+
 def reset_datasec(cutout, datasec, naxis1, naxis2):
     """
     reset the datasec to account for a possible cutout.
@@ -409,11 +467,9 @@ def reset_datasec(cutout, datasec, naxis1, naxis2):
     if cutout is None or cutout == "[*,*]":
         return datasec
 
-    # attempt to dissect the datasec provided, if fail then just return the input stirng.
     try:
-        datasec = [int(x) for x in re.findall(r"([-+]?[\*\d]+?)[:,\]]+", datasec)]
+        datasec = datasec_to_list(datasec)
     except:
-        logger.debug("Failed to processes the datasec pattern: {}".format(datasec))
         return datasec
 
     # check for '-*' in the cutout string and replace is naxis:1
