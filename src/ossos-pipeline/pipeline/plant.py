@@ -244,9 +244,6 @@ def main(argv):
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
 
-    if args.dry_run:
-        args.force = True
-
     # # setup logging
     level = logging.CRITICAL
     if args.debug:
@@ -277,7 +274,10 @@ def main(argv):
                     str(args.expnums), str(ccd).zfill(2)))
             if storage.get_status(args.expnums[0], ccd,
                                   'plant', version=args.type) and not args.force:
-                logging.info("plant done for %s[%s]" % (args.expnums[0], ccd))
+                logging.info("{} previously completed successfully for {}{}{:02d}".format(sys.argv[0],
+                                                                                          args.expnums[0],
+                                                                                          args.type,
+                                                                                          ccd))
                 continue
             plant(args.expnums,
                   ccd,

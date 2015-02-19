@@ -84,7 +84,7 @@ def main(task='mkpsf'):
                         type=int,
                         nargs='+',
                         help="expnum(s) to process")
-    parser.add_argument("--dry_run",
+    parser.add_argument("--dry-run",
                         action="store_true",
                         help="DRY RUN, don't copy results to VOSpace, implies --force")
 
@@ -100,9 +100,6 @@ def main(task='mkpsf'):
                         action="store_true")
 
     args = parser.parse_args()
-
-    if args.dry_run:
-        args.force = True
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)

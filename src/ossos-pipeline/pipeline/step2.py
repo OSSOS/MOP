@@ -184,18 +184,15 @@ def main():
                         action='store_true')
     parser.add_argument("--verbose", "-v",
                         action="store_true")
-    parser.add_argument("--default", default="WCS", 
-			choices=['WCS', 'JMP'], 
-			help="Which shift should be used if they dis-agree?")
+    parser.add_argument("--default", default="WCS",
+                        choices=['WCS', 'JMP'],
+                        help="Which shift should be used if they dis-agree?")
     parser.add_argument("--debug",
                         action="store_true")
-    parser.add_argument("--dry_run", action="store_true", help="run without pushing back to VOSpace, implies --force")
+    parser.add_argument("--dry-run", action="store_true", help="run without pushing back to VOSpace, implies --force")
     parser.add_argument("--force", action="store_true")
 
     args = parser.parse_args()
-
-    if args.dry_run:
-        args.force = True
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO, format="%(message)s")

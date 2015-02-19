@@ -153,12 +153,9 @@ def main(task='step1'):
     parser.add_argument("--debug", '-d',
                         action='store_true')
     parser.add_argument("--force", action="store_true")
-    parser.add_argument("--dry_run", action="store_true", help="Do a dry run, not changes to vospce, implies --force")
+    parser.add_argument("--dry-run", action="store_true", help="Do a dry run, not changes to vospce, implies --force")
 
     args = parser.parse_args()
-
-    if args.dry_run:
-        args.force = True
 
     level = logging.CRITICAL
     log_format = "%(message)s"

@@ -80,30 +80,6 @@ class ImageCutoutDownloader(Downloader):
                                     return_file=False
                                     )
 
-        #hdulist = self.download_hdulist(image_uri, view="cutout",
-        #                                cutout=cutout_str)
-        # modify the DATASEC to account for possible flip/flop and changes in dimensions of the image.
-        DATASEC = hdulist[0].header.get('DATASEC',None)
-        if DATASEC is not None:
-            datasec = re.findall(r'(\d+)', DATASEC)
-            if y2 < y1:
-                x2 = int(NAXIS1) - int(datasec[0]) + 1
-                x1 = int(NAXIS1) - int(datasec[1]) + 1
-                y2 = int(NAXIS2) - int(datasec[2]) + 1
-                y1 = int(NAXIS2) - int(datasec[3]) + 1
-                logger.debug("Flip/Flopped DATASEC from {} to [{}:{}:{}:{}]".format(DATASEC, x1,x2,y1,y2))
-                datasec = (x1,x2,y1,y2)
-            (x1,y1) = converter.convert((int(datasec[0]),int(datasec[2])))
-            x1 = max(1,x1)
-            y1 = max(1,y1)
-            (x2,y2) = converter.convert((int(datasec[1]),int(datasec[3])))
-            x2 = min(x2, int(hdulist[0].header['NAXIS1']))
-            y2 = min(y2, int(hdulist[0].header['NAXIS2']))
-            datasec = "[{}:{},{}:{}]".format(x1,x2,y1,y2)
-            logger.debug("Trimmed and offset DATASEC from {} to {}".format(DATASEC, datasec))
-
-            hdulist[0].header['DATASEC'] = datasec
-
         apcor = None
         if needs_apcor:
             try:
