@@ -13,10 +13,10 @@ def outDict(horizons_string):
     keys = ['DATE', 'RA', 'DEC', 'AppRA', 'AppDec', 'dRA', 'dDec', 'AZ', 'EL', 'dAZ', 'dEL', 'v_mag', 'r_helio']
     if len(S) == 73:
         spots = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 18, 34]  # the object is a tno
-    else:
-        assert len(S) == 74
+    elif len(S) == 74 or len(S) == 75:
         # the object is an asteroid: surface brightness is returned for asteroids when a radius is known. Off-by-one
         # error.
+        # moons are different again at len = 75. Not fully tested that it works for moons.
         spots = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 18, 35]
     for ii in range(len(spots)):  # match the values to the keys, loading up the dictionary
         spot = spots[ii]
@@ -91,10 +91,12 @@ def batch(object, t, T, step, su='d'):
     # Get required information back out of the page Horizons returns
     # Extract the orbital elements and epoch of origin - works as long as the name parses, even if the ephemeris
     # request fails
+    epoch_possible = False
     for i in range(len(urlData)):
         S = urlData[i].split()
         if len(S) > 0:
-            if S[0] == 'EPOCH=':
+            if S[0] == 'EPOCH=':  # moons don't have epochs so this can't be required
+                epoch_possible = True
                 epochStr = "/".join(S[3].split('-'))
                 S = urlData[i + 1].split('=')
                 e = float(S[1].split(' QR')[0])
@@ -107,27 +109,28 @@ def batch(object, t, T, step, su='d'):
                 M = float(S[2].strip(' ADIST'))
                 break
 
-    orbital_elements = {'a': a, 'e': e, 'i': inc, 'Omega': Omega, 'W': W, 'M': M, 'Epoch': epochStr}
+    if epoch_possible:
+        orbital_elements = {'a': a, 'e': e, 'i': inc, 'Omega': Omega, 'W': W, 'M': M, 'Epoch': epochStr}
+    else:
+        orbital_elements = None
 
     # Keep the lines in urlData that have ephemeris information
-    ephem_lines = []
     request_worked = False
     for i in range(len(urlData)):
-        if urlData[i] == '$$SOE\n':  # '$$SOE\n' and '$$EOE\n' bracket the returned ephemerides if the request worked
+        # '$$SOE\n' and '$$EOE\n' bracket the returned ephemerides if the request worked
+        if urlData[i] == '$$SOE\n':
             request_worked = True
-        # '*' chars are at each end of the ephem lines
-        if urlData[i][0] == '*' and urlData[i][len(urlData[i]) - 2] == '*' and len(urlData[i]) > 80:
-            ephem_lines.append(i)
-
+            start = i + 1
+        if request_worked and urlData[i] == '$$EOE\n':
+            end = i - 1
     # Send back the problem if the request didn't work (catch this)
-    if request_worked == False:
+    if request_worked is False:
         raise EnvironmentError, 'Horizons request did not return ephemerides. Check the problem: ' + urlData[24]
 
     # Transfer the good lines to the dictionary, which makes all the values indexed and accessible
     ephemerides = []
-    for i in range(ephem_lines[1] + 2, ephem_lines[2] - 1):
-        #print urlData[i],'&&&&&'
-        ephemerides.append(outDict(urlData[i]))
+    for line in urlData[start:end + 1]:
+        ephemerides.append(outDict(line))
 
     return orbital_elements, ephemerides
 
