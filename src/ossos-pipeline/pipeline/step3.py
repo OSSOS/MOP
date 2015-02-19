@@ -135,13 +135,10 @@ def main():
     parser.add_argument('--width', default=_ANGLE_WIDTH,
                         help='openning angle of search cone',
                         type=float)
-    parser.add_argument("--dry_run", action="store_true", help="do not copy to VOSpace, implies --force")
+    parser.add_argument("--dry-run", action="store_true", help="do not copy to VOSpace, implies --force")
     parser.add_argument("--force", action="store_true")
 
     args = parser.parse_args()
-
-    if args.dry_run:
-        args.force = True
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO, format="%(message)s")

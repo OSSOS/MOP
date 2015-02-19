@@ -96,13 +96,10 @@ def main():
                         action="store_true")
     parser.add_argument("--debug", '-d',
                         action='store_true')
-    parser.add_argument("--dry_run", action="store_true", help="Do not copy back to VOSpace, implies --force")
+    parser.add_argument("--dry-run", action="store_true", help="Do not copy back to VOSpace, implies --force")
     parser.add_argument("--force", action='store_true')
     
     args = parser.parse_args()
-
-    if args.dry_run:
-        args.force = True
 
     storage.DBIMAGES = args.dbimages
 

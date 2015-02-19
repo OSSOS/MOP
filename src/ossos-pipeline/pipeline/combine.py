@@ -143,11 +143,9 @@ def main():
     parser.add_argument("--debug", '-d',
                         action='store_true')
     parser.add_argument("--force", '-f', action='store_true')
-    parser.add_argument("--dry_run", action="store_true", help="Don't push back to VOSpace, implies --force")
+    parser.add_argument("--dry-run", action="store_true", help="Don't push back to VOSpace, implies --force")
 
     args = parser.parse_args()
-    if args.dry_run:
-        args.force = True
 
     level = logging.CRITICAL
     if args.debug:
