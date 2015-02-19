@@ -1,3 +1,4 @@
+import os
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -60,12 +61,19 @@ class Downloader(object):
         Returns:
           apcor: ossos.downloads.core.ApcorData
         """
-        fobj = storage.vofile(uri, view='data')
+        local_file = os.path.basename(uri)
+        if os.access(local_file, os.F_OK):
+            fobj = open(local_file)
+        else:
+            fobj = storage.vofile(uri, view='data')
         apcor_str = fobj.read()
         fobj.close()
         return ApcorData.from_string(apcor_str)
 
     def download_zmag(self, uri):
+        local_file = os.path.basename(uri)
+        if os.access(local_file, os.F_OK):
+            return float(open(local_file).read())
         return float(storage.vofile(uri, view="data").read())
 
 
