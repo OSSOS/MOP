@@ -21,13 +21,7 @@ from matplotlib.patches import Rectangle
 from matplotlib.backends.backend_pdf import PdfPages
 import logging
 
-OSSOS_RUNIDS = []
-for year in range(13, 17, 1):
-    for semester in ['AP', 'BP']:
-        for code in ['05', '06']:
-            OSSOS_RUNIDS.append('{}{}{}'.format(year, semester, code))
-
-SURVEY_START = '2013-01-01'
+from planning.plotting import parameters
 
 
 def query_for_observations(mjd, observable, runids):
@@ -224,10 +218,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Query the CADC for OSSOS observations.")
 
     parser.add_argument('date', nargs='?', action='store',
-                        default=SURVEY_START)
+                        default=parameters.SURVEY_START)
 
     parser.add_argument('--runid', nargs='*', action='store',
-                        default=OSSOS_RUNIDS)
+                        default=parameters.OSSOS_RUNIDS)
 
     parser.add_argument('--cal', action='store', default=1)
 

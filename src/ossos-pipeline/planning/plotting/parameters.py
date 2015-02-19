@@ -7,11 +7,20 @@ from collections import OrderedDict
 MPCORB_FILE = os.path.join(os.getenv('HOME', '/Users/michele/'), 'MPCORB-Distant.dat')
 L7MODEL = '/Users/michele/Dropbox/OSSOS/Release_summaries/L7model-3.0-9.0'  # 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
 L7_HOME = '/Users/michele/Dropbox/OSSOS/Release_summaries/'
-REAL_KBO_AST_DIR = '/Users/michele/Dropbox/OSSOS/measure3/ossin/'  # 'vos:OSSOS/dbaseclone/ast/'
+# REAL_KBO_AST_DIR = '/Users/michele/Dropbox/OSSOS/measure3/ossin/'
+REAL_KBO_AST_DIR = 'vos:OSSOS/dbaseclone/ast/'
 RELEASE_VERSION = 4
 RELEASE_SUMMARY = '/Users/michele/Dropbox/OSSOS/Release_summaries/OSSOSv4/OSSOSv4summary.dat'
 RELEASE_CLASSIFICATION = '/Users/michele/Dropbox/OSSOS/Release_summaries/OSSOSv4/OSSOSv4class.dat'
 PLOT_FIELD_EPOCH = 'Jun14.00'  # Jun14.00 ==> '0' days since the New Moon on Jun14
+
+OSSOS_RUNIDS = []
+for year in range(13, 17, 1):
+    for semester in ['AP', 'BP']:
+        for code in ['05', '06']:
+            OSSOS_RUNIDS.append('{}{}{}'.format(year, semester, code))
+
+SURVEY_START = '2013-01-01'
 
 PLOT_USNO_STARS = True
 PLOT_MEGACAM_ARCHIVE_FIELDS = False  # # TODO Make this work when True
@@ -19,7 +28,6 @@ PLOT_SYNTHETIC_KBOS = False
 PLOT_SYNTHETIC_KBO_TRAILS = False
 PLOT_REAL_KBOS = True and os.access(REAL_KBO_AST_DIR, os.F_OK)
 PLOT_FIELD_LAYOUT = True
-
 PLOT_MPCORB = True and os.access(MPCORB_FILE, os.F_OK)
 
 NEWMOONS = {'Feb13': "2013/02/10 10:00:00",
@@ -92,7 +100,7 @@ BLOCKS = OrderedDict([
 DISCOVERY_DATES = {"13AE": "2013/04/09 08:50:00",
                    "13AO": "2013/05/08 08:50:00",
                    "15AP": NEWMOONS['Apr15'],  # FIXME: set when observations taken
-                   "15AM": NEWMOONS['May14'],  # Backup triplet: split on 2014/05/29, 2014/06/01
+                   "15AM": NEWMOONS['May15'],  # Backup triplet was on 2014/05/29, 2014/06/01 at diff block centre
                    "13BL": "2013/09/29 08:50:00",  # HOWEVER: discovery date is split between months (earliest)
                    "14BH": "2014/10/22 09:30:00",  # Note: Col3N triplet is instead 2014/01/03.
                    "15BD": NEWMOONS['Nov15'],  # FIXME: set when observations taken
