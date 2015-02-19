@@ -13,6 +13,7 @@ import parsers
 import horizons
 
 
+
 # FIXME: make this an args setting rather than hardwired
 PLOT_MPCORB = True and os.access(parameters.MPCORB_FILE, os.F_OK)
 
@@ -22,24 +23,17 @@ saturn_moons = ['Phoebe', 'Ymir', 'Paaliaq', 'Tarvos', 'Ijiraq', 'Suttungr', 'Ki
 
 
 def plot_planets(ax, plot, date, hill_sphere=False):
-    # # only add the planets that would actually fall in this plot
-    #     plot_polygon = Polygon.Polygon(((plot[0],plot[2]),
-    #                                    (plot[0],plot[3]),
-    #                                    (plot[1],plot[3]),
-    #                                    (plot[0],plot[3]),
-    #                                    (plot[0],plot[2])))
-    # #    print plot_polygon
     mass = {"Sun": 1.989 * 10 ** 30, "Mars": 639 * 10 ** 21, "Jupiter": 1.898 * 10 ** 27, "Saturn": 568.3 * 10 ** 24,
             "Uranus": 86.81 * 10 ** 24, "Neptune": 102.4 * 10 ** 24}  # kg
     for planet in [ephem.Mars(), ephem.Jupiter(), ephem.Saturn(), ephem.Uranus(), ephem.Neptune()]:
         planet.compute(ephem.date(date))
         pos = (math.degrees(planet.ra), math.degrees(planet.dec))
-        #        if plot_polygon.isInside(math.degrees(planet.ra), math.degrees(planet.dec)):
+        # if plot_polygon.isInside(math.degrees(planet.ra), math.degrees(planet.dec)):
         ax.scatter(pos[0], pos[1],
                    marker='o',
                    s=30,
-                   facecolor='#E47833',
-                   edgecolor='#E47833')
+                   facecolor='k',  ##E47833',
+                   edgecolor='k')  ##E47833')
         ax.annotate(planet.name, (pos[0] - .4, pos[1] + 0.1))  #(pos[0]+.9, pos[1]+0.5))  # offset to make it readable
 
         if hill_sphere:
@@ -74,9 +68,11 @@ def plot_ossos_discoveries(ax, discoveries, prediction_date=False):  # , blockID
         if (kbo.classification == 'res' and kbo.n == 3 and kbo.m == 2):
             print kbo.name
             fc = '#E47833'
+            alpha = 1
         else:
             fc = 'b'
-        ax.scatter(ra, dec, marker='o', facecolor=fc, alpha=0.8, edgecolor='w', linewidth=0.4, s=25)
+            alpha = 0.6
+        ax.scatter(ra, dec, marker='o', facecolor=fc, alpha=alpha, edgecolor='k', linewidth=0.4, s=25)
         ax.annotate(kbo.name[3:],
                     (ra - .07, dec - 0.14),  # confirm this is being added properly
                     size=7,
@@ -130,7 +126,7 @@ def plot_known_tnos_batch(handles, labels, date):
 
 def plot_single_known_tno(ax, name, date, close=[]):
     # date formatted as %Y-%m-%d %H:%M
-    # FIXME: rewrite this to use astroquery.mpc's single-object retrieval. Where did my Horizons script go?
+    # FIXME: rewrite this to use astroquery.mpc's single-object retrieval.
     dateplus1hr = (datetime.datetime.strptime(date, '%Y-%m-%d %H:%M') + datetime.timedelta(1 / 24.)).strftime(
         '%Y-%m-%d %H:%M')
     obj_elems, single_ephem = horizons.batch(name, date, dateplus1hr, None, su='d')  # pull back one position only
