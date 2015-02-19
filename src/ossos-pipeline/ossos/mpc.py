@@ -9,7 +9,7 @@ import time
 import logging
 
 from datetime import datetime
-from astropy import coordinates
+
 
 try:
     from astropy.time import sofa_time
@@ -1274,6 +1274,10 @@ class MPCReader(object):
                     mpc_observations.append(mpc_observation)
             except:
                 continue
+
+        # No assurance that a .ast file is date-ordered: date-ordered is more expected behaviour
+        mpc_observations.sort(key=lambda x: x.date)
+
         return numpy.array(mpc_observations)
 
     @property
