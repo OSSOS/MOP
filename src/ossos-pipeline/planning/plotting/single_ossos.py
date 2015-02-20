@@ -17,15 +17,16 @@ import parsers
 from planning.ObsStatus import query_for_observations
 
 
-def plot_actual_observations(ax, obj):
-    fc = 'b'
-    alpha = 0.6
-    ra = [obs.coordinate.ra.degree for obs in obj.mpc_observations]
-    dec = [obs.coordinate.dec.degree for obs in obj.mpc_observations]
-
+def plot_actual_observations(ax, obj, mark_rejected=False):
     for i, obs in enumerate(obj.mpc_observations):
-        ax.scatter(obs.coordinate.ra.degree, obs.coordinate.dec.degree, marker='o')
-        # ax.scatter(ra, dec, marker='o', facecolor=fc, alpha=alpha, edgecolor='k', linewidth=0.4, s=7)
+        fc = 'b'
+        alpha = 0.6
+        marker = 'o'
+        if mark_rejected:
+            if obs.null_observation:
+                fc = 'r'
+                marker = 'x'
+        ax.scatter(obs.coordinate.ra.degree, obs.coordinate.dec.degree, marker=marker, facecolor=fc, alpha=alpha)
         # is it away from the last annotation plotted? 5 days empirically worked best to remove puzzlement
         if ((obs.date - obj.mpc_observations[i - 1].date) > TimeDelta(5, format='jd')) or i == 0:
             ax.annotate(obs.date.datetime.strftime('%Y-%m-%d'),
@@ -33,7 +34,6 @@ def plot_actual_observations(ax, obj):
                         size=7,
                         color='k')
     return ax
-
 
 def plot_prediction(ax, obj):
     ra = []
@@ -65,33 +65,7 @@ def plot_prediction(ax, obj):
     return ax
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("kbo",
-                        nargs='*',
-                        help="Plot all OSSOS imaging of the given KBO, which can be an OSSOS discovery.")
-
-    args = parser.parse_args()
-    print(args)
-
-    # load in the KBO. For now let's assume it's a single OSSOS discovery, generalise later
-    discoveries = parsers.ossos_release_parser()
-    fn = parameters.REAL_KBO_AST_DIR + args.kbo[0] + '.ast'
-    obj = mpc.MPCReader(fn)  # let MPCReader's logic determine the provisional name
-    # need to determine a plot extent to get the MegaCam coverage
-    # and KBOs go westward so earliest to latest is kinda useful
-    extents = [min([obs.coordinate.ra.degree for obs in obj.mpc_observations]) - 0.5,
-               max([obs.coordinate.ra.degree for obs in obj.mpc_observations]) + 0.5,
-               min([obs.coordinate.dec.degree for obs in obj.mpc_observations]) - 0.3,
-               max([obs.coordinate.dec.degree for obs in obj.mpc_observations]) + 0.3]
-    midpoint = ( extents[0] + ((extents[1] - extents[0]) / 2.), extents[2] + ((extents[3] - extents[2]) / 2.) )
-
-    print(extents, midpoint)
-    # plot up its locations on the sky?
-    handles, labels, ax, fontP = sky_location_plots.basic_skysurvey_plot_setup()
-    ax = plot_actual_observations(ax, obj)
-    ax = plot_prediction(ax, obj)
-
+def megacam_corresponding_to_observations(ax):
     # now while we know the KBO was in these images (here's the measurements), want the field centres
     # to make the footprints.
     discov = [m for m in obj.mpc_observations if m.discovery][0]
@@ -123,10 +97,32 @@ if __name__ == '__main__':
                           fill=False)
             ax.add_artist(r)
 
-    # sky_location_plots.plot_existing_CFHT_Megacam_observations_in_area(ax,
-    # midpoint[0], midpoint[1],
-    #                                                                    discovery=discov_date)
+    return ax
 
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("kbo",
+                        nargs='*',
+                        help="Plot all OSSOS imaging of the given KBO, which can be an OSSOS discovery.")
+
+    args = parser.parse_args()
+
+    # load in the KBO. For now let's assume it's a single OSSOS discovery, generalise later
+    discoveries = parsers.ossos_release_parser()
+    fn = parameters.REAL_KBO_AST_DIR + args.kbo[0] + '.ast'
+    obj = mpc.MPCReader(fn)  # let MPCReader's logic determine the provisional name
+    # need to determine a plot extent to get the MegaCam coverage
+    # and KBOs go westward so earliest to latest is kinda useful
+    extents = [min([obs.coordinate.ra.degree for obs in obj.mpc_observations]) - 0.5,
+               max([obs.coordinate.ra.degree for obs in obj.mpc_observations]) + 0.5,
+               min([obs.coordinate.dec.degree for obs in obj.mpc_observations]) - 0.3,
+               max([obs.coordinate.dec.degree for obs in obj.mpc_observations]) + 0.3]
+    midpoint = ( extents[0] + ((extents[1] - extents[0]) / 2.), extents[2] + ((extents[3] - extents[2]) / 2.) )
+    print(extents, midpoint)
+
+    handles, labels, ax, fontP = sky_location_plots.basic_skysurvey_plot_setup()
+    ax = plot_actual_observations(ax, obj, mark_rejected=True)
+    ax = plot_prediction(ax, obj)
+    ax = megacam_corresponding_to_observations(ax)
     sky_location_plots.saving_closeout(args.kbo[0], '', extents, '')
-    # [extents[0]-0.5, extents[1]+0.5, extents[2]-0.3, extents[3]+0.3],
-    # '')
