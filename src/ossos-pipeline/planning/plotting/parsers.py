@@ -1,9 +1,11 @@
+# coding=utf-8
 __author__ = 'Michele Bannister   git:@mtbannister'
 
 import os
 import cPickle
 
 import ephem
+from astropy.table import Table
 
 from ossos import mpc
 from ossos import orbfit
@@ -12,15 +14,27 @@ import parameters
 from parameters import tno
 
 
-def ossos_release_parser():
-    retval = []
-    with open(parameters.RELEASE_CLASSIFICATION, 'r') as classfile:
-        classlines = classfile.readlines()[1:]  # first line is column definitions
-    with open(parameters.RELEASE_SUMMARY, 'r') as summary:
-        for i, line in enumerate(summary.readlines()[1:]):
-            obj = tno.from_summary_line(line, version=parameters.RELEASE_VERSION)
-            obj = tno.from_class_line(classlines[i], version=parameters.RELEASE_VERSION, existing_object=obj)
-            retval.append(obj)
+def ossos_release_parser(table=False):
+    '''
+    extra fun as this is space-separated so using CSV parsers is not an option
+    '''
+    if table:
+        # have to specify the names because the header line contains duplicate IDs, which wrecks auto-column creation
+        names = ['cl', 'p', 'j', 'k', 'sh', 'object', 'mag', 'mag_uncert', 'F', 'H_sur', 'dist', 'dist_E', 'nobs',
+                 'time', 'av_xres', 'av_yres', 'max_x', 'max_y', 'a', 'a_E', 'e', 'e_E', 'i', 'i_E', 'node', 'node_E',
+                 'argperi', 'argperi_E', 'time_peri', 'time_peri_E', 'ra_dis', 'dec_dis', 'jd_dis', 'rate']
+        retval = Table.read(parameters.RELEASE_DETECTIONS, format='ascii', guess=False,
+                            delimiter=' ', data_start=0, comment='#', names=names, header_start=None)
+
+    else:
+        retval = []
+        with open(parameters.RELEASE_DETECTIONS, 'r') as classfile:
+            classlines = classfile.readlines()[1:]  # first line is column definitions
+        with open(parameters.RELEASE_SUMMARY, 'r') as summary:
+            for i, line in enumerate(summary.readlines()[1:]):
+                obj = tno.from_summary_line(line, version=parameters.RELEASE_VERSION)
+                obj = tno.from_class_line(classlines[i], version=parameters.RELEASE_VERSION, existing_object=obj)
+                retval.append(obj)
 
     return retval
 
@@ -148,3 +162,49 @@ def output_discoveries_for_animation():
             outfile.write(
                 '{:>10s} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:8.2f} {:>10s}\n'.format(
                     obj.name, obj.a, obj.e, obj.i, obj.node, obj.argp, obj.M, obj.T, obj.H, obj.discovery_date))
+
+
+def release_to_latex(outfile):
+    tnos = ossos_release_parser(table=True)
+
+    # outnames = ['object', 'a', 'a_E' 'e', 'e_E', 'i', 'i_E', 'dist', 'dist_E', 'H_sur', 'p', 'j', 'k', 'sh']
+
+    # want to output:
+    # obj a ± da e ± de i ± di r ± dr H ± dH j k sh(if insecure)
+    # table.write() is unable to handle this very well, if at all. Resorting to manual, dammit.
+    tnos.sort(['cl', 'p', 'j', 'k', 'object'])  # this at least works just fine
+
+    # FIXME: get the begin and tablehead to stop being escaped
+    header = "\begin{deluxetable}{ccccccccc} \n " \
+             "\tablehead{\colhead{Object} & \colhead{a (AU)} & \colhead{e} & \colhead{i ($^{\circ}$)} & " \
+             "\colhead{r$_{H}$ (AU)} & \colhead{H} & \colhead{Classification} } \n" \
+             "\startdata \n"
+    footer = "\enddata \n" \
+             "\end{deluxetable} \n"
+
+    with open(outfile, 'w') as ofile:
+        ofile.write(header)
+        for r in tnos:
+            # FIXME: need to set the precision based on the sigfig of the uncertainty.
+            out = "{} & {}$\pm${} & {}$\pm${} & {}$\pm${} & {}$\pm{}$ & {} & ".format(r['object'],
+                                                                                      r['a'], r['a_E'],
+                                                                                      r['e'], r['e_E'],
+                                                                                      r['i'], r['i_E'],
+                                                                                      r['dist'], r['dist_E'],
+                                                                                      r['H_sur'])
+            if r['j'] != -1:
+                out += "{}:{} & ".format(r['j'], r['k'])
+            else:
+                out += " "
+            if r['sh'] != 'S':
+                # FIXME: stop escaping the trailing double-backslashes
+                out += "{} {} \n".format(r['sh'], '''\\''')
+            else:
+                out += " {} \n".format('''\\''')
+            ofile.write(out)
+        ofile.write(footer)
+
+
+if __name__ == '__main__':
+    ossos_release_parser(table=True)
+    release_to_latex('test_table.tex')
