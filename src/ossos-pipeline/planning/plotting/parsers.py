@@ -6,6 +6,7 @@ import cPickle
 
 import ephem
 from astropy.table import Table
+from uncertainties import ufloat
 
 from ossos import mpc
 from ossos import orbfit
@@ -164,6 +165,41 @@ def output_discoveries_for_animation():
                     obj.name, obj.a, obj.e, obj.i, obj.node, obj.argp, obj.M, obj.T, obj.H, obj.discovery_date))
 
 
+def round_sig_error(num, uncert):
+    '''
+    Return a string of the number and its uncertainty to the right sig figs via uncertainty's print methods.
+    The uncertainty determines the sig fig rounding of the number.
+    https://pythonhosted.org/uncertainties/user_guide.html
+    '''
+    u = ufloat(num, uncert)
+    outstr = '{:.1uLS}'.format(u)
+
+    return outstr
+
+
+def linesep(name, distinguish=None):
+    names = {'N': "Objects in resonance with Neptune",
+             'U': "Objects in resonance with Uranus",  # don't have one yet but Kat does check
+             'i': 'Inner classical belt',
+             'm': 'Main classical belt',
+             'o': 'Outer classical belt',
+             'd': 'Detached classical belt',
+             'x': 'Scattering disk',
+    }
+    if distinguish:
+        # may also have Centaurs added as 'cen' at some point, but at the moment Centaurs seem to be 'sca'
+        if distinguish == 'sca':
+            name = 'x'
+        elif distinguish == 'det':
+            name = 'd'
+
+    midline = r"\cutinhead{" + \
+              "{}".format(names[name]) + \
+              "} \n "
+
+    return midline
+
+
 def release_to_latex(outfile):
     tnos = ossos_release_parser(table=True)
 
@@ -172,35 +208,39 @@ def release_to_latex(outfile):
     # want to output:
     # obj a ± da e ± de i ± di r ± dr H ± dH j k sh(if insecure)
     # table.write() is unable to handle this very well, if at all. Resorting to manual, dammit.
+
+    # sort order gives Classical, Detached, Resonant, Scattered
     tnos.sort(['cl', 'p', 'j', 'k', 'object'])  # this at least works just fine
 
-    # FIXME: get the begin and tablehead to stop being escaped
-    header = "\begin{deluxetable}{ccccccccc} \n " \
-             "\tablehead{\colhead{Object} & \colhead{a (AU)} & \colhead{e} & \colhead{i ($^{\circ}$)} & " \
-             "\colhead{r$_{H}$ (AU)} & \colhead{H} & \colhead{Classification} } \n" \
-             "\startdata \n"
-    footer = "\enddata \n" \
-             "\end{deluxetable} \n"
+    header = r"\begin{deluxetable}{ccccccccc}" + '\n' + \
+             r"\tablehead{\colhead{Object} & \colhead{a (AU)} & \colhead{e} & \colhead{i ($^{\circ}$)} & " \
+             "\colhead{r$_{H}$ (AU)} & \colhead{H} & \colhead{Comment} }" + "\n" \
+             + "\startdata \n"
+    footer = r"\enddata " + "\n" \
+                            "\end{deluxetable} \n"
 
     with open(outfile, 'w') as ofile:
         ofile.write(header)
-        for r in tnos:
-            # FIXME: need to set the precision based on the sigfig of the uncertainty.
-            out = "{} & {}$\pm${} & {}$\pm${} & {}$\pm${} & {}$\pm{}$ & {} & ".format(r['object'],
-                                                                                      r['a'], r['a_E'],
-                                                                                      r['e'], r['e_E'],
-                                                                                      r['i'], r['i_E'],
-                                                                                      r['dist'], r['dist_E'],
-                                                                                      r['H_sur'])
+        for i, r in enumerate(tnos):
+            if r['p'] != tnos[i - 1]['p']:
+                if r['p'] == 'x':  # 'x' doesn't give enough info to set scattered or detached
+                    ofile.write(linesep(r['p'], distinguish=r['cl']))
+                else:
+                    ofile.write(linesep(r['p']))
+            out = "{} & {} & {} & {} & {} & {} & ".format(r['object'],
+                                                          round_sig_error(r['a'], r['a_E']),
+                                                          round_sig_error(r['e'], r['e_E']),
+                                                          round_sig_error(r['i'], r['i_E']),
+                                                          round_sig_error(r['dist'], r['dist_E']),
+                                                          r['H_sur'])
             if r['j'] != -1:
-                out += "{}:{} & ".format(r['j'], r['k'])
+                out += "{}:{} & ".format(r['j'], r['k'])  # resonant object: give the resonance
             else:
-                out += " "
+                out += " "  # it's a classical or scattered object
             if r['sh'] != 'S':
-                # FIXME: stop escaping the trailing double-backslashes
-                out += "{} {} \n".format(r['sh'], '''\\''')
+                out += "{} {} \n".format(r['sh'], r'\\')
             else:
-                out += " {} \n".format('''\\''')
+                out += " {} \n".format(r'\\')
             ofile.write(out)
         ofile.write(footer)
 
