@@ -5,30 +5,51 @@
 
 import urllib2 as url
 import time
+from collections import OrderedDict
+
+'''
+1. Astrometric RA & DEC  15. Sun sub-long & sub-lat  29. Constellation ID
+ *2. Apparent RA & DEC     16. Sub Sun Pos. Ang & Dis  30. Delta-T (CT - UT)
+  3.   Rates; RA & DEC     17. N. Pole Pos. Ang & Dis *31. Obs eclip. lon & lat
+ *4. Apparent AZ & EL      18. Helio eclip. lon & lat  32. North pole RA & DEC
+  5.   Rates; AZ & EL      19. Helio range & rng rate  33. Galactic latitude
+  6. Sat. X & Y, pos. ang  20. Obsrv range & rng rate  34. Local app. SOLAR time
+  7. Local app. sid. time  21. One-Way Light-Time      35. Earth->Site lt-time
+  8. Airmass               22. Speed wrt Sun & obsrvr >36. RA & DEC uncertainty
+  9. Vis mag. & Surf Brt   23. Sun-Obs-Targ ELONG ang >37. POS error ellipse
+ 10. Illuminated fraction  24. Sun-Targ-Obs PHASE ang >38. POS uncertainty (RSS)
+ 11. Defect of illumin.    25. Targ-Obsrv-Moon/Illum% >39. Range & Rng-rate sig.
+ 12. Sat. angle separ/vis  26. Obs-Primary-Targ angl  >40. Doppler/delay sigmas
+ 13. Target angular diam.  27. Pos. Ang;radius & -vel  41. True anomaly angle
+ 14. Obs sub-lng & sub-lat 28. Orbit plane angle       42. Local app. hour angle
+'''
+
+PARAMS = OrderedDict([('RA-DEC', 1),  # can't actually find docs for second RA/DEC values. Think it's diff base system
+                      ('RA_rate-DEC_rate', 3),
+                      ('v_mag', 9),
+                      ('r_helio-r_helio_rate', 19),
+                      ('RA_uncert-DEC_uncert', 36),  # RA and DEc uncertainties are 3-sigma
+])
 
 # Stores the indexed values returned by Horizons web-interface
-def outDict(horizons_string):
-    S = horizons_string.split(',')
-    outDic = {}
-    keys = ['DATE', 'RA', 'DEC', 'AppRA', 'AppDec', 'dRA', 'dDec', 'AZ', 'EL', 'dAZ', 'dEL', 'v_mag', 'r_helio']
-    if len(S) == 73:
-        spots = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 18, 34]  # the object is a tno
-    elif len(S) == 74 or len(S) == 75:
-        # the object is an asteroid: surface brightness is returned for asteroids when a radius is known. Off-by-one
-        # error.
-        # moons are different again at len = 75. Not fully tested that it works for moons.
-        spots = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 18, 35]
-    for ii in range(len(spots)):  # match the values to the keys, loading up the dictionary
-        spot = spots[ii]
-        key = keys[ii]
-        outDic[key] = S[spot]
-    return outDic
-
+def parse_ephemeris(horizons_string, params):
+    retval = {}
+    keys = ['DATE']  # always there
+    for p in params:
+        keys += p.split('-')  # take care of the case where one parameter returns two values, eg. ra-dec
+    i = 0
+    for s in horizons_string.split(','):
+        if s in [" ", "\n"]:
+            continue
+        retval[keys[i]] = s
+        i += 1
+    return retval
 
 # Run a Horizons query
 # eg. output = batch("Haumea", "2010-12-28 10:00", "2010-12-29 10:00", 1, su='d')
 
-def batch(object, t, T, step, su='d'):
+def batch(object, t, T, step, su='d',
+          params=['RA-DEC', 'RA_rate-DEC_rate', 'v_mag', 'r_helio-r_helio_rate', 'RA_uncert-DEC_uncert']):
     if step == None:  # default
         step = 1
     else:
@@ -36,9 +57,14 @@ def batch(object, t, T, step, su='d'):
 
     # Construct the query url
     s = "'"
-    for i in range(1, 40):  # There are 40 possible pieces of info that Horizons can give back
-        s += str(i) + ','
-    s += "40'"  # python leaves one off the end in range()
+    if not params:
+        for i in range(1, 40):  # There are 40 possible pieces of info that Horizons can give back
+            s += str(i) + ','
+            s += "40'"  # python leaves one off the end in range()
+    else:
+        for p in params:
+            s += "{},".format(PARAMS[p])
+
     # The pieces of the url that Horizons needs for its processing instructions. Leave intact.
     urlArr = ["http://ssd.jpl.nasa.gov/horizons_batch.cgi?batch=1&COMMAND=",
               '',
@@ -130,7 +156,7 @@ def batch(object, t, T, step, su='d'):
     # Transfer the good lines to the dictionary, which makes all the values indexed and accessible
     ephemerides = []
     for line in urlData[start:end + 1]:
-        ephemerides.append(outDict(line))
+        ephemerides.append(parse_ephemeris(line, params))
 
     return orbital_elements, ephemerides
 
@@ -140,5 +166,5 @@ if __name__ == "__main__":
 
     # just a few test print statements
     print elems  # elements
-    for ephemeris in ephems:  # outDict
-        print ephemeris['DATE'], ephemeris['RA'], ephemeris['DEC'], ephemeris['dRA'], ephemeris['dDec']
+    for ephemeris in ephems:
+        print ephemeris['DATE'], ephemeris['RA'], ephemeris['DEC'], ephemeris['RA_uncert'], ephemeris['DEC_uncert']
