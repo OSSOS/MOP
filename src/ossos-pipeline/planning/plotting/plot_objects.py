@@ -6,11 +6,13 @@ import os
 import ephem
 import matplotlib.pyplot as plt
 import datetime
+from astropy import time
 
 import parameters
 import mpcread
 import parsers
 import horizons
+
 
 
 
@@ -32,9 +34,9 @@ def plot_planets(ax, plot, date, hill_sphere=False):
         ax.scatter(pos[0], pos[1],
                    marker='o',
                    s=30,
-                   facecolor='k',  ##E47833',
-                   edgecolor='k')  ##E47833')
-        ax.annotate(planet.name, (pos[0] - .4, pos[1] + 0.1))  #(pos[0]+.9, pos[1]+0.5))  # offset to make it readable
+                   facecolor='k',  # #E47833',
+                   edgecolor='k')  # #E47833')
+        ax.annotate(planet.name, (pos[0] - .4, pos[1] + 0.1))  # (pos[0]+.9, pos[1]+0.5))  # offset to make it readable
 
         if hill_sphere:
             print planet.name, planet.sun_distance, mass[planet.name],
@@ -56,24 +58,38 @@ def plot_saturn_moons(ax):
     return ax
 
 
-def plot_ossos_discoveries(ax, discoveries, prediction_date=False):  # , blockID='O13AE', date="2013/04/09 08:50:00"):
+def plot_ossos_discoveries(ax, discoveries, prediction_date=False):
     for kbo in discoveries:
-        if prediction_date:
-            kbo.orbit.predict(date.replace('/', '-'))
-            ra = kbo.orbit.coordinate.ra.degrees
-            dec = kbo.orbit.coordinate.dec.degrees
-        else:  # specific date on which discovery was made: use discovery locations
+        # If the provided date isn't very close to the object's intrinsic discovery date,
+        # predict the object's position for the provided date.
+        if prediction_date:  # In this case, have to use prediction as data release doesn't have Orbfit.orbit property
+            # Gets around field discovery times differing by a small fraction of an hour
+            pd = time.Time(prediction_date.replace('/', '-'))
+            if abs(kbo.discovery.date - pd) > time.TimeDelta(0.5, format='jd'):
+                kbo.orbit.predict(prediction_date.replace('/', '-'))
+                ra = kbo.orbit.coordinate.ra.degree
+                dec = kbo.orbit.coordinate.dec.degree
+            else:  # close enough we can just use the discovery's time
+                ra = kbo.discovery.coordinate.ra.degree
+                dec = kbo.discovery.coordinate.dec.degree
+        else:  # no complexity: use discovery locations from data-release
+            assert (kbo.ra_discov is not None) and (kbo.dec_discov is not None)
             ra = math.degrees(ephem.degrees(ephem.hours(str(kbo.ra_discov))))
             dec = math.degrees(ephem.degrees(str(kbo.dec_discov)))
-        if (kbo.classification == 'res' and kbo.n == 3 and kbo.m == 2):
-            print kbo.name
-            fc = '#E47833'
-            alpha = 1
-        else:
-            fc = 'b'
-            alpha = 0.6
+
+        assert ra, dec
+
+        # assert kbo.classification is not None
+        # if (kbo.classification == 'res' and kbo.n == 3 and kbo.m == 2):
+        # print kbo.name
+        #     fc = '#E47833'
+        #     alpha = 1
+        # else:
+        fc = 'b'
+        alpha = 0.6
+
         ax.scatter(ra, dec, marker='o', facecolor=fc, alpha=alpha, edgecolor='k', linewidth=0.4, s=25)
-        ax.annotate(kbo.name[3:],
+        ax.annotate(kbo.name[-2:],
                     (ra - .07, dec - 0.14),  # confirm this is being added properly
                     size=7,
                     color='k')
