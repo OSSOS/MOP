@@ -8,7 +8,7 @@ from StringIO import StringIO
 
 import datetime
 import numpy
-from astropy import coordinates
+
 try:
     from astropy.coordinates import ICRSCoordinates
 except ImportError:
@@ -104,11 +104,11 @@ class Orbfit(object):
             self.predict(observation.date)
             coord1 = ICRSCoordinates(self.coordinate.ra, self.coordinate.dec)
             coord2 = ICRSCoordinates(observation.coordinate.ra, self.coordinate.dec)
-            observation.ra_residual = float(coord1.separation(coord2).arcsecs)
-            observation.ra_residual = (coord1.ra.degrees - coord2.ra.degrees)*3600.0
+            observation.ra_residual = float(coord1.separation(coord2).arcsec)
+            observation.ra_residual = (coord1.ra.degree - coord2.ra.degree) * 3600.0
             coord2 = ICRSCoordinates(self.coordinate.ra, observation.coordinate.dec)
-            observation.dec_residual = float(coord1.separation(coord2).arcsecs)
-            observation.dec_residual = (coord1.dec.degrees - coord2.dec.degrees)*3600.0
+            observation.dec_residual = float(coord1.separation(coord2).arcsec)
+            observation.dec_residual = (coord1.dec.degree - coord2.dec.degree) * 3600.0
             _residuals += "{:1s}{:12s} {:+05.2f} {:+05.2f} # {}\n".format(
                 observation.null_observation, observation.date, observation.ra_residual, observation.dec_residual, observation)
         return _residuals
@@ -216,7 +216,7 @@ class Orbfit(object):
         coord1 = self.coordinate
         self.predict(sdate)
         coord2 = self.coordinate
-        retval = coord1.separation(coord2).arcsecs / (24.)  # arcsec/hr
+        retval = coord1.separation(coord2).arcsec / (24.)  # arcsec/hr
 
         return retval
 
