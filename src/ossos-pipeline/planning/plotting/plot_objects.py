@@ -6,11 +6,14 @@ import os
 import ephem
 import matplotlib.pyplot as plt
 import datetime
+from astropy import time
 
 import parameters
 import mpcread
 import parsers
 import horizons
+
+
 
 
 # FIXME: make this an args setting rather than hardwired
@@ -22,25 +25,18 @@ saturn_moons = ['Phoebe', 'Ymir', 'Paaliaq', 'Tarvos', 'Ijiraq', 'Suttungr', 'Ki
 
 
 def plot_planets(ax, plot, date, hill_sphere=False):
-    # # only add the planets that would actually fall in this plot
-    #     plot_polygon = Polygon.Polygon(((plot[0],plot[2]),
-    #                                    (plot[0],plot[3]),
-    #                                    (plot[1],plot[3]),
-    #                                    (plot[0],plot[3]),
-    #                                    (plot[0],plot[2])))
-    # #    print plot_polygon
     mass = {"Sun": 1.989 * 10 ** 30, "Mars": 639 * 10 ** 21, "Jupiter": 1.898 * 10 ** 27, "Saturn": 568.3 * 10 ** 24,
             "Uranus": 86.81 * 10 ** 24, "Neptune": 102.4 * 10 ** 24}  # kg
     for planet in [ephem.Mars(), ephem.Jupiter(), ephem.Saturn(), ephem.Uranus(), ephem.Neptune()]:
         planet.compute(ephem.date(date))
         pos = (math.degrees(planet.ra), math.degrees(planet.dec))
-        #        if plot_polygon.isInside(math.degrees(planet.ra), math.degrees(planet.dec)):
+        # if plot_polygon.isInside(math.degrees(planet.ra), math.degrees(planet.dec)):
         ax.scatter(pos[0], pos[1],
                    marker='o',
                    s=30,
-                   facecolor='#E47833',
-                   edgecolor='#E47833')
-        ax.annotate(planet.name, (pos[0] - .4, pos[1] + 0.1))  #(pos[0]+.9, pos[1]+0.5))  # offset to make it readable
+                   facecolor='k',  # #E47833',
+                   edgecolor='k')  # #E47833')
+        ax.annotate(planet.name, (pos[0] - .4, pos[1] + 0.1))  # (pos[0]+.9, pos[1]+0.5))  # offset to make it readable
 
         if hill_sphere:
             print planet.name, planet.sun_distance, mass[planet.name],
@@ -62,22 +58,38 @@ def plot_saturn_moons(ax):
     return ax
 
 
-def plot_ossos_discoveries(ax, discoveries, prediction_date=False):  # , blockID='O13AE', date="2013/04/09 08:50:00"):
+def plot_ossos_discoveries(ax, discoveries, prediction_date=False):
     for kbo in discoveries:
-        if prediction_date:
-            kbo.orbit.predict(date.replace('/', '-'))
-            ra = kbo.orbit.coordinate.ra.degrees
-            dec = kbo.orbit.coordinate.dec.degrees
-        else:  # specific date on which discovery was made: use discovery locations
+        # If the provided date isn't very close to the object's intrinsic discovery date,
+        # predict the object's position for the provided date.
+        if prediction_date:  # In this case, have to use prediction as data release doesn't have Orbfit.orbit property
+            # Gets around field discovery times differing by a small fraction of an hour
+            pd = time.Time(prediction_date.replace('/', '-'))
+            if abs(kbo.discovery.date - pd) > time.TimeDelta(0.5, format='jd'):
+                kbo.orbit.predict(prediction_date.replace('/', '-'))
+                ra = kbo.orbit.coordinate.ra.degree
+                dec = kbo.orbit.coordinate.dec.degree
+            else:  # close enough we can just use the discovery's time
+                ra = kbo.discovery.coordinate.ra.degree
+                dec = kbo.discovery.coordinate.dec.degree
+        else:  # no complexity: use discovery locations from data-release
+            assert (kbo.ra_discov is not None) and (kbo.dec_discov is not None)
             ra = math.degrees(ephem.degrees(ephem.hours(str(kbo.ra_discov))))
             dec = math.degrees(ephem.degrees(str(kbo.dec_discov)))
-        if (kbo.classification == 'res' and kbo.n == 3 and kbo.m == 2):
-            print kbo.name
-            fc = '#E47833'
-        else:
-            fc = 'b'
-        ax.scatter(ra, dec, marker='o', facecolor=fc, alpha=0.8, edgecolor='w', linewidth=0.4, s=25)
-        ax.annotate(kbo.name[3:],
+
+        assert ra, dec
+
+        # assert kbo.classification is not None
+        # if (kbo.classification == 'res' and kbo.n == 3 and kbo.m == 2):
+        # print kbo.name
+        #     fc = '#E47833'
+        #     alpha = 1
+        # else:
+        fc = 'b'
+        alpha = 0.6
+
+        ax.scatter(ra, dec, marker='o', facecolor=fc, alpha=alpha, edgecolor='k', linewidth=0.4, s=25)
+        ax.annotate(kbo.name[-2:],
                     (ra - .07, dec - 0.14),  # confirm this is being added properly
                     size=7,
                     color='k')
@@ -130,7 +142,7 @@ def plot_known_tnos_batch(handles, labels, date):
 
 def plot_single_known_tno(ax, name, date, close=[]):
     # date formatted as %Y-%m-%d %H:%M
-    # FIXME: rewrite this to use astroquery.mpc's single-object retrieval. Where did my Horizons script go?
+    # FIXME: rewrite this to use astroquery.mpc's single-object retrieval.
     dateplus1hr = (datetime.datetime.strptime(date, '%Y-%m-%d %H:%M') + datetime.timedelta(1 / 24.)).strftime(
         '%Y-%m-%d %H:%M')
     obj_elems, single_ephem = horizons.batch(name, date, dateplus1hr, None, su='d')  # pull back one position only

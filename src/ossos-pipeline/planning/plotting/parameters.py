@@ -7,11 +7,22 @@ from collections import OrderedDict
 MPCORB_FILE = os.path.join(os.getenv('HOME', '/Users/michele/'), 'MPCORB-Distant.dat')
 L7MODEL = '/Users/michele/Dropbox/OSSOS/Release_summaries/L7model-3.0-9.0'  # 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
 L7_HOME = '/Users/michele/Dropbox/OSSOS/Release_summaries/'
-REAL_KBO_AST_DIR = '/Users/michele/Dropbox/OSSOS/measure3/ossin/'  # 'vos:OSSOS/dbaseclone/ast/'
+REAL_KBO_AST_DIR = '/Users/michele/Dropbox/OSSOS/measure3/ossin/'
+# REAL_KBO_AST_DIR = 'vos:OSSOS/dbaseclone/ast/'
 RELEASE_VERSION = 4
-RELEASE_SUMMARY = '/Users/michele/Dropbox/OSSOS/Release_summaries/OSSOSv4/OSSOSv4summary.dat'
-RELEASE_CLASSIFICATION = '/Users/michele/Dropbox/OSSOS/Release_summaries/OSSOSv4/OSSOSv4class.dat'
+RELEASE_DETECTIONS = '/Users/michele/Dropbox/OSSOS/Release_summaries/v4/OSSOSv4/OSSOSv4.detections'  # OSSOSv4.1+u
+# .detections'
+IDX = 'vos:OSSOS/dbaseclone/idx/file.idx'
+
 PLOT_FIELD_EPOCH = 'Jun14.00'  # Jun14.00 ==> '0' days since the New Moon on Jun14
+
+OSSOS_RUNIDS = []
+for year in range(13, 17, 1):
+    for semester in ['AP', 'BP']:
+        for code in ['05', '06']:
+            OSSOS_RUNIDS.append('{}{}{}'.format(year, semester, code))
+
+SURVEY_START = '2013-01-01'
 
 PLOT_USNO_STARS = True
 PLOT_MEGACAM_ARCHIVE_FIELDS = False  # # TODO Make this work when True
@@ -19,7 +30,6 @@ PLOT_SYNTHETIC_KBOS = False
 PLOT_SYNTHETIC_KBO_TRAILS = False
 PLOT_REAL_KBOS = True and os.access(REAL_KBO_AST_DIR, os.F_OK)
 PLOT_FIELD_LAYOUT = True
-
 PLOT_MPCORB = True and os.access(MPCORB_FILE, os.F_OK)
 
 NEWMOONS = {'Feb13': "2013/02/10 10:00:00",
@@ -92,7 +102,7 @@ BLOCKS = OrderedDict([
 DISCOVERY_DATES = {"13AE": "2013/04/09 08:50:00",
                    "13AO": "2013/05/08 08:50:00",
                    "15AP": NEWMOONS['Apr15'],  # FIXME: set when observations taken
-                   "15AM": NEWMOONS['May14'],  # Backup triplet: split on 2014/05/29, 2014/06/01
+                   "15AM": NEWMOONS['May15'],  # Backup triplet was on 2014/05/29, 2014/06/01 at diff block centre
                    "13BL": "2013/09/29 08:50:00",  # HOWEVER: discovery date is split between months (earliest)
                    "14BH": "2014/10/22 09:30:00",  # Note: Col3N triplet is instead 2014/01/03.
                    "15BD": NEWMOONS['Nov15'],  # FIXME: set when observations taken
@@ -111,6 +121,81 @@ OPPOSITION_DATES = {"13AE": NEWMOONS['Apr13'],
                     "15BD": NEWMOONS['Nov15'],
 
 }
+
+COLOSSOS = [
+    # the L block in the old money - will need to translate after v5 numbering
+    'O13BL3R9',
+    'O13BL3SK',
+    'O13BL3RB',
+    'O13BL3SC',
+    'O13BL3S3',
+    'O13BL3QX',
+    'O13BL3TF',
+    'O13BL3TA',
+    'O13BL3SN',
+    'O13BL3RE',
+    'O13BL3RV',
+    'O13BL3SY',
+    'O13BL3RG',
+    'O13BL3RN',
+    'O13BL3SW',
+    'O13BL3T7',
+    'O13BL3RT',
+    'O13BL3RQ',
+    'O13BL3SH',
+    'O13BL3R1',
+    'O13BL3RH',
+    # the H block so far has some
+    'Col3N01',
+    'Col3N02',
+    'Col3N03',
+    'Col3N05',
+    'Col3N06',
+    'Col3N07',
+
+    # the O and E blocks ColOSSOS, will only ever be in these designations
+    'o3e11',
+    'o3e38',
+    'o3e45',
+    'o3e25',
+    'o3e34PD',
+    'o3o18',
+    'o3e31',
+    'o3e49',
+    'o3o14',
+    'o3e32',
+    'o3o21',
+    'o3e53',
+    'o3o15',
+    'o3e35',
+    'o3e16',
+    'o3e29',
+    'o3e43',
+    'o3o28',
+    'o3e55',
+    'o3o27',
+    'o3e19',
+    'o3e21',
+    'o3e04',
+    'o3o01',
+    'o3e37PD',
+    'o3e23PD',
+    'o3e02',
+    'o3e44',
+    'o3o29',
+    'o3o09',
+    'o3e27PD',
+    'o3e20PD',
+    'o3e39',
+    'o3e30PD',
+    'o3e22',
+    'o3o11',
+    'o3e09',
+    'o3o34',
+    'o3e05',
+    'o3e01',
+    'o3o20PD',
+]
 
 
 class VersionError(Exception):
