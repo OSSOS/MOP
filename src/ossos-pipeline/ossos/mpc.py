@@ -1,30 +1,18 @@
 __author__ = 'jjk, mtb55'
 
-import itertools
 import os
 import re
 import struct
 import sys
-import time
 import logging
-
-from datetime import datetime
-
-
-try:
-    from astropy.time import sofa_time
-except ImportError:
-    from astropy.time import erfa_time as sofa_time
 try:
     from astropy.coordinates import ICRSCoordinates
 except ImportError:
     from astropy.coordinates import ICRS as ICRSCoordinates
-from astropy.time import TimeString
-from astropy.time import Time
 from astropy import units
 import numpy
-
-import storage
+from .storage import open_vos_or_local
+from .util import Time
 
 
 DEFAULT_OBSERVERS = ['M. T. Bannister', 'J. J. Kavelaars']
@@ -340,110 +328,6 @@ class Discovery(object):
         return self.__bool__()
 
 
-class TimeMPC(TimeString):
-    """
-    Override the TimeString class to convert from MPC format string to astropy.time.Time object.
-
-    usage:
-
-    from astropy.time.core import Time
-    Time.FORMATS[TimeMPC.name] = TimeMPC
-
-    t = Time('2000 01 01.00001', format='mpc', scale='utc')
-
-    str(t) == '2000 01 01.000001'
-    """
-
-    name = 'mpc'
-    subfmts = (('mpc', '%Y %m %d', "{year:4d} {mon:02d} {day:02d}.{fracday:s}"),)
-
-    # ## need our own 'set_jds' function as the MPC Time string is not typical
-    def set_jds(self, val1, val2):
-        """
-
-        Parse the time strings contained in val1 and set jd1, jd2
-
-        :param val1: array of strings to parse into JD format
-        :param val2: not used for string conversions but passed regardless
-        """
-        n_times = len(val1)  # val1,2 already checked to have same len
-        iy = numpy.empty(n_times, dtype=numpy.intc)
-        im = numpy.empty(n_times, dtype=numpy.intc)
-        iday = numpy.empty(n_times, dtype=numpy.intc)
-        ihr = numpy.empty(n_times, dtype=numpy.intc)
-        imin = numpy.empty(n_times, dtype=numpy.intc)
-        dsec = numpy.empty(n_times, dtype=numpy.double)
-
-        # Select subformats based on current self.in_subfmt
-        subfmts = self._select_subfmts(self.in_subfmt)
-
-        for i, time_str in enumerate(val1):
-            # Assume that anything following "." on the right side is a
-            # floating fraction of a day.
-            try:
-                idot = time_str.rindex('.')
-            except:
-                fracday = 0.0
-            else:
-                time_str, fracday = time_str[:idot], time_str[idot:]
-                fracday = float(fracday)
-
-            for _, strptime_fmt, _ in subfmts:
-                try:
-                    tm = time.strptime(time_str, strptime_fmt)
-                except ValueError:
-                    pass
-                else:
-                    iy[i] = tm.tm_year
-                    im[i] = tm.tm_mon
-                    iday[i] = tm.tm_mday
-                    ihr[i] = tm.tm_hour + int(24 * fracday)
-                    imin[i] = tm.tm_min + int(60 * (24 * fracday - ihr[i]))
-                    dsec[i] = tm.tm_sec + 60 * (60 * (24 * fracday - ihr[i]) - imin[i])
-                    break
-            else:
-                raise ValueError("Time {0} does not match {1} format".format(time_str, self.name))
-
-        self.jd1, self.jd2 = sofa_time.dtf_jd(self.scale.upper().encode('utf8'),
-                                              iy, im, iday, ihr, imin, dsec)
-        return
-
-    def str_kwargs(self):
-        """
-
-        Generator that yields a dict of values corresponding to the
-
-        calendar date and time for the internal JD values.
-
-        Here we provide the additional 'fracday' element needed by 'mpc' format
-        """
-        iys, ims, ids, ihmsfs = sofa_time.jd_dtf(self.scale.upper()
-                                                 .encode('utf8'),
-                                                 6,
-                                                 self.jd1, self.jd2)
-
-        # Get the str_fmt element of the first allowed output subformat
-
-        _, _, str_fmt = self._select_subfmts(self.out_subfmt)[0]
-
-        yday = None
-        has_yday = '{yday:' in str_fmt or False
-
-        for iy, im, iday, ihmsf in itertools.izip(iys, ims, ids, ihmsfs):
-            ihr, imin, isec, ifracsec = ihmsf
-            if has_yday:
-                yday = datetime(iy, im, iday).timetuple().tm_yday
-
-            # MPC uses day fraction as time part of datetime
-            fracday = (((((ifracsec / 1000000.0 + isec) / 60.0 + imin) / 60.0) + ihr) / 24.0) * (10 ** 6)
-            fracday = '{0:06g}'.format(fracday)[0:self.precision]
-            yield dict(year=int(iy), mon=int(im), day=int(iday), hour=int(ihr), min=int(imin), sec=int(isec),
-                       fracsec=int(ifracsec), yday=yday, fracday=fracday)
-
-
-Time.FORMATS[TimeMPC.name] = TimeMPC
-
-
 def compute_precision(coord):
     """
     Returns the number of digits after the last '.' in a given number or string.
@@ -554,7 +438,7 @@ class Observation(object):
                                     comment=comment)
 
     def __eq__(self, other):
-        return self.to_string() == other.to_string() 
+        return self.to_string() == other.to_string()
 
     def __ne__(self, other):
         return self.to_string() != other.to_string()
@@ -571,6 +455,39 @@ class Observation(object):
     def __gt__(self, other):
         return self.date > other.date
 
+    @classmethod
+    def from_ted(cls, ted):
+        """
+        Turn a ted line into an MPC formatted line. (Marc Buie's format)
+
+        Example line: 2011 04  28.29389  18 32 37.260  -21 13 49.86  26.3R NI100     304
+        :param ted: a TED formatted minor planet observations
+        :return: Observation
+        """
+        ted = ted.strip()
+        if len(ted) != len('2011 04  28.29389  18 32 37.260  -21 13 49.86  26.3R NI100     304'):
+            raise ValueError("Incorrectly formatted line for ted to mpc conversion.")
+        line_order = ["date", "ra", "dec", "mag", "filter", "provisional_name", "observatory_code"]
+        parts = {"date": "2011 04  28.29389  ",
+                 "ra": "18 32 37.260  ",
+                 "dec": "-21 13 49.86  ",
+                 "mag": "26.3",
+                 "filter": "R ",
+                 "provisional_name": "NI100     ",
+                 "observatory_code": "304"}
+        end_pos = 0
+        args = {}
+        for part in line_order:
+            start_pos = end_pos
+            end_pos = start_pos + len(parts[part])
+            args[part] = ted[start_pos:end_pos]
+        return Observation(provisional_name=args['provisional_name'],
+                           date=args['date'],
+                           ra=args['ra'],
+                           dec=args['dec'],
+                           mag=args['mag'],
+                           band=args['filter'],
+                           observatory_code=args['observatory_code'])
 
     @classmethod
     def from_string(cls, input_line):
@@ -585,8 +502,27 @@ class Observation(object):
         comment = mpc_line[81:]
         mpc_line = mpc_line[0:80]
         if len(mpc_line) != 80:
+            try:
+                return cls.from_ted(mpc_line)
+            except ValueError as e:
+                logging.info("FAILED TO PARSE: {}".format(mpc_line))
+                logging.error(str(e))
             return None
-        obsrec = cls(*struct.unpack(mpc_format, mpc_line))
+
+        try:
+            obsrec = cls(*struct.unpack(mpc_format, mpc_line))
+        except:
+            # try converting using Alex Parker's .ast format:
+            # 2456477.78468 18:39:07.298 -20:40:17.53 0.2 304
+            _parts = mpc_line.split(' ')
+            args = {"date": Time(float(_parts[0]), scale='utc', format='jd').mpc,
+                    "discovery": False,
+                    "ra": _parts[1].replace(":", " "),
+                    "dec": _parts[2].replace(":", " "),
+                    "plate_uncertainty": _parts[3],
+                    "observatory_code": _parts[4]}
+            return cls(**args)
+
         obsrec.comment = MPCComment.from_string(comment)
         if isinstance(obsrec.comment, OSSOSComment) and obsrec.comment.source_name is None:
             obsrec.comment.source_name = obsrec.provisional_name
@@ -625,7 +561,8 @@ class Observation(object):
         mpc_str += '{0:<12s}{1:<12s}'.format(str(self.ra), str(self.dec))
         mpc_str += 9 * " "
         mag_format = '{0:<5.' + str(self._mag_precision) + 'f}{1:1s}'
-        mag_str = (self.mag is None and 6 * " ") or mag_format.format(self.mag, self.band)
+        band = self.band is None and " " or self.band
+        mag_str = (self.mag is None and 6 * " ") or mag_format.format(self.mag, band)
         if len(mag_str) != 6:
             raise MPCFieldFormatError("mag",
                                       "length of mag string should be exactly 6 characters, got->",
@@ -732,7 +669,8 @@ class Observation(object):
         self._date_precision = compute_precision(date_str)
         try:
             self._date = Time(date_str, format='mpc', scale='utc', precision=self._date_precision)
-        except:
+        except Exception as ex:
+            logging.error(str(ex))
             raise MPCFieldFormatError("Observation Date",
                                       "does not match expected format",
                                       date_str)
@@ -1249,16 +1187,16 @@ class MPCReader(object):
         self.filename = filename
         # can be a file like objects,
         if isinstance(filename, basestring):
-            filehandle = storage.open_vos_or_local(filename, "rb")
+            filehandle = open_vos_or_local(filename, "rb")
         else:
             filehandle = filename
 
-        filestr = filehandle.read()
+        input_mpc_lines = filehandle.readlines()
         filehandle.close()
-        input_mpc_lines = filestr.split('\n')
         mpc_observations = []
         next_comment = None
         for line in input_mpc_lines:
+            line = line.rstrip()
             try:
                 mpc_observation = Observation.from_string(line)
                 if isinstance(mpc_observation, OSSOSComment):
@@ -1272,7 +1210,8 @@ class MPCReader(object):
                     if self.replace_provisional is not None:  # then it has an OSSOS designation: set that in preference
                         mpc_observation.provisional_name = self.provisional_name
                     mpc_observations.append(mpc_observation)
-            except:
+            except Exception as e:
+                logging.error(str(e))
                 continue
 
         # No assurance that a .ast file is date-ordered: date-ordered is more expected behaviour
