@@ -5,23 +5,29 @@ import fnmatch
 from glob import glob
 import os
 import re
+from string import upper
+
 import tempfile
 import logging
 import warnings
 
+from astropy.coordinates import SkyCoord
 from astropy.io import ascii
+from astropy import units
+from astropy.units import Quantity
+from .downloads.cutouts.calculator import CoordinateConverter
 import vos
 from astropy.io import fits
 import requests
 
-import coding
-from mpc import Time
-import util
-
-
-logger = logging
+from . import coding
+from . import util
+from .gui import logger
+from .wcs import WCS
 
 MAXCOUNT = 30000
+_TARGET = "TARGET"
+
 
 CERTFILE = os.path.join(os.getenv('HOME'),
                         '.ssl',
@@ -37,6 +43,7 @@ TAP_WEB_SERVICE = 'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/tap/sync'
 
 OSSOS_TAG_URI_BASE = 'ivo://canfar.uvic.ca/ossos'
 OBJECT_COUNT = "object_count"
+
 
 vospace = vos.Client()
 
@@ -193,6 +200,9 @@ def get_uri(expnum, ccd=None,
     elif len(ext) > 0 and ext[0] != '.':
         ext = '.' + ext
 
+    if version is None:
+        version = ''
+
     # if ccd is None then we send uri for the MEF
     if ccd is not None:
         ccd = str(ccd).zfill(2)
@@ -330,6 +340,105 @@ def get_file(expnum, ccd=None, version='p', ext='fits', subdir=None, prefix=None
         copy(uri, filename)
 
     return filename
+
+
+def decompose_content_decomposition(content_decomposition):
+    """
+
+    :param content_decomposition:
+    :return:
+    """
+    return re.findall('(\d+)__(\d+)_(\d+)_(\d+)_(\d+)', content_decomposition)
+
+
+def ra_dec_cutout(uri, sky_coord, radius):
+    """
+
+    :param uri: The vospace location of the image to make a cutout from
+    :type uri: str
+    :param sky_coord: The central coordinate of the cutout
+    :type sky_coord: SkyCoord
+    :param radius: The radius of the cutout
+    :type radius: Quantity
+    :return: An HDUList with the cutout
+    :rtype: fits.HDUList
+    """
+    import logging
+
+    # These two lines enable debugging at httplib level (requests->urllib3->http.client)
+    # You will see the REQUEST, including HEADERS and DATA, and RESPONSE with HEADERS but without DATA.
+    # The only thing missing will be the response.body which is not logged.
+    try:
+        import http.client as http_client
+    except ImportError:
+        # Python 2
+        import httplib as http_client
+    #http_client.HTTPConnection.debuglevel = 1
+
+    # You must initialize logging, otherwise you'll not see debug output.
+    #logging.basicConfig()
+    #logging.getLogger().setLevel(logging.DEBUG)
+    #requests_log = logging.getLogger("requests.packages.urllib3")
+    #requests_log.setLevel(logging.DEBUG)
+    #requests_log.propagate = True
+
+    # Get the 'uncut' images CRPIX1/CRPIX2 values
+
+    coo_sys = upper(sky_coord.frame.name)
+
+    this_cutout = "CIRCLE {} {} {} {}".format(coo_sys, sky_coord.ra.to(units.degree).value,
+                                              sky_coord.dec.to(units.degree).value,
+                                              radius.to(units.degree).value)
+
+    view = "cutout"
+    node = uri.lstrip('vos:')
+    params = {"cutout": this_cutout,
+              "view": view}
+
+    r = requests.get(os.path.join(VOSPACE_WEB_SERVICE, node), params=params, cert=vospace.conn.vospace_certfile)
+    cutouts = decompose_content_decomposition(r.headers.get('content-disposition', '0___1_1_1_1'))
+
+    try:
+        r.raise_for_status()
+        hdulist = fits.open(cStringIO.StringIO(r.content))
+    except requests.HTTPError as ex:
+        print 'Cutout Failed: {}'.format(ex)
+        return None
+
+    # Always send back an HDUList object
+    if not isinstance(hdulist, fits.HDUList):
+        if not isinstance(hdulist, fits.PrimaryHDU):
+            raise ValueError("Cutout Service did not return an HDU?")
+        hdu = hdulist
+        phdu = fits.PrimaryHDU()
+        phdu.header['ORIGIN'] = "OSSOS"
+        hdulist = fits.HDUList([phdu, hdu])
+
+    # Make sure here is a primaryHDU
+    if not isinstance(hdulist[0], fits.PrimaryHDU):
+        phdu = fits.PrimaryHDU()
+        phdu.header['ORIGIN'] = "OSSOS"
+        hdulist.insert(0, phdu)
+
+    if len(cutouts) != len(hdulist) -1 :
+        raise ValueError("Wrong number of cutout structures found in Content-Disposition response.")
+
+    for hdu in hdulist[1:]:
+        cutout = cutouts.pop(0)
+        hdu.header['DATASEC'] = reset_datasec("[{}:{},{}:{}]".format(cutout[1],
+                                                                     cutout[2],
+                                                                     cutout[3],
+                                                                     cutout[4]),
+                                              hdu.header.get('DATASEC', None),
+                                              hdu.header['NAXIS1'],
+                                              hdu.header['NAXIS2'])
+        hdu.header['XOFFSET'] = int(cutout[1])
+        hdu.header['YOFFSET'] = int(cutout[3])
+
+        hdu.converter = CoordinateConverter(hdu.header['XOFFSET'], hdu.header['YOFFSET'])
+        hdu.wcs = WCS(hdu.header)
+
+    return hdulist
 
 
 def get_image(expnum, ccd=None, version='p', ext='fits',
@@ -516,7 +625,6 @@ def reset_datasec(cutout, datasec, naxis1, naxis2):
                min(datasec[3] - cutout[2] + 1, naxis2)]
 
     return "[{}:{},{}:{}]".format(datasec[0], datasec[1], datasec[2], datasec[3])
-
 
 
 def get_hdu(uri, cutout):
@@ -883,9 +991,9 @@ def get_mopheader(expnum, ccd, version='p', prefix=None):
     header['NAX1'] = header['NAXIS1']
     header['NAX2'] = header['NAXIS2']
     header['MOPversion'] = header['MOP_VER']
-    header['MJD_OBS_CENTER'] = str(Time(header['MJD-OBSC'],
-                                        format='mjd',
-                                        scale='utc', precision=5).replicate(format='mpc'))
+    header['MJD_OBS_CENTER'] = str(util.Time(header['MJD-OBSC'],
+                                             format='mjd',
+                                             scale='utc', precision=5).replicate(format='mpc'))
     header['MAXCOUNT'] = MAXCOUNT
     mopheaders[mopheader_uri] = header
     mopheader.close()
