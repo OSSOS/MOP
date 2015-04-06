@@ -574,9 +574,9 @@ class Observation(object):
         if len(mpc_line) != 80:
             logging.debug("Line is short, trying .ted format")
             try:
-               return cls.from_ted(mpc_line)
+                return cls.from_ted(mpc_line)
             except Exception as e:
-               pass
+                return None
 
         obsrec = None
         for format_name in struct_formats:
@@ -592,14 +592,21 @@ class Observation(object):
             logging.debug("Trying AP's .ast format")
             # try converting using Alex Parker's .ast format:
             # 2456477.78468 18:39:07.298 -20:40:17.53 0.2 304
-            _parts = mpc_line.split(' ')
-            args = {"date": Time(float(_parts[0]), scale='utc', format='jd').mpc,
-                    "discovery": False,
-                    "ra": _parts[1].replace(":", " "),
-                    "dec": _parts[2].replace(":", " "),
-                    "plate_uncertainty": _parts[3],
-                    "observatory_code": _parts[4]}
-            return cls(**args)
+            try:
+                _parts = mpc_line.split(' ')
+                args = {"date": Time(float(_parts[0]), scale='utc', format='jd').mpc,
+                        "discovery": False,
+                        "ra": _parts[1].replace(":", " "),
+                        "dec": _parts[2].replace(":", " "),
+                        "plate_uncertainty": _parts[3],
+                        "observatory_code": _parts[4]}
+                obsrec = cls(**args)
+            except:
+                obsrec = None
+
+        if not obsrec:
+            logging.error("Failed to parse line: {}".format(mpc_line))
+            return obsrec
 
         obsrec.comment = MPCComment.from_string(comment)
         if isinstance(obsrec.comment, OSSOSComment) and obsrec.comment.source_name is None:
@@ -1292,24 +1299,20 @@ class MPCReader(object):
         next_comment = None
         for line in input_mpc_lines:
             line = line.rstrip()
-            try:
-                mpc_observation = Observation.from_string(line)
-                if isinstance(mpc_observation, OSSOSComment):
-                    next_comment = mpc_observation
-                    continue
-                if isinstance(mpc_observation, Observation):
-                    if next_comment is not None:
-                        mpc_observation.comment = next_comment
-                        next_comment = None
-
-                    if self.replace_provisional is not None:  # then it has an OSSOS designation: set that in preference
-                        mpc_observation.provisional_name = self.provisional_name
-                    if len(str(mpc_observation.provisional_name.strip())) == 0 and str(mpc_observation.minor_planet_number) == "":
-                        mpc_observation.provisional_name = filename.split(".")[0]
-                    mpc_observations.append(mpc_observation)
-            except Exception as e:
-                logging.error(str(e))
+            mpc_observation = Observation.from_string(line)
+            if isinstance(mpc_observation, OSSOSComment):
+                next_comment = mpc_observation
                 continue
+            if isinstance(mpc_observation, Observation):
+                if next_comment is not None:
+                    mpc_observation.comment = next_comment
+                    next_comment = None
+
+                if self.replace_provisional is not None:  # then it has an OSSOS designation: set that in preference
+                    mpc_observation.provisional_name = self.provisional_name
+                if len(str(mpc_observation.provisional_name.strip())) == 0 and str(mpc_observation.minor_planet_number) == "":
+                    mpc_observation.provisional_name = filename.split(".")[0]
+                mpc_observations.append(mpc_observation)
 
         # No assurance that a .ast file is date-ordered: date-ordered is more expected behaviour
         mpc_observations.sort(key=lambda x: x.date)
@@ -1535,6 +1538,7 @@ class TNOdbComment(OSSOSComment):
         comm += str(self)
         return comm
 
+
 class RealOSSOSComment(OSSOSComment):
 
     @classmethod
@@ -1542,6 +1546,7 @@ class RealOSSOSComment(OSSOSComment):
         if comment.strip()[0] != "O":
             comment = "O "+comment
         return super(RealOSSOSComment, cls).from_string(comment)
+
 
 class MPCComment(OSSOSComment):
     """

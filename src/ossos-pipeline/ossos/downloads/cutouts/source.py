@@ -1,11 +1,13 @@
 import urllib
 from astropy import units
+from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from ...astrom import SourceReading, Observation
 from ...downloads.core import ApcorData
 from ...gui import logger
 import tempfile
 from ... import wcs, storage
+from ossos.gui import config
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -26,7 +28,7 @@ class SourceCutout(object):
         logger.debug("building a SourceCutout.")
         assert isinstance(reading, SourceReading)
         assert isinstance(hdulist, fits.HDUList)
-        assert isinstance(apcor, ApcorData)
+        #assert isinstance(apcor, ApcorData)
 
         self.reading = reading
         self.hdulist = hdulist
@@ -64,13 +66,17 @@ class SourceCutout(object):
     @property
     def extno(self):
         if self._extno is None:
-            for extno in range(1, len(self.hdulist)):
-                (x, y) = self.hdulist[extno].wcs.sky2xy(self.reading.ra, self.reading.dec)
-                if 0 < x < self.hdulist[extno].header.get('NAXIS1', 0) and \
-                        0 < y < self.hdulist[extno].header.get('NAXIS2', 0):
-                    self._extno = extno
-                    break
+            self._extno = SourceCutout.resolve_extno(self.hdulist, self.reading.ra, self.reading.dec)
         return self._extno
+
+    @staticmethod
+    def resolve_extno(hdulist, ra, dec):
+        for extno in range(1, len(hdulist)):
+            (x, y) = hdulist[extno].wcs.sky2xy(ra, dec)
+            if 0 < x < hdulist[extno].header.get('NAXIS1', 0) and \
+                    0 < y < hdulist[extno].header.get('NAXIS2', 0):
+                return extno
+        return None
 
     def flip_flip(self, point):
         """
@@ -266,30 +272,24 @@ class SourceCutout(object):
         """
         # selecting comparator when on a comparator should load a new one.
 
-        ref_wcs = wcs.WCS(self.fits_header)
-        try:
-            ref_x = self.fits_header['NAXIS1'] / 2.0
-            ref_y = self.fits_header['NAXIS2'] / 2.0
-            (ref_ra, ref_dec) = ref_wcs.xy2sky(ref_x, ref_y)
-        except Exception as e:
-            logger.info(str(e))
-            logger.info(str(self.fits_header))
-            return None
-
-        dra = self.fits_header['CD1_1'] * self.fits_header['NAXIS1'] / 2.0
-        ddec = self.fits_header['CD2_2'] * self.fits_header['NAXIS2'] / 2.0
-        radius = max(dra, ddec)
-
-        logger.info("BOX({} {} {} {})".format(ref_ra, ref_dec, dra, ddec))
-
-        query_result = storage.cone_search(ref_ra, ref_dec, dra, ddec)  # returns an astropy.table.table.Table
-
+        ref_ra = self.reading.ra * units.degree
+        ref_dec = self.reading.dec * units.degree
+        radius = config.read('CUTOUTS.SINGLETS.RADIUS') * units.arcminute
+        query_result = storage.cone_search(ref_ra, ref_dec, radius, radius)  # returns an astropy.table.table.Table
         comparison = None
         if len(query_result['collectionID']) > 0:  # are there any comparison images even available on that sky?
             for collectionID in query_result['collectionID']:
                 if collectionID not in self._bad_comparison_images:
                     comparison = collectionID
                     self._bad_comparison_images.append(comparison)
+                    try:
+                        hdu_list = storage.ra_dec_cutout(storage.dbimages_uri(comparison),
+                                                         SkyCoord(ref_ra, ref_dec), radius)
+                        extno = SourceCutout.resolve_extno(hdu_list, ref_ra, ref_dec)
+                        (x, y) = hdu_list[extno].wcs.sky2xy(ref_ra,ref_dec)
+                    except Exception as ex:
+                        logger.error("Getting HDULIST got error: {}".format(ex))
+                        continue
                     break
             if comparison is None:
                 logger.critical(str(self.fits_header))
@@ -302,15 +302,17 @@ class SourceCutout(object):
             self._comparison_image = None
             return
 
-        base_url = "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/vospace/nodes/OSSOS/dbimages/{}/{}p.fits".format(
-            comparison, comparison)
-        cutout = 'CIRCLE ICRS {} {} {}'.format(ref_ra, ref_dec, radius)
-        url = base_url + "?" + urllib.urlencode({'view': 'cutout', 'cutout': cutout})
 
-        hdu_list = downloader.download_hdulist(uri=None, URL=url)
+        # base_url = "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/vospace/nodes/OSSOS/dbimages/{}/{}p.fits".format(
+        #     comparison, comparison)
+        # cutout = 'CIRCLE ICRS {} {} {}'.format(ref_ra, ref_dec, radius)
+        # url = base_url + "?" + urllib.urlencode({'view': 'cutout', 'cutout': cutout})
+        #
+        # hdu_list = downloader.download_hdulist(uri=None, URL=url)
+        # comp_wcs = wcs.WCS(hdu_list[-1].header)
+        # (x, y) = comp_wcs.sky2xy(ref_ra, ref_dec)
 
-        comp_wcs = wcs.WCS(hdu_list[-1].header)
-        (x, y) = comp_wcs.sky2xy(ref_ra, ref_dec)
         obs = Observation(str(comparison), 'p', ccdnum=str(hdu_list[-1].header.get('EXTVER', 0)))
-        reading = SourceReading(x, y, ref_x, ref_y, ref_ra, ref_dec, ref_x, ref_y, obs)
+        reading = SourceReading(x, y, self.reading.x, self.reading.y,
+                                ref_ra, ref_dec, self.reading.x, self.reading.y, obs)
         self._comparison_image = SourceCutout(reading, hdu_list)
