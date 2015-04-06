@@ -67,7 +67,7 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2):
     """Do a QUERY on the TAP service for all observations that are part of OSSOS (*P05/*P016)
     where taken after mjd and have calibration 'observable'.
 
-    :param ra: float degrees
+    :param ra: RA center of search cont
     :param dec: float degrees
     :param dra: float degrees
     :param ddec: float degrees
@@ -87,8 +87,9 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2):
 
     data["QUERY"] = data["QUERY"].format(calibration_level)
     data["QUERY"] += (" AND  "
-                      " INTERSECTS( BOX('ICRS', {}, {}, {}, {}), "
-                      " Plane.position_bounds ) = 1 ").format(ra, dec, dra, ddec)
+                      " CONTAINS( BOX('ICRS', {}, {}, {}, {}), "
+                      " Plane.position_bounds ) = 1 ").format(ra.to(units.degree).value, dec.to(units.degree).value,
+                                                              dra.to(units.degree).value, ddec.to(units.degree).value)
     if mjdate is not None:
         data["QUERY"] += " AND Plane.time_bounds_cval1 < {} AND Plane.time_bounds_cval2 > {} ".format(
             mjdate + 1.0 / 24.0,
@@ -511,13 +512,12 @@ def ra_dec_cutout(uri, sky_coord, radius):
     #   logging.basicConfig()
     level = logging.getLogger().getEffectiveLevel()
     requests_log = logging.getLogger("requests.packages.urllib3")
-    requests_log.setLevel(logging.ERROR)
+    requests_log.setLevel(logging.DEBUG)
     requests_log.propagate = True
 
     # Get the 'uncut' images CRPIX1/CRPIX2 values
 
     coo_sys = upper(sky_coord.frame.name)
-
     this_cutout = "CIRCLE {} {} {} {}".format(coo_sys, sky_coord.ra.to(units.degree).value,
                                               sky_coord.dec.to(units.degree).value,
                                               radius.to(units.degree).value)
@@ -528,6 +528,7 @@ def ra_dec_cutout(uri, sky_coord, radius):
               "view": view}
     url = os.path.join(VOSPACE_WEB_SERVICE, node)
     logger.debug("Getting file using URL: {} and params: {} and cert: {}".format(url, params, vospace.conn.vospace_certfile))
+
     r = requests.get(url, params=params, cert=vospace.conn.vospace_certfile)
     r.raise_for_status()
 

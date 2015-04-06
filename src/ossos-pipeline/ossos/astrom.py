@@ -454,6 +454,9 @@ class Ellipse(object):
         self.b = b
         self.pa = pa
 
+    def __str__(self):
+        return "({}, {}, {})".format(self.a, self.b, self.pa)
+
 
 class SourceReading(object):
     """
@@ -479,7 +482,7 @@ class SourceReading(object):
           naxis1, naxis2: the size of the FITS image where this detection is from.
         @param is_inverted:
         """
-
+        # print x, y, x0, y0, ra, dec, xref, yref
         self._pix_coord = None
         if x is not None and y is not None:
             self.pix_coord = x, y
@@ -863,9 +866,8 @@ class Observation(object):
         self._header = None
         self.ccdnum = ccdnum is not None and str(ccdnum) or None
         self.ftype = ftype is not None and str(ftype) or None
-        self.rawname = self.fk + self.expnum
-        self.rawname += ftype is not None and ftype or ""
-        self.rawname += ccdnum is not None and ccdnum or ""
+        self.rawname = "{}{}{}{}".format(self.fk, self.expnum, ftype is not None and ftype or "",
+                                         ccdnum is not None and str(ccdnum).zfill(2) or "")
         logger.debug(self.rawname)
         if image_uri is None:
             self.image_uri = self.get_image_uri()

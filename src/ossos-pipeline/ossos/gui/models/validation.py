@@ -11,6 +11,8 @@ from ...gui.models.exceptions import (ImageNotLoadedException,
                                       NoAvailableWorkException)
 from ...gui.models.workload import (CandidatesWorkUnit, RealsWorkUnit,
                                     TracksWorkUnit)
+from ...astrom import SourceReading
+from ...downloads.cutouts.source import SourceCutout
 from ...mpc import Time
 
 
@@ -156,6 +158,11 @@ class ValidationModel(object):
         return self.get_current_workunit().get_current_source()
 
     def get_current_reading(self):
+        """
+
+        @return: the  SourceReading currently being validated.
+        @rtype: SourceReading
+        """
         return self.get_current_workunit().get_current_reading()
 
     def get_current_astrom_header(self):
@@ -185,25 +192,20 @@ class ValidationModel(object):
     def get_current_observation_date(self):
         header = self.get_current_workunit().get_current_reading().obs.header
         if isinstance(header, list):
-            print len(header)
-            header = header.pop()
-
-        try:
-            mpc_date = header.get('MJD_OBS_CENTER',
-                                  (Time(float(header.get('MJD-OBS')),
-                                        format='mjd',
-                                        scale='utc',
-                                        precision=6) +
-                                   TimeDelta(float(header.get('EXPTIME')) * units.second) / 2.0).mpc)
-        except Exception as e:
-            print "EXPTIME:", header.get('EXPTIME')
-            print "MJD-OBS", header.get('MJD-OBS')
-            print e
-            print "FAILED TO GET MPC_DATE"
-            mpc_date = '2000 01 01.00000'
-        print mpc_date
+            print "Got list when header expected, trying to use correct member of list."
+            extno = self.get_current_cutout().extno
+            header = header[extno]
+        mpc_date = header.get('MJD_OBS_CENTER',None)
+        if mpc_date is None and 'MJD-OBS' in header:
+            mjd_obs = float(header.get('MJD-OBS'))
+            exptime = float(header.get('EXPTIME'))
+            mpc_date = Time(mjd_obs,
+                            format='mjd',
+                            scale='utc',
+                            precision=6)
+            mpc_date += TimeDelta(exptime * units.second) / 2.0
+            mpc_date = mpc_date.mpc
         return mpc_date
-
 
     def get_current_ra(self):
         try:
@@ -306,8 +308,8 @@ class ValidationModel(object):
     def get_current_cutout(self):
         """
 
-        :return: A SourceCutout of the currently active image.
-        :rtype: SourceCutout
+        @return: A SourceCutout of the currently active image.
+        @rtype: SourceCutout
         """
         return self.image_state.get_current_cutout()
 

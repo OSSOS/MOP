@@ -46,6 +46,9 @@ class SingletViewer(WxMPLFitsViewer):
             radii /= 3600.0
             self._displayables_by_cutout[cutout].place_annulus(cutout.ra, cutout.dec, radii, colour='r')
 
+    def place_marker(self, cutout, x, y, radius, colour):
+        self._displayables_by_cutout[cutout].place_marker(x, y, radius, colour=colour)
+
     def mark_sources(self, cutout, pixel=False):
         assert cutout in self._displayables_by_cutout
 
@@ -62,8 +65,7 @@ class SingletViewer(WxMPLFitsViewer):
                 colour = "r"
             else:
                 colour = "g"
-        self._displayables_by_cutout[cutout].place_marker(x, y, radius,
-                                                          colour=colour)
+        self.place_marker(cutout, x, y, radius, colour=colour)
 
     def register_xy_changed_event_handler(self, handler):
         self.xy_changed.connect(handler)
