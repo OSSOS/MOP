@@ -2,26 +2,28 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import sys
 
-from ossos.astrom import AstromParser
-from ossos.downloads.async import AsynchronousDownloadManager
-from ossos.downloads.cutouts.downloader import ImageCutoutDownloader
-from ossos.gui import config, tasks, logger
-from ossos.gui import context
-from ossos.gui.sync import SynchronizationManager
-from ossos.gui.models.workload import (WorkUnitProvider,
-                                       RealsWorkUnitBuilder,
-                                       TracksWorkUnitBuilder,
-                                       CandidatesWorkUnitBuilder,
-                                       PreFetchingWorkUnitProvider)
-from ossos.gui.errorhandling import DownloadErrorHandler
-from ossos.gui.controllers import (ProcessTracksController,
-                                   ProcessRealsController,
-                                   ProcessCandidatesController)
-from ossos.gui.models.imagemanager import ImageManager
-from ossos.gui.models.transactions import TransAckValidationModel
-from ossos.gui.views.appview import ApplicationView
-from ossos.naming import ProvisionalNameGenerator, DryRunNameGenerator
-from ossos.ssos import TracksParser
+from ..astrom import AstromParser
+from ..downloads.async import AsynchronousDownloadManager
+from ..downloads.cutouts.downloader import ImageCutoutDownloader
+from ..gui import config, tasks, logger
+from ..gui import context
+from ..gui.sync import SynchronizationManager
+
+from ..gui.models.workload import (WorkUnitProvider,
+                                   RealsWorkUnitBuilder,
+                                   TracksWorkUnitBuilder,
+                                   CandidatesWorkUnitBuilder,
+                                   PreFetchingWorkUnitProvider)
+
+from ..gui.errorhandling import DownloadErrorHandler
+from ..gui.controllers import (ProcessTracksController,
+                               ProcessRealsController,
+                               ProcessCandidatesController)
+from ..gui.models.imagemanager import ImageManager
+from ..gui.models.transactions import TransAckValidationModel
+from ..gui.views.appview import ApplicationView
+from ..naming import ProvisionalNameGenerator, DryRunNameGenerator
+from ..ssos import TracksParser
 
 
 def create_application(task_name, working_directory, output_directory,

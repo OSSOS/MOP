@@ -3,9 +3,9 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import collections
 import threading
 
-from ossos import storage
-from ossos import auth
-from ossos.gui import tasks
+from .. import storage
+from .. import auth
+from . import tasks
 
 
 CANDS = "CANDS"
