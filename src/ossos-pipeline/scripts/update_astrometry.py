@@ -145,8 +145,7 @@ def recompute_mag(mpc_in):
     old_zp = storage.get_zeropoint(int(expnum), int(ccd))
     reading = astrom.SourceReading(float(mpc_obs.comment.x), float(mpc_obs.comment.y), float(mpc_obs.comment.x),
                                    float(mpc_obs.comment.y), mpc_obs.coordinate.ra.degree,
-                                   mpc_obs.coordinate.dec.degree, float(mpc_obs.comment.x),
-                                   float(mpc_obs.comment.y),
+                                   mpc_obs.coordinate.dec.degree, float(mpc_obs.comment.x), float(mpc_obs.comment.y),
                                    observation, ssos=True, from_input_file=True, null_observation=False,
                                    discovery=mpc_obs.discovery)
     # reading.is_inverted = reading.compute_inverted()

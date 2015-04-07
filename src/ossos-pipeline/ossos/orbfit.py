@@ -9,10 +9,8 @@ import numpy
 from StringIO import StringIO
 import tempfile
 
-try:
-    from astropy.coordinates import ICRSCoordinates
-except ImportError:
-    from astropy.coordinates import ICRS as ICRSCoordinates
+from astropy.coordinates import SkyCoord
+
 from astropy import units
 from astropy.units.quantity import Quantity
 
@@ -208,11 +206,11 @@ class Orbfit(object):
         _residuals = ""
         for observation in self.observations:
             self.predict(observation.date)
-            coord1 = ICRSCoordinates(self.coordinate.ra, self.coordinate.dec)
-            coord2 = ICRSCoordinates(observation.coordinate.ra, self.coordinate.dec)
+            coord1 = SkyCoord(self.coordinate.ra, self.coordinate.dec)
+            coord2 = SkyCoord(observation.coordinate.ra, self.coordinate.dec)
             observation.ra_residual = float(coord1.separation(coord2).arcsec)
             observation.ra_residual = (coord1.ra.degree - coord2.ra.degree) * 3600.0
-            coord2 = ICRSCoordinates(self.coordinate.ra, observation.coordinate.dec)
+            coord2 = SkyCoord(self.coordinate.ra, observation.coordinate.dec)
             observation.dec_residual = float(coord1.separation(coord2).arcsec)
             observation.dec_residual = (coord1.dec.degree - coord2.dec.degree) * 3600.0
             _residuals += "{:1s}{:12s} {:+05.2f} {:+05.2f} # {}\n".format(
