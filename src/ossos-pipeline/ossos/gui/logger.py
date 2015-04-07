@@ -10,13 +10,13 @@ import os
 import tempfile
 
 # set logging level and shunt to a file
-OSSOS_DEBUG_LEVEL = logging.INFO
+OSSOS_DEBUG_LEVEL = logging.DEBUG
 
-#logfile = os.path.join(tempfile.gettempdir(), "ossos_validation.log")
-#logging.basicConfig(filename=logfile,
-#                    format="%(levelname)s: %(module)s.%(funcName)s %(lineno)d: %(message)s (%(asctime)s)",
-#                    datefmt="%m/%d/%Y %I:%M:%S %p",
-#                    level=logging.WARNING)
+logfile = os.path.join(tempfile.gettempdir(), "ossos_validation.log")
+logging.basicConfig(filename=logfile,
+                    format="%(levelname)s: %(module)s.%(funcName)s %(lineno)d: %(message)s (%(asctime)s)",
+                    datefmt="%m/%d/%Y %I:%M:%S %p",
+                    level=logging.WARNING)
 
 _logger = logging.getLogger(__name__)
 _logger.setLevel(OSSOS_DEBUG_LEVEL)
