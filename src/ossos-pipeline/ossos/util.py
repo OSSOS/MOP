@@ -8,12 +8,11 @@ import os
 import itertools
 import numpy
 import re
-import sys
 import vos
 try:
-    from astropy.time import sofa_time
+    from astropy.time import erfa_time
 except ImportError:
-    from astropy.time import erfa_time as sofa_time
+    from astropy.time import sofa_time as erfa_time
 from astropy.time import TimeString
 from astropy.time import Time
 
@@ -201,10 +200,16 @@ class TimeMPC(TimeString):
     name = 'mpc'
     subfmts = (('mpc', '%Y %m %d', "{year:4d} {mon:02d} {day:02d}.{fracday:s}"),)
 
-    def _check_val_type(self, val1, val2):
-        if not numpy.all([re.match('\d{4}\s+\d{2}\s+\d{2}(\.\d*)?', x) for x in val1]):
-            raise ValueError("Can't convert all members of {} using mpc formatted time.".format(val1))
-        return val1, val2
+    def __init__(self, val1, val2, scale, precision,
+                 in_subfmt, out_subfmt, from_jd=False):
+        super(TimeMPC, self).__init__(val1=val1,
+                                val2=val2,
+                                scale=scale,
+                                precision=precision,
+                                in_subfmt=in_subfmt,
+                                out_subfmt=out_subfmt,
+                                from_jd=from_jd)
+        self.precision = 5
 
     # ## need our own 'set_jds' function as the MPC Time string is not typical
     def set_jds(self, val1, val2):
@@ -215,18 +220,15 @@ class TimeMPC(TimeString):
         :param val1: array of strings to parse into JD format
         :param val2: not used for string conversions but passed regardless
         """
-        n_times = len(val1)  # val1,2 already checked to have same len
-        iy = numpy.empty(n_times, dtype=numpy.intc)
-        im = numpy.empty(n_times, dtype=numpy.intc)
-        iday = numpy.empty(n_times, dtype=numpy.intc)
-        ihr = numpy.empty(n_times, dtype=numpy.intc)
-        imin = numpy.empty(n_times, dtype=numpy.intc)
-        dsec = numpy.empty(n_times, dtype=numpy.double)
 
-        # Select subformats based on current self.in_subfmt
-        # subfmts = self._select_subfmts(self.in_subfmt)
+        # This routine is based on atropy.time.core.TimeString class.
+
+        iterator = numpy.nditer([val1, None, None, None, None, None, None],
+                             op_dtypes=[val1.dtype] + 5*[numpy.intc] + [numpy.double])
         subfmts = self.subfmts
-        for i, time_str in enumerate(val1):
+        for val, iy, im, iday, ihr, imin, dsec in iterator:
+            time_str = val.item()
+
             # Assume that anything following "." on the right side is a
             # floating fraction of a day.
             try:
@@ -244,50 +246,55 @@ class TimeMPC(TimeString):
                     logging.error("{}".format(ex))
                     pass
                 else:
-                    iy[i] = tm.tm_year
-                    im[i] = tm.tm_mon
-                    iday[i] = tm.tm_mday
-                    ihr[i] = tm.tm_hour + int(24 * fracday)
-                    imin[i] = tm.tm_min + int(60 * (24 * fracday - ihr[i]))
-                    dsec[i] = tm.tm_sec + 60 * (60 * (24 * fracday - ihr[i]) - imin[i])
+                    iy[...] = tm.tm_year
+                    im[...] = tm.tm_mon
+                    iday[...] = tm.tm_mday
+                    hrprt = tm.tm_hour + int(24 * fracday)
+                    ihr[...] = ihr
+                    mnprt = tm.tm_min + int(60 * (24 * fracday - hrprt))
+                    imin[...] = mnprt
+                    dsec[...] = tm.tm_sec + 60 * (60 * (24 * fracday - hrprt) - mnprt)
                     break
             else:
                 raise ValueError("Time {0} does not match {1} format".format(time_str, self.name))
 
-        self.jd1, self.jd2 = sofa_time.dtf_jd(self.scale.upper().encode('utf8'),
-                                              iy, im, iday, ihr, imin, dsec)
+        self.jd1, self.jd2 = erfa_time.dtf_jd(
+            self.scale.upper().encode('utf8'), *iterator.operands[1:])
+
         return
 
     def str_kwargs(self):
         """
-
         Generator that yields a dict of values corresponding to the
-
         calendar date and time for the internal JD values.
-
-        Here we provide the additional 'fracday' element needed by 'mpc' format
         """
-        iys, ims, ids, ihmsfs = sofa_time.jd_dtf(self.scale.upper()
+        iys, ims, ids, ihmsfs = erfa_time.jd_dtf(self.scale.upper()
                                                  .encode('utf8'),
                                                  6,
                                                  self.jd1, self.jd2)
 
         # Get the str_fmt element of the first allowed output subformat
-
         _, _, str_fmt = self._select_subfmts(self.out_subfmt)[0]
 
         yday = None
         has_yday = '{yday:' in str_fmt or False
 
-        for iy, im, iday, ihmsf in itertools.izip(iys, ims, ids, ihmsfs):
-            ihr, imin, isec, ifracsec = ihmsf
+        ihrs = ihmsfs[..., 0]
+        imins = ihmsfs[..., 1]
+        isecs = ihmsfs[..., 2]
+        ifracs = ihmsfs[..., 3]
+        for iy, im, id, ihr, imin, isec, ifracsec in numpy.nditer(
+                [iys, ims, ids, ihrs, imins, isecs, ifracs]):
             if has_yday:
-                yday = datetime(iy, im, iday).timetuple().tm_yday
+                yday = datetime(iy, im, id).timetuple().tm_yday
 
-            # MPC uses day fraction as time part of datetime
             fracday = (((((ifracsec / 1000000.0 + isec) / 60.0 + imin) / 60.0) + ihr) / 24.0) * (10 ** 6)
             fracday = '{0:06g}'.format(fracday)[0:self.precision]
-            yield dict(year=int(iy), mon=int(im), day=int(iday), hour=int(ihr), min=int(imin), sec=int(isec),
-                       fracsec=int(ifracsec), yday=yday, fracday=fracday)
+
+            yield {'year': int(iy), 'mon': int(im), 'day': int(id),
+                   'hour': int(ihr), 'min': int(imin), 'sec': int(isec),
+                   'fracsec': int(ifracsec), 'yday': yday, 'fracday': fracday}
+
+
 
 Time.FORMATS['mpc'] = TimeMPC
