@@ -1,13 +1,17 @@
 """
 Reads and writes .astrom files.
 """
+from astropy import units
+from astropy.coordinates import SkyCoord
+from astropy.units import Quantity
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import os
 import re
 
-from ossos.gui import logger
-from ossos import storage, wcs
+from .gui import logger
+from . import storage, wcs
 
 
 DATASET_ROOT = storage.DBIMAGES
@@ -438,16 +442,23 @@ class Source(object):
         self.provisional_name = provisional_name
 
 
+class Ellipse(object):
+
+    def __init__(self, a, b, pa):
+        self.a = a
+        self.b = b
+        self.pa = pa
+
+
 class SourceReading(object):
     """
     Data for a detected point source (which is a potential moving objects).
     """
 
     def __init__(self, x, y, x0, y0, ra, dec, xref, yref, obs, ssos=False, from_input_file=False,
-                 null_observation=False, discovery=False, dx=0, dy=0, is_inverted=None,
-                 naxis1=2112, naxis2=4644):
+                 null_observation=False, discovery=False, dx=0, dy=0, pa=0):
         """
-
+        :param pa:
         :rtype : SourceReading
         Args:
           x, y: the coordinates of the source in this reading.
@@ -461,38 +472,205 @@ class SourceReading(object):
           naxis1, naxis2: the size of the FITS image where this detection is from.
         @param is_inverted:
         """
-        self.x = float(x)
-        self.y = float(y)
-        self.x0 = float(x0)
-        self.y0 = float(y0)
-        self.ra = float(ra)
-        self.dec = float(dec)
-        self.xref = float(xref)
-        self.yref = float(yref)
-        # Making these parameters saves a trip vospace.
-        self.naxis1 = int(naxis1)
-        self.naxis2 = int(naxis2)
-        self.dra = 0
-        self.ddec = 0
-        self.pa = 0
-
-        self.x_ref_offset = self.x - self.x0
-        self.y_ref_offset = self.y - self.y0
-        self.dx = dx
-        self.dy = dy
-        self._from_input_file = None
-        assert isinstance(obs, Observation)
+        self._pix_coord = None
+        self.pix_coord = x, y
+        self._ref_coord = None
+        self.ref_coord = x0, y0
+        self._sky_coord = None
+        self.sky_coord = ra, dec
+        self._focus_coord = None
+        self.focus_coord = xref, yref
+        self._uncertainty_ellipse = None
+        self.uncertainty_ellipse = dx, dy, pa
+        self._obs = None
         self.obs = obs
+        self._ssos = None
         self.ssos = ssos
+        self._from_input_file = None
         self.from_input_file = from_input_file
         self.null_observation = null_observation
+        self._discovery = None
         self.discovery = discovery
-        self.is_inverted = is_inverted
-        if self.is_inverted is None:
-            if self.obs.fk == "fk" or self.obs.ftype == "s":
-                self.is_inverted = False
-            else:
-                self.is_inverted = self.compute_inverted()
+
+    @property
+    def obs(self):
+        """
+        :return: The Observation that provide the current source reading.
+        :rtype: Observation
+        """
+        return self._obs
+
+    @obs.setter
+    def obs(self, obs):
+        """
+        :param obs: The observation the provided this source reading.
+        :type obs: Observation
+        :return:
+        """
+        assert isinstance(obs, Observation)
+        self._obs = obs
+
+    @property
+    def x_ref_offset(self):
+        return self.x - self.x0
+
+    @property
+    def y_ref_offset(self):
+        return self.y - self.y0
+
+    @property
+    def pix_coord(self):
+        """
+
+        :return: The x,y pixel location of the source in the current frame.
+        :rtype: (Quantity, Quantity)
+        """
+        return self._pix_coord
+
+    @pix_coord.setter
+    def pix_coord(self, pix_coord):
+        """
+        :type pix_coord: list
+        :param pix_coord: an x,y pixel coordinate, origin = 1
+        """
+        if not isinstance(pix_coord, list) or len(pix_coord) != 2:
+            raise ValueError("pix_coord needs to be set with an (x,y) coordinate pair")
+        x, y = pix_coord
+        if not isinstance(x, Quantity):
+            x = float(x) * units.pix
+        if not isinstance(y, Quantity):
+            y = float(y) * units.pix
+        self._pix_coord = x, y
+
+    @property
+    def x(self):
+        """
+        :return: the x coordinate value
+        :rtype: float
+        """
+        return self._pix_coord[0].value
+
+    @property
+    def y(self):
+        """
+        :return: the y coordinate value
+        :rtype: float
+        """
+        return self._pix_coord[1].value
+
+    @property
+    def ref_coord(self):
+        """
+
+        :return: The x,y pixel location of the source in the reference frame.
+        :rtype: (Quantity, Quantity)
+        """
+        return self._ref_coord
+
+    @ref_coord.setter
+    def ref_coord(self, pix_coord):
+        """
+        :type pix_coord: list
+        :param pix_coord: an x,y pixel coordinate, origin = 1
+        """
+        if not isinstance(pix_coord, list) or len(pix_coord) != 2:
+            raise ValueError("pix_coord needs to be set with an (x,y) coordinate pair")
+        x, y = pix_coord
+        if not isinstance(x, Quantity):
+            x = float(x) * units.pix
+        if not isinstance(y, Quantity):
+            y = float(y) * units.pix
+        self._ref_coord = x, y
+
+    @property
+    def x0(self):
+        return self._ref_coord[0].value
+
+    @property
+    def y0(self):
+        return self._ref_coord[1].value
+
+    @property
+    def focus_coord(self):
+        """
+        :return: the center of the cutout to align to the reference frame.
+        :rtype: (Quantity, Quantity)
+        """
+        return self._focus_coord
+
+    @focus_coord.setter
+    def focus_coord(self, pix_coord):
+        """
+        :type pix_coord: list
+        :param pix_coord: an x,y pixel coordinate, origin = 1
+        """
+        if not isinstance(pix_coord, list) or len(pix_coord) != 2:
+            raise ValueError("pix_coord needs to be set with an (x,y) coordinate pair")
+        x, y = pix_coord
+        if not isinstance(x, Quantity):
+            x = float(x) * units.pix
+        if not isinstance(y, Quantity):
+            y = float(y) * units.pix
+        self._focus_coord = x, y
+
+    @property
+    def xref(self):
+        return self.focus_coord[0].value
+
+    @property
+    def yref(self):
+        return self.focus_coord[1].value
+
+    @property
+    def sky_coord(self):
+        """
+
+        :return: the world coordinate longitude location.
+        :rtype: SkyCoord
+        """
+        return self._sky_coord
+
+    @property
+    def ra(self):
+        return self.sky_coord.ra.degree
+
+    @property
+    def dec(self):
+        return self.sky_coord.dec.degree
+
+    @sky_coord.setter
+    def sky_coord(self, sky_coord):
+        if isinstance(sky_coord, list):
+            ra, dec = sky_coord
+            if not isinstance(ra, Quantity):
+                ra = float(ra)*units.degree
+                dec = float(dec)*units.degree
+            sky_coord = SkyCoord(ra, dec, 1)
+        if not isinstance(sky_coord, SkyCoord):
+            raise ValueError("Failed to initialize coordinate using {}".format(sky_coord))
+        self._sky_coord = sky_coord
+
+    @property
+    def uncertainty_ellipse(self):
+        """
+
+        :return: The semi-major axis, semi-minor axis and position angle of the uncertainty ellipse
+        :rtype: Ellipse
+        """
+        return self._uncertainty_ellipse
+
+    @uncertainty_ellipse.setter
+    def uncertainty_ellipse(self, ellipse):
+        if not isinstance(ellipse, list) or len(ellipse) != 3:
+            raise ValueError("Don't know how to set ellipse using: {}".format(ellipse))
+        a, b, pa = ellipse
+        if not isinstance(a, Quantity):
+            a = float(a) * units.arcsecond
+        if not isinstance(b, Quantity):
+            b = float(b) * units.arcsecond
+        if not isinstance(pa, Quantity):
+            pa = float(pa) * units.degree
+        self._uncertainty_ellipse = Ellipse(a, b, pa)
 
     @property
     def from_input_file(self):
@@ -522,10 +700,7 @@ class SourceReading(object):
         return self.obs.header
 
     def get_original_image_size(self):
-        return self.naxis1, self.naxis2
-        # header = self.get_observation_header()
-        # return (int(header[Observation.HEADER_IMG_SIZE_X]),
-        #        int(header[Observation.HEADER_IMG_SIZE_Y]))
+        raise NotImplemented
 
     def get_exposure_number(self):
         return self.obs.expnum
@@ -593,7 +768,6 @@ class SourceReading(object):
         (x, y) = pvwcs.sky2xy(self.ra, self.dec)
         logger.debug("is_inverted: X,Y {},{}  -> wcs X,Y {},{}".format(self.x, self.y, x, y))
         dr2 = ((x-self.x)**2 + (y-self.y)**2)
-        logger.debug("inverted is {}".format(dr2 > 2))
         return dr2 > 2
 
         # if self.ssos or self.obs.is_fake():
@@ -667,13 +841,12 @@ class Observation(object):
 
     def __init__(self, expnum, ftype, ccdnum, fk="", image_uri=None):
         self.expnum = expnum
-        self.ftype = ftype
-        self.ccdnum = ccdnum
         self.fk = fk
         self._header = {}
-
-        self.rawname = fk + expnum + ftype + ccdnum
-
+        self.ccdnum = ccdnum is not None and str(ccdnum) or ""
+        self.ftype = ftype is not None and str(ftype) or ""
+        self.rawname = self.fk + self.expnum + self.ftype + self.ccdnum
+        logger.debug(self.rawname)
         if image_uri is None:
             self.image_uri = self.get_image_uri()
 
