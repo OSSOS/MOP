@@ -10,13 +10,10 @@ import time
 
 import Polygon
 import Polygon.IO
+from astropy.coordinates import SkyCoord
 from astropy.time import Time
 
 
-try:
-    from astropy.coordinates import ICRSCoordinates
-except:
-    from astropy.coordinates import ICRS as ICRSCoordinates
 
 from astropy import units
 
@@ -878,10 +875,10 @@ class Plot(Canvas):
                                            (current_dec - center_dec) / len(field_kbos))
                         ra = pointing['camera'].coordinate.ra.radian + mean_motion[0]
                         dec = pointing['camera'].coordinate.dec.radian + mean_motion[1]
-                        cc = ICRSCoordinates(ra=ra,
-                                             dec=dec,
-                                             unit=(units.radian, units.radian),
-                                             obstime=today)
+                        cc = SkyCoord(ra=ra,
+                                      dec=dec,
+                                      unit=(units.radian, units.radian),
+                                      obstime=today)
                         et.append(cc)
 
                 et.save()

@@ -57,9 +57,9 @@ class Orbfit(object):
         predict = self.orbfit.predict(ctypes.c_char_p(self.abg.name),
                        jd,
                        ctypes.c_int(obs_code))
-        self.coordinate = coordinates.ICRSCoordinates(predict.contents[0],
-                                                      predict.contents[1],
-                                                      unit=(units.degree, units.degree))
+        self.coordinate = coordinates.SkyCoord(predict.contents[0],
+                                               predict.contents[1],
+                                               unit=(units.degree, units.degree))
         self.dra = predict.contents[2]
         self.ddec = predict.contents[3]
         self.pa = predict.contents[4]
