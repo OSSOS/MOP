@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import Queue
 import threading
 
-from ossos.gui import logger
+from ..gui import logger
 
 MAX_THREADS = 6
 

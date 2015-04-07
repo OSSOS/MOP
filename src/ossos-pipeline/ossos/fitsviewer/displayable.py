@@ -1,17 +1,15 @@
 from cStringIO import StringIO
-import copy
+from astropy import units
 from astropy.io import fits
 import ds9
-from ossos.gui import logger
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import matplotlib.pyplot as plt
-#from matplotlib.patches import Ellipse
 
-from ossos.fitsviewer.colormap import GrayscaleColorMap
-from ossos.fitsviewer.exceptions import MPLViewerError
-from ossos.fitsviewer.interaction import InteractionContext, Signal
+from .colormap import GrayscaleColorMap
+from .exceptions import MPLViewerError
+from .interaction import InteractionContext, Signal
 
 
 class Displayable(object):
@@ -165,7 +163,8 @@ class ImageSinglet(object):
         """
         display = ds9.ds9(target='validate')
         # display.set('regions delete all')
-        display.set('regions', 'image; ellipse({},{},{},{},{}'.format(x,y,a,b,pa+90))
+        ell = 'ellipse({},{},{},{},{}'.format(x, y, a, b, pa.to(units.degree).value + 90)
+        display.set('regions', 'image ;{}'.format(ell))
         #self.error_ellipse = ErrEllipse(x, y, a, b, pa, color=color)
         #self.error_ellipse.add_to_axes(self.axes)
         self.display_changed.fire()
