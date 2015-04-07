@@ -1,10 +1,7 @@
 from astropy import units
 from xml.dom import minidom
 import xml
-try:
-    from astropy.coordinates import ICRSCoordinates
-except:
-    from astropy.coordinates import ICRS as ICRSCoordinates
+from astropy.coordinates import SkyCoord
 
 COLUMN_SEPARATOR = "|"
 
@@ -136,7 +133,7 @@ class EphemTarget(object):
         fields = self.fields
         sra = coordinate.ra.format(units.hour, sep=':', precision=2, pad=True)
         sdec = coordinate.dec.format(units.degree, sep=':', precision=1, alwayssign=True)
-        coord = ICRSCoordinates(sra+" "+sdec, unit=(units.hour, units.degree))
+        coord = SkyCoord(sra+" "+sdec, unit=(units.hour, units.degree))
         sra = coord.ra.format(units.hour, sep=":", precision=2, pad=True)
         sdec = coord.dec.format(units.degree, sep=":", precision=1, pad=True)
         sdate = str(coordinate.obstime.replicate(format('iso')))
@@ -153,5 +150,3 @@ class EphemTarget(object):
             filename = "ET_"+self.name+".xml"
         with file(filename, 'w') as f_handle:
             self.writer(f_handle)
-
-
