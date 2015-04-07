@@ -1,13 +1,11 @@
-import time
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from ossos.gui import events, logger
-from ossos.downloads.async import DownloadRequest
-from ossos.downloads.cutouts.focus import (SingletFocusCalculator,
-                                           TripletFocusCalculator)
-from ossos.downloads.cutouts.grid import CutoutGrid
-from ossos.gui.models.exceptions import ImageNotLoadedException
+from ...gui import events, logger
+from ...downloads.async import DownloadRequest
+from ...downloads.cutouts.focus import (SingletFocusCalculator,
+                                        TripletFocusCalculator)
+from ...downloads.cutouts.grid import CutoutGrid
+from ...gui.models.exceptions import ImageNotLoadedException
 
 
 class ImageManager(object):
