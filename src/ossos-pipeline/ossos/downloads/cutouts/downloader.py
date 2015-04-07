@@ -1,11 +1,11 @@
 import re
-from ossos import storage
-from ossos.astrom import SourceReading
-from ossos.gui import logger
+from ... import storage
+from ...astrom import SourceReading
+from astropy import units
+from ...gui import logger
 
-from ossos.downloads.core import Downloader
-from ossos.downloads.cutouts.calculator import CutoutCalculator
-from ossos.downloads.cutouts.source import SourceCutout
+from ..core import Downloader
+from ..cutouts.source import SourceCutout
 
 
 class ImageCutoutDownloader(Downloader):
@@ -24,7 +24,7 @@ class ImageCutoutDownloader(Downloader):
         """
         super(ImageCutoutDownloader, self).__init__()
 
-        self.cutout_calculator = CutoutCalculator(slice_rows, slice_cols)
+        #self.cutout_calculator = CutoutCalculator(slice_rows, slice_cols)
 
     def download_cutout(self, reading, focus=None, needs_apcor=False):
         """
@@ -47,38 +47,11 @@ class ImageCutoutDownloader(Downloader):
         Returns:
           cutout: ossos.downloads.data.SourceCutout
         """
-        if focus is None:
-            focus = reading.source_point
-
         assert isinstance(reading, SourceReading)
-        dx = dy = 2 * max(reading.dra, reading.ddec)
-        dx = max(reading.dx, dx)
-        dy = max(reading.dy, dy)
-
-        (NAXIS1, NAXIS2) = reading.get_original_image_size()
-
-        cutout_str, converter = self.cutout_calculator.build_cutout_str(
-            reading.get_extension(),
-            focus,
-            (NAXIS1, NAXIS2),
-            dx = dx,
-            dy = dy,
-            inverted=reading.is_inverted)
-
+        radius = max(reading.uncertainty_ellipse.a, reading.uncertainty_ellipse.b, 10 * units.arcminute)
+        radius *= 2
         image_uri = reading.get_image_uri()
-        cutout = re.findall(r'(\d+)', cutout_str)
-        y2 = int(cutout[-1])
-        y1 = int(cutout[-2])
-        logger.debug("Calculated cutout: %s for %s"
-                     % (cutout_str, image_uri))
-
-        hdulist = storage.get_image(expnum=reading.get_exposure_number(),
-                                    ccd=reading.get_ccd_num(),
-                                    cutout=cutout_str,
-                                    version=reading.get_observation().ftype,
-                                    prefix=reading.get_observation().fk,
-                                    return_file=False
-                                    )
+        hdulist = storage.ra_dec_cutout(image_uri, reading.sky_coord.ra, radius)
 
         apcor = None
         if needs_apcor:
@@ -87,6 +60,7 @@ class ImageCutoutDownloader(Downloader):
             except Exception as e:
                 logger.error(str(e))
                 apcor = None
+
         zmag = None
         try:
             zmag = self.download_zmag(reading.get_zmag_uri())
@@ -94,5 +68,5 @@ class ImageCutoutDownloader(Downloader):
             logger.error(str(e))
             pass
 
-        return SourceCutout(reading, hdulist, converter, apcor, zmag=zmag)
+        return SourceCutout(reading, hdulist, apcor, zmag=zmag)
 
