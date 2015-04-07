@@ -1,20 +1,18 @@
-import math
-
-import ds9
-
-from ossos.downloads.core import Downloader
-from ossos.gui.models.validation import ValidationModel
-
+from astropy import units
+from ossos.downloads.cutouts.source import SourceCutout
 
 __author__ = "David Rusk <drusk@uvic.ca>"
-
-from ossos.gui.autoplay import AutoplayManager
-from ossos.gui import config, logger
-from ossos.gui import events
-from ossos.gui.models.exceptions import (ImageNotLoadedException,
-                                         NoWorkUnitException)
-from ossos import mpc
-from ossos.orbfit import OrbfitError
+import math
+import ds9
+from ..downloads.core import  Downloader
+from ..gui.models.validation import ValidationModel
+from ..gui.autoplay import AutoplayManager
+from ..gui import config, logger
+from ..gui import events
+from ..gui.models.exceptions import (ImageNotLoadedException,
+                                     NoWorkUnitException)
+from .. import mpc
+from ..orbfit import OrbfitError
 
 
 class AbstractController(object):
@@ -35,14 +33,21 @@ class AbstractController(object):
         return self.view
 
     def display_current_image(self):
+        logger.debug("Displaying image.")
         try:
-            self.view.display(self.model.get_current_cutout())
+            cutout = self.model.get_current_cutout()
+            self.view.display(cutout)
         except ImageNotLoadedException as ex:
             self.image_loading_dialog_manager.wait_for_item(ex.requested_item)
             return False
-        except NoWorkUnitException:
+        except NoWorkUnitException as ex:
+            logger.debug("No work? {}".format(ex))
             return False
+        except Exception as ex:
+            logger.error("{}".format(ex))
+            raise ex
 
+        logger.debug("Displaying metadata.")
         self.view.update_displayed_data(self.model.get_reading_data(),
                                         self.model.get_header_data_list())
 
@@ -191,21 +196,20 @@ class ProcessRealsController(AbstractController):
         phot_failure = False
 
         source_cutout = self.model.get_current_cutout()
-
+        assert isinstance(source_cutout, SourceCutout)
         display = ds9.ds9(target='validate')
-        result = display.get('imexam key coordinate')
+        result = display.get('imexam key coordinate wcs fk5 degrees')
         values = result.split()
         logger.debug("IMEXAM returned {}".format(values))
-        cen_coords = (float(values[1]), float(values[2]))
+        cen_coords = float(values[1]) * units.degree, float(values[2]) * units.degree
+        (x, y, extno) = source_cutout.world2pix(cen_coords[0], cen_coords[1])
         key = values[0]
-        source_cutout.update_pixel_location(cen_coords)
-        #source_cutout.pixel_x = float(values[1])
-        #source_cutout.pixel_y = float(values[2])
+        source_cutout.update_pixel_location((x, y), extno)
         logger.debug("X, Y => {} , {}".format(source_cutout.pixel_x, source_cutout.pixel_y))
         pixel_x = source_cutout.pixel_x
         pixel_y = source_cutout.pixel_y
 
-        self.view.mark_apertures(self.model.get_current_cutout())
+        self.view.mark_apertures(source_cutout)
 
         try:
             cen_x, cen_y, obs_mag, obs_mag_err = self.model.get_current_source_observed_magnitude()
@@ -412,8 +416,8 @@ class ProcessTracksController(ProcessRealsController):
             print str(error)
         self.is_discovery = False
 
-
     def display_current_image(self):
+        logger.debug("Now attempting to display {}".format(self))
         successful = super(ProcessTracksController, self).display_current_image()
 
         if successful:
