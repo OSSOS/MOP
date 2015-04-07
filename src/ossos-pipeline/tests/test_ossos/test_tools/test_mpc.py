@@ -1,18 +1,13 @@
 import os
-
 import numpy
-
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 import tempfile
 
-from astropy.time.core import Time
-
 from ossos import mpc
-
-Time.FORMATS['mpc'] = mpc.TimeMPC
+from ossos.util import Time
 
 
 class ObservationTest(unittest.TestCase):
@@ -33,6 +28,14 @@ class ObservationTest(unittest.TestCase):
                                      band='g',
                                      observatory_code=568))
         self.assertEquals(expected, actual)
+
+    def test_mpcdatabase_line(self):
+        MPC_LINE = "08611K01QT7T  C2004 05 29.32355 22 01 19.57 -11 03 12.4                ok8659304"
+        obs = mpc.Observation.from_string(MPC_LINE)
+        self.assertEquals(str(obs.ra), "22 01 19.570")
+        self.assertEquals(obs.provisional_name, "K01QT7T")
+        self.assertEquals(obs.minor_planet_number, 8611)
+        self.assertEquals(obs.minor_planet_number, "08611")
 
     def test_format_line(self):
         actual = str(mpc.Observation(None, "A234567", "*", "H", "N", "2012 10 21.405160",
