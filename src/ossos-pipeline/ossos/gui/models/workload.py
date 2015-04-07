@@ -1,9 +1,5 @@
 from glob import glob
 import re
-import sys
-from ossos import ssos, astrom
-from ossos.downloads.async import DownloadRequest
-from ossos.downloads.cutouts import ImageCutoutDownloader
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -11,15 +7,17 @@ import os
 import random
 import threading
 
-from ossos.astrom import StreamingAstromWriter
-from ossos.gui import tasks, events, config
-from ossos.gui import logger
-from ossos.gui.models.collections import StatefulCollection
-from ossos.gui.models.exceptions import (NoAvailableWorkException,
-                                         SourceNotNamedException)
-from ossos.gui.progress import FileLockedException
-from ossos.orbfit import Orbfit
+from .. import tasks
+from .. import events
+from .. import logger
 
+from .collections import StatefulCollection
+from .exceptions import (NoAvailableWorkException, SourceNotNamedException)
+
+from ..progress import FileLockedException
+
+from ...astrom import StreamingAstromWriter
+from ...orbfit import Orbfit
 
 
 class WorkUnit(object):
@@ -527,7 +525,7 @@ class WorkUnitProvider(object):
         @param filename:
         @return:
         """
-        return self.name_filter is not None and re.search(self.name_filter,filename) is None
+        return self.name_filter is not None and re.search(self.name_filter, filename) is None
 
     def get_workunit(self, ignore_list=None):
         """
@@ -620,6 +618,7 @@ class PreFetchingWorkUnitProvider(object):
         return self.workunit_provider.directory
 
     def get_workunit(self):
+        logger.debug("Getting work unit using: {}".format(self))
         if self._all_fetched and len(self.workunits) == 0:
             raise NoAvailableWorkException()
 
@@ -631,6 +630,7 @@ class PreFetchingWorkUnitProvider(object):
             self.fetched_files.append(workunit.get_filename())
 
         self.trigger_prefetching()
+        logger.debug("Returning {}".format(workunit))
         return workunit
 
     def trigger_prefetching(self):
@@ -704,6 +704,8 @@ class WorkUnitBuilder(object):
             events.send(events.NO_AVAILABLE_WORK)
         logger.debug("Parsed %s (%d sources)" %
                      (input_fullpath, parsed_data.get_source_count()))
+
+        logger.debug("{}".format(parsed_data.get_sources()[0].get_readings()))
 
         _, input_filename = os.path.split(input_fullpath)
 
