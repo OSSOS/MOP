@@ -351,10 +351,10 @@ class Orbfit(object):
         predict = self.orbfit.predict(ctypes.c_char_p(abg_file.name),
                                       jd,
                                       ctypes.c_int(obs_code))
-        self._coordinate = ICRSCoordinates(predict.contents[0],
-                                           predict.contents[1],
-                                           unit=(units.degree, units.degree),
-                                           obstime=date)
+        self._coordinate = SkyCoord(predict.contents[0],
+                                    predict.contents[1],
+                                    unit=(units.degree, units.degree),
+                                    obstime=date)
         self._dra = predict.contents[2] * units.arcsec
         self._ddec = predict.contents[3] * units.arcsec
         self._pa = predict.contents[4] * units.degree
