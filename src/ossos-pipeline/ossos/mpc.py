@@ -5,10 +5,7 @@ import re
 import struct
 import sys
 import logging
-try:
-    from astropy.coordinates import ICRSCoordinates
-except ImportError:
-    from astropy.coordinates import ICRS as ICRSCoordinates
+from astropy.coordinates import SkyCoord
 from astropy import units
 import numpy
 from .storage import open_vos_or_local
@@ -79,6 +76,34 @@ MPCNOTES = {"Note1": {" ": " ",
                                "L": "Photometry uncertainty lacking",
                                "Y": "Photometry measured successfully",
                                "Z": "Photometry measurement failed."}}
+
+
+class MinorPlanetNumber(object):
+
+    PACKED_DESIGNATION = " ABCDEFGHJKLMNOPQRSTUVWXYZ"
+
+    def __init__(self, minor_planet_number):
+
+        if not minor_planet_number[0].isdigit():
+            base = 100000 * (MinorPlanetNumber.PACKED_DESIGNATION.index(minor_planet_number[0]))
+        else:
+            base = 10000 * int(minor_planet_number[0])
+        self._minor_planet_number = int(minor_planet_number[1:]) + base
+
+    def __str__(self):
+        if self._minor_planet_number > 99999:
+            idx = int(self._minor_planet_number / 100000)
+            minor_planet_number = MinorPlanetNumber.PACKED_DESIGNATION[idx]
+            minor_planet_number += "{:04d}".format(self._minor_planet_number - idx * 100000)
+        else:
+            minor_planet_number = "{:05d}".format(self._minor_planet_number)
+        return minor_planet_number
+
+    def __int__(self):
+        return self._minor_planet_number
+
+    def __cmp__(self, other):
+        return cmp(int(self), int(other))
 
 
 class NullObservation(object):
@@ -178,8 +203,8 @@ def format_ra_dec(ra_deg, dec_deg):
       formatted_ra: str
       formatted_dec: str
     """
-    coords = ICRSCoordinates(ra=ra_deg, dec=dec_deg,
-                             unit=(units.degree, units.degree))
+    coords = SkyCoord(ra=ra_deg, dec=dec_deg,
+                      unit=(units.degree, units.degree))
 
     # decimal=False results in using sexagesimal form
     formatted_ra = coords.ra.format(unit=units.hour, decimal=False,
@@ -359,6 +384,7 @@ class Observation(object):
 
     def __init__(self,
                  null_observation=False,
+                 minor_planet_number=None,
                  provisional_name=None,
                  discovery=False,
                  note1=None,
@@ -399,9 +425,19 @@ class Observation(object):
         :type comment MPCComment
         """
         self._null_observation = False
+        self._minor_planet_number = None
+        self._provisional_name = None
+
         self.null_observation = null_observation
-        self._provisional_name = ""
-        self.provisional_name = provisional_name
+        if not self.null_observation:
+            try:
+                self.minor_planet_number = null_observation+minor_planet_number
+            except ValueError:
+                self.provisional_name = null_observation+minor_planet_number+provisional_name
+            else:
+                self.provisional_name = provisional_name
+        else:
+            self.provisional_name = minor_planet_number+provisional_name
         self._discovery = None
         self.discovery = discovery
         self._note1 = None
@@ -498,7 +534,7 @@ class Observation(object):
         mpc_line = input_line.strip('\n')
         if len(mpc_line) > 0 and mpc_line[0] == '#':
             return MPCComment.from_string(mpc_line[1:])
-        mpc_format = '1s11s1s1s1s17s12s12s9x5s1s6x3s'
+        mpc_format = '1s4s7s1s1s1s17s12s12s9x5s1s6x3s'
         comment = mpc_line[81:]
         mpc_line = mpc_line[0:80]
         if len(mpc_line) != 80:
@@ -511,9 +547,11 @@ class Observation(object):
 
         try:
             obsrec = cls(*struct.unpack(mpc_format, mpc_line))
-        except:
+        except Exception as ex:
+            print str(ex)
             # try converting using Alex Parker's .ast format:
             # 2456477.78468 18:39:07.298 -20:40:17.53 0.2 304
+            print "failed while parsing: {}".format(mpc_line)
             _parts = mpc_line.split(' ')
             args = {"date": Time(float(_parts[0]), scale='utc', format='jd').mpc,
                     "discovery": False,
@@ -553,7 +591,11 @@ class Observation(object):
         else:
             padding = " " * 4
         ## padding = " " * min(4, 11 - len(self.provisional_name))
-        mpc_str = "%-12s" % (str(self.null_observation) + padding + self.provisional_name)
+        if self.minor_planet_number is None or self.null_observation:
+            mpc_str = "%-12s" % (str(self.null_observation) + padding + self.provisional_name)
+        else:
+            mpc_str = "{:s}{:s}".format(self.minor_planet_number, self.provisional_name)
+
 
         mpc_str += str(self.discovery)
         mpc_str += '{0:1s}{1:1s}'.format(str(self.note1), str(self.note2))
@@ -627,6 +669,22 @@ class Observation(object):
         self._provisional_name = provisional_name
 
     @property
+    def minor_planet_number(self):
+        """
+        :return: minor_planet_number for object associated with this observation.
+        """
+        return self._minor_planet_number
+
+    @minor_planet_number.setter
+    def minor_planet_number(self, minor_planet_number):
+        packed = 'ABCDEFGHJKLMNOPQRSTUVWXYZ'
+
+        number = re.match('^([A-Z0-9]\d{4})$', minor_planet_number)
+        if number is None:
+            raise ValueError("Note a string for minor planet number")
+        self._minor_planet_number = MinorPlanetNumber(minor_planet_number)
+
+    @property
     def discovery(self):
         """
         Is this a discovery observation?
@@ -677,15 +735,15 @@ class Observation(object):
 
     @property
     def ra(self):
-        return self.coordinate.ra.format(unit=units.hour, decimal=False,
-                                         sep=" ", precision=self._ra_precision, alwayssign=False,
-                                         pad=True)
+        return self.coordinate.ra.to_string(unit=units.hour, decimal=False,
+                                            sep=" ", precision=self._ra_precision, alwayssign=False,
+                                            pad=True)
 
     @property
     def dec(self):
-        return self.coordinate.dec.format(unit=units.degree, decimal=False,
-                                          sep=" ", precision=self._dec_precision, alwayssign=True,
-                                          pad=True)
+        return self.coordinate.dec.to_string(unit=units.degree, decimal=False,
+                                             sep=" ", precision=self._dec_precision, alwayssign=True,
+                                             pad=True)
 
     @property
     def comment(self):
@@ -722,12 +780,12 @@ class Observation(object):
         try:
             ra = float(val1)
             dec = float(val2)
-            self._coordinate = ICRSCoordinates(ra, dec, unit=(units.degree, units.degree))
+            self._coordinate = SkyCoord(ra, dec, unit=(units.degree, units.degree))
         except:
             try:
                 self._ra_precision = compute_precision(val1)
                 self._dec_precision = compute_precision(val2)
-                self._coordinate = ICRSCoordinates(val1, val2, unit=(units.hour, units.degree))
+                self._coordinate = SkyCoord(val1, val2, unit=(units.hour, units.degree))
             except Exception as e:
                 sys.stderr.write(str(e)+"\n")
                 raise MPCFieldFormatError("coord_pair",
