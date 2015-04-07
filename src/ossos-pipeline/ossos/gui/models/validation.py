@@ -1,13 +1,13 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from ossos.gui import events
-from ossos.gui import logger
-from ossos.gui.models.collections import StatefulCollection
-from ossos.gui.models.exceptions import (ImageNotLoadedException,
-                                         NoWorkUnitException,
-                                         NoAvailableWorkException)
-from ossos.gui.models.workload import (CandidatesWorkUnit, RealsWorkUnit,
-                                       TracksWorkUnit)
+from ...gui import events
+from ...gui import logger
+from ...gui.models.collections import StatefulCollection
+from ...gui.models.exceptions import (ImageNotLoadedException,
+                                      NoWorkUnitException,
+                                      NoAvailableWorkException)
+from ...gui.models.workload import (CandidatesWorkUnit, RealsWorkUnit,
+                                    TracksWorkUnit)
 
 
 class ValidationModel(object):
@@ -81,7 +81,7 @@ class ValidationModel(object):
                 events.send(events.NO_AVAILABLE_WORK)
                 return
         # pre-load some work units if we are within 4 units of the end
-        if self.work_units.index >  len(self.work_units) - 3:
+        if self.work_units.index > len(self.work_units) - 3:
             try:
                 self.workunit_provider.trigger_prefetching()
             except:
@@ -274,6 +274,11 @@ class ValidationModel(object):
         return isinstance(self.get_current_workunit(), TracksWorkUnit)
 
     def get_current_cutout(self):
+        """
+
+        :return: A SourceCutout of the currently active image.
+        :rtype: SourceCutout
+        """
         return self.image_state.get_current_cutout()
 
     def download_workunit_images(self, workunit):
