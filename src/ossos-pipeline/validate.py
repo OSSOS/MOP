@@ -6,7 +6,7 @@ import argparse
 import tempfile
 
 from ossos.gui import tasks
-
+from ossos import storage
 
 def launch_app(task, working_directory, output_directory, dry_run, debug, name_filter=None, 
                user_name=None, skip_previous=False):
@@ -31,6 +31,7 @@ def main():
                         default=tempfile.gettempdir(),
                         help="The directory where any local output files will "
                              "be placed.")
+    parser.add_argument("--dbimages", default="vos:OSSOS/dbimages", help="VOSpace location of images to show.")
     parser.add_argument("--dry-run",
                         dest="dry_run",
                         action="store_true",
@@ -55,6 +56,7 @@ def main():
     else:
         output = args.output
 
+    storage.DBIMAGES = args.dbimages
 
     launch_app(args.task, args.input, output, args.dry_run, args.debug, args.name_filter,
                args.username, args.skip_previous)
