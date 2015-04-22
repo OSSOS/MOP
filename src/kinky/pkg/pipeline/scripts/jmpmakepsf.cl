@@ -257,7 +257,7 @@ begin
 		    t_psf,
 		    t_image//".pst",
 		    t_image//".psg",
-		    showplots-, interactive-, verbose+) }
+		    showplots-, interactive-, verbose-) }
 		    goto finalproc
 
             print("Using nstar to find the good matches to the PSF...")
@@ -288,7 +288,7 @@ begin
 	    iferr { psf(t_image, t_phot, t_phot,
 		    t_psf,
 		    t_image//".pst",
-		    t_image//".psg", showplots-, interactive-, verbose+) }
+		    t_image//".psg", showplots-, interactive-, verbose-) }
 	    goto finalproc
 
             # Use nstar to find the fluxes of psg stars
@@ -302,7 +302,7 @@ begin
             }
 
             substar(image=t_image, photfile=t_image//".nst.1",
-                    exfile=t_image//".pst", psfimage=t_psf, subimage=t_image//".sub.1", verify-, update-, verbose+)
+                    exfile=t_image//".pst", psfimage=t_psf, subimage=t_image//".sub.1", verify-, update-, verbose-)
 
     	    # run PHOT on the subtracted image to get the flux zeropoint correct.
 	    kdelete(t_phot)
