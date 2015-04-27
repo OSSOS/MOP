@@ -38,7 +38,7 @@ class ObservationTest(unittest.TestCase):
         self.assertEquals(obs.minor_planet_number, "08611")
 
     def test_format_line(self):
-        actual = str(mpc.Observation(None, "A234567", "*", "H", "N", "2012 10 21.405160",
+        actual = str(mpc.Observation(None, None, "A234567", "*", "H", "N", "2012 10 21.405160",
                                      "26.683336700",  # 01 46 44.001
                                      "29.220353200",  # +29 13 13.27
                                      "12.4",
@@ -648,19 +648,19 @@ class TestMPCReader(unittest.TestCase):
         """
         reader = mpc.MPCReader()
         obs = reader.read(self.fileobj)
-        self.assertEqual(obs[3].provisional_name, self.long_test_name,
+        self.assertEqual(obs[7].provisional_name, self.long_test_name,
                          "got >{}< expected >{}<".format(obs[3].provisional_name, self.long_test_name))
-        self.assertEqual(str(obs[3])[1:1 + len(self.long_test_name)], self.long_test_name,
+        self.assertEqual(str(obs[7])[1:1 + len(self.long_test_name)], self.long_test_name,
                          "got >{}< expected >{}<".format(self.long_test_name,
                                                          str(obs[3])[1:1 + len(self.long_test_name)]))
 
     def test_mpc_real_to_ossos(self):
         reader = mpc.MPCReader()
         obs = reader.read(self.fileobj)
-        assert isinstance(obs[5].comment, mpc.OSSOSComment)
-        self.assertEqual(obs[5].comment.version, "O")
-        self.assertEqual(obs[5].provisional_name, "L3XO")
-        self.assertAlmostEqual(obs[5].comment.mag, 24.44, places=2)
+        assert isinstance(obs[2].comment, mpc.OSSOSComment)
+        self.assertEqual(obs[2].comment.version, "O")
+        self.assertEqual(obs[2].provisional_name, "L3XO")
+        self.assertAlmostEqual(obs[2].comment.mag, 24.44, places=2)
 
     def test_rejection_line_writing(self):
         """
@@ -668,8 +668,7 @@ class TestMPCReader(unittest.TestCase):
         """
         reader = mpc.MPCReader()
         obs = reader.read(self.fileobj)
-        print obs[8].comment
-        self.assertEqual(obs[8].comment.mag_uncertainty, '----')
+        self.assertIsNone(obs[5].comment.mag_uncertainty)
 
 
 if __name__ == '__main__':
