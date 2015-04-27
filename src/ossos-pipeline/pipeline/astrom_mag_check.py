@@ -32,7 +32,7 @@ import math
 import os
 from ossos import astrom
 from ossos.mpc import Time
-from ossos.downloads.cutouts import ImageCutoutDownloader
+from ossos.downloads.cutouts.downloader import ImageCutoutDownloader
 from ossos import storage
 import argparse
 import logging
