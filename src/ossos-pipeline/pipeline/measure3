@@ -1,0 +1,94 @@
+#!/usr/bin/env python
+
+## use the xy2skypv code to generate the astrometric values 
+## that measure3 would normally produce.
+
+import sys, os
+from optparse import OptionParser
+import re
+
+if __name__=='__main__':
+    parser= OptionParser()
+    (opt,args)=parser.parse_args()
+    if len(args)!= 1:
+        parser.error("You must provide the base .cands.comb image on the command line\n")
+    base_image=args[0]
+    OK="measure3.OK"
+    FAILED=base_image+".measure3.FAILED"
+
+    os.system("touch %s" %(FAILED))
+
+
+    cands_filename="%s.cands.comb" % ( base_image)
+    if not os.access(cands_filename,os.R_OK):
+        parser.error("Failed to open input candidate file %s\n" %( cands_filename))
+
+        
+    astrom_header="""##   X        Y        X_0     Y_0          R.A.          DEC                   \n"""
+
+    astrom_filename="%s.measure3.cands.astrom" % ( base_image)
+    astrom_file=open(astrom_filename,'w')
+    coords=[]
+    base_names=[]
+    line_counter=0
+    xy_files={}
+    rd_files={}
+    xy_lines={}
+    getImageNames=True
+    started=False
+    for cands_line in open(cands_filename):
+    ## read the names of the exposures to work from...
+        if len(cands_line.strip())==0:
+            ### Skip EMPTY lines...
+            continue
+        if cands_line.lstrip()[0]=='#' :
+            ## write out all the header lines accept the one with X/Y header as its different
+            if "X_0" not in cands_line:
+                astrom_file.write(cands_line)
+            else:
+                astrom_file.write(astrom_header)
+            if cands_line.lstrip()[1]=='#':
+                getImageNames= not started
+                continue
+            print cands_line[2:].strip()
+            if getImageNames and cands_line.lstrip()[1]==' ':
+                base_name=cands_line[2:].strip()
+                base_names.append(base_name)
+                xy_files[base_name]=open("%s.xy" %(base_name), 'w')
+                started=True
+                continue
+            continue
+        v=cands_line.strip().split()
+        coords.append(v)
+        base_name=base_names[line_counter % len(base_names)]
+        if base_name not in xy_lines:
+            xy_lines[base_name]=[]
+        xy_lines[base_name].append(cands_line)
+        xy_files[base_name].write("%s %s\n" % ( v[0],v[1]))
+        xy_files[base_name].flush()
+        line_counter+=1
+
+
+    ## Now run the astrometry for each object on the frame that object was detected on
+
+    astlines={}
+    for base_name in xy_files:
+        cmd = 'xy2skypv %s.fits %s.xy %s.rd' % ( base_name, base_name, base_name)
+        os.system(cmd)
+        astlines[base_name]=open("%s.rd" % (base_name)).readlines()
+
+    line_counter=0
+    for idx in range(len(astlines[base_names[0]])):
+        astrom_file.write("\n")
+        for base_name in base_names:
+            rd=astlines[base_name][idx].split()
+            xy=xy_lines[base_name][idx].split()
+            if rd[2]!=xy[0] or rd[3]!=xy[1]:
+                ## the files are misalligned? 
+                sys.stderr.write("MISMATCH in astrometric code... bailing out.\n")
+                sys.exit(-1)
+            astrom_file.write(" %8.2f %8.2f %8.2f %8.2f %12.7f %12.7f\n" % (float(xy[0]),float(xy[1]),float(xy[2]),float(xy[3]),float(rd[0]),float(rd[1])))
+    astrom_file.close()
+    os.system("touch %s" % (OK))
+    os.unlink(FAILED)
+
