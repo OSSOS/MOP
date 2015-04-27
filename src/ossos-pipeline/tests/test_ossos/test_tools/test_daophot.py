@@ -2,8 +2,6 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
 
-from hamcrest import assert_that, close_to, has_length
-
 from tests.base_tests import FileReadingTestCase
 from ossos import daophot
 
@@ -33,20 +31,19 @@ class DaophotTest(FileReadingTestCase):
                            exptime=exptime)
 
         def get_first(param):
-            value_list = hdu["data"][param]
-            assert_that(value_list, has_length(1))
+            value_list = hdu[param]
+            self.assertEqual(len(value_list), 1)
             return value_list[0]
 
-        xcen = get_first("X")
-        ycen = get_first("Y")
+        xcen = get_first("XCENTER")
+        ycen = get_first("YCENTER")
         mag = get_first("MAG")
         magerr = get_first("MERR")
 
-        assert_that(xcen, close_to(560.000, DELTA))
-        assert_that(ycen, close_to(406.600, DELTA))
-        assert_that(mag, close_to(24.769, DELTA))
-        # NOTE: minor difference in magnitude error: 0.290 vs 0.291
-        assert_that(magerr, close_to(0.290, 0.0011))
+        self.assertAlmostEqual(xcen, 560.0, 1)
+        self.assertAlmostEqual(ycen, 406.6, 1)
+        self.assertAlmostEqual(mag, 24.64, 2)
+        self.assertAlmostEqual(magerr, 0.223, 2)
 
     def test_phot_mag(self):
         fits_filename = self.get_abs_path("data/1616681p22.fits")
