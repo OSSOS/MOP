@@ -92,7 +92,7 @@ class WCS(astropy_wcs.WCS):
                           nord=self.nord)
         except:
             logger.warning("Reverted to CD-Matrix WCS.")
-            pos = self.wcs_world2pix([[x, y]], 1)
+            pos = self.wcs_pix2world([[x, y]], 1)
             return pos[0][0], pos[0][1]
 
     def sky2xy(self, ra, dec):
