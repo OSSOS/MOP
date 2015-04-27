@@ -3,9 +3,10 @@
 import argparse
 import logging
 import os
-from ossos import mpc
 import re
 import sys
+
+from ossos import mpc
 
 
 def load_observations((observations, regex, rename), path, filenames):
@@ -24,7 +25,7 @@ def load_observations((observations, regex, rename), path, filenames):
             logging.warning("Skipping {}".format(filename))
             continue
         with open(os.path.join(path, filename)) as ifptr:
-            ## use the filename as the new_provisional name of an object
+            # # use the filename as the new_provisional name of an object
             new_provisional_name = os.path.basename(filename)
             new_provisional_name = new_provisional_name[0:new_provisional_name.find(".")]
             for line in ifptr.readlines():
@@ -76,7 +77,7 @@ auto-magical way.
                         help=("Directory containing previously reported astrometry."
                               "Files can be in dbase ast, validate ast or OSSOS mpc format"))
     parser.add_argument("--idx_filename",
-                        default = None,
+                        default=None,
                         help="File that has the MOP/OSSOS name mapping index.")
     parser.add_argument("new_astrometry_directory",
                         help=("Directory containing astrometry to be searched for new lines to report."
@@ -85,7 +86,7 @@ auto-magical way.
     parser.add_argument("report_file",
                         help="Name of file that new lines will be reported to")
     parser.add_argument("--rename", action="store_true",
-                        help="Rename objects in new measurement files based on the name of the file" )
+                        help="Rename objects in new measurement files based on the name of the file")
     parser.add_argument("--new_name_regex",
                         default='.*\.ast',
                         help="Only load new observations where provisional name matches")
@@ -116,10 +117,9 @@ auto-magical way.
         logger.setLevel(logging.CRITICAL)
 
     if args.idx_filename is None:
-        args.idx_filename = os.path.dirname(args.existing_astrometry_directory)+"/idx/file.idx"
+        args.idx_filename = os.path.dirname(args.existing_astrometry_directory) + "/idx/file.idx"
 
     idx = mpc.Index(args.idx_filename)
-
 
     existing_observations = {}
     os.path.walk(args.existing_astrometry_directory, load_observations,
@@ -145,11 +145,14 @@ auto-magical way.
                         observation2 = existing_observations[date1][name2]
                         assert isinstance(observation2, mpc.Observation)
                         separation = observation1.coordinate.separation(observation2.coordinate)
-                        if separation.arcsecs < args.tolerance:
+                        if separation.arcsec < args.tolerance:
                             if not idx.is_same(observation2.provisional_name, observation1.provisional_name):
-                                logger.warning("Duplicate observations >{}< on {} matches different provisional name >{}< on same date".format(name1,
-                                                                                                                observation1.date,
-                                                                                                                name2))
+                                logger.warning(
+                                    "Duplicate observations >{}< on {} matches different provisional name >{}< on "
+                                    "same date".format(
+                                        name1,
+                                        observation1.date,
+                                        name2))
                                 logger.warning(str(observation1))
                                 logger.warning(str(observation2))
                             report = False
@@ -158,7 +161,7 @@ auto-magical way.
                             replacement = True
                 if report and replacement == args.replacement:
                     logger.warning("Adding {} on {} to report".format(name1, observation1.date))
-                    report_observations[name1] = report_observations.get(name1,[])
+                    report_observations[name1] = report_observations.get(name1, [])
                     report_observations[name1].append(observation1)
 
     if not len(report_observations) > 0:
@@ -169,7 +172,7 @@ auto-magical way.
         outfile = sys.stdout
     else:
         outfile = open(args.report_file, 'w')
-    
+
     observations = []
     for name in report_observations:
         observations.extend(report_observations[name])
@@ -180,7 +183,7 @@ auto-magical way.
         sorted("This is a test string from Andrew".split(), key=str.lower)
         report_observations[name].sort(key=lambda x: x.date.jd)
         for observation in report_observations[name]:
-            outfile.write(observation.to_tnodb()+"\n")
+            outfile.write(observation.to_tnodb() + "\n")
         outfile.write("\n")
     outfile.close()
 

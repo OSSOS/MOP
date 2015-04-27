@@ -16,7 +16,7 @@ for script in os.listdir(script_dir):
 scripts.append('validate.py')
 
 setup(name='ossos',
-      version="0.3.2",
+      version="0.3.3",
       url='http://github.com/OSSOS/MOP',
       author='''JJ Kavelaars (jjk@uvic.ca),
               Brett Gladman (gladman@astro.ubc.ca),

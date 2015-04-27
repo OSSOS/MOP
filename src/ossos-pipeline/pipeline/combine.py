@@ -1,4 +1,4 @@
-#!python 
+#!/Users/jjk/MOP/bin/python 
 ################################################################################
 ##                                                                            ##
 ## Copyright 2013 by its authors                                              ##
@@ -159,32 +159,21 @@ def main():
     storage.MEASURE3 = args.measure3
 
     prefix = (args.fk and 'fk') or ''
+    task = util.task()
+    dependency = 'step3'
 
     ccd_list = (args.ccd is None and range(0, 36)) or [args.ccd]
 
     exit_code = 0
     for ccd in ccd_list:
-        storage.set_logger(os.path.splitext(os.path.basename(sys.argv[0]))[0], prefix,
-                           args.expnum, ccd, args.type,
-                           args.dry_run)
-        if not storage.get_status(args.expnum, ccd, prefix + 'step3', version=args.type) and not args.dry_run:
-            print storage.get_status(
-                args.expnum,
-                ccd,
-                prefix+'step3',
-                return_message=True)
-            logging.error(storage.get_status(
-                args.expnum,
-                ccd,
-                prefix+'step3',
-                return_message=True))
-            raise IOError(35, "need to run step3 first")
-
-        if storage.get_status(args.expnum, ccd,
-                              prefix + 'combine',
-                              version=args.type) and not args.force:
-            continue
+        storage.set_logger(task, prefix, args.expnum, ccd, args.type, args.dry_run)
         try:
+            if not storage.get_status(dependency, prefix, args.expnum, version=args.type, ccd=ccd) and not args.dry_run:
+               message = storage.get_status(dependency, prefix, args.expnum, "p", ccd, return_message=True)
+               raise IOError(35, message)
+
+            if storage.get_status(task, prefix, args.expnum, version=args.type, ccd=ccd) and not args.force:
+               continue
             message = combine(args.expnum,
                               ccd,
                               prefix=prefix,
@@ -200,10 +189,7 @@ def main():
             exit_code = message
         logging.info(message)
         if not args.dry_run:
-            storage.set_status(args.expnum, ccd,
-                               prefix + 'combine',
-                               version=args.type,
-                               status=message)
+            storage.set_status(task, prefix, args.expnum, version=args.type, ccd=ccd, status=message)
         return exit_code
 
 

@@ -1,29 +1,30 @@
 import math
 import sys
 import argparse
+import os
 
 import numpy as np
 import ephem
 from astropy.io import votable
+from astropy.time import Time, TimeDelta
 import Polygon
 from matplotlib.patches import Rectangle
 from matplotlib.font_manager import FontProperties
 import matplotlib.pyplot as plt
 
+from planning import megacam
 import parsers
 import parameters
 import plot_fanciness
 import plot_objects
 
 
-
 # from ossos import cameras  # bit over the top to show all the ccds?
-
 
 plot_extents = {"13AE": [209.8, 218.2, -15.5, -9.5],
                 "13AO": [235.4, 243.8, -15.5, -9.5],
                 "13A": [209, 244, -22, -9],  # for both 13A blocks together
-                "15AM": [228, 237, -15, -9],
+                "15AM": [229, 235, -15, -9],
                 "15AP": [198, 207, -12, -4],
                 "13B": [30, 5, -2, 18],  # for both 13B blocks together
                 "13BL": [9, 18, 1, 7],
@@ -31,7 +32,6 @@ plot_extents = {"13AE": [209.8, 218.2, -15.5, -9.5],
                 "15BD": [44, 54, 13, 20],
                 "15B?": [7, 16, -4, 4]
 }
-
 
 xgrid = {'2013': [-3, -2, -1, 0, 1, 2, 3],
          '2014r': [-3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5],
@@ -58,11 +58,11 @@ years = {"2014": {"ra_off": ephem.hours("00:00:00"),
                   "alpha": 0.5,
                   "color": 'b'},
          "2014r": {"ra_off": ephem.hours("00:05:00"),
-                  "dec_off": ephem.degrees("00:18:00"),
-                  "alpha": 0.5,
-                  "fill": False,
-                  "facecolor": 'k',
-                  "color": 'g'},
+                   "dec_off": ephem.degrees("00:18:00"),
+                   "alpha": 0.5,
+                   "fill": False,
+                   "facecolor": 'k',
+                   "color": 'g'},
          'astr': {"ra_off": ephem.hours("00:00:00"),
                   "dec_off": ephem.degrees("-00:12:00"),
                   "alpha": 0.05,
@@ -80,8 +80,8 @@ def colsym():
     return mcolours, msymbols
 
 
-def basic_skysurvey_plot_setup():
-    ## EmulateApJ columnwidth=245.26 pts
+def basic_skysurvey_plot_setup(from_plane=ephem.degrees('0')):
+    # # EmulateApJ columnwidth=245.26 pts
     # fig_width_pt = 246.0
     # inches_per_pt = 1.0 / 72.27
     # golden_mean = (sqrt(5.) - 1.0) / 2.0
@@ -94,8 +94,8 @@ def basic_skysurvey_plot_setup():
     handles = []  # this handles the creation of the legend properly at the end of plotting
     labels = []
     handles, labels = plot_galactic_plane(handles, labels)
-    handles, labels = plot_ecliptic_plane(handles, labels)
-    handles, labels = plot_invariable_plane(handles, labels)
+    # handles, labels = plot_ecliptic_plane(handles, labels)
+    handles, labels = plot_invariable_plane(handles, labels, from_plane)
 
     fontP = FontProperties()
     fontP.set_size('small')  # make the fonts smaller
@@ -117,9 +117,10 @@ def plot_galactic_plane(handles, labels):
     dec_galPlane = [tt[1] for tt in temp]
     handles.append(plt.plot(ra_galPlane, dec_galPlane, 'b'))
     labels.append('galactic plane')
-    #plt.plot([r+360 for r in ra_galPlane], dec_galPlane, 'b')  # echo
+    # plt.plot([r+360 for r in ra_galPlane], dec_galPlane, 'b')  # echo
 
     return handles, labels
+
 
 def plot_ecliptic_plane(handles, labels):
     ep = [ephem.Ecliptic(str(lon), str(0)) for lon in
@@ -129,28 +130,30 @@ def plot_ecliptic_plane(handles, labels):
     dec_ecPlane = [math.degrees(coord.dec) for coord in ecPlane]
     handles.append(plt.plot(ra_ecPlane, dec_ecPlane, '#E47833'))
     labels.append('ecliptic')
-    #plt.plot([rr+360 for rr in ra_ecPlane], dec_ecPlane, '#E47833')  # echo
+    # plt.plot([rr+360 for rr in ra_ecPlane], dec_ecPlane, '#E47833')  # echo
 
     return handles, labels
 
 
-def plot_invariable_plane(handles, labels):
+def plot_invariable_plane(handles, labels, from_plane=ephem.degrees('0')):
     # Plot the invariable plane: values from DE405, table 5, Souami and Souchay 2012
     # http://www.aanda.org/articles/aa/pdf/2012/07/aa19011-12.pdf
     # Ecliptic J2000
     invar_i = ephem.degrees('1.57870566')
     invar_Om = ephem.degrees('107.58228062')
-    ec = [ephem.Ecliptic(ephem.degrees(str(lon)) + invar_Om, invar_i) for lon in range(1, 360)]  # lon then lat
+    ec = [ephem.Ecliptic(ephem.degrees(str(lon)) + invar_Om, invar_i + from_plane) for lon in range(1, 360)]
     eq = [ephem.Equatorial(coord) for coord in ec]
-    handles.append(plt.plot([math.degrees(coord.ra) for coord in eq], [math.degrees(coord.dec) for coord in eq], 'k-'))
+    handles.append(plt.plot([math.degrees(coord.ra) for coord in eq],
+                            [math.degrees(coord.dec) for coord in eq],
+                            ls='--',
+                            color=plot_fanciness.ALMOST_BLACK,
+                            alpha=0.7))
     labels.append('invariable')
 
     return handles, labels
 
 
-
-
-def build_ossos_footprint(ax, blocks, field_offset, plot=True):
+def build_ossos_footprint(ax, block_name, block, field_offset, plot=True, plot_col='b'):
     # build the pointings that will be used for the discovery fields
     x = []
     y = []
@@ -160,49 +163,48 @@ def build_ossos_footprint(ax, blocks, field_offset, plot=True):
     if year == 'astr':
         field_offset = field_offset * 0.75
 
-    for block in blocks.keys():
-        sign = -1
-        if 'f' in block:  # unsure what this was ever meant to do
-            sign = 1
-        rac = ephem.hours(blocks[block]["RA"]) + years[year]["ra_off"]
-        decc = ephem.degrees(blocks[block]["DEC"]) + sign * years[year]["dec_off"]
-        width = field_offset / math.cos(decc)
-        block_centre.from_radec(rac, decc)
-        block_centre.set(block_centre.lon + xgrid[year][0] * width, block_centre.lat)
-        field_centre.set(block_centre.lon, block_centre.lat)
-        for dx in xgrid[year]:
-            (rac, decc) = field_centre.to_radec()
-            for dy in ygrid[year]:
-                ddec = dy * field_offset
-                dec = math.degrees(decc + ddec)
-                ra = math.degrees(rac)
-                names.append("%s%+d%+d" % ( block, dx, dy))
-                y.append(dec)
-                x.append(ra)
-                xcen = ra
-                ycen = dec
+    sign = -1
+    # if 'f' in block:  # unsure what this was ever meant to do
+    # sign = 1
+    rac = ephem.hours(block["RA"]) + years[year]["ra_off"]
+    decc = ephem.degrees(block["DEC"]) + sign * years[year]["dec_off"]
+    width = field_offset / math.cos(decc)
+    block_centre.from_radec(rac, decc)
+    block_centre.set(block_centre.lon + xgrid[year][0] * width, block_centre.lat)
+    field_centre.set(block_centre.lon, block_centre.lat)
+    for dx in xgrid[year]:
+        (rac, decc) = field_centre.to_radec()
+        for dy in ygrid[year]:
+            ddec = dy * field_offset
+            dec = math.degrees(decc + ddec)
+            ra = math.degrees(rac)
+            names.append("%s%+d%+d" % ( block_name, dx, dy))
+            y.append(dec)
+            x.append(ra)
+            xcen = ra
+            ycen = dec
 
-                dimen = camera_dimen
-                coverage.append(Polygon.Polygon((
-                    (xcen - dimen / 2.0, ycen - dimen / 2.0),
-                    (xcen - dimen / 2.0, ycen + dimen / 2.0),
-                    (xcen + dimen / 2.0, ycen + dimen / 2.0),
-                    (xcen + dimen / 2.0, ycen - dimen / 2.0),
-                    (xcen - dimen / 2.0, ycen - dimen / 2.0))))
+            dimen = camera_dimen
+            coverage.append(Polygon.Polygon((
+                (xcen - dimen / 2.0, ycen - dimen / 2.0),
+                (xcen - dimen / 2.0, ycen + dimen / 2.0),
+                (xcen + dimen / 2.0, ycen + dimen / 2.0),
+                (xcen + dimen / 2.0, ycen - dimen / 2.0),
+                (xcen - dimen / 2.0, ycen - dimen / 2.0))))
 
-                if plot:
-                    ax.add_artist(Rectangle(xy=(ra - dimen / 2.0, dec - dimen / 2.0),
-                                            height=dimen,
-                                            width=dimen,
-                                            edgecolor='b',
-                                            facecolor='b',
-                                            lw=0.5, fill=True, alpha=0.15))
+            if plot:
+                ax.add_artist(Rectangle(xy=(ra - dimen / 2.0, dec - dimen / 2.0),
+                                        height=dimen,
+                                        width=dimen,
+                                        edgecolor='k',
+                                        facecolor=plot_col,
+                                        lw=0.5, fill=True, alpha=0.15))
 
-            rac += field_offset / math.cos(decc)
-            for i in range(3):
-                field_centre.from_radec(rac, decc)
-                field_centre.set(field_centre.lon, block_centre.lat)
-                (ttt, decc) = field_centre.to_radec()
+        rac += field_offset / math.cos(decc)
+        for i in range(3):
+            field_centre.from_radec(rac, decc)
+            field_centre.set(field_centre.lon, block_centre.lat)
+            (ttt, decc) = field_centre.to_radec()
 
     ras = np.radians(x)
     decs = np.radians(y)
@@ -216,7 +218,7 @@ def synthetic_model_kbos(coverage, input_date=parameters.DISCOVERY_NEW_MOON):
     raise NotImplementedError('Not yet fully completed.')
 
     # kbos = parsers.synthetic_model_kbos(input_date)
-    #     ## keep a list of KBOs that are in the discovery pointings
+    # ## keep a list of KBOs that are in the discovery pointings
     #
     #     # FIXME
     #     for field in coverage:
@@ -303,21 +305,46 @@ def plot_USNO_B1_stars(ax):
     return ax
 
 
-def plot_existing_CFHT_Megacam_observations_in_area(ax):
-    t = votable.parse(megacam.TAPQuery(ra_cen, dec_cen, width, height)).get_first_table()
+def plot_existing_CFHT_Megacam_observations_in_area(ax, qra, qdec, discovery=None, obs_ids=None):
+    filename = '/Users/michele/' + "megacam{:+6.2f}{:+6.2f}.xml".format(qra, qdec)
+    if not os.access(filename, os.R_OK):
+        data = megacam.TAPQuery(qra, qdec, 60.0, 30.0).read()
+        fobj = open(filename, 'w')
+        fobj.write(data)
+        fobj.close()
+    fobj = open(filename, 'r')
+    t = votable.parse(fobj).get_first_table()
+
     ra = t.array['RAJ2000']
     dec = t.array['DEJ2000']
-    rects = [Rectangle(xy=(ra[idx] - dimen / 2.0, dec[idx] - dimen / 2.0),
-                       height=camera_dimen,
-                       width=camera_dimen,
-                       edgecolor='k',
-                       alpha=0.1,
-                       lw=0.1, zorder=-100,
-                       fill=False) for idx in xrange(ra.size)]
-    for r in rects:
+    mjdate = t.array['MJDATE']
+
+    camera_dimen = 0.98
+
+    # More sophisticated date ID on plot. Let's identify first-year, discovery, second-year followup
+    for idx in xrange(ra.size):
+        alpha = 0.1
+        # print abs(Time(mjdate[idx], format='mjd') - discovery) < TimeDelta(1, format='jd')
+        if Time(mjdate[idx], format='mjd') < Time('2014-01-01'):
+            ec = 'b'
+        elif (discovery is not None and abs(Time(mjdate[idx], format='mjd') - discovery) < TimeDelta(1, format='jd')):
+            print Time(mjdate[idx], format='mjd').iso
+            ec = 'r'
+            alpha = 1
+        else:
+            ec = '#E47833'
+        r = Rectangle(xy=(ra[idx] - camera_dimen / 2.0, dec[idx] - camera_dimen / 2.0),
+                      height=camera_dimen,
+                      width=camera_dimen,
+                      edgecolor=ec,
+                      alpha=alpha,
+                      lw=0.1,
+                      zorder=-100,
+                      fill=False)
         ax.add_artist(r)
 
     return ax
+
 
 def plot_discovery_uncertainty_ellipses(ax, date):
     # plot objects at time of triplet with an X, location each 3 days with a single grey pixel, actual observations
@@ -353,6 +380,9 @@ if __name__ == '__main__':
     parser.add_argument("-synthetic",
                         action="store_true",
                         help="Use L7 model to slew blocks, or plot L7 model objects that fall in a given block.")
+    parser.add_argument("-existing",
+                        action="store_true",
+                        help="Plot all OSSOS imaging of the block.")
     parser.add_argument("blocks",
                         nargs='*',
                         help="specify blocks to be plotted, e.g. 13AE. Without specifying, will do all eight blocks,"
@@ -361,7 +391,8 @@ if __name__ == '__main__':
     print(args)
 
     file_id = ""
-    if args.blocks:  # Coordinates at discovery-opposition of currently-determined OSSOS blocks (2013: 4; 2015: 8 total).
+    if args.blocks:  # Coordinates at discovery-opposition of currently-determined OSSOS blocks (2013: 4; 2015: 8
+    # total).
         blocks = {}
         for b in args.blocks:
             assert b in parameters.BLOCKS
@@ -369,7 +400,7 @@ if __name__ == '__main__':
     else:  # do them all!
         blocks = parameters.BLOCKS
 
-    discoveries = parsers.ossos_release_parser()
+    discoveries = parsers.ossos_discoveries()  # ossos_release_parser()
 
     # extent = plot_extents['13A'] # hardwired for doing both at once
 
@@ -383,9 +414,7 @@ if __name__ == '__main__':
 
         if args.discovery:
             # E block discovery triplets are April 4,9,few 19; O block are May 7,8.
-            # BL is 09-29 AND 10-31. Need to implement way to accommodate split.
-            # 15AM is 2014-05-29 and 2014-06-01
-            # Not sure this is properly implemented, honestly
+            # BL is 09-29 AND 10-31. Discoveries in 10-31 are placed at predicted locations, to accommodate split.
             date = parameters.DISCOVERY_DATES[blockname]
             file_id = 'discovery-'
 
@@ -397,12 +426,20 @@ if __name__ == '__main__':
         if args.elongation:
             file_id = 'elongation-'
 
+        if args.existing:
+            file_id += '-bg-imaging-'
+
         assert date
         print blockname, date
 
-        handles, labels, ax, fontP = basic_skysurvey_plot_setup()
+        if blockname == '13AO':
+            handles, labels, ax, fontP = basic_skysurvey_plot_setup(from_plane=ephem.degrees('6.0'))
+            ras, decs, coverage, names, ax = build_ossos_footprint(ax, blockname, block, field_offset, plot=True,
+                                                                   plot_col='#E47833')
+        else:
+            handles, labels, ax, fontP = basic_skysurvey_plot_setup()
+            ras, decs, coverage, names, ax = build_ossos_footprint(ax, blockname, block, field_offset, plot=True)
         ax, kbos = plot_objects.plot_known_tnos_singly(ax, extent, date)
-        ras, decs, coverage, names, ax = build_ossos_footprint(ax, blocks, field_offset, plot=True)
         if args.synthetic:  # defaults to discovery new moon: FIXME: set date appropriately
             ra, dec, kbos = synthetic_model_kbos(coverage)
             ax = keplerian_sheared_field_locations(ax, kbos, date, ras, decs, names,
@@ -410,10 +447,14 @@ if __name__ == '__main__':
             ax = plot_objects.plot_synthetic_kbos(ax, coverage)
 
         ax = plot_objects.plot_planets(ax, extent, date)
-        ax = plot_objects.plot_ossos_discoveries(ax, discoveries)  # will predict for dates other than discovery
+        ax = plot_objects.plot_ossos_discoveries(ax, discoveries,
+                                                 prediction_date=date)  # will predict for dates other than discovery
         # ax = plot_discovery_uncertainty_ellipses(ax, date)
         if blockname == '13AE':  # special case: Saturn was adjacent at discovery
             ax = plot_objects.plot_saturn_moons(ax)
+
+        if args.existing:
+            plot_existing_CFHT_Megacam_observations_in_area(ax)
 
         saving_closeout(blockname, date, plot_extents[blockname], file_id)
     # saving_closeout('13A', date, extent, file_id)

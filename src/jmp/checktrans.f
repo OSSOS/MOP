@@ -204,7 +204,8 @@ c               write (20, *) n_nf, ' Point: ', i, x1(i,1), y1(i,1),
 c     $           ' not found in ',infile(if)
             end if
          end do
-         if (n_nf .gt. n1(1)/4) goto 3000
+         if ((n_nf .gt. n1(1)/4) .and. 
+     $        (n1(1) - n_nf .lt. 20)) goto 3000
 
       end do
       goto 4000
