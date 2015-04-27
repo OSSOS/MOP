@@ -1,4 +1,4 @@
-#!python
+#!/Users/jjk/MOP/bin/python
 ################################################################################
 ##                                                                            ##
 ## Copyright 2013 by its authors                                              ##
@@ -210,26 +210,34 @@ def main():
 
     if not args.no_sort:
         args.expnums.sort()
+    task = util.task()
+    dependency = "step1"
+    expnums = args.expnums
+    version = args.type
 
     exit_status = 0
+
     for ccd in ccd_list:
         storage.set_logger(os.path.splitext(os.path.basename(sys.argv[0]))[0],
                            prefix, args.expnums[0], ccd, args.type, args.dry_run)
         try:
             message = storage.SUCCESS
-            for expnum in args.expnums:
-                if not storage.get_status(expnum, ccd, prefix + 'step1', version=args.type):
-                    raise IOError(35, "missing step1 for %s" % expnum)
-            if storage.get_status(args.expnums[0],
-                                  ccd,
-                                  prefix + 'step2',
-                                  version=args.type) and not args.force:
-                logging.info("Already did %s %s, skipping" % (str(args.expnums[0]),
-                                                              str(ccd)))
+
+            # Check if dependent task has finished for each of the input exposure ids.
+            for expnum in expnums:
+                if not storage.get_status(dependency, prefix, expnum, version=version, ccd=ccd):
+                    raise IOError(35, "Cannot start {} as {} not yet completed for {}{}{}{:02d}".format(
+                        task, dependency, prefix, expnum, args.type, ccd))
+
+            # Check if we need to run this step on the current frame.
+            if not (args.force or args.dry_run) and storage.get_status(task, prefix, args.expnums[0], version=version,
+                                                                       ccd=ccd):
+                logging.info("{} completed successfully for {}{}{}{:02d}".format(
+                    task, prefix, expnums[0], version, ccd))
                 continue
-            logging.info("step2 on expnums :%s, ccd: %d" % (
-                str(args.expnums), ccd))
-            step2(args.expnums, ccd, version=args.type, prefix=prefix, dry_run=args.dry_run, default=args.default)
+            logging.info("Executing {} on {} {} {} {}".format(
+                        task, prefix, args.expnums, args.type, ccd))
+            step2(args.expnums, ccd, version=version, prefix=prefix, dry_run=args.dry_run, default=args.default)
             logging.info(message)
         except CalledProcessError as cpe:
             message = str(cpe)
@@ -240,11 +248,7 @@ def main():
             logging.error(message)
             exit_status = message
         if not args.dry_run:
-            storage.set_status(args.expnums[0],
-                               ccd,
-                               prefix + 'step2',
-                               version=args.type,
-                               status=message)
+            storage.set_status(task, prefix, args.expnums[0], version=version, ccd=ccd, status=message)
     return exit_status
             
 if __name__ == '__main__':

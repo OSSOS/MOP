@@ -1,4 +1,4 @@
-#!python
+#!/Users/jjk/MOP/bin/python
 ################################################################################
 ##                                                                            ##
 ## Copyright 2013 by its authors                                              ##
@@ -156,6 +156,8 @@ def main():
         args.expnums.sort()
 
     prefix = (args.fk and 'fk') or ''
+    task = util.task()
+    dependency = 'step2'
 
     exit_status = 0
     for ccd in ccdlist:
@@ -163,9 +165,9 @@ def main():
                            args.expnums[0], ccd, args.type, args.dry_run)
         message = storage.SUCCESS
         try:
-            if not storage.get_status(args.expnums[0], ccd, prefix + 'step2', version=args.type):
+            if not storage.get_status(dependency, prefix, args.expnums[0], version=args.type, ccd=ccd):
                 raise IOError(35, "did step2 run on %s" % str(args.expnums))
-            if storage.get_status(args.expnums[0], ccd, prefix + 'step3', version=args.type) and not args.force:
+            if storage.get_status(task, prefix, args.expnums[0], version=args.type, ccd=ccd) and not args.force:
                 logging.critical("step3 alread ran on expnum :%s, ccd: %d" % (
                     str(args.expnums), ccd))
                 continue
@@ -183,11 +185,7 @@ def main():
 
         logging.error(message)
         if not args.dry_run:
-            storage.set_status(args.expnums[0],
-                               ccd,
-                               prefix + 'step3',
-                               version=args.type,
-                               status=message)
+            storage.set_status(task, prefix, args.expnums[0], version=args.type, ccd=ccd, status=message)
 
     return exit_status
 

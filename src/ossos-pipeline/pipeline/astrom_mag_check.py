@@ -1,4 +1,4 @@
-#!python
+#!/Users/jjk/MOP/bin/python
 ################################################################################
 ##                                                                            ##
 ## Copyright 2013 by its authors                                              ##
@@ -115,7 +115,7 @@ def match_planted(fk_candidate_observations, match_filename, bright_limit=BRIGHT
     objects_planted_uri = object_planted
     if not os.access(objects_planted_uri, os.F_OK):
         objects_planted_uri = fk_candidate_observations.observations[0].get_object_planted_uri()
-    lines = storage.open_vos_or_local(objects_planted_uri).read()
+    lines = open(objects_planted_uri).read()
 
     # we are changing the format of the Object.planted header to be compatible with astropy.io.ascii but
     # there are some old Object.planted files out there so we do these string/replace calls to reset those.
@@ -218,7 +218,7 @@ def match_planted(fk_candidate_observations, match_filename, bright_limit=BRIGHT
                                                          offset,
                                                          std))
 
-    fpout = storage.open_vos_or_local(match_filename+".fp", 'a')
+    fpout = open(match_filename+".fp", 'a')
     try:
         writer = ascii.FixedWidth
         # add a hash to the start of line that will have header columns: for JMP
@@ -275,6 +275,7 @@ def main():
 
     prefix = 'fk'
     ext = args.reals and 'reals' or 'cands'
+    task = util.task()
 
     storage.MEASURE3 = args.measure3
 
@@ -310,7 +311,7 @@ def main():
     exit_status = 0
     status = storage.SUCCESS
     try:
-        if (not storage.get_status(expnum, ccd=args.ccd, program='astrom_mag_check', version='')) or args.force:
+        if (not storage.get_status(task, prefix, expnum=expnum, version='', ccd=args.ccd)) or args.force:
             logging.info(("Comparing planted and measured magnitudes "
                           "for sources in {} and {}\n".format(args.object_planted, astrom_filename)))
             message = match_planted(fk_candidate_observations,
@@ -323,7 +324,7 @@ def main():
                                               ccd=args.ccd,
                                               version=args.type,
                                               prefix=prefix,
-                                              ext="measure3.{}.match".format(ext))
+                                              ext="measure3.{}.match".format(ext), block=args.field)
             if not args.dry_run:
                 storage.copy(match_filename, match_uri)
                 uri = os.path.dirname(astrom_uri)
@@ -336,7 +337,7 @@ def main():
         exit_status = err.message
 
     if not args.dry_run:
-        storage.set_status(expnum, args.ccd, 'astrom_mag_check', version='', status=status)
+        storage.set_status(task, prefix, expnum, version='', ccd=args.ccd, status=status)
 
     return exit_status
 
