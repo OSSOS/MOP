@@ -81,8 +81,7 @@ class GeneralModelTest(FileReadingTestCase, DirectoryCleaningTestCase):
         apcor = ApcorData.from_string("4 15   0.19   0.01")
         hdulist = fits.open(self.get_abs_path(path))
         first_reading = self.model.get_current_workunit().get_sources()[0].get_readings()[0]
-        self.first_snapshot = SourceCutout(
-            first_reading, hdulist, CoordinateConverter(0, 0), apcor)
+        self.first_snapshot = SourceCutout(first_reading, hdulist, apcor)
         self.image_manager.on_singlet_image_loaded(self.first_snapshot)
 
 
