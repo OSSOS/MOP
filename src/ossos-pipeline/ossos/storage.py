@@ -9,7 +9,6 @@ from string import upper
 
 import tempfile
 import logging
-import warnings
 
 from astropy.coordinates import SkyCoord
 from astropy.io import ascii
@@ -218,7 +217,7 @@ def get_uri(expnum, ccd=None,
                            '%s%s%s%s' % (prefix, str(expnum),
                                          version,
                                          ext))
-    logger.debug("got uri: " + str(uri))
+
     return uri
 
 
@@ -473,7 +472,12 @@ def decompose_content_decomposition(content_decomposition):
     :param content_decomposition:
     :return:
     """
-    return re.findall('(\d+)__(\d+)_(\d+)_(\d+)_(\d+)', content_decomposition)
+    # check for '-*' in the cutout string and replace is naxis:1
+
+    content_decomposition = re.findall('(\d+)__(\d+)_(\d+)_(\d+)_(\d+)', content_decomposition)
+    if len(content_decomposition) == 0:
+        content_decomposition = [(0, 1, -1, 1, -1)]
+    return content_decomposition
 
 
 def ra_dec_cutout(uri, sky_coord, radius):
@@ -501,11 +505,11 @@ def ra_dec_cutout(uri, sky_coord, radius):
     #http_client.HTTPConnection.debuglevel = 1
 
     # You must initialize logging, otherwise you'll not see debug output.
-    #logging.basicConfig()
-    #logging.getLogger().setLevel(logging.DEBUG)
-    #requests_log = logging.getLogger("requests.packages.urllib3")
-    #requests_log.setLevel(logging.DEBUG)
-    #requests_log.propagate = True
+    #   logging.basicConfig()
+    logging.getLogger().setLevel(logging.DEBUG)
+    requests_log = logging.getLogger("requests.packages.urllib3")
+    requests_log.setLevel(logging.DEBUG)
+    requests_log.propagate = True
 
     # Get the 'uncut' images CRPIX1/CRPIX2 values
 
@@ -521,35 +525,29 @@ def ra_dec_cutout(uri, sky_coord, radius):
               "view": view}
 
     r = requests.get(os.path.join(VOSPACE_WEB_SERVICE, node), params=params, cert=vospace.conn.vospace_certfile)
-    cutouts = decompose_content_decomposition(r.headers.get('content-disposition', '0___1_1_1_1'))
+    r.raise_for_status()
 
-    try:
-        r.raise_for_status()
-        hdulist = fits.open(cStringIO.StringIO(r.content))
-    except requests.HTTPError as ex:
-        print 'Cutout Failed: {}'.format(ex)
-        return None
+    cutouts = decompose_content_decomposition(r.headers.get('content-disposition', '0___'))
+    logger.debug("Got cutout boundaries of: {}".format(cutouts))
 
-    # Always send back an HDUList object
-    if not isinstance(hdulist, fits.HDUList):
-        if not isinstance(hdulist, fits.PrimaryHDU):
-            raise ValueError("Cutout Service did not return an HDU?")
-        hdu = hdulist
-        phdu = fits.PrimaryHDU()
-        phdu.header['ORIGIN'] = "OSSOS"
-        hdulist = fits.HDUList([phdu, hdu])
+    hdulist = fits.open(cStringIO.StringIO(r.content))
+    hdulist.verify('silentfix+ignore')
+    logger.debug("Initial Length of HDUList: {}".format(len(hdulist)))
 
     # Make sure here is a primaryHDU
-    if not isinstance(hdulist[0], fits.PrimaryHDU):
+    if len(hdulist) == 1:
         phdu = fits.PrimaryHDU()
         phdu.header['ORIGIN'] = "OSSOS"
         hdulist.insert(0, phdu)
 
-    if len(cutouts) != len(hdulist) -1 :
+    logger.debug("Final Length of HDUList: {}".format(len(hdulist)))
+
+    if len(cutouts) != len(hdulist) - 1:
         raise ValueError("Wrong number of cutout structures found in Content-Disposition response.")
 
     for hdu in hdulist[1:]:
         cutout = cutouts.pop(0)
+        hdu.header['CUTOUT'] = cutout[0]
         hdu.header['DATASEC'] = reset_datasec("[{}:{},{}:{}]".format(cutout[1],
                                                                      cutout[2],
                                                                      cutout[3],
@@ -561,8 +559,11 @@ def ra_dec_cutout(uri, sky_coord, radius):
         hdu.header['YOFFSET'] = int(cutout[3])
 
         hdu.converter = CoordinateConverter(hdu.header['XOFFSET'], hdu.header['YOFFSET'])
-        hdu.wcs = WCS(hdu.header)
-
+        try:
+            hdu.wcs = WCS(hdu.header)
+        except Exception as ex:
+            logger.error("Failed trying to initialize the WCS for {}".format(node))
+            raise ex
     return hdulist
 
 
@@ -1097,12 +1098,7 @@ def get_mopheader(expnum, ccd, version='p', prefix=None):
         logger.debug("File already on disk: {}".format(filename))
         mopheader_fpt = cStringIO.StringIO(open(filename, 'r').read())
     else:
-        try:
-            mopheader_fpt = cStringIO.StringIO(open_vos_or_local(mopheader_uri).read())
-        except Exception as e:
-            logger.error("Failed to open mopheader @ {}".format(mopheader_uri))
-            logger.error(str(e))
-            return None
+        mopheader_fpt = cStringIO.StringIO(open_vos_or_local(mopheader_uri).read())
 
     mopheader = fits.open(mopheader_fpt)
 
@@ -1168,8 +1164,6 @@ def get_astheader(expnum, ccd, version='p', prefix=None, ext=None):
     @param version: 'o','p', or 's'
     @return:
     """
-    if ext is not None:
-        warnings.warn("Use of ext keyword for get_astheader is ignored.")
     logger.debug("Getting ast header for {}".format(expnum))
     ast_uri = dbimages_uri(expnum, ccd=None, version=version, ext='.head')
     try:
@@ -1181,7 +1175,7 @@ def get_astheader(expnum, ccd, version='p', prefix=None, ext=None):
         header = astheaders[ast_uri][int(ccd) + 1]
     except Exception as err:
         # An exception was raised, so try getting directly from a fits images instead.
-        warnings.warn("Failed trying to retrieve .head file: {}".format(ast_uri))
+        logger.debug("Failed trying to retrieve .head file: {}".format(ast_uri))
         logger.debug(str(err))
         ast_uri = dbimages_uri(expnum, ccd, version=version, ext='.fits')
         if ast_uri not in astheaders:
