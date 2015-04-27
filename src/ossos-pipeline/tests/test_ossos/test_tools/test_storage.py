@@ -1,11 +1,12 @@
-
+from astropy.coordinates import SkyCoord
+from astropy.io import fits
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import unittest
-
+from astropy import units
 from mock import patch
-from hamcrest import assert_that, equal_to
+#from hamcrest import assert_that, equal_to
 from astropy import table
 
 from ossos import storage, mpc
@@ -22,6 +23,21 @@ class ConeSearchTest(unittest.TestCase):
                             )
         self.assertIsInstance(result_table, table.Table)
         self.assertEquals(result_table['dataset_name'][0],1607614)
+
+
+class DownloadImages(unittest.TestCase):
+
+    def test_get_cutout(self):
+        uri = "vos:jkavelaars/2001_QT297/FORS2.2013-06-15T08:18:06.831/FORS2.2013-06-15T08:18:06.831.fits"
+        ra = 340.20001892 * units.degree
+        dec = -6.82226166 * units.degree
+        coo = SkyCoord(ra, dec)
+        radius = 10.0 * units.arcminute
+        hdulist = storage.ra_dec_cutout(uri, coo, radius)
+        self.assertIsInstance(hdulist, fits.HDUList)
+        self.assertTrue(len(hdulist) > 1)
+        for hdu in hdulist[1:]:
+            self.assertTrue(hdu.header.get("XOFFSET", False) is not False)
 
 class ObjectCountTest(unittest.TestCase):
     @patch("ossos.storage.set_property")
