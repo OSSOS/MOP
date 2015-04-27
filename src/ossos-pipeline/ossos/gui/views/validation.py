@@ -1,3 +1,5 @@
+import logging
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
@@ -170,8 +172,8 @@ class AcceptSourceDialog(SourceValidationDialog):
         self.date_of_obs = date_of_obs
         self.ra = ra
         self.dec = dec
-        self.ra_str = "%10.6f (%5.2f)" % ( ra, pixel_x)
-        self.dec_str = "%10.6f (%5.2f)" % ( dec, pixel_y)
+        self.ra_str = "{:>14} {:>5.2f}".format(ra, float(pixel_x))
+        self.dec_str = "{:>14} {:>5.2f}".format(dec, float(pixel_y))
 
         if self.phot_failure:
             message = "Photometry failed.  Will be left blank."
@@ -179,9 +181,9 @@ class AcceptSourceDialog(SourceValidationDialog):
             self.band = message
             self.obs_mag_err = message
         else:
-            self.obs_mag = str(obs_mag)
-            self.obs_mag_err = str(obs_mag_err)
-            self.band = band
+            self.obs_mag = "{:5.2f}".format(obs_mag)
+            self.obs_mag_err = "{:5.2f}".format(obs_mag_err)
+            self.band = "{}".format(band)
 
         self.default_observatory_code = str(default_observatory_code)
 
