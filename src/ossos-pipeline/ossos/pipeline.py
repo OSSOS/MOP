@@ -7,7 +7,6 @@ from astropy.io import fits
 import math
 import numpy
 
-import daophot
 import storage
 import util
 
@@ -66,9 +65,12 @@ def align(expnums, ccd, version='s', dry_run=False):
         w = get_wcs(shifts)
 
         # get the PHOT file that was produced by the mkpsf routine
+	logging.debug("Reading .phot file {}".format(expnum))
         phot = ascii.read(storage.get_file(expnum, ccd=ccd, version=version, ext='phot'), format='daophot')
 
         # compute the small-aperture magnitudes of the stars used in the PSF
+        import daophot
+	logging.debug("Running phot on {}".format(filename))
         mags[expnum] = daophot.phot(filename,
                                     phot['XCENTER'],
                                     phot['YCENTER'],
@@ -78,9 +80,11 @@ def align(expnums, ccd, version='s', dry_run=False):
                                     zmag=zmag[expnum])
 
         # covert the x/y positions to positions in Frame 1 based on the trans.jmp values.
+	logging.debug("Doing the XY translation to refrence frame: {}".format(w))
         (x, y) = w.wcs_pix2world(mags[expnum]["XCENTER"], mags[expnum]["YCENTER"], 1)
         pos[expnum] = numpy.transpose([x, y])
         # match this exposures PSF stars position against those in the first image of the set.
+	logging.debug("Matching lists")
         idx1, idx2 = util.match_lists(pos[expnums[0]], pos[expnum])
 
         # compute the magnitdue offset between the current frame and the reference.
@@ -88,22 +92,57 @@ def align(expnums, ccd, version='s', dry_run=False):
                                (mags[expnum]["MAG"][idx1] - apcor[expnum][2]),
                                mask=idx1.mask)
         dmags.sort()
+	logging.debug("Computed dmags between input and reference: {}".format(dmags))
+	error_count = 0
+
+	error_count += 1
+	logging.debug("{}".format(error_count))
 
         # compute the median and determine if that shift is small compared to the scatter.
-        dmag = dmags[int(len(dmags)/2.0)]
-        if math.fabs(dmag) > 3*(dmags.std() + 0.01):
-            logging.warn("Magnitude shift {} between {} and {} is large: {}".format(dmag,
+	try:
+	   midx = int(numpy.sum(dmags.mask==False)/2.0)
+           dmag = float(dmags[midx])
+	   logging.debug("Computed a mag delta of: {}".format(dmag))
+	except Exception as e:
+	   logging.error(str(e))
+	   logging.error("Failed to compute mag offset between plant and found using: {}".format(dmags))
+	   dmag = 99.99
+
+	error_count += 1
+	logging.debug("{}".format(error_count))
+
+	try:
+            if math.fabs(dmag) > 3*(dmags.std() + 0.01):
+                logging.warning("Magnitude shift {} between {} and {} is large: {}".format(dmag,
                                                                                     expnums[0],
                                                                                     expnum,
-                                                                                    shifts[expnum]))
+                                                                                    shifts))
+        except Exception as e:
+	    logging.error(str(e))
+
+	error_count += 1
+	logging.debug("{}".format(error_count))
+
         shifts['dmag'] = dmag
         shifts['emag'] = dmags.std()
         shifts['nmag'] = len(dmags.mask) - dmags.mask.sum()
         shifts['dmjd'] = mjdates[expnums[0]] - mjdates[expnum]
         shift_file = os.path.basename(storage.get_uri(expnum, ccd, version, '.shifts'))
-        fh = open(shift_file, 'w')
-        fh.write(json.dumps(shifts, sort_keys=True, indent=4, separators=(',', ': ')))
-        fh.write('\n')
-        fh.close()
+
+	error_count += 1
+	logging.debug("{}".format(error_count))
+
+	try:
+           fh = open(shift_file, 'w')
+           fh.write(json.dumps(shifts, sort_keys=True, indent=4, separators=(',', ': ')))
+           fh.write('\n')
+           fh.close()
+	except Exception as e:
+	   logging.error("Creation of SHIFTS file failed while trying to write: {}".format(shifts))
+	   raise e
+
+	error_count += 1
+	logging.debug("{}".format(error_count))
+
         if not dry_run:
             storage.copy(shift_file, storage.get_uri(expnum, ccd, version, '.shifts'))
