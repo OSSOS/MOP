@@ -1,12 +1,10 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
-
 import json
 import os
 
 DEFAULT_CONFIG_FILE = "config.json"
 
 _configs = {}
-
 
 def read(keypath, configfile=None):
     """
