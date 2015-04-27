@@ -1,4 +1,5 @@
 from astropy import units
+from astropy.units import Quantity
 from ossos.downloads.cutouts.source import SourceCutout
 
 __author__ = "David Rusk <drusk@uvic.ca>"
@@ -38,18 +39,23 @@ class AbstractController(object):
             cutout = self.model.get_current_cutout()
             self.view.display(cutout)
         except ImageNotLoadedException as ex:
+            logger.error("Failed to load image: {}".format(ex))
             self.image_loading_dialog_manager.wait_for_item(ex.requested_item)
-            return False
+            pass
         except NoWorkUnitException as ex:
             logger.debug("No work? {}".format(ex))
             return False
         except Exception as ex:
-            logger.error("{}".format(ex))
-            raise ex
+            logger.error("Exception in get_current_cutout: {}".format(ex))
+            return False
 
         logger.debug("Displaying metadata.")
-        self.view.update_displayed_data(self.model.get_reading_data(),
-                                        self.model.get_header_data_list())
+        try:
+            self.view.update_displayed_data(self.model.get_reading_data(),
+                                            self.model.get_header_data_list())
+        except Exception as ex:
+            logger.error("Failed to get header for {}".format(self.model.get_current_reading()))
+            pass
 
         self.view.set_observation_status(
             self.model.get_current_obs_number() + 1,
@@ -201,10 +207,11 @@ class ProcessRealsController(AbstractController):
         result = display.get('imexam key coordinate wcs fk5 degrees')
         values = result.split()
         logger.debug("IMEXAM returned {}".format(values))
-        cen_coords = float(values[1]) * units.degree, float(values[2]) * units.degree
-        (x, y, extno) = source_cutout.world2pix(cen_coords[0], cen_coords[1])
+        ra = Quantity(float(values[1]), unit=units.degree)
+        dec = Quantity(float(values[2]), units.degree)
+        (x, y, extno) = source_cutout.world2pix(ra, dec)
         key = values[0]
-        source_cutout.update_pixel_location((x, y), extno)
+        source_cutout.update_pixel_location((float(x), float(y)), extno)
         logger.debug("X, Y => {} , {}".format(source_cutout.pixel_x, source_cutout.pixel_y))
         pixel_x = source_cutout.pixel_x
         pixel_y = source_cutout.pixel_y
@@ -213,19 +220,19 @@ class ProcessRealsController(AbstractController):
 
         try:
             cen_x, cen_y, obs_mag, obs_mag_err = self.model.get_current_source_observed_magnitude()
-        except Exception as error:
-            logger.critical(str(error))
+        except Exception as er:
+            logger.critical("PHOT ERROR: {}".format(er))
             phot_failure = True
             obs_mag = ""
             cen_x = pixel_x
             cen_y = pixel_y
             obs_mag_err = -1
             band = ""
-            default_comment = str(error)
+            default_comment = str(er)
 
         if math.sqrt((cen_x - pixel_x) ** 2 + (cen_y - pixel_y) ** 2) > 1.5:
             # check if the user wants to use the 'hand' coordinates or these new ones.
-            self.view.draw_error_ellipse(cen_x, cen_y, 10, 10, 0, color='r')
+            self.view.draw_error_ellipse(cen_x, cen_y, 10, 10, 0*units.degree, color='r')
             self.view.show_offset_source_dialog((pixel_x, pixel_y), (cen_x, cen_y))
         else:
             source_cutout.update_pixel_location((cen_x, cen_y))
@@ -303,6 +310,7 @@ class ProcessRealsController(AbstractController):
             xpos=source_cutout.observed_x,
             ypos=source_cutout.observed_y,
             frame=reading.obs.rawname)
+        mpc_observation._date_precision = 6
 
         self.model.get_writer().write(mpc_observation)
 
@@ -348,6 +356,7 @@ class ProcessRealsController(AbstractController):
             ypos=reading.y,
             frame=reading.obs.rawname,
             comment=comment)
+        mpc_observation._date_precision = 6
 
         mpc_observation.null_observation = True
 
