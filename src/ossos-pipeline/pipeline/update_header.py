@@ -61,6 +61,9 @@ def main():
     parser.add_argument('--dbimages', help="VOSpace DATA storage area.", default="vos:OSSOS/dbimages")
 
     args = parser.parse_args()
+    task = util.task()
+    dependency = 'preproc'
+    prefix = ""
 
     storage.DBIMAGES = args.dbimages
 
@@ -72,7 +75,7 @@ def main():
         level = logging.DEBUG
         message_format = "%(module)s %(funcName)s %(lineno)s %(message)s"
     logging.basicConfig(level=level, format=message_format)
-    storage.set_logger(os.path.splitext(os.path.basename(sys.argv[0]))[0], None, args.expnum, None, None, False)
+    storage.set_logger(task, prefix, args.expnum, None, None, False)
 
     message = storage.SUCCESS
     expnum = args.expnum
@@ -80,7 +83,7 @@ def main():
     exit_status = 0
     try:
         # skip if already succeeded and not in force mode
-        if storage.get_status(expnum, 36, 'update_header') and not args.force:
+        if storage.get_status(task, prefix, expnum, "p", 36) and not args.force:
             logging.info("Already updated, skipping")
             sys.exit(0)
     
@@ -93,11 +96,11 @@ def main():
         if args.replace:
             dest = storage.dbimages_uri(expnum)
             storage.copy(image_filename, dest)
-            storage.set_status(expnum, 36, 'update_header', message)
+            storage.set_status('update_header', "", expnum, 'p', 36, message)
     except Exception as e:
         message = str(e)
         if args.replace:
-            storage.set_status(expnum, 36, 'update_header', message)
+            storage.set_status(task, prefix, expnum, 'p', 36, message)
         exit_status = message
         logging.error(message)
 
