@@ -45,11 +45,15 @@ for match_file in sys.argv[1:]:
               'measure_mag3': plt.subplot(gs2[2,0])}
 
    
-   T = ascii.read(match_file, header_start=-1, fill_values=['--', 0])
+   T = ascii.read(match_file, header_start=-1, fill_values=[('--', 'nan'),], Reader=ascii.basic.CommentedHeader)
+
+   print repr(T)
+   print repr(T['measure_mag1'])
    plt.suptitle(match_file)
 
-   rates = T['sky_rate'].min()*3**(numpy.arange(0,5))
-   
+   rates = T['sky_rate'].min()*2**(numpy.arange(0,5))
+   rates = [0.5, 1, 5.0, 15]
+
    for idx in range(len(rates)-1):
       mask1 = numpy.all([rates[idx] < T['sky_rate'], T['sky_rate']  < rates[idx+1]], axis=0)
       mask2 = numpy.all([mask1, T['measure_mag1'].mask == False], axis=0)
@@ -58,6 +62,15 @@ for match_file in sys.argv[1:]:
       f = nfnd[nadd>0]/(1.0*nadd[nadd>0])
       m = bins[nadd>0]
       ax_frac.plot(m, f, 'o-', label="{:3.1f}:{:3.1f}".format(rates[idx], rates[idx+1]))
+   for idx in range(len(rates)-1):
+      mask1 = numpy.all([T['x'] < 1500, T['y'] < 2500, T['x'] > 500, T['y'] > 1500, rates[idx] < T['sky_rate'], T['sky_rate']  < rates[idx+1]], axis=0)
+      mask2 = numpy.all([mask1, T['measure_mag1'].mask == False], axis=0)
+      (nadd, bins) = numpy.histogram(T['mag'][mask1], bins=numpy.arange(21,26,0.25))
+      (nfnd, bins) = numpy.histogram(T['mag'][mask2], bins=numpy.arange(21,26,0.25))
+      f = nfnd[nadd>0]/(1.0*nadd[nadd>0])
+      m = bins[nadd>0]
+      ax_frac.plot(m, f, 'o-', label="{:3.1f}:{:3.1f}".format(rates[idx], rates[idx+1]))
+
 
    ax_frac.set_xlabel('mag')
    ax_frac.set_ylabel('f')

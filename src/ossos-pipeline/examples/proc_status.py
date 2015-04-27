@@ -14,10 +14,10 @@ def mkpsf_failures():
 
     for expnum in storage.list_dbimages():
         for ccd in range(36):
-            if not storage.get_status(expnum,ccd,MKPSF) :
+            if not storage.get_status(MKPSF, "", expnum, "p", ccd):
                 # get_status returns FALSE if process didn't succeed,
                 # with return_message=True it returns the error message.
-                print expnum, ccd, storage.get_status(expnum, ccd, MKPSF, return_message=True)
+                print expnum, ccd, storage.get_status(MKPSF, "", expnum, "p", ccd, return_message=True)
 
 
 if __name__=='__main__':
