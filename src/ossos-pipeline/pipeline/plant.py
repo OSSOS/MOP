@@ -257,6 +257,9 @@ def main(argv):
     storage.DBIMAGES = args.dbimages
 
     logging.basicConfig(level=level, format="%(message)s")
+    task = util.task()
+    prefix = ""
+    dependency = 'mkpsf'
 
     ccds = [args.ccd]
     if args.ccd is None:
@@ -266,15 +269,11 @@ def main(argv):
     for ccd in ccds:
         message = storage.SUCCESS
         try:
-            storage.set_logger(os.path.splitext(os.path.basename(sys.argv[0]))[0],
-                               "", args.expnums[0], ccd, args.type, args.dry_run)
-            if not storage.get_status(args.expnums[0], ccd,
-                                      'scramble', version=args.type):
-                raise IOError("scramble not yet run for %s ccd%s" % (
-                    str(args.expnums), str(ccd).zfill(2)))
-            if storage.get_status(args.expnums[0], ccd,
-                                  'plant', version=args.type) and not args.force:
-                logging.info("{} previously completed successfully for {}{}{:02d}".format(sys.argv[0],
+            storage.set_logger(task, prefix, args.expnums[0], ccd, args.type, args.dry_run)
+            if not storage.get_status(dependency, prefix, args.expnums[0], version='s', ccd=ccd):
+                raise IOError("{} not yet run for {} {} {}".format(dependency, asrgs.expnums, ccd))
+            if storage.get_status(task, prefix, args.expnums[0], version=args.type, ccd=ccd) and not args.force:
+                logging.info("{} previously completed successfully for {}{}{:02d}".format(task,
                                                                                           args.expnums[0],
                                                                                           args.type,
                                                                                           ccd))
@@ -293,11 +292,7 @@ def main(argv):
         logging.critical(message)
 
         if not args.dry_run:
-            storage.set_status(args.expnums[0],
-                               ccd,
-                               'plant',
-                               version=args.type,
-                               status=message)
+            storage.set_status(task, prefix, args.expnums[0], version=args.type, ccd=ccd, status=message)
     return exit_code
 
 
