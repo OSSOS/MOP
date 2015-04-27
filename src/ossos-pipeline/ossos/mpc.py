@@ -83,14 +83,23 @@ class MinorPlanetNumber(object):
     PACKED_DESIGNATION = " ABCDEFGHJKLMNOPQRSTUVWXYZ"
 
     def __init__(self, minor_planet_number):
+        self._minor_planet_number = None
+        if minor_planet_number is not None and len(minor_planet_number.strip(' ')) != 0:
+            if len(minor_planet_number) == 5:
+                if not minor_planet_number[0].isdigit():
+                    base = 100000 * (MinorPlanetNumber.PACKED_DESIGNATION.index(minor_planet_number[0]))
+                else:
+                    base = 10000 * int(minor_planet_number[0])
+                self._minor_planet_number = int(minor_planet_number[1:]) + base
+            else:
+                raise MPCFieldFormatError("minor_planet_number",
+                                          "1 char or digit and 4 digits",
+                                          minor_planet_number)
 
-        if not minor_planet_number[0].isdigit():
-            base = 100000 * (MinorPlanetNumber.PACKED_DESIGNATION.index(minor_planet_number[0]))
-        else:
-            base = 10000 * int(minor_planet_number[0])
-        self._minor_planet_number = int(minor_planet_number[1:]) + base
 
     def __str__(self):
+        if self._minor_planet_number is None:
+            return ""
         if self._minor_planet_number > 99999:
             idx = int(self._minor_planet_number / 100000)
             minor_planet_number = MinorPlanetNumber.PACKED_DESIGNATION[idx]
@@ -105,6 +114,12 @@ class MinorPlanetNumber(object):
     def __cmp__(self, other):
         return cmp(int(self), int(other))
 
+    def __bool__(self):
+        return self._minor_planet_number is not None
+
+    def __nonzero__(self):
+        return self.__bool__()
+
 
 class NullObservation(object):
 
@@ -114,12 +129,20 @@ class NullObservation(object):
         """
         A boolean object that keeps track of True/False status via a set of magic characters.
         """
+        if null_observation is not None and \
+                isinstance(null_observation, basestring) and \
+                len(null_observation.strip(' ')) > 0 and \
+                null_observation not in NullObservation.NULL_OBSERVATION_CHARACTERS:
+            raise MPCFieldFormatError("null_observation",
+                                      "one of " + str(NullObservation.NULL_OBSERVATION_CHARACTERS),
+                                      null_observation)
         if null_observation_character is None:
             null_observation_character = NullObservation.NULL_OBSERVATION_CHARACTERS[0]
         self.null_observation_character = null_observation_character
 
+        self._null_observation = None
         if isinstance(null_observation, basestring):
-            self._null_observation = str(null_observation)[0] in NullObservation.NULL_OBSERVATION_CHARACTERS
+            self._null_observation = null_observation in NullObservation.NULL_OBSERVATION_CHARACTERS
         elif isinstance(null_observation, bool):
             self._null_observation = null_observation
         else:
@@ -207,11 +230,11 @@ def format_ra_dec(ra_deg, dec_deg):
                       unit=(units.degree, units.degree))
 
     # decimal=False results in using sexagesimal form
-    formatted_ra = coords.ra.format(unit=units.hour, decimal=False,
+    formatted_ra = coords.ra.to_string(unit=units.hour, decimal=False,
                                     sep=" ", precision=3, alwayssign=False,
                                     pad=True)
 
-    formatted_dec = coords.dec.format(unit=units.degree, decimal=False,
+    formatted_dec = coords.dec.to_string(unit=units.degree, decimal=False,
                                       sep=" ", precision=2, alwayssign=True,
                                       pad=True)
 
@@ -269,8 +292,6 @@ class MPCNote(object):
                                           "Must be a character",
                                           _code)
             if not 0 < int(_code) < 10:
-                print 0, _code, 10
-                print 0 < int(_code) < 10
                 raise MPCFieldFormatError(self.note_type,
                                           "numeric value must be between 0 and 9",
                                           _code)
@@ -429,15 +450,9 @@ class Observation(object):
         self._provisional_name = None
 
         self.null_observation = null_observation
-        if not self.null_observation:
-            try:
-                self.minor_planet_number = null_observation+minor_planet_number
-            except ValueError:
-                self.provisional_name = null_observation+minor_planet_number+provisional_name
-            else:
-                self.provisional_name = provisional_name
-        else:
-            self.provisional_name = minor_planet_number+provisional_name
+        self.minor_planet_number = minor_planet_number
+        self.provisional_name = provisional_name
+
         self._discovery = None
         self.discovery = discovery
         self._note1 = None
@@ -529,29 +544,51 @@ class Observation(object):
     def from_string(cls, input_line):
         """
         Given an MPC formatted line, returns an MPC Observation object.
+
+        This method attempts four different format.
+
+        If line is less than 80 characters then assumes in 'ted' format,
+
+        If line equal/greater than 80 tries some fixed structure formats
+
+        mpc_format = '0s5s7s1s1s1s17s12s12s9x5s1s6x3s'
+        ossos_format1 = '1s4s7s1s1s1s17s12s12s9x5s1s6x3s'
+        ossos_format2' = '1s0s11s1s1s1s17s12s12s9x5s1s6x3s'
+
+        if those fail then tries Alex Parker's .ast format.
+
         :param mpc_line: a line in the one-line roving observer format
+        :type mpc_line: basestring
         """
+        struct_formats = {'mpc_format': '0s5s7s1s1s1s17s12s12s9x5s1s6x3s',
+                          'ossos_format1': '1s4s7s1s1s1s17s12s12s9x5s1s6x3s',
+                          'ossos_format2': '1s0s11s1s1s1s17s12s12s9x5s1s6x3s'}
+
         mpc_line = input_line.strip('\n')
+        logging.debug("Trying to create MPC record from:\n{}".format(mpc_line))
         if len(mpc_line) > 0 and mpc_line[0] == '#':
             return MPCComment.from_string(mpc_line[1:])
-        mpc_format = '1s4s7s1s1s1s17s12s12s9x5s1s6x3s'
+
         comment = mpc_line[81:]
         mpc_line = mpc_line[0:80]
         if len(mpc_line) != 80:
-            try:
-                return cls.from_ted(mpc_line)
-            except ValueError as e:
-                logging.info("FAILED TO PARSE: {}".format(mpc_line))
-                logging.error(str(e))
-            return None
+            logging.debug("Line is short, trying .ted format")
+            return cls.from_ted(mpc_line)
 
-        try:
-            obsrec = cls(*struct.unpack(mpc_format, mpc_line))
-        except Exception as ex:
-            print str(ex)
+        obsrec = None
+        for format_name in struct_formats:
+            try:
+                logging.debug("Trying to parse with {}".format(format_name))
+                obsrec = cls(*struct.unpack(struct_formats[format_name], mpc_line))
+                break
+            except Exception as ex:
+                logging.debug("Failed: {}".format(ex))
+                obsrec = None
+
+        if obsrec is None:
+            logging.debug("Trying AP's .ast format")
             # try converting using Alex Parker's .ast format:
             # 2456477.78468 18:39:07.298 -20:40:17.53 0.2 304
-            print "failed while parsing: {}".format(mpc_line)
             _parts = mpc_line.split(' ')
             args = {"date": Time(float(_parts[0]), scale='utc', format='jd').mpc,
                     "discovery": False,
@@ -586,16 +623,16 @@ class Observation(object):
         # MOP/OSSOS allows the provisional name to take up the full space allocated to the MinorPlanetNumber AND
         # the provisional name.
 
-        if len(self.provisional_name) > 7:
-            padding = ""
+        if not self.minor_planet_number:
+            if len(self.provisional_name) > 7:
+                mpc_str = "{:1.1s}{:<11.11s}".format(self.null_observation,
+                                                     self.provisional_name)
+            else:
+                mpc_str = "{:1.1s}{:4.4s}{:<7.7s}".format(self.null_observation,
+                                                          " " * 4,
+                                                          self.provisional_name)
         else:
-            padding = " " * 4
-        ## padding = " " * min(4, 11 - len(self.provisional_name))
-        if self.minor_planet_number is None or self.null_observation:
-            mpc_str = "%-12s" % (str(self.null_observation) + padding + self.provisional_name)
-        else:
-            mpc_str = "{:s}{:s}".format(self.minor_planet_number, self.provisional_name)
-
+            mpc_str = "{:5.5s}{:<7.7s}".format(self.minor_planet_number, self.provisional_name)
 
         mpc_str += str(self.discovery)
         mpc_str += '{0:1s}{1:1s}'.format(str(self.note1), str(self.note2))
@@ -677,11 +714,6 @@ class Observation(object):
 
     @minor_planet_number.setter
     def minor_planet_number(self, minor_planet_number):
-        packed = 'ABCDEFGHJKLMNOPQRSTUVWXYZ'
-
-        number = re.match('^([A-Z0-9]\d{4})$', minor_planet_number)
-        if number is None:
-            raise ValueError("Note a string for minor planet number")
         self._minor_planet_number = MinorPlanetNumber(minor_planet_number)
 
     @property
@@ -725,6 +757,7 @@ class Observation(object):
     @date.setter
     def date(self, date_str):
         self._date_precision = compute_precision(date_str)
+        logging.debug("Setting precision to: {}".format(self._date_precision))
         try:
             self._date = Time(date_str, format='mpc', scale='utc', precision=self._date_precision)
         except Exception as ex:
@@ -787,7 +820,6 @@ class Observation(object):
                 self._dec_precision = compute_precision(val2)
                 self._coordinate = SkyCoord(val1, val2, unit=(units.hour, units.degree))
             except Exception as e:
-                sys.stderr.write(str(e)+"\n")
                 raise MPCFieldFormatError("coord_pair",
                                           "must be [ra_deg, dec_deg] or HH MM SS.S[+-]dd mm ss.ss",
                                           coord_pair)
@@ -1239,7 +1271,7 @@ class MPCReader(object):
         Read  MPC records from filename:
 
         :param filename: filename of file like object.
-        :rtype : numpy.ndarray
+        :rtype : [Observation]
         """
 
         self.filename = filename
@@ -1249,7 +1281,7 @@ class MPCReader(object):
         else:
             filehandle = filename
 
-        input_mpc_lines = filehandle.readlines()
+        input_mpc_lines = filehandle.read().split('\n')
         filehandle.close()
         mpc_observations = []
         next_comment = None
