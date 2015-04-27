@@ -1,5 +1,7 @@
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
+from ...util import Time
 from ...gui import events
 from ...gui import logger
 from ...gui.models.collections import StatefulCollection
@@ -179,7 +181,15 @@ class ValidationModel(object):
         return hlist
 
     def get_current_observation_date(self):
-        return self.get_current_astrom_header()["MJD_OBS_CENTER"]
+        header = self.get_current_astrom_header()
+        try:
+            mjd = Time(header["MJD_OBS_CENTER"], scale='utc', fmt='mpc', precision=6).mpc
+        except:
+            mjd = Time(header['MJD-OBS'] + header['EXPTIME']/3600.0/24.0/2.0,
+                       format='mjd',
+                       scale='utc',
+                       precision=6).mpc
+        return mjd
 
     def get_current_ra(self):
         try:
@@ -206,7 +216,13 @@ class ValidationModel(object):
         return self.image_state.get_current_displayable_item()
 
     def get_current_band(self):
-        return self.get_current_fits_header()["FILTER"][0]
+        header = self.get_current_fits_header()
+        filter_value = None
+        for keyword in ['FILTER', 'FILT1 NAME']:
+            filter_value = header.get(keyword, None)
+            if filter_value is not None:
+                break
+        return filter_value
 
     def get_current_pixel_source_point(self):
         return self.get_current_cutout().pixel_source_point
@@ -215,7 +231,7 @@ class ValidationModel(object):
         return self.get_current_cutout().get_observed_magnitude()
 
     def get_current_image_FWHM(self):
-        return float(self.get_current_astrom_header()["FWHM"])
+        return float(self.get_current_astrom_header().get("FWHM", 4.))
 
     def get_current_image_maxcount(self):
         return float(self.get_current_astrom_header()["MAXCOUNT"])
