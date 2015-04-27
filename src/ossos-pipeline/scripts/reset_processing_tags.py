@@ -57,6 +57,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('expnums', nargs='+')
+    parser.add_argument('--dbimages', default='vos:OSSOS/dbimages')
     parser.add_argument('--dry-run', action='store_true')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--ccd', action='append')
@@ -73,6 +74,8 @@ if __name__ == '__main__':
 
     opt = parser.parse_args()
     ccds = opt.ccd is not None and opt.ccd or ALL_CCDS
+
+    storage.DBIMAGES = opt.dbimages
 
     if opt.PREP is not None:
         opt.programs = opt.PREP
