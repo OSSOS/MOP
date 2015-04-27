@@ -1,3 +1,4 @@
+import pprint
 from astropy import units
 from astropy.io import ascii
 from astropy.time import Time
@@ -11,7 +12,6 @@ import warnings
 
 from . import astrom
 from . import mpc
-from . import storage
 from .gui import logger
 from .orbfit import Orbfit
 
@@ -60,7 +60,6 @@ class TracksParser(object):
         # loop over the query until some new observations are found, or raise assert error.
         while True:
             tracks_data = self.query_ssos(mpc_observations, lunation_count)
-
             if tracks_data.get_reading_count() > len(
                     mpc_observations) or tracks_data.get_arc_length() > self.orbit.arc_length + 2.0 * units.day:
                 return tracks_data
@@ -78,6 +77,7 @@ class TracksParser(object):
         :param mpc_observations: a list of mpc.Observations
         :param lunation_count: how many dark runs (+ and -) to search into
         :return: an SSOSData object
+        :rtype: SSOSData
         """
 
         # we observe ~ a week either side of new moon
@@ -90,10 +90,10 @@ class TracksParser(object):
             search_start_date = Time('2013-02-08', scale='utc')
             search_end_date = Time(datetime.datetime.now().strftime('%Y-%m-%d'), scale='utc')
         else:
-            search_start_date = Time((mpc_observations[0].date.jd - (
+            search_start_date = Time((mpc_observations[0].date.jd * units.day - (
                 self._nights_per_darkrun +
                 lunation_count * self._nights_separating_darkruns)), format='jd', scale='utc')
-            search_end_date = Time((mpc_observations[-1].date.jd + (
+            search_end_date = Time((mpc_observations[-1].date.jd * units.day + (
                 self._nights_per_darkrun +
                 lunation_count * self._nights_separating_darkruns)), format='jd', scale='utc')
 
@@ -191,16 +191,11 @@ class SSOSParser(object):
         :rtype: astrom.Observation
         """
 
-        logger.debug("Building source reading for {} {} {}".format(expnum, ccd, ftype))
+        logger.debug("Building source reading for expnum:{} ccd:{} ftype:{}".format(expnum, ccd, ftype))
 
-        observation = astrom.Observation(expnum=str(expnum),
-                                         ftype=ftype,
-                                         ccdnum=ccd,
-                                         fk="")
-
-        observation._header = None  # Don't prefetch the header.
-
-        return observation
+        return astrom.Observation(expnum=str(expnum),
+                                  ftype=ftype,
+                                  ccdnum=ccd)
 
     def parse(self, ssos_result_filename_or_lines, mpc_observations=None):
         """
@@ -233,9 +228,11 @@ class SSOSParser(object):
 
             # The file extension is the ccd number + 1 , or the first extension.
             ccd = row['Ext'] != -9999 and int(row['Ext']) - 1 or None
-            x = row['X']
-            y = row['Y']
-            mjd = row['MJD']
+            x = row['X'] * units.pix
+            y = row['Y'] * units.pix
+            ra = row['Object_RA'] * units.degree
+            dec = row['Object_Dec'] * units.degree
+            mjd = row['MJD'] * units.day
 
             # Build astrom.SourceReading
             if self.skip_previous:
@@ -252,12 +249,13 @@ class SSOSParser(object):
                         pass
                 if previous:
                     continue
-            logger.debug("Got observation {} {} {} {} from SSOS".format(expnum, ccd, x, y))
+            logger.debug(("Prediction: exposure:{} ext:{} "
+                          "ra:{} dec:{} x:{} y:{} from SSOS").format(expnum, ccd, ra, dec, x, y))
 
             try:
                 observation = SSOSParser.build_source_reading(expnum, ccd, ftype=ftype)
                 observation.mjd = mjd
-                logger.info('built observation {}'.format(observation))
+                logger.debug('built observation {}'.format(observation))
             except Exception as err:
                 logger.error(str(err) + "\n")
                 continue
@@ -266,15 +264,9 @@ class SSOSParser(object):
             from_input_file = observation.rawname in self.input_rawnames
             null_observation = observation.rawname in self.null_observations
 
-            # For SSOIS results we don't try to keep the focus point fixed for blinking.
-            ref_x = x
-            ref_y = y
-            x0 = x
-            y0 = y
-
             logger.info(" Building SourceReading .... \n")
-            source_reading = astrom.SourceReading(x=row['X'], y=row['Y'], x0=x0, y0=y0, ra=row['Object_RA'],
-                                                  dec=row['Object_Dec'], xref=ref_x, yref=ref_y, obs=observation,
+            source_reading = astrom.SourceReading(x=x, y=y, x0=x, y0=y, ra=ra, dec=dec,
+                                                  xref=x, yref=y, obs=observation,
                                                   ssos=True, from_input_file=from_input_file,
                                                   null_observation=null_observation)
             logger.info("done")
@@ -327,7 +319,7 @@ class SSOSData(object):
         for obs in self.observations:
             mjds.append(obs.mjd)
         arc = (len(mjds) > 0 and max(mjds) - min(mjds)) or 0
-        return arc * units.day
+        return arc
 
 
 class ParamDictBuilder(object):
@@ -543,11 +535,11 @@ class Query(object):
         :raise: AssertionError
         """
         params = self.param_dict_builder.params
-        logger.debug("{}\n".format(params))
+        logger.debug(pprint.pformat(format(params)))
         response = requests.post(SSOS_URL,
                                  data=params,
                                  headers=self.headers)
-        logger.info(response.url)
+        logger.debug(response.url)
         assert isinstance(response, requests.Response)
         assert (response.status_code == requests.codes.ok)
 

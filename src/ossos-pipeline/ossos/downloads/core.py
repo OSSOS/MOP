@@ -96,6 +96,10 @@ class ApcorData(object):
         return cls(*args)
 
     @property
+    def valid(self):
+        return self.apcor_err < 1.0
+
+    @property
     def aperture(self):
         return self.ap_in
 

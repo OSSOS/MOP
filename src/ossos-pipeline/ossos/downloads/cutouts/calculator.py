@@ -31,7 +31,7 @@ class CoordinateConverter(object):
         @type point: list(float,float)
         """
         x, y = point
-        (x1, y1) = x - self.x_offset, y - self.y_offset
+        (x1, y1) = x - (self.x_offset - 1), y - (self.y_offset - 1)
         logger.debug("converted {} {} to {} {}".format(x, y, x1, y1))
         return x1, y1
 
