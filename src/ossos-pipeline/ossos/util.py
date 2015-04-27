@@ -209,7 +209,7 @@ class TimeMPC(TimeString):
                                 in_subfmt=in_subfmt,
                                 out_subfmt=out_subfmt,
                                 from_jd=from_jd)
-        self.precision = 5
+        self.precision = precision
 
     # ## need our own 'set_jds' function as the MPC Time string is not typical
     def set_jds(self, val1, val2):
@@ -224,7 +224,7 @@ class TimeMPC(TimeString):
         # This routine is based on atropy.time.core.TimeString class.
 
         iterator = numpy.nditer([val1, None, None, None, None, None, None],
-                             op_dtypes=[val1.dtype] + 5*[numpy.intc] + [numpy.double])
+                                op_dtypes=[val1.dtype] + 5 * [numpy.intc] + [numpy.double])
         subfmts = self.subfmts
         for val, iy, im, iday, ihr, imin, dsec in iterator:
             time_str = val.item()
@@ -243,17 +243,17 @@ class TimeMPC(TimeString):
                 try:
                     tm = time.strptime(time_str, strptime_fmt)
                 except ValueError as ex:
-                    logging.error("{}".format(ex))
                     pass
                 else:
                     iy[...] = tm.tm_year
                     im[...] = tm.tm_mon
                     iday[...] = tm.tm_mday
                     hrprt = tm.tm_hour + int(24 * fracday)
-                    ihr[...] = ihr
+                    ihr[...] = hrprt
                     mnprt = tm.tm_min + int(60 * (24 * fracday - hrprt))
                     imin[...] = mnprt
                     dsec[...] = tm.tm_sec + 60 * (60 * (24 * fracday - hrprt) - mnprt)
+
                     break
             else:
                 raise ValueError("Time {0} does not match {1} format".format(time_str, self.name))
