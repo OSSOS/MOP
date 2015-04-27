@@ -144,9 +144,6 @@ def get_cands_uri(field, ccd, version='p', ext='measure3.cands.astrom', prefix=N
     return the nominal URI for a candidate file.
     """
 
-    if block is not None:
-        logger.warning("Use of block in get_cands_uri is ignored.")
-
     if prefix is None:
         prefix = ""
     if len(prefix) > 0:
@@ -159,7 +156,11 @@ def get_cands_uri(field, ccd, version='p', ext='measure3.cands.astrom', prefix=N
     if len(ext) > 0 and ext[0] != ".":
         ext = ".{}".format(ext)
 
-    return os.path.join(MEASURE3, "{}{}{}{}{}".format(prefix, field, version, ccd, ext))
+    dir = MEASURE3
+    if block is not None:
+         dir + "/{}".format(block)
+    mkdir(dir)
+    return "{}/{}{}{}{}{}".format(dir, prefix, field, version, ccd, ext)
 
 
 def get_uri(expnum, ccd=None,
@@ -301,11 +302,134 @@ def get_tags(expnum, force=False):
     return vospace.getNode(uri, force=force).props
 
 
-def get_status(expnum, ccd, program, version='p', return_message=False):
+class Task(object):
+    """
+    A task within the OSSOS pipeline work-flow.
+    """
+
+    def __init__(self, executable, dependency=None):
+        self.executable = executable
+        self.name = os.path.splitext(self.executable)[0]
+        self._target = None
+        self._status = None
+        self._dependency = None
+        self.dependency = dependency
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def tag(self):
+        """
+        Get the string representation of the tag used to annotate the status in VOSpace.
+        @return: str
+        """
+        return "{}{}_{}{}{:02d}".format(self.target.prefix,
+                                        self,
+                                        self.target.version,
+                                        self.target.ccd)
+
+    @property
+    def target(self):
+        """
+
+        @return: The target that this task is set to run on.
+        @rtype: Target
+        """
+        return self._target
+
+    @target.setter
+    def target(self, target):
+        assert isinstance(Target, target)
+        self._target = target
+
+    @property
+    def dependency(self):
+        """
+        @rtype: Task
+        """
+        raise NotImplementedError()
+
+    @dependency.setter
+    def dependency(self, dependency):
+        if dependency is None:
+            self._dependency = dependency
+        else:
+            assert isinstance(Task, dependency)
+
+    @property
+    def status(self):
+        """
+
+        @return: The status of running this task on the given target.
+        @rtype: str
+        """
+        return get_tag(self.target.expnum, self.tag)
+
+    @status.setter
+    def status(self, status):
+        status += Time.now().iso
+        set_tag(self.target.expnum, self.tag, status)
+
+    @property
+    def finished(self):
+        """
+        @rtype: bool
+        """
+        return self.status.startswith(SUCCESS)
+
+    @property
+    def ready(self):
+        if self.dependency is None:
+            return True
+        else:
+            return self.dependency.finished
+
+
+class Target(object):
+    """
+    The target that a task will act on.
+    """
+
+    def __init__(self, prefix, expnum, version, ccd):
+        """
+
+        @param prefix: that is prefixed to the base exposure
+        @type prefix: str
+        @param expnum: the number of the CFHT exposure that is the target
+        @type expnum: str
+        @param version: Which version of the exposure (o, p, s) is the target.
+        @type version: str
+        @param ccd: which CCD of the exposure is the target.
+        @type ccd: int
+        """
+
+        self.prefix = prefix
+        self.expnum = expnum
+        self.version = version
+        self.ccd = ccd
+
+    @property
+    def name(self):
+        return "{}{}{}{:02d}".format(self.prefix, self.expnum, self.version, self.ccd)
+
+    @property
+    def tags(self):
+        """
+
+        @rtype: list [str]
+        """
+        return get_tags(self.expnum)
+
+
+
+
+def get_status(task, prefix, expnum, version, ccd, return_message=False):
     """Report back status of the given program.
 
+    @param prefix:
     """
-    key = get_process_tag(program, ccd, version)
+    key = get_process_tag(prefix+task, ccd, version)
     status = get_tag(expnum, key)
     logger.debug('%s: %s' % (key, status))
     if return_message:
@@ -314,12 +438,13 @@ def get_status(expnum, ccd, program, version='p', return_message=False):
         return status == SUCCESS
 
 
-def set_status(expnum, ccd, program, status, version='p'):
+def set_status(task, prefix, expnum, version, ccd, status):
     """set the processing status of the given program.
 
+    @param prefix:
     """
 
-    return set_tag(expnum, get_process_tag(program, ccd, version), status)
+    return set_tag(expnum, get_process_tag(prefix+task, ccd, version), status)
 
 
 def get_file(expnum, ccd=None, version='p', ext='fits', subdir=None, prefix=None):
