@@ -44,9 +44,12 @@ class ImageManager(object):
 
     def download_singlets_for_source(self, source, needs_apcor=False):
         focus_calculator = SingletFocusCalculator(source)
+        logger.debug("Got focus calculator {} for source {}".format(focus_calculator, source))
 
         for reading in source.get_readings():
+            logger.debug("Getting focus location for {}".format(reading))
             focus = focus_calculator.calculate_focus(reading)
+            logger.debug("Focus is {}".format(focus))
             self._singlet_download_manager.submit_request(
                 DownloadRequest(reading,
                                 needs_apcor=needs_apcor,
@@ -63,6 +66,7 @@ class ImageManager(object):
             )
 
     def get_cutout(self, reading):
+        logger.debug("Getting cutout for {}".format(reading))
         try:
             return self._cutouts[reading]
         except KeyError as err:
