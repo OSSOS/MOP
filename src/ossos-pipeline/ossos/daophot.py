@@ -12,7 +12,7 @@ class TaskError(Exception):
 
 
 def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
-         maxcount=30000.0, exptime=1.0, zmag=None):
+         maxcount=30000.0, exptime=1.0, zmag=None, extno=0):
     """
     Compute the centroids and magnitudes of a bunch sources detected on
     CFHT-MEGAPRIME images.
@@ -41,7 +41,7 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
         raise TaskError("Failed to open input image: %s" % err.message)
 
     ## get the filter for this image
-    filter_name = input_hdulist[0].header.get('FILTER', 'DEFAULT')
+    filter_name = input_hdulist[extno].header.get('FILTER', 'DEFAULT')
 
     ### Some nominal CFHT zeropoints that might be useful
     zeropoints = {"I": 25.77,
@@ -49,11 +49,12 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
                   "V": 26.07,
                   "B": 25.92,
                   "DEFAULT": 26.0,
-                  "g.MP9401": 26.4}
+                  "g.MP9401": 32.0,
+                  'r.MP9601': 31.9}
 
     if zmag is None:
         logger.warning("No zmag supplied to daophot, looking for header or default values.")
-        zmag = input_hdulist[0].header.get('PHOTZP', zeropoints[filter_name])
+        zmag = input_hdulist[extno].header.get('PHOTZP', zeropoints[filter_name])
         logger.warning("Setting zmag to: {}".format(zmag))
         ### check for magic 'zeropoint.used' files
         for zpu_file in ["{}.zeropoint.used".format(os.path.splitext(fits_filename)[0]), "zeropoint.used"]:
@@ -63,7 +64,7 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
                     logger.warning("Using file {} to set zmag to: {}".format(zpu_file, zmag))
                     break
 
-    photzp = input_hdulist[0].header.get('PHOTZP', zeropoints.get(filter_name, zeropoints["DEFAULT"]))
+    photzp = input_hdulist[extno].header.get('PHOTZP', zeropoints.get(filter_name, zeropoints["DEFAULT"]))
     if zmag != photzp:
         logger.warning(("zmag sent to daophot: ({}) "
                         "doesn't match PHOTZP value in image header: ({})".format(zmag, photzp)))
@@ -97,9 +98,10 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
 
     # Used for passing the input coordinates
     coofile = tempfile.NamedTemporaryFile(suffix=".coo", delete=False)
+
     for i in range(len(x_in)):
         coofile.write("%f %f \n" % (x_in[i], y_in[i]))
-
+    coofile.flush()
     # Used for receiving the results of the task
     # mag_fd, mag_path = tempfile.mkstemp(suffix=".mag")
     magfile = tempfile.NamedTemporaryFile(suffix=".mag", delete=False)
@@ -111,9 +113,10 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
     magfile.close()
     os.remove(magfile.name)
 
-    iraf.phot(fits_filename, coofile.name, magfile.name)
+    iraf.phot(fits_filename+"[{}]".format(extno),
+              coofile.name, magfile.name)
     pdump_out = ascii.read(magfile.name, format='daophot')
-
+    logger.error("pdump_out: {}".format(type(pdump_out)))
     if not len(pdump_out) > 0:
         mag_content = open(magfile.name).read()
         raise TaskError("photometry failed. {}".format(mag_content))
