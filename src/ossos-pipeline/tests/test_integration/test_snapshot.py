@@ -46,9 +46,7 @@ class SourceSnapshotIntegrationTest(FileReadingTestCase):
         x_offset = self.original_observed_x - self.original_pixel_x
         y_offset = self.original_observed_y - self.original_pixel_y
 
-        self.undertest = SourceCutout(self.reading, hdulist,
-                                      CoordinateConverter(x_offset, y_offset),
-                                      apcor=apcor)
+        self.undertest = SourceCutout(self.reading, hdulist, apcor=apcor)
 
         assert_that(self.undertest.observed_x, equal_to(self.original_observed_x))
         assert_that(self.undertest.observed_y, equal_to(self.original_observed_y))
