@@ -24,7 +24,7 @@ class SourceSnapshotTest(FileReadingTestCase):
         self.offset_y = 15
         coordinate_converter = CoordinateConverter(self.offset_x, self.offset_y)
 
-        self.undertest = SourceCutout(self.reading, Mock(), coordinate_converter)
+        self.undertest = SourceCutout(self.reading, Mock())
 
         self.mock_update_ra_dec = Mock()
         self.undertest._update_ra_dec = self.mock_update_ra_dec
