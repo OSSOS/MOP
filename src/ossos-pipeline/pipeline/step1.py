@@ -1,4 +1,4 @@
-#!python
+#!/Users/jjk/MOP/bin/python
 ################################################################################
 ##                                                                            ##
 ## Copyright 2013 by its authors                                              ##
@@ -175,22 +175,24 @@ def main(task='step1'):
         ccdlist = [args.ccd]
 
     prefix = (args.fk and 'fk') or ''
+    task = util.task()
+    dependency = "mkpsf"
+    version = args.type
 
     exit_code = 0
     for expnum in args.expnum:
         for ccd in ccdlist:
-            storage.set_logger(os.path.splitext(os.path.basename(sys.argv[0]))[0],
-                               prefix, expnum, ccd, args.type, args.dry_run)
+            storage.set_logger(task, prefix, expnum, ccd, args.type, args.dry_run)
             try:
                 message = storage.SUCCESS
-                if storage.get_status(expnum, ccd, prefix+task, version=args.type) and not args.force:
-                    logging.critical("{} completed successfully for {} {} {} {}".format(task, prefix,
-                                                                                        expnum, args.type, ccd))
+                if not (args.force or args.dry_run) and storage.get_status(task, prefix, expnum, version, ccd):
+                    logging.critical("{} completed successfully for {}{}{}{:02d}".format(
+                        task, prefix, expnum, version, ccd))
                     continue
-                if not storage.get_status(expnum, ccd, prefix+'mkpsf', version=args.type) and not args.ignore:
-                    raise IOError(35, "mkpsf hasn't run for {} {} {} {}".format(task, prefix,
-                                                                                expnum, args.type, ccd))
-                step1(expnum, ccd, prefix=prefix, version=args.type, dry_run=args.dry_run)
+                if not storage.get_status(dependency, prefix, expnum, version, ccd) and not args.ignore:
+                    raise IOError(35, "Cannot start {} as {} not yet completed for {}{}{}{:02d}".format(
+                        task, dependency, prefix, expnum, version, ccd))
+                step1(expnum, ccd, prefix=prefix, version=version, dry_run=args.dry_run)
             except CalledProcessError as cpe:
                 message = str(cpe)
                 exit_code = message
@@ -201,11 +203,7 @@ def main(task='step1'):
             logging.error("Error running step1_p: %s " % message)
 
             if not args.dry_run:
-                storage.set_status(expnum,
-                                   ccd,
-                                   prefix + 'step1',
-                                   version=args.type,
-                                   status=message)
+                storage.set_status(task, prefix, expnum, version, ccd, status=message)
     return exit_code
 
 

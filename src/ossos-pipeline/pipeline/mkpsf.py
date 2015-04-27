@@ -1,4 +1,4 @@
-#!python 
+#!/Users/jjk/MOP/bin/python 
 ################################################################################
 ##                                                                            ##
 ## Copyright 2013 by its authors                                              ##
@@ -107,6 +107,8 @@ def main(task='mkpsf'):
         logging.basicConfig(level=logging.INFO)
 
     prefix = (args.fk and 'fk') or ''
+    task  = util.task()
+    dependency = 'update_header'
 
     storage.DBIMAGES = args.dbimages
 
@@ -118,28 +120,21 @@ def main(task='mkpsf'):
     exit_code = 0
     for expnum in args.expnum:
         for ccd in ccdlist:
-            storage.set_logger(os.path.splitext(os.path.basename(sys.argv[0]))[0],
+            storage.set_logger(task,
                                prefix, expnum, ccd, args.type, args.dry_run)
-            if storage.get_status(expnum, ccd, prefix + task, version=args.type) and not args.force:
+            if storage.get_status(task, prefix, expnum, version=args.type, ccd=ccd) and not args.force:
                 logging.info("{} completed successfully for {} {} {} {}".format(task, prefix, expnum, args.type, ccd))
                 continue
             message = 'success'
             try:
-                if not storage.get_status(expnum, 36, 'update_header') and not args.ignore_update_headers:
-                    raise IOError("update_header not yet run for {}".format(expnum))
+                if not storage.get_status(dependency, prefix, expnum, "p", 36) and not args.ignore_update_headers:
+                    raise IOError("{} not yet run for {}".format(dependency, expnum))
                 mkpsf(expnum, ccd, args.type, args.dry_run, prefix=prefix)
                 if args.dry_run:
                     continue
-                storage.set_status(expnum,
-                                   ccd,
-                                   prefix + 'fwhm',
-                                   version=args.type,
-                                   status=str(storage.get_fwhm(
-                                       expnum, ccd, version=args.type)))
-                storage.set_status(expnum,
-                                   ccd,
-                                   prefix + 'zeropoint',
-                                   version=args.type,
+                storage.set_status('fwhm', prefix, expnum, version=args.type, ccd=ccd, status=str(storage.get_fwhm(
+                    expnum, ccd, version=args.type)))
+                storage.set_status('zeropoint', prefix, expnum, version=args.type, ccd=ccd,
                                    status=str(storage.get_zeropoint(
                                        expnum, ccd, version=args.type)))
             except CalledProcessError as cpe:
@@ -150,11 +145,7 @@ def main(task='mkpsf'):
 
             logging.error(message)
             if not args.dry_run:
-                storage.set_status(expnum,
-                                   ccd,
-                                   prefix + 'mkpsf',
-                                   version=args.type,
-                                   status=message)
+                storage.set_status(task, prefix, expnum, version=args.type, ccd=ccd, status=message)
     return exit_code
 
 if __name__ == '__main__':
