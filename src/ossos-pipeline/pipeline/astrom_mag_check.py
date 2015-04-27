@@ -115,7 +115,7 @@ def match_planted(fk_candidate_observations, match_filename, bright_limit=BRIGHT
     objects_planted_uri = object_planted
     if not os.access(objects_planted_uri, os.F_OK):
         objects_planted_uri = fk_candidate_observations.observations[0].get_object_planted_uri()
-    lines = storage.open_vos_or_local(objects_planted_uri).read()
+    lines = open(objects_planted_uri).read()
 
     # we are changing the format of the Object.planted header to be compatible with astropy.io.ascii but
     # there are some old Object.planted files out there so we do these string/replace calls to reset those.
@@ -218,7 +218,7 @@ def match_planted(fk_candidate_observations, match_filename, bright_limit=BRIGHT
                                                          offset,
                                                          std))
 
-    fpout = storage.open_vos_or_local(match_filename+".fp", 'a')
+    fpout = open(match_filename+".fp", 'a')
     try:
         writer = ascii.FixedWidth
         # add a hash to the start of line that will have header columns: for JMP
