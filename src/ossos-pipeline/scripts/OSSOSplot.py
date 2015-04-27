@@ -23,13 +23,13 @@ from astropy import units
 import ephem
 
 from ossos.ephem_target import EphemTarget
-from ossos.gui import context
 from ossos import orbfit, cadc
 from ossos import storage
 from ossos.coord import Coord
 from ossos import mpc
 from ossos import wcs
 from ossos.cameras import Camera
+from planning.plotting import parsers, parameters
 
 
 color_key = {"yellow": "Fill colour is yellow == tracking termination",
@@ -44,84 +44,70 @@ Neptune = {'Halimde': {"RA": ephem.hours("22:32:05.1"), "DEC": ephem.degrees("-1
            'Neso': {"RA": ephem.hours("22:31:31.9"), "DEC": ephem.degrees("-10:19:18")},
            'Neptune': {"RA": ephem.hours("22:32:49.39"), "DEC": ephem.degrees("-09:57:02.8")}}
 
-COLOSSOS = ['O13BL3R9',
-            'O13BL3SK',
-            'O13BL3RB',
-            'O13BL3SC',
-            'O13BL3S3',
-            'O13BL3QX',
-            'O13BL3TF',
-            'O13BL3TA',
-            'O13BL3SN',
-            'O13BL3RE',
-            'O13BL3RV',
-            'O13BL3SY',
-            'O13BL3RG',
-            'O13BL3RN',
-            'O13BL3SW',
-            'O13BL3T7',
-            'O13BL3RT',
-            'O13BL3RQ',
-            'O13BL3SH',
-            'O13BL3R1',
-            'O13BL3RH']
+tracking_termination = [  # 'o3e01',
+    # 'o3e10',
+    #                         'o3e15',
+    #                         'o3e16',
+    #                         'o3e18',
+    #                         'o3e20PD',
+    #                         'o3e21',
+    #                         'o3e22',
+    #                         'o3e23PD',
+    #                         'o3e24',
+    #                         'o3e25',
+    #                         'o3e26',
+    #                         'o3e27PD',
+    #                         'o3e28',
+    #                         'o3e29',
+    #                         'o3e30PD',
+    #                         'o3e32',
+    #                         'o3e33',
+    #                         'o3e34PD',
+    #                         'o3e35',
+    #                         'o3e36',
+    #                         'o3e37PD',
+    #                         'o3e38',
+    #                         'o3e40',
+    #                         'o3e51',
+    #                         'o3e54',
+    #                         "o3o01",
+    #                         "o3o22",
+    #                         "o3o23",
+    #                         "o3o26",
+    #                         "o3o28",
+    #                         "o3o31",
+    #                         "o3o35",
+    #                         "uo3o37",
+    #                         "uo3o38",
+    #                         "uo3o50",
+    # "O13BL3R6",
+    # "O13BL3RW",
+    # "O13BL3SJ",
+    # "O13BL3SM",
+    # "O13BL3S0",
+    # "O13BL3S5",
+    # "O13BL3S8",
+    # "O13BL3QZ"
+]  # centaur
 
-tracking_termination = ['o3e01',
-                        # 'o3e10',
-                        #                         'o3e15',
-                        #                         'o3e16',
-                        #                         'o3e18',
-                        #                         'o3e20PD',
-                        #                         'o3e21',
-                        #                         'o3e22',
-                        #                         'o3e23PD',
-                        #                         'o3e24',
-                        #                         'o3e25',
-                        #                         'o3e26',
-                        #                         'o3e27PD',
-                        #                         'o3e28',
-                        #                         'o3e29',
-                        #                         'o3e30PD',
-                        #                         'o3e32',
-                        #                         'o3e33',
-                        #                         'o3e34PD',
-                        #                         'o3e35',
-                        #                         'o3e36',
-                        #                         'o3e37PD',
-                        #                         'o3e38',
-                        #                         'o3e40',
-                        #                         'o3e51',
-                        #                         'o3e54',
-                        #                         "o3o01",
-                        #                         "o3o22",
-                        #                         "o3o23",
-                        #                         "o3o26",
-                        #                         "o3o28",
-                        #                         "o3o31",
-                        #                         "o3o35",
-                        #                         "uo3o37",
-                        #                         "uo3o38",
-                        #                         "uo3o50",
-                        "O13BL3R6",
-                        "O13BL3RW",
-                        "O13BL3SJ",
-                        "O13BL3SM",
-                        "O13BL3S0",
-                        "O13BL3S5",
-                        "O13BL3S8",
-                        "O13BL3QZ"]  # centaur
-
-doubles = ['o3e09',
-           'o3e11',
-           'o3e12',
-           'o3e17',
-           'o3e19',
-           'o3e39',
-           'o3e45',
-           'o3e48',
-           'o3e49',
-           'o3e52',
-           'o3e55'
+doubles = ['o3o05',
+           'o3o08',
+           'o3o11',
+           'o3o13',
+           'o3o14',
+           'o3o16',
+           'o3o17',
+           'o3o19',
+           'o3o25',
+           'o3o26',
+           'o3o27',
+           'o3o29',
+           'o3o30',
+           'o3o31',
+           'o3o32',
+           'o3o33',
+           'o3o34',
+           'o3o36',
 ]
 
 
@@ -175,30 +161,21 @@ class Plot(Canvas):
         """Load the targets from a file
 
         """
-        # FIXME: rewrite this to use mpc.MPCReader.read()
-
         for name in Neptune:
             self.kbos[name] = Neptune[name]
 
         if directory_name is not None:
+            if directory_name == parameters.REAL_KBO_AST_DIR:
+                kbos = parsers.ossos_discoveries()
+            else:
+                kbos = parsers.ossos_discoveries(directory_name, suffix='ast')
 
-            working_context = context.get_context(directory_name)
-
-            for filename in working_context.get_listing('ast'):
-                fhandle = working_context.open(filename)
-                observations = []
-                lines = fhandle.read().split('\n')
-                fhandle.close()
-                for line in lines:
-                    if len(line) > 0 and not line.startswith('#'):  # skip the comments, don't care about them here
-                        observations.append(mpc.Observation.from_string(line))
-                name = filename.rstrip('.ast')  # observations[0].provisional_name
-                try:
-                    this_orbit = orbfit.Orbfit(observations)
-                    self.kbos[name] = this_orbit
-                except Exception as e:
-                    logging.error("Failed loading: {}".format(name))
-                    logging.error(str(e))
+            for kbo in kbos:
+                if kbo.orbit.arc_length > 30.:  # cull the short ones for now
+                    print(kbo.name)
+                    self.kbos[kbo.name] = kbo.orbit
+                else:
+                    print("Arc very short, large uncertainty. Skipping {} for now.\n".format(kbo.name))
 
         self.doplot()
 
@@ -308,7 +285,7 @@ class Plot(Canvas):
             # ly is the y location mid-way between the top and bottom of the plot
             (cx2, cy2) = self.p2c((ra, dec2))
             # create a dashed line for un-labeled lines
-            self.create_line(cx1, cy1, cx2, cy2, dash=(20, 20))
+            self.create_line(cx1, cy1, cx2, cy2, dash=(20, 20), fill="grey")
             dec = dec1
             while dec <= dec2:
                 if label:
@@ -316,7 +293,7 @@ class Plot(Canvas):
                     (lx, ly) = self.p2c((ra, dec + ddec / 2.0))
                     self.create_text(lx + 5, ly, justify=LEFT,
                                      font=('Times', '-20'),
-                                     text="\n".join(str(ephem.hours(ra))[:-3]), fill='brown')
+                                     text="\n".join(str(ephem.hours(ra))[:-3]), fill='grey')
                 label = not label
                 dec += ddec
             ra += dra
@@ -329,14 +306,14 @@ class Plot(Canvas):
             # create a line the goes from ra1 to ra2 at this dec
             (cx1, cy1) = self.p2c((ra1, dec))
             (cx2, cy2) = self.p2c((ra2, dec))
-            self.create_line(cx1, cy1, cx2, cy2, dash=(20, 20))
+            self.create_line(cx1, cy1, cx2, cy2, dash=(20, 20), fill='grey')
             ra = ra1
             while ra <= ra2:
                 if label:
                     # lx/ly are the screen coordinates of the label
                     (lx, ly) = self.p2c((ra + dra / 2.0, dec))
                     self.create_text(lx, ly - 5, font=('Times', '-20'),
-                                     text=str(ephem.degrees(dec)), fill='brown')
+                                     text=str(ephem.degrees(dec)), fill='grey')
                 ra += dra
             dec += ddec
             label = not label
@@ -602,18 +579,32 @@ class Plot(Canvas):
             # ## try name/ ra /dec / epoch
             for line in lines:
                 d = line.split()
-                if len(d) != 4:
-                    if len(d) != 8:
-                        sys.stderr.write("Don't understand pointing format\n%s\n" % ( line))
-                        continue
+                if len(d) == 5:  # brave assumption time!
+                    # self.pointing_format = 'Subaru'  # unfortunately this doesn't seem to do anything, & breaks save
+                    pointing_name = d[0].split('=')[0]
+                    # oh grief these are sexagecimal with no separators. WHY
+                    ra = d[1].split('=')[1]
+                    dec = d[2].split('=')[1]
+                    if len(ra.split('.')[0]) == 5:  # LACK OF SEPARATORS ARGH
+                        ra = '0' + ra
+                    if len(dec.split('.')[0]) == 5:
+                        dec = '0' + dec
+                    ra = "{}:{}:{}".format(ra[0:2], ra[2:4], ra[4:])
+                    dec = "{}:{}:{}".format(dec[0:2], dec[2:4], dec[4:])
+                    points.append((pointing_name, ra, dec))
+                elif len(d) == 4:
+                    f = d[1].count(":")
+                    if ( f > 0 ):
+                        points.append((d[0], d[1], d[2]))
+                    else:
+                        points.append(('', math.radians(float(d[1])), math.radians(float(d[2]))))
+                elif len(d) == 8:
                     line = "%s %s:%s:%s %s:%s:%s %s" % (d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7] )
                     d = line.split()
-
-                f = d[1].count(":")
-                if ( f > 0 ):
-                    points.append((d[0], d[1], d[2]))
+                    # this one seems unfinished...no append
                 else:
-                    points.append(('', math.radians(float(d[1])), math.radians(float(d[2]))))
+                    sys.stderr.write("Don't understand pointing format\n%s\n" % ( line))
+                    continue
 
         self.plot_points_list(points)
         return
@@ -867,10 +858,10 @@ class Plot(Canvas):
                             center_ra += ra
                             center_dec += dec
 
-                logging.critical("KBOs in field {0}: {1}".format(name, field_kbos))
+                logging.critical("KBOs in field {0}: {1}".format(name, ', '.join([n.name for n in field_kbos])))
 
                 start_date = mpc.Time(self.date.get(), scale='utc').jd
-                for days in range(-10, 20, 1):
+                for days in range(-10, 10, 1):
                     for hours in range(0, 23, 12):
                         today = mpc.Time(start_date + days + hours / 24.0,
                                          scale='utc',
@@ -899,6 +890,7 @@ class Plot(Canvas):
         f = tkFileDialog.asksaveasfile()
         if self.pointing_format.get() == 'Subaru':
             for pointing in self.pointings:
+                print pointing["camera"]
                 (sra, sdec) = str(pointing["camera"]).split()
                 ra = sra.replace(":", "")
                 dec = sdec.replace(":", "")
@@ -1007,7 +999,7 @@ NAME                |RA         |DEC        |EPOCH |POINT|
             vlist.append(name)
             fill = None
             is_colossos_target = False
-            for cname in COLOSSOS:
+            for cname in parameters.COLOSSOS:
                 if cname in name:
                     is_colossos_target = True
                     print "ColOSSOS: ", cname
@@ -1057,21 +1049,21 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                     if a > math.radians(0.3):
                         lost = True
 
-                fill_colour = lost and "red" or "green"
-                fill_colour = is_double and "magenta" or fill_colour
-                fill_colour = is_colossos_target and "blue" or fill_colour
-                point_colour = is_terminated and "red" or "yellow"
+                fill_colour = (lost and "red") or "grey"
+                fill_colour = (is_double and "magenta") or fill_colour
+                fill_colour = (is_colossos_target and "blue") or fill_colour
+                point_colour = (is_terminated and "red") or "black"
                 w.create_point(ra, dec, size=point_size, color=point_colour, fill=fill_colour)
                 if w.show_ellipse.get() == 1 and days == trail_mid_point:
                     if a < math.radians(5.0):
                         w.create_ellipse(ra, dec, a, b, ang)
                     if w.show_labels.get() == 1:
-                        w.label(ra, dec, name, offset=[xoffset, yoffset])
+                        w.label(ra, dec, name[-2:], offset=[xoffset, yoffset])
             else:
                 ra = kbos[name]['RA']
                 dec = kbos[name]['DEC']
-                w.create_point(ra, dec, size=6, color='cyan')
-                w.label(ra, dec, name, offset=[-15, +15])
+                w.create_point(ra, dec, size=8, color='cyan')
+                w.label(ra, dec, name[-2:], offset=[-15, +15])  # truncate object name for plot clutter clarity
 
         vlist.sort()
         for v in vlist:
@@ -1112,7 +1104,7 @@ def start(dirname=None, pointings=None):
     w.bind('<Control-Button-1>', w.center)
     w.grid(row=0, column=0, sticky=N + S + E + W)
 
-    ### The infomration Panel
+    # ## The infomration Panel
     infoPanel = Frame(root)
     ### Coordinates box
     coordsBox = Frame(infoPanel)
@@ -1223,7 +1215,7 @@ def start(dirname=None, pointings=None):
     w.newPlot()
     w.load_objects(directory_name=dirname)
     w.recenter(math.pi, 0)
-    w.zoom(scale=64)  # want to start in closer
+    w.zoom(scale=64)  # want to start in closer: 28 good for plots
 
     root.mainloop()
 

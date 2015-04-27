@@ -3,17 +3,20 @@ __author__ = 'Michele Bannister   git:@mtbannister'
 
 import os
 import cPickle
+from collections import OrderedDict
 
 import ephem
 from astropy.table import Table
 from uncertainties import ufloat
+import numpy
 
 from ossos import mpc
 from ossos import orbfit
 from ossos import storage
 import parameters
-from parameters import tno
+from ossos.gui import context
 
+# from parameters import tno
 
 def ossos_release_parser(table=False):
     '''
@@ -40,22 +43,27 @@ def ossos_release_parser(table=False):
     return retval
 
 
-def ossos_discoveries(no_nt_and_u=True):
+class tno(object):
+    def __init__(self, observations):
+        self.orbit = orbfit.Orbfit(observations.mpc_observations)
+        self.discovery = [n for n in observations.mpc_observations if n.discovery.is_discovery][0]
+        self.name = observations.provisional_name
+        return
+
+
+def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR, suffix='ast', no_nt_and_u=True):
     """
-    Returns a list of orbfit.Orbfit objects with the observations in the Orbfit.observations field.
+    Returns a list of objects holding orbfit.Orbfit objects with the observations in the Orbfit.observations field.
     """
     retval = []
-
-    # discovery_files = [n for n in os.listdir(parameters.REAL_KBO_AST_DIR)]# if n.endswith('.mpc') or n.endswith(
-    # '.ast')]
-    for filename in storage.listdir(parameters.REAL_KBO_AST_DIR):
+    working_context = context.get_context(directory)
+    for filename in working_context.get_listing(suffix):
         # keep out the not-tracked and uncharacterised.
-        if no_nt_and_u:
-            if not (filename.__contains__('nt') or filename.__contains__('u')):
-                print(filename)
-                observations = mpc.MPCReader(parameters.REAL_KBO_AST_DIR + filename)
-                orbit = orbfit.Orbfit(observations.mpc_observations)
-                retval.append((observations, orbit))
+        if no_nt_and_u:  # FIXME: this doesn't have an alternative if including uncharacterised objects
+            if not (filename.__contains__('nt') or filename.startswith('u')):
+                observations = mpc.MPCReader(directory + filename)
+                obj = tno(observations)
+                retval.append(obj)
 
     return retval
 
@@ -185,13 +193,15 @@ def linesep(name, distinguish=None):
              'o': 'Outer classical belt',
              'd': 'Detached classical belt',
              'x': 'Scattering disk',
+             'c': 'Centaurs',
     }
     if distinguish:
-        # may also have Centaurs added as 'cen' at some point, but at the moment Centaurs seem to be 'sca'
         if distinguish == 'sca':
             name = 'x'
         elif distinguish == 'det':
             name = 'd'
+        elif distinguish == 'cen':
+            name = 'c'
 
     midline = r"\cutinhead{" + \
               "{}".format(names[name]) + \
@@ -200,35 +210,40 @@ def linesep(name, distinguish=None):
     return midline
 
 
-def release_to_latex(outfile):
-    tnos = ossos_release_parser(table=True)
-
-    # outnames = ['object', 'a', 'a_E' 'e', 'e_E', 'i', 'i_E', 'dist', 'dist_E', 'H_sur', 'p', 'j', 'k', 'sh']
-
-    # want to output:
-    # obj a ± da e ± de i ± di r ± dr H ± dH j k sh(if insecure)
-    # table.write() is unable to handle this very well, if at all. Resorting to manual, dammit.
-
+def create_table(tnos, outfile):
     # sort order gives Classical, Detached, Resonant, Scattered
     tnos.sort(['cl', 'p', 'j', 'k', 'object'])  # this at least works just fine
 
-    header = r"\begin{deluxetable}{ccccccccc}" + '\n' + \
-             r"\tablehead{\colhead{Object} & \colhead{a (AU)} & \colhead{e} & \colhead{i ($^{\circ}$)} & " \
+    header = r"\begin{deluxetable}{cccccccccc}" + '\n' + \
+             r"\tablehead{\colhead{Object} & \colhead{MPC designation} & \colhead{a (AU)} & \colhead{e} & \colhead{i " \
+             r"($^{\circ}$)} & " \
              "\colhead{r$_{H}$ (AU)} & \colhead{H} & \colhead{Comment} }" + "\n" \
              + "\startdata \n"
-    footer = r"\enddata " + "\n" \
-                            "\end{deluxetable} \n"
+    footer = r"\enddata " + "\n" + \
+             r"\tablecomments{M:N: object is in the M:N resonance; I: the orbit classification is currently insecure; " \
+             r"" \
+             r"H: the human operator intervened to declare the orbit security status. " \
+             r"The full orbital elements are available in electronic form from the Minor Planet Center.} " "\n" + \
+             "\end{deluxetable} \n"
 
+    # Scrape the index file for MPC designations - this would work better if the alternate designations were consistent
+    # idx = {}
+    # with open(parameters.IDX) as infile:
+    # lines = infile.readlines()
+
+
+    # want to output:
     with open(outfile, 'w') as ofile:
         ofile.write(header)
         for i, r in enumerate(tnos):
-            if r['p'] != tnos[i - 1]['p']:
+            if r['p'] != tnos[i - 1]['p']:  # just changed between object classification types
                 if r['p'] == 'x':  # 'x' doesn't give enough info to set scattered or detached
                     ofile.write(linesep(r['p'], distinguish=r['cl']))
                 else:
                     ofile.write(linesep(r['p']))
-            out = "{} & {} & {} & {} & {} & {} & ".format(r['object'],
-                                                          round_sig_error(r['a'], r['a_E']),
+            # obj a ± da e ± de i ± di r ± dr H ± dH j k sh(if insecure)
+            out = "{} & & {} & {} & {} & {} & {} & ".format(r['object'],
+                                                            round_sig_error(r['a'], r['a_E']),
                                                           round_sig_error(r['e'], r['e_E']),
                                                           round_sig_error(r['i'], r['i_E']),
                                                           round_sig_error(r['dist'], r['dist_E']),
@@ -244,7 +259,62 @@ def release_to_latex(outfile):
             ofile.write(out)
         ofile.write(footer)
 
+def release_to_latex(outfile):
+    tnos = ossos_release_parser(table=True)
+    uncharacterised = tnos[numpy.array([name.startswith("u") for name in tnos['object']])]
+    characterised = tnos[numpy.array([name.startswith("o") for name in tnos['object']])]
+    create_table(characterised, outfile)
+    create_table(uncharacterised, 'u_' + outfile)
+
+
+def parse_subaru_radec(line):
+    d = line.split()
+    pointing_name = line.split('=')[0]
+    ra = d[1].split('=')[1]
+    dec = d[2].split('=')[1]
+    if len(ra.split('.')[0]) == 5:  # LACK OF SEPARATORS ARGH
+        ra = '0' + ra
+    if len(dec.split('.')[0]) == 5:
+        dec = '0' + dec
+    ra = "{}:{}:{}".format(ra[0:2], ra[2:4], ra[4:])
+    dec = "{}:{}:{}".format(dec[0:2], dec[2:4], dec[4:])
+    return pointing_name, ra, dec
+
+
+def parse_subaru_mags():
+    tnos = ossos_discoveries(parameters.REAL_KBO_AST_DIR, suffix='ast')
+    index = OrderedDict()
+    with open('/Users/michele/Desktop/Col3N.txt', 'r') as infile:
+        lines = infile.readlines()
+        for line in lines:
+            pointing, ra, dec = parse_subaru_radec(line)
+            objs = [t for t in pointing.split('_') if t not in ['only', 'alternate', 'bonus']]
+            mags = []
+            regular = []
+            for obj in objs:
+                mag = [t.discovery.mag for t in tnos if t.name.endswith(obj)][0]
+                mags.append(mag)
+                if len([t for t in parameters.COLOSSOS if t.endswith(obj)]) == 0:
+                    regular.append(obj)
+            index[pointing] = (ra, dec, mags, regular)
+            print pointing, index[pointing]
+
+    with open('/Users/michele/Desktop/Col3N_201509121000.txt', 'w') as outfile:
+        outfile.write('{: <25} {: <15} {: <15} {: <30} {: <10}\n'.format('Pointing',
+                                                                         'RA (hh:mm:ss)',
+                                                                         'Dec (dd:mm:ss)',
+                                                                         'magnitudes at discovery (m_r)',
+                                                                         'regular OSSOS'))
+        for key, val in index.items():
+            outfile.write('{: <25} {: <15} {: <15} {: <30} {: <10}\n'.format(key,
+                                                                             val[0],
+                                                                             val[1],
+                                                                             ', '.join([str(f) for f in val[2]]),
+                                                                             ', '.join([f for f in val[3]])
+            ))
+
 
 if __name__ == '__main__':
-    ossos_release_parser(table=True)
-    release_to_latex('test_table.tex')
+    # ossos_release_parser(table=True)
+    # release_to_latex('v{}'.format(parameters.RELEASE_VERSION) + '_table.tex')
+    parse_subaru_mags()

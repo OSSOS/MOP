@@ -106,7 +106,9 @@ if __name__ == '__main__':
         except CalledProcessError as cpe:
             message = str(cpe)
             exit_code = message
+	    logging.error("ERROR: {}".format(str(cpe)))
         except Exception as e:
+	    logging.error("Exception: {}".format(str(e)))
             message = str(e)
         logging.critical(message)
 
