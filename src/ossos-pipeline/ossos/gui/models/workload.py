@@ -705,8 +705,6 @@ class WorkUnitBuilder(object):
         logger.debug("Parsed %s (%d sources)" %
                      (input_fullpath, parsed_data.get_source_count()))
 
-        logger.debug("{}".format(parsed_data.get_sources()[0].get_readings()))
-
         _, input_filename = os.path.split(input_fullpath)
 
         return self._do_build_workunit(
