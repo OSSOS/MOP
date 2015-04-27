@@ -8,8 +8,6 @@ import os
 import unittest
 
 import wx
-
-from hamcrest import not_none, assert_that
 from mock import Mock
 
 from ossos.gui import events
@@ -58,7 +56,7 @@ class WxWidgetTestCase(unittest.TestCase):
         return self._get_by_equality(iterable, has_same_label)
 
     def assert_has_child_with_label(self, parent, label):
-        assert_that(self.get_child_by_label(parent, label), not_none())
+        self.assertIsNotNone(self.get_child_by_label(parent, label))
 
     def get_child_by_label(self, parent, label):
         return self._get_by_label(label, parent.GetChildren())
