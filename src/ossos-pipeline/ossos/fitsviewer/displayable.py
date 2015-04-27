@@ -1,4 +1,5 @@
 from cStringIO import StringIO
+import logging
 from astropy import units
 from astropy.io import fits
 import ds9
@@ -110,20 +111,33 @@ class ImageSinglet(object):
         # start xpans if needed
         ds9.ds9_xpans()
         # start ds9 if need, or connect to existing
-        display = ds9.ds9(target='validate')
+        display = None
+        cnt = 0
+        while display is None and cnt < 10:
+            cnt += 1
+            try:
+                display = ds9.ds9(target='validate')
+                cnt = 10
+            except ValueError as ve:
+                logging.error(str(ve))
+                pass
         if self.frame_number is None:
             # display.set('frame delete all')
             display.set('frame new')
             display.set('scale zscale')
             display.set('cmap invert yes')
             f = StringIO()
-            self.hdulist.writeto(f)
+            self.hdulist.writeto(f, output_verify='ignore')
             f.flush()
             f.seek(0)
             hdulist = fits.open(f)
             for hdu in hdulist:
                 del(hdu.header['PV*'])
-            display.set_pyfits(hdulist)
+            try:
+                display.set_pyfits(hdulist)
+            except ValueError as ex:
+                logging.error("Failed while trying to display: {}".format(hdulist))
+                logging.error("{}".format(ex))
             f.close()
             del(hdulist)
             self.frame_number = display.get('frame frameno')
