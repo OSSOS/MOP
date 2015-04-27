@@ -1,18 +1,15 @@
 """
 Reads and writes .astrom files.
 """
+__author__ = "David Rusk <drusk@uvic.ca>"
 from astropy import units
 from astropy.coordinates import SkyCoord
 from astropy.units import Quantity
-
-__author__ = "David Rusk <drusk@uvic.ca>"
-
 import os
 import re
 
 from .gui import logger
 from . import storage, wcs
-
 
 DATASET_ROOT = storage.DBIMAGES
 
@@ -473,13 +470,16 @@ class SourceReading(object):
         @param is_inverted:
         """
         self._pix_coord = None
-        self.pix_coord = x, y
+        if x is not None and y is not None:
+            self.pix_coord = x, y
         self._ref_coord = None
-        self.ref_coord = x0, y0
+        if x0 is not None and y0 is not None:
+            self.ref_coord = x0, y0
         self._sky_coord = None
         self.sky_coord = ra, dec
         self._focus_coord = None
-        self.focus_coord = xref, yref
+        if xref is not None and yref is not None:
+            self.focus_coord = xref, yref
         self._uncertainty_ellipse = None
         self.uncertainty_ellipse = dx, dy, pa
         self._obs = None
@@ -525,6 +525,8 @@ class SourceReading(object):
         :return: The x,y pixel location of the source in the current frame.
         :rtype: (Quantity, Quantity)
         """
+        if self._pix_coord is None:
+            self.obs.header
         return self._pix_coord
 
     @pix_coord.setter
@@ -533,8 +535,12 @@ class SourceReading(object):
         :type pix_coord: list
         :param pix_coord: an x,y pixel coordinate, origin = 1
         """
+        try:
+            pix_coord = list(pix_coord)
+        except:
+            pass
         if not isinstance(pix_coord, list) or len(pix_coord) != 2:
-            raise ValueError("pix_coord needs to be set with an (x,y) coordinate pair")
+            raise ValueError("pix_coord needs to be set with an (x,y) coordinate pair, got {}".format(pix_coord))
         x, y = pix_coord
         if not isinstance(x, Quantity):
             x = float(x) * units.pix
@@ -548,7 +554,7 @@ class SourceReading(object):
         :return: the x coordinate value
         :rtype: float
         """
-        return self._pix_coord[0].value
+        return self.pix_coord[0].value
 
     @property
     def y(self):
@@ -556,7 +562,7 @@ class SourceReading(object):
         :return: the y coordinate value
         :rtype: float
         """
-        return self._pix_coord[1].value
+        return self.pix_coord[1].value
 
     @property
     def ref_coord(self):
@@ -573,8 +579,12 @@ class SourceReading(object):
         :type pix_coord: list
         :param pix_coord: an x,y pixel coordinate, origin = 1
         """
+        try:
+            pix_coord = list(pix_coord)
+        except:
+            pass
         if not isinstance(pix_coord, list) or len(pix_coord) != 2:
-            raise ValueError("pix_coord needs to be set with an (x,y) coordinate pair")
+            raise ValueError("pix_coord needs to be set with an (x,y) coordinate pair, got {}".format(pix_coord))
         x, y = pix_coord
         if not isinstance(x, Quantity):
             x = float(x) * units.pix
@@ -604,8 +614,12 @@ class SourceReading(object):
         :type pix_coord: list
         :param pix_coord: an x,y pixel coordinate, origin = 1
         """
+        try:
+            pix_coord = list(pix_coord)
+        except:
+            pass
         if not isinstance(pix_coord, list) or len(pix_coord) != 2:
-            raise ValueError("pix_coord needs to be set with an (x,y) coordinate pair")
+            raise ValueError("pix_coord needs to be set with an (x,y) coordinate pair, got {}".format(pix_coord))
         x, y = pix_coord
         if not isinstance(x, Quantity):
             x = float(x) * units.pix
@@ -640,6 +654,10 @@ class SourceReading(object):
 
     @sky_coord.setter
     def sky_coord(self, sky_coord):
+        try:
+            sky_coord = list(sky_coord)
+        except:
+            pass
         if isinstance(sky_coord, list):
             ra, dec = sky_coord
             if not isinstance(ra, Quantity):
@@ -661,6 +679,10 @@ class SourceReading(object):
 
     @uncertainty_ellipse.setter
     def uncertainty_ellipse(self, ellipse):
+        try:
+            ellipse = list(ellipse)
+        except:
+            pass
         if not isinstance(ellipse, list) or len(ellipse) != 3:
             raise ValueError("Don't know how to set ellipse using: {}".format(ellipse))
         a, b, pa = ellipse
@@ -797,7 +819,7 @@ class Observation(object):
     @staticmethod
     def from_source_reference(expnum, ccd, x, y):
         """
-        Given the location of a source in the image, create a source reading.
+        Given the location of a source in the image, create an Observation.
         """
 
         image_uri = storage.dbimages_uri(expnum=expnum,
@@ -839,13 +861,15 @@ class Observation(object):
 
         return observation
 
-    def __init__(self, expnum, ftype, ccdnum, fk="", image_uri=None):
+    def __init__(self, expnum, ftype, ccdnum, fk=None, image_uri=None):
         self.expnum = expnum
-        self.fk = fk
-        self._header = {}
-        self.ccdnum = ccdnum is not None and str(ccdnum) or ""
-        self.ftype = ftype is not None and str(ftype) or ""
-        self.rawname = self.fk + self.expnum + self.ftype + self.ccdnum
+        self.fk = fk is not None and fk or ""
+        self._header = None
+        self.ccdnum = ccdnum is not None and str(ccdnum) or None
+        self.ftype = ftype is not None and str(ftype) or None
+        self.rawname = self.fk + self.expnum
+        self.rawname += ccdnum is not None and ccdnum or ""
+        self.rawname += ftype is not None and ftype or ""
         logger.debug(self.rawname)
         if image_uri is None:
             self.image_uri = self.get_image_uri()
@@ -882,7 +906,14 @@ class Observation(object):
                                     ext=storage.ZEROPOINT_USED_EXT)
 
     @property
+    def astheader(self):
+        return storage.get_astheader(self.expnum, self.ccdnum, self.ftype, self.fk)
+
+    @property
     def header(self):
         if self._header is None:
-            self._header = storage.get_mopheader(self.expnum, self.ccdnum)
+            try:
+                self._header = storage.get_mopheader(self.expnum, self.ccdnum)
+            except:
+                return self.astheader
         return self._header

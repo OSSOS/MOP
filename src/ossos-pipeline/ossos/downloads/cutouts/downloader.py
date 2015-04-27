@@ -1,11 +1,12 @@
-import re
 from ... import storage
+from astropy.units import Quantity
 from ...astrom import SourceReading
 from astropy import units
 from ...gui import logger
 
-from ..core import Downloader
+from ..core import Downloader, ApcorData
 from ..cutouts.source import SourceCutout
+from ossos.gui import config
 
 
 class ImageCutoutDownloader(Downloader):
@@ -48,24 +49,27 @@ class ImageCutoutDownloader(Downloader):
           cutout: ossos.downloads.data.SourceCutout
         """
         assert isinstance(reading, SourceReading)
-        radius = max(reading.uncertainty_ellipse.a, reading.uncertainty_ellipse.b, 10 * units.arcminute)
-        radius *= 2
+        min_radius = config.read('CUTOUTS.SINGLETS.RADIUS')
+        if not isinstance(min_radius, Quantity):
+            min_radius = min_radius * units.arcminute
+        radius = max(reading.uncertainty_ellipse.a,
+                     reading.uncertainty_ellipse.b,
+                     min_radius)
         image_uri = reading.get_image_uri()
-        hdulist = storage.ra_dec_cutout(image_uri, reading.sky_coord.ra, radius)
+        logger.debug("Getting cutout at {} for {}".format(reading.sky_coord, image_uri))
+        hdulist = storage.ra_dec_cutout(image_uri, reading.sky_coord, radius)
 
-        apcor = None
+        apcor = ApcorData.from_string("4 15 1.0 -99")
         if needs_apcor:
             try:
                 apcor = self.download_apcor(reading.get_apcor_uri())
-            except Exception as e:
-                logger.error(str(e))
-                apcor = None
+            except Exception as ex:
+                pass
 
-        zmag = None
+        zmag = 0.0
         try:
             zmag = self.download_zmag(reading.get_zmag_uri())
-        except Exception as e:
-            logger.error(str(e))
+        except Exception as ex:
             pass
 
         return SourceCutout(reading, hdulist, apcor, zmag=zmag)

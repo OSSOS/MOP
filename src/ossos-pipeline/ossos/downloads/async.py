@@ -1,11 +1,10 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
-
 import Queue
 import threading
-
 from ..gui import logger
+from ..gui import config
 
-MAX_THREADS = 6
+MAX_THREADS = config.read('APP.MAX_THREADS')
 
 
 class AsynchronousDownloadManager(object):
@@ -114,7 +113,7 @@ class DownloadRequest(object):
         cutout = downloader.download_cutout(self.reading,
                                             focus=self.focus,
                                             needs_apcor=self.needs_apcor)
-
+        logger.debug("Got cutout: {}".format(cutout))
         if self.callback is not None:
             self.callback(cutout)
 
