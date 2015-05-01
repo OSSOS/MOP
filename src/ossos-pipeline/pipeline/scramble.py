@@ -29,6 +29,7 @@ import argparse
 import os
 import sys
 from ossos import storage
+from ossos import util
 from astropy.io import fits
 import logging
 
@@ -100,6 +101,9 @@ def main():
     parser.add_argument("--force", action='store_true')
     
     args = parser.parse_args()
+    prefix = ""
+    task = util.task()
+    dependency = "update_header"
 
     storage.DBIMAGES = args.dbimages
 
@@ -122,11 +126,9 @@ def main():
     if args.ccd is None:
         ccds = range(0, 36)
     for ccd in ccds:
-        storage.set_logger(os.path.splitext(os.path.basename(sys.argv[0]))[0],
-                           "", args.expnums[0], ccd, args.type, args.dry_run)
+        storage.set_logger(task, prefix, args.expnums[0], ccd, args.type, args.dry_run)
         expnums = args.expnums
-        if storage.get_status(expnums[0], ccd,
-                              'scramble', version='s') and not args.force:
+        if not (args.force or args.dry_run) and storage.get_status(task, prefix, expnums[0], version='s', ccd=ccd):
             continue
         message = storage.SUCCESS
 
@@ -137,9 +139,7 @@ def main():
             message = str(e)
             exit_status = message
         if not args.dry_run:
-            storage.set_status(expnums[0], ccd,
-                               'scramble', version='s',
-                               status=message)
+            storage.set_status(task, prefix, expnums[0], version='s', ccd=ccd, status=message)
     return exit_status
 
 

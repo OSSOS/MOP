@@ -1,4 +1,4 @@
-#!python 
+#!/Users/jjk/MOP/bin/python 
 ################################################################################
 ##                                                                            ##
 ## Copyright 2013 by its authors                                              ##
@@ -29,6 +29,7 @@ import os
 from subprocess import CalledProcessError
 import sys
 from ossos import storage
+from ossos import util
 import logging
 
 
@@ -81,6 +82,9 @@ if __name__ == '__main__':
         args.expnums.sort()
 
     storage.DBIMAGES = args.dbimages
+    prefix = ""
+    task = util.task()
+    dependency = "step1"
 
     logging.basicConfig(level=level, format="%(message)s")
 
@@ -91,14 +95,11 @@ if __name__ == '__main__':
     for ccd in ccds:
         message = storage.SUCCESS
         try:
-            storage.set_logger(os.path.splitext(os.path.basename(sys.argv[0]))[0],
-                               "", args.expnums[0], ccd, args.type, args.dry_run)
-            if not storage.get_status(args.expnums[0], ccd,
-                                      'mkpsf', version=args.type):
+            storage.set_logger(task, prefix, args.expnums[0], ccd, args.type, args.dry_run)
+            if not storage.get_status(dependency, prefix, args.expnums[0], version=args.type, ccd=ccd):
                 raise IOError("mkpsf not yet run for %s ccd%s, can't run align" % (
                     str(args.expnums), str(ccd).zfill(2)))
-            if storage.get_status(args.expnums[0], ccd,
-                                  'align', version=args.type) and not args.force:
+            if storage.get_status(task, prefix, args.expnums[0], version=args.type, ccd=ccd) and not args.force:
                 logging.info("align done for %s[%s]" % (args.expnums[0], ccd))
                 continue
             align(args.expnums, ccd, version=args.type, dry_run=args.dry_run)
@@ -112,8 +113,4 @@ if __name__ == '__main__':
         logging.critical(message)
 
         if not args.dry_run:
-            storage.set_status(args.expnums[0],
-                               ccd,
-                               'align',
-                               version=args.type,
-                               status=message)
+            storage.set_status(task, prefix, args.expnums[0], version=args.type, ccd=ccd, status=message)

@@ -571,6 +571,14 @@ class Observation(object):
     def __gt__(self, other):
         return self.date > other.date
 
+    def _convert_ted(self):
+        """
+        2014 05  02.35552  18 47 39.503  -21 20 56.30  29.4R NI242     304
+        2014 05  04.36405  18 47 35.027  -21 20 55.50  28.8R NI242     304
+        2014 05  04.40415  18 47 34.936  -21 20 55.62  29.1R NI242     304
+
+        @return:
+        """
 
     @classmethod
     def from_string(cls, input_line):
@@ -585,6 +593,7 @@ class Observation(object):
         comment = mpc_line[81:]
         mpc_line = mpc_line[0:80]
         if len(mpc_line) != 80:
+            # this could be a 'ted' formatted line (used by Marc Buie's code).
             return None
         obsrec = cls(*struct.unpack(mpc_format, mpc_line))
         obsrec.comment = MPCComment.from_string(comment)
@@ -1391,7 +1400,6 @@ class MPCConverter(object):
                 cls(path + fn).convert()
 
 
-
 class CFEPSComment(OSSOSComment):
     """
     This holds the old-style comments that come for CFEPS style entries.
@@ -1499,6 +1507,7 @@ class TNOdbComment(OSSOSComment):
         comm += str(self)
         return comm
 
+
 class RealOSSOSComment(OSSOSComment):
 
     @classmethod
@@ -1506,6 +1515,7 @@ class RealOSSOSComment(OSSOSComment):
         if comment.strip()[0] != "O":
             comment = "O "+comment
         return super(RealOSSOSComment, cls).from_string(comment)
+
 
 class MPCComment(OSSOSComment):
     """

@@ -8,10 +8,14 @@ import os
 from astropy.io import ascii
 import numpy
 import re
+import sys
 import vos
 
 MATCH_TOLERANCE = 100.0
 
+
+def task():
+    return os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
 def exec_prog(args):
     """Run a subprocess, check for .OK and raise error if does not exist.
