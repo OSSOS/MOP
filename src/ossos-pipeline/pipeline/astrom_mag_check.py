@@ -1,4 +1,4 @@
-#!python
+#!/Users/jjk/MOP/bin/python
 ################################################################################
 ##                                                                            ##
 ## Copyright 2013 by its authors                                              ##
@@ -275,6 +275,7 @@ def main():
 
     prefix = 'fk'
     ext = args.reals and 'reals' or 'cands'
+    task = util.task()
 
     storage.MEASURE3 = args.measure3
 
@@ -310,7 +311,7 @@ def main():
     exit_status = 0
     status = storage.SUCCESS
     try:
-        if (not storage.get_status(expnum, ccd=args.ccd, program='astrom_mag_check', version='')) or args.force:
+        if (not storage.get_status(task, prefix, expnum=expnum, version='', ccd=args.ccd)) or args.force:
             logging.info(("Comparing planted and measured magnitudes "
                           "for sources in {} and {}\n".format(args.object_planted, astrom_filename)))
             message = match_planted(fk_candidate_observations,
@@ -323,7 +324,7 @@ def main():
                                               ccd=args.ccd,
                                               version=args.type,
                                               prefix=prefix,
-                                              ext="measure3.{}.match".format(ext))
+                                              ext="measure3.{}.match".format(ext), block=args.field)
             if not args.dry_run:
                 storage.copy(match_filename, match_uri)
                 uri = os.path.dirname(astrom_uri)
@@ -336,7 +337,7 @@ def main():
         exit_status = err.message
 
     if not args.dry_run:
-        storage.set_status(expnum, args.ccd, 'astrom_mag_check', version='', status=status)
+        storage.set_status(task, prefix, expnum, version='', ccd=args.ccd, status=status)
 
     return exit_status
 
