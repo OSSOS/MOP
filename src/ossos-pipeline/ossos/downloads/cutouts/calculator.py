@@ -12,7 +12,7 @@ class CoordinateConverter(object):
         """
         self.x_offset = x_offset
         self.y_offset = y_offset
-        logger.debug("Convert initialized as dx,dy,inverted {},{}".format(x_offset, y_offset))
+        logger.debug("Convert initialized as dx,dy {},{}".format(x_offset, y_offset))
 
     def convert(self, point):
         """
