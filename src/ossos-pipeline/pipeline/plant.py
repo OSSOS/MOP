@@ -271,7 +271,7 @@ def main(argv):
         try:
             storage.set_logger(task, prefix, args.expnums[0], ccd, args.type, args.dry_run)
             if not storage.get_status(dependency, prefix, args.expnums[0], version='s', ccd=ccd):
-                raise IOError("{} not yet run for {} {} {}".format(dependency, asrgs.expnums, ccd))
+                raise IOError("{} not yet run for {} {} {}".format(dependency, args.expnums, args.type, ccd))
             if storage.get_status(task, prefix, args.expnums[0], version=args.type, ccd=ccd) and not args.force:
                 logging.info("{} previously completed successfully for {}{}{:02d}".format(task,
                                                                                           args.expnums[0],
