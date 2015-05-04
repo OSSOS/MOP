@@ -22,6 +22,7 @@ class SourceCutout(object):
         :param zmag: The zeropoint of the flux calibration for this cutout.
         :return:
         """
+        logger.debug("building a SourceCutout.")
         assert isinstance(reading, SourceReading)
         assert isinstance(hdulist, fits.HDUList)
         assert isinstance(apcor, ApcorData)
@@ -30,14 +31,18 @@ class SourceCutout(object):
         self.hdulist = hdulist
         self.apcor = apcor
         self.zmag = zmag
+        self.original_observed_ext = None
 
         if self.reading.x is None or self.reading.y is None or (self.reading.x == -9999 and self.reading.y == -9999):
             for extno in range(1, len(self.hdulist)):
                 hdu = self.hdulist[extno]
                 try:
+                    logger.debug("Converting {} {} to X/Y ".format(self.reading.ra, self.reading.dec))
                     (x, y) = hdu.wcs.sky2xy(self.reading.ra, self.reading.dec)
+                    logger.debug("Got {} {} ".format(x, y))
                     if 0 < x < hdu.header.get('NAXIS1', 0) and 0 < y < hdu.header.get('NAXIS2', 0):
                         self.reading.pix_coord = hdu.converter.get_inverse_converter().convert((x, y))
+                        self.original_observed_ext = extno
                         self.reading.obs.ccdnum = extno - 1
                         break
                 except:
@@ -45,9 +50,7 @@ class SourceCutout(object):
 
         self.original_observed_x = self.reading.x
         self.original_observed_y = self.reading.y
-        if self.reading.obs.ccdnum is not None:
-            self.original_observed_ext = self.reading.obs.ccdnum + 1
-        else:
+        if self.original_observed_ext is None:
             self.original_observed_ext = 1
 
         logger.debug("Setting ext/x/y to {}/{}/{}".format(self.original_observed_ext,
