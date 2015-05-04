@@ -8,6 +8,8 @@ from ..core import Downloader, ApcorData
 from ..cutouts.source import SourceCutout
 from ossos.gui import config
 
+import sys
+
 
 class ImageCutoutDownloader(Downloader):
     """
@@ -48,6 +50,9 @@ class ImageCutoutDownloader(Downloader):
         Returns:
           cutout: ossos.downloads.data.SourceCutout
         """
+        logger.debug("Doing download_cutout with inputs: reading:{} focus:{} needs_apcor:{}".format(reading,
+                                                                                                    focus,
+                                                                                                    needs_apcor))
         assert isinstance(reading, SourceReading)
         min_radius = config.read('CUTOUTS.SINGLETS.RADIUS')
         if not isinstance(min_radius, Quantity):
@@ -55,11 +60,13 @@ class ImageCutoutDownloader(Downloader):
         radius = max(reading.uncertainty_ellipse.a,
                      reading.uncertainty_ellipse.b,
                      min_radius)
+        logger.debug("got radius for cutout: {}".format(radius))
         image_uri = reading.get_image_uri()
         logger.debug("Getting cutout at {} for {}".format(reading.sky_coord, image_uri))
         hdulist = storage.ra_dec_cutout(image_uri, reading.sky_coord, radius)
-
+        logger.debug("Getting the aperture correction.")
         apcor = ApcorData.from_string("4 15 1.0 -99")
+
         if needs_apcor:
             try:
                 apcor = self.download_apcor(reading.get_apcor_uri())
@@ -72,5 +79,6 @@ class ImageCutoutDownloader(Downloader):
         except Exception as ex:
             pass
 
+        logger.debug("Sending back the source reading.")
         return SourceCutout(reading, hdulist, apcor, zmag=zmag)
 

@@ -564,6 +564,7 @@ def ra_dec_cutout(uri, sky_coord, radius):
         except Exception as ex:
             logger.error("Failed trying to initialize the WCS for {}".format(node))
             raise ex
+    logger.debug("Sending back {}".format(hdulist))
     return hdulist
 
 
