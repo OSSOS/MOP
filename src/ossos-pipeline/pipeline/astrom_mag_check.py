@@ -1,4 +1,4 @@
-#!/Users/jjk/MOP/bin/python
+#!/Users/jjk/Ureka/variants/common/bin/python
 ################################################################################
 ##                                                                            ##
 ## Copyright 2013 by its authors                                              ##
@@ -55,11 +55,14 @@ image_slice_downloader = ImageCutoutDownloader(slice_rows=60, slice_cols=60)
 
 
 def measure_mags(measures, table_row):
+
     try:
+        logger.debug("Getting the time and location for the X/Y jazz.")
         start_jd = Time(measures[0].obs.header['MJD_OBS_CENTER'], format='mpc', scale='utc').jd
         end_jd = Time(measures[-1].obs.header['MJD_OBS_CENTER'], format='mpc', scale='utc').jd
         table_row['measure_x'] = measures[0].x
         table_row['measure_y'] = measures[0].y
+        logger.debug("{} {} {} {}".format(measures[-1].x, measures[0].x, measures[-1].y, measures[0].y))
 
         rate = math.sqrt((measures[-1].x - measures[0].x) ** 2 + (measures[-1].y - measures[0].y) ** 2) / (
             24 * (end_jd - start_jd))
@@ -68,24 +71,31 @@ def measure_mags(measures, table_row):
         angle = math.degrees(math.atan2(measures[-1].y - measures[0].y, measures[-1].x - measures[0].x))
         angle = int(angle * 100) / 100.0
         table_row['measure_angle'] = angle
+        logger.debug("Got rate {} and angle {}".format(rate, angle))
     except Exception as err:
-        logger.debug("ERROR: " + str(err))
+        logger.error("ERROR: {}".format(err))
         pass
 
-    for ridx in range(3):
+
+    for ridx in range(len(measures)):
+        logger.debug("setting the is_inverted flag.")
         measures[ridx].is_inverted = False
+        logger.debug("Done.. now getting the image for reals.")
         cutout = image_slice_downloader.download_cutout(measures[ridx], needs_apcor=True)
+        logger.debug("Image downloaded.")
         result = None
         try:
+            logger.debug("Getting the observed magnitude.")
             result = cutout.get_observed_magnitude()
+            logger.debug("get_observed_mag:{}".format(result))
             (x, y, mag, merr) = result
             table_row['measure_mag{}'.format(ridx + 1)] = mag
             table_row['measure_merr{}'.format(ridx + 1)] = merr
         except Exception as e:
-            logger.debug("get_observed_magnitude returned: {}".format(result))
-            logger.debug("Failed while computing magnitude for source")
-            logger.debug(pprint.pformat(measures))
-            logger.debug(str(e))
+            logger.error("get_observed_magnitude returned: {}".format(result))
+            logger.error("Failed while computing magnitude for source")
+            logger.error(pprint.pformat(measures))
+            logger.error(str(e))
             pass
     return table_row
 
@@ -129,7 +139,6 @@ def match_planted(fk_candidate_observations, match_filename, bright_limit=BRIGHT
     (match_idx, match_fnd) = util.match_lists(numpy.array(planted_pos), numpy.array(found_pos))
     assert isinstance(match_idx, numpy.ma.MaskedArray)
     assert isinstance(match_fnd, numpy.ma.MaskedArray)
-
     false_positives_table = Table()
     # Once we've matched the two lists we'll need some new columns to store the information in.
     # these are masked columns so that object.planted entries that have no detected match are left 'blank'.
@@ -305,7 +314,6 @@ def main():
         expnum = args.expnum
 
     storage.set_logger(os.path.splitext(os.path.basename(sys.argv[0]))[0], prefix, expnum, "", ext, args.dry_run)
-
     match_filename = os.path.splitext(os.path.basename(astrom_filename))[0] + '.match'
 
     exit_status = 0
