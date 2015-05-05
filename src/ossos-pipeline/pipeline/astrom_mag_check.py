@@ -1,4 +1,4 @@
-#!/Users/jjk/Ureka/variants/common/bin/python
+#!python
 ################################################################################
 ##                                                                            ##
 ## Copyright 2013 by its authors                                              ##
