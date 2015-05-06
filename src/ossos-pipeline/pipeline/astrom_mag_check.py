@@ -23,22 +23,17 @@
 """
 Compare the measured fluxes of planted sources against those returned for by digiphot.
 """
+
 __author__ = 'jjk'
 
-import pprint
-import numpy
 import sys
-import math
 import os
 from ossos import astrom
-from ossos.mpc import Time
-from ossos.downloads.cutouts.downloader import ImageCutoutDownloader
 from ossos import storage
 import argparse
 import logging
 from ossos import util
-from astropy.io import ascii
-from astropy.table import MaskedColumn, Table
+from ossos.match import match_planted
 
 logger = logging.getLogger('vos')
 logger.setLevel(logging.CRITICAL)
@@ -48,212 +43,6 @@ BRIGHT_LIMIT = 23.0
 OBJECT_PLANTED = "Object.planted"
 MINIMUM_BRIGHT_DETECTIONS = 5
 MINIMUM_BRIGHT_FRACTION = 0.5
-
-# This image_slice_downloader handles pulling a small cutout of the image from VOSpace so we can do photometry
-# on this small chunk of the image.
-image_slice_downloader = ImageCutoutDownloader(slice_rows=60, slice_cols=60)
-
-
-def measure_mags(measures, table_row):
-
-    try:
-        logger.debug("Getting the time and location for the X/Y jazz.")
-        start_jd = Time(measures[0].obs.header['MJD_OBS_CENTER'], format='mpc', scale='utc').jd
-        end_jd = Time(measures[-1].obs.header['MJD_OBS_CENTER'], format='mpc', scale='utc').jd
-        table_row['measure_x'] = measures[0].x
-        table_row['measure_y'] = measures[0].y
-        logger.debug("{} {} {} {}".format(measures[-1].x, measures[0].x, measures[-1].y, measures[0].y))
-
-        rate = math.sqrt((measures[-1].x - measures[0].x) ** 2 + (measures[-1].y - measures[0].y) ** 2) / (
-            24 * (end_jd - start_jd))
-        rate = int(rate * 100) / 100.0
-        table_row['measure_rate'] = rate
-        angle = math.degrees(math.atan2(measures[-1].y - measures[0].y, measures[-1].x - measures[0].x))
-        angle = int(angle * 100) / 100.0
-        table_row['measure_angle'] = angle
-        logger.debug("Got rate {} and angle {}".format(rate, angle))
-    except Exception as err:
-        logger.error("ERROR: {}".format(err))
-        pass
-
-
-    for ridx in range(len(measures)):
-        logger.debug("setting the is_inverted flag.")
-        measures[ridx].is_inverted = False
-        logger.debug("Done.. now getting the image for reals.")
-        cutout = image_slice_downloader.download_cutout(measures[ridx], needs_apcor=True)
-        logger.debug("Image downloaded.")
-        result = None
-        try:
-            logger.debug("Getting the observed magnitude.")
-            result = cutout.get_observed_magnitude()
-            logger.debug("get_observed_mag:{}".format(result))
-            (x, y, mag, merr) = result
-            table_row['measure_mag{}'.format(ridx + 1)] = mag
-            table_row['measure_merr{}'.format(ridx + 1)] = merr
-        except Exception as e:
-            logger.error("get_observed_magnitude returned: {}".format(result))
-            logger.error("Failed while computing magnitude for source")
-            logger.error(pprint.pformat(measures))
-            logger.error(str(e))
-            pass
-    return table_row
-
-
-def match_planted(fk_candidate_observations, match_filename, bright_limit=BRIGHT_LIMIT, object_planted=OBJECT_PLANTED,
-                  minimum_bright_detections=MINIMUM_BRIGHT_DETECTIONS, bright_fraction=MINIMUM_BRIGHT_FRACTION):
-    """
-    Using the fk_candidate_observations as input get the Object.planted file from VOSpace and match
-    planted sources with found sources.
-
-    The Object.planted list is pulled from VOSpace based on the standard file-layout and name of the
-    first exposure as read from the .astrom file.
-
-    :param fk_candidate_observations: name of the fk*reals.astrom file to check against Object.planted
-    :param match_filename: a file that will contain a list of all planted sources and the matched found source
-
-    """
-
-    found_pos = []
-    detections = fk_candidate_observations.get_sources()
-    for detection in detections:
-        reading = detection.get_reading(0)
-        # create a list of positions, to be used later by match_lists
-        found_pos.append([reading.x, reading.y])
-
-    # Now get the Object.planted file, either from the local FS or from VOSpace.
-    objects_planted_uri = object_planted
-    if not os.access(objects_planted_uri, os.F_OK):
-        objects_planted_uri = fk_candidate_observations.observations[0].get_object_planted_uri()
-    lines = open(objects_planted_uri).read()
-
-    # we are changing the format of the Object.planted header to be compatible with astropy.io.ascii but
-    # there are some old Object.planted files out there so we do these string/replace calls to reset those.
-    new_lines = lines.replace("pix rate", "pix_rate")
-    new_lines = new_lines.replace("""''/h rate""", "sky_rate")
-    planted_objects_table = ascii.read(new_lines, header_start=-1, data_start=0)
-    # The match_list method expects a list that contains a position, not an x and a y vector, so we transpose.
-    planted_pos = numpy.transpose([planted_objects_table['x'].data, planted_objects_table['y'].data])
-    # match_idx is an order list.  The list is in the order of the first list of positions and each entry
-    # is the index of the matching position from the second list.
-    (match_idx, match_fnd) = util.match_lists(numpy.array(planted_pos), numpy.array(found_pos))
-    assert isinstance(match_idx, numpy.ma.MaskedArray)
-    assert isinstance(match_fnd, numpy.ma.MaskedArray)
-    false_positives_table = Table()
-    # Once we've matched the two lists we'll need some new columns to store the information in.
-    # these are masked columns so that object.planted entries that have no detected match are left 'blank'.
-    new_columns = [MaskedColumn(name="measure_x", length=len(planted_objects_table), mask=True),
-                   MaskedColumn(name="measure_y", length=len(planted_objects_table), mask=True),
-                   MaskedColumn(name="measure_rate", length=len(planted_objects_table), mask=True),
-                   MaskedColumn(name="measure_angle", length=len(planted_objects_table), mask=True),
-                   MaskedColumn(name="measure_mag1", length=len(planted_objects_table), mask=True),
-                   MaskedColumn(name="measure_merr1", length=len(planted_objects_table), mask=True),
-                   MaskedColumn(name="measure_mag2", length=len(planted_objects_table), mask=True),
-                   MaskedColumn(name="measure_merr2", length=len(planted_objects_table), mask=True),
-                   MaskedColumn(name="measure_mag3", length=len(planted_objects_table), mask=True),
-                   MaskedColumn(name="measure_merr3", length=len(planted_objects_table), mask=True)]
-    planted_objects_table.add_columns(new_columns)
-    tlength = 0
-    new_columns = [MaskedColumn(name="measure_x", length=tlength, mask=True),
-                   MaskedColumn(name="measure_y", length=tlength, mask=True),
-                   MaskedColumn(name="measure_rate", length=0, mask=True),
-                   MaskedColumn(name="measure_angle", length=0, mask=True),
-                   MaskedColumn(name="measure_mag1", length=0, mask=True),
-                   MaskedColumn(name="measure_merr1", length=0, mask=True),
-                   MaskedColumn(name="measure_mag2", length=0, mask=True),
-                   MaskedColumn(name="measure_merr2", length=0, mask=True),
-                   MaskedColumn(name="measure_mag3", length=tlength, mask=True),
-                   MaskedColumn(name="measure_merr3", length=tlength, mask=True)]
-    false_positives_table.add_columns(new_columns)
-
-    # We do some 'checks' on the Object.planted match to diagnose pipeline issues.  Those checks are made using just
-    # those planted sources we should have detected.
-    bright = planted_objects_table['mag'] < bright_limit
-    n_bright_planted = numpy.count_nonzero(planted_objects_table['mag'][bright])
-
-    for idx in range(len(match_idx)):
-        # The match_idx value is False if nothing was found.
-        if not match_idx.mask[idx]:
-            # Each 'source' has multiple 'readings'
-            measures = detections[match_idx[idx]].get_readings()
-            planted_objects_table[idx] = measure_mags(measures, planted_objects_table[idx])
-
-    for idx in range(len(match_fnd)):
-        if match_fnd.mask[idx]:
-            measures = detections[idx].get_readings()
-            false_positives_table.add_row()
-            false_positives_table[-1] = measure_mags(measures, false_positives_table[-1])
-
-    # Count an object as detected if it has a measured magnitude in the first frame of the triplet.
-    n_bright_found = numpy.count_nonzero(planted_objects_table['measure_mag1'][bright])
-    # Also compute the offset and standard deviation of the measured magnitude from that planted ones.
-    offset = numpy.mean(planted_objects_table['mag'][bright] - planted_objects_table['measure_mag1'][bright])
-    try:
-        offset = "{:5.2f}".format(offset)
-    except:
-        offset = "indef"
-
-    std = numpy.std(planted_objects_table['mag'][bright] - planted_objects_table['measure_mag1'][bright])
-    try:
-        std = "{:5.2f}".format(std)
-    except:
-        std = "indef"
-
-    if os.access(match_filename, os.R_OK):
-        fout = open(match_filename, 'a')
-    else:
-        fout = open(match_filename, 'w')
-
-    fout.write("#K {:10s} {:10s}\n".format("EXPNUM", "FWHM"))
-    for measure in detections[0].get_readings():
-        fout.write('#V {:10s} {:10s}\n'.format(measure.obs.header['EXPNUM'], measure.obs.header['FWHM']))
-
-    fout.write("#K ")
-    for keyword in ["RMIN", "RMAX", "ANGLE", "AWIDTH"]:
-        fout.write("{:10s} ".format(keyword))
-    fout.write("\n")
-
-    fout.write("#V ")
-    for keyword in ["RMIN", "RMAX", "ANGLE", "AWIDTH"]:
-        fout.write("{:10s} ".format(fk_candidate_observations.sys_header[keyword]))
-    fout.write("\n")
-
-    fout.write("#K ")
-    for keyword in ["NBRIGHT", "NFOUND", "OFFSET", "STDEV"]:
-        fout.write("{:10s} ".format(keyword))
-    fout.write("\n")
-    fout.write("#V {:<10} {:<10} {:<10} {:<10}\n".format(n_bright_planted,
-                                                         n_bright_found,
-                                                         offset,
-                                                         std))
-
-    fpout = open(match_filename+".fp", 'a')
-    try:
-        writer = ascii.FixedWidth
-        # add a hash to the start of line that will have header columns: for JMP
-        fout.write("#")
-        ascii.write(planted_objects_table, output=fout, Writer=writer, delimiter=None)
-        fpout.write("#")
-        if len(false_positives_table) > 0:
-            ascii.write(false_positives_table, output=fpout, Writer=writer, delimiter=None)
-        else:
-            fpout.write(" no false positives\n")
-    except Exception as e:
-        sys.stderr.write(str(e))
-        raise e
-    finally:
-        fout.close()
-        fpout.close()
-
-    # Some simple checks to report a failure how we're doing.
-    if n_bright_planted < minimum_bright_detections:
-        raise RuntimeError(1, "Too few bright objects planted.")
-
-    if n_bright_found / float(n_bright_planted) < bright_fraction:
-        raise RuntimeError(2, "Too few bright objects found.")
-
-    return "{} {} {} {}".format(n_bright_planted, n_bright_found, offset, std)
-
 
 def main():
     parser = argparse.ArgumentParser()
@@ -280,7 +69,7 @@ def main():
                         help="minimum fraction of objects above bright limit that should be found.")
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.CRITICAL)
 
     prefix = 'fk'
     ext = args.reals and 'reals' or 'cands'
@@ -351,4 +140,7 @@ def main():
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    logger.critical("STARTING")
+    code = main()
+    logger.critical("FINISHED")
+    sys.exit(code)
