@@ -16,28 +16,26 @@ from ossos import storage
 import parameters
 from ossos.gui import context
 
+
 # from parameters import tno
 
 def ossos_release_parser(table=False):
     '''
     extra fun as this is space-separated so using CSV parsers is not an option
     '''
+    names = ['cl', 'p', 'j', 'k', 'sh', 'object', 'mag', 'mag_uncert', 'F', 'H_sur', 'dist', 'dist_E', 'nobs',
+             'time', 'av_xres', 'av_yres', 'max_x', 'max_y', 'a', 'a_E', 'e', 'e_E', 'i', 'i_E', 'node', 'node_E',
+             'argperi', 'argperi_E', 'time_peri', 'time_peri_E', 'ra_dis', 'dec_dis', 'jd_dis', 'rate']
+
     if table:
         # have to specify the names because the header line contains duplicate IDs, which wrecks auto-column creation
-        names = ['cl', 'p', 'j', 'k', 'sh', 'object', 'mag', 'mag_uncert', 'F', 'H_sur', 'dist', 'dist_E', 'nobs',
-                 'time', 'av_xres', 'av_yres', 'max_x', 'max_y', 'a', 'a_E', 'e', 'e_E', 'i', 'i_E', 'node', 'node_E',
-                 'argperi', 'argperi_E', 'time_peri', 'time_peri_E', 'ra_dis', 'dec_dis', 'jd_dis', 'rate']
         retval = Table.read(parameters.RELEASE_DETECTIONS, format='ascii', guess=False,
                             delimiter=' ', data_start=0, comment='#', names=names, header_start=None)
-
     else:
         retval = []
-        with open(parameters.RELEASE_DETECTIONS, 'r') as classfile:
-            classlines = classfile.readlines()[1:]  # first line is column definitions
-        with open(parameters.RELEASE_SUMMARY, 'r') as summary:
-            for i, line in enumerate(summary.readlines()[1:]):
-                obj = tno.from_summary_line(line, version=parameters.RELEASE_VERSION)
-                obj = tno.from_class_line(classlines[i], version=parameters.RELEASE_VERSION, existing_object=obj)
+        with open(parameters.RELEASE_DETECTIONS, 'r') as detectionsfile:
+            for line in detectionsfile.readlines()[1:]:  # first line is column definitions
+                obj = tno.from_str(line, version=parameters.RELEASE_VERSION)
                 retval.append(obj)
 
     return retval
@@ -51,13 +49,16 @@ class tno(object):
         return
 
 
-def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR, suffix='ast', no_nt_and_u=True):
+def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR, suffix='ast', no_nt_and_u=True, single_object=None):
     """
     Returns a list of objects holding orbfit.Orbfit objects with the observations in the Orbfit.observations field.
     """
     retval = []
     working_context = context.get_context(directory)
-    for filename in working_context.get_listing(suffix):
+    files = working_context.get_listing(suffix)
+    if single_object is not None:
+        files = filter(lambda name: name.startswith(single_object), files)
+    for filename in files:
         # keep out the not-tracked and uncharacterised.
         if no_nt_and_u:  # FIXME: this doesn't have an alternative if including uncharacterised objects
             if not (filename.__contains__('nt') or filename.startswith('u')):
@@ -87,7 +88,7 @@ def ossos_release_with_metadata():
     # for obj in discoveries:
     # observation = [n for n in observations if n.observations[-1].provisional_name == obj.name][0]
     # for obs in observation.observations:
-    #         if obs.discovery.is_discovery:
+    # if obs.discovery.is_discovery:
     #             if obj.mag is not None:
     #                 H = obj.mag + 2.5 * math.log10(1. / ((obj.dist ** 2) * ((obj.dist - 1.) ** 2)))
     #             else:
@@ -106,7 +107,7 @@ def synthetic_model_kbos(at_date=parameters.NEWMOONS[parameters.DISCOVERY_NEW_MO
     kbos = []
     print "LOADING SYNTHETIC MODEL KBOS FROM: {}".format(parameters.L7MODEL)
     pastpath = parameters.L7_HOME + str(at_date).split()[0].replace('/', '-') + '_' + str(maglimit) + (
-    kbotype or '') + '.dat'
+        kbotype or '') + '.dat'
     print(pastpath)
     if os.path.exists(pastpath):
         with open(pastpath) as infile:
@@ -222,6 +223,7 @@ def create_table(tnos, outfile):
     footer = r"\enddata " + "\n" + \
              r"\tablecomments{M:N: object is in the M:N resonance; I: the orbit classification is currently insecure; " \
              r"" \
+             r"" \
              r"H: the human operator intervened to declare the orbit security status. " \
              r"The full orbital elements are available in electronic form from the Minor Planet Center.} " "\n" + \
              "\end{deluxetable} \n"
@@ -244,10 +246,10 @@ def create_table(tnos, outfile):
             # obj a ± da e ± de i ± di r ± dr H ± dH j k sh(if insecure)
             out = "{} & & {} & {} & {} & {} & {} & ".format(r['object'],
                                                             round_sig_error(r['a'], r['a_E']),
-                                                          round_sig_error(r['e'], r['e_E']),
-                                                          round_sig_error(r['i'], r['i_E']),
-                                                          round_sig_error(r['dist'], r['dist_E']),
-                                                          r['H_sur'])
+                                                            round_sig_error(r['e'], r['e_E']),
+                                                            round_sig_error(r['i'], r['i_E']),
+                                                            round_sig_error(r['dist'], r['dist_E']),
+                                                            r['H_sur'])
             if r['j'] != -1:
                 out += "{}:{} & ".format(r['j'], r['k'])  # resonant object: give the resonance
             else:
@@ -258,6 +260,7 @@ def create_table(tnos, outfile):
                 out += " {} \n".format(r'\\')
             ofile.write(out)
         ofile.write(footer)
+
 
 def release_to_latex(outfile):
     tnos = ossos_release_parser(table=True)
@@ -315,6 +318,6 @@ def parse_subaru_mags():
 
 
 if __name__ == '__main__':
-    # ossos_release_parser(table=True)
-    # release_to_latex('v{}'.format(parameters.RELEASE_VERSION) + '_table.tex')
-    parse_subaru_mags()
+    ossos_release_parser(table=True)
+    release_to_latex('v{}'.format(parameters.RELEASE_VERSION) + '_table.tex')
+    # parse_subaru_mags()

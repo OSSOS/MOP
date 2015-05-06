@@ -9,8 +9,9 @@ L7MODEL = '/Users/michele/Dropbox/OSSOS/Release_summaries/L7model-3.0-9.0'  # 'v
 L7_HOME = '/Users/michele/Dropbox/OSSOS/Release_summaries/'
 REAL_KBO_AST_DIR = '/Users/michele/Dropbox/OSSOS/measure3/ossin/'
 # REAL_KBO_AST_DIR = 'vos:OSSOS/dbaseclone/ast/'
-RELEASE_VERSION = 4
-RELEASE_DETECTIONS = '/Users/michele/Dropbox/OSSOS/Release_summaries/v4/OSSOSv4/OSSOSv4.detections'  # OSSOSv4.1+u
+RELEASE_VERSION = 5
+RELEASE_DETECTIONS = '/Users/michele/Dropbox/OSSOS/Release_summaries/v5prototype.detections'  # v4/OSSOSv4/OSSOSv4
+# .detections'  # OSSOSv4.1+u
 # .detections'
 IDX = 'vos:OSSOS/dbaseclone/idx/file.idx'
 
@@ -140,7 +141,7 @@ COLOSSOS = [
     'O13BL3RN',
     'O13BL3SW',
     'O13BL3T7',
-    'O13BL3RT',
+    'O13BL3RT',  # this one now nfrL3RT as not found in the rerun.
     'O13BL3RQ',
     'O13BL3SH',
     'O13BL3R1',
@@ -156,7 +157,7 @@ COLOSSOS = [
     # the O and E blocks ColOSSOS, will only ever be in these designations
     'o3e11',
     'o3e38',
-    'o3e45',
+    'o3e45',  # stirred object
     'o3e25',
     'o3e34PD',
     'o3o18',
@@ -296,6 +297,10 @@ class tno(object):
             retval.H = float(
                 params[9])  # H_r magnitude, using the average m_r and the discovery geometry (same error as m_r)
             retval.rate = float(params[30])
+        elif version == 5:
+            # Upgrade?
+            # input_params =
+            retval = cls(*input_params)
         else:
             raise VersionError('Unknown version "{0}"'.format(version))
         assert retval

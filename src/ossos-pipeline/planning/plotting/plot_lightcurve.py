@@ -1,10 +1,11 @@
 __author__ = 'Michele Bannister   git:@mtbannister'
 
+import sys
+
 import matplotlib.pyplot as plt
+import numpy
 
 import parsers
-import parameters
-
 # Define some CSS to control our custom labels
 css = """
 table
@@ -41,7 +42,7 @@ def plot_all_obs_single_object(obj):
     mag_err = [n.comment.mag_uncertainty for n in tnoobs]
 
     print len(tno_mags), len(mag_dates), len(mag_err)
-    print tno_mags
+    print tno_mags, numpy.median(tno_mags), numpy.mean(tno_mags)
     print mag_dates
     print mag_err
 
@@ -53,15 +54,15 @@ def plot_all_obs_single_object(obj):
 
 
 if __name__ == '__main__':
-    # obj = sys.argv[1]
-    # plot_all_obs_single_object(obj)
+    obj = sys.argv[1]
+    plot_all_obs_single_object(obj)
 
-    fig, ax = plt.subplots(1, 1, figsize=(25, 10))
+    fig, ax = plt.subplots(1, 1, figsize=(35, 10))
 
     variation = []
     objects = parsers.ossos_discoveries()
     labels = []
-    for tno in [n for n in objects if n.name in parameters.COLOSSOS]:
+    for tno in objects:  # [n for n in objects if n.name in parameters.COLOSSOS]:
         # consider only the cleanest photometry: nothing with involvement or other weirdness
         tnoobs = []
         for n in tno.orbit.observations:
@@ -95,7 +96,7 @@ if __name__ == '__main__':
     plt.gca().invert_yaxis()
     plt.setp(ax.get_xticklabels(), rotation=90)
     plt.draw()
-    outfile = 'ColOSSOS-variation.pdf'
+    outfile = 'All-OSSOS-variation.pdf'
     plt.savefig(outfile, transparent=True, bbox_inches='tight')
 
     # # Activate the interactivity

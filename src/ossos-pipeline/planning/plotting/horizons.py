@@ -31,7 +31,7 @@ Ephemeris parameters:
 
 # PARAMS = OrderedDict([('RA-DEC', 1),                    # Units: HMS (HH MM SS.ff) and DMS (DD MM SS.f)
 # ('RA_rate-DEC_rate', 3),          # d(RA)/dt is multiplied by the cosine of the declination.
-#                                                         # Units: ARCSECONDS PER HOUR
+# # Units: ARCSECONDS PER HOUR
 #                       ('v_mag-surface_brightness', 9),  # Units: None and VISUAL MAGNITUDES PER SQUARE ARCSECOND
 #                       ('r_helio-r_helio_rate', 19),
 #                       ('RA_uncert-DEC_uncert', 36),     # RA and DEc uncertainties are 3-sigma. Units: ARCSECONDS
@@ -68,7 +68,9 @@ def parse_orbital_elements(urlData):
 # Run a Horizons query
 # eg. output = batch("Haumea", "2010-12-28 10:00", "2010-12-29 10:00", 1, su='d')
 
-def batch(object, t, T, step, su='d',
+def batch(object, t, T, step,
+          su='d',
+          location=None,
           params=[1, 3, 9, 19, 36]):
     if step == None:  # default
         step = 1
@@ -85,7 +87,7 @@ def batch(object, t, T, step, su='d',
         for p in params:
             s += "{},".format(p)
 
-    # The pieces of the url that Horizons needs for its processing instructions. Leave intact.
+    # The pieces of the url that Horizons needs for its processing instructions.
     urlArr = ["http://ssd.jpl.nasa.gov/horizons_batch.cgi?batch=1&COMMAND=",
               '',
               "&MAKE_EPHEM='YES'&TABLE_TYPE='OBSERVER'&START_TIME=",
@@ -156,7 +158,7 @@ def batch(object, t, T, step, su='d',
 
 # Run the script from the command line
 if __name__ == "__main__":
-    elems, ephems = batch("Makemake", "2010-12-28 10:00", "2010-12-30 10:00", 1, su='d')  # for example
+    elems, ephems = batch("Ceres", "2010-12-28 10:00", "2010-12-30 10:00", 1, su='d')  # for example
 
     # just a few test print statements
     print(elems)  # elements

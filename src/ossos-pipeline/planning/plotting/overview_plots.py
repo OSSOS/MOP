@@ -46,11 +46,26 @@ def top_down_SolarSystem(discoveries, extent=65, plot_blocks=True, future_blocks
     ax1 = fig.add_axes(rect, polar=True, frameon=False)  # theta (RA) is zero at E, increases anticlockwise
     ax1.set_aspect('equal')
 
+    ax1.set_rlim(0, extent)
+    ax1.set_rgrids([20, 40, 60], labels=["", "", '20 AU', '40 AU', '60 AU'], angle=308, alpha=0.45)  # angle = 197
+    ax1.yaxis.set_major_locator(MultipleLocator(20))
+    ax1.xaxis.set_major_locator(MultipleLocator(math.radians(15)))  # every hour
+    ax1.grid(axis='x', color='k', linestyle='--', alpha=0.2)
+    ax1.set_xticklabels(['', '0h', "", '', "", '4h', "", '', "", '', "", '10h', "", '', "", '14h', "", '',
+                         "", '', "", '20h', "", '', "", ],
+                        # ""])  # str(r)+'h' for r in range(-1,24)],
+                        #        ['', '0h', '2h', '4h', '6h', '8h', '10h', '12h', '14h', '16h', '18h', '20h', '22h']) #
+                        color='b', alpha=0.6)  # otherwise they get in the way
+
+
     # plot exclusion zones due to Galactic plane: RAs indicate where bar starts, rather than its centre angle
     # can I do this with a warp, or will it make more sense to just plot stellar density? maybe that?
-    # width = math.radians(3*15)
-    # plt.bar(math.radians(16.5 * 15), extent, width=width, color=plot_fanciness.ALMOST_BLACK, linewidth=0, alpha=0.2)
-    # plt.bar(math.radians(4.5 * 15), extent, width=width, color=plot_fanciness.ALMOST_BLACK, linewidth=0, alpha=0.2)
+    width = math.radians(3 * 15)
+    plt.bar(math.radians(4.5 * 15), extent, width=width, color=plot_fanciness.ALMOST_BLACK, linewidth=0, alpha=0.2)
+    plt.bar(math.radians(16.5 * 15), extent, width=width, color=plot_fanciness.ALMOST_BLACK, linewidth=0, alpha=0.2)
+    ax1.annotate('galactic plane', (math.radians(6.9 * 15), extent - 15), size=10, color='k', alpha=0.45)
+    ax1.annotate('galactic plane', (math.radians(17.2 * 15), extent - 15), size=10, color='k', alpha=0.45)
+
 
     # FIXME: should probably convert hours to ecliptic coords with a bit more finesse than just overplotting it
     # truncate these at 8 AU to show that we don't have sensitivity in close; detect Ijiraq at 9.80 AU
@@ -60,26 +75,27 @@ def top_down_SolarSystem(discoveries, extent=65, plot_blocks=True, future_blocks
 
     for blockname, block in parameters.BLOCKS.items():  # ["14:15:28.89", "15:58:01.35", "00:54:00.00", "01:30:00.00"]:
         if plot_blocks:
-            if blockname.startswith('13'):
-                plt.bar(ephem.hours(block["RA"]) - math.radians(3.5), extent,
-                        width=math.radians(7), bottom=8, color='b', linewidth=0.1, alpha=0.2)
+            if blockname.startswith('13') or blockname.startswith('14'):
+                # want to apply a colour gradient to the block
+                # gradient = np.linspace(0, 1, 256)
+                # gradient = np.vstack((gradient, gradient))
+                # plt.imshow(gradient, aspect='auto', )
+
+                plt.bar(ephem.hours(block["RA"]) - math.radians(3.5), extent, linewidth=0.1,
+                        width=math.radians(7), bottom=8, color='b', alpha=0.2)
+                ax1.annotate(blockname[3], (ephem.hours(block["RA"]) + math.radians(0.3), extent + 0.15), size=15,
+                             color='b')
+                # print bar
+                # ax1.imshow(bar, cmap=plt.get_cmap('Blues'), alpha=0.2)
 
         if future_blocks:
             if blockname.startswith('15'):
                 plt.bar(ephem.hours(block["RA"]) - math.radians(3.5), extent,
                         width=math.radians(7), bottom=8, color='r', linewidth=0.1, alpha=0.2)
+                ax1.annotate(blockname[3], (ephem.hours(block["RA"]) - math.radians(1.5), extent + 0.15), size=15,
+                             color='r')
 
     plot_ossos_discoveries(ax1, discoveries)
-
-    ax1.set_rlim(0, extent)
-    ax1.set_rgrids([20, 40, 60], labels=["", "", '20 AU', '40 AU', '60 AU'], angle=197, alpha=0.45)  # angle = 308
-    ax1.yaxis.set_major_locator(MultipleLocator(20))
-    ax1.xaxis.set_major_locator(MultipleLocator(math.radians(15)))  # every hour
-    ax1.grid(axis='x', color='k', linestyle='--', alpha=0.2)
-    ax1.set_xticklabels([""])  # str(r)+'h' for r in range(-1,24)],
-    # #['', '0h', '2h', '4h', '6h', '8h', '10h', '12h', '14h', '16h', '18h', '20h', '22h'], #['0h','','','','','','',
-    # "","","","20h","22h"],
-    #                     color='b', alpha=0.6)  # otherwise they get in the way
 
     plot_planets_plus_Pluto(ax1)
 
@@ -87,8 +103,8 @@ def top_down_SolarSystem(discoveries, extent=65, plot_blocks=True, future_blocks
         # special detection in 13AE: Ijiraq at 2013-04-09 shows inner limit of sensitivity.
         # Position from Horizons as it's excluded from the list of detections
         ax1.scatter(ephem.hours('14 29 46.57'), 9.805,
-                    marker='o', s=5, facecolor='b', edgecolor=plot_fanciness.ALMOST_BLACK, linewidth=0.15, alpha=0.8)
-        ax1.annotate('Ijiraq', (ephem.hours('14 29 46.57') + math.radians(7), 9.8 + 2), size=5)
+                    marker='o', s=4, facecolor='b', edgecolor=plot_fanciness.ALMOST_BLACK, linewidth=0.15, alpha=0.8)
+        # ax1.annotate('Ijiraq', (ephem.hours('14 29 46.57') + math.radians(7), 9.8 + 2), size=5)
 
     ra, dist, hlat, Hmag = parsers.synthetic_model_kbos(kbotype='resonant', arrays=True, maglimit=24.7)
     # can't plot Hmag as marker size in current setup.
@@ -103,26 +119,25 @@ def top_down_SolarSystem(discoveries, extent=65, plot_blocks=True, future_blocks
 
 
 def plot_planets_plus_Pluto(ax, date=parameters.NEWMOONS[parameters.DISCOVERY_NEW_MOON]):
-    for planet in [ephem.Saturn(), ephem.Uranus(), ephem.Neptune(), ephem.Pluto()]:
+    for planet in [ephem.Saturn(), ephem.Uranus(), ephem.Neptune()]:  # , ephem.Pluto()]:
         planet.compute(ephem.date(date))
+        fc = plot_fanciness.ALMOST_BLACK
         if planet.name == 'Pluto':
-            fc = plot_fanciness.ALMOST_BLACK
             alpha = 0.35
             size = 10
         else:
-            fc = '#E47833'
-            alpha = 1
+            alpha = 0.7
             size = 20
         ax.scatter(planet.ra, planet.sun_distance,
                    marker='o',
                    s=size,
                    facecolor=fc,
-                   edgecolor='#E47833',
+                   edgecolor=fc,
                    alpha=alpha)
-        # if planet.name != 'Saturn':
-        # ax.annotate(planet.name, (planet.ra-(math.radians(1)), planet.sun_distance+2), size=10)
-        # else:
-        #     ax.annotate(planet.name, (planet.ra+(math.radians(30)), planet.sun_distance-3), size=10)
+        if planet.name != 'Saturn':
+            ax.annotate(planet.name, (planet.ra - (math.radians(0.5)), planet.sun_distance + 2), size=10)
+        else:
+            ax.annotate(planet.name, (planet.ra + (math.radians(10)), planet.sun_distance - 2), size=10)
         # plot Neptune's orbit: e is 0.01 so can get away with a circle
         if planet.name == 'Neptune':
             orb = np.arange(0, 2 * np.pi, (2 * np.pi) / 360)
@@ -136,23 +151,29 @@ def plot_ossos_discoveries(ax, discoveries, lpmag=False):
     these are all being plotted at their discovery locations now,
     which are provided by the Version Releases in decimal hours.
     """
-    for obj in discoveries:
-        fc = 'b'
-        alph = 0.8
-        if lpmag:
-            if obj.mag <= lpmag:  # show up the bright ones for Gemini LP
-                fc = 'r'
-        ra = ephem.hours(str(obj.ra_discov))
-        if (obj.classification == 'res' and obj.n == 3 and obj.m == 2):
-            print obj.name
-            ax.scatter(ra, obj.dist,
-                       marker='o', s=15 - obj.H, facecolor='#E47833', edgecolor='w', linewidth=0.4,
-                       alpha=alph)  # original size=4.5
-        else:
-            # scaling the size of marker by the absolute magnitude of each object (so size++ with --H, as needed).
-            ax.scatter(ra, obj.dist,
-                       marker='o', s=15 - obj.H, facecolor=fc, edgecolor='w', linewidth=0.4,
-                       alpha=alph)  # original size=4.5
+    # need to make this row-wise
+    fc = 'b'
+    alph = 0.8
+    ra = [ephem.hours(str(n)) for n in discoveries['ra_dis']]
+    ax.scatter(ra, discoveries['dist'],
+               marker='o', s=15 - discoveries['H_sur'], facecolor=fc, edgecolor='w', linewidth=0.4,
+               alpha=alph)  # original size=4.5
+
+    # for obj in discoveries:
+    # if lpmag:
+    #         if obj.mag <= lpmag:  # show up the bright ones for Gemini LP
+    #             fc = 'r'
+    #     ra = ephem.hours(str(obj.ra_discov))
+    #     if (obj.classification == 'res' and obj.n == 3 and obj.m == 2):
+    #         print obj.name
+    #         ax.scatter(ra, obj.dist,
+    #                    marker='o', s=15 - obj.H, facecolor='#E47833', edgecolor='w', linewidth=0.4,
+    #                    alpha=alph)  # original size=4.5
+    #     else:
+    #         # scaling the size of marker by the absolute magnitude of each object (so size++ with --H, as needed).
+    #         ax.scatter(ra, obj.dist,
+    #                    marker='o', s=15 - obj.H, facecolor=fc, edgecolor='w', linewidth=0.4,
+    #                    alpha=alph)  # original size=4.5
 
     return
 
@@ -257,11 +278,11 @@ def delta_a_over_a(discoveries):
 
 def main():
     # parsers.output_discoveries_for_animation()
-    discoveries = parsers.ossos_release_parser()
-    top_down_SolarSystem(discoveries, plot_blocks=True, future_blocks=False, plot_Ijiraq=True)
+    discoveries = parsers.ossos_release_parser(table=True)
+    top_down_SolarSystem(discoveries, plot_blocks=True, future_blocks=True, plot_Ijiraq=True)
 
 # orbit_fit_residuals(discoveries)
-#    delta_a_over_a(discoveries)
+# delta_a_over_a(discoveries)
 
 
 if __name__ == "__main__":
