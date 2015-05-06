@@ -56,7 +56,7 @@ fig.subplots_adjust(hspace=0.05)
 # why is this one object not fitting at all correctly?
 # and not d.observations[-1].provisional_name.strip(' ').__contains__('o3e17'))]
 # for n in dset:
-#     if n.observations[-1].provisional_name.strip(' ').__contains__('o3e38'):
+# if n.observations[-1].provisional_name.strip(' ').__contains__('o3e38'):
 #         print n.a, n.inc, n.e
 
 # For calling with parsers.ossos_release_with_metadata()
@@ -116,8 +116,7 @@ for obj in data:
                '<tr><th>Peri</th><td>{:.2f}</td></tr></table>'.format(obj.name, obj.dist, peri)
         labels.append(html)
 
-# To activate the interactivity
-
+# Activate the interactivity
 tooltip = plugins.PointHTMLTooltip(points[0], labels, voffset=10, hoffset=10, css=css)
 plugins.connect(fig, tooltip)
 mpld3.show()

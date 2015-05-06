@@ -117,11 +117,12 @@ def plot_eff_by_user(ax, blocks):
             eff = Table.read(pwd + fn, names=['mag', 'eff'], format='ascii')
             user = fn.split('.')[2]
             ax[i].plot(eff['mag'], eff['eff'],
-                       c=colours[user], marker=markers[user], ms=5, mec=colours[user],
+                       c=colours[user], marker=markers[user], ms=5, mec=colours[user], alpha=0.7,
                        # line thickness scaled by number of files examined: most first so that thickest line at the back
                        linewidth=examined[block][user] * 0.02,
                        label="{}: {}".format(user_blindness[user], examined[block][user]))
-        plot_smooth_fit(i, block, ax, ['k'], path + 'efficiency_motion_rates', single=True)
+        # not the appropriate smooth fit to be adding here.
+        # plot_smooth_fit(i, block, ax, ['k'], path + 'efficiency_motion_rates', single=True)
 
         ax[i].grid(True, alpha=0.3)
         ax[i].set_ylabel('efficiency')
@@ -141,6 +142,6 @@ if __name__ == '__main__':
     outfile = plot_eff_by_user(ax, blocks)
 
     plt.xlabel("$r'_{AB}$")
-    plt.xlim([21., 25.])
+    plt.xlim([21.1, 25.])
     plt.draw()
     plt.savefig(outfile, transparent=True, bbox_inches='tight')
