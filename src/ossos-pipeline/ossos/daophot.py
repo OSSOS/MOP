@@ -2,6 +2,8 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 from ossos.gui import logger
 import os
 import tempfile
+import warnings
+warnings.simplefilter("ignore")
 from pyraf import iraf
 from astropy.io import fits
 from astropy.io import ascii
@@ -28,6 +30,7 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
         x_in = [x_in, ]
     if not hasattr(y_in, '__iter__'):
         y_in = [y_in, ]
+
 
     if (not os.path.exists(fits_filename) and
             not fits_filename.endswith(".fits")):
@@ -128,6 +131,7 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
     os.remove(coofile.name)
     os.remove(magfile.name)
     logger.debug("Computed apperture photometry on {} objects in {}".format(len(pdump_out), fits_filename))
+
     return pdump_out
 
 
