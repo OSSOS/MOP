@@ -19,8 +19,8 @@ import vos
 from astropy.io import fits
 import requests
 
-from . import coding
-from . import util
+import coding
+import util
 from .gui import logger
 from .wcs import WCS
 
@@ -506,9 +506,9 @@ def ra_dec_cutout(uri, sky_coord, radius):
 
     # You must initialize logging, otherwise you'll not see debug output.
     #   logging.basicConfig()
-    logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger().setLevel(logging.CRITICAL)
     requests_log = logging.getLogger("requests.packages.urllib3")
-    requests_log.setLevel(logging.DEBUG)
+    requests_log.setLevel(logging.CRITICAL)
     requests_log.propagate = True
 
     # Get the 'uncut' images CRPIX1/CRPIX2 values
@@ -754,7 +754,7 @@ def reset_datasec(cutout, datasec, naxis1, naxis2):
     return "[{}:{},{}:{}]".format(datasec[0], datasec[1], datasec[2], datasec[3])
 
 
-def get_hdu(uri, cutout):
+def get_hdu(uri, cutout=None):
     """Get a at the given uri from VOSpace, possibly doing a cutout.
 
     If the cutout is flips the image then we also must flip the datasec keywords.  Also, we must offset the
@@ -767,23 +767,32 @@ def get_hdu(uri, cutout):
     filename = os.path.basename(uri)
     if os.access(filename, os.F_OK) and cutout is None:
         logger.debug("File already on disk: {}".format(filename))
-        return fits.open(filename, scale_back=True)
+        hdu_list = fits.open(filename, scale_back=True)
+    else:
+        logger.debug("Pulling: {}{} from VOSpace".format(uri, cutout))
+        fpt = tempfile.NamedTemporaryFile(suffix='.fits')
+        cutout = cutout is not None and cutout or ""
+        vospace.copy(uri+cutout, fpt.name)
+        fpt.seek(0, 2)
+        fpt.seek(0)
+        logger.debug("Read from vospace completed. Building fits object.")
+        hdu_list = fits.open(fpt, scale_back=False)
+        logger.debug("Got image from vospace")
+        try:
+            hdu_list[0].header['DATASEC'] = reset_datasec(cutout, hdu_list[0].header['DATASEC'],
+                                                          hdu_list[0].header['NAXIS1'],
+                                                          hdu_list[0].header['NAXIS2'])
+        except Exception as e:
+            logging.debug("error converting datasec: {}".format(str(e)))
 
-    logger.debug("Pulling: {}{} from VOSpace".format(uri, cutout))
-    fpt = tempfile.NamedTemporaryFile(suffix='.fits')
-    cutout = cutout is not None and cutout or ""
-    vospace.copy(uri+cutout, fpt.name)
-    fpt.seek(0, 2)
-    fpt.seek(0)
-    logger.debug("Read from vospace completed. Building fits object.")
-    hdu_list = fits.open(fpt, scale_back=False)
-    logger.debug("Got image from vospace")
-    try:
-        hdu_list[0].header['DATASEC'] = reset_datasec(cutout, hdu_list[0].header['DATASEC'],
-                                                      hdu_list[0].header['NAXIS1'],
-                                                      hdu_list[0].header['NAXIS2'])
-    except Exception as e:
-        logging.debug("error converting datasec: {}".format(str(e)))
+    for hdu in hdu_list:
+        logging.debug("Adding converter to {}".format(hdu))
+        hdu.converter = CoordinateConverter(0, 0)
+        try:
+            hdu.wcs = WCS(hdu.header)
+        except Exception as ex:
+            logger.error("Failed trying to initialize the WCS: {}".format(ex))
+
     return hdu_list
 
 
@@ -871,6 +880,9 @@ def mkdir(dirname):
 
 def vofile(filename, **kwargs):
     """Open and return a handle on a VOSpace data connection"""
+    basename = os.path.basename(filename)
+    if os.access(basename, os.R_OK):
+        return open(basename, 'r')
     kwargs['view'] = kwargs.get('view', 'data')
     return vospace.open(filename, **kwargs)
 
