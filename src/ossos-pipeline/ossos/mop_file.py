@@ -4,10 +4,8 @@ import math
 import urlparse
 import re
 import sys
-from astropy.time import Time
-from ossos.mpc_time import TimeMPC
-
-Time.FORMATS[TimeMPC.name] = TimeMPC
+import logging
+from ossos import util
 
 
 VOS_SCHEME = 'vos'
@@ -76,33 +74,44 @@ class HeaderParser(object):
                 return self
         raise IOError("Failed trying to read header")
 
+    def _compute_mjd(self, kw, val):
+        """
+        Sometimes that MJD-OBS-CENTER keyword maps to a three component string, instead of a single value.
+        @param kw: a list of keywords
+        @param val: a list of matching values
+        @return: the MJD-OBS-CENTER as a julian date.
+        """
+        try:
+            idx = kw.index('MJD-OBS-CENTER')
+        except ValueError:
+            return
+        if len(val) == len(kw):
+            return
+        if len(val) - 2 != len(kw):
+            raise ValueError("convert: keyword/value lengths don't match: {}/{}".format(kw, val))
+        val.insert(idx, util.Time("{} {} {}".format(val.pop(idx), val.pop(idx), val.pop(idx)),
+                             format='mpc',
+                             scale='utc').mjd)
+        logging.debug("Computed MJD: {}".format(val[idx]))
 
     def _header_append(self, kw_line, val_line):
         
         keywords = kw_line.strip().split()
         values = val_line.strip().split()
-        try:
-            idx = keywords.index('MJD-OBS-CENTER')
-            year = values.pop(idx)
-            month = values.pop(idx)
-            day = values.pop(idx)
-            values.insert(idx, self._compute_mjd(year, month, day))
-        except ValueError:
-            pass
+        self._compute_mjd(keywords, values)
         self._append_keywords(keywords, values)
         return
 
-    def _compute_mjd(self, year, month, day):
+    def _depreicated_compute_mjd(self, year, month, day):
         """Look through the dictionary and create a new keyword list
         by replacing mjd-obs-center keyword value with actual mjd"""
-        mjd = Time("{} {} {}".format(year, month, day), format='mpc', scale='utc').mjd
+        mjd = util.Time("{} {} {}".format(year, month, day), format='mpc', scale='utc').mjd
         return mjd
-
 
     def _append_keywords(self, keywords, values):
 
         if len(keywords) != len(values):
-            raise ValueError("keyword/value lengths don't match")
+            raise ValueError("keyword/value lengths don't match: {}/{}".format(keywords, values))
         while len(keywords) > 0:
             keyword = keywords.pop()
             value = values.pop()
