@@ -10,7 +10,7 @@ import os
 import tempfile
 
 # set logging level and shunt to a file
-OSSOS_DEBUG_LEVEL = logging.DEBUG
+OSSOS_DEBUG_LEVEL = logging.CRITICAL
 
 logfile = os.path.join(tempfile.gettempdir(), "ossos_validation.log")
 logging.basicConfig(filename=logfile,
