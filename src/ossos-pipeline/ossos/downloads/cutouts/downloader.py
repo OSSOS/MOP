@@ -8,7 +8,15 @@ from ..core import Downloader, ApcorData
 from ..cutouts.source import SourceCutout
 from ossos.gui import config
 
-import sys
+
+class ImageDownloader(Downloader):
+
+    def download(self, reading, needs_apcor=False):
+
+        hdulist = storage.get_hdu(reading.get_image_uri())
+        apcor = needs_apcor and self.download_apcor(reading.get_apcor_uri()) or None
+        zmag = self.download_zmag(reading.get_zmag_uri())
+        return SourceCutout(reading, hdulist, apcor, zmag=zmag)
 
 
 class ImageCutoutDownloader(Downloader):
