@@ -51,11 +51,8 @@ class SourceCutout(object):
         self.original_observed_x = self.reading.x
         self.original_observed_y = self.reading.y
         if self.original_observed_ext is None:
-            self.original_observed_ext = 1
+            self.original_observed_ext = len(self.hdulist) - 1
 
-        logger.debug("Setting ext/x/y to {}/{}/{}".format(self.original_observed_ext,
-                                                          self.original_observed_x,
-                                                          self.original_observed_y))
 
         self.observed_x = self.original_observed_x
         self.observed_y = self.original_observed_y
@@ -72,7 +69,6 @@ class SourceCutout(object):
         self._comparison_image = None
         self._tempfile = None
         self._bad_comparison_images = [self.hdulist[-1].header.get('EXPNUM', None)]
-        logger.debug("Build of source worked.")
         logger.error("type X/Y {}/{}".format(type(self.pixel_x),
                                              type(self.pixel_y)))
 
