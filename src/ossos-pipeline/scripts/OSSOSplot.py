@@ -90,24 +90,24 @@ tracking_termination = [  # 'o3e01',
     # "O13BL3QZ"
 ]  # centaur
 
-doubles = ['o3o05',
-           'o3o08',
-           'o3o11',
-           'o3o13',
-           'o3o14',
-           'o3o16',
-           'o3o17',
-           'o3o19',
-           'o3o25',
-           'o3o26',
-           'o3o27',
-           'o3o29',
-           'o3o30',
-           'o3o31',
-           'o3o32',
-           'o3o33',
-           'o3o34',
-           'o3o36',
+doubles = [  # 'o3o05',
+    #            'o3o08',
+    #            'o3o11',
+    #            'o3o13',
+    #            'o3o14',
+    #            'o3o16',
+    #            'o3o17',
+    #            'o3o19',
+    #            'o3o25',
+    #            'o3o26',
+    #            'o3o27',
+    #            'o3o29',
+    #            'o3o30',
+    #            'o3o31',
+    #            'o3o32',
+    #            'o3o33',
+    #            'o3o34',
+    #            'o3o36',
 ]
 
 
@@ -861,7 +861,7 @@ class Plot(Canvas):
                 logging.critical("KBOs in field {0}: {1}".format(name, ', '.join([n.name for n in field_kbos])))
 
                 start_date = mpc.Time(self.date.get(), scale='utc').jd
-                for days in range(-10, 10, 1):
+                for days in range(-6, 6, 1):
                     for hours in range(0, 23, 12):
                         today = mpc.Time(start_date + days + hours / 24.0,
                                          scale='utc',
@@ -1027,7 +1027,7 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                 a = math.radians(10.0 / 3600.0)
                 b = a
                 ang = 0.0
-                point_size = 2
+                point_size = 1
                 yoffset = +10
                 xoffset = +10
             elif isinstance(kbos[name], orbfit.Orbfit):
@@ -1058,11 +1058,11 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                     if a < math.radians(5.0):
                         w.create_ellipse(ra, dec, a, b, ang)
                     if w.show_labels.get() == 1:
-                        w.label(ra, dec, name[-2:], offset=[xoffset, yoffset])
+                        w.label(ra, dec, name[-4:], offset=[xoffset, yoffset])
             else:
                 ra = kbos[name]['RA']
                 dec = kbos[name]['DEC']
-                w.create_point(ra, dec, size=8, color='cyan')
+                w.create_point(ra, dec, size=4, color='cyan')
                 w.label(ra, dec, name[-2:], offset=[-15, +15])  # truncate object name for plot clutter clarity
 
         vlist.sort()
