@@ -28,7 +28,8 @@ class WorkingContext(object):
         raise NotImplementedError()
 
     def get_listing(self, suffix):
-        return filter(lambda name: name.endswith(suffix), self.listdir())
+        # fk files will no longer be inspected by a person at any stage. MB 04 May 2015
+        return filter(lambda name: (name.endswith(suffix) and not name.startswith('fk')), self.listdir())
 
     def get_file_size(self, filename):
         raise NotImplementedError()
@@ -66,7 +67,7 @@ class LocalDirectoryWorkingContext(WorkingContext):
         return os.path.exists(self.get_full_path(filename))
 
     def open(self, filename):
-        filehandle = open(self.get_full_path(filename), 'r')
+        filehandle = open(self.get_full_path(filename), 'a+b')
 
         # Note: Linux starts the file position at 0, but on MacOSX it
         # starts at the end of the file, so this makes things consistent
