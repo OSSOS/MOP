@@ -1,15 +1,15 @@
 """OSSOS helper methods"""
 from datetime import datetime
-import time
-import subprocess
-import logging
 from logging import handlers
-import os
-import itertools
+import logging
 import numpy
+import os
 import re
-import sys
+import subprocess
+import time
 import vos
+import sys
+
 try:
     from astropy.time import erfa_time
 except ImportError:
@@ -17,11 +17,13 @@ except ImportError:
 from astropy.time import TimeString
 from astropy.time import Time
 
+
 MATCH_TOLERANCE = 100.0
 
 
 def task():
     return os.path.splitext(os.path.basename(sys.argv[0]))[0]
+
 
 def exec_prog(args):
     """Run a subprocess, check for .OK and raise error if does not exist.
@@ -204,12 +206,12 @@ class TimeMPC(TimeString):
     def __init__(self, val1, val2, scale, precision,
                  in_subfmt, out_subfmt, from_jd=False):
         super(TimeMPC, self).__init__(val1=val1,
-                                val2=val2,
-                                scale=scale,
-                                precision=precision,
-                                in_subfmt=in_subfmt,
-                                out_subfmt=out_subfmt,
-                                from_jd=from_jd)
+                                      val2=val2,
+                                      scale=scale,
+                                      precision=precision,
+                                      in_subfmt=in_subfmt,
+                                      out_subfmt=out_subfmt,
+                                      from_jd=from_jd)
         self.precision = precision
 
     # ## need our own 'set_jds' function as the MPC Time string is not typical
@@ -243,7 +245,7 @@ class TimeMPC(TimeString):
             for _, strptime_fmt, _ in subfmts:
                 try:
                     tm = time.strptime(time_str, strptime_fmt)
-                except ValueError as ex:
+                except ValueError:
                     pass
                 else:
                     iy[...] = tm.tm_year
@@ -284,18 +286,16 @@ class TimeMPC(TimeString):
         imins = ihmsfs[..., 1]
         isecs = ihmsfs[..., 2]
         ifracs = ihmsfs[..., 3]
-        for iy, im, id, ihr, imin, isec, ifracsec in numpy.nditer(
+        for iy, im, iday, ihr, imin, isec, ifracsec in numpy.nditer(
                 [iys, ims, ids, ihrs, imins, isecs, ifracs]):
             if has_yday:
-                yday = datetime(iy, im, id).timetuple().tm_yday
+                yday = datetime(iy, im, iday).timetuple().tm_yday
 
             fracday = (((((ifracsec / 1000000.0 + isec) / 60.0 + imin) / 60.0) + ihr) / 24.0) * (10 ** 6)
             fracday = '{0:06g}'.format(fracday)[0:self.precision]
 
-            yield {'year': int(iy), 'mon': int(im), 'day': int(id),
+            yield {'year': int(iy), 'mon': int(im), 'day': int(iday),
                    'hour': int(ihr), 'min': int(imin), 'sec': int(isec),
                    'fracsec': int(ifracsec), 'yday': yday, 'fracday': fracday}
-
-
 
 Time.FORMATS['mpc'] = TimeMPC
