@@ -28,8 +28,7 @@ class WorkingContext(object):
         raise NotImplementedError()
 
     def get_listing(self, suffix):
-        # fk files will no longer be inspected by a person at any stage. MB 04 May 2015
-        return filter(lambda name: (name.endswith(suffix) and not name.startswith('fk')), self.listdir())
+        return filter(lambda name: name.endswith(suffix), self.listdir())
 
     def get_file_size(self, filename):
         raise NotImplementedError()
