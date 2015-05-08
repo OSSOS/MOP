@@ -1420,6 +1420,7 @@ class MPCConverter(object):
                 cls(path + fn).convert()
 
 
+
 class CFEPSComment(OSSOSComment):
     """
     This holds the old-style comments that come for CFEPS style entries.
@@ -1527,7 +1528,6 @@ class TNOdbComment(OSSOSComment):
         comm += str(self)
         return comm
 
-
 class RealOSSOSComment(OSSOSComment):
 
     @classmethod
@@ -1535,7 +1535,6 @@ class RealOSSOSComment(OSSOSComment):
         if comment.strip()[0] != "O":
             comment = "O "+comment
         return super(RealOSSOSComment, cls).from_string(comment)
-
 
 class MPCComment(OSSOSComment):
     """
