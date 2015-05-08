@@ -48,7 +48,6 @@ for match_file in sys.argv[1:]:
 
    
    T = ascii.read(match_file, header_start=-1, fill_values=[('--', 'nan'),], Reader=ascii.basic.CommentedHeader)
-
    plt.suptitle(match_file)
 
    rates = T['sky_rate'].min()*2**(numpy.arange(0,5))
