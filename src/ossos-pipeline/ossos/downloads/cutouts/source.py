@@ -74,7 +74,8 @@ class SourceCutout(object):
 
     @property
     def astrom_header(self):
-        return self.reading.get_observation_header()
+        return self.hdulist[len(self.hdulist) - 1].header
+        #return self.reading.get_observation_header()
 
     @property
     def fits_header(self):
