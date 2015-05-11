@@ -143,6 +143,7 @@ class ImageSinglet(object):
             self.frame_number = display.get('frame frameno')
             display.set('frame center {}'.format(self.frame_number))
             display.set('zoom to fit')
+            display.set('wcs sky fk5')
             display.set('wcs align yes')
         display.set('frame frameno {}'.format(self.frame_number))
 
