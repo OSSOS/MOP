@@ -183,9 +183,11 @@ class ValidationModel(object):
     def get_current_observation_date(self):
         header = self.get_current_astrom_header()
         try:
-            mjd = Time(header["MJD_OBS_CENTER"], scale='utc', fmt='mpc', precision=6).mpc
-        except:
-            mjd = Time(header['MJD-OBS'] + header['EXPTIME']/3600.0/24.0/2.0,
+            logger.debug("{}".format(header))
+            mjd = Time(header["MJD_OBS_CENTER"], scale='utc', format='mpc', precision=6).mpc
+        except Exception as ex:
+            logger.debug("{}".format(ex))
+            mjd = Time(header['MJD-OBS'] + float(header['EXPTIME'])/3600.0/24.0/2.0,
                        format='mjd',
                        scale='utc',
                        precision=6).mpc
