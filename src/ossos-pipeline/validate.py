@@ -8,7 +8,7 @@ import tempfile
 from ossos.gui import tasks
 from ossos import storage
 
-def launch_app(task, working_directory, output_directory, dry_run, debug, name_filter=None, 
+def launch_app(task, working_directory, output_directory, dry_run, debug, name_filter=None,
                user_name=None, skip_previous=False):
     # Put import here to avoid the delay loading them.  This allows quick
     # feedback when argparse can tell the arguments are invalid, and makes
@@ -63,4 +63,9 @@ def main():
 
 
 if __name__ == "__main__":
+    import warnings
+    from astropy.utils.exceptions import AstropyUserWarning
+    from astropy.io.fits.verify import VerifyWarning
+    warnings.filterwarnings('ignore', category=AstropyUserWarning)
+    warnings.filterwarnings('ignore', category=VerifyWarning)
     main()
