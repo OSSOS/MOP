@@ -162,11 +162,11 @@ def get_cands_uri(field, ccd, version='p', ext='measure3.cands.astrom', prefix=N
     if len(ext) > 0 and ext[0] != ".":
         ext = ".{}".format(ext)
 
-    dir = MEASURE3
+    measure3_dir = MEASURE3
     if block is not None:
-         dir + "/{}".format(block)
-    mkdir(dir)
-    return "{}/{}{}{}{}{}".format(dir, prefix, field, version, ccd, ext)
+        measure3_dir + "/{}".format(block)
+    mkdir(measure3_dir)
+    return "{}/{}{}{}{}{}".format(measure3_dir, prefix, field, version, ccd, ext)
 
 
 def get_uri(expnum, ccd=None,
@@ -377,7 +377,7 @@ class Task(object):
 
     @status.setter
     def status(self, status):
-        status += Time.now().iso
+        status += util.Time.now().iso
         set_tag(self.target.expnum, self.tag, status)
 
     @property
@@ -429,8 +429,6 @@ class Target(object):
         @rtype: list [str]
         """
         return get_tags(self.expnum)
-
-
 
 
 def get_status(task, prefix, expnum, version, ccd, return_message=False):
@@ -560,7 +558,7 @@ def ra_dec_cutout(uri, sky_coord, radius):
 
         hdu.converter = CoordinateConverter(hdu.header['XOFFSET'], hdu.header['YOFFSET'])
         try:
-            hdu.wcs = WCS(hdu.header)
+                hdu.wcs = WCS(hdu.header)
         except Exception as ex:
             logger.error("Failed trying to initialize the WCS for {}".format(node))
             raise ex
@@ -768,6 +766,8 @@ def get_hdu(uri, cutout=None):
     if os.access(filename, os.F_OK) and cutout is None:
         logger.debug("File already on disk: {}".format(filename))
         hdu_list = fits.open(filename, scale_back=True)
+        hdu_list.verify('silentfix+ignore')
+
     else:
         logger.debug("Pulling: {}{} from VOSpace".format(uri, cutout))
         fpt = tempfile.NamedTemporaryFile(suffix='.fits')
@@ -777,6 +777,8 @@ def get_hdu(uri, cutout=None):
         fpt.seek(0)
         logger.debug("Read from vospace completed. Building fits object.")
         hdu_list = fits.open(fpt, scale_back=False)
+        hdu_list.verify('silentfix+ignore')
+
         logger.debug("Got image from vospace")
         try:
             hdu_list[0].header['DATASEC'] = reset_datasec(cutout, hdu_list[0].header['DATASEC'],
@@ -1144,7 +1146,7 @@ def _get_sghead(expnum, version):
     """
 
     url = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHTSG/{}{}.head".format(expnum, version)
-    logging.getLogger("requests").setLevel(logging.WARNING)
+    logging.getLogger("requests").setLevel(logging.ERROR)
     resp = requests.get(url)
     if resp.status_code != 200:
         raise IOError(errno.ENOENT, "Could not get {}".format(url))
