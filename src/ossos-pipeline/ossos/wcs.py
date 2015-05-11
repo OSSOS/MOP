@@ -1,4 +1,5 @@
 from copy import deepcopy
+import warnings
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -13,14 +14,17 @@ PI180 = 57.2957795130823208767981548141052
 
 
 class WCS(astropy_wcs.WCS):
-
     def __init__(self, header):
         """
         Create the bits needed for working with sky2xy
         """
         astropy_header = deepcopy(header)
-        del(astropy_header['PV*'])
-        super(WCS, self).__init__(astropy_header)
+        del (astropy_header['PV*'])
+        with warnings.catch_warnings(record=True) as warning_lines:
+            warnings.resetwarnings()
+            warnings.simplefilter(
+                "ignore", astropy_wcs.FITSFixedWarning, append=True)
+            super(WCS, self).__init__(astropy_header)
         self.header = header
 
     @property
@@ -106,7 +110,7 @@ class WCS(astropy_wcs.WCS):
                           dc=self.dc,
                           pv=self.pv,
                           nord=self.nord
-                          )
+            )
         except:
             logger.warning("Reverted to CD-Matrix WCS.")
             pos = self.wcs_world2pix([[ra, dec]], 1)
