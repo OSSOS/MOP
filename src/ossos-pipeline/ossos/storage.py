@@ -203,8 +203,12 @@ def get_uri(expnum, ccd=None,
     if version is None:
         version = ''
 
-    # if ccd is None then we send uri for the MEF
-    if ccd is not None:
+    if version == 'p' and ext == '.fits' or ccd is None:
+        uri = os.path.join(uri,
+                           '%s%s%s%s' % (prefix, str(expnum),
+                                         version,
+                                         ext))
+    else:
         ccd = str(ccd).zfill(2)
         uri = os.path.join(uri,
                            'ccd{}'.format(ccd),
@@ -212,11 +216,6 @@ def get_uri(expnum, ccd=None,
                                            version,
                                            ccd,
                                            ext))
-    else:
-        uri = os.path.join(uri,
-                           '%s%s%s%s' % (prefix, str(expnum),
-                                         version,
-                                         ext))
 
     return uri
 
@@ -504,9 +503,9 @@ def ra_dec_cutout(uri, sky_coord, radius):
 
     # You must initialize logging, otherwise you'll not see debug output.
     #   logging.basicConfig()
-    logging.getLogger().setLevel(logging.CRITICAL)
+    level = logging.getLogger().getEffectiveLevel()
     requests_log = logging.getLogger("requests.packages.urllib3")
-    requests_log.setLevel(logging.CRITICAL)
+    requests_log.setLevel(level)
     requests_log.propagate = True
 
     # Get the 'uncut' images CRPIX1/CRPIX2 values
@@ -521,8 +520,9 @@ def ra_dec_cutout(uri, sky_coord, radius):
     node = uri.lstrip('vos:')
     params = {"cutout": this_cutout,
               "view": view}
-
-    r = requests.get(os.path.join(VOSPACE_WEB_SERVICE, node), params=params, cert=vospace.conn.vospace_certfile)
+    url = os.path.join(VOSPACE_WEB_SERVICE, node)
+    logger.debug("Getting file using URL: {} and params: {} and cert: {}".format(url, params, vospace.conn.vospace_certfile))
+    r = requests.get(url, params=params, cert=vospace.conn.vospace_certfile)
     r.raise_for_status()
 
     cutouts = decompose_content_decomposition(r.headers.get('content-disposition', '0___'))
