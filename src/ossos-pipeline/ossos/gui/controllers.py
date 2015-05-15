@@ -1,10 +1,11 @@
 from astropy import units
 from astropy.units import Quantity
 from ossos.downloads.cutouts.source import SourceCutout
+from ossos.gui.models.transactions import TransAckValidationModel
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 import math
-import ds9
+import pyds9 as ds9
 from ..downloads.core import  Downloader
 from ..gui.models.validation import ValidationModel
 from ..gui.autoplay import AutoplayManager
@@ -179,7 +180,7 @@ class ProcessRealsController(AbstractController):
 
     def __init__(self, model, view, name_generator):
         super(ProcessRealsController, self).__init__(model, view)
-
+        assert isinstance(model, TransAckValidationModel)
         self.name_generator = name_generator
         self.is_discovery = True
 
@@ -198,6 +199,7 @@ class ProcessRealsController(AbstractController):
             provisional_name = self._generate_provisional_name()
 
         band = self.model.get_current_band()
+        logger.debug("Got band {} and provisional_name {}".format(band, provisional_name))
         default_comment = ""
         phot_failure = False
 
@@ -205,10 +207,11 @@ class ProcessRealsController(AbstractController):
         assert isinstance(source_cutout, SourceCutout)
         display = ds9.ds9(target='validate')
         result = display.get('imexam key coordinate wcs fk5 degrees')
+        # result = display.get("""imexam key coordinate $x $y $filename""")
+        logger.debug("IMEXAM returned {}".format(result))
         values = result.split()
-        logger.debug("IMEXAM returned {}".format(values))
         ra = Quantity(float(values[1]), unit=units.degree)
-        dec = Quantity(float(values[2]), units.degree)
+        dec = Quantity(float(values[2]), unit=units.degree)
         (x, y, extno) = source_cutout.world2pix(ra, dec)
         key = values[0]
         source_cutout.update_pixel_location((float(x), float(y)), extno)
@@ -315,9 +318,6 @@ class ProcessRealsController(AbstractController):
         self.model.get_writer().write(mpc_observation)
 
         self.model.accept_current_item()
-        if self.model.get_current_workunit().get_current_source_readings().is_on_last_item():
-            self.view.clear()
-
         self.model.next_item()
 
     def on_cancel_accept(self):

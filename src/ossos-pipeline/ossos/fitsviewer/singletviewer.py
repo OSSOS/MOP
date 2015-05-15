@@ -1,4 +1,4 @@
-import ds9
+import pyds9 as ds9
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 

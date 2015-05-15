@@ -2,7 +2,7 @@ from cStringIO import StringIO
 import logging
 from astropy import units
 from astropy.io import fits
-import ds9
+import pyds9 as ds9
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
