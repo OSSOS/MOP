@@ -1,6 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import ds9
+import pyds9 as ds9
+import logging
 
 class WxMPLFitsViewer(object):
     """
@@ -15,6 +16,9 @@ class WxMPLFitsViewer(object):
         self._displayables_by_cutout = {}
 
     def display(self, cutout, mark_source=True):
+        logging.debug("Current display list contains: {}".format(self._displayables_by_cutout.keys()))
+        logging.debug("Looking for {}".format(cutout))
+
         if cutout in self._displayables_by_cutout:
             displayable = self._displayables_by_cutout[cutout]
         else:
