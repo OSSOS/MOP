@@ -24,6 +24,10 @@ class ImageViewManager(object):
 
     @property
     def image_viewer(self):
+        """
+
+        @rtype: SingletViewer
+        """
         return self._image_viewer
 
     @image_viewer.setter
