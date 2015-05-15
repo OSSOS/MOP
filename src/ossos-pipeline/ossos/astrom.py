@@ -857,7 +857,9 @@ class Observation(object):
                                   ftype='p',
                                   ccdnum=str(ccd),
                                   fk="")
-        observation.rawname = os.path.splitext(os.path.basename(image_uri))[0]+str(ccd).zfill(2)
+
+        # JJK commented this out, I think the following line is not true?
+        # observation.rawname = os.path.splitext(os.path.basename(image_uri))[0]+str(ccd).zfill(2)
 
         return observation
 
@@ -868,8 +870,8 @@ class Observation(object):
         self.ccdnum = ccdnum is not None and str(ccdnum) or None
         self.ftype = ftype is not None and str(ftype) or None
         self.rawname = self.fk + self.expnum
-        self.rawname += ccdnum is not None and ccdnum or ""
         self.rawname += ftype is not None and ftype or ""
+        self.rawname += ccdnum is not None and ccdnum or ""
         logger.debug(self.rawname)
         if image_uri is None:
             self.image_uri = self.get_image_uri()
