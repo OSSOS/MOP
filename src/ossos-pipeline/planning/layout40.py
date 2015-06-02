@@ -4,6 +4,7 @@ import math
 import sys
 import os
 import string
+import invariable
 
 from matplotlib.patches import Rectangle
 from matplotlib.patches import Ellipse
@@ -24,7 +25,7 @@ from ossos import mpc
 
 
 USER = '/Users/michele/'
-
+USER = '/Users/jjk/'
 
 def plot_line(axes, fname, ltype):
     """plot the ecliptic plane line on the given axes."""
@@ -32,26 +33,25 @@ def plot_line(axes, fname, ltype):
     axes.plot(x[0], x[1], ltype)
 
 
-MPCORB_FILE = os.path.join(USER, 'MPCORB-Distant.dat')
+#MPCORB_FILE = os.path.join(USER, 'MPCORB-Distant.dat')
+MPCORB_FILE = os.path.join(USER, 'Dropbox/Develop/code/MPCORB.DAT')
 L7MODEL = 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
-# L7MODEL = '/Users/jjk/Dropbox/Research/KuiperBelt'
-# L7MODEL = '/tmp/vospace/OSSOS/CFEPS/L7SyntheticModel-v09.txt'
 # L7MODEL = '/Users/kavelaarsj/Dropbox/Research/KuiperBelt/OSSOS/L7SyntheticModel-v09.txt'
-# REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/ast/'
+REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/dbaseclone/ast/'
 # REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/Research/KuiperBelt/dbase/TNOdb/dbase/data/ast/'
 
-PLOT_FIELD_EPOCH = 'Oct15'  # Oct14.00 ==> '0' days since the New Moon on Oct14
+PLOT_FIELD_EPOCH = 'Sep15'  # Oct14.00 ==> '0' days since the New Moon on Oct14
 #TODO the .00 is appended when this variable is used as a keyword that needs that .00 this is bad.
-DISCOVERY_NEW_MOON = 'Oct15'  # this is the date that the RA/DEC in blocks corresponds to.
+DISCOVERY_NEW_MOON = 'Sep15'  # this is the date that the RA/DEC in blocks corresponds to.
 
 PLOT_USNO_STARS = True
-PLOT_MEGACAM_ARCHIVE_FIELDS = True
+PLOT_MEGACAM_ARCHIVE_FIELDS = False
 PLOT_SYNTHETIC_KBOS = True
 PLOT_SYNTHETIC_KBO_TRAILS = False
-PLOT_REAL_KBOS = False and os.access(REAL_KBO_AST_DIR,os.F_OK)
+PLOT_REAL_KBOS = True and os.access(REAL_KBO_AST_DIR, os.F_OK)
 PLOT_FIELD_LAYOUT = True
 
-PLOT_MPCORB = True and os.access(MPCORB_FILE, os.F_OK)
+PLOT_MPCORB = False and os.access(MPCORB_FILE, os.F_OK)
 
 
 LABEL_FIELDS = True
@@ -144,7 +144,7 @@ NAME                |RA         |DEC        |EPOCH |POINT|
 
 
 #fall13
-# blocks = {'13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"},  # ,
+blocks = {'13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"}}  # ,
 # '13AE': {"RA": "14:15:28.89", "DEC": "-12:32:28.4"},  # E+0+0: image 1616681, ccd21 on April 9
 #           '13AO': {"RA": "15:58:01.35", "DEC": "-12:19:54.2"},  # O+0+0: image 1625346, ccd21 on May 8
 #           '13BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"},
@@ -162,7 +162,10 @@ NAME                |RA         |DEC        |EPOCH |POINT|
 # blocks = {'14AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"}}  # the centre when set in May 2014.
 # will then define a 15AM to work properly.
 # blocks = {'15AM': {'RA': "15:35:00.00", "DEC": "-12:10:00.0"}}  # the centre for discovery in May 2015.
-blocks = {'15BS': {'RA': "00:25:00.00", "DEC": "+06:00:00.00"}}
+blocks = {
+    '14BH': {'RA': "01:28:32.32", "DEC": "+12:51:06.10"},
+    '13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"}, 
+    '15BS': {'RA': "00:30:00.00", "DEC": "+04:45:00.00"}}
 
 newMoons = {
 #    'Feb13': "2013/02/10 10:00:00",
@@ -173,7 +176,7 @@ newMoons = {
 #    'Jul13': "2013/07/08 10:00:00",
 #    'Aug13': "2013/08/06 10:00:00",
 #    'Sep13': '2013/09/05 10:00:00',
-#    'Oct13': '2013/10/04 10:00:00',
+    'Oct13': '2013/10/04 10:00:00',
 #    'Nov13': '2013/11/03 10:00:00',
 #    'Dec13': '2013/12/02 10:00:00',
 #    'Jan14': '2014/01/01 10:00:00',
@@ -320,7 +323,8 @@ for block in blocks.keys():
             decc = ephem.degrees(dec_start - dx*height/2.0)
             this_decc = decc + dy * height
             width = 1.007*math.radians(camera_width / math.cos(this_decc))
-            rac = ephem.hours(ra_start + dx*width)
+            ## set to a -ve instead of +ve for the 'fall'
+            rac = ephem.hours(ra_start - dx*width)
             dec = math.degrees(this_decc)
             ra = math.degrees(rac)
             print "{} {} {}".format(rac, dec, math.degrees(width))
@@ -374,13 +378,15 @@ dec_cen = math.degrees(decs.mean())
 #height = 70
 #ra_cen = 45.0
 #dec_cen = 17.5
+
+### These values are the half width/height of the field.
 width = 12
-height = 7
+height = 12
 
 ## lets make a plot of the field selections.
 fig = figure()
 ax = fig.add_subplot(111)
-
+#ax.set_aspect('equal')
 
 ax.set_xlim(ra_cen + width, ra_cen - width)
 ax.set_ylim(dec_cen - height, dec_cen + height)
@@ -396,16 +402,23 @@ plot_line(ax, 'eplane.radec', 'b-')
 plot_line(ax, 'gplane.radec', 'g-')
 
 # plot the invariant plane
-invar_i = ephem.degrees('1.57870566')
-invar_Om = ephem.degrees('107.58228062')
-ec = [ephem.Ecliptic(ephem.degrees(str(lon)) + invar_Om, invar_i) for lon in range(1, 360)]
-print ec
+lon = np.arange(-2*math.pi,2*math.pi,0.5/57)
+#lon = np.arange(0,30./57.0,0.1)
+lat = 0*lon 
+print lon, lat
+(lat, lon) = invariable.trevonc(lat, lon)
+print lon, lat
+ec = [ephem.Ecliptic(x,y) for (x,y) in np.array((lon,lat)).transpose()]
+#invar_i = ephem.degrees('1.57870566')
+#invar_Om = ephem.degrees('107.58228062')
+# ec = [ephem.Ecliptic(ephem.degrees(str(lon)) + invar_Om, invar_i) for lon in range(1, 360)]
+#print ec[0].lat, ec[-1].lat
 eq = [ephem.Equatorial(coord) for coord in ec]
-print [math.degrees(coord.ra) for coord in eq if math.degrees(coord.ra) < 20]
-print [coord.dec for coord in eq if math.degrees(coord.ra) < 20]
-ax.scatter([math.degrees(coord.ra) for coord in eq],
+#print [math.degrees(coord.ra) for coord in eq if math.degrees(coord.ra) < 20]
+#print [coord.dec for coord in eq if math.degrees(coord.ra) < 20]
+ax.plot([math.degrees(coord.ra) for coord in eq],
            [math.degrees(coord.dec) for coord in eq],
-           color='k',
+           '.k',
            alpha=0.7)
 
 ## build a list of Synthetic KBOs that will be in the discovery fields.
@@ -521,17 +534,17 @@ for idx in range(len(ras)):
                                     width= camera_width_40,
                                     height= camera_height/2.0,
                                     color='b',
-                                    lw=0.5, fill=True, alpha=0.3)) 
+                                    lw=0.5, fill=False, alpha=0.3)) 
             ax.add_artist(Rectangle(xy=(math.degrees(ra) - camera_width_36/2.0, math.degrees(dec) - camera_height / 2.0),
                                     height=camera_height/4.0,
                                     width=camera_width_36,
                                     color='g',
-                                    lw=0.5, fill=True, alpha=0.3))
+                                    lw=0.5, fill=False, alpha=0.3))
             ax.add_artist(Rectangle(xy=(math.degrees(ra) - camera_width_36/2.0, math.degrees(dec) + camera_height / 4.0),
                                     height=camera_height/4.0,
                                     width=camera_width_36,
                                     color='r',
-                                    lw=0.5, fill=True, alpha=0.3))
+                                    lw=0.5, fill=False, alpha=0.3))
             if LABEL_FIELDS:
                 ax.text(math.degrees(ra), math.degrees(dec),
                         name,
@@ -547,8 +560,8 @@ for idx in range(len(ras)):
 
 if PLOT_USNO_STARS:
     print "PLOTTING LOCATIONS NEARBY BRIGHT USNO B1 STARS"
-    for ra in range(int(ra_cen - width/2.0),int(ra_cen + width/2.), 10):
-        for dec in range(int(dec_cen - height/2.0),int(dec_cen + height/2.), 10):
+    for ra in range(int(ra_cen - width),int(ra_cen + width), 10):
+        for dec in range(int(dec_cen - height),int(dec_cen + height), 10):
 	    file_name = USER + "new_usno/usno{:5.2f}{:5.2f}.xml".format(ra, dec).replace(" ", "")
             print file_name
             file_name = file_name.replace(" ","")
@@ -586,8 +599,8 @@ if PLOT_USNO_STARS:
 if PLOT_MEGACAM_ARCHIVE_FIELDS:
     print "PLOTTING FOOTPRINTS NEARBY ARCHIVAL MEGAPRIME IMAGES."
 
-    for qra in range(int(ra_cen - width/2.0),int(ra_cen + width/2.), 60):
-        for qdec in range(int(dec_cen - height/2.0),int(dec_cen + height/2.), 30):
+    for qra in range(int(ra_cen - width),int(ra_cen + width), 60):
+        for qdec in range(int(dec_cen - height),int(dec_cen + height), 30):
             filename = USER + "new_usno/megacam{:+6.2f}{:+6.2f}.xml".format(qra, qdec)
             if not os.access(filename, os.R_OK):
                 data = megacam.TAPQuery(qra, qdec, 60.0, 30.0).read()
@@ -655,10 +668,11 @@ if PLOT_REAL_KBOS:
                 verticalalignment='baseline',
                 fontdict={'size': 6,
                 'color': 'darkred'})
+        from astropy import units
         ax.add_artist(Ellipse((kbo.coordinate.ra.degree, kbo.coordinate.dec.degree,),
                               width=2.0*kbo.dra / 3600.0,
                               height=2.0*kbo.ddec / 3600.0,
-                              angle=360 - (kbo.pa + 90),
+                              angle=360 - (kbo.pa.to(units.degree).value + 90),
                               edgecolor='none',
                               facecolor='k',
                               alpha=0.2))
