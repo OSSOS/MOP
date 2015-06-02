@@ -40,10 +40,9 @@ L7MODEL = 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
 # REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/ast/'
 # REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/Research/KuiperBelt/dbase/TNOdb/dbase/data/ast/'
 
-PLOT_FIELD_EPOCH = 'May15'  # Oct14.00 ==> '0' days since the New Moon on Oct14
+PLOT_FIELD_EPOCH = 'Oct15'  # Oct14.00 ==> '0' days since the New Moon on Oct14
 #TODO the .00 is appended when this variable is used as a keyword that needs that .00 this is bad.
-DISCOVERY_NEW_MOON = 'May15'  # this is the date that the RA/DEC in blocks corresponds to.
-
+DISCOVERY_NEW_MOON = 'Oct15'  # this is the date that the RA/DEC in blocks corresponds to.
 
 PLOT_USNO_STARS = True
 PLOT_MEGACAM_ARCHIVE_FIELDS = True
@@ -162,7 +161,8 @@ NAME                |RA         |DEC        |EPOCH |POINT|
 # blocks = {'15AP': {'RA': "13:30:00", "DEC": "-07:45:00"}}
 # blocks = {'14AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"}}  # the centre when set in May 2014.
 # will then define a 15AM to work properly.
-blocks = {'15AM': {'RA': "15:35:00.00", "DEC": "-12:10:00.0"}}  # the centre for discovery in May 2015.
+# blocks = {'15AM': {'RA': "15:35:00.00", "DEC": "-12:10:00.0"}}  # the centre for discovery in May 2015.
+blocks = {'15BS': {'RA': "00:25:00.00", "DEC": "+06:00:00.00"}}
 
 newMoons = {
 #    'Feb13': "2013/02/10 10:00:00",
@@ -189,11 +189,11 @@ newMoons = {
 #    'Nov14': '2014/11/22 10:00:00',
 #    'Dec14': '2014/12/22 10:00:00',
 #    'Jan15': '2015/01/20 10:00:00',
-    'Feb15': '2015/02/18 10:00:00',
-    'Mar15': '2015/03/19 10:00:00',
-    'Apr15': '2015/04/18 10:00:00',
-    'May15': '2015/05/17 10:00:00',
-    'Jun15': '2015/06/16 10:00:00',
+# 'Feb15': '2015/02/18 10:00:00',
+#     'Mar15': '2015/03/19 10:00:00',
+#     'Apr15': '2015/04/18 10:00:00',
+#     'May15': '2015/05/17 10:00:00',
+'Jun15': '2015/06/16 10:00:00',
     'Jul15': '2015/07/15 10:00:00',
     'Aug15': '2015/08/14 10:00:00',
     'Sep15': '2015/09/12 10:00:00',
@@ -382,8 +382,8 @@ fig = figure()
 ax = fig.add_subplot(111)
 
 
-ax.set_xlim(ra_cen+width/2.0, ra_cen-width/2.0)
-ax.set_ylim(dec_cen - height/2.0, dec_cen + height/2.0)
+ax.set_xlim(ra_cen + width, ra_cen - width)
+ax.set_ylim(dec_cen - height, dec_cen + height)
 #ax.set_ylim(-30,30)
 ax.set_xlabel('RA (deg)')
 ax.set_ylabel('DE (deg)')
@@ -394,6 +394,19 @@ ax.grid()
 ## plot the galactic plane line ..
 plot_line(ax, 'eplane.radec', 'b-')
 plot_line(ax, 'gplane.radec', 'g-')
+
+# plot the invariant plane
+invar_i = ephem.degrees('1.57870566')
+invar_Om = ephem.degrees('107.58228062')
+ec = [ephem.Ecliptic(ephem.degrees(str(lon)) + invar_Om, invar_i) for lon in range(1, 360)]
+print ec
+eq = [ephem.Equatorial(coord) for coord in ec]
+print [math.degrees(coord.ra) for coord in eq if math.degrees(coord.ra) < 20]
+print [coord.dec for coord in eq if math.degrees(coord.ra) < 20]
+ax.scatter([math.degrees(coord.ra) for coord in eq],
+           [math.degrees(coord.dec) for coord in eq],
+           color='k',
+           alpha=0.7)
 
 ## build a list of Synthetic KBOs that will be in the discovery fields.
 print "LOADING SYNTHETIC MODEL KBOS FROM: {}".format(L7MODEL)
