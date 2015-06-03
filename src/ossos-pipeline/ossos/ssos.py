@@ -1,4 +1,4 @@
-from ossos.storage import get_mopheader, get_astheader
+from ossos.storage import get_astheader
 
 __author__ = 'Michele Bannister, JJ Kavelaars'
 
@@ -9,7 +9,6 @@ import warnings
 from astropy.io import ascii
 from astropy.time import Time
 import requests
-import sys
 
 from . import astrom
 from .gui import logger, config
@@ -257,7 +256,8 @@ class SSOSParser(object):
 
             # Excludes the non-CFHT OSSOS data, and the wallpaper.
             # note: 'Telescope_Insturment' is a typo in SSOIS's return format
-            if (row['Telescope_Insturment'] != 'CFHT/MegaCam') or (row['Filter'] not in ['r.MP9601', 'u.MP9301']) \
+            if (row['Telescope_Insturment'] != 'CFHT/MegaCam') or (
+                row['Filter'] not in ['r.MP9601', 'u.MP9301', 'r.MP9602', 'u.MP9302']) \
                     or row['Image_target'].startswith('WP'):
                 continue
 
