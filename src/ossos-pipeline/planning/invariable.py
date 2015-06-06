@@ -1,5 +1,8 @@
-import scipy
 import numpy
+
+secrad = numpy.pi / 180.0 / 3600.0
+
+
 def convert(lat,lon):
       """convert lat/lon from the ecliptic to the invariable plane."""
 
@@ -7,10 +10,9 @@ def convert(lat,lon):
       y = numpy.sin(lon)*numpy.cos(lat)
       z = numpy.sin(lat)
 
+      # Invariable plane: values in arcseconds.
       epsilon = 5713.86
       omega = 387390.8
-      Pi = 3.141592653589793238
-      secrad = Pi/180.0/3600.0
 
       coseps = numpy.cos(epsilon*secrad)
       sineps = numpy.sin(epsilon*secrad)
@@ -25,17 +27,23 @@ def convert(lat,lon):
       lon = numpy.arctan2(yi,xi)
       return (lat,lon)
 
-def trevonc(lat,lon):
+
+def trevonc(lat, lon, chiangchoi_plane=False):
       """convert lat/lon from the invariable to the ecliptic plane."""
 
       x = numpy.cos(lon)*numpy.cos(lat)
       y = numpy.sin(lon)*numpy.cos(lat)
       z = numpy.sin(lat)
 
+      # default: the invariable plane. Values in arcseconds.
+      # epsilon is the generalised descriptor of inclination
+      # omega is the longitude of the ascending node
       epsilon = 5713.86
       omega = 387390.8
-      Pi = 3.141592653589793238
-      secrad = Pi/180.0/3600.0
+      if chiangchoi_plane is True:
+          # an amplitude w.r.t. the ecliptic of 1.8 deg and nodal longitude of about 90 deg
+          epsilon = 1.8 * 3600
+          omega = 90. * 3600
 
       coseps = numpy.cos(epsilon*secrad)
       sineps = numpy.sin(epsilon*secrad)
