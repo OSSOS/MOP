@@ -177,7 +177,7 @@ blocks = {
 
     #    '15AP': {'RA': "13:30:00.00", "DEC": "-7:45:00.00"},  # on-plane
     # '15AM': {'RA': "15:35:00.00", "DEC": "-12:10:00.0"}  # positioned for its 2015 discovery opposition.
-    '15BS': {'RA': "00:30:00.00", "DEC": "+04:45:00.00"},
+    '15BS': {'RA': "00:30:00.00", "DEC": "-05:00:00.00"},  # rejected: dec "-02:45:00.00"
     #     '15BD': {'RA': "03:15:00.00", "DEC": "+16:30:00.00"}
 }
 
@@ -190,7 +190,7 @@ newMoons = {
 #    'Jul13': "2013/07/08 10:00:00",
 #    'Aug13': "2013/08/06 10:00:00",
 #    'Sep13': '2013/09/05 10:00:00',
-    'Oct13': '2013/10/04 10:00:00',
+# 'Oct13': '2013/10/04 10:00:00',
 #    'Nov13': '2013/11/03 10:00:00',
 #    'Dec13': '2013/12/02 10:00:00',
 #    'Jan14': '2014/01/01 10:00:00',
@@ -208,9 +208,9 @@ newMoons = {
 #    'Jan15': '2015/01/20 10:00:00',
 # 'Feb15': '2015/02/18 10:00:00',
 #     'Mar15': '2015/03/19 10:00:00',
-    'Apr15': '2015/04/18 10:00:00',
-    'May15': '2015/05/17 10:00:00',
-    'Jun15': '2015/06/16 10:00:00',
+#    'Apr15': '2015/04/18 10:00:00',
+# 'May15': '2015/05/17 10:00:00',
+'Jun15': '2015/06/16 10:00:00',
     'Jul15': '2015/07/15 10:00:00',
     'Aug15': '2015/08/14 10:00:00',
     'Sep15': '2015/09/12 10:00:00',
@@ -403,7 +403,8 @@ ax = fig.add_subplot(111)
 #ax.set_aspect('equal')
 
 #xylims = [250, 195, -17, -4]  # all of A semester
-xylims = [30, 3, 0, 16]  # H, L and S blocks
+#xylims = [27, 3, -6, 17]  # H, L and low S blocks
+xylims = [26, 3, 0, 16]  # H, L and high S blocks
 # xylims = [54, 36, 12, 21]  # D block
 ax.set_xlim(xylims[0], xylims[1])  # ra_cen + width, ra_cen - width)
 ax.set_ylim(xylims[2], xylims[3])  # dec_cen - height, dec_cen + height)
@@ -421,25 +422,28 @@ ax.text(20, 8.5, 'ecliptic', fontdict={'color': 'b'})
 
 # plot the invariant plane
 lon = np.arange(-2*math.pi,2*math.pi,0.5/57)
-#lon = np.arange(0,30./57.0,0.1)
 lat = 0*lon 
-print lon, lat
 (lat, lon) = invariable.trevonc(lat, lon)
-print lon, lat
+
 ec = [ephem.Ecliptic(x,y) for (x,y) in np.array((lon,lat)).transpose()]
-#invar_i = ephem.degrees('1.57870566')
-#invar_Om = ephem.degrees('107.58228062')
-# ec = [ephem.Ecliptic(ephem.degrees(str(lon)) + invar_Om, invar_i) for lon in range(1, 360)]
-#print ec[0].lat, ec[-1].lat
 eq = [ephem.Equatorial(coord) for coord in ec]
-#print [math.degrees(coord.ra) for coord in eq if math.degrees(coord.ra) < 20]
-#print [coord.dec for coord in eq if math.degrees(coord.ra) < 20]
 ax.plot([math.degrees(coord.ra) for coord in eq],
            [math.degrees(coord.dec) for coord in eq],
            '-k',
            lw=1,
            alpha=0.7)
 ax.text(25, 7.5, 'invariant', fontdict={'color': 'k'})
+
+(cc_lat, cc_lon) = invariable.trevonc(lat, lon, chiangchoi_plane=True)
+ec = [ephem.Ecliptic(x, y) for (x, y) in np.array((cc_lon, cc_lat)).transpose()]
+eq = [ephem.Equatorial(coord) for coord in ec]
+ax.plot([math.degrees(coord.ra) for coord in eq],
+        [math.degrees(coord.dec) for coord in eq],
+        '.r',
+        lw=1,
+        alpha=0.7)
+ax.text(25, 6, 'Chiang_Choi', fontdict={'color': 'r'})
+
 
 ## build a list of Synthetic KBOs that will be in the discovery fields.
 print "LOADING SYNTHETIC MODEL KBOS FROM: {}".format(L7MODEL)
@@ -619,14 +623,14 @@ if PLOT_USNO_STARS:
 if PLOT_MEGACAM_ARCHIVE_FIELDS:
     print "PLOTTING FOOTPRINTS NEARBY ARCHIVAL MEGAPRIME IMAGES."
 
-    for qra in xrange(int(xylims[1]), int(xylims[0]), 10):
+    for qra in xrange(int(xylims[1]), int(xylims[0]), 5):
         print qra
-        for qdec in xrange(int(xylims[2]), int(xylims[3]), 30):
+        for qdec in xrange(int(xylims[2]), int(xylims[3]), 10):
             print qra, qdec
             filename = USER + "new_usno/megacam{:+6.2f}{:+6.2f}.xml".format(qra, qdec)
             if not os.access(filename, os.R_OK):
                 # TAP query will max out silently if return table too large. Make small units.
-                data = megacam.TAPQuery(qra, qdec, 10.0, 30.0).read()
+                data = megacam.TAPQuery(qra, qdec, 5.0, 10.0).read()
                 # FIXME: add a catch for 503's when TAP fails when CADC drops connection
                 fobj = open(filename, 'w')
                 fobj.write(data)
