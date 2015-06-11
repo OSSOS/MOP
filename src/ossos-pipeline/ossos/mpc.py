@@ -1111,7 +1111,7 @@ class OSSOSComment(object):
             return "{:1s} {:10s} {}".format(self.version, self.frame, self.comment)
 
         comm = '{:1s}'.format(self.version)
-        comm += self.to_str("{:>10.10s}", self.frame, "-"*10)
+        comm += self.to_str("{:>12.12s}", self.frame, "-"*12)
         comm += self.to_str("{:<11.11s}", self.source_name, "-"*11)
         comm += self.to_str("{:2.2s}", self.photometry_note+self.mpc_note, "--")
         comm += self.to_str("{:>7.2f}", self.x, "-"*7)
