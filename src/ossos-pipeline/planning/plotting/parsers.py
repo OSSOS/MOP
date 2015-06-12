@@ -59,13 +59,14 @@ def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR, suffix='ast', no_nt
     if single_object is not None:
         files = filter(lambda name: name.startswith(single_object), files)
     for filename in files:
-        # keep out the not-tracked and uncharacterised.
-        if no_nt_and_u:  # FIXME: this doesn't have an alternative if including uncharacterised objects
-            if not (filename.__contains__('nt') or filename.startswith('u')):
-                observations = mpc.MPCReader(directory + filename)
-                obj = tno(observations)
-                retval.append(obj)
-
+        try:
+            observations = mpc.MPCReader(directory + filename)
+            obj = tno(observations)
+            retval.append(obj)
+        except Exception as e:
+            print str(e)
+            print filename
+            pass
     return retval
 
 
