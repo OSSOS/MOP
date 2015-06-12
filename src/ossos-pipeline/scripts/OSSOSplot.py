@@ -13,8 +13,6 @@ import Polygon.IO
 from astropy.coordinates import SkyCoord
 from astropy.time import Time
 
-
-
 from astropy import units
 
 import ephem
@@ -168,11 +166,8 @@ class Plot(Canvas):
                 kbos = parsers.ossos_discoveries(directory_name, suffix='ast')
 
             for kbo in kbos:
-                if kbo.orbit.arc_length > 30.:  # cull the short ones for now
-                    print(kbo.name)
-                    self.kbos[kbo.name] = kbo.orbit
-                else:
-                    print("Arc very short, large uncertainty. Skipping {} for now.\n".format(kbo.name))
+                print(kbo.name)
+                self.kbos[kbo.name] = kbo.orbit
 
         self.doplot()
 
@@ -486,9 +481,10 @@ class Plot(Canvas):
             if y < 1E-6:
                 y = 1E-6
             y = math.sqrt(y) * b
-            ptv = self.p2c((x * math.cos(ang) + y * math.sin(ang) + xcen, y * math.cos(ang) - x * math.sin(ang) + ycen))
+            rang = ang
+            ptv = self.p2c((x * math.cos(rang) + y * math.sin(rang) + xcen, y * math.cos(rang) - x * math.sin(rang) + ycen))
             y = -1 * y
-            ntv = self.p2c((x * math.cos(ang) + y * math.sin(ang) + xcen, y * math.cos(ang) - x * math.sin(ang) + ycen))
+            ntv = self.p2c((x * math.cos(rang) + y * math.sin(rang) + xcen, y * math.cos(rang) - x * math.sin(rang) + ycen))
             e1.append(ptv)
             e2.append(ntv)
         e2.reverse()
@@ -1039,9 +1035,10 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                     kbo.predict(today, 568)
                     ra = kbo.coordinate.ra.radian
                     dec = kbo.coordinate.dec.radian
-                    a = math.radians(kbo.dra / 3600.0)
-                    b = math.radians(kbo.ddec / 3600.0)
-                    ang = math.radians(kbo.pa)
+                    from astropy import units
+                    a = kbo.dra.to(units.radian).value
+                    b = kbo.ddec.to(units.radian).value
+                    ang = kbo.pa.to(units.radian).value
                     lost = False
                     if a > math.radians(0.3):
                         lost = True
@@ -1053,9 +1050,13 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                 w.create_point(ra, dec, size=point_size, color=point_colour, fill=fill_colour)
                 if w.show_ellipse.get() == 1 and days == trail_mid_point:
                     if a < math.radians(5.0):
-                        w.create_ellipse(ra, dec, a, b, ang)
+                        w.create_ellipse(ra,
+                                         dec,
+                                         a,
+                                         b,
+                                         ang)
                     if w.show_labels.get() == 1:
-                        w.label(ra, dec, name[-4:], offset=[xoffset, yoffset])
+                        w.label(ra, dec,  name[-4:], offset=[xoffset, yoffset])
             else:
                 ra = kbos[name]['RA']
                 dec = kbos[name]['DEC']
