@@ -10,6 +10,7 @@ from ossos import orbfit
 from planning.plotting import parsers, parameters
 
 
+
 # parsers.parameters.RELEASE_DETECTIONS="/Users/jjk/OSSOSv4.detections"
 
 tnos = parsers.ossos_release_parser(table=True)
@@ -36,14 +37,19 @@ for tno in tnos['object']:
             if ob.discovery:
                 t0 = ob.date.jd
                 break
+        # sort by absolute distance from discovery
         mpc_obs.sort(key=lambda x: math.fabs(x.date.jd - t0))
 
         # need minimum of 3 observations to start fitting an orbit
         t = []
         da = []
         for idx in range(3, len(mpc_obs) + 1):
-            orb = orbfit.Orbfit(mpc_obs[:idx])
-            t.append((math.fabs(mpc_obs[idx - 1].date.jd - t0)) / 365.25)
+            short_arc = mpc_obs[:idx]
+            orb = orbfit.Orbfit(short_arc)
+            short_arc.sort(key=lambda x: x.date.jd)
+            arclen = short_arc[-1].date.jd - short_arc[0].date.jd
+            # print len(short_arc), arclen, abs(mpc_obs[:idx][-1].date.jd - mpc_obs[:idx][0].date.jd)
+            t.append(arclen / 365.25)
             da.append(orb.da/orb.a) 
         with open(pfilename,'w') as pf:
             cPickle.dump((t, da), pf)
@@ -56,7 +62,7 @@ for tno in tnos['object']:
     pyplot.plot(t[-1], da[-1], msymbol + colour, alpha=0.5, ms=4, mec='k', mew=0.1, label='_')
     # pyplot.annotate(tno, (t[-1], da[-1]), size=3)
 
-pyplot.xlabel('total arc length from discovery in OSSOS (years)')
+pyplot.xlabel('arc length (years)')
 pyplot.ylabel('$da/a$')
 pyplot.yscale('log')
 pyplot.xscale('log')
