@@ -184,8 +184,8 @@ class SourceCutout(object):
                                            swidth=self.apcor.swidth,
                                            apcor=self.apcor.apcor,
                                            zmag=self.zmag,
-                                           maxcount=max_count,
-                                           extno=self._ext)
+                                           maxcount=max_count)
+        self.close()
         if not self.apcor.valid:
             mag = None
             merr = None

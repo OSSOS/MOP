@@ -189,7 +189,7 @@ class ProcessRealsController(AbstractController):
             self.model.get_current_astrom_header(),
             self.model.get_current_fits_header())
 
-    def on_accept(self):
+    def on_accept(self, auto=False):
         """
         Initiates acceptance procedure, gathering required data.
         """
@@ -206,16 +206,27 @@ class ProcessRealsController(AbstractController):
         source_cutout = self.model.get_current_cutout()
         assert isinstance(source_cutout, SourceCutout)
         display = ds9.ds9(target='validate')
-        result = display.get('imexam key coordinate wcs fk5 degrees')
-        # result = display.get("""imexam key coordinate $x $y $filename""")
-        logger.debug("IMEXAM returned {}".format(result))
-        values = result.split()
-        ra = Quantity(float(values[1]), unit=units.degree)
-        dec = Quantity(float(values[2]), unit=units.degree)
-        (x, y, extno) = source_cutout.world2pix(ra, dec)
-        key = values[0]
-        source_cutout.update_pixel_location((float(x), float(y)), extno)
-        logger.debug("X, Y => {} , {}".format(source_cutout.pixel_x, source_cutout.pixel_y))
+        if not auto:
+            result = display.get('imexam key coordinate wcs fk5 degrees')
+            # result = display.get("""imexam key coordinate $x $y $filename""")
+            logger.debug("IMEXAM returned {}".format(result))
+            values = result.split()
+            ra = Quantity(float(values[1]), unit=units.degree)
+            dec = Quantity(float(values[2]), unit=units.degree)
+            key = values[0]
+        else:
+            print auto, type(auto)
+            key = isinstance(auto, bool) and " " or auto
+            ra = source_cutout.ra
+            dec = source_cutout.dec
+        try:
+            (x, y, extno) = source_cutout.world2pix(ra, dec)
+            print x, y, extno
+            source_cutout.update_pixel_location((float(x), float(y)), extno)
+            logger.debug("X, Y => {} , {}".format(source_cutout.pixel_x, source_cutout.pixel_y))
+        except:
+            logger.error("Failed to update pixel locations")
+
         pixel_x = source_cutout.pixel_x
         pixel_y = source_cutout.pixel_y
 
@@ -223,6 +234,7 @@ class ProcessRealsController(AbstractController):
 
         try:
             cen_x, cen_y, obs_mag, obs_mag_err = self.model.get_current_source_observed_magnitude()
+            print cen_x, cen_y, obs_mag, obs_mag_err
         except Exception as er:
             logger.critical("PHOT ERROR: {}".format(er))
             phot_failure = True
@@ -241,12 +253,14 @@ class ProcessRealsController(AbstractController):
             source_cutout.update_pixel_location((cen_x, cen_y))
             self.model.get_current_cutout()._adjusted = False
 
+        note1_default = ""
         if self.model.is_current_source_adjusted():
             note1_default = config.read("MPC.NOTE1_HAND_ADJUSTED")
-        elif key in mpc.MPCNOTES['Note1'].keys():
-            note1_default = key
         else:
-            note1_default = ""
+            for note in config.read("MPC.NOTE1OPTIONS"):
+                if note.lower().startswith(key):
+                    note1_default = note
+                    break
 
         self.view.show_accept_source_dialog(
             provisional_name,

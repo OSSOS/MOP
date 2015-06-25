@@ -35,7 +35,7 @@ class WxMPLFitsViewer(object):
         self._do_render(self.current_displayable)
 
         if mark_source:
-            self.mark_sources(cutout)
+            self.mark_apertures(cutout)
 
     def clear(self):
         ds9.ds9('validate').set("frame delete all")
