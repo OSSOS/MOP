@@ -886,6 +886,7 @@ def vofile(filename, **kwargs):
     if os.access(basename, os.R_OK):
         return open(basename, 'r')
     kwargs['view'] = kwargs.get('view', 'data')
+    print filename
     return vospace.open(filename, **kwargs)
 
 

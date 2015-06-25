@@ -73,11 +73,10 @@ class SourceValidationDialog(wx.Dialog):
         self._init_ui()
 
         self.comment_label = wx.StaticText(self, label=SourceValidationDialog.COMMENT)
-        self.comment_text = wx.TextCtrl(self, name=SourceValidationDialog.COMMENT,
-                                        style=wx.TE_MULTILINE | wx.TE_PROCESS_ENTER,
-                                        size=(500, 100))
-        self.comment_text.SetValue(self.default_comment)
-        self.comment_text.Bind(wx.EVT_TEXT_ENTER, self._on_enter_comment)
+        self.comment_text = wx.TextCtrl(self, name=SourceValidationDialog.COMMENT)
+
+        #self.comment_text.SetValue(self.default_comment)
+        #self.comment_text.Bind(wx.EVT_TEXT_ENTER, self._on_enter_comment)
 
         self.submit_button = wx.Button(
             self, label=self.SUBMIT_BTN, name=SourceValidationDialog.SUBMIT_BTN)
