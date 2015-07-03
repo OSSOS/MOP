@@ -20,21 +20,22 @@ from ossos.wcs import WCS
 class MOPHeader(fits.Header):
 
     def __init__(self, header):
-        super(self.__class__, self).__init__()
+        super(self.__class__, self).__init__(header)
 
-        self.mop_keywords = {'NAXIS1': 'NAXIS1',  # Array X size, FITS
-                             'NAXIS2': 'NAXIS2',  # Array Y size, FITS
-                             'DETSEC': 'DETSEC',  # LOCATION of this ARRAY within the MEF
-                             'CRPIX1': 'CRPIX1',
-                             'CRPIX2': 'CRPIX2',
-                             'CRVAL1': 'CRVAL1',
-                             'CRVAL2': 'CRVAL2',
-                             'RA_DEG': 'RA_DEG',
-                             'DEC_DEG': 'DEC_DEG',
-                             'EXPTIME': 'EXPTIME',
-                             'EXPNUM': 'EXPNUM',
-                             'RDNOIS': 'RDNOIS',
-                             'GAIN': 'GAIN'}
+        self.mop_keywords = ['NAXIS1',
+                             'NAXIS2',
+                             'CRPIX1',
+                             'CRPIX2',
+                             'CRVAL1',
+                             'CRVAL2',
+                             'PIXSCALE',
+                             'EXPTIME',
+                             'EXPNUM',
+                             'RDNOISE',
+                             'PHPADU',
+                             'CHIPNUM',
+                             'DETECTOR',
+                             'MJD-OBSC']
 
         self._DET_X_CEN = 11604.5
         self._DET_Y_CEN = 9681
@@ -43,34 +44,41 @@ class MOPHeader(fits.Header):
         except:
             self.wcs = None
 
-        self.input_header = header
+        for keyword in self.mop_keywords:
+            try:
+                self[keyword] = self.__getattribute__(keyword.lower().replace("-", "_"))
+            except Exception as ex:
+                logging.debug("Failed to build mopkeyword: {} -> {} using default".format(keyword, ex))
+                pass
 
-        for keyword in ['CRPIX1', 'CRPIX2', 'CRVAL1', 'CRVAL2', 'RDNOIS', 'GAIN', 'EXPTIME', 'PIXSCAL', 'EXTNO']:
-            self[keyword] = self.__getattribute__(keyword.lower())
+        for keyword in self.keys():
+            if keyword not in self.mop_keywords:
+                self.__delitem__(keyword)
+        self['MOP_VER'] = 1.21
 
-
-    def __getitem__(self, item):
-        try:
-            return self.__getattribute__(item.upper())
-        except:
-            raise KeyError(item)
+    def writeto(self, filename, **kwargs):
+        """
+        Write the header to a fits file.
+        :param filename:
+        :return:
+        """
+        fits.PrimaryHDU(header=self).writeto(filename, output_verify='ignore', **kwargs)
 
     @property
     def crpix1(self):
-            return self.crpix[0]
+            return round(self.crpix[0], 2)
 
     @property
     def crpix2(self):
-            return self.crpix[1]
+            return round(self.crpix[1], 2)
 
     @property
     def crval1(self):
-            return self.crval[0]
+            return round(self.crval[0], 5)
 
     @property
     def crval2(self):
-            return self.crval[1]
-
+            return round(self.crval[1], 5)
 
     @property
     def crpix(self):
@@ -87,9 +95,9 @@ class MOPHeader(fits.Header):
             logging.debug("Switching to use DATASEC for CRPIX value computation.")
 
         try:
-            (x1, x2), (y1, y2) = util.get_pixel_bounds_from_datasec_keyword(self[self.mop_keywords['DETSEC']])
-            dx = float(self[self.mop_keywords['NAXIS1']])
-            dy = float(self[self.mop_keywords['NAXIS2']])
+            (x1, x2), (y1, y2) = util.get_pixel_bounds_from_datasec_keyword(self['DETSEC'])
+            dx = float(self['NAXIS1'])
+            dy = float(self['NAXIS2'])
         except KeyError as ke:
             raise KeyError("Header missing keyword: {}, required for CRPIX[12] computation".format(ke.args[0]))
 
@@ -99,7 +107,7 @@ class MOPHeader(fits.Header):
         return crpix1, crpix2
 
     @property
-    def mjdobsc(self):
+    def mjd_obsc(self):
         """Given a CFHT Megaprime image header compute the center of exposure.
 
         This routine uses the calibration provide by Richard Wainscoat:
@@ -117,15 +125,15 @@ class MOPHeader(fits.Header):
         #TODO Check if this exposure was taken afer or before correction needed.
 
         try:
-            utc_end = self[self.mop_keywords.get('UTCEND', 'UTCEND')]
-            exposure_time = float(self[self.mop_keywords.get('EXPTIME', 'EXPTIME')])
-            date_obs = self[self.mop_keywords.get('DATE-OBS', 'DATE-OBS')]
+            utc_end = self['UTCEND']
+            exposure_time = float(self['EXPTIME'])
+            date_obs = self['DATE-OBS']
         except KeyError as ke:
             raise KeyError("Header missing keyword: {}, required for MJD-OBSC computation".format(ke.args[0]))
 
         utc_end = Time(date_obs+"T"+utc_end)
         utc_cen = utc_end - TimeDelta(0.73, format='sec') - TimeDelta(exposure_time/2.0, format='sec')
-        return utc_cen.mjd
+        return round(utc_cen.mjd, 7)
 
     @property
     def crval(self):
@@ -141,13 +149,13 @@ class MOPHeader(fits.Header):
             logging.debug("Trying RA/DEC values")
 
         try:
-            return (float(self[self.mop_keywords.get('RA-DEG', 'RA-DEG')]),
-                    float(self[self.mop_keywords.get('DEC-DEG', 'DEC-DEG')]))
+            return (float(self['RA-DEG']),
+                    float(self['DEC-DEG']))
         except KeyError as ke:
             KeyError("Can't build CRVAL1/2 missing keyword: {}".format(ke.args[0]))
 
     @property
-    def pixscal(self):
+    def pixscale(self):
         """Return the pixel scale of the detector, in arcseconds.
 
         This routine first attempts to compute the size of a pixel using the WCS.  Then looks for PIXSCAL in header.
@@ -156,33 +164,42 @@ class MOPHeader(fits.Header):
         @rtype: float
         """
         try:
-            (x, y) = self.crval
-            p1 = SkyCoord(self.wcs.xy2sky(x, y) * units.degree)
-            p2 = SkyCoord(self.wcs.xy2sky(x+1, y+1) * units.degree)
-
-            return p1.separation(p2).to(units.arcsecond).value/math.sqrt(2)
+            (x, y) = self['NAXIS1']/2.0, self['NAXIS2']/2.0
+            print x, y
+            print self.wcs.xy2sky(x, y)
+            p1 = SkyCoord(*self.wcs.xy2sky(x, y) * units.degree)
+            print p1
+            p2 = SkyCoord(*self.wcs.xy2sky(x+1, y+1) * units.degree)
+            print p1, p2
+            return round(p1.separation(p2).to(units.arcsecond).value/math.sqrt(2), 3)
         except Exception as ex:
             logging.debug("Failed to compute PIXSCALE using WCS: {}".format(ex))
 
-        return float(self[self.mop_keywords.get('PIXSCAL', 'PIXSCAL')])
+        return float(self['PIXSCAL'])
 
     @property
-    def extno(self):
-        return int(self[self.mop_keywords.get('CHIPID', 'CHIPID')]) + 1
-
+    def chipnum(self):
+        return int(self['EXTVER']) + 1
 
     @property
-    def gain(self):
+    def phpadu(self):
         """
         @rtype: float
         @return: The CCD gain
         """
-        return float(self[self.mop_keywords.get('GAIN', 'GAIN')])
+        return round(float(self['GAIN']), 2)
 
     @property
-    def rdnoise(self):
+    def detector(self):
         """
-        @rtype: float
-        @return: The CCD ReadNoise
+        @rtype: basestring
+        :return: The DETECTOR keyword value
         """
-        return float(self[self.mop_keywords.get('RDNOISE', 'RDNOISE')])
+        return self.get('INSTRUME', self['DETECTOR'])
+
+
+if __name__ == '__main__':
+    import sys
+    filename = sys.argv[1]
+    header = MOPHeader(fits.open(filename)[0].header)
+    header.writeto(filename.rstrip('.fits')+".mopheader", clobber=True)
