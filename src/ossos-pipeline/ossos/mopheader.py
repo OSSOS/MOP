@@ -165,12 +165,8 @@ class MOPHeader(fits.Header):
         """
         try:
             (x, y) = self['NAXIS1']/2.0, self['NAXIS2']/2.0
-            print x, y
-            print self.wcs.xy2sky(x, y)
             p1 = SkyCoord(*self.wcs.xy2sky(x, y) * units.degree)
-            print p1
             p2 = SkyCoord(*self.wcs.xy2sky(x+1, y+1) * units.degree)
-            print p1, p2
             return round(p1.separation(p2).to(units.arcsecond).value/math.sqrt(2), 3)
         except Exception as ex:
             logging.debug("Failed to compute PIXSCALE using WCS: {}".format(ex))
@@ -195,11 +191,13 @@ class MOPHeader(fits.Header):
         @rtype: basestring
         :return: The DETECTOR keyword value
         """
-        return self.get('INSTRUME', self['DETECTOR'])
+        return self.get('DETECTOR', self['INSTRUME'])
 
+
+def main(filename):
+    mop_header = MOPHeader(fits.open(filename)[0].header)
+    mop_header.writeto(filename.rstrip('.fits')+".mopheader", clobber=True)
 
 if __name__ == '__main__':
     import sys
-    filename = sys.argv[1]
-    header = MOPHeader(fits.open(filename)[0].header)
-    header.writeto(filename.rstrip('.fits')+".mopheader", clobber=True)
+    main(sys.argv[1])
