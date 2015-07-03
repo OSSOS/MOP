@@ -27,8 +27,10 @@ import logging
 import os
 from subprocess import CalledProcessError
 import sys
+
 from ossos import storage
 from ossos import util
+
 
 def mkpsf(expnum, ccd, version, dry_run=False, prefix=""):
     """Run the OSSOS jmpmakepsf script.
@@ -108,7 +110,7 @@ def main(task='mkpsf'):
 
     prefix = (args.fk and 'fk') or ''
     task  = util.task()
-    dependency = 'update_header'
+    dependency = 'mk_mopheader'
 
     storage.DBIMAGES = args.dbimages
 
