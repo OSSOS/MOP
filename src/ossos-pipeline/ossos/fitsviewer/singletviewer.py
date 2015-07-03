@@ -1,4 +1,5 @@
 import pyds9 as ds9
+import numpy
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -27,8 +28,11 @@ class SingletViewer(WxMPLFitsViewer):
         try:
             radii = (cutout.apcor.aperture, cutout.apcor.sky, cutout.apcor.swidth+cutout.apcor.sky)
         except:
-            radii = (4, 15,30)
-        self._displayables_by_cutout[cutout].place_annulus(x, y, radii, colour='r')
+            radii = (4, 15, 30)
+        radii = numpy.array(radii)
+        radii *= 0.185
+        radii /= 3600.0
+        self._displayables_by_cutout[cutout].place_annulus(cutout.ra, cutout.dec, radii, colour='r')
 
     def mark_sources(self, cutout):
         assert cutout in self._displayables_by_cutout
@@ -46,7 +50,6 @@ class SingletViewer(WxMPLFitsViewer):
                 colour = "r"
             else:
                 colour = "g"
-
         self._displayables_by_cutout[cutout].place_marker(x, y, radius,
                                                           colour=colour)
 

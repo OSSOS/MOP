@@ -1,6 +1,7 @@
 {
     "KEYBINDS": {
         "ACCEPT_SRC": "a",
+        "AUTO_ACCEPT_SRC": "o",
         "REJECT_SRC": "r",
         "RESET_CMAP": "s",
         "RESET_SOURCE_LOCATION": "c",
@@ -77,7 +78,7 @@
     },
 
     "APP": {
-        "MAX_THREADS": 1
+        "MAX_THREADS": 5
     },
 
     "UI": {
