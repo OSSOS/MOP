@@ -164,7 +164,7 @@ class Plot(Canvas):
                 kbos = parsers.ossos_discoveries()
             else:
                 kbos = parsers.ossos_discoveries(directory_name, suffix='ast')
-
+                kbos.extend(parsers.ossos_discoveries(directory_name, suffix='ted'))
             for kbo in kbos:
                 print(kbo.name)
                 self.kbos[kbo.name] = kbo.orbit
