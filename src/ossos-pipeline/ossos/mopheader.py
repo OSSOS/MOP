@@ -3,17 +3,15 @@
 A mopheader is a FITS Primary HDU that contains the header quantities needed for an astrometric/photometric and time
 measurement of a KBO in the image.  Basically the WCS transforms.
 """
+__author__ = 'jjk'
+
+import logging
 import math
 
 from astropy import units
 from astropy.coordinates import SkyCoord
-
-
-__author__ = 'jjk'
-
 from astropy.time import Time, TimeDelta
 from astropy.io import fits
-import logging
 
 from ossos import util
 from ossos.wcs import WCS
@@ -74,19 +72,19 @@ class MOPHeader(fits.Header):
 
     @property
     def crpix1(self):
-            return round(self.crpix[0], 2)
+        return round(self.crpix[0], 2)
 
     @property
     def crpix2(self):
-            return round(self.crpix[1], 2)
+        return round(self.crpix[1], 2)
 
     @property
     def crval1(self):
-            return round(self.crval[0], 5)
+        return round(self.crval[0], 5)
 
     @property
     def crval2(self):
-            return round(self.crval[1], 5)
+        return round(self.crval[1], 5)
 
     @property
     def crpix(self):
@@ -109,8 +107,8 @@ class MOPHeader(fits.Header):
         except KeyError as ke:
             raise KeyError("Header missing keyword: {}, required for CRPIX[12] computation".format(ke.args[0]))
 
-        crpix1 = self._DET_X_CEN - (x1 + x2)/2. + dx/2.
-        crpix2 = self._DET_Y_CEN - (y1 + y2)/2. + dy/2.
+        crpix1 = self._DET_X_CEN - (x1 + x2) / 2. + dx / 2.
+        crpix2 = self._DET_Y_CEN - (y1 + y2) / 2. + dy / 2.
 
         return crpix1, crpix2
 
@@ -130,7 +128,7 @@ class MOPHeader(fits.Header):
 
         @rtype : float
         """
-        #TODO Check if this exposure was taken afer or before correction needed.
+        # TODO Check if this exposure was taken afer or before correction needed.
 
         try:
             utc_end = self['UTCEND']
@@ -139,8 +137,8 @@ class MOPHeader(fits.Header):
         except KeyError as ke:
             raise KeyError("Header missing keyword: {}, required for MJD-OBSC computation".format(ke.args[0]))
 
-        utc_end = Time(date_obs+"T"+utc_end)
-        utc_cen = utc_end - TimeDelta(0.73, format='sec') - TimeDelta(exposure_time/2.0, format='sec')
+        utc_end = Time(date_obs + "T" + utc_end)
+        utc_cen = utc_end - TimeDelta(0.73, format='sec') - TimeDelta(exposure_time / 2.0, format='sec')
         return round(utc_cen.mjd, 7)
 
     @property
@@ -172,10 +170,10 @@ class MOPHeader(fits.Header):
         @rtype: float
         """
         try:
-            (x, y) = self['NAXIS1']/2.0, self['NAXIS2']/2.0
+            (x, y) = self['NAXIS1'] / 2.0, self['NAXIS2'] / 2.0
             p1 = SkyCoord(*self.wcs.xy2sky(x, y) * units.degree)
-            p2 = SkyCoord(*self.wcs.xy2sky(x+1, y+1) * units.degree)
-            return round(p1.separation(p2).to(units.arcsecond).value/math.sqrt(2), 3)
+            p2 = SkyCoord(*self.wcs.xy2sky(x + 1, y + 1) * units.degree)
+            return round(p1.separation(p2).to(units.arcsecond).value / math.sqrt(2), 3)
         except Exception as ex:
             logging.debug("Failed to compute PIXSCALE using WCS: {}".format(ex))
 
@@ -204,8 +202,10 @@ class MOPHeader(fits.Header):
 
 def main(filename):
     mop_header = MOPHeader(fits.open(filename)[0].header)
-    mop_header.writeto(filename.rstrip('.fits')+".mopheader", clobber=True)
+    mop_header.writeto(filename.rstrip('.fits') + ".mopheader", clobber=True)
+
 
 if __name__ == '__main__':
     import sys
+
     main(sys.argv[1])
