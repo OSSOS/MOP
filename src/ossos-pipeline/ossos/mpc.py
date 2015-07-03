@@ -573,7 +573,10 @@ class Observation(object):
         mpc_line = mpc_line[0:80]
         if len(mpc_line) != 80:
             logging.debug("Line is short, trying .ted format")
-            return cls.from_ted(mpc_line)
+            try:
+               return cls.from_ted(mpc_line)
+            except Exception as e:
+               pass
 
         obsrec = None
         for format_name in struct_formats:
@@ -935,16 +938,19 @@ class OSSOSComment(object):
         if len(values) > 1:
             comment_string = values[1].lstrip(' ')
         # O 1631355p21 O13AE2O     Z  1632.20 1102.70 0.21 3 ----- ---- % Apcor failure.
-        ossos_comment_format = '1s1x10s1x11s1x1s1s1x7s1x7s1x4s1x1s1x5s1x4s1x'
-        try:
-            retval = cls(*struct.unpack(ossos_comment_format, values[0]))
-            retval.comment = values[1]
-            return retval
-        except Exception as e:
-            logging.debug(str(e))
-            logging.debug("OSSOS Fixed Format Failed.")
-            logging.debug(comment)
-            logging.debug("Trying space separated version")
+        # O fk1751553s01 H6J         Y    85.03 1741.78 0.20 0 24.54 0.17 % odd shaped source
+        ossos_comment_formats = ['1s1x12s1x11s1x1s1s1x7s1x7s1x4s1x1s1x5s1x4s1x',
+                                 '1s1x10s1x11s1x1s1s1x7s1x7s1x4s1x1s1x5s1x4s1x']
+        while ossos_comment_format in ossos_comment_formats:
+            try:
+               retval = cls(*struct.unpack(ossos_comment_format, values[0]))
+               retval.comment = values[1]
+               return retval
+            except Exception as e:
+               logging.debug(str(e))
+               logging.debug("OSSOS Fixed Format Failed.")
+               logging.debug(comment)
+               logging.debug("Trying space separated version")
 
         values = values[0].split()
         try:
@@ -1299,6 +1305,8 @@ class MPCReader(object):
 
                     if self.replace_provisional is not None:  # then it has an OSSOS designation: set that in preference
                         mpc_observation.provisional_name = self.provisional_name
+                    if len(str(mpc_observation.provisional_name.strip())) == 0 and str(mpc_observation.minor_planet_number) == "":
+                        mpc_observation.provisional_name = filename.split(".")[0]
                     mpc_observations.append(mpc_observation)
             except Exception as e:
                 logging.error(str(e))
