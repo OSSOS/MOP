@@ -44,8 +44,11 @@ def ossos_release_parser(table=False):
 class tno(object):
     def __init__(self, observations):
         self.orbit = orbfit.Orbfit(observations.mpc_observations)
-        self.discovery = [n for n in observations.mpc_observations if n.discovery.is_discovery][0]
-        self.name = observations.provisional_name
+        try:
+           self.discovery = [n for n in observations.mpc_observations if n.discovery.is_discovery][0]
+        except:
+           self.discovery = False
+        self.name = observations.provisional_name.split('.')[0]
         return
 
 
@@ -60,7 +63,7 @@ def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR, suffix='ast', no_nt
         files = filter(lambda name: name.startswith(single_object), files)
     for filename in files:
         try:
-            observations = mpc.MPCReader(directory + filename)
+            observations = mpc.MPCReader(directory + filename,replace_provisional=True)
             obj = tno(observations)
             retval.append(obj)
         except Exception as e:
