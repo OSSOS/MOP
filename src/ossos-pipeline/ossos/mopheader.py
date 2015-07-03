@@ -3,9 +3,11 @@
 A mopheader is a FITS Primary HDU that contains the header quantities needed for an astrometric/photometric and time
 measurement of a KBO in the image.  Basically the WCS transforms.
 """
+import math
+
 from astropy import units
 from astropy.coordinates import SkyCoord
-import math
+
 
 __author__ = 'jjk'
 
@@ -18,6 +20,12 @@ from ossos.wcs import WCS
 
 
 class MOPHeader(fits.Header):
+    """
+    MOPHeader creates a fits.Header object that is derived from an input image (only works for MegaPrime right now)
+    but with some keyword values modified to provide the correct values to down-stream processing.
+
+    Currently for MegaPrime the only major use of mopheader is to correct the FITS header expsoure time.
+    """
 
     def __init__(self, header):
         super(self.__class__, self).__init__(header)
