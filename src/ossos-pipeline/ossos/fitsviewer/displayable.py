@@ -1,5 +1,7 @@
 from cStringIO import StringIO
+import copy
 import logging
+import tempfile
 from astropy import units
 from astropy.io import fits
 import pyds9 as ds9
@@ -126,25 +128,28 @@ class ImageSinglet(object):
             display.set('frame new')
             display.set('scale zscale')
             display.set('cmap invert yes')
-            f = StringIO()
-            self.hdulist.writeto(f, output_verify='ignore')
-            f.flush()
-            f.seek(0)
-            hdulist = fits.open(f)
+
+            # create a copy of the image that does not have PV keywords, ds9 fails on those.
+            hdulist = copy.copy(self.hdulist)
             for hdu in hdulist:
                 del(hdu.header['PV*'])
+            f = tempfile.NamedTemporaryFile(suffix=".fits")
+            hdulist.writeto(f, output_verify='ignore')
+            f.flush()
+            f.seek(0)
             try:
-                display.set_pyfits(hdulist)
+                display.set('file mosaicimage {}'.format(f.name))
             except ValueError as ex:
                 logging.error("Failed while trying to display: {}".format(hdulist))
                 logging.error("{}".format(ex))
             f.close()
+            del(f)
             del(hdulist)
             self.frame_number = display.get('frame frameno')
             display.set('frame center {}'.format(self.frame_number))
             display.set('zoom to fit')
             display.set('wcs sky fk5')
-            display.set('wcs align yes')
+            display.set('frame match wcs')
         display.set('frame frameno {}'.format(self.frame_number))
 
         self._interaction_context = InteractionContext(self)
@@ -162,7 +167,7 @@ class ImageSinglet(object):
         """
         display = ds9.ds9(target='validate')
         colour_string = {'r': 'red', 'b': 'blue'}.get(colour, 'green')
-        display.set('regions', 'image; circle({},{},{}) # color={}'.format(x,y,radius,colour_string))
+        display.set('regions', 'wcs; circle({},{},{}) # color={}'.format(x, y, radius, colour_string))
 
         #if self.marker is not None:
         #    self.marker.remove_from_axes(self.axes)
@@ -185,6 +190,7 @@ class ImageSinglet(object):
         self.display_changed.fire()
 
     def update_marker(self, x, y, radius=None):
+
         if self.marker is None:
             if radius is None:
                 raise MPLViewerError("No marker to update.")

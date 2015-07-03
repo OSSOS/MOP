@@ -880,7 +880,7 @@ class OSSOSComment(object):
     Parses an OSSOS observation's metadata into a format that can be stored in the 
     an Observation.comment and written out in the same MPC line.
 
-    Specification: '1s1x10s1x11s1x2s1x7s1x7s1x4s1x1s1x5s1x4s1x'
+    Specification: '1s1x12s1x11s1x2s1x7s1x7s1x4s1x1s1x5s1x4s1x'
     """
 
     def __init__(self, version, frame, source_name, photometry_note, mpc_note, x, y,
@@ -938,12 +938,11 @@ class OSSOSComment(object):
         if len(values) > 1:
             comment_string = values[1].lstrip(' ')
         # O 1631355p21 O13AE2O     Z  1632.20 1102.70 0.21 3 ----- ---- % Apcor failure.
-        # O fk1751553s01 H6J         Y    85.03 1741.78 0.20 0 24.54 0.17 % odd shaped source
-        ossos_comment_formats = ['1s1x12s1x11s1x1s1s1x7s1x7s1x4s1x1s1x5s1x4s1x',
-                                 '1s1x10s1x11s1x1s1s1x7s1x7s1x4s1x1s1x5s1x4s1x']
-        while ossos_comment_format in ossos_comment_formats:
+        ossos_comment_format = '1s1x12s1x11s1x1s1s1x7s1x7s1x4s1x1s1x5s1x4s1x'
+        old_ossos_comment_format = '1s1x10s1x11s1x1s1s1x7s1x7s1x4s1x1s1x5s1x4s1x'
+        for struct_ in [ossos_comment_format, old_ossos_comment_format]:
             try:
-               retval = cls(*struct.unpack(ossos_comment_format, values[0]))
+               retval = cls(*struct.unpack(struct_, values[0]))
                retval.comment = values[1]
                return retval
             except Exception as e:
@@ -1117,7 +1116,7 @@ class OSSOSComment(object):
             return "{:1s} {:10s} {}".format(self.version, self.frame, self.comment)
 
         comm = '{:1s}'.format(self.version)
-        comm += self.to_str("{:>10.10s}", self.frame, "-"*10)
+        comm += self.to_str("{:>12.12s}", self.frame, "-"*12)
         comm += self.to_str("{:<11.11s}", self.source_name, "-"*11)
         comm += self.to_str("{:2.2s}", self.photometry_note+self.mpc_note, "--")
         comm += self.to_str("{:>7.2f}", self.x, "-"*7)
