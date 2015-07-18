@@ -202,8 +202,9 @@ class MOPHeader(fits.Header):
 
 def main(filename):
     mop_header = MOPHeader(fits.open(filename)[0].header)
-    mop_header.writeto(filename.rstrip('.fits') + ".mopheader", clobber=True)
-
+    output_filename = filename.rstrip('.fits') + ".mopheader"
+    mop_header.writeto(output_filename, clobber=True)
+    return output_filename
 
 if __name__ == '__main__':
     import sys
