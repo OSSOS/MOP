@@ -96,10 +96,11 @@ class Orbfit(object):
         _abg_file.seek(0)
         self.abg = _abg_file.read()
 
-    @property
-    def residuals(self):
+    # @property
+    def residuals(self, overall=False):
         ## compute the residuals (from the given observations)
         _residuals = ""
+        overall_resids = []
         for observation in self.observations:
             self.predict(observation.date)
             coord1 = ICRSCoordinates(self.coordinate.ra, self.coordinate.dec)
@@ -109,9 +110,13 @@ class Orbfit(object):
             coord2 = ICRSCoordinates(self.coordinate.ra, observation.coordinate.dec)
             observation.dec_residual = float(coord1.separation(coord2).arcsec)
             observation.dec_residual = (coord1.dec.degree - coord2.dec.degree) * 3600.0
+            overall_resids.append(math.sqrt(observation.ra_residual ** 2 + observation.dec_residual ** 2))
             _residuals += "{:1s}{:12s} {:+05.2f} {:+05.2f} # {}\n".format(
                 observation.null_observation, observation.date, observation.ra_residual, observation.dec_residual, observation)
-        return _residuals
+        if overall:
+            return overall_resids  # values in arcsec
+        else:
+            return _residuals
 
     @property
     def arc_length(self):
@@ -236,7 +241,7 @@ class Orbfit(object):
 
         fobj.write("\n")
         fobj.write(str(self) + "\n")
-        fobj.write(str(self.residuals) + "\n")
+        fobj.write(str(self.residuals()) + "\n")
         fobj.write('arclen (days) {} '.format(self.arc_length))
         fobj.write("Expected accuracy on {:>10s}: {:6.2f}'' {:6.2f}'' moving at {:6.2f} ''/hr\n\n".format(
             at_date, self.dra, self.ddec, self.rate_of_motion(date=date)))
