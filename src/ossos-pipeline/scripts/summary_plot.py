@@ -1,12 +1,12 @@
-import logging
 import sys
-from ossos import orbfit
-from ossos import mpc
+import math
+
 from matplotlib import pyplot
 import numpy
 import ephem
-import math
 
+from ossos import orbfit
+from ossos import mpc
 from ossos import figures
 
 figures.setFigForm()
@@ -91,7 +91,7 @@ if __name__ == '__main__':
     ax2.plot(x, y, '-k')
 
     for mpc_file in sys.argv[1:]:
-        mpc_obs = mpc.MPCReader(mpc_file).mpc_observations
+        mpc_obs = mpc.MPCReader(mpc_file).mpc_obs
         build_summary_plot(mpc_obs)
 
     ax2.set_xlim(-0.5, 0.5)

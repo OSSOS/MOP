@@ -623,7 +623,7 @@ class TestMPCReader(unittest.TestCase):
         Make sure that we can use the MPCReader directly, in the old school way.
         :return:
         """
-        r = mpc.MPCReader(self.fileobj.name, replace_provisional=True).mpc_observations
+        r = mpc.MPCReader(self.fileobj.name, replace_provisional=True).mpc_obs
         self.assertIsInstance(r, numpy.ndarray)
         self.assertIsInstance(r[0], mpc.Observation)
         self.assertEqual(r[0].provisional_name, self._default_provisional,

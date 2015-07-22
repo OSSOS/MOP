@@ -20,6 +20,7 @@ import plot_lightcurve
 import plot_efficiency
 
 
+
 # from parameters import tno
 
 def ossos_release_parser(table=False):
@@ -52,15 +53,28 @@ class tno(object):
         return
 
 
-def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR, suffix='ast', no_nt_and_u=True, single_object=None):
+def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
+                      suffix='ast',
+                      no_nt_and_u=True,
+                      single_object=None,
+                      all=False,
+                      release=parameters.RELEASE_VERSION,
+                      ):
     """
     Returns a list of objects holding orbfit.Orbfit objects with the observations in the Orbfit.observations field.
+    Default is to return only the objects corresponding to the current Data Release.
     """
     retval = []
     working_context = context.get_context(directory)
     files = working_context.get_listing(suffix)
+
     if single_object is not None:
         files = filter(lambda name: name.startswith(single_object), files)
+    if not all:
+        # only return the objects corresponding to a particular Data Release
+        objects = ossos_release_parser(table=True)['object']
+        files = filter(lambda name: name.partition(suffix)[0].rstrip('.') in objects, files)
+
     for filename in files:
         # keep out the not-tracked and uncharacterised.
         if no_nt_and_u:  # FIXME: this doesn't have an alternative if including uncharacterised objects

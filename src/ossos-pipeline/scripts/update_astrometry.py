@@ -6,8 +6,8 @@ observation.
 from copy import deepcopy
 import os
 import math
-import numpy
 
+import numpy
 
 __author__ = 'jjk'
 
@@ -193,7 +193,7 @@ def main(mpc_file, cor_file, skip_mags=False):
     :param skip_mags: Should we skip recomputing the magnitude of sources?
     :return: :raise ValueError: If actions on the mpc_obs indicate this is not a valid OSSOS observations
     """
-    observations = mpc.MPCReader(mpc_file).mpc_observations
+    observations = mpc.MPCReader(mpc_file).mpc_obs
 
     original_obs = []
     modified_obs = []
