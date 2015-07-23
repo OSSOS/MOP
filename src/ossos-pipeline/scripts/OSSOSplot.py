@@ -11,7 +11,7 @@ import time
 import Polygon
 import Polygon.IO
 from astropy.coordinates import SkyCoord
-from astropy.time import Time
+from astropy.time import Time, TimeDelta
 
 from astropy import units
 
@@ -170,7 +170,6 @@ class Plot(Canvas):
                 self.kbos[kbo.name] = kbo.orbit
 
         self.doplot()
-
 
     def eps(self):
         """Print the canvas to a postscript file"""
@@ -817,7 +816,7 @@ class Plot(Canvas):
     def save_pointings(self):
         """Print the currently defined FOVs"""
         i = 0
-        if self.pointing_format.get() == 'CFHT ET':
+        if self.pointing_format.get() in ['GEMINI ET', 'CFHT ET']:
             logging.info('Beginning ephemeris pointing save.')
             for pointing in self.pointings:
                 name = pointing["label"]["text"]
@@ -831,51 +830,60 @@ class Plot(Canvas):
                                                (ccd[2], ccd[1]),
                                                (ccd[0], ccd[1])))
                     polygons.append(polygon)
-                et = EphemTarget(name)
+                et = EphemTarget(name, format=self.pointing_format.get())
                 # determine the mean motion of target KBOs in this field.
                 field_kbos = []
                 center_ra = 0
                 center_dec = 0
 
+                start_date = mpc.Time(self.date.get(), scale='utc') - TimeDelta(14*units.day)
+                end_date = start_date + TimeDelta(28*units.day)
+                time_step = TimeDelta(1*units.hour)
+
                 # Compute the mean position of KBOs in the field on current date.
                 for kbo_name, kbo in self.kbos.items():
                     if kbo_name in Neptune or kbo_name in tracking_termination:
-                        # print 'skipping', kbo_name
+                        print 'skipping', kbo_name
                         continue
-                    kbo.predict(mpc.Time(self.date.get(), scale='utc'))
+                    kbo.predict(start_date)
                     ra = kbo.coordinate.ra.radian
                     dec = kbo.coordinate.dec.radian
-                    for polygon in polygons:
-                        if polygon.isInside(ra, dec):
-                            field_kbos.append(kbo)
-                            center_ra += ra
-                            center_dec += dec
+                    if kbo_name in name:
+                        field_kbos.append(kbo)
+                        center_ra += ra
+                        center_dec += dec
+                    else:
+                        for polygon in polygons:
+                            if polygon.isInside(ra, dec):
+                                field_kbos.append(kbo)
+                                center_ra += ra
+                                center_dec += dec
 
                 logging.critical("KBOs in field {0}: {1}".format(name, ', '.join([n.name for n in field_kbos])))
 
-                start_date = mpc.Time(self.date.get(), scale='utc').jd
-                for days in range(-6, 6, 1):
-                    for hours in range(0, 23, 12):
-                        today = mpc.Time(start_date + days + hours / 24.0,
-                                         scale='utc',
-                                         format='jd')
-                        mean_motion = (0, 0)
-                        if len(field_kbos) > 0:
-                            current_ra = 0
-                            current_dec = 0
-                            for kbo in field_kbos:
-                                kbo.predict(today)
-                                current_ra += kbo.coordinate.ra.radian
-                                current_dec += kbo.coordinate.dec.radian
-                            mean_motion = ((current_ra - center_ra) / len(field_kbos),
-                                           (current_dec - center_dec) / len(field_kbos))
-                        ra = pointing['camera'].coordinate.ra.radian + mean_motion[0]
-                        dec = pointing['camera'].coordinate.dec.radian + mean_motion[1]
-                        cc = SkyCoord(ra=ra,
-                                      dec=dec,
-                                      unit=(units.radian, units.radian),
-                                      obstime=today)
-                        et.append(cc)
+                today = start_date
+                while today < end_date:
+                    today += time_step
+                    mean_motion = (0, 0)
+                    if len(field_kbos) > 0:
+                        current_ra = 0
+                        current_dec = 0
+                        for kbo in field_kbos:
+                            kbo.predict(today)
+                            current_ra += kbo.coordinate.ra.radian
+                            current_dec += kbo.coordinate.dec.radian
+                        mean_motion = ((current_ra - center_ra) / len(field_kbos),
+                                       (current_dec - center_dec) / len(field_kbos))
+                    ra = pointing['camera'].coordinate.ra.radian + mean_motion[0]
+                    dec = pointing['camera'].coordinate.dec.radian + mean_motion[1]
+                    cc = SkyCoord(ra=ra,
+                                  dec=dec,
+                                  unit=(units.radian, units.radian),
+                                  obstime=today)
+                    dt = start_date - today
+                    cc.dra = (mean_motion[0] * units.radian / dt.to(units.hour)).to(units.arcsec/units.hour).value*math.cos(dec)
+                    cc.ddec = (mean_motion[1] * units.radian / dt.to(units.hour)).to(units.arcsec/units.hour).value
+                    et.append(cc)
 
                 et.save()
             return
@@ -1175,6 +1183,7 @@ def start(dirname=None, pointings=None):
     pointFormat = Menu(pointing_menu, tearoff=0)
     pointFormat.add_checkbutton(label='CFHT PH', variable=w.pointing_format, onvalue='CFHT PH')
     pointFormat.add_checkbutton(label="CFHT ET", variable=w.pointing_format, onvalue='CFHT ET')
+    pointFormat.add_checkbutton(label="GEMINI ET", variable=w.pointing_format, onvalue='GEMINI ET')
     pointFormat.add_checkbutton(label='Palomar', variable=w.pointing_format, onvalue='Palomar')
     pointFormat.add_checkbutton(label='KPNO/CTIO', variable=w.pointing_format, onvalue='KPNO/CTIO')
     pointFormat.add_checkbutton(label='SSim', variable=w.pointing_format, onvalue='SSim')
