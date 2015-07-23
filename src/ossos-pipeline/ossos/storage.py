@@ -18,6 +18,8 @@ from .downloads.cutouts.calculator import CoordinateConverter
 import vos
 from astropy.io import fits
 import requests
+requests.packages.urllib3.disable_warnings()
+
 
 import coding
 import util
