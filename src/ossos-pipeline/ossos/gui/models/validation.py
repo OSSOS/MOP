@@ -1,7 +1,5 @@
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-from ...util import Time
 from ...gui import events
 from ...gui import logger
 from ...gui.models.collections import StatefulCollection
@@ -181,17 +179,21 @@ class ValidationModel(object):
         return hlist
 
     def get_current_observation_date(self):
-        header = self.get_current_astrom_header()
-        try:
-            logger.debug("{}".format(header))
-            mjd = Time(header["MJD_OBS_CENTER"], scale='utc', format='mpc', precision=6).mpc
-        except Exception as ex:
-            logger.debug("{}".format(ex))
-            mjd = Time(header['MJD-OBS'] + float(header['EXPTIME'])/3600.0/24.0/2.0,
-                       format='mjd',
-                       scale='utc',
-                       precision=6).mpc
-        return mjd
+        return self.get_current_workunit().get_current_reading().obs.header['MJD_OBS_CENTER']
+
+        #
+        # try:
+        #     header = self.get_current_reading().obs.header
+        #     logger.debug("{}".format(header))
+        #     mjd = Time(header["MJD_OBS_CENTER"], scale='utc', format='mpc', precision=6).mpc
+        # except Exception as ex:
+        #     logger.debug("{}".format(ex))
+        #     header = self.get_current_astrom_header()
+        #     mjd = Time(header['MJD-OBS'] + float(header['EXPTIME'])/3600.0/24.0/2.0,
+        #                format='mjd',
+        #                scale='utc',
+        #                precision=6).mpc
+        # return mjd
 
     def get_current_ra(self):
         try:
