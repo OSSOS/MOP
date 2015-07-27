@@ -82,8 +82,6 @@ class ImageSinglet(object):
 
         self._colormap = GrayscaleColorMap()
         self._mpl_event_handlers = {}
-        self._interaction_context = None
-        self.number_of_images_displayed = 0
         self.frame_number = None
 
     @property
@@ -106,42 +104,44 @@ class ImageSinglet(object):
 
     def show_image(self, ds9, colorbar=False):
         display = ds9
-        if colorbar:
-            display.set('view colorbar yes')
 
         if self.frame_number is None:
+            _display_options = {'scale': 'histeq',
+                                'scale mode': 'zscale',
+                                'zoom': 4,
+                                'cmap': 'grey',
+                                'cmap invert': 'yes'
+                                }
+            for display_option in _display_options.keys():
+                _display_options[display_option] = display.get(display_option)
             display.set('frame new')
+
             # create a copy of the image that does not have Gwyn's PV keywords, ds9 fails on those.
             hdulist = copy.copy(self.hdulist)
             for hdu in hdulist:
                 del (hdu.header['PV*'])
-
-            # place in a temporary file for ds9 to use.
+            # place in a temporary file for ds9 to use, this must be an on disk file
             f = tempfile.NamedTemporaryFile(suffix=".fits")
             hdulist.writeto(f, output_verify='ignore')
             f.flush()
             f.seek(0)
 
-            # load into display
+            # load image into the display
             try:
                 display.set('mosaicimage {}'.format(f.name))
             except ValueError as ex:
                 logging.error("Failed while trying to display: {}".format(hdulist))
                 logging.error("{}".format(ex))
+
+            # clear up the loose bits.
             f.close()
             del f
             del hdulist
-            self.frame_number = display.get('frame frameno')
-            display.set('frame center {}'.format(self.frame_number))
-            display.set('zoom to fit')
-            display.set('wcs sky fk5')
-            display.set('frame match wcs')
-
-        display.set('frame frameno {}'.format(self.frame_number))
-
-        # self._interaction_context = InteractionContext(self)
-
-        self.number_of_images_displayed += 1
+            self.frame_number = display.get('frame')
+            for display_option in _display_options.keys():
+                display.set("{} {}".format(display_option, _display_options[display_option]))
+        else:
+            display.set('frame frameno {}'.format(self.frame_number))
 
     @staticmethod
     def clear_markers(ds9):
