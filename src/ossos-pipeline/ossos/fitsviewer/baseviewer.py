@@ -1,21 +1,37 @@
-__author__ = "David Rusk <drusk@uvic.ca>"
 
-import pyds9 as ds9
+__author__ = "David Rusk <drusk@uvic.ca>"
 import logging
+
+from ..downloads.cutouts import source
+
 
 class WxMPLFitsViewer(object):
     """
     Display FITS images using ds9.
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent, display):
         self.parent = parent
 
         self.current_cutout = None
         self.current_displayable = None
+        self._ds9 = display
         self._displayables_by_cutout = {}
 
-    def display(self, cutout, mark_source=True):
+    @property
+    def ds9(self):
+        return self._ds9
+
+    def display(self, cutout, mark_source=True, pixel=False):
+        """
+
+        :param cutout: source cutout object to be display
+        :type cutout: source.SourceCutout
+        :param mark_source: should the sources associated with the cutout be display?
+        :type mark_source: bool
+        :param pixel: use the source coordinates in pixels (True) or RA/DEC (False)
+        :type pixel: bool
+        """
         logging.debug("Current display list contains: {}".format(self._displayables_by_cutout.keys()))
         logging.debug("Looking for {}".format(cutout))
 
@@ -33,12 +49,13 @@ class WxMPLFitsViewer(object):
         self._attach_handlers(self.current_displayable)
 
         self._do_render(self.current_displayable)
+        self._do_align(self.current_displayable)
 
         if mark_source:
-            self.mark_apertures(cutout)
+            self.mark_apertures(cutout, pixel=pixel)
 
     def clear(self):
-        ds9.ds9('validate').set("frame delete all")
+        self.ds9.set("frame delete all")
 
     def draw_error_ellipse(self, x, y, a, b, pa, color='y'):
         """
@@ -53,7 +70,7 @@ class WxMPLFitsViewer(object):
     def refresh_markers(self):
         self.mark_sources(self.current_cutout)
 
-    def mark_apertures(self, cutout):
+    def mark_apertures(self, cutout, pixel=False):
         pass
 
     def release_focus(self):
@@ -74,6 +91,9 @@ class WxMPLFitsViewer(object):
 
     def _create_displayable(self, cutout):
         raise NotImplementedError()
+
+    def _do_align(self, displayable):
+        displayable.align(self.current_cutout.focus_sky_coord)
 
     def _do_render(self, displayable):
         displayable.render()

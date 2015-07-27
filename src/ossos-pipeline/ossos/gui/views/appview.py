@@ -39,12 +39,12 @@ class ApplicationView(object):
     Provides the view's external interface.
     """
 
-    def __init__(self, controller_factory, track_mode=False, debug=False):
+    def __init__(self, controller_factory, track_mode=False, debug=False, mark_using_pixels=False):
         self.controller = controller_factory.create_controller(self)
 
         self.wx_app = wx.App(False)
         self.debug = debug
-
+        self.mark_using_pixels=mark_using_pixels
         self.mainframe = MainFrame(self.controller, track_mode=track_mode)
         self.image_view_manager = ImageViewManager(self.mainframe)
         self.menu = Menu(self.mainframe, self.controller)
@@ -83,7 +83,7 @@ class ApplicationView(object):
 
     @guithread
     def display(self, cutout):
-        self.image_viewer.display(cutout)
+        self.image_viewer.display(cutout, pixel=self.mark_using_pixels)
 
     @guithread
     def clear(self):
@@ -98,8 +98,8 @@ class ApplicationView(object):
         self.image_viewer.draw_error_ellipse(x, y, a, b, pa, color=color)
 
     @guithread
-    def mark_apertures(self, cutout):
-        self.image_viewer.mark_apertures(cutout)
+    def mark_apertures(self, cutout, pixel=False):
+        self.image_viewer.mark_apertures(cutout, pixel)
 
     @guithread
     def reset_colormap(self):
