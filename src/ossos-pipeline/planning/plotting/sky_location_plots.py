@@ -17,6 +17,7 @@ import parsers
 import parameters
 import plot_fanciness
 import plot_objects
+from planning import invariable
 
 
 # from ossos import cameras  # bit over the top to show all the ccds?
@@ -30,7 +31,7 @@ plot_extents = {"13AE": [209.8, 218.2, -15.5, -9.5],
                 "13BL": [9, 18, 1, 7],
                 "14BH": [18, 27, 10, 16],
                 "15BD": [44, 54, 13, 20],
-                "15B?": [7, 16, -4, 4]
+                "15BS": [7, 16, -4, 4]
 }
 
 xgrid = {'2013': [-3, -2, -1, 0, 1, 2, 3],
@@ -91,6 +92,7 @@ def basic_skysurvey_plot_setup(from_plane=ephem.degrees('0')):
 
     fig = plt.figure()
     ax = fig.add_subplot(111)  # , aspect="equal")
+
     handles = []  # this handles the creation of the legend properly at the end of plotting
     labels = []
     handles, labels = plot_galactic_plane(handles, labels)
@@ -101,8 +103,8 @@ def basic_skysurvey_plot_setup(from_plane=ephem.degrees('0')):
     fontP.set_size('small')  # make the fonts smaller
     plt.xlabel('RA (deg)')
     plt.ylabel('Declination (deg)')
-    plt.grid(True)
-    plot_fanciness.remove_border(ax)
+    plt.grid(True, which='both')
+    # plot_fanciness.remove_border(ax)
 
     return handles, labels, ax, fontP
 
@@ -139,15 +141,18 @@ def plot_invariable_plane(handles, labels, from_plane=ephem.degrees('0')):
     # Plot the invariable plane: values from DE405, table 5, Souami and Souchay 2012
     # http://www.aanda.org/articles/aa/pdf/2012/07/aa19011-12.pdf
     # Ecliptic J2000
-    invar_i = ephem.degrees('1.57870566')
-    invar_Om = ephem.degrees('107.58228062')
-    ec = [ephem.Ecliptic(ephem.degrees(str(lon)) + invar_Om, invar_i + from_plane) for lon in range(1, 360)]
+    lon = np.arange(-2*math.pi,2*math.pi,0.5/57)
+    lat = 0*lon
+    (lat, lon) = invariable.trevonc(lat, lon)
+
+    ec = [ephem.Ecliptic(x,y) for (x,y) in np.array((lon,lat)).transpose()]
     eq = [ephem.Equatorial(coord) for coord in ec]
     handles.append(plt.plot([math.degrees(coord.ra) for coord in eq],
-                            [math.degrees(coord.dec) for coord in eq],
-                            ls='--',
-                            color=plot_fanciness.ALMOST_BLACK,
-                            alpha=0.7))
+               [math.degrees(coord.dec) for coord in eq],
+                ls='--',
+                color=plot_fanciness.ALMOST_BLACK,
+                lw=1,
+                alpha=0.7))
     labels.append('invariable')
 
     return handles, labels
@@ -198,7 +203,7 @@ def build_ossos_footprint(ax, block_name, block, field_offset, plot=True, plot_c
                                         width=dimen,
                                         edgecolor='k',
                                         facecolor=plot_col,
-                                        lw=0.5, fill=True, alpha=0.15))
+                                        lw=0.5, fill=True, alpha=0.15, zorder=0))
 
         rac += field_offset / math.cos(decc)
         for i in range(3):
@@ -400,7 +405,7 @@ if __name__ == '__main__':
     else:  # do them all!
         blocks = parameters.BLOCKS
 
-    discoveries = parsers.ossos_discoveries()  # ossos_release_parser()
+    discoveries = parsers.ossos_release_parser(table=True)  # ossos_release_parser()
 
     # extent = plot_extents['13A'] # hardwired for doing both at once
 
@@ -446,12 +451,15 @@ if __name__ == '__main__':
                                                    elongation=args.elongation, plot=True)
             ax = plot_objects.plot_synthetic_kbos(ax, coverage)
 
-        ax = plot_objects.plot_planets(ax, extent, date)
-        ax = plot_objects.plot_ossos_discoveries(ax, discoveries,
+        block_discoveries = discoveries[np.array([name.startswith('o3'+blockname[-1].lower()) for name in discoveries['object']])]
+        ax = plot_objects.plot_ossos_discoveries(ax, block_discoveries, blockname,
                                                  prediction_date=date)  # will predict for dates other than discovery
+
+        # ax = plot_objects.plot_planets(ax, extent, date)
+
         # ax = plot_discovery_uncertainty_ellipses(ax, date)
-        if blockname == '13AE':  # special case: Saturn was adjacent at discovery
-            ax = plot_objects.plot_saturn_moons(ax)
+        # if blockname == '13AE':  # special case: Saturn was adjacent at discovery
+        #     ax = plot_objects.plot_saturn_moons(ax)
 
         if args.existing:
             plot_existing_CFHT_Megacam_observations_in_area(ax)

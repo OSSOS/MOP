@@ -1,7 +1,7 @@
 __author__ = 'Michele Bannister   git:@mtbannister'
 
 import os
-
+import math
 from collections import OrderedDict
 
 MPCORB_FILE = os.path.join(os.getenv('HOME', '/Users/michele/'), 'MPCORB-Distant.dat')
@@ -10,8 +10,7 @@ L7_HOME = '/Users/michele/Dropbox/OSSOS/Release_summaries/'
 REAL_KBO_AST_DIR = '/Users/michele/Dropbox/OSSOS/measure3/ossin/'
 # REAL_KBO_AST_DIR = 'vos:OSSOS/dbaseclone/ast/'
 RELEASE_VERSION = 4
-RELEASE_DETECTIONS = '/Users/michele/Dropbox/OSSOS/Release_summaries/v4/OSSOSv4/OSSOSv4.detections'
-# 'v4/OSSOSv4.1+u.detections'
+RELEASE_DETECTIONS = '/Users/michele/Dropbox/OSSOS/Release_summaries/v4/OSSOSv4.1+u.detections'
 # v5prototype.detections'
 #
 IDX = REAL_KBO_AST_DIR + 'file.idx'  # for local  # 'vos:OSSOS/dbaseclone/idx/file.idx'  # for vos
@@ -301,3 +300,23 @@ class tno(object):
             raise VersionError('Unknown version "{0}"'.format(version))
         assert retval
         return retval
+
+def mag_at_radius(r, d, p=0.10, phi=1):
+    # Assumptions: m_r,
+    #                  small-object albedo,
+    #                  observation at opposition,
+    #                  heliocentric and geocentric distance approximate as equal at TNO distances.
+    # r in km
+    # d in AU
+    m_sun = -27.1
+
+    m_r = m_sun - 2.5*math.log10((p*phi*r**2) / (2.25 * 10**16 * (d**2) * (d-1)**2))
+    print "m_r = {:2.2f} for a {} km radius TNO at {} AU at opposition, assuming {} albedo.".format(
+        m_r, r, d, p)
+
+    return m_r
+
+
+if __name__ == '__main__':
+    # want m_r = 24.5: plutinos are about 10% albedo
+    mag_at_radius(20, 30)
