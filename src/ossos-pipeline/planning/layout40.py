@@ -23,7 +23,6 @@ from ossos import storage
 from ossos import orbfit
 from ossos import mpc
 
-
 USER = '/Users/michele/'
 # USER = '/Users/jjk/'
 
@@ -172,12 +171,12 @@ blocks = {
     # '13AE': {"RA": "14:15:28.89", "DEC": "-12:32:28.4"},
     #    '13AO': {"RA": "15:58:01.35", "DEC": "-12:19:54.2"},  # O+0+0: image 1625346, ccd21 on May 8. O block are
     # May 7,8.
-    '13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"},  # 13B blocks are at their opposition locations
-    '14BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"},  # due to bad weather, discovery wasn't until 2014, so 14
+    # '13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"},  # 13B blocks are at their opposition locations
+    # '14BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"},  # due to bad weather, discovery wasn't until 2014, so 14
 
     #    '15AP': {'RA': "13:30:00.00", "DEC": "-7:45:00.00"},  # on-plane
     # '15AM': {'RA': "15:35:00.00", "DEC": "-12:10:00.0"}  # positioned for its 2015 discovery opposition.
-    '15BS': {'RA': "00:30:00.00", "DEC": "-05:00:00.00"},  # rejected: dec "-02:45:00.00"
+    '15BS': {'RA': "00:30:00.00", "DEC": "+05:00:00.00"},  # rejected: dec "-02:45:00.00"
     #     '15BD': {'RA': "03:15:00.00", "DEC": "+16:30:00.00"}
 }
 
@@ -210,8 +209,8 @@ newMoons = {
 #     'Mar15': '2015/03/19 10:00:00',
 #    'Apr15': '2015/04/18 10:00:00',
 # 'May15': '2015/05/17 10:00:00',
-'Jun15': '2015/06/16 10:00:00',
-    'Jul15': '2015/07/15 10:00:00',
+# 'Jun15': '2015/06/16 10:00:00',
+#     'Jul15': '2015/07/15 10:00:00',
     'Aug15': '2015/08/14 10:00:00',
     'Sep15': '2015/09/12 10:00:00',
     'Oct15': '2015/10/12 10:00:00',
@@ -230,7 +229,7 @@ newMoons = {
     'Nov16': '2016/11/01 10:00:00',
     'Dec16': '2016/12/01 10:00:00',
     'Jan17': '2017/01/01 10:00:00',
-    'Feb17': '2017/02/01 10:00:00',
+    # 'Feb17': '2017/02/01 10:00:00',
     }
 
 
