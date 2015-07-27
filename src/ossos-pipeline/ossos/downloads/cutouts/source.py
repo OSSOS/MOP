@@ -1,4 +1,5 @@
 import urllib
+from astropy import units
 from astropy.io import fits
 from ...astrom import SourceReading, Observation
 from ...downloads.core import ApcorData
@@ -31,37 +32,32 @@ class SourceCutout(object):
         self.hdulist = hdulist
         self.apcor = apcor
         self.zmag = zmag
-        self.original_observed_ext = None
+        self.pixel_y = self.pixel_x = self._extno = None
 
         if self.reading.x is None or self.reading.y is None or (self.reading.x == -9999 and self.reading.y == -9999):
-            for extno in range(1, len(self.hdulist)):
-                hdu = self.hdulist[extno]
-                try:
-                    logger.debug("Converting {} {} to X/Y ".format(self.reading.ra, self.reading.dec))
-                    (x, y) = hdu.wcs.sky2xy(self.reading.ra, self.reading.dec)
-                    logger.debug("Got {} {} ".format(x, y))
-                    if 0 < x < hdu.header.get('NAXIS1', 0) and 0 < y < hdu.header.get('NAXIS2', 0):
-                        self.reading.pix_coord = hdu.converter.get_inverse_converter().convert((x, y))
-                        self.original_observed_ext = extno
-                        self.reading.obs.ccdnum = extno - 1
-                        break
-                except:
-                    pass
+            (x, y) = self.hdulist[self.extno].wcs.sky2xy(self.reading.ra, self.reading.dec)
+            self.reading.pix_coord = hdulist[self.extno].converter.get_inverse_converter().convert((x, y))
+            self.reading.obs.ccdnum = self.extno - 1
 
+        self.original_observed_ext = self.extno
         self.original_observed_x = self.reading.x
         self.original_observed_y = self.reading.y
-        if self.original_observed_ext is None:
-            self.original_observed_ext = len(self.hdulist) - 1
-
 
         self.observed_x = self.original_observed_x
         self.observed_y = self.original_observed_y
 
-        self.pixel_x, self.pixel_y = self.get_pixel_coordinates(
-            self.observed_source_point, self.original_observed_ext)
-
-        self._ra = self.reading.ra
-        self._dec = self.reading.dec
+        if self.pixel_x is None or self.pixel_y is None:
+            if self.reading.compute_inverted():
+                naxis1 = self.reading.obs.header[self.reading.obs.HEADER_IMG_SIZE_X]
+                naxis2 = self.reading.obs.header[self.reading.obs.HEADER_IMG_SIZE_Y]
+                x = int(naxis1) - self.observed_x
+                y = int(naxis2) - self.observed_y
+                self.pixel_x, self.pixel_y = self.get_pixel_coordinates((x, y), self.original_observed_ext)
+            else:
+                self.pixel_x, self.pixel_y = self.get_pixel_coordinates(self.observed_source_point,
+                                                                        self.original_observed_ext)
+        self._ra = self.reading.ra * units.degree
+        self._dec = self.reading.dec * units.degree
         self._ext = self.original_observed_ext
 
         self._stale = False
@@ -69,13 +65,24 @@ class SourceCutout(object):
         self._comparison_image = None
         self._tempfile = None
         self._bad_comparison_images = [self.hdulist[-1].header.get('EXPNUM', None)]
-        logger.error("type X/Y {}/{}".format(type(self.pixel_x),
+        logger.debug("type X/Y {}/{}".format(type(self.pixel_x),
                                              type(self.pixel_y)))
+
+    @property
+    def extno(self):
+        if self._extno is None:
+            for extno in range(1, len(self.hdulist)):
+                (x, y) = self.hdulist[extno].wcs.sky2xy(self.reading.ra, self.reading.dec)
+                if 0 < x < self.hdulist[extno].header.get('NAXIS1', 0) and \
+                        0 < y < self.hdulist[extno].header.get('NAXIS2', 0):
+                    self._extno = extno
+                    break
+        return self._extno
+
 
     @property
     def astrom_header(self):
         return self.hdulist[len(self.hdulist) - 1].header
-        #return self.reading.get_observation_header()
 
     @property
     def fits_header(self):
@@ -86,13 +93,23 @@ class SourceCutout(object):
         return self.observed_x, self.observed_y
 
     @property
+    def focus_sky_coord(self):
+        """
+        The focus of the frame in pxiel cutout coordiantes.
+        :return: (x, y)
+        :rtype: float, float
+        """
+        (x, y) = self.get_pixel_coordinates(self.reading.focus_coord_original)
+        return self.hdulist[self.original_observed_ext].wcs.xy2sky(x, y)
+
+    @property
     def pixel_source_point(self):
         return self.pixel_x, self.pixel_y
 
     def update_pixel_location(self, new_pixel_location, extno=1):
         self.pixel_x, self.pixel_y = new_pixel_location
         self.observed_x, self.observed_y = self.get_observed_coordinates(
-            new_pixel_location, extno)
+            new_pixel_location, extno=extno)
         self._ext = extno
         self._stale = True
         self._adjusted = True
@@ -137,7 +154,7 @@ class SourceCutout(object):
         """
         return self.hdulist[extno].converter.convert(point)
 
-    def get_observed_coordinates(self, point, extno=1):
+    def get_observed_coordinates(self, point, extno=None):
         """
         Retrieves the location of a point using the coordinate system of
         the original observation, i.e. the original image before any
@@ -165,32 +182,41 @@ class SourceCutout(object):
         :rtype: (float, float, int)
         """
         for idx in range(1, len(self.hdulist)):
+            logger.debug("Trying convert using extension: {0}".format(idx))
             hdu = self.hdulist[idx]
-            x, y = hdu.wcs.wcs_world2pix(ra, dec, 1)
+            x, y = hdu.wcs.sky2xy(ra, dec)
+            logger.debug("Tried converting RA/DEC {0},{1} to X/Y and got {2},{3}".format(ra, dec, x, y))
             if 0 < x < hdu.header['NAXIS1'] and 0 < y < hdu.header['NAXIS2']:
+                logger.debug("Inside the frame.")
                 return x, y, idx
         return None, None, None
 
-    def get_observed_magnitude(self, **kwargs):
+    def get_observed_magnitude(self):
         # NOTE: this import is only here so that we don't load up IRAF
         # unnecessarily (ex: for candidates processing).
+        """
+        Get the magnitude at the current pixel x/y location.
+
+        :return: Table
+        """
         from ossos import daophot
 
         max_count = float(self.astrom_header.get("MAXCOUNT", 30000))
-        x, y, mag, merr = daophot.phot_mag(self._hdulist_on_disk(),
-                                           self.pixel_x, self.pixel_y,
-                                           aperture=self.apcor.aperture,
-                                           sky=self.apcor.sky,
-                                           swidth=self.apcor.swidth,
-                                           apcor=self.apcor.apcor,
-                                           zmag=self.zmag,
-                                           maxcount=max_count)
-        self.close()
-        if not self.apcor.valid:
-            mag = None
-            merr = None
-
-        return x, y, mag, merr
+        tmp_file = self._hdulist_on_disk()
+        try:
+            phot = daophot.phot_mag(tmp_file,
+                                    self.pixel_x, self.pixel_y,
+                                    aperture=self.apcor.aperture,
+                                    sky=self.apcor.sky,
+                                    swidth=self.apcor.swidth,
+                                    apcor=self.apcor.apcor,
+                                    zmag=self.zmag,
+                                    maxcount=max_count, extno=1)
+            if not self.apcor.valid:
+                phot['PIER'][0] = 1
+            return phot
+        finally:
+            self.close()
 
     def _hdulist_on_disk(self):
         """
@@ -220,17 +246,16 @@ class SourceCutout(object):
             self._stale = False
 
     def _update_ra_dec(self):
-        fits_header = self.fits_header
-        self._ra, self._dec = wcs.WCS(fits_header).xy2sky(self.pixel_x, self.pixel_y)
-        logger.debug("computed RA/DEC using WCS {},{} -> {},{}".format(
-            self.pixel_x, self.pixel_y,
-            self._ra, self._dec))
+        hdu = self.hdulist[self.original_observed_ext]
+        self._ra, self._dec = hdu.wcs.xy2sky(self.pixel_x, self.pixel_y)
 
     @property
     def comparison_image(self):
+        if self._comparison_image is None:
+            self.retrieve_comparison_image()
         return self._comparison_image
 
-    def retrieve_comparison_image(self, downloader):
+    def retrieve_comparison_image(self, downloader=None):
         """
         Search the DB for a comparison image for this cutout.
         """

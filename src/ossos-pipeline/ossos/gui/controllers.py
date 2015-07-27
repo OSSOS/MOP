@@ -1,5 +1,6 @@
 from astropy import units
 from astropy.units import Quantity
+
 from ossos.downloads.cutouts.source import SourceCutout
 from ossos.gui.models.transactions import TransAckValidationModel
 
@@ -40,7 +41,7 @@ class AbstractController(object):
             cutout = self.model.get_current_cutout()
             self.view.display(cutout)
         except ImageNotLoadedException as ex:
-            logger.error("Failed to load image: {}".format(ex))
+            logger.info("Waiting to load image: {}".format(ex))
             self.image_loading_dialog_manager.wait_for_item(ex.requested_item)
             pass
         except NoWorkUnitException as ex:
@@ -189,6 +190,9 @@ class ProcessRealsController(AbstractController):
             self.model.get_current_astrom_header(),
             self.model.get_current_fits_header())
 
+    def on_load_comparison(self, research=False):
+        pass
+
     def on_accept(self, auto=False):
         """
         Initiates acceptance procedure, gathering required data.
@@ -201,7 +205,6 @@ class ProcessRealsController(AbstractController):
         band = self.model.get_current_band()
         logger.debug("Got band {} and provisional_name {}".format(band, provisional_name))
         default_comment = ""
-        phot_failure = False
 
         source_cutout = self.model.get_current_cutout()
         assert isinstance(source_cutout, SourceCutout)
@@ -215,43 +218,46 @@ class ProcessRealsController(AbstractController):
             dec = Quantity(float(values[2]), unit=units.degree)
             key = values[0]
         else:
-            print auto, type(auto)
             key = isinstance(auto, bool) and " " or auto
             ra = source_cutout.ra
             dec = source_cutout.dec
-        try:
-            (x, y, extno) = source_cutout.world2pix(ra, dec)
-            print x, y, extno
-            source_cutout.update_pixel_location((float(x), float(y)), extno)
-            logger.debug("X, Y => {} , {}".format(source_cutout.pixel_x, source_cutout.pixel_y))
-        except:
-            logger.error("Failed to update pixel locations")
 
-        pixel_x = source_cutout.pixel_x
-        pixel_y = source_cutout.pixel_y
+        (x, y, extno) = source_cutout.world2pix(ra, dec)
+        source_cutout.update_pixel_location((float(x), float(y)), extno)
 
-        self.view.mark_apertures(source_cutout)
+        pre_daophot_pixel_x = source_cutout.pixel_x
+        pre_daophot_pixel_y = source_cutout.pixel_y
+
+        # self.view.mark_apertures(source_cutout, pixel=False)
 
         try:
-            cen_x, cen_y, obs_mag, obs_mag_err = self.model.get_current_source_observed_magnitude()
-            print cen_x, cen_y, obs_mag, obs_mag_err
+            phot = self.model.get_current_source_observed_magnitude()
+            cen_x = phot['XCENTER'][0]
+            cen_y = phot['YCENTER'][0]
+            obs_mag = phot['MAG'][0]
+            obs_mag_err = phot['MERR'][0]
+            phot_failure = phot['PIER'][0] != 0
+            sky_failure = phot['SIER'][0] != 0
+            cen_failure = phot['CIER'][0] != 0
         except Exception as er:
             logger.critical("PHOT ERROR: {}".format(er))
-            phot_failure = True
+            phot_failure = sky_failure = cen_failure = True
             obs_mag = ""
-            cen_x = pixel_x
-            cen_y = pixel_y
+            cen_x = pre_daophot_pixel_x
+            cen_y = pre_daophot_pixel_y
             obs_mag_err = -1
             band = ""
             default_comment = str(er)
 
-        if math.sqrt((cen_x - pixel_x) ** 2 + (cen_y - pixel_y) ** 2) > 1.5:
+        obs_mag = phot_failure and None or obs_mag
+        obs_mag_err = phot_failure and None or obs_mag_err
+        source_cutout.update_pixel_location((cen_x, cen_y))
+        source_cutout._adjusted = False
+
+        if math.sqrt((cen_x - pre_daophot_pixel_x) ** 2 + (cen_y - pre_daophot_pixel_y) ** 2) > 1.5 or cen_failure:
             # check if the user wants to use the 'hand' coordinates or these new ones.
             self.view.draw_error_ellipse(cen_x, cen_y, 10, 10, 0*units.degree, color='r')
-            self.view.show_offset_source_dialog((pixel_x, pixel_y), (cen_x, cen_y))
-        else:
-            source_cutout.update_pixel_location((cen_x, cen_y))
-            self.model.get_current_cutout()._adjusted = False
+            self.view.show_offset_source_dialog((pre_daophot_pixel_x, pre_daophot_pixel_y), (cen_x, cen_y))
 
         note1_default = ""
         if self.model.is_current_source_adjusted():
@@ -262,24 +268,37 @@ class ProcessRealsController(AbstractController):
                     note1_default = note
                     break
 
-        self.view.show_accept_source_dialog(
-            provisional_name,
-            self.model.get_current_observation_date(),
-            self.model.get_current_ra(),
-            self.model.get_current_dec(),
-            obs_mag,
-            obs_mag_err,
-            band,
-            note1_choices=config.read("MPC.NOTE1OPTIONS"),
-            note2_choices=config.read("MPC.NOTE2OPTIONS"),
-            note1_default=note1_default,
-            note2_default=config.read("MPC.NOTE2DEFAULT"),
-            default_observatory_code=config.read("MPC.DEFAULT_OBSERVATORY_CODE"),
-            default_comment=default_comment,
-            phot_failure=phot_failure,
-            pixel_x=source_cutout.pixel_x,
-            pixel_y=source_cutout.pixel_y
-        )
+        if obs_mag < 24:
+            self.on_do_accept(None,
+                              provisional_name,
+                              sky_failure and "S  poor sky" or note1_default,
+                              config.read("MPC.NOTE2DEFAULT"),
+                              self.model.get_current_observation_date(),
+                              self.model.get_current_ra(),
+                              self.model.get_current_dec(),
+                              obs_mag,
+                              obs_mag_err,
+                              band,
+                              config.read("MPC.DEFAULT_OBSERVATORY_CODE"), ""
+                              )
+        else:
+            self.view.show_accept_source_dialog(
+                provisional_name,
+                self.model.get_current_observation_date(),
+                self.model.get_current_ra(),
+                self.model.get_current_dec(),
+                obs_mag,
+                obs_mag_err,
+                band,
+                note1_choices=config.read("MPC.NOTE1OPTIONS"),
+                note2_choices=config.read("MPC.NOTE2OPTIONS"),
+                note1_default=sky_failure and "S  poor sky" or note1_default,
+                note2_default=config.read("MPC.NOTE2DEFAULT"),
+                default_observatory_code=config.read("MPC.DEFAULT_OBSERVATORY_CODE"),
+                default_comment=default_comment,
+                phot_failure=phot_failure,
+                pixel_x=source_cutout.pixel_x,
+                pixel_y=source_cutout.pixel_y)
 
     def on_do_accept(self,
                      minor_planet_number,
@@ -344,7 +363,8 @@ class ProcessRealsController(AbstractController):
         self.view.close_offset_source_dialog()
 
         source_cutout = self.model.get_current_cutout()
-        source_cutout.update_pixel_location(cen_coords)
+        assert isinstance(source_cutout, SourceCutout)
+        source_cutout.update_pixel_location(cen_coords, source_cutout.original_observed_ext)
         source_cutout._adjusted = False
 
     def on_cancel_offset(self, pix_coords):
@@ -397,6 +417,9 @@ class ProcessCandidatesController(AbstractController):
         self.view.clear()
         self.model.next_item()
 
+    def on_load_comparison(self, research=False):
+        pass
+
 
 class ProcessTracksController(ProcessRealsController):
     """
@@ -436,7 +459,7 @@ class ProcessTracksController(ProcessRealsController):
         try:
             self.model.get_current_workunit().print_orbfit_info()
         except OrbfitError as error:
-            print str(error)
+            logger.error("Orbfit Error: {0}".format(error))
         self.is_discovery = False
 
     def display_current_image(self):
