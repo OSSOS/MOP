@@ -242,7 +242,7 @@ class ProcessTracksApplication(ValidationApplication):
     def _create_controller_factory(self, model):
         return TracksControllerFactory(model, dry_run=self.dry_run)
 
-    def _create_view(self, model, debug=False):
+    def _create_view(self, model, debug=False, mark_using_pixels=False):
         return ApplicationView(self._create_controller_factory(model),
                                track_mode=True, debug=debug)
 
