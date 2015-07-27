@@ -6,7 +6,6 @@ from glob import glob
 import os
 import re
 from string import upper
-
 import tempfile
 import logging
 
@@ -14,11 +13,15 @@ from astropy.coordinates import SkyCoord
 from astropy.io import ascii
 from astropy import units
 from astropy.units import Quantity
-from .downloads.cutouts.calculator import CoordinateConverter
 import vos
 from astropy.io import fits
 import requests
+
+from .downloads.cutouts.calculator import CoordinateConverter
+
 requests.packages.urllib3.disable_warnings()
+requests_log = logging.getLogger("requests.packages.urllib3")
+requests_log.setLevel(logging.getLogger(__name__).getEffectiveLevel())
 
 
 import coding
@@ -47,6 +50,7 @@ OBJECT_COUNT = "object_count"
 
 
 vospace = vos.Client()
+logging.getLogger('vos').setLevel(logging.ERROR)
 
 SUCCESS = 'success'
 
@@ -507,7 +511,7 @@ def ra_dec_cutout(uri, sky_coord, radius):
     #   logging.basicConfig()
     level = logging.getLogger().getEffectiveLevel()
     requests_log = logging.getLogger("requests.packages.urllib3")
-    requests_log.setLevel(level)
+    requests_log.setLevel(logging.ERROR)
     requests_log.propagate = True
 
     # Get the 'uncut' images CRPIX1/CRPIX2 values
@@ -547,7 +551,7 @@ def ra_dec_cutout(uri, sky_coord, radius):
 
     for hdu in hdulist[1:]:
         cutout = cutouts.pop(0)
-        hdu.header['CUTOUT'] = cutout[0]
+        hdu.header['EXTNO'] = cutout[0]
         hdu.header['DATASEC'] = reset_datasec("[{}:{},{}:{}]".format(cutout[1],
                                                                      cutout[2],
                                                                      cutout[3],
@@ -555,8 +559,8 @@ def ra_dec_cutout(uri, sky_coord, radius):
                                               hdu.header.get('DATASEC', None),
                                               hdu.header['NAXIS1'],
                                               hdu.header['NAXIS2'])
-        hdu.header['XOFFSET'] = int(cutout[1])
-        hdu.header['YOFFSET'] = int(cutout[3])
+        hdu.header['XOFFSET'] = int(cutout[1]) - 1
+        hdu.header['YOFFSET'] = int(cutout[3]) - 1
 
         hdu.converter = CoordinateConverter(hdu.header['XOFFSET'], hdu.header['YOFFSET'])
         try:
@@ -888,7 +892,6 @@ def vofile(filename, **kwargs):
     if os.access(basename, os.R_OK):
         return open(basename, 'r')
     kwargs['view'] = kwargs.get('view', 'data')
-    print filename
     return vospace.open(filename, **kwargs)
 
 

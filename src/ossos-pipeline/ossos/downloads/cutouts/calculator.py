@@ -22,7 +22,7 @@ class CoordinateConverter(object):
 
         @rtype: float
         """
-        return self._invert * (self._dx - 1)
+        return self._invert * self._dx
 
     @property
     def y_offset(self):
@@ -31,7 +31,7 @@ class CoordinateConverter(object):
 
         @rtype: float
         """
-        return self._invert * (self._dy - 1)
+        return self._invert * self._dy
 
     def convert(self, point):
         """
