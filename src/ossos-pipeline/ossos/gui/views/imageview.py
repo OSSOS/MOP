@@ -34,6 +34,8 @@ class ImageViewManager(object):
                     self._ds9 = ds9.ds9(target='validate')
                     self._ds9.set('width 1024')
                     self._ds9.set('height 1024')
+                    self._ds9.set('scale histequ')
+                    self._ds9.set('cmap cool')
                     break
                 except ValueError as ve:
                     logging.warning('Error on attempt {0} to connect to DS9 {1}'.format(cnt, ve))

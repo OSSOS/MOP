@@ -111,9 +111,6 @@ class ImageSinglet(object):
 
         if self.frame_number is None:
             display.set('frame new')
-            display.set('scale histequ')
-            display.set('cmap cool')
-
             # create a copy of the image that does not have Gwyn's PV keywords, ds9 fails on those.
             hdulist = copy.copy(self.hdulist)
             for hdu in hdulist:
