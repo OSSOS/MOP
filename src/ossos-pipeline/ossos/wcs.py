@@ -1,14 +1,16 @@
 from copy import deepcopy
 import warnings
 
+from astropy.units import Quantity
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import math
 from astropy import wcs as astropy_wcs
+from astropy import units
 import numpy
-import logging
+from gui import logger
 
-logger = logging.getLogger()
 
 PI180 = 57.2957795130823208767981548141052
 
@@ -97,7 +99,7 @@ class WCS(astropy_wcs.WCS):
         except:
             logger.warning("Reverted to CD-Matrix WCS.")
             pos = self.wcs_pix2world([[x, y]], 1)
-            return pos[0][0], pos[0][1]
+            return pos[0][0] * units.degree, pos[0][1] * units.degree
 
     def sky2xy(self, ra, dec):
         try:
@@ -111,9 +113,14 @@ class WCS(astropy_wcs.WCS):
                           pv=self.pv,
                           nord=self.nord
             )
-        except:
-            logger.warning("Reverted to CD-Matrix WCS.")
-            pos = self.wcs_world2pix([[ra, dec]], 1)
+        except Exception as ex:
+            logger.info("sky2xy raised exception: {0}".format(ex))
+            logger.warning("Reverted to CD-Matrix WCS to convert: {0} {1} ".format(ra, dec))
+            if isinstance(ra, Quantity):
+                ra = ra.to(units.degree).value
+            if isinstance(dec, Quantity):
+                dec = dec.to(units.degree).value
+            pos = self.wcs_world2pix([[ra, dec], ], 1)
             return pos[0][0], pos[0][1]
 
 
@@ -352,7 +359,7 @@ def xy2sky(x, y, crpix1, crpix2, crval1, crval2, cd, pv, nord):
 
     dec *= PI180
 
-    return ra, dec
+    return ra * units.degree, dec * units.degree
 
 
 def parse_cd(header):
