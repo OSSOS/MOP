@@ -20,7 +20,6 @@ import plot_lightcurve
 import plot_efficiency
 
 
-
 # from parameters import tno
 
 def ossos_release_parser(table=False):
@@ -77,7 +76,7 @@ def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
 
     for filename in files:
         # keep out the not-tracked and uncharacterised.
-        if no_nt_and_u:  # FIXME: this doesn't have an alternative if including uncharacterised objects
+        if no_nt_and_u:
             if not (filename.__contains__('nt') or filename.startswith('u')):
                 observations = mpc.MPCReader(directory + filename)
                 obj = tno(observations)
@@ -268,7 +267,7 @@ def create_table(tnos, outfile):
              + r"}" \
              + "\n" \
              + "\startdata \n" \
-             + r"\cutinhead{Centaurs}"
+             + r"\cutinhead{Centaurs}" + "\n"
 
     footer = r"\enddata " + "\n" + \
              r"\tablecomments{$p:q$: object is in the $p:q$ resonance; I: the orbit classification is currently " \
@@ -293,9 +292,6 @@ def create_table(tnos, outfile):
 
     with open(outfile, 'w') as ofile:
         ofile.write(header)
-
-        # small bug: is not writing header line for Centaurs
-
         for i, r in enumerate(tnos):
             # write line separator between object classification types
             if r['p'] != tnos[i - 1]['p']:
@@ -314,11 +310,11 @@ def create_table(tnos, outfile):
             # mag ± dmag, std dev of all clean photometry, efficiency function at that discovery mag
             # m ± dm sigma_m eff_discov RA Dec a ± da e ± de i ± di r ± dr H ± dH j k MPC obj status
             # put characterisation limits in footnotes.
-            out = "{} & {} & {:2.2f} & {} & {} & {} & {} & {} & {} & {} & & {} & ".format(
+            out = "{} & {} & {:2.2f} & {:3.3f} & {} & {} & {} & {} & {} & {} & & {} & ".format(
                 round_sig_error(r['mag'], r['mag_E']),
                 sigma_mag,
                 eff_at_discovery,
-                r['ra_dis'],
+                math.degrees(ephem.degrees(ephem.hours(str(r['ra_dis'])))),
                 r['dec_dis'],
                                                             round_sig_error(r['a'], r['a_E']),
                                                             round_sig_error(r['e'], r['e_E']),
@@ -344,10 +340,11 @@ def create_table(tnos, outfile):
 def release_to_latex(outfile):
     tnos = ossos_release_parser(table=True)
     uncharacterised = tnos[numpy.array([name.startswith("u") for name in tnos['object']])]
-    characterised = tnos[numpy.array([name.startswith("o") for name in tnos['object']])]
+    # characterised = tnos[numpy.array([name.startswith("o") for name in tnos['object']])]
     # create_table(characterised, outfile)
     create_table(uncharacterised, 'u_' + outfile)
 
+    return
 
 def parse_subaru_radec(line):
     d = line.split()
@@ -415,7 +412,7 @@ def block_table_pprint():
 
 
 if __name__ == '__main__':
-    ossos_release_parser(table=True)
+    # ossos_release_parser(table=True)
     release_to_latex('v{}'.format(parameters.RELEASE_VERSION) + '_table.tex')
     # parse_subaru_mags()
     # block_table_pprint()
