@@ -197,7 +197,6 @@ class RealsWorkUnit(WorkUnit):
             progress_manager,
             output_context,
             dry_run=dry_run)
-
         self._writers = {}
 
     def next_item(self):
@@ -699,20 +698,20 @@ class WorkUnitBuilder(object):
     def build_workunit(self, input_fullpath):
         try:
             parsed_data = self.parser.parse(input_fullpath)
+            logger.debug("Parsed %s (%d sources)" %
+                         (input_fullpath, parsed_data.get_source_count()))
+
+            input_filename = os.path.split(input_fullpath)[1]
+            return self._do_build_workunit(
+                input_filename,
+                parsed_data,
+                self.progress_manager,
+                self.output_context,
+                self.dry_run)
+
         except AssertionError as e:
             logger.critical(str(e))
             events.send(events.NO_AVAILABLE_WORK)
-        logger.debug("Parsed %s (%d sources)" %
-                     (input_fullpath, parsed_data.get_source_count()))
-
-        _, input_filename = os.path.split(input_fullpath)
-
-        return self._do_build_workunit(
-            input_filename,
-            parsed_data,
-            self.progress_manager,
-            self.output_context,
-            self.dry_run)
 
     def _do_build_workunit(self,
                            filename,
@@ -749,8 +748,8 @@ class TracksWorkUnitBuilder(WorkUnitBuilder):
         for i, reading in enumerate(self.get_readings(data)):
             if reading.discovery:
                 return i
-        return 1
-        raise ValueError("No discovery index found in track workunit.")
+        logger.warning("No discovery index found in track workunit.")
+        return None
 
     def move_discovery_to_front(self, data):
         """
