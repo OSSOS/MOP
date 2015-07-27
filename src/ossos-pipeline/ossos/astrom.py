@@ -2,14 +2,15 @@
 Reads and writes .astrom files.
 """
 __author__ = "David Rusk <drusk@uvic.ca>"
-from astropy import units
-from astropy.coordinates import SkyCoord
-from astropy.units import Quantity
 import os
 import re
 
+from astropy import units
+from astropy.coordinates import SkyCoord
+from astropy.units import Quantity
+
 from .gui import logger
-from . import storage, wcs
+from . import storage
 
 DATASET_ROOT = storage.DBIMAGES
 
@@ -22,7 +23,7 @@ FAKE_PREFIX = "fk"
 
 OBS_LIST_PATTERN = "#\s+(?P<rawname>(?P<fk>%s)?(?P<expnum>\d{6,7})(?P<ftype>[ops])(?P<ccdnum>\d+))" % FAKE_PREFIX
 
-## Observation header keys
+# Observation header keys
 MOPVERSION = "MOPversion"
 
 # NOTE: MJD_OBS_CENTER is actually MJD-OBS-CENTER in the .astrom files, but
@@ -150,19 +151,20 @@ class AstromParser(object):
             source = []
 
             source_obs = raw_source.strip().split("\n")
+            mid = len(source_obs) // 2
+            values = source_obs[mid].split()
+            x_ref = float(values[0])
+            y_ref = float(values[1])
             assert len(source_obs) == len(
                 observations), ("Source doesn't have same number of observations"
                                 " ({0:d}) as in observations list ({1:d}).".format(len(source_obs), len(observations)))
 
-            x_ref = None
-            y_ref = None
+            x_0 = []
+            y_0 = []
             for i, source_ob in enumerate(source_obs):
-                fields = source_ob.split()
-
-                if i == 0:
-                    x_ref = fields[0]
-                    y_ref = fields[1]
-
+                fields = [float(x) for x in source_ob.split()]
+                x_0.append(fields[2])
+                y_0.append(fields[3])
                 fields.append(x_ref)
                 fields.append(y_ref)
 
@@ -170,6 +172,13 @@ class AstromParser(object):
                 fields.append(observations[i])
 
                 source.append(SourceReading(*fields))
+
+            # Overloard the 'uncertainty' criterion to ensure we get a large enough cutout.
+            for fields in source:
+                assert isinstance(fields, SourceReading)
+                fields.uncertainty_ellipse.a = ((max(x_0) - min(x_0) + 30) * 0.185) * units.arcsecond
+                fields.uncertainty_ellipse.b = ((max(y_0) - min(y_0) + 30) * 0.185) * units.arcsecond
+                fields.uncertainty_ellipse.pa = 0.0 * units.degree
 
             sources.append(source)
 
@@ -457,6 +466,8 @@ class SourceReading(object):
         """
         :param pa:
         :rtype : SourceReading
+        :param obs: the Observation object associated with this measurement
+        :type obs: Observation
         Args:
           x, y: the coordinates of the source in this reading.
           x0, y0: the coordinates of the source in this reading, but in
@@ -469,6 +480,7 @@ class SourceReading(object):
           naxis1, naxis2: the size of the FITS image where this detection is from.
         @param is_inverted:
         """
+
         self._pix_coord = None
         if x is not None and y is not None:
             self.pix_coord = x, y
@@ -481,6 +493,7 @@ class SourceReading(object):
         if xref is not None and yref is not None:
             self.focus_coord = xref, yref
         self._uncertainty_ellipse = None
+        self._inverted = None
         self.uncertainty_ellipse = dx, dy, pa
         self._obs = None
         self.obs = obs
@@ -491,6 +504,20 @@ class SourceReading(object):
         self.null_observation = null_observation
         self._discovery = None
         self.discovery = discovery
+
+    def _original_frame(self, x, y):
+        """
+        Return x/y in the original frame, based on a guess as much as anything.
+        :param x: x pixel coordinate
+        :type x: float
+        :param y: y pixel coordinate
+        :type y: float
+        :return: x,y
+        :rtype: float, float
+        """
+        if self._inverted:
+            return self.obs.naxis1 - x, self.obs.naxis2 - y
+        return x, y
 
     @property
     def obs(self):
@@ -525,8 +552,6 @@ class SourceReading(object):
         :return: The x,y pixel location of the source in the current frame.
         :rtype: (Quantity, Quantity)
         """
-        if self._pix_coord is None:
-            self.obs.header
         return self._pix_coord
 
     @pix_coord.setter
@@ -636,6 +661,13 @@ class SourceReading(object):
         return self.focus_coord[1].value
 
     @property
+    def focus_coord_original(self):
+        if self.xref is None or self.yref is None:
+            return self._original_frame(self.x, self.y)
+        else:
+            return self._original_frame(self.xref, self.yref)
+
+    @property
     def sky_coord(self):
         """
 
@@ -721,7 +753,8 @@ class SourceReading(object):
     def get_observation_header(self):
         return self.obs.header
 
-    def get_original_image_size(self):
+    @staticmethod
+    def get_original_image_size():
         raise NotImplemented
 
     def get_exposure_number(self):
@@ -779,26 +812,28 @@ class SourceReading(object):
         # Therefore ccd n = extension n + 1
         return str(self.get_ccd_num() + 1)
 
+    @property
+    def inverted(self):
+        if not self._inverted:
+            self._inverted = self.compute_inverted()
+        return self._inverted
+
     def compute_inverted(self):
         """
         Returns:
           inverted: bool
             True if the stored image is inverted.
         """
-        astheader = storage.get_astheader(self.obs.expnum, self.obs.ccdnum, version=self.obs.ftype)
-        pvwcs = wcs.WCS(astheader)
-        (x, y) = pvwcs.sky2xy(self.ra, self.dec)
-        logger.debug("is_inverted: X,Y {},{}  -> wcs X,Y {},{}".format(self.x, self.y, x, y))
-        dr2 = ((x-self.x)**2 + (y-self.y)**2)
-        return dr2 > 2
+        # astheader = storage.get_astheader(self.obs.expnum, self.obs.ccdnum, version=self.obs.ftype)
+        # pvwcs = wcs.WCS(astheader)
+        # (x, y) = pvwcs.sky2xy(self.ra, self.dec)
+        # logger.debug("is_inverted: X,Y {},{}  -> wcs X,Y {},{}".format(self.x, self.y, x, y))
+        # dr2 = ((x-self.x)**2 + (y-self.y)**2)
+        # return dr2 > 2
 
-        # if self.ssos or self.obs.is_fake():
-        #     # We get the image from the CCD directory and it has already
-        #     # been corrected for inversion.
-        #     return False
-        # logger.debug("No override")
-        #
-        # return True if self.get_ccd_num() <= MAX_INVERTED_CCD else False
+        if self.ssos or self.obs.is_fake():
+            return False
+        return True if self.get_ccd_num() <= MAX_INVERTED_CCD else False
 
 
 class Observation(object):
@@ -910,6 +945,14 @@ class Observation(object):
     @property
     def astheader(self):
         return storage.get_astheader(self.expnum, self.ccdnum, self.ftype, self.fk)
+
+    @property
+    def naxis1(self):
+        return int(self.header[self.HEADER_IMG_SIZE_X])
+
+    @property
+    def naxis2(self):
+        return int(self.header[self.HEADER_IMG_SIZE_Y])
 
     @property
     def header(self):
