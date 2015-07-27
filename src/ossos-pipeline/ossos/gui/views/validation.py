@@ -1,5 +1,3 @@
-import logging
-
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
@@ -297,8 +295,7 @@ class AcceptSourceDialog(SourceValidationDialog):
                                      obs_mag_err,
                                      band,
                                      observatory_code,
-                                     comment
-        )
+                                     comment)
 
     def _on_cancel(self, event):
         self.controller.on_cancel_accept()
