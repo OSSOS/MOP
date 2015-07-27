@@ -5,8 +5,10 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import argparse
 import tempfile
 
+from ossos.gui import logger
 from ossos.gui import tasks
 from ossos import storage
+
 
 def launch_app(task, working_directory, output_directory, dry_run, debug, name_filter=None,
                user_name=None, skip_previous=False):
@@ -56,6 +58,9 @@ def main():
     else:
         output = args.output
 
+    if args.debug:
+        logger.set_debug()
+
     storage.DBIMAGES = args.dbimages
 
     launch_app(args.task, args.input, output, args.dry_run, args.debug, args.name_filter,
@@ -68,6 +73,4 @@ if __name__ == "__main__":
     from astropy.io.fits.verify import VerifyWarning
     warnings.filterwarnings('ignore', category=AstropyUserWarning)
     warnings.filterwarnings('ignore', category=VerifyWarning)
-    import logging
-    logging.getLogger().setLevel(logging.DEBUG)
     main()
