@@ -91,7 +91,7 @@ if __name__ == '__main__':
     ax2.plot(x, y, '-k')
 
     for mpc_file in sys.argv[1:]:
-        mpc_obs = mpc.MPCReader(mpc_file).mpc_obs
+        mpc_obs = mpc.MPCReader(mpc_file).mpc_observations
         build_summary_plot(mpc_obs)
 
     ax2.set_xlim(-0.5, 0.5)
