@@ -32,18 +32,20 @@ class ImageViewManager(object):
                 cnt += 1
                 try:
                     self._ds9 = ds9.ds9(target='validate')
-                    self._ds9.set('width 1024')
-                    self._ds9.set('height 1024')
-                    self._ds9.set('scale histequ')
-                    self._ds9.set('cmap cool')
+                    self._turn_off_view_panels()
+                    self._ds9.set('width 640')
+                    self._ds9.set('height 640')
+                    self._ds9.set('scale mode zscale')
+                    self._ds9.set('scale histeq')
+                    self._ds9.set('cmap grey')
+                    self._ds9.set('cmap invert yes')
+                    self._ds9.set('zoom 4')
                     break
                 except ValueError as ve:
                     logging.warning('Error on attempt {0} to connect to DS9 {1}'.format(cnt, ve))
 
         if self._ds9 is None:
             raise IOError("Failed to connect to DS9.")
-
-        self._turn_off_view_panels()
 
         return self._ds9
 
