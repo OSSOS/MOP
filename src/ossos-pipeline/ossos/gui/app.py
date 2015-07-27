@@ -8,13 +8,11 @@ from ..downloads.cutouts.downloader import ImageCutoutDownloader
 from ..gui import config, tasks, logger
 from ..gui import context
 from ..gui.sync import SynchronizationManager
-
 from ..gui.models.workload import (WorkUnitProvider,
                                    RealsWorkUnitBuilder,
                                    TracksWorkUnitBuilder,
                                    CandidatesWorkUnitBuilder,
                                    PreFetchingWorkUnitProvider)
-
 from ..gui.errorhandling import DownloadErrorHandler
 from ..gui.controllers import (ProcessTracksController,
                                ProcessRealsController,
@@ -49,7 +47,8 @@ def create_application(task_name, working_directory, output_directory,
 
 class ValidationApplication(object):
     def __init__(self, working_directory, output_directory,
-                 dry_run=False, debug=False, name_filter=None, user_id=None):
+                 dry_run=False, debug=False, name_filter=None, user_id=None, mark_using_pixels=True):
+
         self.dry_run = dry_run
         self.user_id = user_id
         logger.info("Input directory set to: %s" % working_directory)
@@ -93,7 +92,7 @@ class ValidationApplication(object):
                                         synchronization_manager)
         logger.debug("Created model.")
 
-        view = self._create_view(model, debug=debug)
+        view = self._create_view(model, debug=debug, mark_using_pixels=mark_using_pixels)
 
         logger.debug("Created view.")
         model.start_work()
@@ -145,9 +144,10 @@ class ValidationApplication(object):
     def should_randomize_workunits(self):
         raise NotImplementedError()
 
-    def _create_view(self, model, debug=False):
+    def _create_view(self, model, debug=False, mark_using_pixels=False):
         return ApplicationView(self._create_controller_factory(model),
-                               debug=debug)
+                               debug=debug,
+                               mark_using_pixels=mark_using_pixels)
 
     def _create_workunit_builder(self,
                                  input_context,
@@ -187,7 +187,7 @@ class ProcessRealsApplication(ValidationApplication):
 
         super(ProcessRealsApplication, self).__init__(
             working_directory, output_directory, dry_run=dry_run,
-            debug=debug, name_filter=name_filter, user_id=user_id)
+            debug=debug, name_filter=name_filter, user_id=user_id, mark_using_pixels=False)
 
     @property
     def input_suffix(self):
@@ -195,7 +195,7 @@ class ProcessRealsApplication(ValidationApplication):
 
     @property
     def should_randomize_workunits(self):
-        return False  # now we are only going to manually measure the genuine candidates not also the planted ones
+        return True  # now we are only going to manually measure the genuine candidates not also the planted ones
 
     def _create_workunit_builder(self,
                                  input_context,
