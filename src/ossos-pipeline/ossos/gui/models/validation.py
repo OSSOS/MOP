@@ -57,10 +57,10 @@ class ValidationModel(object):
         else:
             self.get_current_workunit().next_item()
 
-            if self.is_processing_candidates():
-                self.expect_source_transition()
-            elif self.is_processing_reals() or self.is_processing_tracks():
-                self.expect_observation_transition()
+        if self.is_processing_candidates():
+            self.expect_source_transition()
+        elif self.is_processing_reals() or self.is_processing_tracks():
+            self.expect_observation_transition()
 
     def accept_current_item(self):
         self.sources_discovered.add(self.get_current_source())
