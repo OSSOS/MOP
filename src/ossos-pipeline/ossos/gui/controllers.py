@@ -39,7 +39,10 @@ class AbstractController(object):
         logger.debug("Displaying image.")
         try:
             cutout = self.model.get_current_cutout()
+            source = self.model.get_current_source()
+            reading = self.model.get_current_reading()
             self.view.display(cutout)
+            self.view.align(cutout, reading, source)
         except ImageNotLoadedException as ex:
             logger.info("Waiting to load image: {}".format(ex))
             self.image_loading_dialog_manager.wait_for_item(ex.requested_item)

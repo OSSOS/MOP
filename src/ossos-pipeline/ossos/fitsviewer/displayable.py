@@ -1,10 +1,8 @@
 import copy
 import logging
 import tempfile
-
 from astropy import units
 from astropy.units import Quantity
-
 from .colormap import GrayscaleColorMap
 from .exceptions import MPLViewerError
 from .interaction import Signal
@@ -79,7 +77,7 @@ class ImageSinglet(object):
         self.display_changed = Signal()
         self.xy_changed = Signal()
         self.focus_released = Signal()
-
+        self.pos = None
         self._colormap = GrayscaleColorMap()
         self._mpl_event_handlers = {}
         self.frame_number = None
@@ -92,14 +90,11 @@ class ImageSinglet(object):
     def height(self):
         return _image_height(self.hdulist)
 
-    @staticmethod
-    def align(ds9, pos):
-        ra, dec = pos
-        if isinstance(ra, Quantity):
-            ra = ra.to(units.degree).value
-        if isinstance(dec, Quantity):
-            dec = dec.to(units.degree).value
-        ds9.set("pan to {} {} wcs fk5".format(ra, dec))
+    def pan(self, ds9, pos):
+        self.pos = pos
+        x = pos[0].to(units.degree).value
+        y = pos[1].to(units.degree).value
+        ds9.set("pan to {} {} wcs fk5".format(x, y))
         ds9.set('frame match wcs')
 
     def show_image(self, ds9, colorbar=False):
@@ -108,7 +103,6 @@ class ImageSinglet(object):
         if self.frame_number is None:
             _display_options = {'scale': 'histeq',
                                 'scale mode': 'zscale',
-                                'zoom': 4,
                                 'cmap': 'grey',
                                 'cmap invert': 'yes'
                                 }
@@ -128,7 +122,11 @@ class ImageSinglet(object):
 
             # load image into the display
             try:
-                display.set('mosaicimage {}'.format(f.name))
+                display.set('fits {}'.format(f.name))
+                while display.get('frame has fits') != 'yes':
+                    print "Waiting for image to load."
+                    pass
+                display.set('zoom to fit')
             except ValueError as ex:
                 logging.error("Failed while trying to display: {}".format(hdulist))
                 logging.error("{}".format(ex))
@@ -140,6 +138,7 @@ class ImageSinglet(object):
             self.frame_number = display.get('frame')
             for display_option in _display_options.keys():
                 display.set("{} {}".format(display_option, _display_options[display_option]))
+
         else:
             display.set('frame frameno {}'.format(self.frame_number))
 
@@ -248,6 +247,7 @@ class DisplayableImageSinglet(Displayable):
         self.marker_placed = False
         self.ellipse_placed = False
         self.annulus_placed = False
+        self.pos = None
 
     @property
     def xy_changed(self):
@@ -283,7 +283,9 @@ class DisplayableImageSinglet(Displayable):
         self.image_singlet.show_image(ds9=self.display, colorbar=False)
 
     def _do_align(self, pos):
-        self.image_singlet.align(ds9=self.display, pos=pos)
+        self.pos = pos
+        if not self.aligned:
+            self.image_singlet.pan(ds9=self.display, pos=pos)
         self.aligned = True
 
     def _apply_event_handlers(self, canvas):

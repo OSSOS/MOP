@@ -1,3 +1,6 @@
+from ossos.downloads.cutouts.focus import SingletFocusCalculator
+from ossos.downloads.cutouts.source import SourceCutout
+from ossos.gui import logger
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 import logging
@@ -49,7 +52,6 @@ class WxMPLFitsViewer(object):
         self._attach_handlers(self.current_displayable)
 
         self._do_render(self.current_displayable)
-        self._do_align(self.current_displayable)
 
         if mark_source:
             self.mark_apertures(cutout, pixel=pixel)
@@ -92,8 +94,26 @@ class WxMPLFitsViewer(object):
     def _create_displayable(self, cutout):
         raise NotImplementedError()
 
-    def _do_align(self, displayable):
-        displayable.align(self.current_cutout.focus_sky_coord)
+    def align(self, cutout, reading, source):
+        """
+        Set the display center to the reference point.
+
+        @param cutout:  The cutout to align on
+        @type cutout: SourceCutout
+        @param reading:  The reading this cutout is from
+        @type reading: SourceReading
+        @param source: The source the reading is from
+        @type source: Source
+        @return:
+        """
+        if not self.current_displayable.pos:
+            focus_calculator = SingletFocusCalculator(source)
+            logger.debug("Got focus calculator {} for source {}".format(focus_calculator, source))
+            focus = focus_calculator.calculate_focus(reading)
+            assert isinstance(cutout, SourceCutout)
+            focus = cutout.get_pixel_coordinates(focus, cutout.extno)
+            focus_sky_coord = cutout.hdulist[cutout.extno].wcs.xy2sky(focus[0], focus[1])
+            self.current_displayable.align(focus_sky_coord)
 
     def _do_render(self, displayable):
         displayable.render()

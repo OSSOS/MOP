@@ -16,7 +16,7 @@ from .exceptions import (NoAvailableWorkException, SourceNotNamedException)
 
 from ..progress import FileLockedException
 
-from ...astrom import StreamingAstromWriter
+from ...astrom import StreamingAstromWriter, Source
 from ...orbfit import Orbfit
 
 
@@ -133,7 +133,9 @@ class WorkUnit(object):
         return len(self.get_sources())
 
     def get_current_source(self):
-        return self.get_sources().get_current_item()
+        source = self.get_sources().get_current_item()
+        assert isinstance(source, Source)
+        return source
 
     def get_current_source_number(self):
         return self.get_sources().get_index()

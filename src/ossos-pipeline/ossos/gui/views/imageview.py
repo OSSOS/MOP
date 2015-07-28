@@ -39,7 +39,9 @@ class ImageViewManager(object):
                     self._ds9.set('scale histeq')
                     self._ds9.set('cmap grey')
                     self._ds9.set('cmap invert yes')
-                    self._ds9.set('zoom 4')
+                    self._ds9.set('zoom to 1')
+                    self._ds9.set('frame delete all')
+                    print "Done initializing ds9"
                     break
                 except ValueError as ve:
                     logging.warning('Error on attempt {0} to connect to DS9 {1}'.format(cnt, ve))
@@ -58,8 +60,9 @@ class ImageViewManager(object):
         return self._image_viewer
 
     def _turn_off_view_panels(self):
-        for panel in ['info', 'panner', 'magnifier', 'buttons']:
+        for panel in ['info', 'panner', 'buttons']:
             self._ds9.set('view {} no'.format(panel))
+        self._ds9.set('view magnifier yes')
 
     @image_viewer.setter
     def image_viewer(self, viewer):
