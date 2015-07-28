@@ -351,7 +351,13 @@ class ProcessRealsController(AbstractController):
         self.model.get_writer().write(mpc_observation)
 
         self.model.accept_current_item()
+        reset_frame = False
+        if self.model.get_current_workunit().get_current_source_readings().is_on_last_item():
+            self.view.clear()
+            reset_frame = True
         self.model.next_item()
+        if reset_frame:
+            self.view.frame(1)
 
     def on_cancel_accept(self):
         self.view.close_accept_source_dialog()

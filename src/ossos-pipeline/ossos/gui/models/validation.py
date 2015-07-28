@@ -80,12 +80,12 @@ class ValidationModel(object):
             except NoAvailableWorkException:
                 events.send(events.NO_AVAILABLE_WORK)
                 return
-        # pre-load some work units if we are within 4 units of the end
-        if self.work_units.index > len(self.work_units) - 3:
-            try:
-                self.workunit_provider.trigger_prefetching()
-            except:
-                pass
+        # # pre-load some work units if we are within 1 unit of the end
+        # if self.work_units.index > len(self.work_units) - 1:
+        #    try:
+        #        self.workunit_provider.trigger_prefetching()
+        #    except:
+        #        pass
         self.work_units.next()
 
     def expect_source_transition(self):

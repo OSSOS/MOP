@@ -19,7 +19,10 @@ def _generate_provisional_name(q, astrom_header, fits_header):
         ef = get_epoch_field(astrom_header, fits_header)
         epoch_field = ef[0] + ef[1]
         count = storage.increment_object_counter(storage.MEASURE3, epoch_field)
-        q.put(ef[1] + count)
+        try:
+            q.put(ef[1] + count)
+        except:
+            break
 
 
 def get_epoch_field(astrom_header, fits_header):
@@ -53,16 +56,21 @@ class ProvisionalNameGenerator(object):
         self._astrom_header = None
         self._fits_header = None
         self.provisional_name_queue = None
+        self.p = None
 
     def generate_name(self, astrom_header, fits_header):
         if not self._astrom_header or self._astrom_header != astrom_header:
             self._astrom_header = astrom_header
             self._fits_header = fits_header
+            if self.provisional_name_queue is not None:
+                self.provisional_name_queue.close()
+            if self.p is not None:
+                self.p.terminate()
             self.provisional_name_queue = Queue(1)
-            p = Process(target=_generate_provisional_name, args=(self.provisional_name_queue,
+            self.p = Process(target=_generate_provisional_name, args=(self.provisional_name_queue,
                                                                  self._astrom_header,
                                                                  self._fits_header))
-            p.start()
+            self.p.start()
         return self.provisional_name_queue.get()
 
 
