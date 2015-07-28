@@ -90,6 +90,10 @@ class ApplicationView(object):
         self.image_viewer.clear()
 
     @guithread
+    def frame(self, frame):
+        return self.image_viewer.ds9.set('frame {}'.format(frame))
+
+    @guithread
     def refresh_markers(self):
         self.image_viewer.refresh_markers()
 
