@@ -86,6 +86,10 @@ class ApplicationView(object):
         self.image_viewer.display(cutout, pixel=self.mark_using_pixels)
 
     @guithread
+    def align(self, cutout, reading, source):
+        self.image_viewer.align(cutout, reading, source)
+
+    @guithread
     def clear(self):
         self.image_viewer.clear()
 
@@ -241,8 +245,6 @@ class ApplicationView(object):
         if self.offset_source_dialog is not None:
             self.offset_source_dialog.Close()
             self.offset_source_dialog = None
-
-
 
     @guithread
     def show_keymappings(self):

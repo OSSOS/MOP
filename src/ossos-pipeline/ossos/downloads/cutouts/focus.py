@@ -32,9 +32,9 @@ class SingletFocusCalculator(FocusCalculator):
             The location of the source in the middle observation, in the
             coordinate system of the current source reading.
         """
-        middle_index = int(math.ceil((len(self.source.get_readings()) / 2)))
+        middle_reading = reading
+        middle_index = len(self.source.get_readings()) // 2
         middle_reading = self.source.get_reading(middle_index)
-
         return self.convert_source_location(middle_reading, reading)
 
 

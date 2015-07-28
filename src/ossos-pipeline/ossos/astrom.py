@@ -149,25 +149,24 @@ class AstromParser(object):
         sources = []
         for raw_source in raw_source_list:
             source = []
-
-            source_obs = raw_source.strip().split("\n")
-            mid = len(source_obs) // 2
-            values = source_obs[mid].split()
-            x_ref = float(values[0])
-            y_ref = float(values[1])
+            source_obs = raw_source.strip().split('\n')
             assert len(source_obs) == len(
                 observations), ("Source doesn't have same number of observations"
                                 " ({0:d}) as in observations list ({1:d}).".format(len(source_obs), len(observations)))
 
             x_0 = []
             y_0 = []
+            x_ref = None
+            y_ref = None
             for i, source_ob in enumerate(source_obs):
                 fields = [float(x) for x in source_ob.split()]
                 x_0.append(fields[2])
                 y_0.append(fields[3])
+                if i == 0:
+                    x_ref = fields[0]
+                    y_ref = fields[1]
                 fields.append(x_ref)
                 fields.append(y_ref)
-
                 # Find the observation corresponding to this reading
                 fields.append(observations[i])
 
@@ -424,7 +423,7 @@ class Source(object):
             x.append(reading.x0)
             y.append(reading.y0)
         dx = max(x) - min(x)
-        dy = max(y)-min(y)
+        dy = max(y) - min(y)
         for reading in self.readings:
             reading.dx = dx+20
             reading.dy = dy+20
@@ -489,9 +488,8 @@ class SourceReading(object):
             self.ref_coord = x0, y0
         self._sky_coord = None
         self.sky_coord = ra, dec
-        self._focus_coord = None
-        if xref is not None and yref is not None:
-            self.focus_coord = xref, yref
+        self.xref = xref
+        self.yref = yref
         self._uncertainty_ellipse = None
         self._inverted = None
         self.uncertainty_ellipse = dx, dy, pa
@@ -624,48 +622,6 @@ class SourceReading(object):
     @property
     def y0(self):
         return self._ref_coord[1].value
-
-    @property
-    def focus_coord(self):
-        """
-        :return: the center of the cutout to align to the reference frame.
-        :rtype: (Quantity, Quantity)
-        """
-        return self._focus_coord
-
-    @focus_coord.setter
-    def focus_coord(self, pix_coord):
-        """
-        :type pix_coord: list
-        :param pix_coord: an x,y pixel coordinate, origin = 1
-        """
-        try:
-            pix_coord = list(pix_coord)
-        except:
-            pass
-        if not isinstance(pix_coord, list) or len(pix_coord) != 2:
-            raise ValueError("pix_coord needs to be set with an (x,y) coordinate pair, got {}".format(pix_coord))
-        x, y = pix_coord
-        if not isinstance(x, Quantity):
-            x = float(x) * units.pix
-        if not isinstance(y, Quantity):
-            y = float(y) * units.pix
-        self._focus_coord = x, y
-
-    @property
-    def xref(self):
-        return self.focus_coord[0].value
-
-    @property
-    def yref(self):
-        return self.focus_coord[1].value
-
-    @property
-    def focus_coord_original(self):
-        if self.xref is None or self.yref is None:
-            return self._original_frame(self.x, self.y)
-        else:
-            return self._original_frame(self.xref, self.yref)
 
     @property
     def sky_coord(self):

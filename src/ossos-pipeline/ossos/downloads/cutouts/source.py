@@ -93,16 +93,6 @@ class SourceCutout(object):
         return self.observed_x, self.observed_y
 
     @property
-    def focus_sky_coord(self):
-        """
-        The focus of the frame in pxiel cutout coordiantes.
-        :return: (x, y)
-        :rtype: float, float
-        """
-        (x, y) = self.get_pixel_coordinates(self.reading.focus_coord_original)
-        return self.hdulist[self.original_observed_ext].wcs.xy2sky(x, y)
-
-    @property
     def pixel_source_point(self):
         return self.pixel_x, self.pixel_y
 
