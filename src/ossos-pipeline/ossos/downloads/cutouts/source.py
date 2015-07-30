@@ -47,15 +47,8 @@ class SourceCutout(object):
         self.observed_y = self.original_observed_y
 
         if self.pixel_x is None or self.pixel_y is None:
-            if self.reading.compute_inverted():
-                naxis1 = self.reading.obs.header[self.reading.obs.HEADER_IMG_SIZE_X]
-                naxis2 = self.reading.obs.header[self.reading.obs.HEADER_IMG_SIZE_Y]
-                x = int(naxis1) - self.observed_x
-                y = int(naxis2) - self.observed_y
-                self.pixel_x, self.pixel_y = self.get_pixel_coordinates((x, y), self.original_observed_ext)
-            else:
-                self.pixel_x, self.pixel_y = self.get_pixel_coordinates(self.observed_source_point,
-                                                                        self.original_observed_ext)
+            self.pixel_x, self.pixel_y = self.get_pixel_coordinates(self.flip_flip(self.observed_source_point))
+
         self._ra = self.reading.ra * units.degree
         self._dec = self.reading.dec * units.degree
         self._ext = self.original_observed_ext
@@ -79,6 +72,23 @@ class SourceCutout(object):
                     break
         return self._extno
 
+    def flip_flip(self, point):
+        """
+        Sometimes we 'flipped' the X/Y coordinates of the image during processing.  This function takes an
+        (x,y) location from the processing pipeline and returns the x/y location relative to the original
+        reference frame.   (Correctly checks if the coordinate is flipped to begin with.)
+
+        @param point: an x/y location on the image.
+        @type point: [x, y]
+        @return:  the x/y location on the un-fliped frame
+        """
+        x, y = point
+        if self.reading.compute_inverted():
+                naxis1 = self.reading.obs.header[self.reading.obs.HEADER_IMG_SIZE_X]
+                naxis2 = self.reading.obs.header[self.reading.obs.HEADER_IMG_SIZE_Y]
+                x = int(naxis1) - x + 1
+                y = int(naxis2) - y + 1
+        return x, y
 
     @property
     def astrom_header(self):
@@ -126,7 +136,7 @@ class SourceCutout(object):
     def is_adjusted(self):
         return self._adjusted
 
-    def get_pixel_coordinates(self, point, extno=1):
+    def get_pixel_coordinates(self, point, extno=None):
         """
         Retrieves the pixel location of a point within the current HDUList given the
         location in the original FITS image.  This takes into account that
@@ -142,6 +152,8 @@ class SourceCutout(object):
         Returns:
           (x, y) pixel in this image.
         """
+        if not extno:
+            extno = self.original_observed_ext
         return self.hdulist[extno].converter.convert(point)
 
     def get_observed_coordinates(self, point, extno=None):
@@ -158,6 +170,9 @@ class SourceCutout(object):
           (x, y) in the original image coordinate system.
         """
         return self.hdulist[extno].converter.get_inverse_converter().convert(point)
+
+    def pix2world(self, x, y):
+        return self.hdulist[self.extno].wcs.xy2sky(x, y)
 
     def world2pix(self, ra, dec):
         """

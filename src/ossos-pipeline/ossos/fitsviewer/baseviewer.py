@@ -1,11 +1,10 @@
+from ossos.astrom import SourceReading
 from ossos.downloads.cutouts.focus import SingletFocusCalculator
 from ossos.downloads.cutouts.source import SourceCutout
 from ossos.gui import logger
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 import logging
-
-from ..downloads.cutouts import source
 
 
 class WxMPLFitsViewer(object):
@@ -109,10 +108,9 @@ class WxMPLFitsViewer(object):
         if not self.current_displayable.pos:
             focus_calculator = SingletFocusCalculator(source)
             logger.debug("Got focus calculator {} for source {}".format(focus_calculator, source))
-            focus = focus_calculator.calculate_focus(reading)
-            assert isinstance(cutout, SourceCutout)
-            focus = cutout.get_pixel_coordinates(focus, cutout.extno)
-            focus_sky_coord = cutout.hdulist[cutout.extno].wcs.xy2sky(focus[0], focus[1])
+            focus = cutout.flip_flip(focus_calculator.calculate_focus(reading))
+            focus = cutout.get_pixel_coordinates(focus)
+            focus_sky_coord = cutout.pix2world(focus[0], focus[1])
             self.current_displayable.align(focus_sky_coord)
 
     def _do_render(self, displayable):
