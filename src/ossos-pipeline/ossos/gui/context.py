@@ -27,8 +27,12 @@ class WorkingContext(object):
     def listdir(self):
         raise NotImplementedError()
 
-    def get_listing(self, suffix):
-        return filter(lambda name: name.endswith(suffix), self.listdir())
+    def get_listing(self, suffix, exclude_prefix=None):
+        if not exclude_prefix:
+            name_match = lambda x: x.endswith(suffix)
+        else:
+            name_match = lambda x: x.endswith(suffix) and not x.startswith(exclude_prefix)
+        return filter(name_match, self.listdir())
 
     def get_file_size(self, filename):
         raise NotImplementedError()
