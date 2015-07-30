@@ -1,4 +1,30 @@
 {
+
+    "DS9":
+    {
+      "INIT": {
+        "width": 1024,
+        "height": 1024,
+        "view_layout": "vertical",
+        "view_info": "yes",
+        "view_buttons": "no",
+        "view_panner": "no",
+        "view_filename": "no",
+        "view_frame": "no",
+        "view_physical": "no",
+        "view_object": "no",
+        "view_colorbar": "no",
+        "zoom": 1
+      },
+      "PREF": {
+        "scale": "linear",
+        "scale_mode": "zscale",
+        "cmap": "grey",
+        "cmap_invert": "yes",
+        "smooth": "no",
+        "zoom": "to fit"
+      }
+    },
     "KEYBINDS": {
         "ACCEPT_SRC": "a",
         "AUTO_ACCEPT_SRC": "o",

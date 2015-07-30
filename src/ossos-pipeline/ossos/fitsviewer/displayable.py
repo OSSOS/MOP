@@ -6,6 +6,7 @@ from astropy.units import Quantity
 from .colormap import GrayscaleColorMap
 from .exceptions import MPLViewerError
 from .interaction import Signal
+from ..gui import config, logger
 
 
 class Displayable(object):
@@ -101,13 +102,6 @@ class ImageSinglet(object):
         display = ds9
 
         if self.frame_number is None:
-            _display_options = {'scale': 'histeq',
-                                'scale mode': 'zscale',
-                                'cmap': 'grey',
-                                'cmap invert': 'yes'
-                                }
-            for display_option in _display_options.keys():
-                _display_options[display_option] = display.get(display_option)
             display.set('frame new')
 
             # create a copy of the image that does not have Gwyn's PV keywords, ds9 fails on those.
@@ -122,7 +116,7 @@ class ImageSinglet(object):
 
             # load image into the display
             try:
-                display.set('fits {}'.format(f.name))
+                display.set('mosaicimage {}'.format(f.name))
                 while display.get('frame has fits') != 'yes':
                     print "Waiting for image to load."
                     pass
@@ -136,9 +130,7 @@ class ImageSinglet(object):
             del f
             del hdulist
             self.frame_number = display.get('frame')
-            for display_option in _display_options.keys():
-                display.set("{} {}".format(display_option, _display_options[display_option]))
-
+            display.reset_preferences()
         else:
             display.set('frame frameno {}'.format(self.frame_number))
 
