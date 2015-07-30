@@ -583,7 +583,8 @@ class WorkUnitProvider(object):
         Get a listing of files for the appropriate task which may or may
         not be locked and/or done.
         """
-        return [file for file in self.directory_context.get_listing(self.taskid)
+        exclude_prefix = self.taskid == tasks.suffixes.get(tasks.REALS_TASK, '') and 'fk' or None
+        return [file for file in self.directory_context.get_listing(self.taskid, exclude_prefix=exclude_prefix)
                 if file not in ignore_list and
                    file not in self._done and
                    file not in self._already_fetched]
