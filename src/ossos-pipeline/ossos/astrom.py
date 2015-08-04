@@ -704,7 +704,10 @@ class SourceReading(object):
         The location of the source in the reference image, in terms of the
         current image coordinates.
         """
-        return self.xref + self.x_ref_offset, self.yref + self.y_ref_offset
+        xref = isinstance(self.xref, Quantity) and self.xref.value or self.xref
+        yref = isinstance(self.yref, Quantity) and self.yref.value or self.yref
+
+        return  xref + self.x_ref_offset, yref + self.y_ref_offset
 
     def get_observation_header(self):
         return self.obs.header
