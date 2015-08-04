@@ -271,7 +271,7 @@ class ProcessRealsController(AbstractController):
                     note1_default = note
                     break
 
-        if obs_mag < 24:
+        if obs_mag < 24 and auto is not False:
             self.on_do_accept(None,
                               provisional_name,
                               sky_failure and "S  poor sky" or note1_default,
@@ -436,6 +436,10 @@ class ProcessTracksController(ProcessRealsController):
     handles user interactions. This task extends orbit linkages from
     three out to more observations.
     """
+
+    def on_accept(self, auto=False):
+        super(ProcessTracksController, self).on_accept(auto=False)
+
 
     def on_do_accept(self,
                      minor_planet_number,
