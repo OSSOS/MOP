@@ -44,7 +44,7 @@ class ApplicationView(object):
 
         self.wx_app = wx.App(False)
         self.debug = debug
-        self.mark_using_pixels=mark_using_pixels
+        self.mark_using_pixels = mark_using_pixels
         self.mainframe = MainFrame(self.controller, track_mode=track_mode)
         self.image_view_manager = ImageViewManager(self.mainframe)
         self.menu = Menu(self.mainframe, self.controller)
