@@ -1,3 +1,6 @@
+from astropy import units
+from astropy.time import TimeDelta
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 from ...gui import events
@@ -8,6 +11,7 @@ from ...gui.models.exceptions import (ImageNotLoadedException,
                                       NoAvailableWorkException)
 from ...gui.models.workload import (CandidatesWorkUnit, RealsWorkUnit,
                                     TracksWorkUnit)
+from ...mpc import Time
 
 
 class ValidationModel(object):
@@ -179,21 +183,27 @@ class ValidationModel(object):
         return hlist
 
     def get_current_observation_date(self):
-        return self.get_current_workunit().get_current_reading().obs.header['MJD_OBS_CENTER']
+        header = self.get_current_workunit().get_current_reading().obs.header
+        if isinstance(header, list):
+            print len(header)
+            header = header.pop()
 
-        #
-        # try:
-        #     header = self.get_current_reading().obs.header
-        #     logger.debug("{}".format(header))
-        #     mjd = Time(header["MJD_OBS_CENTER"], scale='utc', format='mpc', precision=6).mpc
-        # except Exception as ex:
-        #     logger.debug("{}".format(ex))
-        #     header = self.get_current_astrom_header()
-        #     mjd = Time(header['MJD-OBS'] + float(header['EXPTIME'])/3600.0/24.0/2.0,
-        #                format='mjd',
-        #                scale='utc',
-        #                precision=6).mpc
-        # return mjd
+        try:
+            mpc_date = header.get('MJD_OBS_CENTER',
+                                  (Time(float(header.get('MJD-OBS')),
+                                        format='mjd',
+                                        scale='utc',
+                                        precision=6) +
+                                   TimeDelta(float(header.get('EXPTIME')) * units.second) / 2.0).mpc)
+        except Exception as e:
+            print "EXPTIME:", header.get('EXPTIME')
+            print "MJD-OBS", header.get('MJD-OBS')
+            print e
+            print "FAILED TO GET MPC_DATE"
+            mpc_date = '2000 01 01.00000'
+        print mpc_date
+        return mpc_date
+
 
     def get_current_ra(self):
         try:
