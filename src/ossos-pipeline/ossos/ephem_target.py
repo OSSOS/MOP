@@ -233,13 +233,18 @@ class EphemTarget(object):
 
     def save(self, filename=None):
         if filename is None:
-            filename = "ET_"+self.name+".xml"
+            if self.format == 'CFHT ET':
+               filename = "ET_"+self.name+".xml"
+            elif self.format == 'GEMINI ET':
+               filename = self.name+".eph"
+            else:
+               filename = self.name+".txt"
         with file(filename, 'w') as f_handle:
             self.writer(f_handle)
 
 
 GEMINI_HEADER="""*******************************************************************************
- Revised:  Jan 2, 2013                         HL6r4                       000
+ Revised:  Jan 2, 2013                         Titan                       000
                          http://ssd.jpl.nasa.gov/?sat_phys_par
                            http://ssd.jpl.nasa.gov/?sat_elem
  SATELLITE PHYSICAL PROPERTIES:
