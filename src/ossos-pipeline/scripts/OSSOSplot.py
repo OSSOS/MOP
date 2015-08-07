@@ -166,7 +166,6 @@ class Plot(Canvas):
                 kbos = parsers.ossos_discoveries(directory_name, suffix='ast')
                 kbos.extend(parsers.ossos_discoveries(directory_name, suffix='ted'))
             for kbo in kbos:
-                print(kbo.name)
                 self.kbos[kbo.name] = kbo.orbit
 
         self.doplot()
@@ -803,7 +802,6 @@ class Plot(Canvas):
         width = math.degrees(math.fabs(ra1 - ra2))
         height = math.degrees(math.fabs(dec2 - dec1))
         date = mpc.Time(self.date.get(), scale='utc').iso
-        print ra_cen, dec_cen, width, height
         table = cadc.cfht_megacam_tap_query(ra_cen, dec_cen, width, height, date=date)
 
         for row in table:
@@ -836,7 +834,8 @@ class Plot(Canvas):
                 center_ra = 0
                 center_dec = 0
 
-                start_date = mpc.Time(self.date.get(), scale='utc') - TimeDelta(14*units.day)
+                pointing_date = mpc.Time(self.date.get(), scale='utc')
+                start_date = mpc.Time(self.date.get(), scale='utc') - TimeDelta(14.1*units.day)
                 end_date = start_date + TimeDelta(28*units.day)
                 time_step = TimeDelta(1*units.hour)
 
@@ -845,19 +844,21 @@ class Plot(Canvas):
                     if kbo_name in Neptune or kbo_name in tracking_termination:
                         print 'skipping', kbo_name
                         continue
-                    kbo.predict(start_date)
-                    ra = kbo.coordinate.ra.radian
-                    dec = kbo.coordinate.dec.radian
+                    kbo.predict(pointing_date)
+                    ra = kbo.coordinate.ra
+                    dec = kbo.coordinate.dec
                     if kbo_name in name:
+                        print "{} matches pointing {} by name, adding to field.".format(kbo_name, name)
                         field_kbos.append(kbo)
-                        center_ra += ra
-                        center_dec += dec
+                        center_ra += ra.radian
+                        center_dec += dec.radian
                     else:
                         for polygon in polygons:
-                            if polygon.isInside(ra, dec):
+                            if polygon.isInside(ra.radian, dec.radian):
+                                print "{} inside pointing {} polygon, adding to field.".format(kbo_name, name)
                                 field_kbos.append(kbo)
-                                center_ra += ra
-                                center_dec += dec
+                                center_ra += ra.radian
+                                center_dec += dec.radian
 
                 logging.critical("KBOs in field {0}: {1}".format(name, ', '.join([n.name for n in field_kbos])))
 
@@ -874,13 +875,14 @@ class Plot(Canvas):
                             current_dec += kbo.coordinate.dec.radian
                         mean_motion = ((current_ra - center_ra) / len(field_kbos),
                                        (current_dec - center_dec) / len(field_kbos))
+ 
                     ra = pointing['camera'].coordinate.ra.radian + mean_motion[0]
                     dec = pointing['camera'].coordinate.dec.radian + mean_motion[1]
                     cc = SkyCoord(ra=ra,
                                   dec=dec,
                                   unit=(units.radian, units.radian),
                                   obstime=today)
-                    dt = start_date - today
+                    dt = pointing_date - today
                     cc.dra = (mean_motion[0] * units.radian / dt.to(units.hour)).to(units.arcsec/units.hour).value*math.cos(dec)
                     cc.ddec = (mean_motion[1] * units.radian / dt.to(units.hour)).to(units.arcsec/units.hour).value
                     et.append(cc)
@@ -891,7 +893,6 @@ class Plot(Canvas):
         f = tkFileDialog.asksaveasfile()
         if self.pointing_format.get() == 'Subaru':
             for pointing in self.pointings:
-                print pointing["camera"]
                 (sra, sdec) = str(pointing["camera"]).split()
                 ra = sra.replace(":", "")
                 dec = sdec.replace(":", "")
@@ -1035,11 +1036,11 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                 yoffset = -10
                 xoffset = -10
                 kbo = kbos[name]
-                start_date = mpc.Time(w.date.get(), scale='utc').jd
+                pointing_date = mpc.Time(w.date.get(), scale='utc').jd
                 trail_mid_point = 0
                 for days in range(trail_mid_point * 2 + 1):
                     point_size = days == trail_mid_point and 5 or 1
-                    today = mpc.Time(start_date - trail_mid_point + days, scale='utc', format='jd')
+                    today = mpc.Time(pointing_date - trail_mid_point + days, scale='utc', format='jd')
                     kbo.predict(today, 568)
                     ra = kbo.coordinate.ra.radian
                     dec = kbo.coordinate.dec.radian
