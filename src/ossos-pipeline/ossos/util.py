@@ -203,8 +203,8 @@ class TimeMPC(TimeString):
     name = 'mpc'
     subfmts = (('mpc', '%Y %m %d', "{year:4d} {mon:02d} {day:02d}.{fracday:s}"),)
 
-    def __init__(self, val1, val2, scale, precision,
-                 in_subfmt, out_subfmt, from_jd=False):
+    def __init__(self, val1, val2, scale, precision=6,
+                 in_subfmt=None, out_subfmt=None, from_jd=False):
         super(TimeMPC, self).__init__(val1=val1,
                                       val2=val2,
                                       scale=scale,

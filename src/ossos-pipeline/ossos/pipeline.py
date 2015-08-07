@@ -65,12 +65,12 @@ def align(expnums, ccd, version='s', dry_run=False):
         w = get_wcs(shifts)
 
         # get the PHOT file that was produced by the mkpsf routine
-	logging.debug("Reading .phot file {}".format(expnum))
+        logging.debug("Reading .phot file {}".format(expnum))
         phot = ascii.read(storage.get_file(expnum, ccd=ccd, version=version, ext='phot'), format='daophot')
 
         # compute the small-aperture magnitudes of the stars used in the PSF
         import daophot
-	logging.debug("Running phot on {}".format(filename))
+        logging.debug("Running phot on {}".format(filename))
         mags[expnum] = daophot.phot(filename,
                                     phot['XCENTER'],
                                     phot['YCENTER'],
@@ -80,11 +80,11 @@ def align(expnums, ccd, version='s', dry_run=False):
                                     zmag=zmag[expnum])
 
         # covert the x/y positions to positions in Frame 1 based on the trans.jmp values.
-	logging.debug("Doing the XY translation to refrence frame: {}".format(w))
+        logging.debug("Doing the XY translation to refrence frame: {}".format(w))
         (x, y) = w.wcs_pix2world(mags[expnum]["XCENTER"], mags[expnum]["YCENTER"], 1)
         pos[expnum] = numpy.transpose([x, y])
         # match this exposures PSF stars position against those in the first image of the set.
-	logging.debug("Matching lists")
+        logging.debug("Matching lists")
         idx1, idx2 = util.match_lists(pos[expnums[0]], pos[expnum])
 
         # compute the magnitdue offset between the current frame and the reference.

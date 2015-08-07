@@ -44,7 +44,7 @@ class ApplicationView(object):
 
         self.wx_app = wx.App(False)
         self.debug = debug
-        self.mark_using_pixels=mark_using_pixels
+        self.mark_using_pixels = mark_using_pixels
         self.mainframe = MainFrame(self.controller, track_mode=track_mode)
         self.image_view_manager = ImageViewManager(self.mainframe)
         self.menu = Menu(self.mainframe, self.controller)
@@ -82,8 +82,20 @@ class ApplicationView(object):
         self.wx_app.MainLoop()
 
     @guithread
-    def display(self, cutout):
-        self.image_viewer.display(cutout, pixel=self.mark_using_pixels)
+    def display(self, cutout, draw_error_ellipse=True):
+        self.image_viewer.display(cutout, pixel=self.mark_using_pixels, draw_error_ellipse=draw_error_ellipse)
+
+    @guithread
+    def place_marker(self, cutout, x, y, radius=10, color='r'):
+        self.image_viewer.place_marker(cutout, x, y, radius, color)
+
+    @property
+    def ds9(self):
+        return self.image_viewer.ds9
+
+    @guithread
+    def align(self, cutout, reading, source):
+        self.image_viewer.align(cutout, reading, source)
 
     @guithread
     def clear(self):
@@ -98,8 +110,12 @@ class ApplicationView(object):
         self.image_viewer.refresh_markers()
 
     @guithread
-    def draw_error_ellipse(self, x, y, a, b, pa, color='b'):
-        self.image_viewer.draw_error_ellipse(x, y, a, b, pa, color=color)
+    def draw_error_ellipse(self, sky_coord, uncertainty_ellipse, color='b'):
+        self.image_viewer.draw_error_ellipse(sky_coord, uncertainty_ellipse, color=color)
+
+    @guithread
+    def draw_aperture(self, x, y, radius, color='b'):
+        self.image_viewer.mark_sources(x, y)
 
     @guithread
     def mark_apertures(self, cutout, pixel=False):
@@ -241,8 +257,6 @@ class ApplicationView(object):
         if self.offset_source_dialog is not None:
             self.offset_source_dialog.Close()
             self.offset_source_dialog = None
-
-
 
     @guithread
     def show_keymappings(self):
