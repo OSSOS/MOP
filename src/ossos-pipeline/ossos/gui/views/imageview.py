@@ -1,3 +1,5 @@
+from ossos.gui import config
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import logging
@@ -20,6 +22,16 @@ class ImageViewManager(object):
 
         self._image_viewer = self._singlet_viewer
 
+    def set_ds9(self, level="PREF"):
+        """
+        Set the default values on the ds9 display.
+        """
+        ds9_settings = config.read("DS9."+level)
+        for key in ds9_settings.keys():
+            value = ds9_settings[key]
+            cmd = key.replace("_", " ")
+            self.ds9.set("{} {}".format(cmd, value))
+
     @property
     def ds9(self):
         if not self._ds9:
@@ -32,21 +44,16 @@ class ImageViewManager(object):
                 cnt += 1
                 try:
                     self._ds9 = ds9.ds9(target='validate')
-                    self._turn_off_view_panels()
-                    self._ds9.set('width 640')
-                    self._ds9.set('height 640')
-                    self._ds9.set('scale mode zscale')
-                    self._ds9.set('scale histeq')
-                    self._ds9.set('cmap grey')
-                    self._ds9.set('cmap invert yes')
-                    self._ds9.set('zoom 4')
+                    self.set_ds9(level="INIT")
+                    self.set_ds9(level="PREF")
+                    self._ds9.set("frame delete all")
                     break
                 except ValueError as ve:
                     logging.warning('Error on attempt {0} to connect to DS9 {1}'.format(cnt, ve))
 
         if self._ds9 is None:
             raise IOError("Failed to connect to DS9.")
-
+        self._ds9.reset_preferences = self.set_ds9
         return self._ds9
 
     @property
@@ -56,10 +63,6 @@ class ImageViewManager(object):
         @rtype: SingletViewer
         """
         return self._image_viewer
-
-    def _turn_off_view_panels(self):
-        for panel in ['info', 'panner', 'magnifier', 'buttons']:
-            self._ds9.set('view {} no'.format(panel))
 
     @image_viewer.setter
     def image_viewer(self, viewer):

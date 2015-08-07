@@ -45,8 +45,6 @@ class TracksParser(object):
             logger.error("{}".format(mpc_observations))
             return None
 
-        print self.orbit.summarize()  # defaults to predicting at today's date
-
         if self.orbit.arc_length < 1 * units.day:
             # data from the same dark run.
             lunation_count = 0
@@ -109,9 +107,9 @@ class TracksParser(object):
 
         for mpc_observation in mpc_observations:
             # attach the input observations to the the SSOS query result.
-            if isinstance(mpc_observation.comment, mpc.MPCComment):
+            if isinstance(mpc_observation.comment, mpc.OSSOSComment):
                 try:
-                    tracks_data.mpc_observations[mpc_observation.comment.frame] = mpc_observation
+                    tracks_data.mpc_observations[mpc_observation.comment.frame.strip()] = mpc_observation
                 except Exception as e:
                     logger.error(str(e))
                     logger.error(mpc_observation)
@@ -155,13 +153,12 @@ class SSOSParser(object):
         self.null_observations = []
         self.skip_previous = skip_previous
         for observation in input_observations:
-            assert isinstance(observation, mpc.Observation)
-            if isinstance(observation.comment, mpc.MPCComment):
+            if isinstance(observation.comment, mpc.OSSOSComment):
                 try:
                     rawname = observation.comment.frame
-                    self.input_rawnames.append(rawname)
+                    self.input_rawnames.append(rawname.strip())
                     if observation.null_observation:
-                        self.null_observations.append(rawname)
+                        self.null_observations.append(rawname.strip())
                 except Exception as ex:
                     logger.debug("{}".format(ex))
                     logger.debug("Failed to get original filename from >{}<".format(observation.comment))
@@ -212,22 +209,23 @@ class SSOSParser(object):
         sources = []
         observations = []
         source_readings = []
+        orbit = Orbfit(mpc_observations)
 
         warnings.filterwarnings('ignore')
         logger.info("Loading {} observations\n".format(len(ssos_table)))
         for row in ssos_table:
             # check if a dbimages object exists
-
             # For CFHT/MegaCam strip off the trailing character to get the exposure number.
-            if row['Telescope_Insturment'] == 'CFHT/MegaCam':
-                ftype = row['Image'][-1]
-                expnum = row['Image'][:-1]
-            else:
-                ftype = None
-                expnum = row['Image']
+            if not row['Telescope_Insturment'] == 'CFHT/MegaCam':
+                continue
+
+            ftype = row['Image'][-1]
+            expnum = row['Image'][:-1]
 
             # The file extension is the ccd number + 1 , or the first extension.
-            ccd = row['Ext'] != -9999 and int(row['Ext']) - 1 or None
+            ccd = int(row['Ext'])-1
+            if 39 < ccd < 0:
+                ccd = None
             x = row['X'] * units.pix
             y = row['Y'] * units.pix
             ra = row['Object_RA'] * units.degree
@@ -252,15 +250,12 @@ class SSOSParser(object):
             logger.debug(("Prediction: exposure:{} ext:{} "
                           "ra:{} dec:{} x:{} y:{} from SSOS").format(expnum, ccd, ra, dec, x, y))
 
-            try:
-                observation = SSOSParser.build_source_reading(expnum, ccd, ftype=ftype)
-                observation.mjd = mjd
-                logger.debug('built observation {}'.format(observation))
-            except Exception as err:
-                logger.error(str(err) + "\n")
-                continue
+            observation = SSOSParser.build_source_reading(expnum, ccd, ftype=ftype)
+            observation.mjd = mjd
+            obs_date = Time(mjd, format='mjd', scale='utc').iso
+            orbit.predict(obs_date)
+            logger.debug('built observation {}'.format(observation))
             observations.append(observation)
-
             from_input_file = observation.rawname in self.input_rawnames
             null_observation = observation.rawname in self.null_observations
 
@@ -268,6 +263,7 @@ class SSOSParser(object):
             source_reading = astrom.SourceReading(x=x, y=y, x0=x, y0=y, ra=ra, dec=dec,
                                                   xref=x, yref=y, obs=observation,
                                                   ssos=True, from_input_file=from_input_file,
+                                                  dx=orbit.dra, dy=orbit.ddec, pa=orbit.pa,
                                                   null_observation=null_observation)
             logger.info("done")
 

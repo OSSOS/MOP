@@ -370,7 +370,6 @@ class Orbfit(object):
         """
         # rate of motion at a requested date rather than averaged over the arc.
         # Date is datetime.datetime() objects.
-        print date
         if date is None:
             if self.time is None:
                 date = datetime.datetime.now()
@@ -384,7 +383,6 @@ class Orbfit(object):
             except Exception as e:
                 logging.error(str(e))
                 return None
-        print date
         if isinstance(date, str):
             date = Time(date, scale='utc')
 

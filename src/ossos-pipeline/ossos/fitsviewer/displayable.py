@@ -1,10 +1,9 @@
 import copy
 import logging
 import tempfile
-
 from astropy import units
+from astropy.coordinates import SkyCoord
 from astropy.units import Quantity
-
 from .colormap import GrayscaleColorMap
 from .exceptions import MPLViewerError
 from .interaction import Signal
@@ -45,7 +44,7 @@ class Displayable(object):
     def redraw(self):
         pass
 
-    def place_error_ellipse(self, x, y, a, b, pa, color='y'):
+    def place_error_ellipse(self, sky_coord, uncertainty_ellipse, color='g'):
         pass
 
     def reset_colormap(self):
@@ -79,7 +78,7 @@ class ImageSinglet(object):
         self.display_changed = Signal()
         self.xy_changed = Signal()
         self.focus_released = Signal()
-
+        self.pos = None
         self._colormap = GrayscaleColorMap()
         self._mpl_event_handlers = {}
         self.frame_number = None
@@ -92,28 +91,16 @@ class ImageSinglet(object):
     def height(self):
         return _image_height(self.hdulist)
 
-    @staticmethod
-    def align(ds9, pos):
-        ra, dec = pos
-        if isinstance(ra, Quantity):
-            ra = ra.to(units.degree).value
-        if isinstance(dec, Quantity):
-            dec = dec.to(units.degree).value
-        ds9.set("pan to {} {} wcs fk5".format(ra, dec))
-        ds9.set('frame match wcs')
+    def pan(self, ds9, pos):
+        self.pos = pos
+        x = pos.ra.to(units.degree).value
+        y = pos.dec.to(units.degree).value
+        ds9.set("pan to {} {} wcs fk5".format(x, y))
 
     def show_image(self, ds9, colorbar=False):
         display = ds9
 
         if self.frame_number is None:
-            _display_options = {'scale': 'histeq',
-                                'scale mode': 'zscale',
-                                'zoom': 4,
-                                'cmap': 'grey',
-                                'cmap invert': 'yes'
-                                }
-            for display_option in _display_options.keys():
-                _display_options[display_option] = display.get(display_option)
             display.set('frame new')
 
             # create a copy of the image that does not have Gwyn's PV keywords, ds9 fails on those.
@@ -129,6 +116,10 @@ class ImageSinglet(object):
             # load image into the display
             try:
                 display.set('mosaicimage {}'.format(f.name))
+                while display.get('frame has fits') != 'yes':
+                    print "Waiting for image to load."
+                    pass
+                display.set('zoom to fit')
             except ValueError as ex:
                 logging.error("Failed while trying to display: {}".format(hdulist))
                 logging.error("{}".format(ex))
@@ -138,10 +129,19 @@ class ImageSinglet(object):
             del f
             del hdulist
             self.frame_number = display.get('frame')
-            for display_option in _display_options.keys():
-                display.set("{} {}".format(display_option, _display_options[display_option]))
+            display.reset_preferences()
         else:
             display.set('frame frameno {}'.format(self.frame_number))
+            if self.pos is not None:
+                try:
+                    pos = ds9.get("pan wcs degrees").split()
+                    pos = SkyCoord(pos[0], pos[1], unit=units.degree)
+                    if pos.separation(self.pos) > 60*units.arcsec:
+                        self.pan(ds9, self.pos)
+                except Exception as ex:
+                    print "{}".format(ex)
+
+
 
     @staticmethod
     def clear_markers(ds9):
@@ -163,13 +163,18 @@ class ImageSinglet(object):
 
         self.display_changed.fire()
 
-    def place_error_ellipse(self, x, y, a, b, pa, color='b', ds9=None):
+    def place_error_ellipse(self, sky_coord, uncertainty_ellipse, colour='b', ds9=None):
         """
         Draws an ErrorEllipse with the given dimensions.  Can not be moved later.
         """
         display = ds9
-        ell = 'ellipse({},{},{},{},{}'.format(x, y, a, b, pa.to(units.degree).value + 90)
-        display.set('regions', 'image ;{} # color={}'.format(ell, color))
+        ellipse = 'ellipse({},{},{},{},{})'.format(sky_coord.ra.to(units.degree).value,
+                                              sky_coord.dec.to(units.degree).value,
+                                              max(uncertainty_ellipse.a.to(units.degree).value, 0.0005),
+                                              max(uncertainty_ellipse.b.to(units.degree).value, 0.0005),
+                                              uncertainty_ellipse.pa.to(units.degree).value + 90)
+        colour_string = {'r': 'red', 'b': 'blue', 'y': 'yellow'}.get(colour, 'green')
+        display.set('regions','fk5; {} # color={}'.format(ellipse, colour_string))
         self.display_changed.fire()
 
     def update_marker(self, x, y, radius=None):
@@ -248,6 +253,7 @@ class DisplayableImageSinglet(Displayable):
         self.marker_placed = False
         self.ellipse_placed = False
         self.annulus_placed = False
+        self.pos = None
 
     @property
     def xy_changed(self):
@@ -268,9 +274,9 @@ class DisplayableImageSinglet(Displayable):
                 self.image_singlet.place_marker(x, y, radius, colour=colour, ds9=self.display)
             self.annulus_placed = True
 
-    def place_error_ellipse(self, x, y, a, b, pa, color='g'):
+    def place_error_ellipse(self, sky_coord, uncertainty_ellipse, colour='y'):
         if not self.ellipse_placed:
-            self.image_singlet.place_error_ellipse(x, y, a, b, pa, color=color, ds9=self.display)
+            self.image_singlet.place_error_ellipse(sky_coord, uncertainty_ellipse, colour=colour, ds9=self.display)
             self.ellipse_placed = True
 
     def reset_colormap(self):
@@ -283,7 +289,9 @@ class DisplayableImageSinglet(Displayable):
         self.image_singlet.show_image(ds9=self.display, colorbar=False)
 
     def _do_align(self, pos):
-        self.image_singlet.align(ds9=self.display, pos=pos)
+        self.pos = pos
+        if not self.aligned:
+            self.image_singlet.pan(ds9=self.display, pos=pos)
         self.aligned = True
 
     def _apply_event_handlers(self, canvas):
@@ -357,29 +365,6 @@ def get_rect(shape, frame_index, time_index, border=0.025, spacing=0.01):
 
     return [left, bottom, width, height]
 
-
-class ErrEllipse(object):
-    """
-    A class for creating and drawing an ellipse in matplotlib.
-    """
-
-    def __init__(self, x_cen, y_cen, a, b, pa, color='b'):
-        """
-        :param x_cen: x coordinate at center of the ellipse
-        :param y_cen: y coordinate at center of the ellipse
-        :param a: size of semi-major axes of the ellipse
-        :param b: size of semi-minor axes of the ellipse
-        :param pa: position angle of a to x  (90 ==> a is same orientation as x)
-        """
-
-        self.center = (x_cen, y_cen)
-        self.a = max(a, 10)
-        self.b = max(b, 10)
-        self.pa = pa
-        self.angle = self.pa - 90
-
-    def add_to_axes(self, axes):
-        return None
 
 def _image_width(hdulist):
     return _image_shape(hdulist)[1]

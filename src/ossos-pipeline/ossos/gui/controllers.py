@@ -6,8 +6,7 @@ from ossos.gui.models.transactions import TransAckValidationModel
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 import math
-import pyds9 as ds9
-from ..downloads.core import  Downloader
+from ..downloads.core import Downloader
 from ..gui.models.validation import ValidationModel
 from ..gui.autoplay import AutoplayManager
 from ..gui import config, logger
@@ -33,13 +32,22 @@ class AbstractController(object):
         self.image_loading_dialog_manager = ImageLoadingDialogManager(view)
 
     def get_view(self):
+        """
+        @rtype: ApplicationView
+        """
         return self.view
 
-    def display_current_image(self):
+    def place_marker(self, x, y, radius=10, color='r'):
+        self.view.place_marker(self.model.get_current_cutout(), x, y, radius, color)
+
+    def display_current_image(self, draw_error_ellipse=False, align=False):
         logger.debug("Displaying image.")
         try:
             cutout = self.model.get_current_cutout()
-            self.view.display(cutout)
+            source = self.model.get_current_source()
+            reading = self.model.get_current_reading()
+            self.view.display(cutout, draw_error_ellipse=draw_error_ellipse)
+            self.view.align(cutout, reading, source)
         except ImageNotLoadedException as ex:
             logger.info("Waiting to load image: {}".format(ex))
             self.image_loading_dialog_manager.wait_for_item(ex.requested_item)
@@ -208,7 +216,7 @@ class ProcessRealsController(AbstractController):
 
         source_cutout = self.model.get_current_cutout()
         assert isinstance(source_cutout, SourceCutout)
-        display = ds9.ds9(target='validate')
+        display = self.view.ds9
         if not auto:
             result = display.get('imexam key coordinate wcs fk5 degrees')
             # result = display.get("""imexam key coordinate $x $y $filename""")
@@ -256,7 +264,7 @@ class ProcessRealsController(AbstractController):
 
         if math.sqrt((cen_x - pre_daophot_pixel_x) ** 2 + (cen_y - pre_daophot_pixel_y) ** 2) > 1.5 or cen_failure:
             # check if the user wants to use the 'hand' coordinates or these new ones.
-            self.view.draw_error_ellipse(cen_x, cen_y, 10, 10, 0*units.degree, color='r')
+            self.place_marker(cen_x, cen_y, 10, color='r')
             self.view.show_offset_source_dialog((pre_daophot_pixel_x, pre_daophot_pixel_y), (cen_x, cen_y))
 
         note1_default = ""
@@ -267,8 +275,26 @@ class ProcessRealsController(AbstractController):
                 if note.lower().startswith(key):
                     note1_default = note
                     break
+        note1 = len(note1_default) > 0 and note1_default[0] or note1_default
+        print mpc.Observation(
+            null_observation=False,
+            provisional_name=provisional_name,
+            note1=note1,
+            note2=config.read('MPC.NOTE2DEFAULT')[0],
+            date=self.model.get_current_observation_date(),
+            ra=self.model.get_current_ra(),
+            dec=self.model.get_current_dec(),
+            mag=obs_mag,
+            mag_err=obs_mag_err,
+            band=band,
+            observatory_code=config.read("MPC.DEFAULT_OBSERVATORY_CODE"),
+            discovery=self.is_discovery,
+            comment=None,
+            xpos=source_cutout.observed_x,
+            ypos=source_cutout.observed_y,
+            frame=self.model.get_current_reading().obs.rawname).to_string()
 
-        if obs_mag < 24:
+        if obs_mag < 24 and auto is not False:
             self.on_do_accept(None,
                               provisional_name,
                               sky_failure and "S  poor sky" or note1_default,
@@ -434,6 +460,10 @@ class ProcessTracksController(ProcessRealsController):
     three out to more observations.
     """
 
+    def on_accept(self, auto=False):
+        super(ProcessTracksController, self).on_accept(auto=False)
+
+
     def on_do_accept(self,
                      minor_planet_number,
                      provisional_name,
@@ -448,7 +478,7 @@ class ProcessTracksController(ProcessRealsController):
                      observatory_code,
                      comment,
     ):
-        super(ProcessTracksController, self).on_do_accept(
+        print super(ProcessTracksController, self).on_do_accept(
             minor_planet_number,
             provisional_name,
             note1,
@@ -470,20 +500,8 @@ class ProcessTracksController(ProcessRealsController):
 
     def display_current_image(self):
         logger.debug("Now attempting to display {}".format(self))
-        successful = super(ProcessTracksController, self).display_current_image()
+        super(ProcessTracksController, self).display_current_image(draw_error_ellipse=True, align=True)
 
-        if successful:
-            ## Also draw an error ellipse, since this is a tracks controller.
-            reading = self.model.get_current_reading()
-
-            if not hasattr(reading, 'redraw_ellipse'):
-                reading.redraw_ellipse = True
-            if hasattr(reading, 'dra') and hasattr(reading, 'ddec') and hasattr(reading,
-                                                                                'pa') and reading.redraw_ellipse:
-                x, y = self.model.get_current_pixel_source_point()
-                self.view.draw_error_ellipse(x, y, reading.dra, reading.ddec, reading.pa)
-
-            reading.redraw_ellipse = False
 
     def on_load_comparison(self, research=False):
         """
@@ -496,6 +514,9 @@ class ProcessTracksController(ProcessRealsController):
             cutout.retrieve_comparison_image(self.downloader)
         if cutout.comparison_image is not None:  # if a comparison image was found
             self.view.display(cutout.comparison_image)
+            self.view.align(self.model.get_current_cutout(),
+                            self.model.get_current_reading(),
+                            self.model.get_current_source())
             self.model.get_current_workunit().previous_obs()
             self.model.acknowledge_image_displayed()
 

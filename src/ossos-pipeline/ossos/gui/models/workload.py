@@ -16,7 +16,7 @@ from .exceptions import (NoAvailableWorkException, SourceNotNamedException)
 
 from ..progress import FileLockedException
 
-from ...astrom import StreamingAstromWriter
+from ...astrom import StreamingAstromWriter, Source
 from ...orbfit import Orbfit
 
 
@@ -133,7 +133,9 @@ class WorkUnit(object):
         return len(self.get_sources())
 
     def get_current_source(self):
-        return self.get_sources().get_current_item()
+        source = self.get_sources().get_current_item()
+        assert isinstance(source, Source)
+        return source
 
     def get_current_source_number(self):
         return self.get_sources().get_index()
@@ -147,6 +149,7 @@ class WorkUnit(object):
     def get_current_reading(self):
         """
         :return: SourceReading
+        :rtype: SourceReading
         """
         return self.get_current_source_readings().get_current_item()
 
@@ -358,7 +361,6 @@ class TracksWorkUnit(WorkUnit):
     A unit of work when performing the process track task.
     """
 
-
     def __init__(self,
                  builder,
                  filename,
@@ -380,7 +382,9 @@ class TracksWorkUnit(WorkUnit):
 
     def print_orbfit_info(self):
         #TODO: this should not be here.
-        print Orbfit(self.get_writer().get_chronological_buffered_observations())
+        orb = Orbfit(self.get_writer().get_chronological_buffered_observations())
+        print orb.residuals
+        print orb
 
     def query_ssos(self):
         """
@@ -439,7 +443,7 @@ class TracksWorkUnit(WorkUnit):
         if self._writer is None:
             suffix = tasks.get_suffix(tasks.TRACK_TASK)
             try:
-                base_name = re.search("(?P<base_name>.*?)\.\d*{}".format(suffix),self.filename).group('base_name')
+                base_name = re.search("(?P<base_name>.*?)\.\d*{}".format(suffix), self.filename).group('base_name')
             except:
                 base_name = os.path.splitext(self.filename)[0]
             mpc_filename_pattern = self.output_context.get_full_path(
@@ -467,7 +471,6 @@ class TracksWorkUnit(WorkUnit):
         writer = MPCWriter(self.output_context.open(filename),
                            auto_flush=False, auto_discovery=False)
 
-        # Load the input observations into the writer
         for rawname in self.data.mpc_observations:
             writer.write(self.data.mpc_observations[rawname])
         
@@ -581,7 +584,8 @@ class WorkUnitProvider(object):
         Get a listing of files for the appropriate task which may or may
         not be locked and/or done.
         """
-        return [file for file in self.directory_context.get_listing(self.taskid)
+        exclude_prefix = self.taskid == tasks.suffixes.get(tasks.REALS_TASK, '') and 'fk' or None
+        return [file for file in self.directory_context.get_listing(self.taskid, exclude_prefix=exclude_prefix)
                 if file not in ignore_list and
                    file not in self._done and
                    file not in self._already_fetched]
