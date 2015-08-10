@@ -13,7 +13,6 @@ import sys
 
 import ephem
 
-
 cfht = ephem.Observer()
 cfht.lat = 0.344
 cfht.lon = -2.707
@@ -33,8 +32,8 @@ if len(sys.argv) != 3:
 
     ## for each day in the semester
     sys.stdout.write("%8s | %17s | %17s | %38s  %38s  %38s  \n" % (
-    "Day", "%Ill Moon-2015 RA", "%Ill Moon-2016 RA", "Min-RA [uptime] (Glat)", "Opp-RA [uptime] (Glat)",
-    "Max-RA [uptime] (Glat)" ))
+        "Day", "%Ill Moon-2015 RA", "%Ill Moon-2016 RA", "Min-RA [uptime] (Glat)", "Opp-RA [uptime] (Glat)",
+        "Max-RA [uptime] (Glat)"))
 
     for day in range(0, 360):
         o.date = ephem.date(start_date + day)
@@ -59,8 +58,8 @@ if len(sys.argv) != 3:
         opp.lon += math.radians(180.0)
         opp.lat = target_latitude
         t = o.date.tuple()
-        sys.stdout.write("%5s %2d | %3.0f %13s | " % ( Months[t[1]], t[2], Moon.phase, Moon.ra))
-        sys.stdout.write("%3.0f %13s |" % ( ephem.Moon(o.date + 365).phase, ephem.Moon(o.date + 365).ra ))
+        sys.stdout.write("%5s %2d | %3.0f %13s | " % (Months[t[1]], t[2], Moon.phase, Moon.ra))
+        sys.stdout.write("%3.0f %13s |" % (ephem.Moon(o.date + 365).phase, ephem.Moon(o.date + 365).ra))
 
         field_centres = [False, False, False]
 
@@ -105,17 +104,17 @@ if len(sys.argv) != 3:
             #  sun_rise, start_time, end_time, uptime
 
 
-            #print o.date, o.next_setting(field), opp.lon, field.ra, field.dec, uptime
+            # print o.date, o.next_setting(field), opp.lon, field.ra, field.dec, uptime
             if ang == 0 and uptime > 2:
-                field_centres[1] = ( field.ra, field.dec, uptime  )
+                field_centres[1] = (field.ra, field.dec, uptime)
                 prev_uptime = uptime
                 continue
             if uptime < 2:
                 continue
             if field_centres[0] == False:
-                field_centres[0] = ( field.ra, field.dec, uptime )
+                field_centres[0] = (field.ra, field.dec, uptime)
                 continue
-            field_centres[2] = ( field.ra, field.dec, uptime  )
+            field_centres[2] = (field.ra, field.dec, uptime)
 
         o.horizon = math.radians(40)
         for p in field_centres:
@@ -194,7 +193,7 @@ else:
         uptime2 = (o.next_setting(field) - o.date) * 24
 
         sys.stdout.write("%5s %2d | %3.0f %13s [%3.1f] | " % ( Months[t[1]], t[2], Moon.phase, Moon.ra, uptime))
-        sys.stdout.write("%3.0f %13s |" % ( Moon2.phase, Moon2.ra ))
+        sys.stdout.write("%3.0f %13s |" % (Moon2.phase, Moon2.ra))
         sys.stdout.write(" %13s %13s |" % ( field.ra, field.dec))
         sys.stdout.write(" %5.0f" % (elongation))
         sys.stdout.write('\n')
