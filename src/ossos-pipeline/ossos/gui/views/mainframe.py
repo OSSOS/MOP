@@ -5,7 +5,7 @@ import wx
 from ossos.gui import config
 from ossos.gui.views.listctrls import ListCtrlPanel
 from ossos.gui.views.navigation import NavPanel
-from ossos.gui.views.validation import SourceValidationPanel
+from ossos.gui.views.validation import SourceValidationPanel, MPCPanel
 
 
 class MainFrame(wx.Frame):
@@ -41,9 +41,7 @@ class MainFrame(wx.Frame):
 
         self.validation_view = SourceValidationPanel(self.control_panel, self.controller)
 
-        if self.track_mode:
-            self.ssos_query_button = wx.Button(self.control_panel, label="Query SSOS")
-            self.Bind(wx.EVT_BUTTON, self._on_ssos_query)
+        self.mpc_save_view = MPCPanel(self.control_panel, self.controller)
 
         self._do_layout()
 
@@ -54,7 +52,7 @@ class MainFrame(wx.Frame):
         control_sizer.Add(self.validation_view, 1, flag=wx.EXPAND)
 
         if self.track_mode:
-            control_sizer.Add(self.ssos_query_button, 0, flag=wx.ALIGN_CENTER)
+            control_sizer.Add(self.mpc_save_view, 1, flag=wx.EXPAND)
 
         self.control_panel.SetSizerAndFit(control_sizer)
 
@@ -97,9 +95,6 @@ class MainFrame(wx.Frame):
         self.main_sizer.Add(widget, flag=wx.EXPAND)
         self.main_sizer.Layout()
 
-    def _on_ssos_query(self, event):
-        self.controller.on_ssos_query()
-
 
 class _FocusablePanel(wx.Panel):
     """
@@ -115,10 +110,11 @@ class _FocusablePanel(wx.Panel):
     def use_as_focus(self, widget):
         self._focus = widget
 
-    def SetFocus(self):
+    def SetFocus(self, **kwargs):
         """
         Over-rides normal behaviour of shifting focus to any child.  Prefers
         the one set explicityly by use_as_focus.
+        :param **kwargs:
         """
         if self._focus is not None:
             self._focus.SetFocus()

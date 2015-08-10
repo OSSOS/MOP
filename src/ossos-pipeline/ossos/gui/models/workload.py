@@ -392,10 +392,14 @@ class TracksWorkUnit(WorkUnit):
         unit to generate another workunit.
         """
         self._ssos_queried = True
+        mpc_filename = self.save()
+        return self.builder.build_workunit(mpc_filename)
+
+    def save(self):
         self.get_writer().flush()
         mpc_filename = self.output_context.get_full_path(self.get_writer().get_filename())
         self.get_writer().close()
-        return self.builder.build_workunit(mpc_filename)
+        return mpc_filename
 
     def is_finished(self):
         return self._ssos_queried or self.get_source_count() == 0 or super(TracksWorkUnit, self).is_finished()
