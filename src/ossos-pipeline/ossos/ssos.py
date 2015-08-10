@@ -1,5 +1,3 @@
-from ossos.storage import get_astheader
-
 __author__ = 'Michele Bannister, JJ Kavelaars'
 
 import datetime
@@ -7,6 +5,7 @@ import os
 import warnings
 
 from astropy.io import ascii
+
 from astropy.time import Time
 import requests
 
@@ -217,7 +216,7 @@ class SSOSParser(object):
             # check if a dbimages object exists
             # For CFHT/MegaCam strip off the trailing character to get the exposure number.
             if (not row['Telescope_Insturment'] == 'CFHT/MegaCam'
-                    or (row['Filter'] not in ['r.MP9601', 'u.MP9301']) 
+                or (row['Filter'] not in ['r.MP9601', 'u.MP9301'])
                     or row['Image_target'].startswith('WP')):
                 continue
 
