@@ -3,8 +3,8 @@
     "DS9":
     {
       "INIT": {
-        "width": 1024,
-        "height": 1024,
+        "width": 640,
+        "height": 640,
         "view_layout": "vertical",
         "view_info": "yes",
         "view_buttons": "no",
@@ -20,7 +20,7 @@
         "frame_lock": "wcs",
         "scale": "linear",
         "scale_mode": "zscale",
-        "cmap": "grey",
+        "cmap_lock": "yes",
         "cmap_invert": "yes",
         "smooth": "no",
         "zoom": "to fit"
@@ -105,7 +105,7 @@
     },
 
     "APP": {
-        "MAX_THREADS": 3
+      "MAX_THREADS": 1
     },
 
     "UI": {

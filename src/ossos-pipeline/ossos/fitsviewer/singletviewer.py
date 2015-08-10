@@ -1,6 +1,6 @@
-__author__ = "David Rusk <drusk@uvic.ca>"
-import numpy
+from astropy import units
 
+__author__ = "David Rusk <drusk@uvic.ca>"
 from baseviewer import WxMPLFitsViewer
 from displayable import DisplayableImageSinglet
 from interaction import Signal
@@ -19,7 +19,7 @@ class SingletViewer(WxMPLFitsViewer):
 
     def _refresh_markers(self, cutout):
         self._displayables_by_cutout[cutout].clear_markers(self.ds9)
-        self.mark_sources(self.current_cutout)
+        self.mark_apertures(self.current_cutout)
 
     def mark_apertures(self, cutout, pixel=False):
         """
@@ -29,6 +29,10 @@ class SingletViewer(WxMPLFitsViewer):
         :param pixel: Mark based on pixel locations or based on RA/DEC ?
         :type pixel: bool
         """
+
+        if not self.mark_source:
+            return
+
         x, y = cutout.pixel_x, cutout.pixel_y
         try:
             radii = (cutout.apcor.aperture, cutout.apcor.sky, cutout.apcor.swidth+cutout.apcor.sky)
@@ -41,31 +45,11 @@ class SingletViewer(WxMPLFitsViewer):
             self._displayables_by_cutout[cutout].place_annulus(x, y, radii, colour='r')
         else:
             cutout.update_pixel_location((x, y), extno=cutout.original_observed_ext)
-            radii = numpy.array(radii)
-            radii *= 0.185
-            radii /= 3600.0
+            radii = [radius * 0.185 * units.arcsec for radius in radii]
             self._displayables_by_cutout[cutout].place_annulus(cutout.ra, cutout.dec, radii, colour='r')
 
     def place_marker(self, cutout, x, y, radius, colour):
         self._displayables_by_cutout[cutout].place_marker(x, y, radius, colour=colour)
-
-    def mark_sources(self, cutout, pixel=False):
-        assert cutout in self._displayables_by_cutout
-
-        x, y = cutout.pixel_source_point
-        try:
-            fwhm = float(cutout.astrom_header.get("FWHM", 10))
-        except:
-            fwhm = 4.0
-        radius = 2 * round(fwhm)
-
-        colour = "b"
-        if cutout.reading.from_input_file:
-            if cutout.reading.null_observation:
-                colour = "r"
-            else:
-                colour = "g"
-        self.place_marker(cutout, x, y, radius, colour=colour)
 
     def register_xy_changed_event_handler(self, handler):
         self.xy_changed.connect(handler)

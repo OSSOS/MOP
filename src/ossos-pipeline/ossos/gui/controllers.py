@@ -3,6 +3,7 @@ from astropy.units import Quantity
 
 from ossos.downloads.cutouts.source import SourceCutout
 from ossos.gui.models.transactions import TransAckValidationModel
+from ossos.gui.views.appview import ApplicationView
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 import math
@@ -26,7 +27,8 @@ class AbstractController(object):
         events.subscribe(events.CHANGE_IMAGE, self.on_change_image)
         events.subscribe(events.IMG_LOADED, self.on_image_loaded)
         events.subscribe(events.NO_AVAILABLE_WORK, self.on_no_available_work)
-
+        self.mark_prediction = False
+        self.mark_source = True
         self.autoplay_manager = AutoplayManager(model)
         self.downloader = Downloader()
         self.image_loading_dialog_manager = ImageLoadingDialogManager(view)
@@ -37,16 +39,18 @@ class AbstractController(object):
         """
         return self.view
 
-    def place_marker(self, x, y, radius=10, color='r'):
-        self.view.place_marker(self.model.get_current_cutout(), x, y, radius, color)
+    def place_marker(self, x, y, radius=10, colour='r'):
+        self.view.place_marker(self.model.get_current_cutout(), x, y, radius, colour=colour)
 
-    def display_current_image(self, draw_error_ellipse=False, align=False):
+    def display_current_image(self):
         logger.debug("Displaying image.")
         try:
             cutout = self.model.get_current_cutout()
             source = self.model.get_current_source()
             reading = self.model.get_current_reading()
-            self.view.display(cutout, draw_error_ellipse=draw_error_ellipse)
+            self.view.image_viewer.mark_source = self.mark_source
+            self.view.image_viewer.mark_prediction = self.mark_prediction
+            self.view.display(cutout)
             self.view.align(cutout, reading, source)
         except ImageNotLoadedException as ex:
             logger.info("Waiting to load image: {}".format(ex))
@@ -64,6 +68,8 @@ class AbstractController(object):
             self.view.update_displayed_data(self.model.get_reading_data(),
                                             self.model.get_header_data_list())
         except Exception as ex:
+            logger.error(type(ex))
+            logger.error(str(ex))
             logger.error("Failed to get header for {}".format(self.model.get_current_reading()))
             pass
 
@@ -89,6 +95,7 @@ class AbstractController(object):
             self.display_current_image()
 
     def on_change_image(self, event):
+        logger.debug("Change Image Event: {}".format(event))
         if self.model.is_current_item_processed():
             self.view.disable_source_validation()
         else:
@@ -97,6 +104,7 @@ class AbstractController(object):
         self.display_current_image()
 
     def on_no_available_work(self, event):
+        logger.debug("Available work event: {}".format(event))
         self.view.hide_image_loading_dialog()
 
         if self.model.get_num_items_processed() == 0:
@@ -190,6 +198,7 @@ class ProcessRealsController(AbstractController):
     def __init__(self, model, view, name_generator):
         super(ProcessRealsController, self).__init__(model, view)
         assert isinstance(model, TransAckValidationModel)
+        assert isinstance(view, ApplicationView)
         self.name_generator = name_generator
         self.is_discovery = True
 
@@ -220,7 +229,6 @@ class ProcessRealsController(AbstractController):
         if not auto:
             result = display.get('imexam key coordinate wcs fk5 degrees')
             # result = display.get("""imexam key coordinate $x $y $filename""")
-            logger.debug("IMEXAM returned {}".format(result))
             values = result.split()
             ra = Quantity(float(values[1]), unit=units.degree)
             dec = Quantity(float(values[2]), unit=units.degree)
@@ -236,7 +244,7 @@ class ProcessRealsController(AbstractController):
         pre_daophot_pixel_x = source_cutout.pixel_x
         pre_daophot_pixel_y = source_cutout.pixel_y
 
-        # self.view.mark_apertures(source_cutout, pixel=False)
+        self.view.mark_apertures(source_cutout, pixel=False)
 
         try:
             phot = self.model.get_current_source_observed_magnitude()
@@ -264,7 +272,7 @@ class ProcessRealsController(AbstractController):
 
         if math.sqrt((cen_x - pre_daophot_pixel_x) ** 2 + (cen_y - pre_daophot_pixel_y) ** 2) > 1.5 or cen_failure:
             # check if the user wants to use the 'hand' coordinates or these new ones.
-            self.place_marker(cen_x, cen_y, 10, color='r')
+            self.place_marker(cen_x, cen_y, 10, colour='r')
             self.view.show_offset_source_dialog((pre_daophot_pixel_x, pre_daophot_pixel_y), (cen_x, cen_y))
 
         note1_default = ""
@@ -276,7 +284,7 @@ class ProcessRealsController(AbstractController):
                     note1_default = note
                     break
         note1 = len(note1_default) > 0 and note1_default[0] or note1_default
-        print mpc.Observation(
+        this_observation = mpc.Observation(
             null_observation=False,
             provisional_name=provisional_name,
             note1=note1,
@@ -292,7 +300,10 @@ class ProcessRealsController(AbstractController):
             comment=None,
             xpos=source_cutout.observed_x,
             ypos=source_cutout.observed_y,
-            frame=self.model.get_current_reading().obs.rawname).to_string()
+            frame=self.model.get_current_reading().obs.rawname)
+
+
+
 
         if obs_mag < 24 and auto is not False:
             self.on_do_accept(None,
@@ -338,8 +349,7 @@ class ProcessRealsController(AbstractController):
                      obs_mag_err,
                      band,
                      observatory_code,
-                     comment,
-    ):
+                     comment):
         """
         Final acceptance with collected data.
         """
@@ -460,9 +470,15 @@ class ProcessTracksController(ProcessRealsController):
     three out to more observations.
     """
 
+    def __init__(self, model, view, name_generator):
+        super(ProcessTracksController, self).__init__(model, view, name_generator)
+        assert isinstance(model, TransAckValidationModel)
+        assert isinstance(view, ApplicationView)
+        self.mark_prediction = True
+        self.is_discovery = False
+
     def on_accept(self, auto=False):
         super(ProcessTracksController, self).on_accept(auto=False)
-
 
     def on_do_accept(self,
                      minor_planet_number,
@@ -476,9 +492,8 @@ class ProcessTracksController(ProcessRealsController):
                      obs_mag_err,
                      band,
                      observatory_code,
-                     comment,
-    ):
-        print super(ProcessTracksController, self).on_do_accept(
+                     comment):
+        super(ProcessTracksController, self).on_do_accept(
             minor_planet_number,
             provisional_name,
             note1,
@@ -498,11 +513,6 @@ class ProcessTracksController(ProcessRealsController):
             logger.error("Orbfit Error: {0}".format(error))
         self.is_discovery = False
 
-    def display_current_image(self):
-        logger.debug("Now attempting to display {}".format(self))
-        super(ProcessTracksController, self).display_current_image(draw_error_ellipse=True, align=True)
-
-
     def on_load_comparison(self, research=False):
         """
         Display the comparison image
@@ -511,7 +521,7 @@ class ProcessTracksController(ProcessRealsController):
         logger.debug(str(research))
         cutout = self.model.get_current_cutout()
         if research or cutout.comparison_image is None:
-            cutout.retrieve_comparison_image(self.downloader)
+            cutout.retrieve_comparison_image()
         if cutout.comparison_image is not None:  # if a comparison image was found
             self.view.display(cutout.comparison_image)
             self.view.align(self.model.get_current_cutout(),
@@ -520,7 +530,7 @@ class ProcessTracksController(ProcessRealsController):
             self.model.get_current_workunit().previous_obs()
             self.model.acknowledge_image_displayed()
 
-    def on_ssos_query(self):
+    def on_ssos(self):
         try:
             new_workunit = self.model.get_current_workunit().query_ssos()
             self.model.add_workunit(new_workunit)
@@ -528,6 +538,9 @@ class ProcessTracksController(ProcessRealsController):
             logger.critical(str(e))
             pass
         self.model.next_item()
+
+    def on_save(self):
+        print "Saved to: {}".format(self.model.get_current_workunit().save())
 
 
 class ImageLoadingDialogManager(object):

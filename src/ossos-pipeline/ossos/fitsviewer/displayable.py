@@ -1,12 +1,102 @@
 import copy
 import logging
 import tempfile
+
 from astropy import units
 from astropy.coordinates import SkyCoord
+
 from astropy.units import Quantity
+
 from .colormap import GrayscaleColorMap
-from .exceptions import MPLViewerError
 from .interaction import Signal
+from ossos.astrom import Ellipse
+
+
+class Region(object):
+    """
+    A DS9 region object.
+
+    given a 'point' creates a circle region at that point.
+
+    style can be one of 'cirlce', 'ellipse', 'annulus'
+
+    if 'circle' then the radius of the circle is passed as the shape.
+    if 'ellipse' then an ellipse object should be passed as the 'shape'
+    if 'annulus' then a set of annulus sizes should be passed as the 'shape'
+
+    """
+
+    def __init__(self, point, style='circle', colour='g', shape=10, option=""):
+        """
+        :param shape: The parameters that define the shape.
+        :type shape: int, list
+        """
+        self._point = point
+        self._coo = None
+        self._colour = None
+        self.colour = colour
+        self.style = style
+        self.shape = shape
+        self.option = option
+
+    def __iter__(self):
+        try:
+            if isinstance(self.shape, Ellipse):
+                shape = self.shape
+            elif isinstance(self.shape[0], Quantity):
+                shape = ",".join(['{}"'.format(p.to(units.arcsec).value) for p in self.shape])
+            else:
+                shape = ",".join(['{}'.format(p) for p in self.shape])
+        except Exception:
+            try:
+                shape = '{}"'.format(self.shape.to(units.arcsec).value)
+            except:
+                shape = self.shape
+
+        return iter(('regions', '{}; {}({},{},{}) # color={} {}'.format(self.coosys,
+                                                                        self.style,
+                                                                        self.point[0],
+                                                                        self.point[1],
+                                                                        shape,
+                                                                        self.colour,
+                                                                        self.option)))
+
+    @property
+    def point(self):
+        if not self._coo:
+            if isinstance(self._point, SkyCoord):
+                self._coo = self._point.ra.degree, self._point.dec.degree
+            elif isinstance(self._point[0], Quantity):
+                try:
+                    self._coo = self._point[0].to(units.degree).value, self._point[1].to(units.degree).value
+                except:
+                    self._coo = self._point[0].value, self._point[1].value
+            else:
+                self._coo = self._point
+        return self._coo
+
+    @property
+    def coosys(self):
+        if isinstance(self._point, SkyCoord):
+            return "wcs"
+        if isinstance(self._point[0], Quantity):
+            try:
+                self._point[0].to(units.degree)
+                return "wcs"
+            except:
+                return "image"
+        return "image"
+
+    @property
+    def colour(self):
+        """
+        The colour of the marker to create.
+        """
+        return self._colour
+
+    @colour.setter
+    def colour(self, colour):
+        self._colour = {'r': 'red', 'b': 'blue', 'y': 'yellow', 'c': 'cyan', 'g': 'green'}.get(colour, colour)
 
 
 class Displayable(object):
@@ -23,7 +113,11 @@ class Displayable(object):
         self.canvas = None
         self.display = display
         self.rendered = False
-        self.aligned = False
+        self.focus = None
+        self.mark_reticule = True
+        self._annulus_placed = False
+        self._ellipse_placed = False
+        self._marker_placed = False
 
     @property
     def width(self):
@@ -33,9 +127,8 @@ class Displayable(object):
     def height(self):
         raise NotImplementedError()
 
-    def align(self, pos):
-        if not self.aligned:
-            self._do_align(pos)
+    def pan_to(self, pos):
+        raise NotImplementedError()
 
     def render(self):
         if not self.rendered:
@@ -44,19 +137,44 @@ class Displayable(object):
     def redraw(self):
         pass
 
-    def place_error_ellipse(self, sky_coord, uncertainty_ellipse, color='g'):
-        pass
+    def place_ellipse(self, sky_coord, ellipse, colour='g', dash=0):
+        if not self.display or self._ellipse_placed or not self.mark_reticule:
+            return
+        r = Region(sky_coord, style='ellipse', colour=colour, shape=ellipse, option='dash={}'.format(dash))
+        self.display.set(*r)
+        self._ellipse_placed = True
+
+    def place_annulus(self, x, y, annuli, colour='b'):
+        if not self.display or self._annulus_placed or not self.mark_reticule:
+            return
+        r = Region((x, y), style='annulus', colour=colour, shape=annuli)
+
+        self.display.set(*r)
+        self._annulus_placed = True
+
+    def place_marker(self, x, y, radius=10, colour='b'):
+
+        if not self.display or self._marker_placed or not self.mark_reticule:
+            return
+        self.display.set(*Region((x, y), style='circle', colour=colour, shape=radius))
+        self._marker_placed = True
+
+    def clear_markers(self):
+        self.display.set('regions delete all')
+        self._marker_placed = self._annulus_placed = self._ellipse_placed = False
 
     def reset_colormap(self):
         pass
 
     def toggle_reticule(self):
-        pass
+        self.clear_markers()
+        self.mark_reticule = not self.mark_reticule
+        return self.mark_reticule
 
     def _do_render(self):
         raise NotImplementedError()
 
-    def _do_align(self, pos):
+    def _do_align(self):
         raise NotImplementedError()
 
     def _apply_event_handlers(self, canvas):
@@ -91,13 +209,7 @@ class ImageSinglet(object):
     def height(self):
         return _image_height(self.hdulist)
 
-    def pan(self, ds9, pos):
-        self.pos = pos
-        x = pos.ra.to(units.degree).value
-        y = pos.dec.to(units.degree).value
-        ds9.set("pan to {} {} wcs fk5".format(x, y))
-
-    def show_image(self, ds9, colorbar=False):
+    def show_image(self, ds9):
         display = ds9
 
         if self.frame_number is None:
@@ -123,7 +235,6 @@ class ImageSinglet(object):
             except ValueError as ex:
                 logging.error("Failed while trying to display: {}".format(hdulist))
                 logging.error("{}".format(ex))
-
             # clear up the loose bits.
             f.close()
             del f
@@ -132,67 +243,9 @@ class ImageSinglet(object):
             display.reset_preferences()
         else:
             display.set('frame frameno {}'.format(self.frame_number))
-            if self.pos is not None:
-                try:
-                    pos = ds9.get("pan wcs degrees").split()
-                    pos = SkyCoord(pos[0], pos[1], unit=units.degree)
-                    if pos.separation(self.pos) > 60*units.arcsec:
-                        self.pan(ds9, self.pos)
-                except Exception as ex:
-                    print "{}".format(ex)
-
-
-
-    @staticmethod
-    def clear_markers(ds9):
-        display = ds9
-        display.set('regions delete all')
-
-    def place_marker(self, x, y, radius, colour="b", ds9=None):
-        """
-        Draws a marker with the specified dimensions.  Only one marker can
-        be on the image at a time, so any existing marker will be replaced.
-        """
-        display = ds9
-        colour_string = {'r': 'red', 'b': 'blue'}.get(colour, 'green')
-        if isinstance(x, Quantity) and x.unit == units.degree:
-            display.set('regions', 'wcs; circle({},{},{}) # color={}'.format(x.value, y.value,
-                                                                             radius, colour_string))
-        else:
-            display.set('regions', 'image; circle({},{},{}) # color={}'.format(x, y, radius, colour_string))
-
-        self.display_changed.fire()
-
-    def place_error_ellipse(self, sky_coord, uncertainty_ellipse, colour='b', ds9=None):
-        """
-        Draws an ErrorEllipse with the given dimensions.  Can not be moved later.
-        """
-        display = ds9
-        ellipse = 'ellipse({},{},{},{},{})'.format(sky_coord.ra.to(units.degree).value,
-                                              sky_coord.dec.to(units.degree).value,
-                                              max(uncertainty_ellipse.a.to(units.degree).value, 0.0005),
-                                              max(uncertainty_ellipse.b.to(units.degree).value, 0.0005),
-                                              uncertainty_ellipse.pa.to(units.degree).value + 90)
-        colour_string = {'r': 'red', 'b': 'blue', 'y': 'yellow'}.get(colour, 'green')
-        display.set('regions','fk5; {} # color={}'.format(ellipse, colour_string))
-        self.display_changed.fire()
 
     def update_marker(self, x, y, radius=None):
-
-        if self.marker is None:
-            if radius is None:
-                raise MPLViewerError("No marker to update.")
-            else:
-                # For convenience go ahead and make one
-                self.place_marker(x, y, radius)
-
-        self.marker.center = (x, y)
-
-        if radius is not None:
-            self.marker.radius = radius
-
-        self.xy_changed.fire(x, y)
-        self.display_changed.fire()
+        raise NotImplementedError('update_marker')
 
     def release_focus(self):
         self.focus_released.fire()
@@ -209,10 +262,6 @@ class ImageSinglet(object):
     def reset_colormap(self):
         self._colormap.set_defaults()
         self._refresh_displayed_colormap()
-
-    def toggle_reticule(self):
-        self.marker.toggle_reticule()
-        self.display_changed.fire()
 
     def is_event_in_axes(self, event):
         raise NotImplemented()
@@ -253,7 +302,7 @@ class DisplayableImageSinglet(Displayable):
         self.marker_placed = False
         self.ellipse_placed = False
         self.annulus_placed = False
-        self.pos = None
+        self._focus = None
 
     @property
     def xy_changed(self):
@@ -263,36 +312,48 @@ class DisplayableImageSinglet(Displayable):
     def focus_released(self):
         return self.image_singlet.focus_released
 
-    def place_marker(self, x, y, radius, colour="g"):
-        if not self.marker_placed:
-            self.image_singlet.place_marker(x, y, radius, colour=colour, ds9=self.display)
-            self.marker_placed = True
-
-    def place_annulus(self, x, y, radii, colour='g'):
-        if not self.annulus_placed:
-            for radius in radii:
-                self.image_singlet.place_marker(x, y, radius, colour=colour, ds9=self.display)
-            self.annulus_placed = True
-
-    def place_error_ellipse(self, sky_coord, uncertainty_ellipse, colour='y'):
-        if not self.ellipse_placed:
-            self.image_singlet.place_error_ellipse(sky_coord, uncertainty_ellipse, colour=colour, ds9=self.display)
-            self.ellipse_placed = True
-
     def reset_colormap(self):
         self.image_singlet.reset_colormap()
 
-    def toggle_reticule(self):
-        self.image_singlet.toggle_reticule()
-
     def _do_render(self):
-        self.image_singlet.show_image(ds9=self.display, colorbar=False)
+        self.image_singlet.show_image(ds9=self.display)
+        self._do_align()
 
-    def _do_align(self, pos):
-        self.pos = pos
+    @property
+    def aligned(self):
+        if not self.focus:
+            return False
+        focus = self.display.get("pan wcs degrees").split()
+        focus = SkyCoord(focus[0], focus[1], unit=units.degree)
+        return focus.separation(self.focus) < 60 * units.arcsec
+
+    @property
+    def focus(self):
+        return self._focus
+
+    @focus.setter
+    def focus(self, focus):
+        if not focus:
+            return
+        try:
+            if isinstance(focus, SkyCoord):
+                self._focus = focus
+            else:
+                self._focus = SkyCoord(focus[0], focus[1])
+        except Exception as ex:
+            print "Failed to convert position: {}".format(ex)
+            self._focus = focus
+
+    def _do_align(self):
+        if not self.focus:
+            return
         if not self.aligned:
-            self.image_singlet.pan(ds9=self.display, pos=pos)
-        self.aligned = True
+            self.display.set("pan to {} {} wcs fk5".format(self.focus.ra.degree,
+                                                           self.focus.dec.degree))
+
+    def pan_to(self, pos):
+        self.focus = pos
+        self._do_align()
 
     def _apply_event_handlers(self, canvas):
         self.image_singlet.apply_event_handlers(canvas)
@@ -353,17 +414,6 @@ class DisplayableImageTriplet(Displayable):
         for singlet in self.iter_singlets():
             singlet.apply_event_handlers(canvas)
 
-
-def get_rect(shape, frame_index, time_index, border=0.025, spacing=0.01):
-    rows, cols = shape
-
-    width = (1.0 - 2 * border - (cols - 1) * spacing) / cols
-    height = (1.0 - 2 * border - (rows - 1) * spacing) / rows
-
-    left = border + (width + spacing) * time_index
-    bottom = border + (height + spacing) * (rows - frame_index - 1)
-
-    return [left, bottom, width, height]
 
 
 def _image_width(hdulist):

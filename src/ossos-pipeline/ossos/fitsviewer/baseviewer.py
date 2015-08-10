@@ -1,9 +1,11 @@
+import logging
+
 from astropy.coordinates import SkyCoord
+
 from ossos.astrom import SourceReading
 from ossos.downloads.cutouts.focus import SingletFocusCalculator
 from ossos.downloads.cutouts.source import SourceCutout
 from ossos.gui import logger
-import logging
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -20,24 +22,21 @@ class WxMPLFitsViewer(object):
         self.current_displayable = None
         self._ds9 = display
         self._displayables_by_cutout = {}
+        self.mark_source = True
+        self.mark_prediction = False
 
     @property
     def ds9(self):
         return self._ds9
 
-    def display(self, cutout, mark_source=True, pixel=False, draw_error_ellipse=False):
+    def display(self, cutout):
         """
-
         :param cutout: source cutout object to be display
         :type cutout: source.SourceCutout
-        :param mark_source: should the sources associated with the cutout be display?
-        :type mark_source: bool
-        :param pixel: use the source coordinates in pixels (True) or RA/DEC (False)
-        :type pixel: bool
         """
         logging.debug("Current display list contains: {}".format(self._displayables_by_cutout.keys()))
         logging.debug("Looking for {}".format(cutout))
-        assert isinstance(cutout,SourceCutout)
+        assert isinstance(cutout, SourceCutout)
         if cutout in self._displayables_by_cutout:
             displayable = self._displayables_by_cutout[cutout]
         else:
@@ -53,29 +52,29 @@ class WxMPLFitsViewer(object):
 
         self._do_render(self.current_displayable)
 
-        if mark_source:
-            self.mark_apertures(cutout, pixel=pixel)
+        self.mark_apertures(cutout, pixel=False)
 
-        if draw_error_ellipse:
-            colour = cutout.reading.from_input_file and 'b' or 'g'
-            self.draw_error_ellipse(cutout.reading.sky_coord, cutout.reading.uncertainty_ellipse, colour=colour)
+        self.draw_uncertainty_ellipse(cutout)
 
     def clear(self):
         self.ds9.set("frame delete all")
 
-    def draw_error_ellipse(self, sky_coord, uncertainty_ellipse, colour='y'):
+    def draw_uncertainty_ellipse(self, cutout):
         """
         Draws an ErrEllipse with the spcified dimensions.  Only one ErrEllipse can be drawn and
         only once (not movable).
         """
-
-        self.current_displayable.place_error_ellipse(sky_coord, uncertainty_ellipse, colour=colour)
-
-    def mark_sources(self, cutout):
-        pass
+        if not self.mark_prediction:
+            return
+        colour = cutout.reading.from_input_file and 'b' or 'g'
+        colour = cutout.reading.null_observation and 'c' or colour
+        dash = cutout.reading.null_observation and 1 or 0
+        sky_coord = cutout.reading.sky_coord
+        uncertainty_ellipse = cutout.reading.uncertainty_ellipse
+        self.current_displayable.place_ellipse(sky_coord, uncertainty_ellipse, colour=colour, dash=dash)
 
     def refresh_markers(self):
-        self.mark_sources(self.current_cutout)
+        self.mark_apertures(self.current_cutout)
 
     def mark_apertures(self, cutout, pixel=False):
         pass
@@ -88,7 +87,10 @@ class WxMPLFitsViewer(object):
             self.current_displayable.reset_colormap()
 
     def toggle_reticule(self):
-        self.current_displayable.toggle_reticule()
+        result = self.current_displayable.toggle_reticule()
+        if result:
+            self.mark_apertures(self.current_cutout, pixel=False)
+            self.draw_uncertainty_ellipse(self.current_cutout)
 
     def _attach_handlers(self, displayable):
         pass
@@ -111,14 +113,17 @@ class WxMPLFitsViewer(object):
         @type source: Source
         @return:
         """
-        if not self.current_displayable.pos:
+        if not self.current_displayable:
+            return
+        if not self.current_displayable.aligned:
             focus_calculator = SingletFocusCalculator(source)
             logger.debug("Got focus calculator {} for source {}".format(focus_calculator, source))
             focus = cutout.flip_flip(focus_calculator.calculate_focus(reading))
             focus = cutout.get_pixel_coordinates(focus)
             focus = cutout.pix2world(focus[0], focus[1])
             focus_sky_coord = SkyCoord(focus[0], focus[1])
-            self.current_displayable.align(focus_sky_coord)
+            self.current_displayable.pan_to(focus_sky_coord)
 
-    def _do_render(self, displayable):
+    @staticmethod
+    def _do_render(displayable):
         displayable.render()
