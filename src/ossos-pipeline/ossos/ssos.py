@@ -2,9 +2,12 @@ __author__ = 'Michele Bannister, JJ Kavelaars'
 
 import datetime
 import os
+import pprint
 import warnings
 
 from astropy.io import ascii
+
+from astropy import units
 
 from astropy.time import Time
 import requests
