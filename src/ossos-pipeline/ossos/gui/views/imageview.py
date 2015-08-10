@@ -2,8 +2,6 @@ from ossos.gui import config
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import logging
-
 import ds9
 
 from ossos.fitsviewer.singletviewer import SingletViewer
@@ -49,7 +47,7 @@ class ImageViewManager(object):
                     self._ds9.set("frame delete all")
                     break
                 except ValueError as ve:
-                    logging.warning('Error on attempt {0} to connect to DS9 {1}'.format(cnt, ve))
+                    print 'Error on attempt {0} to connect to DS9 {1}'.format(cnt, ve)
 
         if self._ds9 is None:
             raise IOError("Failed to connect to DS9.")
