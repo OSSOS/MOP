@@ -37,7 +37,6 @@ class KeybindManager(object):
         bind(self.on_toggle_autoplay, autoplay_kb_id)
         bind(self.on_toggle_reticule, toggle_reticule_kb_id)
 
-
         self.accept_key = config.read("KEYBINDS.ACCEPT_SRC")
         self.auto_accept_key = config.read("KEYBINDS.AUTO_ACCEPT_SRC")
         self.reject_key = config.read("KEYBINDS.REJECT_SRC")
@@ -53,13 +52,13 @@ class KeybindManager(object):
             (wx.ACCEL_SHIFT, wx.WXK_TAB, prev_obs_kb_id),
             (wx.ACCEL_NORMAL, ord(self.accept_key), accept_src_kb_id),
             (wx.ACCEL_NORMAL, ord(self.auto_accept_key), auto_accept_src_kd_id),
-            (wx.ACCEL_CTRL, ord(self.reject_key), reject_src_kb_id),
-            (wx.ACCEL_CTRL, ord(self.reset_cmap_key), reset_cmap_kb_id),
-            (wx.ACCEL_CTRL, ord(self.reset_source_key), reset_src_kb_id),
-            (wx.ACCEL_CTRL, ord(self.load_comparison_key), load_comparison_kb_id),
-            (wx.ACCEL_CTRL, ord(self.load_diff_comparison_key), load_diff_comparison_kb_id),
-            (wx.ACCEL_CTRL, ord(self.autoplay_key), autoplay_kb_id),
-            (wx.ACCEL_CTRL, ord(self.toggle_reticule_key), toggle_reticule_kb_id),
+            (wx.ACCEL_NORMAL, ord(self.reject_key), reject_src_kb_id),
+            (wx.ACCEL_NORMAL, ord(self.reset_cmap_key), reset_cmap_kb_id),
+            (wx.ACCEL_NORMAL, ord(self.reset_source_key), reset_src_kb_id),
+            (wx.ACCEL_NORMAL, ord(self.load_comparison_key), load_comparison_kb_id),
+            (wx.ACCEL_NORMAL, ord(self.load_diff_comparison_key), load_diff_comparison_kb_id),
+            (wx.ACCEL_NORMAL, ord(self.autoplay_key), autoplay_kb_id),
+            (wx.ACCEL_NORMAL, ord(self.toggle_reticule_key), toggle_reticule_kb_id),
         ]
 
         for line in config.read("MPC.NOTE1OPTIONS"):
@@ -69,7 +68,7 @@ class KeybindManager(object):
             this_func = self._build_accept_func(this_key)
             this_key_id = wx.NewId()
             bind(this_func, this_key_id)
-            accelerators.append((wx.ACCEL_NORMAL, ord(this_key), this_key_id))
+            accelerators.append((wx.ACCEL_CTRL, ord(this_key), this_key_id))
 
         accelerators = wx.AcceleratorTable(accelerators)
         view.SetAcceleratorTable(accelerators)
