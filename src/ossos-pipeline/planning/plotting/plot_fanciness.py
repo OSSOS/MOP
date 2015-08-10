@@ -1,5 +1,6 @@
 __author__ = 'Michele Bannister   git:@mtbannister'
 
+import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from mpld3 import plugins, utils

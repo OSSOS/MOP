@@ -13,6 +13,12 @@ import Polygon.IO
 from astropy.coordinates import SkyCoord
 from astropy.time import Time, TimeDelta
 
+
+try:
+    from astropy.coordinates import ICRSCoordinates
+except:
+    from astropy.coordinates import ICRS as ICRSCoordinates
+
 from astropy import units
 
 import ephem
@@ -91,7 +97,7 @@ doubles = [  # 'o3o05',
     #            'o3o13',
     #            'o3o14',
     #            'o3o16',
-    #            'o3o17',
+                'o3o17',  # needs June
     #            'o3o19',
     #            'o3o25',
     #            'o3o26',
@@ -153,20 +159,25 @@ class Plot(Canvas):
         self.tk_focusFollowsMouse()
 
     def load_objects(self, directory_name=None):
-        """Load the targets from a file
+        """Load the targets from a file.
 
         """
         for name in Neptune:
             self.kbos[name] = Neptune[name]
 
         if directory_name is not None:
+            # defaults to looking at .ast files only
             if directory_name == parameters.REAL_KBO_AST_DIR:
-                kbos = parsers.ossos_discoveries()
+                kbos = parsers.ossos_discoveries(all=True)
             else:
-                kbos = parsers.ossos_discoveries(directory_name, suffix='ast')
-                kbos.extend(parsers.ossos_discoveries(directory_name, suffix='ted'))
+                kbos = parsers.ossos_discoveries(directory_name, all=True)
+
             for kbo in kbos:
+                # if kbo.orbit.arc_length > 30.:  # cull the short ones for now
+                #     print(kbo.name)
                 self.kbos[kbo.name] = kbo.orbit
+                # else:
+                #     print("Arc very short, large uncertainty. Skipping {} for now.\n".format(kbo.name))
 
         self.doplot()
 

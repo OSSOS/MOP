@@ -1,7 +1,7 @@
 __author__ = 'Michele Bannister   git:@mtbannister'
 
 import os
-
+import math
 from collections import OrderedDict
 
 MPCORB_FILE = os.path.join(os.getenv('HOME', '/Users/michele/'), 'MPCORB-Distant.dat')
@@ -9,11 +9,11 @@ L7MODEL = '/Users/michele/Dropbox/OSSOS/Release_summaries/L7model-3.0-9.0'  # 'v
 L7_HOME = '/Users/michele/Dropbox/OSSOS/Release_summaries/'
 REAL_KBO_AST_DIR = '/Users/michele/Dropbox/OSSOS/measure3/ossin/'
 # REAL_KBO_AST_DIR = 'vos:OSSOS/dbaseclone/ast/'
-RELEASE_VERSION = 5
-RELEASE_DETECTIONS = '/Users/michele/Dropbox/OSSOS/Release_summaries/v5prototype.detections'  # v4/OSSOSv4/OSSOSv4
-# .detections'  # OSSOSv4.1+u
-# .detections'
-IDX = 'vos:OSSOS/dbaseclone/idx/file.idx'
+RELEASE_VERSION = 4
+RELEASE_DETECTIONS = '/Users/michele/Dropbox/OSSOS/Release_summaries/v4/OSSOSv4.1+u.detections'
+# v5prototype.detections'
+#
+IDX = REAL_KBO_AST_DIR + 'file.idx'  # for local  # 'vos:OSSOS/dbaseclone/idx/file.idx'  # for vos
 
 PLOT_FIELD_EPOCH = 'Jun14.00'  # Jun14.00 ==> '0' days since the New Moon on Jun14
 
@@ -96,18 +96,18 @@ BLOCKS = OrderedDict([
 
     ('15AP', {'RA': "13:30:00.00", "DEC": "-7:45:00.00"}),  # on-plane
     ('15AM', {'RA': "15:35:00.00", "DEC": "-12:10:00.0"}),  # positioned for its 2015 discovery opposition.
-    ('15B?', {'RA': "00:45:00.00", "DEC": "+00:05:00.00"}),  # FIXME: NOT CHECKED against lunations etc yet. Indicative.
+    ('15BS', {'RA': "00:30:00.00", "DEC": "+05:00:00.00"}),
     ('15BD', {'RA': "03:15:00.00", "DEC": "+16:30:00.00"})
 ])
 
 DISCOVERY_DATES = {"13AE": "2013/04/09 08:50:00",
                    "13AO": "2013/05/08 08:50:00",
-                   "15AP": NEWMOONS['Apr15'],  # FIXME: set when observations taken
+                   "15AP": NEWMOONS['Apr15'],
                    "15AM": NEWMOONS['May15'],  # Backup triplet was on 2014/05/29, 2014/06/01 at diff block centre
                    "13BL": "2013/09/29 08:50:00",  # HOWEVER: discovery date is split between months (earliest)
                    "14BH": "2014/10/22 09:30:00",  # Note: Col3N triplet is instead 2014/01/03.
                    "15BD": NEWMOONS['Nov15'],  # FIXME: set when observations taken
-                   "15B?": NEWMOONS['Oct15']  # FIXME: set when observations taken
+                   "15BS": NEWMOONS['Sep15']  # FIXME: set when observations taken
 }
 
 DISCOVERY_NEW_MOON = 'Apr13'  # applies to the 13A blocks
@@ -118,34 +118,29 @@ OPPOSITION_DATES = {"13AE": NEWMOONS['Apr13'],
                     "15AM": NEWMOONS['May15'],
                     "13BL": NEWMOONS['Oct13'],
                     "14BH": NEWMOONS['Oct13'],
-                    "15B?": NEWMOONS['Oct15'],
+                    "15BS": NEWMOONS['Sep15'],
                     "15BD": NEWMOONS['Nov15'],
 
 }
 
 COLOSSOS = [
     # the L block in the old money - will need to translate after v5 numbering
-    'O13BL3R9',
-    'O13BL3SK',
-    'O13BL3RB',
-    'O13BL3SC',
-    'O13BL3S3',
-    'O13BL3QX',
-    'O13BL3TF',
-    'O13BL3TA',
-    'O13BL3SN',
-    'O13BL3RE',
-    'O13BL3RV',
-    'O13BL3SY',
-    'O13BL3RG',
-    'O13BL3RN',
-    'O13BL3SW',
-    'O13BL3T7',
-    'O13BL3RT',  # this one now nfrL3RT as not found in the rerun.
-    'O13BL3RQ',
-    'O13BL3SH',
-    'O13BL3R1',
-    'O13BL3RH',
+    'O13BL3RB',  # o3l39
+    'O13BL3S3',  # o3l46
+    'O13BL3QX',  # o3l43
+    'O13BL3TF',  # o3l76
+    'O13BL3TA',  # o3l79
+    'O13BL3SN',  # o3l32
+    'O13BL3RE',  # o3l77
+    'O13BL3SY',  # o3l15
+    'O13BL3RN',  # o3l09
+    'O13BL3SW',  # o3l13PD
+    # 'O13BL3RT', # nfrL3RT : not found in the rerun. Excluded from characterised sample!
+    'O13BL3RQ',  # o3l01
+    'O13BL3SH',  # o3l06
+    'O13BL3R1',  # o3l18
+    'O13BL3RH',  # o3l57
+
     # the H block so far has some
     'Col3N01',
     'Col3N02',
@@ -305,3 +300,23 @@ class tno(object):
             raise VersionError('Unknown version "{0}"'.format(version))
         assert retval
         return retval
+
+def mag_at_radius(r, d, p=0.10, phi=1):
+    # Assumptions: m_r,
+    #                  small-object albedo,
+    #                  observation at opposition,
+    #                  heliocentric and geocentric distance approximate as equal at TNO distances.
+    # r in km
+    # d in AU
+    m_sun = -27.1
+
+    m_r = m_sun - 2.5*math.log10((p*phi*r**2) / (2.25 * 10**16 * (d**2) * (d-1)**2))
+    print "m_r = {:2.2f} for a {} km radius TNO at {} AU at opposition, assuming {} albedo.".format(
+        m_r, r, d, p)
+
+    return m_r
+
+
+if __name__ == '__main__':
+    # want m_r = 24.5: plutinos are about 10% albedo
+    mag_at_radius(20, 30)

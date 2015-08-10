@@ -1,7 +1,11 @@
+from ossos import mpc
 
 __author__ = 'jjk'
 
 import ctypes
+import tempfile
+from StringIO import StringIO
+
 import datetime
 import logging
 import math
@@ -203,7 +207,11 @@ class Orbfit(object):
         :rtype: str
         """
         # # compute the residuals (from the given observations)
+    # @property
+    def residuals(self, overall=False):
+        ## compute the residuals (from the given observations)
         _residuals = ""
+        overall_resids = []
         for observation in self.observations:
             self.predict(observation.date)
             coord1 = SkyCoord(self.coordinate.ra, self.coordinate.dec)
@@ -213,10 +221,16 @@ class Orbfit(object):
             coord2 = SkyCoord(self.coordinate.ra, observation.coordinate.dec)
             observation.dec_residual = float(coord1.separation(coord2).arcsec)
             observation.dec_residual = (coord1.dec.degree - coord2.dec.degree) * 3600.0
+            overall_resids.append(math.sqrt(observation.ra_residual ** 2 + observation.dec_residual ** 2))
             _residuals += "{:1s}{:12s} {:+05.2f} {:+05.2f} # {}\n".format(
                 observation.null_observation, observation.date, observation.ra_residual, observation.dec_residual,
                 observation)
         return _residuals
+                observation.null_observation, observation.date, observation.ra_residual, observation.dec_residual, observation)
+        if overall:
+            return overall_resids  # values in arcsec
+        else:
+            return _residuals
 
     @property
     def coordinate(self):

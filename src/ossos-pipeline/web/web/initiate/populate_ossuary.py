@@ -14,7 +14,6 @@ from ossos import storage
 
 import web.field_obs.queries
 
-
 """
 Initial table populating for the 'ossuary' database.
 Currently assumes your tables are already instantiated in the database that you're connecting to.
@@ -87,15 +86,17 @@ def verify_ossos_image(header):
     assert (abs(header['EXPTIME'] - header['EXPREQ']) < 5.), \
         'Requested %d s exposure, took %d exposure' % (header['EXPTIME'], header['EXPREQ'])
     # integration should be within ~10 sec of: normal field: 287 s, wallpaper: 30 s, long nail: 387 s
+    # from 2015 onward: normal field 300 s, long nail 400 s.
     # u-band: 320 s, deep 15BM fields in 2014B: 500 s
     assert (280. < float(header['EXPTIME']) < 297.) \
            or (25. < float(header['EXPTIME']) < 35.) \
            or (380. < float(header['EXPTIME']) < 397.) \
            or (315. < float(header['EXPTIME']) < 325.) \
-           or (495. < float(header['EXPTIME']) < 505.), \
+           or (495. < float(header['EXPTIME']) < 505.) \
+           or (295. < float(header['EXPTIME']) < 305.), \
         'Exposure %s s, not in OSSOS range.' % header['EXPTIME']
 
-    assert (header['FILTER'] == 'r.MP9601'), 'Filter not r. Instead %s' % header['FILTER']
+    assert (header['FILTER'] in ['r.MP9601', 'r.MP9602']), 'Filter not OSSOS. Instead %s' % header['FILTER']
     assert field_in_survey_footprint(header), 'Field not in survey footprint.'
     # does calibrator exist?
     # check against qrunid in header to confirm it used the right dark flat.

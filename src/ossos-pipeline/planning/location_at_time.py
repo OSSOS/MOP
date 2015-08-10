@@ -7,11 +7,11 @@ from ossos import storage
 from ossos.orbfit import Orbfit
 
 
-date = '2015-03-01T10:00:00'
-lightcurve_targets = '/Users/michele/Dropbox/Telescope proposals/Subaru ' \
-                     'proposal_2015A_lightcurves/lightcurve_targets.txt'
+date = '2015-07-20T12:00:00'
+# lightcurve_targets = '/Users/michele/Dropbox/Telescope proposals/Subaru ' \
+#                      'proposal_2015A_lightcurves/lightcurve_targets.txt'
 ossinpath = 'vos:OSSOS/dbaseclone/ast/'  # '/Users/michele/Dropbox/OSSOS/measure3/ossin/'
-outfile = '/Users/michele/Desktop/20150301.txt'
+outfile = '/Users/michele/Desktop/{}.txt'.format(date)
 # '/Users/michele/Dropbox/Telescope proposals/Subaru proposal/lc_pos_20150414.txt'
 
 with open(outfile, 'w') as ofile:
@@ -29,5 +29,5 @@ for kbo_filename in storage.listdir(ossinpath):
     with open(outfile, 'a') as ofile:
         ofile.write("{:>10s} {:>10s} {:>10s} {:6.2f} {:6.2f} {:>10s}\n".format(
             orbit.name, orbit.coordinate.ra.format(unit=astropy.units.core.Unit("hour"), sep=':'),
-            orbit.coordinate.dec.format(sep=':'),
+            orbit.coordinate.dec.format(sep=':'),  # need to add mag back in
             orbit.dra, orbit.ddec, date))

@@ -9,6 +9,7 @@ from planning.plotting import parameters
 from web.field_obs.queries import ImagesQuery
 
 
+
 # these are the raw IDs as the telescope has programmed them into the headers
 # OSSOS_BLOCKS = ['E', 'O', 'WP-E', 'WP-O', \
 # '13BL', '13BH', 'WP-13BL', 'WP-13BH']
@@ -23,8 +24,10 @@ class BlockQuery(object):
         status = OrderedDict.fromkeys(parameters.BLOCKS.keys())
         status['13AE'] = ['discovery complete', '50', '24.05']
         status['13AO'] = ['discovery complete', '36', '24.40']
-        status['13BL'] = ['discovery complete', '80', '24.48']
+        status['13BL'] = ['discovery complete', '79', '24.48']
         status['14BH'] = ['discovery running', '-', '-']
+        status['15AP'] = ['discovery running', '-', '-']
+        status['15AM'] = ['discovery running', '-', '-']
 
         '''Overview tal table is expecting:
         ID   observations   processing status   discoveries  m_r 40%
