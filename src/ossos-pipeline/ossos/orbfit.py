@@ -1,26 +1,19 @@
-from ossos import mpc
-
 __author__ = 'jjk'
 
 import ctypes
-import tempfile
-from StringIO import StringIO
-
 import datetime
 import logging
 import math
-import numpy
 from StringIO import StringIO
 import tempfile
 
+import numpy
 from astropy.coordinates import SkyCoord
-
 from astropy import units
 from astropy.units.quantity import Quantity
 
 import mpc
 from mpc import Time
-
 
 LIBORBFIT = "/usr/local/lib/liborbfit.so"
 
@@ -198,18 +191,14 @@ class Orbfit(object):
         """
         return self._dT
 
-    @property
-    def residuals(self):
+    def residuals(self, overall=False):
         """
         Builds a summary of the residuals of a fit.  This is useful for visually examining the
         goodness of fit for a small number of observations and the impact of adding a few tentative observations.
         :return: A string representation of the residuals between the best fit orbit and the astrometric measurements used.
         :rtype: str
         """
-        # # compute the residuals (from the given observations)
-    # @property
-    def residuals(self, overall=False):
-        ## compute the residuals (from the given observations)
+        # compute the residuals (from the given observations)
         _residuals = ""
         overall_resids = []
         for observation in self.observations:
@@ -225,8 +214,6 @@ class Orbfit(object):
             _residuals += "{:1s}{:12s} {:+05.2f} {:+05.2f} # {}\n".format(
                 observation.null_observation, observation.date, observation.ra_residual, observation.dec_residual,
                 observation)
-        return _residuals
-                observation.null_observation, observation.date, observation.ra_residual, observation.dec_residual, observation)
         if overall:
             return overall_resids  # values in arcsec
         else:
@@ -418,7 +405,7 @@ class Orbfit(object):
         """
 
         assert isinstance(date, datetime.datetime)
-        at_date = date.strftime('%Y-%m-%d')
+        at_date = Time(date.strftime('%Y-%m-%d'), scale='utc')
         self.predict(at_date)
 
         fobj = StringIO()
@@ -428,7 +415,7 @@ class Orbfit(object):
 
         fobj.write("\n")
         fobj.write(str(self) + "\n")
-        fobj.write(str(self.residuals) + "\n")
+        fobj.write(str(self.residuals()) + "\n")
         fobj.write('arclen {} '.format(self.arc_length))
         fobj.write("Expected accuracy on {:>10s}: {:6.2f} {:6.2f} moving at {:6.2f} \n\n".format(
             at_date, self.dra, self.ddec, self.rate_of_motion(date=date)))
