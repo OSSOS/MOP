@@ -1,12 +1,14 @@
 """
 Reads and writes .astrom files.
 """
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 import re
 
 from astropy import units
 from astropy.coordinates import SkyCoord
+
 from astropy.units import Quantity
 
 from .gui import logger
@@ -448,14 +450,32 @@ class Source(object):
 
 
 class Ellipse(object):
+    """
+    An ellipse region for use in DS9.
+
+    a = semi-major axis
+    b = semi-minor axis
+    pa = position angle in degrees (East is 0).
+
+    """
 
     def __init__(self, a, b, pa):
+        """
+        :param a: semi-major axis
+        :type a: Quantity
+        :param b: semi-minor axis
+        :type b: Quantity
+        :param pa: Position Angle (East is 0)
+        :type pa: Quantity
+        """
         self.a = a
         self.b = b
         self.pa = pa
 
     def __str__(self):
-        return "({}, {}, {})".format(self.a, self.b, self.pa)
+        return '{}", {}", {}'.format(self.a.to(units.arcsec).value,
+                                     self.b.to(units.arcsec).value,
+                                     self.pa.to(units.degree).value + 90)
 
 
 class SourceReading(object):
@@ -920,6 +940,6 @@ class Observation(object):
         if self._header is None:
             try:
                 self._header = storage.get_mopheader(self.expnum, self.ccdnum)
-            except:
+            except Exception as ex:
                 return self.astheader
         return self._header

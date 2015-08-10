@@ -82,12 +82,12 @@ class ApplicationView(object):
         self.wx_app.MainLoop()
 
     @guithread
-    def display(self, cutout, draw_error_ellipse=True):
-        self.image_viewer.display(cutout, pixel=self.mark_using_pixels, draw_error_ellipse=draw_error_ellipse)
+    def display(self, cutout):
+        self.image_viewer.display(cutout)
 
     @guithread
-    def place_marker(self, cutout, x, y, radius=10, color='r'):
-        self.image_viewer.place_marker(cutout, x, y, radius, color)
+    def place_marker(self, cutout, x, y, radius=10, colour='r'):
+        self.image_viewer.place_marker(cutout, x, y, radius, colour)
 
     @property
     def ds9(self):
@@ -110,12 +110,8 @@ class ApplicationView(object):
         self.image_viewer.refresh_markers()
 
     @guithread
-    def draw_error_ellipse(self, sky_coord, uncertainty_ellipse, color='b'):
-        self.image_viewer.draw_error_ellipse(sky_coord, uncertainty_ellipse, color=color)
-
-    @guithread
-    def draw_aperture(self, x, y, radius, color='b'):
-        self.image_viewer.mark_sources(x, y)
+    def draw_uncertainty_ellipse(self, cutout):
+        self.image_viewer.draw_uncertainty_ellipse(cutout)
 
     @guithread
     def mark_apertures(self, cutout, pixel=False):
