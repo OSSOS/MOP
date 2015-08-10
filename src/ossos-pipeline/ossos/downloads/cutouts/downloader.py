@@ -1,9 +1,9 @@
-from ... import storage
 from astropy.units import Quantity
-from ...astrom import SourceReading
 from astropy import units
-from ...gui import logger
 
+from ... import storage
+from ...astrom import SourceReading
+from ...gui import logger
 from ..core import Downloader, ApcorData
 from ..cutouts.source import SourceCutout
 from ossos.gui import config
@@ -81,10 +81,11 @@ class ImageCutoutDownloader(Downloader):
             except Exception as ex:
                 pass
 
-        zmag = 0.0
+        zmag = None
         try:
             zmag = self.download_zmag(reading.get_zmag_uri())
         except Exception as ex:
+            print ex
             pass
 
         logger.debug("Sending back the source reading.")

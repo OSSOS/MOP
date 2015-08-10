@@ -17,12 +17,12 @@ import vos
 from astropy.io import fits
 import requests
 
-from .downloads.cutouts.calculator import CoordinateConverter
-
 requests.packages.urllib3.disable_warnings()
 requests_log = logging.getLogger("requests.packages.urllib3")
-requests_log.setLevel(logging.getLogger(__name__).getEffectiveLevel())
+requests_log.setLevel(logging.DEBUG)
 
+
+from .downloads.cutouts.calculator import CoordinateConverter
 
 import coding
 import util
@@ -31,7 +31,6 @@ from .wcs import WCS
 
 MAXCOUNT = 30000
 _TARGET = "TARGET"
-
 
 CERTFILE = os.path.join(os.getenv('HOME'),
                         '.ssl',
@@ -49,14 +48,33 @@ OSSOS_TAG_URI_BASE = 'ivo://canfar.uvic.ca/ossos'
 OBJECT_COUNT = "object_count"
 
 
+class Wrapper(object):
+
+    def __init__(self, wrapped_class, *args, **kargs):
+        self.wrapped_class = wrapped_class(*args, **kargs)
+
+    def __getattr__(self, attr):
+        orig_attr = self.wrapped_class.__getattribute__(attr)
+        if callable(orig_attr):
+            def hooked(*args, **kwargs):
+                print "-->", orig_attr, args, kwargs
+                result = orig_attr(*args, **kwargs)
+                print "<--", type(result)
+                return result
+            return hooked
+        else:
+            return orig_attr
+
+#vospace = Wrapper(vos.Client)
 vospace = vos.Client()
-logging.getLogger('vos').setLevel(logging.ERROR)
 
 SUCCESS = 'success'
 
 # ## some cache holders.
 mopheaders = {}
 astheaders = {}
+fwhm = {}
+zmag = {}
 
 APCOR_EXT = "apcor"
 ZEROPOINT_USED_EXT = "zeropoint.used"
@@ -68,9 +86,13 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2):
     where taken after mjd and have calibration 'observable'.
 
     :param ra: RA center of search cont
+    :type ra: Quantity
     :param dec: float degrees
+    :type dec: Quantity
     :param dra: float degrees
+    :type dra: Quantity
     :param ddec: float degrees
+    :type ddec: Quantity
     """
 
     data = dict(QUERY=(" SELECT Observation.observationID as collectionID, "
@@ -80,7 +102,9 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2):
                        " ON Observation.obsID = Plane.obsID "
                        " WHERE  ( Observation.collection = 'CFHT' ) "
                        " AND Plane.calibrationLevel={} "
-                       " AND ( Observation.proposal_id LIKE '%P05' or Observation.proposal_id LIKE '%P06' )"),
+                       " AND Plane.energy_bandpassName LIKE 'r.%' "
+                       " AND ( Observation.proposal_id LIKE '%P05' or Observation.proposal_id LIKE '%P06' )"
+                       " AND Observation.target_name NOT LIKE 'WP%'"),
                 REQUEST="doQuery",
                 LANG="ADQL",
                 FORMAT="tsv")
@@ -496,7 +520,6 @@ def ra_dec_cutout(uri, sky_coord, radius):
     :return: An HDUList with the cutout
     :rtype: fits.HDUList
     """
-    import logging
 
     # These two lines enable debugging at httplib level (requests->urllib3->http.client)
     # You will see the REQUEST, including HEADERS and DATA, and RESPONSE with HEADERS but without DATA.
@@ -506,14 +529,6 @@ def ra_dec_cutout(uri, sky_coord, radius):
     except ImportError:
         # Python 2
         import httplib as http_client
-    #http_client.HTTPConnection.debuglevel = 1
-
-    # You must initialize logging, otherwise you'll not see debug output.
-    #   logging.basicConfig()
-    level = logging.getLogger().getEffectiveLevel()
-    requests_log = logging.getLogger("requests.packages.urllib3")
-    requests_log.setLevel(logging.DEBUG)
-    requests_log.propagate = True
 
     # Get the 'uncut' images CRPIX1/CRPIX2 values
 
@@ -527,9 +542,10 @@ def ra_dec_cutout(uri, sky_coord, radius):
     params = {"cutout": this_cutout,
               "view": view}
     url = os.path.join(VOSPACE_WEB_SERVICE, node)
-    logger.debug("Getting file using URL: {} and params: {} and cert: {}".format(url, params, vospace.conn.vospace_certfile))
 
-    r = requests.get(url, params=params, cert=vospace.conn.vospace_certfile)
+    r = requests.get(url, params=params, cert=(vospace.conn.vospace_certfile,
+                                               vospace.conn.vospace_certfile))
+
     r.raise_for_status()
 
     cutouts = decompose_content_decomposition(r.headers.get('content-disposition', '0___'))
@@ -552,6 +568,8 @@ def ra_dec_cutout(uri, sky_coord, radius):
 
     for hdu in hdulist[1:]:
         cutout = cutouts.pop(0)
+        if not 'ASTLEVEL' in hdu.header:
+            print "******* NO ASTLEVEL ********* ASTROMETRY NOT POSSIBLE ********* IGNORE IMAGE ********"
         hdu.header['EXTNO'] = cutout[0]
         hdu.header['DATASEC'] = reset_datasec("[{}:{},{}:{}]".format(cutout[1],
                                                                      cutout[2],
@@ -834,16 +852,24 @@ def get_fwhm(expnum, ccd, prefix=None, version='p'):
     uri = get_uri(expnum, ccd, version, ext='fwhm', prefix=prefix)
     filename = os.path.basename(uri)
 
-    if os.access(filename, os.F_OK):
-        logger.debug("File already on disk: {}".format(filename))
-        return float(open(filename, 'r').read())
+    try:
+        return fwhm[uri]
+    except:
+        pass
 
     try:
-        return float(open_vos_or_local(uri).read())
+        fwhm[uri]=float(open(filename, 'r').read())
+        return fwhm[uri]
+    except:
+        pass
+
+    try:
+        fwhm[uri] = float(open_vos_or_local(uri).read())
+        return fwhm[uri]
     except Exception as e:
-        logger.warning(str(e))
-        logger.warning("Using default FWHM of 4.0")
-    return 4
+        fwhm[uri] = 4.0
+        return fwhm[uri]
+
 
 
 def get_zeropoint(expnum, ccd, prefix=None, version='p'):
@@ -859,11 +885,18 @@ def get_zeropoint(expnum, ccd, prefix=None, version='p'):
     """
     uri = get_uri(expnum, ccd, version, ext='zeropoint.used', prefix=prefix)
     try:
-        return float(open_vos_or_local(uri).read())
-    except Exception as err:
-        logger.debug(str(err))
-        url = uri.replace('vos:', 'https://www.canfar.phys.uvic.ca/data/pub/vospace/')
-        return float(requests.get(url, cert=vospace.conn.vospace_certfile, verify=False).content)
+        return zmag[uri]
+    except:
+        pass
+
+    try:
+        zmag[uri] = float(open_vos_or_local(uri).read())
+        return zmag[uri]
+    except:
+        pass
+
+    zmag[uri] = 0.0
+    return zmag[uri]
 
 
 def mkdir(dirname):
@@ -1124,7 +1157,7 @@ def get_mopheader(expnum, ccd, version='p', prefix=None):
 
     mopheader = fits.open(mopheader_fpt)
 
-    ## add some values to the mopheader so it can be an astrom header too.
+    # add some values to the mopheader so it can be an astrom header too.
     header = mopheader[0].header
     try:
         header['FWHM'] = get_fwhm(expnum, ccd)
@@ -1189,7 +1222,7 @@ def get_astheader(expnum, ccd, version='p', prefix=None, ext=None):
     logger.debug("Getting ast header for {}".format(expnum))
     ast_uri = dbimages_uri(expnum, ccd=None, version=version, ext='.head')
     try:
-        # first try and get this from CFHTSG header repo
+        # first try and get this from CFHT SG header from repo
         if ast_uri not in astheaders:
             astheaders[ast_uri] = _get_sghead(expnum, version)
         if ccd is None:
