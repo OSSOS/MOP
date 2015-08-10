@@ -9,7 +9,6 @@ from astropy.table import Table
 import plot_fanciness
 import parameters
 
-
 path = '/Users/michele/Dropbox/Papers in progress/OSSOS/First_quarter/data/SSim_fit/'
 
 fig, ax = plt.subplots(1, 1)

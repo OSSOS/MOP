@@ -4,8 +4,8 @@ import sys
 
 import matplotlib.pyplot as plt
 import numpy
-import palettable.tableau as pt
 
+import palettable.tableau as pt
 import parsers
 import parameters
 import plot_fanciness
@@ -16,7 +16,7 @@ def full_aei(data, icut=False, aiq=False):
     fig.subplots_adjust(hspace=0.05)
 
     data['peri'] = data['a'] * (1. - data['e'])
-    data['peri_E'] = (data['a_E']/data['a']) + (data['e_E']/data['e'])
+    data['peri_E'] = (data['a_E'] / data['a']) + (data['e_E'] / data['e'])
 
     # Appropriate for v4 release. May want different in future...
     if parameters.RELEASE_VERSION == 4:
@@ -30,11 +30,11 @@ def full_aei(data, icut=False, aiq=False):
         annotation = False
 
     col = pt.PurpleGray_6.mpl_colors
-    coldcol = 'b' #col[3]
+    coldcol = 'b'  # col[3]
     hotcol = col[2]
-    e45col = 'r' #coldcol
+    e45col = 'r'  # coldcol
     ms = 8
-    cold_alpha = 0.35 #when plotting blue only  # 0.7
+    cold_alpha = 0.35  # when plotting blue only  # 0.7
     hot_alpha = 0.25
     grid_alpha = 0.2
     ebarcolor = '0.1'  # error bar colour: 0.1 is greyscale
@@ -80,7 +80,6 @@ def full_aei(data, icut=False, aiq=False):
         ax = a_e(ax, o3e45, '*', 0.7, ebarcolor, capsize, ms, grid_alpha, e45col, '', 2, annotation=True)
         ax[2].set_ylim([ymin, emax])
 
-
     plt.xlim([xinner, xouter])
     ax[0].set_xticks(range(xinner, xouter, 5))
     ax[1].set_xticks(range(xinner, xouter, 5))
@@ -103,6 +102,7 @@ def full_aei(data, icut=False, aiq=False):
     plt.savefig(outfile, transparent=True, bbox_inches='tight')
     sys.stdout.write('{}\n'.format(outfile))
 
+
 def helio_i(ax, data, fmt, alpha, ebarcolor, capsize, ms, grid_alpha, colour, zorder, annotation=False):
     ax[0].errorbar(data['dist'], data['i'],
                    xerr=data['dist_E'], yerr=data['i_E'],
@@ -114,9 +114,10 @@ def helio_i(ax, data, fmt, alpha, ebarcolor, capsize, ms, grid_alpha, colour, zo
 
     if annotation:
         for obj in data:
-            ax[0].annotate(obj['object'], (obj['dist']+0.7, obj['i']), size=5)
+            ax[0].annotate(obj['object'], (obj['dist'] + 0.7, obj['i']), size=5)
 
     return ax
+
 
 def a_i(ax, data, fmt, alpha, ebarcolor, capsize, ms, grid_alpha, colour, zorder, annotation=False):
     ax[1].errorbar(data['a'], data['i'],
@@ -128,9 +129,10 @@ def a_i(ax, data, fmt, alpha, ebarcolor, capsize, ms, grid_alpha, colour, zorder
 
     if annotation:
         for obj in data:
-            ax[1].annotate(obj['object'], (obj['a']+0.7, obj['i']), size=5)
+            ax[1].annotate(obj['object'], (obj['a'] + 0.7, obj['i']), size=5)
 
     return ax
+
 
 def a_e(ax, data, fmt, alpha, ebarcolor, capsize, ms, grid_alpha, colour, label, zorder, annotation=False):
     ax[2].errorbar(data['a'], data['e'],
@@ -143,9 +145,10 @@ def a_e(ax, data, fmt, alpha, ebarcolor, capsize, ms, grid_alpha, colour, label,
 
     if annotation:
         for obj in data:
-            ax[2].annotate(obj['object'], (obj['a']+0.7, obj['e']), size=5)
+            ax[2].annotate(obj['object'], (obj['a'] + 0.7, obj['e']), size=5)
 
     return ax
+
 
 def a_q(ax, data, fmt, alpha, ebarcolor, capsize, ms, grid_alpha, colour, label, zorder, annotation=False):
     ax[2].errorbar(data['a'], data['peri'],
@@ -158,14 +161,15 @@ def a_q(ax, data, fmt, alpha, ebarcolor, capsize, ms, grid_alpha, colour, label,
 
     if annotation:
         for obj in data:
-            ax[2].annotate(obj['object'], (obj['a']+0.7, obj['peri']), size=5)
+            ax[2].annotate(obj['object'], (obj['a'] + 0.7, obj['peri']), size=5)
 
     return ax
+
 
 def classicals_qi(data):
     # the top right panel i-q of Petit et al. only.
     data['peri'] = data['a'] * (1. - data['e'])
-    data['peri_E'] = (data['a_E']/data['a']) + (data['e_E']/data['e'])
+    data['peri_E'] = (data['a_E'] / data['a']) + (data['e_E'] / data['e'])
 
     o3e45 = data[numpy.where(data['object'] == 'o3e45')]
     classicals = data[numpy.where(data['p'] == 'm')]
@@ -175,13 +179,13 @@ def classicals_qi(data):
     alpha = 0.3
     fig, ax = plt.subplots(1, 1, figsize=(5, 5))
     ax.errorbar(classicals['i'], classicals['peri'],
-                      xerr=classicals['i_E'],
-                      yerr=classicals['peri_E'],
-                      fmt='.', alpha=alpha, ecolor='0.1', capsize=capsize, ms=ms)
+                xerr=classicals['i_E'],
+                yerr=classicals['peri_E'],
+                fmt='.', alpha=alpha, ecolor='0.1', capsize=capsize, ms=ms)
     ax.errorbar(o3e45['i'], o3e45['peri'],
-                      xerr=o3e45['i_E'],
-                      yerr=o3e45['peri_E'],
-                      fmt='*', alpha=0.7, ecolor='0.1', capsize=capsize, ms=ms, color='r')
+                xerr=o3e45['i_E'],
+                yerr=o3e45['peri_E'],
+                fmt='*', alpha=0.7, ecolor='0.1', capsize=capsize, ms=ms, color='r')
 
     ax.grid(True, alpha=0.4)
     ax.set_xlim([0., 35.])

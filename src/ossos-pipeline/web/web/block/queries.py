@@ -2,12 +2,11 @@ from math import degrees
 import os
 from collections import OrderedDict
 
-import sqlalchemy as sa
 import ephem
+
+import sqlalchemy as sa
 from planning.plotting import parameters
-
 from web.field_obs.queries import ImagesQuery
-
 
 
 # these are the raw IDs as the telescope has programmed them into the headers

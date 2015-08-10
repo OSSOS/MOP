@@ -24,6 +24,8 @@ from ossos import orbfit
 from ossos import mpc
 
 USER = '/Users/michele/'
+
+
 # USER = '/Users/jjk/'
 
 def plot_line(axes, fname, ltype):
@@ -189,7 +191,7 @@ newMoons = {
 #    'Jul13': "2013/07/08 10:00:00",
 #    'Aug13': "2013/08/06 10:00:00",
 #    'Sep13': '2013/09/05 10:00:00',
-# 'Oct13': '2013/10/04 10:00:00',
+    # 'Oct13': '2013/10/04 10:00:00',
 #    'Nov13': '2013/11/03 10:00:00',
 #    'Dec13': '2013/12/02 10:00:00',
 #    'Jan14': '2014/01/01 10:00:00',
@@ -205,12 +207,12 @@ newMoons = {
 #    'Nov14': '2014/11/22 10:00:00',
 #    'Dec14': '2014/12/22 10:00:00',
 #    'Jan15': '2015/01/20 10:00:00',
-# 'Feb15': '2015/02/18 10:00:00',
-#     'Mar15': '2015/03/19 10:00:00',
-#    'Apr15': '2015/04/18 10:00:00',
-# 'May15': '2015/05/17 10:00:00',
-# 'Jun15': '2015/06/16 10:00:00',
-#     'Jul15': '2015/07/15 10:00:00',
+    # 'Feb15': '2015/02/18 10:00:00',
+    #     'Mar15': '2015/03/19 10:00:00',
+    #    'Apr15': '2015/04/18 10:00:00',
+    # 'May15': '2015/05/17 10:00:00',
+    # 'Jun15': '2015/06/16 10:00:00',
+    #     'Jul15': '2015/07/15 10:00:00',
     'Aug15': '2015/08/14 10:00:00',
     'Sep15': '2015/09/12 10:00:00',
     'Oct15': '2015/10/12 10:00:00',
@@ -337,7 +339,7 @@ for block in blocks.keys():
             this_decc = decc + dy * height
             width = 1.007*math.radians(camera_width / math.cos(this_decc))
             ## set to a -ve instead of +ve for the 'fall'
-            rac = ephem.hours(ra_start - dx*width)
+            rac = ephem.hours(ra_start - dx * width)
             dec = math.degrees(this_decc)
             ra = math.degrees(rac)
             print "{} {} {}".format(rac, dec, math.degrees(width))
@@ -399,10 +401,10 @@ height = 12
 ## lets make a plot of the field selections.
 fig = figure()
 ax = fig.add_subplot(111)
-#ax.set_aspect('equal')
+# ax.set_aspect('equal')
 
-#xylims = [250, 195, -17, -4]  # all of A semester
-#xylims = [27, 3, -6, 17]  # H, L and low S blocks
+# xylims = [250, 195, -17, -4]  # all of A semester
+# xylims = [27, 3, -6, 17]  # H, L and low S blocks
 xylims = [26, 3, 0, 16]  # H, L and high S blocks
 # xylims = [54, 36, 12, 21]  # D block
 ax.set_xlim(xylims[0], xylims[1])  # ra_cen + width, ra_cen - width)
@@ -420,17 +422,17 @@ plot_line(ax, 'gplane.radec', 'g-')
 ax.text(20, 8.5, 'ecliptic', fontdict={'color': 'b'})
 
 # plot the invariant plane
-lon = np.arange(-2*math.pi,2*math.pi,0.5/57)
-lat = 0*lon 
+lon = np.arange(-2 * math.pi, 2 * math.pi, 0.5 / 57)
+lat = 0 * lon
 (lat, lon) = invariable.trevonc(lat, lon)
 
-ec = [ephem.Ecliptic(x,y) for (x,y) in np.array((lon,lat)).transpose()]
+ec = [ephem.Ecliptic(x, y) for (x, y) in np.array((lon, lat)).transpose()]
 eq = [ephem.Equatorial(coord) for coord in ec]
 ax.plot([math.degrees(coord.ra) for coord in eq],
-           [math.degrees(coord.dec) for coord in eq],
-           '-k',
-           lw=1,
-           alpha=0.7)
+        [math.degrees(coord.dec) for coord in eq],
+        '-k',
+        lw=1,
+        alpha=0.7)
 ax.text(25, 7.5, 'invariant', fontdict={'color': 'k'})
 
 (cc_lat, cc_lon) = invariable.trevonc(lat, lon, chiangchoi_plane=True)
@@ -583,8 +585,8 @@ for idx in range(len(ras)):
 
 if PLOT_USNO_STARS:
     print "PLOTTING LOCATIONS NEARBY BRIGHT USNO B1 STARS"
-    for ra in range(int(ra_cen - width),int(ra_cen + width), 10):
-        for dec in range(int(dec_cen - height),int(dec_cen + height), 10):
+    for ra in range(int(ra_cen - width), int(ra_cen + width), 10):
+        for dec in range(int(dec_cen - height), int(dec_cen + height), 10):
 	    file_name = USER + "new_usno/usno{:5.2f}{:5.2f}.xml".format(ra, dec).replace(" ", "")
             print file_name
             file_name = file_name.replace(" ","")

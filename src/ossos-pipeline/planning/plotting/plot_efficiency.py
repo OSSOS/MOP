@@ -5,10 +5,10 @@ import os
 import matplotlib.pyplot as plt
 from astropy.table import Table
 import numpy as np
+
 from palettable.colorbrewer import sequential
 from palettable import tableau
 import prettyplotlib as ppl
-
 import plot_fanciness
 
 
@@ -31,6 +31,7 @@ def read_smooth_fit(fichier):
 def square_fit(m, params):
     return np.where(m < 21., params[0],
                     (params[0] - params[1] * (m - 21.0) ** 2) / (1. + np.exp((m - params[2]) / params[3])))
+
 
 def square_fit_discovery_mag(obj, discov_mag, discov_rate):
     pwd = path + 'efficiency_motion_rates'
@@ -60,11 +61,11 @@ def plot_smooth_fit(i, block, ax, colours, pwd, offset=0, single=False):
         pd, ps, mag_limit = read_smooth_fit('{}/{}/{}'.format(pwd, block, fn))
         ys = square_fit(x, ps)
         if single:  # only want to add label to the legend if there is only one given
-            ax[i].plot(x + (offset * j), ys*100.,
+            ax[i].plot(x + (offset * j), ys * 100.,
                        ls='-', color=colours[j],
                        label='smooth fit {}-{} "/hr overall'.format(fn.split('-')[1], fn.split('-')[2]))
         else:
-            ax[i].plot(x + (offset * j), ys*100.,
+            ax[i].plot(x + (offset * j), ys * 100.,
                        ls='-', color=colours[j])
 
         # last, add the vertical line for characterisation limit for the block
@@ -85,7 +86,7 @@ def plot_eff_data(i, block, ax, colours, pwd, offset):
         eff = Table.read(fn_pwd, format='ascii', guess=False, delimiter=' ', data_start=0, comment='#',
                          names=['mag', 'eff', 'num_planted', 'd_eff_plus', 'd_eff_minus'],
                          header_start=None)
-        ax[i].errorbar(eff['mag'] + (offset * j), eff['eff']*100., yerr=eff['d_eff_plus']*100.,
+        ax[i].errorbar(eff['mag'] + (offset * j), eff['eff'] * 100., yerr=eff['d_eff_plus'] * 100.,
                        fmt=fmt[j], capsize=1, elinewidth=0.5, ms=3.5,
                        label='{} "/hr'.format(fn.split('_')[0]),
                        mfc=colours[j], mec=colours[j], ecolor=colours[j])  # enforce: colour_cycle didn't set all
@@ -138,12 +139,12 @@ def plot_eff_by_user(ax, blocks):
         for j, fn in enumerate(user_eff_files):
             eff = Table.read(pwd + fn, names=['mag', 'eff'], format='ascii')
             user = fn.split('.')[2]
-            ax.plot(eff['mag'], eff['eff']*100,
+            ax.plot(eff['mag'], eff['eff'] * 100,
                        c=colours[user], marker=markers[user], ms=5, mec=colours[user], alpha=0.7,
                        # line thickness scaled by number of files examined: most first so that thickest line at the back
                        linewidth=examined[block][user] * 0.02,
-                       label="{}: {}".format(user_blindness[user], examined[block][user]),
-                       zorder=1-examined[block][user])
+                    label="{}: {}".format(user_blindness[user], examined[block][user]),
+                    zorder=1 - examined[block][user])
         # not the appropriate smooth fit to be adding here.
         # plot_smooth_fit(i, block, ax, ['k'], path + 'efficiency_motion_rates', single=True)
 
@@ -159,7 +160,7 @@ def plot_eff_by_user(ax, blocks):
 if __name__ == '__main__':
     fig, ax = plt.subplots(nrows=1, ncols=1, sharex=True, figsize=(9, 4))
     fig.subplots_adjust(hspace=0.1)
-    blocks = ['13AO']#['13AE', '13AO'] # [',
+    blocks = ['13AO']  # ['13AE', '13AO'] # [',
 
     # outfile = plot_eff_by_rate_of_motion(ax, blocks)
     outfile = plot_eff_by_user(ax, blocks)

@@ -6,7 +6,6 @@ from ossos import mpc
 from ossos import storage
 from ossos.orbfit import Orbfit
 
-
 date = '2015-07-20T12:00:00'
 # lightcurve_targets = '/Users/michele/Dropbox/Telescope proposals/Subaru ' \
 #                      'proposal_2015A_lightcurves/lightcurve_targets.txt'

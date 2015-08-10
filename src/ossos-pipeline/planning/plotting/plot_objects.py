@@ -2,16 +2,18 @@ __author__ = 'Michele Bannister   git:@mtbannister'
 
 import math
 import os
+import datetime
 
 import numpy as np
 import ephem
 import matplotlib.pyplot as plt
-import datetime
 
 import parameters
 import mpcread
 import parsers
 import horizons
+
+
 
 
 
@@ -76,12 +78,12 @@ def plot_ossos_discoveries(ax, discoveries, blockname, prediction_date=False):
         ra = [math.degrees(ephem.degrees(ephem.hours(str(n)))) for n in d['ra_dis']]
         dec = [float(q) for q in d['dec_dis']]
         ax.scatter(ra, dec,
-                  marker=marker[j], s=size[j], facecolor=fc[j], edgecolor='k', linewidth=0.4,
-                  alpha=alpha[j])  # original size=4.5
+                   marker=marker[j], s=size[j], facecolor=fc[j], edgecolor='k', linewidth=0.4,
+                   alpha=alpha[j])  # original size=4.5
         for kbo in d:
             ra = math.degrees(ephem.degrees(ephem.hours(str(kbo['ra_dis']))))
             dec = kbo['dec_dis']
-            name = kbo['object'].rpartition('o3'+blockname[-1].lower())[2]
+            name = kbo['object'].rpartition('o3' + blockname[-1].lower())[2]
             if j == 1:
                 sep = 0.20
             else:
@@ -91,9 +93,9 @@ def plot_ossos_discoveries(ax, discoveries, blockname, prediction_date=False):
             else:
                 latsep = .07
             ax.annotate(name,
-                    (ra - latsep, dec - sep),
-                    size=9,
-                    color='k')
+                        (ra - latsep, dec - sep),
+                        size=9,
+                        color='k')
 
     return ax
 
@@ -123,10 +125,10 @@ def plot_ossos_discoveries(ax, discoveries, blockname, prediction_date=False):
         #     fc = '#E47833'
         #     alpha = 1
         # else:
-        # fc = 'b'
-        # alpha = 0.6
-        #
-        # ax.scatter(ra, dec, marker='o', facecolor=fc, alpha=alpha, edgecolor='k', linewidth=0.4, s=25)
+    # fc = 'b'
+    # alpha = 0.6
+    #
+    # ax.scatter(ra, dec, marker='o', facecolor=fc, alpha=alpha, edgecolor='k', linewidth=0.4, s=25)
 
 
 

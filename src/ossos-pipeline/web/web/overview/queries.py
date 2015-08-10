@@ -1,7 +1,8 @@
-import sqlalchemy as sa
-import ephem
 import datetime
 
+import ephem
+
+import sqlalchemy as sa
 from web.field_obs.queries import ImagesQuery
 from web.block.queries import BlockQuery
 
