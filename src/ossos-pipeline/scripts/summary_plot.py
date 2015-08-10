@@ -1,12 +1,12 @@
-import logging
 import sys
-from ossos import orbfit
-from ossos import mpc
+import math
+
 from matplotlib import pyplot
 import numpy
 import ephem
-import math
 
+from ossos import orbfit
+from ossos import mpc
 from ossos import figures
 
 figures.setFigForm()

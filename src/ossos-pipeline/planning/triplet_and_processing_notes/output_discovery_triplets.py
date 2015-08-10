@@ -33,9 +33,9 @@ ims = ImagesQuery()
 
 field = sys.argv[1]  # format as e.g. AE, AO, BL
 
-outfile = 'planning/13{}_triplets_details.txt'.format(field)
+outfile = 'planning/14{}_triplets_details.txt'.format(field)
 
-with open('planning/{}_13A_discovery_expnums.txt'.format(field), 'r') as infile:
+with open('planning/triplet_and_processing_notes/14{}_discovery_expnums.txt'.format(field), 'r') as infile:
     it = ims.images
 
     with open(outfile, 'w') as ofile:

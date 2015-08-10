@@ -14,7 +14,9 @@ def TAPQuery(RAdeg=180.0, DECdeg=0.0, width=1, height=1):
              """ o.collection = 'CFHT' """
              """ AND o.instrument_name = 'MegaPrime' """
              """ AND INTERSECTS( BOX('ICRS', {}, {}, {}, {}), Plane.position_bounds ) = 1 """
-             """ AND ( o.proposal_id LIKE '%P05' OR o.proposal_id LIKE '%L03' or o.proposal_id LIKE '%L06' or o.proposal_id in ( '06AF33', '06BF98' ) ) """ )
+             """ AND ( o.proposal_id LIKE '%P05') """ )
+    # """ AND ( o.proposal_id LIKE '%P05' OR o.proposal_id LIKE '%L03' or o.proposal_id LIKE '%L06' or o.proposal_id
+    # in ( '06AF33', '06BF98' ) ) """ )
 
     QUERY = QUERY.format( RAdeg, DECdeg, width, height)
 

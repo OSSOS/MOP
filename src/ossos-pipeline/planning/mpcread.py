@@ -55,16 +55,21 @@ def getKBOs(mpc_file, cond='a > 30'):
     kbos = []
     for line in lines:
         lineCount=lineCount+1
-        if line[0]=='#' or len(line) < 103 or line[0:3]=='---':
+        if line[0]=='#' or len(line) < 103 or line[0:3]=='---' or line[0:3] == 'Des' :
             continue
         kbo=ephem.EllipticalBody()
     
-        if len(line[8:13].strip()):
-            kbo._H=float(line[8:13])
-            kbo._G=float(line[14:19])
-        else:
-            kbo._H=20
-            kbo._G=0
+        try:
+           if len(line[8:13].strip()):
+               kbo._H=float(line[8:13])
+               kbo._G=float(line[14:19])
+           else:
+               kbo._H=20
+               kbo._G=0
+        except:
+           print line
+           kbo._H=20
+           kbo._G=0
         arc = line[127:136]
         try:
             if 'days' in arc:

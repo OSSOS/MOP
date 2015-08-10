@@ -11,7 +11,7 @@ class SurveyQuery(object):
         self.ims = ImagesQuery()
         self.bk = BlockQuery()
         # pixel scale is symmetric, 0.1850 arcsec/pixel. Dectector is [1:23219,1:19354] pixels.
-        self.field_area = ((0.185 * 23219) / 3600.) * ((0.185 * 19354) / 3600.)  # sq. deg
+        self.field_area = ((0.184 * 23219) / 3600.) * ((0.184 * 19354) / 3600.)  # sq. deg
 
     def fields_observed(self):
         fields = self.ims.what_fields_have_any_observations()
@@ -65,11 +65,7 @@ class SurveyQuery(object):
 
     def megacam_schedule(self):
         # tuples bracket the ends of date ranges that MegaCam is on the telescope
-        schedule = [(datetime.datetime(2015, 2, 11), datetime.datetime(2015, 2, 26)),
-                    (datetime.datetime(2015, 3, 11), datetime.datetime(2015, 3, 24)),
-                    (datetime.datetime(2015, 5, 13), datetime.datetime(2015, 5, 27)),
-                    (datetime.datetime(2015, 6, 10), datetime.datetime(2015, 6, 24)),
-                    (datetime.datetime(2015, 7, 8), datetime.datetime(2015, 7, 21)),
+        schedule = [(datetime.datetime(2015, 7, 8), datetime.datetime(2015, 7, 21)),
         ]
         return schedule
 

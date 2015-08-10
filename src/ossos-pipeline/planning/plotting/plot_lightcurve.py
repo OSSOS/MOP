@@ -30,22 +30,41 @@ table, th, td
 """
 
 
+def all_clean_phot(obj):
+    try:
+        tno = parsers.ossos_discoveries(single_object=obj, no_nt_and_u=False)[0]
+    except:
+        return [], [], []
+    # print len(tno.orbit.observations)
+
+    # consider only the cleanest photometry: nothing with involvement or other weirdness
+    tnoobs = []
+    for n in tno.orbit.observations:
+        if n.comment.photometry_note == 'Y' and (n.comment.mpc_note == ' ' or n.comment.mpc_note == ''):
+            tnoobs.append(n)
+    if len(tnoobs) > 0:  # there better be some observations that are untainted
+        tno_mags = [n.comment.mag for n in tnoobs]
+        mag_dates = [n.date.jd for n in tnoobs]
+        mag_err = [n.comment.mag_uncertainty for n in tnoobs]
+        return tno_mags, mag_err, mag_dates
+    else:
+        print 'no unflagged photometry exists for {}'.format(obj)
+        return [], [], []
+
+
+def stddev_phot(obj):
+    tno_mags, mag_err, mag_dates = all_clean_phot(obj)
+    # without additional parameters, this returns the population std deviation.
+    retval = numpy.std(numpy.array(tno_mags))
+    # print obj, retval
+
+    return retval
+
+
 def plot_all_obs_single_object(obj):
-    tno = parsers.ossos_discoveries(single_object=obj)[0]
-    print len(tno.orbit.observations)
+    tno_mags, mag_err, mag_dates = all_clean_phot(obj)
+
     plt.figure()
-
-    # can have valid measurements with photometry blanked
-    tnoobs = [n for n in tno.orbit.observations if not n.null_observation and not n.comment.photometry_note == 'Z']
-    tno_mags = [n.comment.mag for n in tnoobs]
-    mag_dates = [n.date.jd for n in tnoobs]
-    mag_err = [n.comment.mag_uncertainty for n in tnoobs]
-
-    print len(tno_mags), len(mag_dates), len(mag_err)
-    print tno_mags, numpy.median(tno_mags), numpy.mean(tno_mags)
-    print mag_dates
-    print mag_err
-
     plt.errorbar(mag_dates, tno_mags, yerr=mag_err, fmt='.', )
     plt.gca().invert_yaxis()
     plt.title(obj)
@@ -63,22 +82,8 @@ if __name__ == '__main__':
     objects = parsers.ossos_discoveries()
     labels = []
     for tno in objects:  # [n for n in objects if n.name in parameters.COLOSSOS]:
-        # consider only the cleanest photometry: nothing with involvement or other weirdness
-        tnoobs = []
-        for n in tno.orbit.observations:
-            if n.comment.photometry_note == 'Y' and (n.comment.mpc_note == ' ' or n.comment.mpc_note == ''):
-                tnoobs.append(n)
-        if len(tnoobs) > 0:  # there better be some observations that are untainted
-            tno_mags = [n.comment.mag for n in tnoobs]
-
-            # mag_dates = [n.date.jd for n in tnoobs]
-            # mag_err = [n.comment.mag_uncertainty for n in tnoobs]
-            # mag_maxes = []
-            # mag_minima = []
-            # for i, n in enumerate(tno_mags):
-            # mag_maxes.append(n + mag_err[i])
-            #     mag_minima.append(n + mag_err[i])
-
+        tno_mags, mag_err, mag_dates = all_clean_phot(obj)
+        if len(tno_mags) > 0:
             tnomax = max(tno_mags)
             tnomin = min(tno_mags)
             variation.append(tno_mags)
@@ -103,3 +108,7 @@ if __name__ == '__main__':
     # tooltip = plugins.PointHTMLTooltip(points[0], labels, voffset=10, hoffset=10, css=css)
     # plugins.connect(fig, tooltip)
     # mpld3.show()
+
+
+    # FIXME: want to add a plot
+    #  play with standard deviation of mag of objects vs H vs r_helio

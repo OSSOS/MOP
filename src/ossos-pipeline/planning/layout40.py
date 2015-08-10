@@ -15,6 +15,7 @@ import ephem
 import Polygon
 import Polygon.IO
 
+import invariable
 import mpcread
 import usnoB1
 import megacam
@@ -22,9 +23,8 @@ from ossos import storage
 from ossos import orbfit
 from ossos import mpc
 
-
 USER = '/Users/michele/'
-
+# USER = '/Users/jjk/'
 
 def plot_line(axes, fname, ltype):
     """plot the ecliptic plane line on the given axes."""
@@ -33,26 +33,24 @@ def plot_line(axes, fname, ltype):
 
 
 MPCORB_FILE = os.path.join(USER, 'MPCORB-Distant.dat')
+# MPCORB_FILE = os.path.join(USER, 'Dropbox/Develop/code/MPCORB.DAT')
 L7MODEL = 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
-# L7MODEL = '/Users/jjk/Dropbox/Research/KuiperBelt'
-# L7MODEL = '/tmp/vospace/OSSOS/CFEPS/L7SyntheticModel-v09.txt'
 # L7MODEL = '/Users/kavelaarsj/Dropbox/Research/KuiperBelt/OSSOS/L7SyntheticModel-v09.txt'
-# REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/ast/'
-# REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/Research/KuiperBelt/dbase/TNOdb/dbase/data/ast/'
+# REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/dbaseclone/ast/'
+REAL_KBO_AST_DIR = os.path.join(USER, 'Dropbox/OSSOS/measure3/ossin/')
 
-PLOT_FIELD_EPOCH = 'May15'  # Oct14.00 ==> '0' days since the New Moon on Oct14
+PLOT_FIELD_EPOCH = 'Sep15'  # Oct14.00 ==> '0' days since the New Moon on Oct14
 #TODO the .00 is appended when this variable is used as a keyword that needs that .00 this is bad.
-DISCOVERY_NEW_MOON = 'May15'  # this is the date that the RA/DEC in blocks corresponds to.
-
+DISCOVERY_NEW_MOON = 'Sep15'  # this is the date that the RA/DEC in blocks corresponds to.
 
 PLOT_USNO_STARS = True
 PLOT_MEGACAM_ARCHIVE_FIELDS = True
 PLOT_SYNTHETIC_KBOS = True
 PLOT_SYNTHETIC_KBO_TRAILS = False
-PLOT_REAL_KBOS = False and os.access(REAL_KBO_AST_DIR,os.F_OK)
+PLOT_REAL_KBOS = True and os.access(REAL_KBO_AST_DIR, os.F_OK)
 PLOT_FIELD_LAYOUT = True
 
-PLOT_MPCORB = True and os.access(MPCORB_FILE, os.F_OK)
+PLOT_MPCORB = False and os.access(MPCORB_FILE, os.F_OK)
 
 
 LABEL_FIELDS = True
@@ -145,7 +143,7 @@ NAME                |RA         |DEC        |EPOCH |POINT|
 
 
 #fall13
-# blocks = {'13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"},  # ,
+# blocks = {'13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"}}  # ,
 # '13AE': {"RA": "14:15:28.89", "DEC": "-12:32:28.4"},  # E+0+0: image 1616681, ccd21 on April 9
 #           '13AO': {"RA": "15:58:01.35", "DEC": "-12:19:54.2"},  # O+0+0: image 1625346, ccd21 on May 8
 #           '13BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"},
@@ -162,7 +160,25 @@ NAME                |RA         |DEC        |EPOCH |POINT|
 # blocks = {'15AP': {'RA': "13:30:00", "DEC": "-07:45:00"}}
 # blocks = {'14AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"}}  # the centre when set in May 2014.
 # will then define a 15AM to work properly.
-blocks = {'15AM': {'RA': "15:35:00.00", "DEC": "-12:10:00.0"}}  # the centre for discovery in May 2015.
+# blocks = {'15AM': {'RA': "15:35:00.00", "DEC": "-12:10:00.0"}}  # the centre for discovery in May 2015.
+# blocks = {
+# '14BH': {'RA': "01:28:32.32", "DEC": "+12:51:06.10"},
+#     '13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"},
+#     '15BS': {'RA': "00:30:00.00", "DEC": "+04:45:00.00"}}
+
+blocks = {
+    # E+0+0: image 1616681, ccd21 on April 9. E block discovery triplets are April 4,9,few 19
+    # '13AE': {"RA": "14:15:28.89", "DEC": "-12:32:28.4"},
+    #    '13AO': {"RA": "15:58:01.35", "DEC": "-12:19:54.2"},  # O+0+0: image 1625346, ccd21 on May 8. O block are
+    # May 7,8.
+    # '13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"},  # 13B blocks are at their opposition locations
+    # '14BH': {'RA': "01:30:00.00", "DEC": "+13:00:00.00"},  # due to bad weather, discovery wasn't until 2014, so 14
+
+    #    '15AP': {'RA': "13:30:00.00", "DEC": "-7:45:00.00"},  # on-plane
+    # '15AM': {'RA': "15:35:00.00", "DEC": "-12:10:00.0"}  # positioned for its 2015 discovery opposition.
+    '15BS': {'RA': "00:30:00.00", "DEC": "+05:00:00.00"},  # rejected: dec "-02:45:00.00"
+    #     '15BD': {'RA': "03:15:00.00", "DEC": "+16:30:00.00"}
+}
 
 newMoons = {
 #    'Feb13': "2013/02/10 10:00:00",
@@ -173,7 +189,7 @@ newMoons = {
 #    'Jul13': "2013/07/08 10:00:00",
 #    'Aug13': "2013/08/06 10:00:00",
 #    'Sep13': '2013/09/05 10:00:00',
-#    'Oct13': '2013/10/04 10:00:00',
+# 'Oct13': '2013/10/04 10:00:00',
 #    'Nov13': '2013/11/03 10:00:00',
 #    'Dec13': '2013/12/02 10:00:00',
 #    'Jan14': '2014/01/01 10:00:00',
@@ -189,12 +205,12 @@ newMoons = {
 #    'Nov14': '2014/11/22 10:00:00',
 #    'Dec14': '2014/12/22 10:00:00',
 #    'Jan15': '2015/01/20 10:00:00',
-    'Feb15': '2015/02/18 10:00:00',
-    'Mar15': '2015/03/19 10:00:00',
-    'Apr15': '2015/04/18 10:00:00',
-    'May15': '2015/05/17 10:00:00',
-    'Jun15': '2015/06/16 10:00:00',
-    'Jul15': '2015/07/15 10:00:00',
+# 'Feb15': '2015/02/18 10:00:00',
+#     'Mar15': '2015/03/19 10:00:00',
+#    'Apr15': '2015/04/18 10:00:00',
+# 'May15': '2015/05/17 10:00:00',
+# 'Jun15': '2015/06/16 10:00:00',
+#     'Jul15': '2015/07/15 10:00:00',
     'Aug15': '2015/08/14 10:00:00',
     'Sep15': '2015/09/12 10:00:00',
     'Oct15': '2015/10/12 10:00:00',
@@ -213,7 +229,7 @@ newMoons = {
     'Nov16': '2016/11/01 10:00:00',
     'Dec16': '2016/12/01 10:00:00',
     'Jan17': '2017/01/01 10:00:00',
-    'Feb17': '2017/02/01 10:00:00',
+    # 'Feb17': '2017/02/01 10:00:00',
     }
 
 
@@ -320,7 +336,8 @@ for block in blocks.keys():
             decc = ephem.degrees(dec_start - dx*height/2.0)
             this_decc = decc + dy * height
             width = 1.007*math.radians(camera_width / math.cos(this_decc))
-            rac = ephem.hours(ra_start + dx*width)
+            ## set to a -ve instead of +ve for the 'fall'
+            rac = ephem.hours(ra_start - dx*width)
             dec = math.degrees(this_decc)
             ra = math.degrees(rac)
             print "{} {} {}".format(rac, dec, math.degrees(width))
@@ -374,16 +391,22 @@ dec_cen = math.degrees(decs.mean())
 #height = 70
 #ra_cen = 45.0
 #dec_cen = 17.5
-width = 12
-height = 7
+
+### These values are the half width/height of the field.
+width = 24
+height = 12
 
 ## lets make a plot of the field selections.
 fig = figure()
 ax = fig.add_subplot(111)
+#ax.set_aspect('equal')
 
-
-ax.set_xlim(ra_cen+width/2.0, ra_cen-width/2.0)
-ax.set_ylim(dec_cen - height/2.0, dec_cen + height/2.0)
+#xylims = [250, 195, -17, -4]  # all of A semester
+#xylims = [27, 3, -6, 17]  # H, L and low S blocks
+xylims = [26, 3, 0, 16]  # H, L and high S blocks
+# xylims = [54, 36, 12, 21]  # D block
+ax.set_xlim(xylims[0], xylims[1])  # ra_cen + width, ra_cen - width)
+ax.set_ylim(xylims[2], xylims[3])  # dec_cen - height, dec_cen + height)
 #ax.set_ylim(-30,30)
 ax.set_xlabel('RA (deg)')
 ax.set_ylabel('DE (deg)')
@@ -394,6 +417,32 @@ ax.grid()
 ## plot the galactic plane line ..
 plot_line(ax, 'eplane.radec', 'b-')
 plot_line(ax, 'gplane.radec', 'g-')
+ax.text(20, 8.5, 'ecliptic', fontdict={'color': 'b'})
+
+# plot the invariant plane
+lon = np.arange(-2*math.pi,2*math.pi,0.5/57)
+lat = 0*lon 
+(lat, lon) = invariable.trevonc(lat, lon)
+
+ec = [ephem.Ecliptic(x,y) for (x,y) in np.array((lon,lat)).transpose()]
+eq = [ephem.Equatorial(coord) for coord in ec]
+ax.plot([math.degrees(coord.ra) for coord in eq],
+           [math.degrees(coord.dec) for coord in eq],
+           '-k',
+           lw=1,
+           alpha=0.7)
+ax.text(25, 7.5, 'invariant', fontdict={'color': 'k'})
+
+(cc_lat, cc_lon) = invariable.trevonc(lat, lon, chiangchoi_plane=True)
+ec = [ephem.Ecliptic(x, y) for (x, y) in np.array((cc_lon, cc_lat)).transpose()]
+eq = [ephem.Equatorial(coord) for coord in ec]
+ax.plot([math.degrees(coord.ra) for coord in eq],
+        [math.degrees(coord.dec) for coord in eq],
+        '.r',
+        lw=1,
+        alpha=0.7)
+ax.text(25, 6, 'Chiang_Choi', fontdict={'color': 'r'})
+
 
 ## build a list of Synthetic KBOs that will be in the discovery fields.
 print "LOADING SYNTHETIC MODEL KBOS FROM: {}".format(L7MODEL)
@@ -508,17 +557,17 @@ for idx in range(len(ras)):
                                     width= camera_width_40,
                                     height= camera_height/2.0,
                                     color='b',
-                                    lw=0.5, fill=True, alpha=0.3)) 
+                                    lw=0.5, fill=False, alpha=0.3)) 
             ax.add_artist(Rectangle(xy=(math.degrees(ra) - camera_width_36/2.0, math.degrees(dec) - camera_height / 2.0),
                                     height=camera_height/4.0,
                                     width=camera_width_36,
                                     color='g',
-                                    lw=0.5, fill=True, alpha=0.3))
+                                    lw=0.5, fill=False, alpha=0.3))
             ax.add_artist(Rectangle(xy=(math.degrees(ra) - camera_width_36/2.0, math.degrees(dec) + camera_height / 4.0),
                                     height=camera_height/4.0,
                                     width=camera_width_36,
                                     color='r',
-                                    lw=0.5, fill=True, alpha=0.3))
+                                    lw=0.5, fill=False, alpha=0.3))
             if LABEL_FIELDS:
                 ax.text(math.degrees(ra), math.degrees(dec),
                         name,
@@ -534,8 +583,8 @@ for idx in range(len(ras)):
 
 if PLOT_USNO_STARS:
     print "PLOTTING LOCATIONS NEARBY BRIGHT USNO B1 STARS"
-    for ra in range(int(ra_cen - width/2.0),int(ra_cen + width/2.), 10):
-        for dec in range(int(dec_cen - height/2.0),int(dec_cen + height/2.), 10):
+    for ra in range(int(ra_cen - width),int(ra_cen + width), 10):
+        for dec in range(int(dec_cen - height),int(dec_cen + height), 10):
 	    file_name = USER + "new_usno/usno{:5.2f}{:5.2f}.xml".format(ra, dec).replace(" ", "")
             print file_name
             file_name = file_name.replace(" ","")
@@ -573,11 +622,15 @@ if PLOT_USNO_STARS:
 if PLOT_MEGACAM_ARCHIVE_FIELDS:
     print "PLOTTING FOOTPRINTS NEARBY ARCHIVAL MEGAPRIME IMAGES."
 
-    for qra in range(int(ra_cen - width/2.0),int(ra_cen + width/2.), 60):
-        for qdec in range(int(dec_cen - height/2.0),int(dec_cen + height/2.), 30):
+    for qra in xrange(int(xylims[1]), int(xylims[0]), 5):
+        print qra
+        for qdec in xrange(int(xylims[2]), int(xylims[3]), 10):
+            print qra, qdec
             filename = USER + "new_usno/megacam{:+6.2f}{:+6.2f}.xml".format(qra, qdec)
             if not os.access(filename, os.R_OK):
-                data = megacam.TAPQuery(qra, qdec, 60.0, 30.0).read()
+                # TAP query will max out silently if return table too large. Make small units.
+                data = megacam.TAPQuery(qra, qdec, 5.0, 10.0).read()
+                # FIXME: add a catch for 503's when TAP fails when CADC drops connection
                 fobj = open(filename, 'w')
                 fobj.write(data)
                 fobj.close()
@@ -615,48 +668,49 @@ if PLOT_REAL_KBOS:
     reader = mpc.MPCReader()
     print "PLOTTING LOCATIONS OF OSSOS KBOs (using directory {})".format(REAL_KBO_AST_DIR)
     for ast in os.listdir(REAL_KBO_AST_DIR):
-        obs = reader.read(REAL_KBO_AST_DIR+ast)
-        try:
-           kbo = orbfit.Orbfit(obs)
-        except:
-           continue
-        kbo.predict(ephem.julian_date(ephem.date(plot_date)))
-        #if not field_polygon.isInside(float(kbo.coordinate.ra.degrees), float(kbo.coordinate.dec.degrees)):
-        #    continue
-        if obs[0].mag < 23.6:
-            c = 'b'
-            if LABEL_FIELDS : 
+        if not ast.startswith('u'):
+            obs = reader.read(REAL_KBO_AST_DIR + ast)
+            try:
+                kbo = orbfit.Orbfit(obs)
+            except:
+                continue
+            kbo.predict(ephem.julian_date(ephem.date(plot_date)))
+            # if not field_polygon.isInside(float(kbo.coordinate.ra.degrees), float(kbo.coordinate.dec.degrees)):
+            #    continue
+            if obs[0].mag < 23.6:
+                c = 'b'
+                if LABEL_FIELDS:
+                    ax.text(kbo.coordinate.ra.degree,
+                            kbo.coordinate.dec.degree,
+                            ast.split('.')[0],
+                            horizontalalignment='center',
+                            verticalalignment='baseline',
+                            fontdict={'size': 4,
+                                      'color': 'darkred'})
+            else:
+                c = 'g'
                 ax.text(kbo.coordinate.ra.degree,
-                    kbo.coordinate.dec.degree,
-                    ast.split('.')[0],
-                    horizontalalignment='center',
-                    verticalalignment='baseline',
-                    fontdict={'size': 6,
-                              'color': 'darkred'})
-        else:
-            c = 'g'
-        ax.text(kbo.coordinate.ra.degree,
-                kbo.coordinate.dec.degree,
-                ast.split('.')[0],
-                horizontalalignment='center',
-                verticalalignment='baseline',
-                fontdict={'size': 6,
-                'color': 'darkred'})
-        ax.add_artist(Ellipse((kbo.coordinate.ra.degree, kbo.coordinate.dec.degree,),
-                              width=2.0*kbo.dra / 3600.0,
-                              height=2.0*kbo.ddec / 3600.0,
-                              angle=360 - (kbo.pa + 90),
-                              edgecolor='none',
-                              facecolor='k',
-                              alpha=0.2))
-        ax.scatter(kbo.coordinate.ra.degree,
-                   kbo.coordinate.dec.degree,
-                   marker='o',
-                   s=1,
-                   facecolor='none',
-                   edgecolor=c,
-                   alpha=0.5)
-
+                        kbo.coordinate.dec.degree,
+                        ast.split('.')[0],
+                        horizontalalignment='center',
+                        verticalalignment='baseline',
+                        fontdict={'size': 4,
+                                  'color': 'darkred'})
+            # from astropy import units
+            ax.add_artist(Ellipse((kbo.coordinate.ra.degree, kbo.coordinate.dec.degree,),
+                                  width=2.0 * kbo.dra / 3600.0,
+                                  height=2.0 * kbo.ddec / 3600.0,
+                                  angle=360 - (kbo.pa + 90),  # kbo.pa.to(units.degree).value
+                                  edgecolor='none',
+                                  facecolor='k',
+                                  alpha=0.1))
+            ax.scatter(kbo.coordinate.ra.degree,
+                       kbo.coordinate.dec.degree,
+                       marker='o',
+                       s=1,
+                       facecolor='none',
+                       edgecolor=c,
+                       alpha=0.5)
 
 new_tick_locations = np.array(range(360,0,-30))
 def tick_function(X):

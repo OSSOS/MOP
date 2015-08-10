@@ -39,6 +39,7 @@ CERTFILE = os.path.join(os.getenv('HOME'),
 DBIMAGES = 'vos:OSSOS/dbimages'
 MEASURE3 = 'vos:OSSOS/measure3'
 POSTAGE_STAMPS = 'vos:OSSOS/postage_stamps'
+TRIPLETS = 'vos:OSSOS/triplets'
 
 DATA_WEB_SERVICE = 'https://www.canfar.phys.uvic.ca/data/pub/'
 VOSPACE_WEB_SERVICE = 'https://www.canfar.phys.uvic.ca/vospace/nodes/'

@@ -4,6 +4,7 @@ __author__ = 'Michele Bannister   git:@mtbannister'
 import os
 import cPickle
 from collections import OrderedDict
+import math
 
 import ephem
 from astropy.table import Table
@@ -15,6 +16,8 @@ from ossos import orbfit
 from ossos import storage
 import parameters
 from ossos.gui import context
+import plot_lightcurve
+import plot_efficiency
 
 
 # from parameters import tno
@@ -23,7 +26,7 @@ def ossos_release_parser(table=False):
     '''
     extra fun as this is space-separated so using CSV parsers is not an option
     '''
-    names = ['cl', 'p', 'j', 'k', 'sh', 'object', 'mag', 'mag_uncert', 'F', 'H_sur', 'dist', 'dist_E', 'nobs',
+    names = ['cl', 'p', 'j', 'k', 'sh', 'object', 'mag', 'mag_E', 'F', 'H_sur', 'dist', 'dist_E', 'nobs',
              'time', 'av_xres', 'av_yres', 'max_x', 'max_y', 'a', 'a_E', 'e', 'e_E', 'i', 'i_E', 'node', 'node_E',
              'argperi', 'argperi_E', 'time_peri', 'time_peri_E', 'ra_dis', 'dec_dis', 'jd_dis', 'rate']
 
@@ -52,24 +55,40 @@ class tno(object):
         return
 
 
-def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR, suffix='ast', no_nt_and_u=True, single_object=None):
+def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
+                      suffix='ast',
+                      no_nt_and_u=True,
+                      single_object=None,
+                      all=False,
+                      release=parameters.RELEASE_VERSION,
+                      ):
     """
     Returns a list of objects holding orbfit.Orbfit objects with the observations in the Orbfit.observations field.
+    Default is to return only the objects corresponding to the current Data Release.
     """
     retval = []
     working_context = context.get_context(directory)
     files = working_context.get_listing(suffix)
+
     if single_object is not None:
         files = filter(lambda name: name.startswith(single_object), files)
+    if not all:
+        # only return the objects corresponding to a particular Data Release
+        objects = ossos_release_parser(table=True)['object']
+        files = filter(lambda name: name.partition(suffix)[0].rstrip('.') in objects, files)
+
     for filename in files:
-        try:
-            observations = mpc.MPCReader(directory + filename,replace_provisional=True)
+        # keep out the not-tracked and uncharacterised.
+        if no_nt_and_u:
+            if not (filename.__contains__('nt') or filename.startswith('u')):
+                observations = mpc.MPCReader(directory + filename)
+                obj = tno(observations)
+                retval.append(obj)
+        else:  # now we want those uncharacterised ones
+            observations = mpc.MPCReader(directory + filename)
             obj = tno(observations)
             retval.append(obj)
-        except Exception as e:
-            print str(e)
-            print filename
-            pass
+
     return retval
 
 
@@ -210,26 +229,59 @@ def linesep(name, distinguish=None):
 
     midline = r"\cutinhead{" + \
               "{}".format(names[name]) + \
-              "} \n "
+              "} \n"
 
     return midline
 
 
 def create_table(tnos, outfile):
-    # sort order gives Classical, Detached, Resonant, Scattered
-    tnos.sort(['cl', 'p', 'j', 'k', 'object'])  # this at least works just fine
+    # no. columns must match no. c's
+    # table has small font and is horizontal.
+    header = r"\begin{deluxetable}{ccccccccccccc}" + '\n' + \
+             r"\tabletypesize{\scriptsize}" + '\n' + \
+             r"\rotate" + '\n' + \
+             r"\tablecolumns{13}" + '\n' + \
+             r"\tablehead{\colhead{$m_{r}$} \vspace{-0.2cm} & " \
+             r"\colhead{$\sigma$ $m_{r}$} & " \
+             r"\colhead{Detectability} & " \
+             r"\colhead{RA} & " \
+             r"\colhead{Dec} & " \
+             r"\colhead{a} & " \
+             r"\colhead{e} & " \
+             r"\colhead{i} & " \
+             r"\colhead{r$_{H}$} & " \
+             r"\colhead{H$_{r}$} & " \
+             r"\colhead{MPC} & " \
+             r"\colhead{Object} & " \
+             r"\colhead{Status} \\" \
+             r"\colhead{discovery} & " \
+             r"\colhead{all obs} & " \
+             r"\colhead{} & " \
+             r"\colhead{discov.} & " \
+             r"\colhead{discov.} & " \
+             r"\colhead{(AU)} & " \
+             r"\colhead{} & " \
+             r"\colhead{($^{\circ}$)} & " \
+             r"\colhead{(AU)} & " \
+             r"\colhead{} & " \
+             r"\colhead{design.} & " \
+             r"\colhead{} & " \
+             r"\colhead{} " \
+             + r"}" \
+             + "\n" \
+             + "\startdata \n" \
+             + r"\cutinhead{Centaurs}" + "\n"
 
-    header = r"\begin{deluxetable}{cccccccccc}" + '\n' + \
-             r"\tablehead{\colhead{Object} & \colhead{MPC designation} & \colhead{a (AU)} & \colhead{e} & \colhead{i " \
-             r"($^{\circ}$)} & " \
-             "\colhead{r$_{H}$ (AU)} & \colhead{H} & \colhead{Comment} }" + "\n" \
-             + "\startdata \n"
     footer = r"\enddata " + "\n" + \
-             r"\tablecomments{M:N: object is in the M:N resonance; I: the orbit classification is currently insecure; " \
+             r"\tablecomments{$p:q$: object is in the $p:q$ resonance; I: the orbit classification is currently " \
+             r"insecure; " \
              r"" \
              r"" \
              r"H: the human operator intervened to declare the orbit security status. " \
-             r"The full orbital elements are available in electronic form from the Minor Planet Center.} " "\n" + \
+             r"$a, e, i$ are J2000 ecliptic barycentric coordinates, with uncertainties from the covariant matrix fit " \
+             r"of \citet{Bernstein:2000p444}; full barycentric elements are available at \url{http://www.ossos-survey" \
+             r".org/}." \
+             r"The full heliocentric orbital elements are available in electronic form from the Minor Planet Center.} " "\n" + \
              "\end{deluxetable} \n"
 
     # Scrape the index file for MPC designations - this would work better if the alternate designations were consistent
@@ -237,31 +289,53 @@ def create_table(tnos, outfile):
     # with open(parameters.IDX) as infile:
     # lines = infile.readlines()
 
+    # sort order gives Classical, Detached, Resonant, Scattered
+    # Sort by discovery mag within each classification.
+    tnos.sort(['cl', 'p', 'j', 'k', 'mag'])
 
-    # want to output:
     with open(outfile, 'w') as ofile:
         ofile.write(header)
         for i, r in enumerate(tnos):
-            if r['p'] != tnos[i - 1]['p']:  # just changed between object classification types
+            # write line separator between object classification types
+            if r['p'] != tnos[i - 1]['p']:
                 if r['p'] == 'x':  # 'x' doesn't give enough info to set scattered or detached
                     ofile.write(linesep(r['p'], distinguish=r['cl']))
                 else:
                     ofile.write(linesep(r['p']))
-            # obj a ± da e ± de i ± di r ± dr H ± dH j k sh(if insecure)
-            out = "{} & & {} & {} & {} & {} & {} & ".format(r['object'],
+
+            sigma_mag = plot_lightcurve.stddev_phot(r['object'])
+            if not numpy.isnan(sigma_mag):
+                sigma_mag = '{:2.2f}'.format(sigma_mag)
+            else:
+                sigma_mag = r'--'
+            eff_at_discovery = plot_efficiency.square_fit_discovery_mag(r['object'], r['mag'], r['rate'])
+
+            # mag ± dmag, std dev of all clean photometry, efficiency function at that discovery mag
+            # m ± dm sigma_m eff_discov RA Dec a ± da e ± de i ± di r ± dr H ± dH j k MPC obj status
+            # put characterisation limits in footnotes.
+            out = "{} & {} & {:2.2f} & {:3.3f} & {} & {} & {} & {} & {} & {} & & {} & ".format(
+                round_sig_error(r['mag'], r['mag_E']),
+                sigma_mag,
+                eff_at_discovery,
+                math.degrees(ephem.degrees(ephem.hours(str(r['ra_dis'])))),
+                r['dec_dis'],
                                                             round_sig_error(r['a'], r['a_E']),
                                                             round_sig_error(r['e'], r['e_E']),
                                                             round_sig_error(r['i'], r['i_E']),
                                                             round_sig_error(r['dist'], r['dist_E']),
-                                                            r['H_sur'])
+                r['H_sur'],
+                # MPC designation
+                r['object'],
+            )
+            # make sure these come out with nice formatting
             if r['j'] != -1:
-                out += "{}:{} & ".format(r['j'], r['k'])  # resonant object: give the resonance
+                out += "{}:{} ".format(r['j'], r['k'])  # resonant object: give the resonance
             else:
-                out += " "  # it's a classical or scattered object
+                out += "    "  # it's a classical or scattered object
             if r['sh'] != 'S':
                 out += "{} {} \n".format(r['sh'], r'\\')
             else:
-                out += " {} \n".format(r'\\')
+                out += "  {} \n".format(r'\\')
             ofile.write(out)
         ofile.write(footer)
 
@@ -269,10 +343,11 @@ def create_table(tnos, outfile):
 def release_to_latex(outfile):
     tnos = ossos_release_parser(table=True)
     uncharacterised = tnos[numpy.array([name.startswith("u") for name in tnos['object']])]
-    characterised = tnos[numpy.array([name.startswith("o") for name in tnos['object']])]
-    create_table(characterised, outfile)
+    # characterised = tnos[numpy.array([name.startswith("o") for name in tnos['object']])]
+    # create_table(characterised, outfile)
     create_table(uncharacterised, 'u_' + outfile)
 
+    return
 
 def parse_subaru_radec(line):
     d = line.split()
@@ -321,7 +396,26 @@ def parse_subaru_mags():
             ))
 
 
+def block_table_pprint():
+    with open('block_table.tex', 'w') as outfile:
+        for name, coords in parameters.BLOCKS.items():
+            print name, coords
+            ra = ephem.hours(coords['RA'])
+            dec = ephem.degrees(coords['DEC'])
+            eq = ephem.Equatorial(ra, dec)
+            ec = ephem.Ecliptic(eq)
+            outfile.write("{} & {:2.1f} & {:2.1f} & {:2.1f} & {:2.1f} {} \n".format(
+                name[2:],
+                math.degrees(ephem.degrees(ra)),
+                math.degrees(dec),
+                math.degrees(ec.lat),
+                math.degrees(ec.lon),
+                r"\\"))
+    return
+
+
 if __name__ == '__main__':
-    ossos_release_parser(table=True)
+    # ossos_release_parser(table=True)
     release_to_latex('v{}'.format(parameters.RELEASE_VERSION) + '_table.tex')
     # parse_subaru_mags()
+    # block_table_pprint()
