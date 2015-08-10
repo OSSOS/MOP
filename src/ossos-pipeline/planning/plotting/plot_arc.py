@@ -12,6 +12,8 @@ from ossos import orbfit
 from planning.plotting import parsers, parameters
 
 
+
+
 # parsers.parameters.RELEASE_DETECTIONS="/Users/jjk/OSSOSv4.detections"
 
 tnos = parsers.ossos_release_parser(table=True)
@@ -24,7 +26,7 @@ symbols = {'cla': 'o',
 block_colours = {'o3e': 'r',
                  'o3o': 'b',
                  'o3l': 'k',
-}
+                 }
 security_colour = {'I': 'r',  # all insecure objects are 'I' or 'IH'
                    'IH': 'r',
                    'S': 'b'}  # there's many different classifications: default to grouping them
@@ -36,15 +38,14 @@ one_opp_tnos = Table.read('/Users/michele/Dropbox/OSSOS/Release_summaries/v4/OSS
                           format='ascii', guess=False,
                           delimiter=' ', data_start=0, comment='#', names=names, header_start=None)
 
-
 for tno in tnos['object']:
     cl = tnos['cl'][tnos['object'] == tno]
     print tno, cl[0]
 
     # Check if the orbfit has already been run. Saves time as this takes a minute or so total
     pfilename = '{}_da'.format(tno)
-    if os.access(pfilename,os.R_OK):
-        with open(pfilename,'r') as pf:
+    if os.access(pfilename, os.R_OK):
+        with open(pfilename, 'r') as pf:
             (t, da) = cPickle.load(pf)
     else:
         obs = mpc.MPCReader(parameters.REAL_KBO_AST_DIR + tno + '.ast')
@@ -66,8 +67,8 @@ for tno in tnos['object']:
             arclen = short_arc[-1].date.jd - short_arc[0].date.jd
             # print len(short_arc), arclen, abs(mpc_obs[:idx][-1].date.jd - mpc_obs[:idx][0].date.jd)
             t.append(arclen / 365.25)
-            da.append(orb.da/orb.a) 
-        with open(pfilename,'w') as pf:
+            da.append(orb.da / orb.a)
+        with open(pfilename, 'w') as pf:
             cPickle.dump((t, da), pf)
 
     # change colour at the two-year point if classification has shifted from insecure to secure
@@ -109,7 +110,7 @@ pyplot.yscale('log')
 pyplot.xscale('log')
 pyplot.xlim([0.02, 20])
 pyplot.ylim([1e-5, 1.])
-pyplot.grid(axis='y',alpha=0.6)
+pyplot.grid(axis='y', alpha=0.6)
 
 # Make it easy to tell where one lunation, 2 lunations, and one year are
 lines = [30 / 365.0,

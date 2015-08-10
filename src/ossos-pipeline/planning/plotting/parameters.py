@@ -301,6 +301,7 @@ class tno(object):
         assert retval
         return retval
 
+
 def mag_at_radius(r, d, p=0.10, phi=1):
     # Assumptions: m_r,
     #                  small-object albedo,
@@ -310,7 +311,7 @@ def mag_at_radius(r, d, p=0.10, phi=1):
     # d in AU
     m_sun = -27.1
 
-    m_r = m_sun - 2.5*math.log10((p*phi*r**2) / (2.25 * 10**16 * (d**2) * (d-1)**2))
+    m_r = m_sun - 2.5 * math.log10((p * phi * r ** 2) / (2.25 * 10 ** 16 * (d ** 2) * (d - 1) ** 2))
     print "m_r = {:2.2f} for a {} km radius TNO at {} AU at opposition, assuming {} albedo.".format(
         m_r, r, d, p)
 

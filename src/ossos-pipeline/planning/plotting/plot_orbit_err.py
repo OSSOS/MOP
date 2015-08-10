@@ -6,8 +6,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 from astropy.table import Table
-import prettyplotlib as ppl
 
+import prettyplotlib as ppl
 import plot_fanciness
 from parsers import ossos_discoveries
 from parameters import RELEASE_VERSION

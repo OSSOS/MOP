@@ -13,7 +13,6 @@ import Polygon.IO
 from astropy.coordinates import SkyCoord
 from astropy.time import Time, TimeDelta
 
-
 try:
     from astropy.coordinates import ICRSCoordinates
 except:
@@ -97,7 +96,7 @@ doubles = [  # 'o3o05',
     #            'o3o13',
     #            'o3o14',
     #            'o3o16',
-                'o3o17',  # needs June
+             'o3o17',  # needs June
     #            'o3o19',
     #            'o3o25',
     #            'o3o26',

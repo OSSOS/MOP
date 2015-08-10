@@ -20,6 +20,8 @@ import plot_objects
 from planning import invariable
 
 
+
+
 # from ossos import cameras  # bit over the top to show all the ccds?
 
 plot_extents = {"13AE": [209.8, 218.2, -15.5, -9.5],
@@ -141,18 +143,18 @@ def plot_invariable_plane(handles, labels, from_plane=ephem.degrees('0')):
     # Plot the invariable plane: values from DE405, table 5, Souami and Souchay 2012
     # http://www.aanda.org/articles/aa/pdf/2012/07/aa19011-12.pdf
     # Ecliptic J2000
-    lon = np.arange(-2*math.pi,2*math.pi,0.5/57)
-    lat = 0*lon
+    lon = np.arange(-2 * math.pi, 2 * math.pi, 0.5 / 57)
+    lat = 0 * lon
     (lat, lon) = invariable.trevonc(lat, lon)
 
-    ec = [ephem.Ecliptic(x,y) for (x,y) in np.array((lon,lat)).transpose()]
+    ec = [ephem.Ecliptic(x, y) for (x, y) in np.array((lon, lat)).transpose()]
     eq = [ephem.Equatorial(coord) for coord in ec]
     handles.append(plt.plot([math.degrees(coord.ra) for coord in eq],
-               [math.degrees(coord.dec) for coord in eq],
-                ls='--',
-                color=plot_fanciness.ALMOST_BLACK,
-                lw=1,
-                alpha=0.7))
+                            [math.degrees(coord.dec) for coord in eq],
+                            ls='--',
+                            color=plot_fanciness.ALMOST_BLACK,
+                            lw=1,
+                            alpha=0.7))
     labels.append('invariable')
 
     return handles, labels
@@ -451,7 +453,8 @@ if __name__ == '__main__':
                                                    elongation=args.elongation, plot=True)
             ax = plot_objects.plot_synthetic_kbos(ax, coverage)
 
-        block_discoveries = discoveries[np.array([name.startswith('o3'+blockname[-1].lower()) for name in discoveries['object']])]
+        block_discoveries = discoveries[
+            np.array([name.startswith('o3' + blockname[-1].lower()) for name in discoveries['object']])]
         ax = plot_objects.plot_ossos_discoveries(ax, block_discoveries, blockname,
                                                  prediction_date=date)  # will predict for dates other than discovery
 

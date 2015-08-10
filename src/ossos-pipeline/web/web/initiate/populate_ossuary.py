@@ -6,12 +6,12 @@ import sys
 import argparse
 import shlex
 from subprocess import Popen
-
 import datetime
-import sqlalchemy as sa
-import pyfits
-from ossos import storage
 
+import pyfits
+
+import sqlalchemy as sa
+from ossos import storage
 import web.field_obs.queries
 
 """
