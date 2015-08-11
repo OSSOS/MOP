@@ -8,22 +8,19 @@ from ossos.gui.views.appview import ApplicationView
 __author__ = "David Rusk <drusk@uvic.ca>"
 import math
 from ..downloads.core import Downloader
-from ..gui.models.validation import ValidationModel
 from ..gui.autoplay import AutoplayManager
 from ..gui import config, logger
 from ..gui import events
 from ..gui.models.exceptions import (ImageNotLoadedException,
                                      NoWorkUnitException)
 from .. import mpc
-from ..orbfit import OrbfitError
+from ..orbfit import OrbfitError, Orbfit
 
 
 class AbstractController(object):
     def __init__(self, model, view):
         self.model = model
         self.view = view
-
-        assert isinstance(self.model, ValidationModel)
         events.subscribe(events.CHANGE_IMAGE, self.on_change_image)
         events.subscribe(events.IMG_LOADED, self.on_image_loaded)
         events.subscribe(events.NO_AVAILABLE_WORK, self.on_no_available_work)
@@ -196,9 +193,9 @@ class ProcessRealsController(AbstractController):
     """
 
     def __init__(self, model, view, name_generator):
-        super(ProcessRealsController, self).__init__(model, view)
         assert isinstance(model, TransAckValidationModel)
         assert isinstance(view, ApplicationView)
+        super(ProcessRealsController, self).__init__(model, view)
         self.name_generator = name_generator
         self.is_discovery = True
 
@@ -232,18 +229,18 @@ class ProcessRealsController(AbstractController):
             values = result.split()
             ra = Quantity(float(values[1]), unit=units.degree)
             dec = Quantity(float(values[2]), unit=units.degree)
+            self.place_marker(ra, dec, radius=2 * units.arcsec, colour='green')
             key = values[0]
         else:
             key = isinstance(auto, bool) and " " or auto
             ra = source_cutout.ra
             dec = source_cutout.dec
 
-        (x, y, extno) = source_cutout.world2pix(ra, dec)
+        (x, y, extno) = source_cutout.world2pix(ra, dec, usepv=False)
         source_cutout.update_pixel_location((float(x), float(y)), extno)
 
         pre_daophot_pixel_x = source_cutout.pixel_x
         pre_daophot_pixel_y = source_cutout.pixel_y
-
 
         # self.view.mark_apertures(source_cutout, pixel=False)
 
@@ -273,7 +270,7 @@ class ProcessRealsController(AbstractController):
 
         if math.sqrt((cen_x - pre_daophot_pixel_x) ** 2 + (cen_y - pre_daophot_pixel_y) ** 2) > 1.5 or cen_failure:
             # check if the user wants to use the 'hand' coordinates or these new ones.
-            self.place_marker(cen_x, cen_y, 10, colour='r')
+            self.place_marker(cen_x, cen_y, 6, colour='white')
             self.view.show_offset_source_dialog((pre_daophot_pixel_x, pre_daophot_pixel_y), (cen_x, cen_y))
 
         note1_default = ""
@@ -285,26 +282,43 @@ class ProcessRealsController(AbstractController):
                     note1_default = note
                     break
         note1 = len(note1_default) > 0 and note1_default[0] or note1_default
-        this_observation = mpc.Observation(
-            null_observation=False,
-            provisional_name=provisional_name,
-            note1=note1,
-            note2=config.read('MPC.NOTE2DEFAULT')[0],
-            date=self.model.get_current_observation_date(),
-            ra=self.model.get_current_ra(),
-            dec=self.model.get_current_dec(),
-            mag=obs_mag,
-            mag_err=obs_mag_err,
-            band=band,
-            observatory_code=config.read("MPC.DEFAULT_OBSERVATORY_CODE"),
-            discovery=self.is_discovery,
-            comment=None,
-            xpos=source_cutout.observed_x,
-            ypos=source_cutout.observed_y,
-            frame=self.model.get_current_reading().obs.rawname)
 
+        if isinstance(self, ProcessTracksController):
+            this_observation = mpc.Observation(
+                null_observation=False,
+                provisional_name=provisional_name,
+                note1=note1,
+                note2=config.read('MPC.NOTE2DEFAULT')[0],
+                date=self.model.get_current_observation_date(),
+                ra=self.model.get_current_ra(),
+                dec=self.model.get_current_dec(),
+                mag=obs_mag,
+                mag_err=obs_mag_err,
+                band=band,
+                observatory_code=config.read("MPC.DEFAULT_OBSERVATORY_CODE"),
+                discovery=self.is_discovery,
+                comment=None,
+                xpos=source_cutout.observed_x,
+                ypos=source_cutout.observed_y,
+                frame=self.model.get_current_reading().obs.rawname)
 
-
+            print this_observation.to_string()
+            try:
+                previous_observations = self.model.get_writer().get_chronological_buffered_observations()
+                for idx, observation in enumerate(previous_observations):
+                    try:
+                        if observation.comment.frame.strip() == this_observation.comment.frame.strip():
+                            previous_observations[idx] = this_observation
+                            this_observation = False
+                            break
+                    except Exception as ex:
+                        print type(ex), str(ex)
+                if this_observation:
+                    previous_observations.append(this_observation)
+                print Orbfit(previous_observations).summarize()
+            except Exception as ex:
+                logger.error(type(ex), str(ex))
+                print "Failed to compute preliminary orbit."
 
         if obs_mag < 24 and auto is not False:
             self.on_do_accept(None,

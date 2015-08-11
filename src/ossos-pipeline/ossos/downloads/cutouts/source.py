@@ -2,6 +2,7 @@ import traceback
 import tempfile
 
 from astropy import units
+
 from astropy.coordinates import SkyCoord
 
 from astropy.io import fits
@@ -19,7 +20,7 @@ class SourceCutout(object):
     A cutout around a source.
     """
 
-    def __init__(self, reading, hdulist, apcor=None, zmag=None):
+    def __init__(self, reading, hdulist, apcor=None, zmag=None, radius=None):
         """
         :param reading: A source reading giving the measurement of the object associated with this cutout.
         :param hdulist: the HDUList containing the cutout.
@@ -32,6 +33,7 @@ class SourceCutout(object):
         assert isinstance(hdulist, fits.HDUList)
         # assert isinstance(apcor, ApcorData)
 
+        self.radius = radius
         self.reading = reading
         self.hdulist = hdulist
         self.apcor = apcor
@@ -183,7 +185,7 @@ class SourceCutout(object):
     def pix2world(self, x, y):
         return self.hdulist[self.extno].wcs.xy2sky(x, y)
 
-    def world2pix(self, ra, dec):
+    def world2pix(self, ra, dec, usepv=True):
         """
         Convert a given RA/DEC position to the Extension X/Y location.
 
@@ -198,7 +200,7 @@ class SourceCutout(object):
         for idx in range(1, len(self.hdulist)):
             logger.debug("Trying convert using extension: {0}".format(idx))
             hdu = self.hdulist[idx]
-            x, y = hdu.wcs.sky2xy(ra, dec)
+            x, y = hdu.wcs.sky2xy(ra, dec, usepv=usepv)
             logger.debug("Tried converting RA/DEC {0},{1} to X/Y and got {2},{3}".format(ra, dec, x, y))
             if 0 < x < hdu.header['NAXIS1'] and 0 < y < hdu.header['NAXIS2']:
                 logger.debug("Inside the frame.")
@@ -279,7 +281,7 @@ class SourceCutout(object):
 
         ref_ra = self.reading.ra * units.degree
         ref_dec = self.reading.dec * units.degree
-        radius = config.read('CUTOUTS.SINGLETS.RADIUS') * units.arcminute
+        radius = self.radius is not None and self.radius or config.read('CUTOUTS.SINGLETS.RADIUS') * units.arcminute
         query_result = storage.cone_search(ref_ra, ref_dec, radius, radius)  # returns an astropy.table.table.Table
         comparison = None
         if len(query_result['collectionID']) > 0:  # are there any comparison images even available on that sky?
