@@ -8,11 +8,13 @@ import re
 
 from astropy import units
 from astropy.coordinates import SkyCoord
-
 from astropy.units import Quantity
+
+from astropy.time import TimeDelta
 
 from .gui import logger
 from . import storage
+from .util import Time
 
 DATASET_ROOT = storage.DBIMAGES
 
@@ -730,7 +732,7 @@ class SourceReading(object):
         xref = isinstance(self.xref, Quantity) and self.xref.value or self.xref
         yref = isinstance(self.yref, Quantity) and self.yref.value or self.yref
 
-        return  xref + self.x_ref_offset, yref + self.y_ref_offset
+        return xref + self.x_ref_offset, yref + self.y_ref_offset
 
     def get_observation_header(self):
         return self.obs.header
@@ -941,5 +943,24 @@ class Observation(object):
             try:
                 self._header = storage.get_mopheader(self.expnum, self.ccdnum)
             except Exception as ex:
+                logger.error(str(ex))
                 return self.astheader
         return self._header
+
+    def get_mpc_date(self):
+        header = self.header
+        if isinstance(header, list):
+            print "Got list when header expected, trying to use correct member of list."
+            extno = self.ccdnum - 1
+            header = header[extno]
+        mpc_date = header.get('MJD_OBS_CENTER', None)
+        if mpc_date is None and 'MJD-OBS' in header:
+            mjd_obs = float(header.get('MJD-OBS'))
+            exptime = float(header.get('EXPTIME'))
+            mpc_date = Time(mjd_obs,
+                            format='mjd',
+                            scale='utc',
+                            precision=6)
+            mpc_date += TimeDelta(exptime * units.second) / 2.0
+            mpc_date = mpc_date.mpc
+        return mpc_date

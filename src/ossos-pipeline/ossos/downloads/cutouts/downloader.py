@@ -85,7 +85,6 @@ class ImageCutoutDownloader(Downloader):
         try:
             zmag = self.download_zmag(reading.get_zmag_uri())
         except Exception as ex:
-            print ex
             pass
 
         logger.debug("Sending back the source reading.")

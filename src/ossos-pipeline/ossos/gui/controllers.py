@@ -244,7 +244,8 @@ class ProcessRealsController(AbstractController):
         pre_daophot_pixel_x = source_cutout.pixel_x
         pre_daophot_pixel_y = source_cutout.pixel_y
 
-        self.view.mark_apertures(source_cutout, pixel=False)
+
+        # self.view.mark_apertures(source_cutout, pixel=False)
 
         try:
             phot = self.model.get_current_source_observed_magnitude()

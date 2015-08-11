@@ -9,6 +9,7 @@ from astropy.coordinates import SkyCoord
 from astropy import units
 import numpy
 
+from .gui import logger
 from .storage import open_vos_or_local
 from .util import Time
 
@@ -790,6 +791,11 @@ class Observation(object):
 
     @property
     def comment(self):
+        """
+
+        :return: the comment
+        :rtype: OSSOSComment
+        """
         return self._comment
 
     @comment.setter
@@ -1201,8 +1207,8 @@ class MPCWriter(object):
             # keep any 'discovery' flags that are set on observation if already in buffer.
             mpc_observation.discovery = self.buffer[key].discovery.is_discovery
         except Exception as ex:
-            logging.debug(type(ex))
-            logging.debug(str(ex))
+            logger.debug(type(ex))
+            logger.debug(str(ex))
             pass
         self.buffer[key] = mpc_observation
 

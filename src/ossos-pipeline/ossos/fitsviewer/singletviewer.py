@@ -14,6 +14,7 @@ class SingletViewer(WxMPLFitsViewer):
     """
 
     def __init__(self, parent, display):
+        logger.debug("Bilding {}".format(self))
         super(SingletViewer, self).__init__(parent, display)
         self.xy_changed = Signal()
 
@@ -30,10 +31,17 @@ class SingletViewer(WxMPLFitsViewer):
         :type pixel: bool
         """
 
+        try:
+            x = cutout.reading.mpc_observation.comment.x
+            y = cutout.reading.mpc_observation.comment.y
+            (x, y) = cutout.get_pixel_coordinates((x, y))
+            pixel = True
+        except Exception as ex:
+            x, y = cutout.pixel_x, cutout.pixel_y
+
         if not self.mark_source:
             return
 
-        x, y = cutout.pixel_x, cutout.pixel_y
         try:
             radii = (cutout.apcor.aperture, cutout.apcor.sky, cutout.apcor.swidth+cutout.apcor.sky)
         except Exception as ex:
