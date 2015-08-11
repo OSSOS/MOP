@@ -8,18 +8,20 @@ import re
 from string import upper
 import tempfile
 import logging
+import warnings
 
 from astropy.coordinates import SkyCoord
 from astropy.io import ascii
 from astropy import units
 from astropy.units import Quantity
+from astropy.utils.exceptions import AstropyUserWarning
 import vos
 from astropy.io import fits
 import requests
 
 requests.packages.urllib3.disable_warnings()
 requests_log = logging.getLogger("requests.packages.urllib3")
-requests_log.setLevel(logging.DEBUG)
+requests_log.setLevel(logging.ERROR)
 
 
 from .downloads.cutouts.calculator import CoordinateConverter
@@ -1157,24 +1159,26 @@ def get_mopheader(expnum, ccd, version='p', prefix=None):
     else:
         mopheader_fpt = cStringIO.StringIO(open_vos_or_local(mopheader_uri).read())
 
-    mopheader = fits.open(mopheader_fpt)
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', AstropyUserWarning)
+        mopheader = fits.open(mopheader_fpt)
 
-    # add some values to the mopheader so it can be an astrom header too.
-    header = mopheader[0].header
-    try:
-        header['FWHM'] = get_fwhm(expnum, ccd)
-    except IOError:
-        header['FWHM'] = 10
-    header['SCALE'] = mopheader[0].header['PIXSCALE']
-    header['NAX1'] = header['NAXIS1']
-    header['NAX2'] = header['NAXIS2']
-    header['MOPversion'] = header['MOP_VER']
-    header['MJD_OBS_CENTER'] = str(util.Time(header['MJD-OBSC'],
-                                             format='mjd',
-                                             scale='utc', precision=5).replicate(format='mpc'))
-    header['MAXCOUNT'] = MAXCOUNT
-    mopheaders[mopheader_uri] = header
-    mopheader.close()
+        # add some values to the mopheader so it can be an astrom header too.
+        header = mopheader[0].header
+        try:
+            header['FWHM'] = get_fwhm(expnum, ccd)
+        except IOError:
+            header['FWHM'] = 10
+        header['SCALE'] = mopheader[0].header['PIXSCALE']
+        header['NAX1'] = header['NAXIS1']
+        header['NAX2'] = header['NAXIS2']
+        header['MOPversion'] = header['MOP_VER']
+        header['MJD_OBS_CENTER'] = str(util.Time(header['MJD-OBSC'],
+                                                 format='mjd',
+                                                 scale='utc', precision=5).replicate(format='mpc'))
+        header['MAXCOUNT'] = MAXCOUNT
+        mopheaders[mopheader_uri] = header
+        mopheader.close()
     return mopheaders[mopheader_uri]
 
 
