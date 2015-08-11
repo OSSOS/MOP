@@ -102,8 +102,10 @@ class WCS(astropy_wcs.WCS):
             pos = self.wcs_pix2world([[x, y]], 1)
             return pos[0][0] * units.degree, pos[0][1] * units.degree
 
-    def sky2xy(self, ra, dec):
+    def sky2xy(self, ra, dec, usepv=True):
         try:
+            if not usepv:
+                raise ValueError("PV not activated.")
             return sky2xy(ra=ra,
                           dec=dec,
                           crpix1=self.crpix1,
