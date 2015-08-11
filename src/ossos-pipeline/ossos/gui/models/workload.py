@@ -381,7 +381,7 @@ class TracksWorkUnit(WorkUnit):
         self._comparitors = {}
 
     def print_orbfit_info(self):
-        #TODO: this should not be here.
+        # TODO: this should not be here.
         orb = Orbfit(self.get_writer().get_chronological_buffered_observations())
         print orb.residuals()
         print orb
@@ -399,6 +399,7 @@ class TracksWorkUnit(WorkUnit):
         self.get_writer().flush()
         mpc_filename = self.output_context.get_full_path(self.get_writer().get_filename())
         self.get_writer().close()
+        self._writer = None
         return mpc_filename
 
     def is_finished(self):
@@ -443,6 +444,7 @@ class TracksWorkUnit(WorkUnit):
 
         This method also makes the output filename be the same as the .track file but with .mpc.
         (Currently only works on local filesystem)
+        :rtype MPCWriter
         """
         if self._writer is None:
             suffix = tasks.get_suffix(tasks.TRACK_TASK)
@@ -454,7 +456,7 @@ class TracksWorkUnit(WorkUnit):
                 "{}.?{}".format(base_name, suffix))
             mpc_file_count = len(glob(mpc_filename_pattern))
             mpc_filename = self.output_context.get_full_path(
-                "{}.{}{}".format(base_name, mpc_file_count,suffix))
+                "{}.{}{}".format(base_name, mpc_file_count, suffix))
             self._writer = self._create_writer(mpc_filename)
 
         return self._writer
@@ -589,10 +591,10 @@ class WorkUnitProvider(object):
         not be locked and/or done.
         """
         exclude_prefix = self.taskid == tasks.suffixes.get(tasks.REALS_TASK, '') and 'fk' or None
-        return [file for file in self.directory_context.get_listing(self.taskid, exclude_prefix=exclude_prefix)
-                if file not in ignore_list and
-                   file not in self._done and
-                   file not in self._already_fetched]
+        return [filename for filename in self.directory_context.get_listing(self.taskid, exclude_prefix=exclude_prefix)
+                if filename not in ignore_list and
+                filename not in self._done and
+                filename not in self._already_fetched]
 
     def select_potential_file(self, potential_files):
         if self.randomize:
@@ -743,11 +745,13 @@ class TracksWorkUnitBuilder(WorkUnitBuilder):
             dry_run=dry_run
         )
 
-    def get_readings(self, data):
+    @staticmethod
+    def get_readings(data):
         # Note: Track workunits only have 1 source
         return data.get_sources()[0].get_readings()
 
-    def set_readings(self, data, readings):
+    @staticmethod
+    def set_readings(data, readings):
         # Note: Track workunits only have 1 source
         data.get_sources()[0].readings = readings
 
@@ -784,8 +788,7 @@ class TracksWorkUnitBuilder(WorkUnitBuilder):
         # Doesn't work... TODO: FixMe
         # self.move_discovery_to_front(data)
 
-        return TracksWorkUnit(self,
-            filename, data, progress_manager, output_context, dry_run=dry_run)
+        return TracksWorkUnit(self, filename, data, progress_manager, output_context, dry_run=dry_run)
 
 
 class RealsWorkUnitBuilder(WorkUnitBuilder):
