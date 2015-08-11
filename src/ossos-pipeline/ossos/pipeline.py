@@ -1,10 +1,11 @@
 import json
 import logging
 import os
+import math
+
 from astropy import wcs
 from astropy.io import ascii
 from astropy.io import fits
-import math
 import numpy
 
 import storage
@@ -92,36 +93,36 @@ def align(expnums, ccd, version='s', dry_run=False):
                                (mags[expnum]["MAG"][idx1] - apcor[expnum][2]),
                                mask=idx1.mask)
         dmags.sort()
-	logging.debug("Computed dmags between input and reference: {}".format(dmags))
-	error_count = 0
+        logging.debug("Computed dmags between input and reference: {}".format(dmags))
+        error_count = 0
 
-	error_count += 1
-	logging.debug("{}".format(error_count))
+        error_count += 1
+        logging.debug("{}".format(error_count))
 
         # compute the median and determine if that shift is small compared to the scatter.
-	try:
-	   midx = int(numpy.sum(dmags.mask==False)/2.0)
-           dmag = float(dmags[midx])
-	   logging.debug("Computed a mag delta of: {}".format(dmag))
-	except Exception as e:
-	   logging.error(str(e))
-	   logging.error("Failed to compute mag offset between plant and found using: {}".format(dmags))
-	   dmag = 99.99
-
-	error_count += 1
-	logging.debug("{}".format(error_count))
-
-	try:
-            if math.fabs(dmag) > 3*(dmags.std() + 0.01):
-                logging.warning("Magnitude shift {} between {} and {} is large: {}".format(dmag,
-                                                                                    expnums[0],
-                                                                                    expnum,
-                                                                                    shifts))
+        try:
+            midx = int(numpy.sum(numpy.any([~dmags.mask], axis=0)) / 2.0)
+            dmag = float(dmags[midx])
+            logging.debug("Computed a mag delta of: {}".format(dmag))
         except Exception as e:
-	    logging.error(str(e))
+            logging.error(str(e))
+            logging.error("Failed to compute mag offset between plant and found using: {}".format(dmags))
+            dmag = 99.99
 
-	error_count += 1
-	logging.debug("{}".format(error_count))
+        error_count += 1
+        logging.debug("{}".format(error_count))
+
+        try:
+            if math.fabs(dmag) > 3 * (dmags.std() + 0.01):
+                logging.warning("Magnitude shift {} between {} and {} is large: {}".format(dmag,
+                                                                                           expnums[0],
+                                                                                           expnum,
+                                                                                           shifts))
+        except Exception as e:
+            logging.error(str(e))
+
+        error_count += 1
+        logging.debug("{}".format(error_count))
 
         shifts['dmag'] = dmag
         shifts['emag'] = dmags.std()
@@ -129,20 +130,20 @@ def align(expnums, ccd, version='s', dry_run=False):
         shifts['dmjd'] = mjdates[expnums[0]] - mjdates[expnum]
         shift_file = os.path.basename(storage.get_uri(expnum, ccd, version, '.shifts'))
 
-	error_count += 1
-	logging.debug("{}".format(error_count))
+        error_count += 1
+        logging.debug("{}".format(error_count))
 
-	try:
-           fh = open(shift_file, 'w')
-           fh.write(json.dumps(shifts, sort_keys=True, indent=4, separators=(',', ': ')))
-           fh.write('\n')
-           fh.close()
-	except Exception as e:
-	   logging.error("Creation of SHIFTS file failed while trying to write: {}".format(shifts))
-	   raise e
+        try:
+            fh = open(shift_file, 'w')
+            fh.write(json.dumps(shifts, sort_keys=True, indent=4, separators=(',', ': ')))
+            fh.write('\n')
+            fh.close()
+        except Exception as e:
+            logging.error("Creation of SHIFTS file failed while trying to write: {}".format(shifts))
+            raise e
 
-	error_count += 1
-	logging.debug("{}".format(error_count))
+        error_count += 1
+        logging.debug("{}".format(error_count))
 
         if not dry_run:
             storage.copy(shift_file, storage.get_uri(expnum, ccd, version, '.shifts'))

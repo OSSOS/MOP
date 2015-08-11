@@ -1,10 +1,9 @@
-import copy
 import logging
 import tempfile
 
 from astropy import units
 from astropy.coordinates import SkyCoord
-
+from astropy.io import fits
 from astropy.units import Quantity
 
 from .colormap import GrayscaleColorMap
@@ -140,7 +139,7 @@ class Displayable(object):
     def place_ellipse(self, sky_coord, ellipse, colour='g', dash=0):
         if not self.display or self._ellipse_placed or not self.mark_reticule:
             return
-        r = Region(sky_coord, style='ellipse', colour=colour, shape=ellipse, option='dash={}'.format(dash))
+        r = Region(sky_coord, style='ellipse', colour=colour, shape=ellipse, option='dash={} width=2'.format(dash))
         self.display.set(*r)
         self._ellipse_placed = True
 
@@ -216,13 +215,14 @@ class ImageSinglet(object):
             display.set('frame new')
 
             # create a copy of the image that does not have Gwyn's PV keywords, ds9 fails on those.
-            hdulist = copy.copy(self.hdulist)
+            f = tempfile.NamedTemporaryFile(suffix=".fits")
+            self.hdulist.writeto(f, output_verify='ignore')
+            f.flush()
+            hdulist = fits.open(f.name, mode='update')
             for hdu in hdulist:
                 del (hdu.header['PV*'])
             # place in a temporary file for ds9 to use, this must be an on disk file
-            f = tempfile.NamedTemporaryFile(suffix=".fits")
-            hdulist.writeto(f, output_verify='ignore')
-            f.flush()
+            hdulist.close()
             f.seek(0)
 
             # load image into the display

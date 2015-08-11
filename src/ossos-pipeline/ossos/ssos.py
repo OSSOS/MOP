@@ -6,9 +6,7 @@ import pprint
 import warnings
 
 from astropy.io import ascii
-
 from astropy import units
-
 from astropy.time import Time
 import requests
 
@@ -24,6 +22,7 @@ NEW_LINE = '\r\n'
 
 class TracksParser(object):
     def __init__(self, inspect=True, skip_previous=False):
+        logger.debug("Setting up TracksParser")
         self.orbit = None
         self._nights_per_darkrun = 18 * units.day
         self._nights_separating_darkruns = 30 * units.day
@@ -32,6 +31,7 @@ class TracksParser(object):
         self.ssos_parser = None
 
     def parse(self, filename):
+        logger.debug("Parsing SSOS Query.")
         mpc_observations = mpc.MPCReader(filename).mpc_observations
 
         # pass down the provisional name so the table lines are linked to this TNO
@@ -41,6 +41,8 @@ class TracksParser(object):
 
         try:
             self.orbit = Orbfit(mpc_observations)
+            print self.orbit.residuals()
+            print self.orbit
         except Exception as ex:
             logger.error("{}".format(ex))
             logger.error("Failed to compute orbit with astrometry provided")
@@ -60,6 +62,7 @@ class TracksParser(object):
         # loop over the query until some new observations are found, or raise assert error.
         while True:
             tracks_data = self.query_ssos(mpc_observations, lunation_count)
+            logger.debug("Got SSOS result: {}".format(tracks_data))
             if tracks_data.get_reading_count() > len(
                     mpc_observations) or tracks_data.get_arc_length() > self.orbit.arc_length + 2.0 * units.day:
                 return tracks_data
@@ -215,6 +218,7 @@ class SSOSParser(object):
 
         warnings.filterwarnings('ignore')
         logger.info("Loading {} observations\n".format(len(ssos_table)))
+        expnums_examined = []
         for row in ssos_table:
             # check if a dbimages object exists
             # For CFHT/MegaCam strip off the trailing character to get the exposure number.
@@ -236,41 +240,55 @@ class SSOSParser(object):
             dec = row['Object_Dec'] * units.degree
             mjd = row['MJD'] * units.day
 
-            # Build astrom.SourceReading
-            if self.skip_previous:
-                previous = False
-                for mpc_observation in mpc_observations:
-                    try:
-                        if mpc_observation.comment.frame == "{}p{:02d}".format(expnum, ccd) \
-                                and not mpc_observation.discovery.is_initial_discovery:
-                            logger.info("Skipping {}p{:02d}: already measured\n".format(expnum, ccd))
-                            previous = True
-                            break
-                    except Exception as e:
-                        logger.debug(str(e))
-                        pass
-                if previous:
-                    continue
+            if not 0 < x.value < 2060 or not 0 < y.value < 4700:
+                continue
+
+            obs_date = Time(mjd, format='mjd', scale='utc').iso
+            orbit.predict(obs_date)
+            if orbit.dra > 4 * units.arcminute or orbit.ddec > 4.0 * units.arcminute:
+                print "Skipping entry as orbit uncertainty at date {} is large.".format(obs_date)
+                continue
+            if expnum in expnums_examined:
+                continue
+            expnums_examined.append(expnum)
+
             logger.debug(("Prediction: exposure:{} ext:{} "
                           "ra:{} dec:{} x:{} y:{} from SSOS").format(expnum, ccd, ra, dec, x, y))
 
             observation = SSOSParser.build_source_reading(expnum, ccd, ftype=ftype)
             observation.mjd = mjd
-            obs_date = Time(mjd, format='mjd', scale='utc').iso
-            orbit.predict(obs_date)
+            from_input_file = observation.rawname in self.input_rawnames
+            # compare to input observation list.
+            previous = False
+            mpc_observation = None
+            if from_input_file:
+                for mpc_observation in mpc_observations:
+                    try:
+                        if mpc_observation.comment.frame.strip() == observation.rawname:
+                            previous = not mpc_observation.discovery.is_initial_discovery
+                            break
+                    except Exception as e:
+                        logger.debug(str(e))
+                        pass
+                    mpc_observation = None
+
+            # skip previously measured observations if requested.
+            if self.skip_previous and previous:
+                continue
+
             logger.debug('built observation {}'.format(observation))
             observations.append(observation)
-            from_input_file = observation.rawname in self.input_rawnames
             null_observation = observation.rawname in self.null_observations
 
             logger.info(" Building SourceReading .... \n")
-            source_reading = astrom.SourceReading(x=x, y=y, x0=x, y0=y, ra=ra, dec=dec,
+            source_reading = astrom.SourceReading(x=x, y=y, x0=x, y0=y,
+                                                  ra=orbit.coordinate.ra.to(units.degree).value,
+                                                  dec=orbit.coordinate.dec.to(units.degree).value,
                                                   xref=x, yref=y, obs=observation,
                                                   ssos=True, from_input_file=from_input_file,
                                                   dx=orbit.dra, dy=orbit.ddec, pa=orbit.pa,
                                                   null_observation=null_observation)
-            logger.info("done")
-
+            source_reading.mpc_observation = mpc_observation
             source_readings.append(source_reading)
 
         # build our array of SourceReading objects

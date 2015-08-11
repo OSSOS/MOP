@@ -7,6 +7,7 @@ from ossos.gui import config, logger
 
 class KeybindManager(object):
     def __init__(self, view, controller):
+        logger.debug("Building KeybindManager.")
         self.controller = controller
         self.view = view
 

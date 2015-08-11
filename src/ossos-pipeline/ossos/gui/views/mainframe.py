@@ -2,10 +2,10 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
 
-from ossos.gui import config
-from ossos.gui.views.listctrls import ListCtrlPanel
-from ossos.gui.views.navigation import NavPanel
-from ossos.gui.views.validation import SourceValidationPanel, MPCPanel
+from ...gui import config, logger
+from ...gui.views.listctrls import ListCtrlPanel
+from ...gui.views.navigation import NavPanel
+from ...gui.views.validation import SourceValidationPanel, MPCPanel
 
 
 class MainFrame(wx.Frame):
@@ -17,6 +17,7 @@ class MainFrame(wx.Frame):
     """
 
     def __init__(self, controller, track_mode=False):
+        logger.debug("Building mainframe.")
         size = (config.read("UI.DIMENSIONS.WIDTH"),
                 config.read("UI.DIMENSIONS.HEIGHT"))
         super(MainFrame, self).__init__(None, title="Moving Object Pipeline",

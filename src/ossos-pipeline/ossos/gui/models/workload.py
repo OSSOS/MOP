@@ -383,7 +383,7 @@ class TracksWorkUnit(WorkUnit):
     def print_orbfit_info(self):
         #TODO: this should not be here.
         orb = Orbfit(self.get_writer().get_chronological_buffered_observations())
-        print orb.residuals
+        print orb.residuals()
         print orb
 
     def query_ssos(self):
@@ -697,6 +697,7 @@ class WorkUnitBuilder(object):
 
     def __init__(self, parser, input_context, output_context, progress_manager,
                  dry_run=False):
+        logger.debug("Setting up Work Unit Builder.")
         self.parser = parser
         self.input_context = input_context
         self.output_context = output_context

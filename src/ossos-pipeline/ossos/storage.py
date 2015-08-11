@@ -66,7 +66,8 @@ class Wrapper(object):
         else:
             return orig_attr
 
-#vospace = Wrapper(vos.Client)
+
+# vospace = Wrapper(vos.Client)
 vospace = vos.Client()
 
 SUCCESS = 'success'

@@ -3,6 +3,7 @@ import tempfile
 
 from astropy import units
 from astropy.coordinates import SkyCoord
+
 from astropy.io import fits
 
 from ...astrom import SourceReading, Observation
@@ -297,8 +298,8 @@ class SourceCutout(object):
                                                 ref_ra, ref_dec, self.reading.x, self.reading.y, obs)
                         self._comparison_image = SourceCutout(reading, hdu_list)
                     except Exception as ex:
-                        print type(ex), str(ex)
-                        print traceback.format_exc()
+                        logger.error("{} {}".format(type(ex), str(ex)))
+                        logger.error(traceback.format_exc())
                         continue
                     break
             if comparison is None:

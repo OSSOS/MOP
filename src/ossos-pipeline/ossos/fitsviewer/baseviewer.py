@@ -1,5 +1,7 @@
+import copy
 import logging
 
+from astropy import units
 from astropy.coordinates import SkyCoord
 
 from ossos.astrom import SourceReading
@@ -70,8 +72,14 @@ class WxMPLFitsViewer(object):
         colour = cutout.reading.null_observation and 'c' or colour
         dash = cutout.reading.null_observation and 1 or 0
         sky_coord = cutout.reading.sky_coord
+        x, y, extno = cutout.world2pix(sky_coord.ra.to(units.degree).value,
+                                       sky_coord.dec.to(units.degree).value)
+        hdulist = copy.copy(cutout.hdulist)
+        for hdu in hdulist[1:]:
+            del hdu.header['PV*']
+        ra, dec = hdulist[extno].wcs.xy2sky(x, y)
         uncertainty_ellipse = cutout.reading.uncertainty_ellipse
-        self.current_displayable.place_ellipse(sky_coord, uncertainty_ellipse, colour=colour, dash=dash)
+        self.current_displayable.place_ellipse((ra, dec), uncertainty_ellipse, colour=colour, dash=dash)
 
     def refresh_markers(self):
         self.mark_apertures(self.current_cutout)
