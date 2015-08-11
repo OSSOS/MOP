@@ -7,8 +7,11 @@ import warnings
 
 from astropy.io import ascii
 from astropy import units
+
 from astropy.time import Time
 import requests
+
+requests.packages.urllib3.disable_warnings()
 
 from . import astrom
 from . import mpc
@@ -171,14 +174,11 @@ class SSOSParser(object):
     @staticmethod
     def _skip_missing_data(str_vals, ncols):
         """
-        add a extra column if one is missing, else return None.
+        add a extra columna if missing, else return None.
         """
-        if len(str_vals) == ncols - 1:
+        while len(str_vals) < ncols:
             str_vals.append('None')
-            return str_vals
-        else:
-            logger.error("Failed to parse row: {}".format(str_vals))
-            raise ValueError("not enough columns in table")
+        return str_vals
 
     @staticmethod
     def build_source_reading(expnum, ccd=None, ftype='p'):
