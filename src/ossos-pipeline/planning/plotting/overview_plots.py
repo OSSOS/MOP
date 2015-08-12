@@ -3,12 +3,12 @@ __author__ = 'Michele Bannister'
 import math
 
 import matplotlib.pyplot as plt
-import brewer2mpl
 from matplotlib import rcParams
 from matplotlib.ticker import MultipleLocator
 import numpy as np
 import ephem
 
+import brewer2mpl
 import parsers
 import parameters
 import plot_fanciness
@@ -18,7 +18,12 @@ rcParams['font.size'] = 12  # good for posters/slides
 rcParams['patch.facecolor'] = set2[0]
 
 
-def top_down_SolarSystem(discoveries, extent=65, plot_blocks=True, future_blocks=True, plot_Ijiraq=True):
+def top_down_SolarSystem(discoveries,
+                         extent=65,
+                         plot_blocks=True,
+                         future_blocks=True,
+                         plot_Ijiraq=True,
+                         label_blocks=True):
     """
     Plot the OSSOS discoveries on a top-down Solar System showing the position of Neptune and model TNOs.
     Discoveries are plotted each at their time of discovery according to the value in the Version Release.
@@ -47,12 +52,12 @@ def top_down_SolarSystem(discoveries, extent=65, plot_blocks=True, future_blocks
     ax1.set_aspect('equal')
 
     ax1.set_rlim(0, extent)
-    ax1.set_rgrids([20, 40, 60], labels=["", "", '20 AU', '40 AU', '60 AU'], angle=308, alpha=0.45)  # angle = 197
+    ax1.set_rgrids([20, 40, 60], labels=["", "", '20 AU', '40 AU', '60 AU'], angle=197, alpha=0.45)  # angle = 308
     ax1.yaxis.set_major_locator(MultipleLocator(20))
     ax1.xaxis.set_major_locator(MultipleLocator(math.radians(15)))  # every hour
     ax1.grid(axis='x', color='k', linestyle='--', alpha=0.2)
-    ax1.set_xticklabels(['', '0h', "", '', "", '4h', "", '', "", '', "", '10h', "", '', "", '14h', "", '',
-                         "", '', "", '20h', "", '', "", ],
+    ax1.set_xticklabels(['', '0h', "", '', "", '', "", '', "", '', "", '', "", '', "", '', "", '',
+                         "", '', "", '20h', "", '22h', "", ],
                         # ""])  # str(r)+'h' for r in range(-1,24)],
                         #        ['', '0h', '2h', '4h', '6h', '8h', '10h', '12h', '14h', '16h', '18h', '20h', '22h']) #
                         color='b', alpha=0.6)  # otherwise they get in the way
@@ -61,10 +66,10 @@ def top_down_SolarSystem(discoveries, extent=65, plot_blocks=True, future_blocks
     # plot exclusion zones due to Galactic plane: RAs indicate where bar starts, rather than its centre angle
     # can I do this with a warp, or will it make more sense to just plot stellar density? maybe that?
     width = math.radians(3 * 15)
-    plt.bar(math.radians(4.5 * 15), extent, width=width, color=plot_fanciness.ALMOST_BLACK, linewidth=0, alpha=0.2)
-    plt.bar(math.radians(16.5 * 15), extent, width=width, color=plot_fanciness.ALMOST_BLACK, linewidth=0, alpha=0.2)
-    ax1.annotate('galactic plane', (math.radians(6.9 * 15), extent - 15), size=10, color='k', alpha=0.45)
-    ax1.annotate('galactic plane', (math.radians(17.2 * 15), extent - 15), size=10, color='k', alpha=0.45)
+    # plt.bar(math.radians(4.5 * 15), extent, width=width, color=plot_fanciness.ALMOST_BLACK, linewidth=0, alpha=0.2)
+    # plt.bar(math.radians(16.5 * 15), extent, width=width, color=plot_fanciness.ALMOST_BLACK, linewidth=0, alpha=0.2)
+    # ax1.annotate('galactic plane', (math.radians(6.9 * 15), extent - 15), size=10, color='k', alpha=0.45)
+    # ax1.annotate('  galactic plane\navoidance zone', (math.radians(16.9 * 15), extent - 12), size=10, color='k', alpha=0.45)
 
 
     # FIXME: should probably convert hours to ecliptic coords with a bit more finesse than just overplotting it
@@ -76,24 +81,51 @@ def top_down_SolarSystem(discoveries, extent=65, plot_blocks=True, future_blocks
     for blockname, block in parameters.BLOCKS.items():  # ["14:15:28.89", "15:58:01.35", "00:54:00.00", "01:30:00.00"]:
         if plot_blocks:
             if blockname.startswith('13') or blockname.startswith('14'):
+                colour = 'b'
+                alpha = 0.1
+                cmap = plt.get_cmap('Blues')  # colorbrewer.sequential.Blues_4.mpl_colors
+                if blockname.endswith('AO'):
+                    colour = '#E47833'
+                    alpha = 0.17
+                    cmap = plt.get_cmap('Oranges')  # colorbrewer.sequential.Oranges_3.mpl_colors
+
                 # want to apply a colour gradient to the block
+                # luminance = [[.6, .6],[.7,.7]]
                 # gradient = np.linspace(0, 1, 256)
                 # gradient = np.vstack((gradient, gradient))
-                # plt.imshow(gradient, aspect='auto', )
+                #
+                # r_i = np.linspace(8, extent, 256)
+                # r_i = np.vstack((r_i, r_i))
+                # theta_i = np.linspace(ephem.hours(block["RA"]) - math.radians(3.5),
+                #                       ephem.hours(block["RA"]) + math.radians(3.5), 7)
+                # grid = np.meshgrid(theta_i, r_i)
+                #
+                # ax1.imshow(r_i,
+                #            extent=(ephem.hours(block["RA"]) - math.radians(3.5),
+                #                    ephem.hours(block["RA"]) + math.radians(3.5),
+                #                    8, extent),
+                #            cmap=cmap)
 
-                plt.bar(ephem.hours(block["RA"]) - math.radians(3.5), extent, linewidth=0.1,
-                        width=math.radians(7), bottom=8, color='b', alpha=0.2)
-                ax1.annotate(blockname[3], (ephem.hours(block["RA"]) + math.radians(0.3), extent + 0.15), size=15,
-                             color='b')
-                # print bar
-                # ax1.imshow(bar, cmap=plt.get_cmap('Blues'), alpha=0.2)
+                bar = ax1.bar(ephem.hours(block["RA"]) - math.radians(3.5), extent, linewidth=0.1,
+                              width=math.radians(7), bottom=8, zorder=0, color=colour, alpha=alpha)
+                # bar[0].set_facecolor(cmap)
+                # bar[0].set_alpha(0.8)
+                if label_blocks:
+                    ax1.annotate(blockname[3], (ephem.hours(block["RA"]) + math.radians(0.3), extent + 0.15), size=15,
+                                 color='b')
 
         if future_blocks:
             if blockname.startswith('15'):
                 plt.bar(ephem.hours(block["RA"]) - math.radians(3.5), extent,
                         width=math.radians(7), bottom=8, color='r', linewidth=0.1, alpha=0.2)
-                ax1.annotate(blockname[3], (ephem.hours(block["RA"]) - math.radians(1.5), extent + 0.15), size=15,
-                             color='r')
+                if label_blocks:
+                    ax1.annotate(blockname[3], (ephem.hours(block["RA"]) - math.radians(1.5), extent + 0.15), size=15,
+                                 color='r')
+
+    # what if try adding a ring around the whole thing with alpha gradient to get the wedge-edge fadeout?
+    inner = plt.Circle(58)
+    outer = plt.Circle(65)
+    # plt.PatchCollection?
 
     plot_ossos_discoveries(ax1, discoveries)
 
@@ -109,35 +141,37 @@ def top_down_SolarSystem(discoveries, extent=65, plot_blocks=True, future_blocks
     ra, dist, hlat, Hmag = parsers.synthetic_model_kbos(kbotype='resonant', arrays=True, maglimit=24.7)
     # can't plot Hmag as marker size in current setup.
     ax1.scatter(ra, dist, marker='o', s=2, facecolor=plot_fanciness.ALMOST_BLACK,
-                edgecolor=plot_fanciness.ALMOST_BLACK, linewidth=0.1, alpha=0.1)
+                edgecolor=plot_fanciness.ALMOST_BLACK, linewidth=0.1, alpha=0.12, zorder=1)
 
     plt.draw()
-    outfile = 'topdown_RA_d_OSSOS'
-    plt.savefig(outfile + '.pdf', transparent=True)
+    outfile = 'topdown_RA_d_OSSOS_v{}.pdf'.format(parameters.RELEASE_VERSION)
+    plt.savefig(outfile, transparent=True, bbox_inches='tight')
 
     return
 
 
 def plot_planets_plus_Pluto(ax, date=parameters.NEWMOONS[parameters.DISCOVERY_NEW_MOON]):
-    for planet in [ephem.Saturn(), ephem.Uranus(), ephem.Neptune()]:  # , ephem.Pluto()]:
+    for planet in [ephem.Saturn(), ephem.Uranus(), ephem.Neptune(), ephem.Pluto()]:
         planet.compute(ephem.date(date))
         fc = plot_fanciness.ALMOST_BLACK
         if planet.name == 'Pluto':
             alpha = 0.35
             size = 10
+            fs = 5
         else:
             alpha = 0.7
             size = 20
+            fs = 10
         ax.scatter(planet.ra, planet.sun_distance,
                    marker='o',
                    s=size,
                    facecolor=fc,
                    edgecolor=fc,
                    alpha=alpha)
-        if planet.name != 'Saturn':
-            ax.annotate(planet.name, (planet.ra - (math.radians(0.5)), planet.sun_distance + 2), size=10)
-        else:
-            ax.annotate(planet.name, (planet.ra + (math.radians(10)), planet.sun_distance - 2), size=10)
+        # if planet.name != 'Saturn':
+        #     ax.annotate(planet.name, (planet.ra - (math.radians(0.5)), planet.sun_distance + 2), size=fs)
+        # else:
+        #     ax.annotate(planet.name, (planet.ra + (math.radians(10)), planet.sun_distance - 2), size=fs)
         # plot Neptune's orbit: e is 0.01 so can get away with a circle
         if planet.name == 'Neptune':
             orb = np.arange(0, 2 * np.pi, (2 * np.pi) / 360)
@@ -152,12 +186,22 @@ def plot_ossos_discoveries(ax, discoveries, lpmag=False):
     which are provided by the Version Releases in decimal hours.
     """
     # need to make this row-wise
-    fc = 'b'
-    alph = 0.8
-    ra = [ephem.hours(str(n)) for n in discoveries['ra_dis']]
-    ax.scatter(ra, discoveries['dist'],
-               marker='o', s=15 - discoveries['H_sur'], facecolor=fc, edgecolor='w', linewidth=0.4,
-               alpha=alph)  # original size=4.5
+    fc = ['b', '#E47833']
+    alph = 0.85
+    marker = ['o', 'd']
+    size = [7, 11]
+    pl_index = np.where((discoveries['cl'] == 'res') & (discoveries['j'] == 3) & (discoveries['k'] == 2))
+    l = []
+    for k, n in enumerate(discoveries):
+        if k not in pl_index[0]:
+            l.append(k)
+    not_plutinos = discoveries[l]
+    plutinos = discoveries[pl_index]
+    for j, d in enumerate([not_plutinos, plutinos]):
+        ra = [ephem.hours(str(n)) for n in d['ra_dis']]
+        ax.scatter(ra, d['dist'],
+                   marker=marker[j], s=size[j], facecolor=fc[j], edgecolor='w', linewidth=0.25,
+                   alpha=alph, zorder=2)  # original size=4.5
 
     # for obj in discoveries:
     # if lpmag:
@@ -279,7 +323,8 @@ def delta_a_over_a(discoveries):
 def main():
     # parsers.output_discoveries_for_animation()
     discoveries = parsers.ossos_release_parser(table=True)
-    top_down_SolarSystem(discoveries, plot_blocks=True, future_blocks=True, plot_Ijiraq=True)
+    top_down_SolarSystem(discoveries, plot_blocks=True, future_blocks=False, plot_Ijiraq=False,
+                         label_blocks=False)
 
 # orbit_fit_residuals(discoveries)
 # delta_a_over_a(discoveries)

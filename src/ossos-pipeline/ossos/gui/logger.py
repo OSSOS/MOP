@@ -16,7 +16,7 @@ logfile = os.path.join(tempfile.gettempdir(), "ossos_validation.log")
 logging.basicConfig(filename=logfile,
                     format="%(levelname)s: %(thread)d %(module)s.%(funcName)s %(lineno)d: %(message)s (%(asctime)s)",
                     datefmt="%m/%d/%Y %I:%M:%S %p",
-                    level=logging.ERROR)
+                    level=logging.DEBUG)
 
 _logger = logging.getLogger(__name__)
 debug = _logger.debug

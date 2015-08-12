@@ -215,13 +215,11 @@ class ProcessTracksApplication(ValidationApplication):
                  user_id=None):
         preload_iraf()
         self.skip_previous = skip_previous
-
         super(ProcessTracksApplication, self).__init__(
             working_directory, output_directory, dry_run=dry_run, debug=debug, 
             name_filter=name_filter,
             user_id=user_id)
-        if skip_previous:
-            self.controller.is_discovery = False
+        self.controller.is_discovery = False
 
     @property
     def input_suffix(self):

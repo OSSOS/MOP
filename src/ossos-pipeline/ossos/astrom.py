@@ -1,6 +1,7 @@
 """
 Reads and writes .astrom files.
 """
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 import re
@@ -9,8 +10,11 @@ from astropy import units
 from astropy.coordinates import SkyCoord
 from astropy.units import Quantity
 
+from astropy.time import TimeDelta
+
 from .gui import logger
 from . import storage
+from .util import Time
 
 DATASET_ROOT = storage.DBIMAGES
 
@@ -448,14 +452,32 @@ class Source(object):
 
 
 class Ellipse(object):
+    """
+    An ellipse region for use in DS9.
+
+    a = semi-major axis
+    b = semi-minor axis
+    pa = position angle in degrees (East is 0).
+
+    """
 
     def __init__(self, a, b, pa):
+        """
+        :param a: semi-major axis
+        :type a: Quantity
+        :param b: semi-minor axis
+        :type b: Quantity
+        :param pa: Position Angle (East is 0)
+        :type pa: Quantity
+        """
         self.a = a
         self.b = b
         self.pa = pa
 
     def __str__(self):
-        return "({}, {}, {})".format(self.a, self.b, self.pa)
+        return '{}", {}", {}'.format(self.a.to(units.arcsec).value,
+                                     self.b.to(units.arcsec).value,
+                                     self.pa.to(units.degree).value + 90)
 
 
 class SourceReading(object):
@@ -710,7 +732,7 @@ class SourceReading(object):
         xref = isinstance(self.xref, Quantity) and self.xref.value or self.xref
         yref = isinstance(self.yref, Quantity) and self.yref.value or self.yref
 
-        return  xref + self.x_ref_offset, yref + self.y_ref_offset
+        return xref + self.x_ref_offset, yref + self.y_ref_offset
 
     def get_observation_header(self):
         return self.obs.header
@@ -920,6 +942,25 @@ class Observation(object):
         if self._header is None:
             try:
                 self._header = storage.get_mopheader(self.expnum, self.ccdnum)
-            except:
+            except Exception as ex:
+                logger.error(str(ex))
                 return self.astheader
         return self._header
+
+    def get_mpc_date(self):
+        header = self.header
+        if isinstance(header, list):
+            print "Got list when header expected, trying to use correct member of list."
+            extno = self.ccdnum - 1
+            header = header[extno]
+        mpc_date = header.get('MJD_OBS_CENTER', None)
+        if mpc_date is None and 'MJD-OBS' in header:
+            mjd_obs = float(header.get('MJD-OBS'))
+            exptime = float(header.get('EXPTIME'))
+            mpc_date = Time(mjd_obs,
+                            format='mjd',
+                            scale='utc',
+                            precision=6)
+            mpc_date += TimeDelta(exptime * units.second) / 2.0
+            mpc_date = mpc_date.mpc
+        return mpc_date

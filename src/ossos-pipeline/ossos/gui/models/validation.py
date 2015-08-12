@@ -181,13 +181,20 @@ class ValidationModel(object):
                 ("DEC", reading.dec))
 
     def get_header_data_list(self):
+
         try:
             header = self.get_current_astrom_header()
-            hlist = [(key, value) for key, value in header.iteritems()]
-        except AttributeError as e:
-            logger.error(str(e))
-            hlist = [("NONE", "NONE"), ]
-        return hlist
+            return [(key, value) for key, value in header.iteritems()]
+        except:
+            pass
+
+        try:
+            header = self.get_current_cutout().hdulist[0].header
+            return [(key, value) for key, value in header.iteritems()]
+        except:
+            pass
+
+        return [('Header_Get', 'FAILED')]
 
     def get_current_observation_date(self):
         header = self.get_current_workunit().get_current_reading().obs.header

@@ -2,16 +2,19 @@ __author__ = 'Michele Bannister   git:@mtbannister'
 
 import math
 import os
+import datetime
 
+import numpy as np
 import ephem
 import matplotlib.pyplot as plt
-import datetime
-from astropy import time
 
 import parameters
 import mpcread
 import parsers
 import horizons
+
+
+
 
 
 
@@ -58,26 +61,63 @@ def plot_saturn_moons(ax):
     return ax
 
 
-def plot_ossos_discoveries(ax, discoveries, prediction_date=False):
-    for kbo in discoveries:
-        # If the provided date isn't very close to the object's intrinsic discovery date,
-        # predict the object's position for the provided date.
-        if prediction_date:  # In this case, have to use prediction as data release doesn't have Orbfit.orbit property
-            # Gets around field discovery times differing by a small fraction of an hour
-            pd = time.Time(prediction_date.replace('/', '-'))
-            if abs(kbo.discovery.date - pd) > time.TimeDelta(0.5, format='jd'):
-                kbo.orbit.predict(prediction_date.replace('/', '-'))
-                ra = kbo.orbit.coordinate.ra.degree
-                dec = kbo.orbit.coordinate.dec.degree
-            else:  # close enough we can just use the discovery's time
-                ra = kbo.discovery.coordinate.ra.degree
-                dec = kbo.discovery.coordinate.dec.degree
-        else:  # no complexity: use discovery locations from data-release
-            assert (kbo.ra_discov is not None) and (kbo.dec_discov is not None)
-            ra = math.degrees(ephem.degrees(ephem.hours(str(kbo.ra_discov))))
-            dec = math.degrees(ephem.degrees(str(kbo.dec_discov)))
+def plot_ossos_discoveries(ax, discoveries, blockname, prediction_date=False):
+    fc = ['b', '#E47833']
+    alpha = [0.6, 1]
+    marker = ['o', 'd']
+    size = [25, 30]
+    pl_index = np.where((discoveries['cl'] == 'res') & (discoveries['j'] == 3) & (discoveries['k'] == 2))
+    l = []
+    for k, n in enumerate(discoveries):
+        if k not in pl_index[0]:
+            l.append(k)
+    not_plutinos = discoveries[l]
+    plutinos = discoveries[pl_index]
+    for j, d in enumerate([not_plutinos, plutinos]):
+        print len(d)
+        ra = [math.degrees(ephem.degrees(ephem.hours(str(n)))) for n in d['ra_dis']]
+        dec = [float(q) for q in d['dec_dis']]
+        ax.scatter(ra, dec,
+                   marker=marker[j], s=size[j], facecolor=fc[j], edgecolor='k', linewidth=0.4,
+                   alpha=alpha[j])  # original size=4.5
+        for kbo in d:
+            ra = math.degrees(ephem.degrees(ephem.hours(str(kbo['ra_dis']))))
+            dec = kbo['dec_dis']
+            name = kbo['object'].rpartition('o3' + blockname[-1].lower())[2]
+            if j == 1:
+                sep = 0.20
+            else:
+                sep = 0.18
+            if name.endswith('PD'):
+                latsep = .2
+            else:
+                latsep = .07
+            ax.annotate(name,
+                        (ra - latsep, dec - sep),
+                        size=9,
+                        color='k')
 
-        assert ra, dec
+    return ax
+
+    # for kbo in discoveries:
+    #     # If the provided date isn't very close to the object's intrinsic discovery date,
+    #     # predict the object's position for the provided date.
+    #     if prediction_date:  # In this case, have to use prediction as data release doesn't have Orbfit.orbit property
+    #         # Gets around field discovery times differing by a small fraction of an hour
+    #         pd = time.Time(prediction_date.replace('/', '-'))
+    #         if abs(kbo.discovery.date - pd) > time.TimeDelta(0.5, format='jd'):
+    #             kbo.orbit.predict(prediction_date.replace('/', '-'))
+    #             ra = kbo.orbit.coordinate.ra.degree
+    #             dec = kbo.orbit.coordinate.dec.degree
+    #         else:  # close enough we can just use the discovery's time
+    #             ra = kbo.discovery.coordinate.ra.degree
+    #             dec = kbo.discovery.coordinate.dec.degree
+    #     else:  # no complexity: use discovery locations from data-release
+    #         assert (kbo.ra_discov is not None) and (kbo.dec_discov is not None)
+    #         ra = math.degrees(ephem.degrees(ephem.hours(str(kbo.ra_discov))))
+    #         dec = math.degrees(ephem.degrees(str(kbo.dec_discov)))
+    #
+    #     assert ra, dec
 
         # assert kbo.classification is not None
         # if (kbo.classification == 'res' and kbo.n == 3 and kbo.m == 2):
@@ -85,16 +125,11 @@ def plot_ossos_discoveries(ax, discoveries, prediction_date=False):
         #     fc = '#E47833'
         #     alpha = 1
         # else:
-        fc = 'b'
-        alpha = 0.6
+    # fc = 'b'
+    # alpha = 0.6
+    #
+    # ax.scatter(ra, dec, marker='o', facecolor=fc, alpha=alpha, edgecolor='k', linewidth=0.4, s=25)
 
-        ax.scatter(ra, dec, marker='o', facecolor=fc, alpha=alpha, edgecolor='k', linewidth=0.4, s=25)
-        ax.annotate(kbo.name[-2:],
-                    (ra - .07, dec - 0.14),  # confirm this is being added properly
-                    size=7,
-                    color='k')
-
-    return ax
 
 
 def plot_known_tnos_singly(ax, extent, date):

@@ -7,13 +7,15 @@ Plot a single OSSOS object's path on the sky and observations over the course of
 import argparse
 
 from matplotlib.patches import Rectangle
+from matplotlib import pyplot as plt
 from astropy.time import Time, TimeDelta
+# import aplpy
 
 from ossos import mpc
 from ossos import orbfit
 import sky_location_plots
 import parameters
-import parsers
+# import parsers
 from planning.ObsStatus import query_for_observations
 
 
@@ -30,10 +32,11 @@ def plot_actual_observations(ax, obj, mark_rejected=False):
         # is it away from the last annotation plotted? 5 days empirically worked best to remove puzzlement
         if ((obs.date - obj.mpc_observations[i - 1].date) > TimeDelta(5, format='jd')) or i == 0:
             ax.annotate(obs.date.datetime.strftime('%Y-%m-%d'),
-                        (obs.coordinate.ra.degree + .05, obs.coordinate.dec.degree - 0.01),
+                        (obs.coordinate.ra.degree + .5, obs.coordinate.dec.degree - 0.01),
                         size=7,
                         color='k')
     return ax
+
 
 def plot_prediction(ax, obj):
     ra = []
@@ -48,12 +51,12 @@ def plot_prediction(ax, obj):
         dec.append(orbit.coordinate.dec.degree)
         date = date + TimeDelta(10, format='jd')
 
-    ax.plot(ra, dec, 'r-', linewidth=0.1)
+    ax.plot(ra, dec, 'r-', linewidth=0.6)
 
     # some labels for different times
     orbit.predict(start)
     ax.annotate(parameters.SURVEY_START,
-                (orbit.coordinate.ra.degree - 0.4, orbit.coordinate.dec.degree),
+                (orbit.coordinate.ra.degree - 0.1, orbit.coordinate.dec.degree),
                 size=7,
                 color='k')
     orbit.predict(end)
@@ -78,7 +81,7 @@ def megacam_corresponding_to_observations(ax):
         t = obs_table.data[i]
         if str(t.dataset_name) in obs_frames:
             alpha = 0.4
-            lw = 0.8
+            lw = 0.95
             if Time(t.StartDate, format='mjd') < Time('2014-01-01'):
                 ec = 'b'
             else:
@@ -86,7 +89,7 @@ def megacam_corresponding_to_observations(ax):
                 alpha = 0.5
             if str(t.dataset_name) == discov.comment.frame[0:7]:
                 ec = 'k'
-                lw = 1.5
+                lw = 1.7
             r = Rectangle(xy=(t.RA - camera_dimen / 2.0, t.DEC - camera_dimen / 2.0),
                           height=camera_dimen,
                           width=camera_dimen,
@@ -109,20 +112,26 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # load in the KBO. For now let's assume it's a single OSSOS discovery, generalise later
-    discoveries = parsers.ossos_release_parser()
+    # discoveries = parsers.ossos_release_parser(table=True)
     fn = parameters.REAL_KBO_AST_DIR + args.kbo[0] + '.ast'
     obj = mpc.MPCReader(fn)  # let MPCReader's logic determine the provisional name
     # need to determine a plot extent to get the MegaCam coverage
     # and KBOs go westward so earliest to latest is kinda useful
-    extents = [min([obs.coordinate.ra.degree for obs in obj.mpc_observations]) - 0.5,
-               max([obs.coordinate.ra.degree for obs in obj.mpc_observations]) + 0.5,
-               min([obs.coordinate.dec.degree for obs in obj.mpc_observations]) - 0.3,
-               max([obs.coordinate.dec.degree for obs in obj.mpc_observations]) + 0.3]
-    midpoint = ( extents[0] + ((extents[1] - extents[0]) / 2.), extents[2] + ((extents[3] - extents[2]) / 2.) )
+    extents = [max([obs.coordinate.ra.degree for obs in obj.mpc_observations]) + 0.9,
+               min([obs.coordinate.ra.degree for obs in obj.mpc_observations]) - 0.9,
+               min([obs.coordinate.dec.degree for obs in obj.mpc_observations]),
+               max([obs.coordinate.dec.degree for obs in obj.mpc_observations])]
+    midpoint = (extents[0] + ((extents[1] - extents[0]) / 2.), extents[2] + ((extents[3] - extents[2]) / 2.))
     print(extents, midpoint)
 
     handles, labels, ax, fontP = sky_location_plots.basic_skysurvey_plot_setup()
+    plt.axis('equal')
+    #
+    # fig = aplpy.FITSFigure()
+    # fig.set_theme('publication')
+
     ax = plot_actual_observations(ax, obj, mark_rejected=True)
     ax = plot_prediction(ax, obj)
     ax = megacam_corresponding_to_observations(ax)
+
     sky_location_plots.saving_closeout(args.kbo[0], '', extents, '')

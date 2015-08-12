@@ -30,4 +30,4 @@ class TripletViewer(WxMPLFitsViewer):
             self.current_displayable.get_singlet(frame_index, time_index).place_marker(x, y, radius)
 
     def _create_displayable(self, cutout_grid):
-        return DisplayableImageTriplet(cutout_grid)
+        return DisplayableImageTriplet(cutout_grid, self.ds9)

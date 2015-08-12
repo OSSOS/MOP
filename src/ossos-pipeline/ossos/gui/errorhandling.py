@@ -53,9 +53,9 @@ class DownloadErrorHandler(object):
 
     def handle_general_download_error(self, error_message, download_request):
         logger.warning("A problem occurred while downloading: %s" % error_message)
-        logger.debug("-"*60)
-        logger.debug(traceback.format_exc())
-        logger.debug("-"*60)
+        logger.error("-" * 60)
+        logger.error(traceback.format_exc())
+        logger.error("-" * 60)
 
         self._failed_downloads.append(download_request)
         self.app.get_view().show_retry_download_dialog(self, error_message)

@@ -6,8 +6,8 @@ observation.
 from copy import deepcopy
 import os
 import math
-import numpy
 
+import numpy
 
 __author__ = 'jjk'
 

@@ -5,10 +5,10 @@ import os
 import matplotlib.pyplot as plt
 from astropy.table import Table
 import numpy as np
+
 from palettable.colorbrewer import sequential
 from palettable import tableau
 import prettyplotlib as ppl
-
 import plot_fanciness
 
 
@@ -33,6 +33,22 @@ def square_fit(m, params):
                     (params[0] - params[1] * (m - 21.0) ** 2) / (1. + np.exp((m - params[2]) / params[3])))
 
 
+def square_fit_discovery_mag(obj, discov_mag, discov_rate):
+    pwd = path + 'efficiency_motion_rates'
+    blocks = {'o3e': "13AE", 'o3o': "13AO"}
+    block = blocks[obj.lstrip('u')[0:3]]
+    smooth_parameter_files = filter(lambda name: name.startswith('smooth'), os.listdir('{}/{}/'.format(pwd, block)))
+    smooth_parameter_files.sort(key=lambda x: float(x.split('-')[1]))
+    rates = np.array([float(x.split('-')[2]) for x in smooth_parameter_files])
+    rate, = np.where(discov_rate < rates)
+    fn = smooth_parameter_files[rate[0]]
+    pd, ps, mag_limit = read_smooth_fit('{}/{}/{}'.format(pwd, block, fn))
+    eta = square_fit(discov_mag, ps)
+    # print obj, discov_mag, eta, discov_rate, block, fn
+
+    return float(eta)
+
+
 def plot_smooth_fit(i, block, ax, colours, pwd, offset=0, single=False):
     characterisation = {'13AE': 24.04, '13AO': 24.39}
 
@@ -45,20 +61,20 @@ def plot_smooth_fit(i, block, ax, colours, pwd, offset=0, single=False):
         pd, ps, mag_limit = read_smooth_fit('{}/{}/{}'.format(pwd, block, fn))
         ys = square_fit(x, ps)
         if single:  # only want to add label to the legend if there is only one given
-            ax[i].plot(x + (offset * j), ys,
+            ax[i].plot(x + (offset * j), ys * 100.,
                        ls='-', color=colours[j],
                        label='smooth fit {}-{} "/hr overall'.format(fn.split('-')[1], fn.split('-')[2]))
         else:
-            ax[i].plot(x + (offset * j), ys,
+            ax[i].plot(x + (offset * j), ys * 100.,
                        ls='-', color=colours[j])
 
         # last, add the vertical line for characterisation limit for the block
         if j == len(smooth_parameter_files) - 1:
             # defined on target KBO population, modulo tracking efficiency & other factors: not on 40% mag limit
-            ax[i].vlines(characterisation[block], 0., 0.9,
+            ax[i].vlines(characterisation[block], 0., 90,
                          linestyles=':', alpha=0.7)
             ax[i].annotate("$m_{{characterized}}$ = {:.2f}".format(characterisation[block]),
-                           (characterisation[block], 0.9), size=7, color='k')
+                           (characterisation[block], 90), size=7, color='k')
 
 
 def plot_eff_data(i, block, ax, colours, pwd, offset):
@@ -70,7 +86,7 @@ def plot_eff_data(i, block, ax, colours, pwd, offset):
         eff = Table.read(fn_pwd, format='ascii', guess=False, delimiter=' ', data_start=0, comment='#',
                          names=['mag', 'eff', 'num_planted', 'd_eff_plus', 'd_eff_minus'],
                          header_start=None)
-        ax[i].errorbar(eff['mag'] + (offset * j), eff['eff'], yerr=eff['d_eff_plus'],
+        ax[i].errorbar(eff['mag'] + (offset * j), eff['eff'] * 100., yerr=eff['d_eff_plus'] * 100.,
                        fmt=fmt[j], capsize=1, elinewidth=0.5, ms=3.5,
                        label='{} "/hr'.format(fn.split('_')[0]),
                        mfc=colours[j], mec=colours[j], ecolor=colours[j])  # enforce: colour_cycle didn't set all
@@ -87,7 +103,7 @@ def plot_eff_by_rate_of_motion(ax, blocks):
         plot_smooth_fit(i, block, ax, colours, pwd, offset=offset)
         plot_eff_data(i, block, ax, colours, pwd, offset)
         ax[i].grid(True, alpha=0.3)
-        ax[i].set_ylabel('efficiency')
+        ax[i].set_ylabel('efficiency (%)')
         plot_fanciness.remove_border(ax[i])
         ppl.legend(ax[i], loc='lower left', title=block, numpoints=1, fontsize='small', handletextpad=0.5)
 
@@ -104,7 +120,13 @@ def plot_eff_by_user(ax, blocks):
     examined = {'13AE': {'jjk': 163, 'jkavelaars': 109, 'mtb55': 418},
                 '13AO': {'jkavelaars': 53, 'mtb55': 71, 'bgladman': 111, 'montys': 440, 'ptsws': 74}}
     # swap out user ID for anonymous 'pnum' values in the final displayed plot
-    user_blindness = {'jjk': 'p2', 'jkavelaars': 'p3', 'mtb55': 'p1', 'bgladman': 'p5', 'montys': 'p4', 'ptsws': 'p6'}
+    user_blindness = {'mtb55': 'p1',
+                      'jjk': 'p2',
+                      'jkavelaars': 'p3',
+                      'montys': 'p4',
+                      'bgladman': 'p5',
+                      'ptsws': 'p6'
+                      }
     # Line colour and symbol consistent between plots for participant.
     colours = {'jjk': col[2], 'jkavelaars': col[1], 'mtb55': col[0], 'bgladman': col[3], 'montys': col[4],
                'ptsws': col[5]}
@@ -112,36 +134,38 @@ def plot_eff_by_user(ax, blocks):
 
     for i, block in enumerate(blocks):
         user_eff_files = filter(lambda x: x.__contains__(block), os.listdir(pwd))
-        user_eff_files.sort(key=lambda x: examined[block][x.split('.')[2]], reverse=True)  # biggest to smallest
+        # user_eff_files.sort(key=lambda x: examined[block][x.split('.')[2]], reverse=True)  # biggest to smallest
+        user_eff_files.sort(key=lambda x: user_blindness[x.split('.')[2]])
         for j, fn in enumerate(user_eff_files):
             eff = Table.read(pwd + fn, names=['mag', 'eff'], format='ascii')
             user = fn.split('.')[2]
-            ax[i].plot(eff['mag'], eff['eff'],
+            ax.plot(eff['mag'], eff['eff'] * 100,
                        c=colours[user], marker=markers[user], ms=5, mec=colours[user], alpha=0.7,
                        # line thickness scaled by number of files examined: most first so that thickest line at the back
                        linewidth=examined[block][user] * 0.02,
-                       label="{}: {}".format(user_blindness[user], examined[block][user]))
+                    label="{}: {}".format(user_blindness[user], examined[block][user]),
+                    zorder=1 - examined[block][user])
         # not the appropriate smooth fit to be adding here.
         # plot_smooth_fit(i, block, ax, ['k'], path + 'efficiency_motion_rates', single=True)
 
-        ax[i].grid(True, alpha=0.3)
-        ax[i].set_ylabel('efficiency')
-        ax[i].set_ylim([0., 1.])
-        plot_fanciness.remove_border(ax[i])
-        ppl.legend(ax[i], loc='lower left', title=block, numpoints=1, fontsize='small', handletextpad=0.5)
+        ax.grid(True, alpha=0.3)
+        ax.set_ylabel('efficiency (%)')
+        ax.set_ylim([0., 100.])
+        plot_fanciness.remove_border(ax)
+        ppl.legend(ax, loc='lower left', title=block, numpoints=1, fontsize='small', handletextpad=0.5)
 
     return outfile
 
 
 if __name__ == '__main__':
-    fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True)
-    fig.subplots_adjust(hspace=0.05)
-    blocks = ['13AE', '13AO']
+    fig, ax = plt.subplots(nrows=1, ncols=1, sharex=True, figsize=(9, 4))
+    fig.subplots_adjust(hspace=0.1)
+    blocks = ['13AO']  # ['13AE', '13AO'] # [',
 
     # outfile = plot_eff_by_rate_of_motion(ax, blocks)
     outfile = plot_eff_by_user(ax, blocks)
 
-    plt.xlabel("$r'_{AB}$")
+    plt.xlabel("$m_{r}$")
     plt.xlim([21.1, 25.])
     plt.draw()
     plt.savefig(outfile, transparent=True, bbox_inches='tight')
