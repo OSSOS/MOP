@@ -3,8 +3,6 @@
     "DS9":
     {
       "INIT": {
-        "width": 640,
-        "height": 640,
         "view_layout": "vertical",
         "view_info": "yes",
         "view_buttons": "no",
@@ -14,7 +12,8 @@
         "view_physical": "no",
         "view_object": "no",
         "view_colorbar": "no",
-        "zoom": 1
+        "width": 640,
+        "height": 640
       },
       "PREF": {
         "frame_lock": "wcs",
