@@ -23,7 +23,7 @@ from ossos import orbfit
 from ossos import mpc
 
 
-USER = '/Users/michele/'
+USER = '/Users/jjk/'
 
 
 def plot_line(axes, fname, ltype):
@@ -40,9 +40,9 @@ L7MODEL = 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
 # REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/ast/'
 # REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/Research/KuiperBelt/dbase/TNOdb/dbase/data/ast/'
 
-PLOT_FIELD_EPOCH = 'May15'  # Oct14.00 ==> '0' days since the New Moon on Oct14
+PLOT_FIELD_EPOCH = 'Nov15'  # Oct14.00 ==> '0' days since the New Moon on Oct14
 #TODO the .00 is appended when this variable is used as a keyword that needs that .00 this is bad.
-DISCOVERY_NEW_MOON = 'May15'  # this is the date that the RA/DEC in blocks corresponds to.
+DISCOVERY_NEW_MOON = 'Nov15'  # this is the date that the RA/DEC in blocks corresponds to.
 
 
 PLOT_USNO_STARS = True
@@ -156,13 +156,13 @@ NAME                |RA         |DEC        |EPOCH |POINT|
 # blocks = {'14BH': {'RA': "01:28:32.32", "DEC": "+12:51:06.10"}}
 
 #fall 2015
-# blocks = {'15BD': {'RA': "03:15:00.00", "DEC": "+16:30:00.00"}}
+blocks = {'15BD': {'RA': "03:15:00.00", "DEC": "+16:30:00.00"}}
 
 #spring15
 # blocks = {'15AP': {'RA': "13:30:00", "DEC": "-07:45:00"}}
 # blocks = {'14AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"}}  # the centre when set in May 2014.
 # will then define a 15AM to work properly.
-blocks = {'15AM': {'RA': "15:35:00.00", "DEC": "-12:10:00.0"}}  # the centre for discovery in May 2015.
+# blocks = {'15AM': {'RA': "15:35:00.00", "DEC": "-12:10:00.0"}}  # the centre for discovery in May 2015.
 
 newMoons = {
 #    'Feb13': "2013/02/10 10:00:00",
@@ -189,11 +189,11 @@ newMoons = {
 #    'Nov14': '2014/11/22 10:00:00',
 #    'Dec14': '2014/12/22 10:00:00',
 #    'Jan15': '2015/01/20 10:00:00',
-    'Feb15': '2015/02/18 10:00:00',
-    'Mar15': '2015/03/19 10:00:00',
-    'Apr15': '2015/04/18 10:00:00',
-    'May15': '2015/05/17 10:00:00',
-    'Jun15': '2015/06/16 10:00:00',
+#    'Feb15': '2015/02/18 10:00:00',
+#    'Mar15': '2015/03/19 10:00:00',
+#    'Apr15': '2015/04/18 10:00:00',
+#    'May15': '2015/05/17 10:00:00',
+#    'Jun15': '2015/06/16 10:00:00',
     'Jul15': '2015/07/15 10:00:00',
     'Aug15': '2015/08/14 10:00:00',
     'Sep15': '2015/09/12 10:00:00',
@@ -221,7 +221,7 @@ newMoons = {
 xgrid = {'2014': [-3, -2, -1, 0, 1, 2, 3],
          '2014r': [-3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5],
          'astr': [1, 2, 3, 4],
-         '40ccd': [-2, -1, 0, 1, 2]}
+         '40ccd': [2, 1, 0, -1, -2]}
 # 2013
 #       'astr':[-5.5,-4.5,-3.5,-2.5,-1.5,-0.5,0.5,1.5,2.5,3.5,4.5,5.5]}
 
@@ -317,7 +317,7 @@ for block in blocks.keys():
         idx = int(dx)
         for dy in ygrid[year]:
             idy = int(math.floor(dy))
-            decc = ephem.degrees(dec_start - dx*height/2.0)
+            decc = ephem.degrees(dec_start + dx*height/2.0)
             this_decc = decc + dy * height
             width = 1.007*math.radians(camera_width / math.cos(this_decc))
             rac = ephem.hours(ra_start + dx*width)
