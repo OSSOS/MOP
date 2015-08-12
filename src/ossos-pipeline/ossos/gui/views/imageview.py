@@ -2,12 +2,11 @@ from ossos.gui import config
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import logging
-
 import ds9
 
-from ossos.fitsviewer.singletviewer import SingletViewer
-from ossos.fitsviewer.tripletviewer import TripletViewer
+from ...fitsviewer.singletviewer import SingletViewer
+from ...fitsviewer.tripletviewer import TripletViewer
+from ...gui import logger
 
 
 class ImageViewManager(object):
@@ -15,7 +14,7 @@ class ImageViewManager(object):
         # Note: the figure we pass in is just a temporary placeholder.
         # 'Displayable Items' provide their own figure which the canvas can
         # be made to use, but it also requires one on its creation.
-
+        logger.debug("Building {}".format(self))
         self._ds9 = None
         self._singlet_viewer = SingletViewer(mainframe.main_panel, display=self.ds9)
         self._triplet_viewer = TripletViewer(mainframe.main_panel, display=self.ds9)
@@ -36,8 +35,10 @@ class ImageViewManager(object):
     def ds9(self):
         if not self._ds9:
             # start xpans if needed
+            logger.debug("Starting XPANS")
             ds9.ds9_xpans()
 
+            logger.debug("Starting DS9")
             # start ds9 if need, or connect to existing
             cnt = 0
             while cnt < 10:
@@ -49,7 +50,7 @@ class ImageViewManager(object):
                     self._ds9.set("frame delete all")
                     break
                 except ValueError as ve:
-                    logging.warning('Error on attempt {0} to connect to DS9 {1}'.format(cnt, ve))
+                    print 'Error on attempt {0} to connect to DS9 {1}'.format(cnt, ve)
 
         if self._ds9 is None:
             raise IOError("Failed to connect to DS9.")

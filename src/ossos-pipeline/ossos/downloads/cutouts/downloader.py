@@ -1,9 +1,9 @@
-from ... import storage
 from astropy.units import Quantity
-from ...astrom import SourceReading
 from astropy import units
-from ...gui import logger
 
+from ... import storage
+from ...astrom import SourceReading
+from ...gui import logger
 from ..core import Downloader, ApcorData
 from ..cutouts.source import SourceCutout
 from ossos.gui import config
@@ -68,6 +68,7 @@ class ImageCutoutDownloader(Downloader):
         radius = max(reading.uncertainty_ellipse.a,
                      reading.uncertainty_ellipse.b,
                      min_radius)
+
         logger.debug("got radius for cutout: {}".format(radius))
         image_uri = reading.get_image_uri()
         logger.debug("Getting cutout at {} for {}".format(reading.sky_coord, image_uri))
@@ -81,12 +82,12 @@ class ImageCutoutDownloader(Downloader):
             except Exception as ex:
                 pass
 
-        zmag = 0.0
+        zmag = None
         try:
             zmag = self.download_zmag(reading.get_zmag_uri())
         except Exception as ex:
             pass
 
+        header = reading.obs.header
         logger.debug("Sending back the source reading.")
-        return SourceCutout(reading, hdulist, apcor, zmag=zmag)
-
+        return SourceCutout(reading, hdulist, apcor, zmag=zmag, radius=radius)

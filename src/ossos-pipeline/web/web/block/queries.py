@@ -2,10 +2,10 @@ from math import degrees
 import os
 from collections import OrderedDict
 
-import sqlalchemy as sa
 import ephem
-from planning.plotting import parameters
 
+import sqlalchemy as sa
+from planning.plotting import parameters
 from web.field_obs.queries import ImagesQuery
 
 
@@ -23,8 +23,10 @@ class BlockQuery(object):
         status = OrderedDict.fromkeys(parameters.BLOCKS.keys())
         status['13AE'] = ['discovery complete', '50', '24.05']
         status['13AO'] = ['discovery complete', '36', '24.40']
-        status['13BL'] = ['discovery complete', '80', '24.48']
+        status['13BL'] = ['discovery complete', '79', '24.48']
         status['14BH'] = ['discovery running', '-', '-']
+        status['15AP'] = ['discovery running', '-', '-']
+        status['15AM'] = ['discovery running', '-', '-']
 
         '''Overview tal table is expecting:
         ID   observations   processing status   discoveries  m_r 40%

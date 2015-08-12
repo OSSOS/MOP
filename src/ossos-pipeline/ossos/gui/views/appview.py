@@ -40,11 +40,14 @@ class ApplicationView(object):
     """
 
     def __init__(self, controller_factory, track_mode=False, debug=False, mark_using_pixels=False):
+        logger.debug("Creating Application View")
         self.controller = controller_factory.create_controller(self)
 
         self.wx_app = wx.App(False)
+        logger.debug("App built")
         self.debug = debug
         self.mark_using_pixels = mark_using_pixels
+
         self.mainframe = MainFrame(self.controller, track_mode=track_mode)
         self.image_view_manager = ImageViewManager(self.mainframe)
         self.menu = Menu(self.mainframe, self.controller)
@@ -63,6 +66,7 @@ class ApplicationView(object):
 
         # TODO refactor
         self.register_xy_changed_event_handler(self.controller.on_reposition_source)
+        logger.debug("Done.")
 
     def _on_close_window(self, event):
         self.close()
@@ -82,12 +86,12 @@ class ApplicationView(object):
         self.wx_app.MainLoop()
 
     @guithread
-    def display(self, cutout, draw_error_ellipse=True):
-        self.image_viewer.display(cutout, pixel=self.mark_using_pixels, draw_error_ellipse=draw_error_ellipse)
+    def display(self, cutout):
+        self.image_viewer.display(cutout)
 
     @guithread
-    def place_marker(self, cutout, x, y, radius=10, color='r'):
-        self.image_viewer.place_marker(cutout, x, y, radius, color)
+    def place_marker(self, cutout, x, y, radius=10, colour='r'):
+        self.image_viewer.place_marker(cutout, x, y, radius, colour)
 
     @property
     def ds9(self):
@@ -110,12 +114,8 @@ class ApplicationView(object):
         self.image_viewer.refresh_markers()
 
     @guithread
-    def draw_error_ellipse(self, sky_coord, uncertainty_ellipse, color='b'):
-        self.image_viewer.draw_error_ellipse(sky_coord, uncertainty_ellipse, color=color)
-
-    @guithread
-    def draw_aperture(self, x, y, radius, color='b'):
-        self.image_viewer.mark_sources(x, y)
+    def draw_uncertainty_ellipse(self, cutout):
+        self.image_viewer.draw_uncertainty_ellipse(cutout)
 
     @guithread
     def mark_apertures(self, cutout, pixel=False):

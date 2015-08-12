@@ -1,40 +1,37 @@
 import getpass
-import logging
 import netrc
-import optparse
 import os
-import signal
 import sys
 import urllib2
+
 import vos
+
 
 def getCert(certHost=vos.vos.SERVER, certfile=None,
             certQuery="/cred/proxyCert?daysValid=",daysValid=2):
     """Access the cadc certificate server"""
 
-
     if certfile is None:
-        certfile=os.path.join(os.getenv("HOME","/tmp"),".ssl/cadcproxy.pem")
+        certfile = os.path.join(os.getenv("HOME","/tmp"),".ssl/cadcproxy.pem")
 
-    dirname=os.path.dirname(certfile)
+    dirname = os.path.dirname(certfile)
     try:
         os.makedirs(dirname)
     except OSError as e:
         if os.path.isdir(dirname):
             pass
-        elif e.errno==20 or e.errno==17:
-            sys.stderr.write(e.strerror+": %s \n" %(dirname))
+        elif e.errno == 20 or e.errno == 17:
+            sys.stderr.write(str(e)+": %s \n" % dirname)
             sys.stderr.write("Expected %s to be a directory.\n" % ( dirname))
             sys.exit(e.errno)
         else:
             raise e
     
-    
-    ## Example taken from voidspace.org.uk
+    # Example taken from voidspace.org.uk
     # create a password manager
     password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
 
-    (username,passwd)=getUserPassword(host=certHost)
+    (username, passwd) = getUserPassword(host=certHost)
 
     # Add the username and password.
     # If we knew the realm, we could use it instead of ``None``.

@@ -3,6 +3,63 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import wx
 
 
+class MPCPanel(wx.Panel):
+    def __init__(self, parent, controller,
+                 ssos_label="Query", save_label="Save"):
+        super(MPCPanel, self).__init__(parent)
+
+        self.controller = controller
+
+        self.ssos_label = ssos_label
+        self.save_label = save_label
+
+        self._init_ui()
+
+    def _init_ui(self):
+        self.sbox = wx.StaticBox(self, label="MPC Builder")
+
+        self.ssos_button = wx.Button(self, label=self.ssos_label)
+        self.save_button = wx.Button(self, label=self.save_label)
+
+        self.ssos_button.Bind(wx.EVT_BUTTON, self._on_click_ssos)
+        self.save_button.Bind(wx.EVT_BUTTON, self._on_click_save)
+
+        self._do_layout()
+
+    def _do_layout(self):
+        sbox_sizer = wx.StaticBoxSizer(self.sbox, wx.VERTICAL)
+
+        hsizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_border = 10
+        hsizer.Add(self.save_button, proportion=0, flag=wx.ALL, border=button_border)
+        hsizer.Add(self.ssos_button, proportion=0, flag=wx.ALL, border=button_border)
+
+        sbox_sizer.Add(hsizer, flag=wx.ALIGN_CENTER)
+
+        # Add a bit of border around the box sizer
+        border_sizer = wx.BoxSizer(wx.VERTICAL)
+        border_sizer.Add(sbox_sizer, flag=wx.EXPAND | wx.ALL, border=10)
+
+        self.SetSizer(border_sizer)
+
+    def _on_click_ssos(self, event):
+        self.controller.on_ssos()
+
+    def _on_click_save(self, event):
+        self.controller.on_save()
+
+    def disable(self):
+        self.save_button.Disable()
+        self.ssos_button.Disable()
+
+    def enable(self):
+        self.save_button.Enable()
+        self.ssos_button.Enable()
+
+    def is_validation_enabled(self):
+        return self.save_button.IsEnabled() and self.ssos_button.IsEnabled()
+
+
 class SourceValidationPanel(wx.Panel):
     def __init__(self, parent, controller,
                  accept_label="Accept", reject_label="Reject"):

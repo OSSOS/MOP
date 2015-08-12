@@ -3,14 +3,15 @@ __author__ = 'jjk, mtb55'
 import os
 import re
 import struct
-import sys
 import logging
+
 from astropy.coordinates import SkyCoord
 from astropy import units
 import numpy
+
+from .gui import logger
 from .storage import open_vos_or_local
 from .util import Time
-
 
 DEFAULT_OBSERVERS = ['M. T. Bannister', 'J. J. Kavelaars']
 DEFAULT_TELESCOPE = "CFHT 3.6m + CCD"
@@ -96,7 +97,6 @@ class MinorPlanetNumber(object):
                                           "1 char or digit and 4 digits",
                                           minor_planet_number)
 
-
     def __str__(self):
         if self._minor_planet_number is None:
             return ""
@@ -131,7 +131,7 @@ class NullObservation(object):
         """
         if null_observation is not None and \
                 isinstance(null_observation, basestring) and \
-                len(null_observation.strip(' ')) > 0 and \
+                        len(str(null_observation).strip(' ')) > 0 and \
                 null_observation not in NullObservation.NULL_OBSERVATION_CHARACTERS:
             raise MPCFieldFormatError("null_observation",
                                       "one of " + str(NullObservation.NULL_OBSERVATION_CHARACTERS),
@@ -198,7 +198,6 @@ class TNOdbFlags(object):
         return self.__flags[1] == 1
 
 
-
 class MPCFieldFormatError(MPCFormatError):
     def __init__(self, field, requirement, actual):
         super(MPCFieldFormatError, self).__init__(
@@ -231,12 +230,12 @@ def format_ra_dec(ra_deg, dec_deg):
 
     # decimal=False results in using sexagesimal form
     formatted_ra = coords.ra.to_string(unit=units.hour, decimal=False,
-                                    sep=" ", precision=3, alwayssign=False,
-                                    pad=True)
+                                       sep=" ", precision=3, alwayssign=False,
+                                       pad=True)
 
     formatted_dec = coords.dec.to_string(unit=units.degree, decimal=False,
-                                      sep=" ", precision=2, alwayssign=True,
-                                      pad=True)
+                                         sep=" ", precision=2, alwayssign=True,
+                                         pad=True)
 
     return formatted_ra, formatted_dec
 
@@ -348,9 +347,9 @@ class Discovery(object):
     def is_discovery(self, is_discovery):
         if is_discovery not in ['*', '&', ' ', '', True, False, None]:
             raise MPCFieldFormatError("discovery",
-                                      "must be one of '',' ','&', '*',True, False. Was: ",
+                                      "must be one of '',' ','&', '*',True, False. ",
                                       is_discovery)
-        self._is_discovery = (is_discovery in ['*', '&', True] and True) or False
+        self._is_discovery = is_discovery in ['*', '&', True] and True or False
 
     @is_initial_discovery.setter
     def is_initial_discovery(self, is_discovery):
@@ -557,8 +556,8 @@ class Observation(object):
 
         if those fail then tries Alex Parker's .ast format.
 
-        :param mpc_line: a line in the one-line roving observer format
-        :type mpc_line: basestring
+        :param input_line: a line in the one-line roving observer format
+        :type input_line: str
         """
         struct_formats = {'mpc_format': '0s5s7s1s1s1s17s12s12s9x5s1s6x3s',
                           'ossos_format1': '1s4s7s1s1s1s17s12s12s9x5s1s6x3s',
@@ -575,7 +574,9 @@ class Observation(object):
             logging.debug("Line is short, trying .ted format")
             try:
                 return cls.from_ted(mpc_line)
-            except Exception as e:
+            except Exception as ex:
+                logging.debug(type(ex))
+                logging.debug(str(ex))
                 return None
 
         obsrec = None
@@ -790,6 +791,11 @@ class Observation(object):
 
     @property
     def comment(self):
+        """
+
+        :return: the comment
+        :rtype: OSSOSComment
+        """
         return self._comment
 
     @comment.setter
@@ -829,7 +835,9 @@ class Observation(object):
                 self._ra_precision = compute_precision(val1)
                 self._dec_precision = compute_precision(val2)
                 self._coordinate = SkyCoord(val1, val2, unit=(units.hour, units.degree))
-            except Exception as e:
+            except Exception as ex:
+                logging.debug(type(ex))
+                logging.debug(str(ex))
                 raise MPCFieldFormatError("coord_pair",
                                           "must be [ra_deg, dec_deg] or HH MM SS.S[+-]dd mm ss.ss",
                                           coord_pair)
@@ -857,7 +865,6 @@ class Observation(object):
             self._mag_err = None
         else:
             self._mag_err = mag_err
-
 
     @property
     def band(self):
@@ -949,14 +956,14 @@ class OSSOSComment(object):
         old_ossos_comment_format = '1s1x10s1x11s1x1s1s1x7s1x7s1x4s1x1s1x5s1x4s1x'
         for struct_ in [ossos_comment_format, old_ossos_comment_format]:
             try:
-               retval = cls(*struct.unpack(struct_, values[0]))
-               retval.comment = values[1]
-               return retval
+                retval = cls(*struct.unpack(struct_, values[0]))
+                retval.comment = values[1]
+                return retval
             except Exception as e:
-               logging.debug(str(e))
-               logging.debug("OSSOS Fixed Format Failed.")
-               logging.debug(comment)
-               logging.debug("Trying space separated version")
+                logging.debug(str(e))
+                logging.debug("OSSOS Fixed Format Failed.")
+                logging.debug(comment)
+                logging.debug("Trying space separated version")
 
         values = values[0].split()
         try:
@@ -975,7 +982,6 @@ class OSSOSComment(object):
         except Exception as e:
             logging.error(str(e))
             raise e
-
 
         retval.version = values[0]
         logging.debug("length of values: {}".format(len(values)))
@@ -998,7 +1004,6 @@ class OSSOSComment(object):
             retval.mag_uncertainty = values[7]
         logging.debug("DONE.")
         return retval
-
 
     @property
     def mag(self):
@@ -1026,7 +1031,7 @@ class OSSOSComment(object):
             if not 0 < self._mag_uncertainty < 1.0:
                 raise ValueError("mag uncertainty must be in range 0 to 1")
         except Exception as e:
-            logging.debug("Failed trying to convert mag_uncertainty ({}) to float. Using default.".format(mag_uncertainty))
+            logging.debug("Failed trying to convert merr ({}) to float. Using default.".format(mag_uncertainty))
             logging.debug(str(e))
             if str(self.mag).isdigit():
                 self.photometry_note = "L"
@@ -1102,7 +1107,8 @@ class OSSOSComment(object):
         else:
             self._comment = ''
 
-    def to_str(self, frmt, value, default="", sep=" "):
+    @staticmethod
+    def to_str(frmt, value, default="", sep=" "):
         try:
             if value is None:
                 raise ValueError("Don't print None.")
@@ -1192,7 +1198,18 @@ class MPCWriter(object):
         :param mpc_observation:
         """
         assert isinstance(mpc_observation, Observation)
-        key = mpc_observation.date.mjd
+        try:
+            key = mpc_observation.comment.frame.strip()
+        except:
+            key = mpc_observation.date.mjd
+
+        try:
+            # keep any 'discovery' flags that are set on observation if already in buffer.
+            mpc_observation.discovery = self.buffer[key].discovery.is_discovery
+        except Exception as ex:
+            logger.debug(type(ex))
+            logger.debug(str(ex))
+            pass
         self.buffer[key] = mpc_observation
 
         if self.auto_flush:
@@ -1310,7 +1327,8 @@ class MPCReader(object):
 
                 if self.replace_provisional is not None:  # then it has an OSSOS designation: set that in preference
                     mpc_observation.provisional_name = self.provisional_name
-                if len(str(mpc_observation.provisional_name.strip())) == 0 and str(mpc_observation.minor_planet_number) == "":
+                if len(str(mpc_observation.provisional_name.strip())) == 0 and \
+                                str(mpc_observation.minor_planet_number) == "":
                     mpc_observation.provisional_name = filename.split(".")[0]
                 mpc_observations.append(mpc_observation)
 
@@ -1428,7 +1446,6 @@ class MPCConverter(object):
         for fn in os.listdir(path):
             if fn.endswith('.mpc') or fn.endswith('.track') or fn.endswith('.checkup') or fn.endswith('.nailing'):
                 cls(path + fn).convert()
-
 
 
 class CFEPSComment(OSSOSComment):
@@ -1570,4 +1587,3 @@ class MPCComment(OSSOSComment):
                 continue
             break
         return comment
-

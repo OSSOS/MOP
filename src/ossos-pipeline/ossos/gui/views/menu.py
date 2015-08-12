@@ -2,9 +2,12 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import wx
 
+from .. import logger
+
 
 class Menu(object):
     def __init__(self, frame, controller):
+        logger.debug("Building {}.".format(self))
         self.controller = controller
         self.frame = frame
 

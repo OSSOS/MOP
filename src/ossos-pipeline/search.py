@@ -1,8 +1,10 @@
+import sys
+
+import numpy
+from astropy.table import Table
+
 from ossos import mpc, storage, orbfit
 from ossos import wcs
-import sys
-import numpy
-from astropy.table import Table, Column
 
 
 def caom2(mpc_filename, search_date="2014 07 24.0"):
@@ -31,7 +33,7 @@ def caom2(mpc_filename, search_date="2014 07 24.0"):
 
     ephem_table.pprint()
 
-    o = orbfit.Orbfit(mpc. MPCReader(mpc_filename).mpc_observations)
+    o = orbfit.Orbfit(mpc.MPCReader(mpc_filename).mpc_observations)
     o.predict(search_date)
     fields = storage.cone_search(o.coordinate.ra.degrees, o.coordinate.dec.degrees, dra=0.3, ddec=0.3,
                                  calibration_level=1)
