@@ -944,7 +944,7 @@ class Observation(object):
                 self._header = storage.get_mopheader(self.expnum, self.ccdnum)
             except Exception as ex:
                 logger.error(str(ex))
-                return self.astheader
+                self._header = self.astheader
         return self._header
 
     def get_mpc_date(self):
