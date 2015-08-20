@@ -573,7 +573,7 @@ def ra_dec_cutout(uri, sky_coord, radius):
     for hdu in hdulist[1:]:
         cutout = cutouts.pop(0)
         if not 'ASTLEVEL' in hdu.header:
-            print "******* NO ASTLEVEL ********* ASTROMETRY NOT POSSIBLE ********* IGNORE IMAGE ********"
+            print "******* NO ASTLEVEL ********* ASTROMETRY NOT POSSIBLE ********* IGNORE {0} ********".format(uri)
         hdu.header['EXTNO'] = cutout[0]
         hdu.header['DATASEC'] = reset_datasec("[{}:{},{}:{}]".format(cutout[1],
                                                                      cutout[2],
