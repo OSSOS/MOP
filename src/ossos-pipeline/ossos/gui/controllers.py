@@ -221,10 +221,9 @@ class ProcessRealsController(AbstractController):
         default_comment = ""
 
         source_cutout = self.model.get_current_cutout()
-        assert isinstance(source_cutout, SourceCutout)
-        display = self.view.ds9
+
         if not auto:
-            result = display.get('imexam key coordinate wcs fk5 degrees')
+            result = self.view.ds9.get('imexam key coordinate wcs fk5 degrees')
             # result = display.get("""imexam key coordinate $x $y $filename""")
             values = result.split()
             ra = Quantity(float(values[1]), unit=units.degree)
