@@ -1,3 +1,6 @@
+from astropy.coordinates import SkyCoord
+import math
+
 __author__ = 'Michele Bannister, JJ Kavelaars'
 
 import datetime
@@ -238,6 +241,7 @@ class SSOSParser(object):
             y = row['Y'] * units.pix
             ra = row['Object_RA'] * units.degree
             dec = row['Object_Dec'] * units.degree
+            ssois_coordinate = SkyCoord(ra, dec)
             mjd = row['MJD'] * units.day
 
             if not 0 < x.value < 2060 or not 0 < y.value < 4700:
@@ -252,8 +256,12 @@ class SSOSParser(object):
                 continue
             expnums_examined.append(expnum)
 
-            logger.debug(("Prediction: exposure:{} ext:{} "
-                          "ra:{} dec:{} x:{} y:{} from SSOS").format(expnum, ccd, ra, dec, x, y))
+            logger.debug(("SSOIS Prediction: exposure:{} ext:{} "
+                          "ra:{} dec:{} x:{} y:{}").format(expnum, ccd, ra, dec, x, y))
+
+            logger.debug(("Orbfit Prediction: "
+                          "ra:{} dec:{} ").format(orbit.coordinate.ra.to(units.degree),
+                                                  orbit.coordinate.dec.to(units.degree)))
 
             observation = SSOSParser.build_source_reading(expnum, ccd, ftype=ftype)
             observation.mjd = mjd
@@ -280,13 +288,16 @@ class SSOSParser(object):
             observations.append(observation)
             null_observation = observation.rawname in self.null_observations
 
+            ddec = orbit.ddec + abs(orbit.coordinate.dec - ssois_coordinate.dec)
+            dra = orbit.dra + abs(orbit.coordinate.ra - ssois_coordinate.ra)
+
             logger.info(" Building SourceReading .... \n")
             source_reading = astrom.SourceReading(x=x, y=y, x0=x, y0=y,
                                                   ra=orbit.coordinate.ra.to(units.degree).value,
                                                   dec=orbit.coordinate.dec.to(units.degree).value,
                                                   xref=x, yref=y, obs=observation,
                                                   ssos=True, from_input_file=from_input_file,
-                                                  dx=orbit.dra, dy=orbit.ddec, pa=orbit.pa,
+                                                  dx=dra, dy=ddec, pa=orbit.pa,
                                                   null_observation=null_observation)
             source_reading.mpc_observation = mpc_observation
             source_readings.append(source_reading)
