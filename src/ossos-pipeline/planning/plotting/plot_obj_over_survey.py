@@ -126,6 +126,7 @@ if __name__ == '__main__':
 
     handles, labels, ax, fontP = sky_location_plots.basic_skysurvey_plot_setup()
     plt.axis('equal')
+    plt.grid(alpha=0.2)
     #
     # fig = aplpy.FITSFigure()
     # fig.set_theme('publication')
@@ -133,5 +134,9 @@ if __name__ == '__main__':
     ax = plot_actual_observations(ax, obj, mark_rejected=True)
     ax = plot_prediction(ax, obj)
     ax = megacam_corresponding_to_observations(ax)
+
+    # only for o3e13 poster child for first-quarter paper
+    if args.kbo[0] == 'o3e13':
+        ax.annotate('invariable plane', (213.7, -11.9), alpha=0.7, rotation=19)
 
     sky_location_plots.saving_closeout(args.kbo[0], '', extents, '')
