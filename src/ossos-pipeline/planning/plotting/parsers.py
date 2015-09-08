@@ -20,6 +20,7 @@ import plot_lightcurve
 import plot_efficiency
 
 
+
 # from parameters import tno
 
 def ossos_release_parser(table=False):
@@ -28,7 +29,7 @@ def ossos_release_parser(table=False):
     '''
     names = ['cl', 'p', 'j', 'k', 'sh', 'object', 'mag', 'mag_E', 'F', 'H_sur', 'dist', 'dist_E', 'nobs',
              'time', 'av_xres', 'av_yres', 'max_x', 'max_y', 'a', 'a_E', 'e', 'e_E', 'i', 'i_E', 'node', 'node_E',
-             'argperi', 'argperi_E', 'time_peri', 'time_peri_E', 'ra_dis', 'dec_dis', 'jd_dis', 'rate']
+             'argperi', 'argperi_E', 'time_peri', 'time_peri_E', 'ra_dis', 'dec_dis', 'jd_dis', 'rate', 'eff', 'm_lim']
 
     if table:
         # have to specify the names because the header line contains duplicate IDs, which wrecks auto-column creation
@@ -313,7 +314,7 @@ def create_table(tnos, outfile):
             # mag ± dmag, std dev of all clean photometry, efficiency function at that discovery mag
             # m ± dm sigma_m eff_discov RA Dec a ± da e ± de i ± di r ± dr H ± dH j k MPC obj status
             # put characterisation limits in footnotes.
-            out = "{} & {} & {:2.2f} & {:3.3f} & {} & {} & {} & {} & {} & {} & & {} & ".format(
+            out = "{} & {} & {:2.2f} & {:3.3f} & {} & {} & {} & {} & {} & {} & {} & & ".format(
                 round_sig_error(r['mag'], r['mag_E']),
                 sigma_mag,
                 eff_at_discovery,
@@ -324,8 +325,8 @@ def create_table(tnos, outfile):
                                                             round_sig_error(r['i'], r['i_E']),
                                                             round_sig_error(r['dist'], r['dist_E']),
                 r['H_sur'],
-                # MPC designation
                 r['object'],
+                # MPC designation
             )
             # make sure these come out with nice formatting
             if r['j'] != -1:
