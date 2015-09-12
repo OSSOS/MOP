@@ -70,8 +70,9 @@ class Orbfit(object):
         _mpc_file.seek(0)
         result = self.orbfit.fitradec(ctypes.c_char_p(_mpc_file.name),
                                       ctypes.c_char_p(_abg_file.name))
-        self.distance = result.contents[0]
-        self.distance_uncertainty = result.contents[1]
+
+        self.distance = result.contents[0] * units.AU
+        self.distance_uncertainty = result.contents[1] * units.AU
 
         # call abg_to_aei to get elliptical elements and their chi^2 uncertainty.
         self.orbfit.abg_to_aei.restype = ctypes.POINTER(ctypes.c_double * 12)
