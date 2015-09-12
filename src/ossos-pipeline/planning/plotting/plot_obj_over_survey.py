@@ -42,7 +42,7 @@ def plot_prediction(ax, obj):
     ra = []
     dec = []
     start = Time(parameters.SURVEY_START)  # min([d.date for d in obj.mpc_observations]) - TimeDelta(90, format='jd')
-    end = Time('2015-01-01')
+    end = Time('2016-01-01')
     date = start
     orbit = orbfit.Orbfit(obj.mpc_observations)
     while date < end:
@@ -72,7 +72,7 @@ def megacam_corresponding_to_observations(ax):
     # now while we know the KBO was in these images (here's the measurements), want the field centres
     # to make the footprints.
     discov = [m for m in obj.mpc_observations if m.discovery][0]
-    obs_frames = [m.comment.frame[0:7] for m in obj.mpc_observations]
+    obs_frames = [m.comment.frame.split('p')[0].strip(' ') for m in obj.mpc_observations]
     obs_table = query_for_observations(Time(parameters.SURVEY_START).mjd, 1, tuple(parameters.OSSOS_RUNIDS))
 
     camera_dimen = 0.98
@@ -80,6 +80,7 @@ def megacam_corresponding_to_observations(ax):
     for i in range(len(obs_table) - 1, -1, -1):
         t = obs_table.data[i]
         if str(t.dataset_name) in obs_frames:
+            print str(t.dataset_name)
             alpha = 0.4
             lw = 0.95
             if Time(t.StartDate, format='mjd') < Time('2014-01-01'):
@@ -113,7 +114,8 @@ if __name__ == '__main__':
 
     # load in the KBO. For now let's assume it's a single OSSOS discovery, generalise later
     # discoveries = parsers.ossos_release_parser(table=True)
-    fn = parameters.REAL_KBO_AST_DIR + args.kbo[0] + '.ast'
+    dir = '/Users/bannisterm/Dropbox/OSSOS/measure3/2014B-H/track/'
+    fn = dir + args.kbo[0] + '.ast'  # parameters.REAL_KBO_AST_DIR
     obj = mpc.MPCReader(fn)  # let MPCReader's logic determine the provisional name
     # need to determine a plot extent to get the MegaCam coverage
     # and KBOs go westward so earliest to latest is kinda useful
