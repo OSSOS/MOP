@@ -296,9 +296,96 @@ def classicals_aei(data):
 
 
 if __name__ == '__main__':
-    tnos = parsers.ossos_release_parser(table=True)  # return as an astropy.Table.Table
+    # tnos = parsers.ossos_release_parser(table=True)  # return as an astropy.Table.Table
+    tnos = parsers.ossos_discoveries(directory='/Users/bannisterm/Dropbox/OSSOS/measure3/test_argperi_align/', all=True)
 
-    full_aei(tnos)
+    fig, ax = plt.subplots(4, 1, sharex=True, figsize=(7, 8))  # a4 is 1 x sqrt(2), so use those proportions
+    fig.subplots_adjust(hspace=0.25)
+
+    for obj in tnos:
+        alpha = 0.4
+
+        obj_a = obj.orbit.a.value
+        obj_da = obj.orbit.da.value
+        obj_i = obj.orbit.inc.value
+        obj_di = obj.orbit.dinc.value
+        obj_e = obj.orbit.e.value
+        obj_de = obj.orbit.de.value
+
+        obj_peri = obj_a * (1. - obj_e)
+        obj_dperi = (obj_da/obj_a) + (obj_de/obj_e)
+        obj_argP = obj.orbit.om.value
+        if obj_argP > 180.:
+            obj_argP = obj_argP - 360.
+        obj_dargP = obj.orbit.dom.value
+
+        ax[0].errorbar(obj.orbit.distance, obj_i,
+                       xerr=obj.orbit.distance_uncertainty,
+                       yerr=obj_di,
+                       fmt='.', ms=10, color='b', alpha=alpha
+                       )
+        ax[1].errorbar(obj_a, obj_i,
+                       xerr=obj_da,
+                       yerr=obj_di,
+                       fmt='.', ms=10, color='b', alpha=alpha
+                       )
+        ax[2].errorbar(obj_a, obj_e,
+                       xerr=obj_da,
+                       yerr=obj_de,
+                       fmt='.', ms=10, color='b', alpha=alpha
+                       )
+        ax[3].errorbar(obj_a, obj_argP,
+                       xerr=obj_dargP,
+                       yerr=obj_da,
+                       fmt='.', ms=10, color='b', alpha=alpha
+                       )
+
+    ymin = -0.001
+    imax = 40
+    emax = .85
+    xinner = 25
+    xouter = 600
+    xticker = 50
+    grid_alpha = 0.2
+
+    resonances(ax, imax, emax)
+
+    ax[0].set_ylim([ymin, imax])
+    ax[1].set_ylim([ymin, imax])
+    ax[2].set_ylim([ymin, emax])
+    ax[3].set_ylim([-180, 180])
+    plt.xlim([xinner, xouter])
+
+
+    ax[0].set_xticks(range(xinner, xouter, xticker))
+    ax[1].set_xticks(range(xinner, xouter, xticker))
+    ax[2].set_xticks(range(xinner, xouter, xticker))
+
+    plot_fanciness.remove_border(ax[0])
+    plot_fanciness.remove_border(ax[1])
+    plot_fanciness.remove_border(ax[2])
+    plot_fanciness.remove_border(ax[3])
+
+    ax[0].set_ylabel('inclination (degrees)')
+    ax[0].grid(True, alpha=grid_alpha)
+    ax[0].set_xlabel('heliocentric distance (AU)')
+    ax[1].set_ylabel('inclination (degrees)')
+    ax[1].grid(True, alpha=grid_alpha)
+    ax[2].set_ylabel('eccentricity')
+    ax[2].grid(True, alpha=grid_alpha)
+    # ax[2].set_xlabel('semimajor axis (AU)')
+    plt.xlabel('semimajor axis (AU)')
+    ax[3].grid(True, alpha=grid_alpha)
+    # ax[3].set_xlabel('perihelion (AU)')
+    ax[3].set_ylabel('arg. peri. (degrees)')
+
+    plt.draw()
+    outfile = 'OSSOS+CFEPS+NGVS_aei_argperi.pdf'
+    plt.savefig(outfile, transparent=True, bbox_inches='tight')
+
+
+
+    # full_aei(tnos)
     # classicals_qi(tnos)
 
 #     classicals = tnos[numpy.array([name.startswith('m') for name in tnos['p']])]
