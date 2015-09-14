@@ -17,15 +17,15 @@ from ossos import storage
 import parameters
 from ossos.gui import context
 import plot_lightcurve
-import plot_efficiency
+from utils import square_fit_discovery_mag
 
 
 # from parameters import tno
 
 def ossos_release_parser(table=False):
-    '''
+    """
     extra fun as this is space-separated so using CSV parsers is not an option
-    '''
+    """
     names = ['cl', 'p', 'j', 'k', 'sh', 'object', 'mag', 'mag_E', 'F', 'H_sur', 'dist', 'dist_E', 'nobs',
              'time', 'av_xres', 'av_yres', 'max_x', 'max_y', 'a', 'a_E', 'e', 'e_E', 'i', 'i_E', 'node', 'node_E',
              'argperi', 'argperi_E', 'time_peri', 'time_peri_E', 'ra_dis', 'dec_dis', 'jd_dis', 'rate']
@@ -38,19 +38,20 @@ def ossos_release_parser(table=False):
         retval = []
         with open(parameters.RELEASE_DETECTIONS, 'r') as detectionsfile:
             for line in detectionsfile.readlines()[1:]:  # first line is column definitions
-                obj = tno.from_str(line, version=parameters.RELEASE_VERSION)
+                obj = TNO.from_string(line, version=parameters.RELEASE_VERSION)
                 retval.append(obj)
 
     return retval
 
 
-class tno(object):
+class TNO(object):
+
     def __init__(self, observations):
         self.orbit = orbfit.Orbfit(observations.mpc_observations)
         try:
-           self.discovery = [n for n in observations.mpc_observations if n.discovery.is_discovery][0]
+            self.discovery = [n for n in observations.mpc_observations if n.discovery.is_discovery][0]
         except:
-           self.discovery = False
+            self.discovery = False
         self.name = observations.provisional_name.split('.')[0]
         return
 
@@ -59,8 +60,7 @@ def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
                       suffix='ast',
                       no_nt_and_u=True,
                       single_object=None,
-                      all=False,
-                      release=parameters.RELEASE_VERSION,
+                      all_releases=False,
                       ):
     """
     Returns a list of objects holding orbfit.Orbfit objects with the observations in the Orbfit.observations field.
@@ -72,21 +72,21 @@ def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
 
     if single_object is not None:
         files = filter(lambda name: name.startswith(single_object), files)
-    if not all:
+    if not all_releases:
         # only return the objects corresponding to a particular Data Release
         objects = ossos_release_parser(table=True)['object']
         files = filter(lambda name: name.partition(suffix)[0].rstrip('.') in objects, files)
 
     for filename in files:
-        # keep out the not-tracked and uncharacterised.
+        # keep out the not-tracked and uncharacteried.
         if no_nt_and_u:
             if not (filename.__contains__('nt') or filename.startswith('u')):
                 observations = mpc.MPCReader(directory + filename)
-                obj = tno(observations)
+                obj = TNO(observations)
                 retval.append(obj)
         else:  # now we want those uncharacterised ones
             observations = mpc.MPCReader(directory + filename)
-            obj = tno(observations)
+            obj = TNO(observations)
             retval.append(obj)
 
     return retval
@@ -124,6 +124,36 @@ def ossos_release_with_metadata():
     return discoveries  # list of tno() objects
 
 
+def _kbos_from_survey_sym_model_input_file(model_file):
+    """
+    Load a Survey Simulator model file as an array of ephem EllipticalBody objects.
+    @param model_file:
+    @return:
+    """
+    lines = storage.open_vos_or_local(model_file).read().split('\n')
+    kbos = []
+    for line in lines:
+        if len(line) == 0 or line[0] == '#':  # skip initial column descriptors and the final blank line
+            continue
+        kbo = ephem.EllipticalBody()
+        values = line.split()
+        kbo.name = values[8]
+        kbo.j = values[9]
+        kbo.k = values[10]
+        kbo._a = float(values[0])
+        kbo._e = float(values[1])
+        kbo._inc = float(values[2])
+        kbo._Om = float(values[3])
+        kbo._om = float(values[4])
+        kbo._M = float(values[5])
+        kbo._H = float(values[6])
+        epoch = ephem.date(2453157.50000 - ephem.julian_date(0))
+        kbo._epoch_M = epoch
+        kbo._epoch = epoch
+        kbos.append(kbo)
+    return kbos
+
+
 def synthetic_model_kbos(at_date=parameters.NEWMOONS[parameters.DISCOVERY_NEW_MOON], maglimit=24.5, kbotype=False,
                          arrays=False):
     # # build a list of Synthetic KBOs
@@ -132,57 +162,42 @@ def synthetic_model_kbos(at_date=parameters.NEWMOONS[parameters.DISCOVERY_NEW_MO
     pastpath = parameters.L7_HOME + str(at_date).split()[0].replace('/', '-') + '_' + str(maglimit) + (
         kbotype or '') + '.dat'
     print(pastpath)
-    if os.path.exists(pastpath):
+
+    # Load the previously cached orbits, quick.
+    if os.path.exists(pastpath) and arrays:
         with open(pastpath) as infile:
             ra, dist, hlat, Hmag = cPickle.load(infile)
         print('{} synthetic model kbos brighter than {} at {} in L7 model'.format(len(ra), maglimit, at_date))
-    else:
-        if arrays:  # much easier to use for plt.scatter()
-            ra = []
-            dist = []
-            hlat = []
-            Hmag = []
+        return ra, dist, hlat, Hmag
 
-        lines = storage.open_vos_or_local(parameters.L7MODEL).read().split('\n')
-        counter = 0
-        for line in lines:
-            if len(line) == 0 or line[0] == '#':  # skip initial column descriptors and the final blank line
-                continue
-            kbo = ephem.EllipticalBody()
-            values = line.split()
-            kbo.name = values[8]
-            if kbotype and (kbo.name == kbotype) and (values[9] == '3' and values[10] == '2'):  # keeping 3:2 resonators
-                kbo._a = float(values[0])
-                kbo._e = float(values[1])
-                kbo._inc = float(values[2])
-                kbo._Om = float(values[3])
-                kbo._om = float(values[4])
-                kbo._M = float(values[5])
-                kbo._H = float(values[6])
-                epoch = ephem.date(2453157.50000 - ephem.julian_date(0))
-                kbo._epoch_M = epoch
-                kbo._epoch = epoch
-                date = ephem.date(at_date)
-                kbo.compute(date)
-                counter += 1
+    model_kbos = _kbos_from_survey_sym_model_input_file(parameters.L7MODEL)
 
-                # ## only keep objects that are brighter than limit
-                if (kbo.mag < maglimit):
-                    kbos.append(kbo)
-                    if arrays:
-                        ra.append(float(kbo.ra))
-                        dist.append(float(kbo.sun_distance))
-                        hlat.append(float(kbo.hlat))
-                        Hmag.append(float(kbo._H))
+    counter = 0
+    ra = []
+    dist = []
+    hlat = []
+    Hmag = []
 
-        print '{} synthetic model kbos brighter than {} at {} retained from {} in L7 model'.format(len(kbos), maglimit,
-                                                                                                   at_date, counter)
+    for kbo in model_kbos:
+        if kbotype and (kbo.name == kbotype) and (kbo.j == '3' and kbo.k == '2'):  # keeping 3:2 resonators
+            date = ephem.date(at_date)
+            kbo.compute(date)
+            counter += 1
+            # ## only keep objects that are brighter than limit
+            if kbo.mag < maglimit:
+                kbos.append(kbo)
+                ra.append(float(kbo.ra))
+                dist.append(float(kbo.sun_distance))
+                hlat.append(float(kbo.hlat))
+                Hmag.append(float(kbo._H))
+
+    print '{} synthetic model kbos brighter than {} at {} retained from {} in L7 model'.format(len(kbos), maglimit,
+                                                                                               at_date, counter)
     if not arrays:
         return kbos
     else:
-        if not os.path.exists(pastpath):
-            with open(pastpath, 'w') as outfile:
-                cPickle.dump((ra, dist, hlat, Hmag), outfile)
+        with open(pastpath, 'w') as outfile:
+            cPickle.dump((ra, dist, hlat, Hmag), outfile)
         return ra, dist, hlat, Hmag
 
 
@@ -198,15 +213,13 @@ def output_discoveries_for_animation():
 
 
 def round_sig_error(num, uncert):
-    '''
+    """
     Return a string of the number and its uncertainty to the right sig figs via uncertainty's print methods.
     The uncertainty determines the sig fig rounding of the number.
     https://pythonhosted.org/uncertainties/user_guide.html
-    '''
+    """
     u = ufloat(num, uncert)
-    outstr = '{:.1uLS}'.format(u)
-
-    return outstr
+    return '{:.1uLS}'.format(u)
 
 
 def linesep(name, distinguish=None):
@@ -218,7 +231,7 @@ def linesep(name, distinguish=None):
              'd': 'Detached classical belt',
              'x': 'Scattering disk',
              'c': 'Centaurs',
-    }
+             }
     if distinguish:
         if distinguish == 'sca':
             name = 'x'
@@ -308,7 +321,7 @@ def create_table(tnos, outfile):
                 sigma_mag = '{:2.2f}'.format(sigma_mag)
             else:
                 sigma_mag = r'--'
-            eff_at_discovery = plot_efficiency.square_fit_discovery_mag(r['object'], r['mag'], r['rate'])
+            eff_at_discovery = square_fit_discovery_mag(r['object'], r['mag'], r['rate'])
 
             # mag ± dmag, std dev of all clean photometry, efficiency function at that discovery mag
             # m ± dm sigma_m eff_discov RA Dec a ± da e ± de i ± di r ± dr H ± dH j k MPC obj status
@@ -319,10 +332,10 @@ def create_table(tnos, outfile):
                 eff_at_discovery,
                 math.degrees(ephem.degrees(ephem.hours(str(r['ra_dis'])))),
                 r['dec_dis'],
-                                                            round_sig_error(r['a'], r['a_E']),
-                                                            round_sig_error(r['e'], r['e_E']),
-                                                            round_sig_error(r['i'], r['i_E']),
-                                                            round_sig_error(r['dist'], r['dist_E']),
+                round_sig_error(r['a'], r['a_E']),
+                round_sig_error(r['e'], r['e_E']),
+                round_sig_error(r['i'], r['i_E']),
+                round_sig_error(r['dist'], r['dist_E']),
                 r['H_sur'],
                 # MPC designation
                 r['object'],
@@ -348,6 +361,7 @@ def release_to_latex(outfile):
     create_table(uncharacterised, 'u_' + outfile)
 
     return
+
 
 def parse_subaru_radec(line):
     d = line.split()
@@ -393,7 +407,7 @@ def parse_subaru_mags():
                                                                              val[1],
                                                                              ', '.join([str(f) for f in val[2]]),
                                                                              ', '.join([f for f in val[3]])
-            ))
+                                                                             ))
 
 
 def block_table_pprint():
