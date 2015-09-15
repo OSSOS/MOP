@@ -3,17 +3,21 @@ __author__ = 'Michele Bannister   git:@mtbannister'
 import sys
 
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
 import numpy
 
-import palettable.tableau as pt
+import palettable
 import parsers
 import parameters
 import plot_fanciness
 
 
-def full_aei(data, icut=False, aiq=False):
+def full_aei(data_release, icut=False, aiq=False):
     fig, ax = plt.subplots(3, 1, sharex=True, figsize=(7, 8))  # a4 is 1 x sqrt(2), so use those proportions
-    fig.subplots_adjust(hspace=0.05)
+    fig.subplots_adjust(hspace=0.25)
+
+    # don't want uncharacterised for this plot
+    data = data_release[numpy.array([name.startswith("o") for name in data_release['object']])]
 
     data['peri'] = data['a'] * (1. - data['e'])
     data['peri_E'] = (data['a_E'] / data['a']) + (data['e_E'] / data['e'])
@@ -28,16 +32,20 @@ def full_aei(data, icut=False, aiq=False):
         xinner = 25
         xouter = 90
         annotation = False
+        e45_annotation = False
+        orbit_classes = ['cla', 'res', 'sca', 'det']#, 'cen']
+        data.sort('cl')
 
-    col = pt.PurpleGray_6.mpl_colors
-    coldcol = 'b'  # col[3]
+    col = palettable.wesanderson.Zissou_5.mpl_colors[0:3] + ['0.6'] # palettable.wesanderson.Zissou_5.mpl_colors[4:]
+
+    coldcol = col
     hotcol = col[2]
-    e45col = 'r'  # coldcol
+    e45col = col #[palettable.wesanderson.Moonrise5_6.mpl_colors[4]]
     ms = 8
-    cold_alpha = 0.35  # when plotting blue only  # 0.7
+    cold_alpha = 0.8  # when plotting blue only  # 0.7
     hot_alpha = 0.25
     grid_alpha = 0.2
-    ebarcolor = '0.1'  # error bar colour: 0.1 is greyscale
+    ebarcolor = 'k'  # error bar colour: 0.1 is greyscale
     capsize = 1  # error bar cap width
     fmt = '.'
 
@@ -51,16 +59,16 @@ def full_aei(data, icut=False, aiq=False):
     # want to show o3e45 with a different symbol.
     o3e45 = data[numpy.where(data['object'] == 'o3e45')]
 
-    ax = helio_i(ax, cold, fmt, cold_alpha, ebarcolor, capsize, ms, grid_alpha, coldcol, 1, annotation=annotation)
+    ax = helio_i(ax, cold, fmt, cold_alpha, ebarcolor, capsize, ms, grid_alpha, coldcol, 1, orbit_classes, annotation=annotation)
     if icut:
-        ax = helio_i(ax, hot, fmt, hot_alpha, ebarcolor, capsize, ms, grid_alpha, hotcol, 0, annotation=annotation)
-    ax = helio_i(ax, o3e45, '*', 0.7, ebarcolor, capsize, ms, grid_alpha, e45col, 2, annotation=True)
+        ax = helio_i(ax, hot, fmt, hot_alpha, ebarcolor, capsize, ms, grid_alpha, hotcol, 0, orbit_classes, annotation=annotation)
+    ax = helio_i(ax, o3e45, '*', 0.7, ebarcolor, capsize, ms, grid_alpha, e45col, 2, ['cla'], annotation=e45_annotation)
     ax[0].set_ylim([ymin, imax])
 
-    ax = a_i(ax, cold, fmt, cold_alpha, ebarcolor, capsize, ms, grid_alpha, coldcol, 1, annotation=annotation)
+    ax = a_i(ax, cold, fmt, cold_alpha, ebarcolor, capsize, ms, grid_alpha, coldcol, 1, orbit_classes, annotation=annotation)
     if icut:
         ax = a_i(ax, hot, fmt, hot_alpha, ebarcolor, capsize, ms, grid_alpha, hotcol, 0, annotation=annotation)
-    ax = a_i(ax, o3e45, '*', 0.7, ebarcolor, capsize, ms, grid_alpha, e45col, 2, annotation=True)
+    ax = a_i(ax, o3e45, '*', 0.7, ebarcolor, capsize, ms, grid_alpha, e45col, 2, ['cla'], annotation=e45_annotation)
     ax[1].set_ylim([ymin, imax])
 
     if aiq:
@@ -69,15 +77,17 @@ def full_aei(data, icut=False, aiq=False):
         if icut:
             ax = a_q(ax, hot, fmt, hot_alpha, ebarcolor, capsize, ms, grid_alpha, hotcol, '$i \geq 5^{\circ}$',
                      0, annotation=annotation)
-        ax = a_q(ax, o3e45, '*', 0.7, ebarcolor, capsize, ms, grid_alpha, e45col, '', 2, annotation=True)
+        ax = a_q(ax, o3e45, '*', 0.7, ebarcolor, capsize, ms, grid_alpha, e45col, '', 2, annotation=e45_annotation)
         ax[2].set_ylim([qmin, qmax])
     else:
-        ax = a_e(ax, cold, fmt, cold_alpha, ebarcolor, capsize, ms, grid_alpha, coldcol, '$i < 5^{\circ}$',
-                 1, annotation=annotation)
+        if not icut:
+            label = '$i < 5^{\circ}$'
+        ax = a_e(ax, cold, fmt, cold_alpha, ebarcolor, capsize, ms, grid_alpha, coldcol, label,
+                 1, orbit_classes, annotation=annotation)
         if icut:
             ax = a_e(ax, hot, fmt, hot_alpha, ebarcolor, capsize, ms, grid_alpha, hotcol, '$i \geq 5^{\circ}$',
-                     0, annotation=annotation)
-        ax = a_e(ax, o3e45, '*', 0.7, ebarcolor, capsize, ms, grid_alpha, e45col, '', 2, annotation=True)
+                     0, orbit_classes, annotation=annotation)
+        ax = a_e(ax, o3e45, '*', 0.7, ebarcolor, capsize, ms, grid_alpha, e45col, '', 2, ['cla'], annotation=e45_annotation)
         ax[2].set_ylim([ymin, emax])
 
     plt.xlim([xinner, xouter])
@@ -89,9 +99,14 @@ def full_aei(data, icut=False, aiq=False):
     plot_fanciness.remove_border(ax[1])
     plot_fanciness.remove_border(ax[2])
 
+    resonances(ax, imax, emax)
+
+    handles, labels = ax[2].get_legend_handles_labels()
+    handles.append(mlines.Line2D([], [], marker='*', color=col[0], alpha=cold_alpha, linestyle=None))
+    labels = ['classical', 'resonant', 'scattering', 'detached', 'o3e45']
+    plt.legend(handles, labels, loc='lower right', numpoints=1, fontsize='small')
+
     plt.xlabel('semimajor axis (AU)')
-    if icut:
-        plt.legend(loc='lower right', numpoints=1, fontsize='small')
 
     plt.draw()
     if aiq:
@@ -103,11 +118,16 @@ def full_aei(data, icut=False, aiq=False):
     sys.stdout.write('{}\n'.format(outfile))
 
 
-def helio_i(ax, data, fmt, alpha, ebarcolor, capsize, ms, grid_alpha, colour, zorder, annotation=False):
-    ax[0].errorbar(data['dist'], data['i'],
-                   xerr=data['dist_E'], yerr=data['i_E'],
-                   zorder=zorder,
-                   fmt=fmt, alpha=alpha, ecolor=ebarcolor, capsize=capsize, ms=ms, color=colour)
+def helio_i(ax, data, fmt, alpha, ebarcolor, capsize, ms, grid_alpha, colour, zorder, orbit_classes, annotation=False):
+    for i, orbclass in enumerate(orbit_classes):
+        tnos = data[numpy.where(data['cl'] == orbclass)]
+        print i, orbclass, colour[i]
+        ax[0].errorbar(tnos['dist'], tnos['i'],
+                       xerr=tnos['dist_E'], yerr=tnos['i_E'],
+                       zorder=zorder,
+                       fmt=fmt, alpha=alpha, ecolor=ebarcolor, capsize=capsize, ms=ms, mfc=colour[i],
+                       mec=colour[i], mew=0.5)
+
     ax[0].set_ylabel('inclination (degrees)')
     ax[0].grid(True, alpha=grid_alpha)
     ax[0].set_xlabel('heliocentric distance (AU)')
@@ -119,11 +139,13 @@ def helio_i(ax, data, fmt, alpha, ebarcolor, capsize, ms, grid_alpha, colour, zo
     return ax
 
 
-def a_i(ax, data, fmt, alpha, ebarcolor, capsize, ms, grid_alpha, colour, zorder, annotation=False):
-    ax[1].errorbar(data['a'], data['i'],
-                   xerr=data['a_E'], yerr=data['i_E'],
-                   zorder=zorder,
-                   fmt=fmt, alpha=alpha, ecolor=ebarcolor, capsize=capsize, ms=ms, color=colour)
+def a_i(ax, data, fmt, alpha, ebarcolor, capsize, ms, grid_alpha, colour, zorder, orbit_classes, annotation=False):
+    for i, orbclass in enumerate(orbit_classes):
+        tnos = data[numpy.where(data['cl'] == orbclass)]
+        ax[1].errorbar(tnos['a'], tnos['i'],
+                       xerr=tnos['a_E'], yerr=tnos['i_E'],
+                       zorder=zorder,
+                       fmt=fmt, alpha=alpha, ecolor=ebarcolor, capsize=capsize, ms=ms, mfc=colour[i], mec=colour[i], mew=0.5)
     ax[1].set_ylabel('inclination (degrees)')
     ax[1].grid(True, alpha=grid_alpha)
 
@@ -134,12 +156,15 @@ def a_i(ax, data, fmt, alpha, ebarcolor, capsize, ms, grid_alpha, colour, zorder
     return ax
 
 
-def a_e(ax, data, fmt, alpha, ebarcolor, capsize, ms, grid_alpha, colour, label, zorder, annotation=False):
-    ax[2].errorbar(data['a'], data['e'],
-                   xerr=data['a_E'], yerr=data['e_E'],
-                   zorder=zorder,
-                   fmt=fmt, alpha=alpha, ecolor=ebarcolor, capsize=capsize, ms=ms, color=colour,
-                   label=label)
+def a_e(ax, data, fmt, alpha, ebarcolor, capsize, ms, grid_alpha, colour, label, zorder, orbit_classes, annotation=False):
+    for i, orbclass in enumerate(orbit_classes):
+        tnos = data[numpy.where(data['cl'] == orbclass)]
+        label = orbclass
+        ax[2].errorbar(tnos['a'], tnos['e'],
+                       xerr=tnos['a_E'], yerr=tnos['e_E'],
+                       zorder=zorder,
+                       fmt=fmt, alpha=alpha, ecolor=ebarcolor, capsize=capsize, ms=ms, mfc=colour[i], mec=colour[i], mew=0.5,
+                       label=label)
     ax[2].set_ylabel('eccentricity')
     ax[2].grid(True, alpha=grid_alpha)
 
@@ -164,6 +189,20 @@ def a_q(ax, data, fmt, alpha, ebarcolor, capsize, ms, grid_alpha, colour, label,
             ax[2].annotate(obj['object'], (obj['a'] + 0.7, obj['peri']), size=5)
 
     return ax
+
+
+def resonances(ax, imax, emax):
+    res_ids = ['1:1', '2:1', '3:2', '5:2', '7:3', '7:4', '5:3', '11:4', '8:5', '15:8', '13:5']
+    a_N = 30.
+    for res in res_ids:
+        m, n = res.split(':')
+        a_res = a_N * (float(m)/float(n))**(2/3.)
+        ax[1].axvline(a_res, alpha=0.15, zorder=0)
+        ax[1].annotate(res, (a_res, imax), rotation=90, ha='center', size='xx-small', alpha=0.7)
+        ax[2].axvline(a_res, alpha=0.15, zorder=0)
+        ax[2].annotate(res, (a_res, emax), rotation=90, ha='center', size='xx-small', alpha=0.7)
+
+    return
 
 
 def classicals_qi(data):
@@ -257,9 +296,96 @@ def classicals_aei(data):
 
 
 if __name__ == '__main__':
-    tnos = parsers.ossos_release_parser(table=True)  # return as an astropy.Table.Table
+    # tnos = parsers.ossos_release_parser(table=True)  # return as an astropy.Table.Table
+    tnos = parsers.ossos_discoveries(directory='/Users/bannisterm/Dropbox/OSSOS/measure3/test_argperi_align/', all=True)
 
-    full_aei(tnos)
+    fig, ax = plt.subplots(4, 1, sharex=True, figsize=(7, 8))  # a4 is 1 x sqrt(2), so use those proportions
+    fig.subplots_adjust(hspace=0.25)
+
+    for obj in tnos:
+        alpha = 0.4
+
+        obj_a = obj.orbit.a.value
+        obj_da = obj.orbit.da.value
+        obj_i = obj.orbit.inc.value
+        obj_di = obj.orbit.dinc.value
+        obj_e = obj.orbit.e.value
+        obj_de = obj.orbit.de.value
+
+        obj_peri = obj_a * (1. - obj_e)
+        obj_dperi = (obj_da/obj_a) + (obj_de/obj_e)
+        obj_argP = obj.orbit.om.value
+        if obj_argP > 180.:
+            obj_argP = obj_argP - 360.
+        obj_dargP = obj.orbit.dom.value
+
+        ax[0].errorbar(obj.orbit.distance, obj_i,
+                       xerr=obj.orbit.distance_uncertainty,
+                       yerr=obj_di,
+                       fmt='.', ms=10, color='b', alpha=alpha
+                       )
+        ax[1].errorbar(obj_a, obj_i,
+                       xerr=obj_da,
+                       yerr=obj_di,
+                       fmt='.', ms=10, color='b', alpha=alpha
+                       )
+        ax[2].errorbar(obj_a, obj_e,
+                       xerr=obj_da,
+                       yerr=obj_de,
+                       fmt='.', ms=10, color='b', alpha=alpha
+                       )
+        ax[3].errorbar(obj_a, obj_argP,
+                       xerr=obj_dargP,
+                       yerr=obj_da,
+                       fmt='.', ms=10, color='b', alpha=alpha
+                       )
+
+    ymin = -0.001
+    imax = 40
+    emax = .85
+    xinner = 25
+    xouter = 600
+    xticker = 50
+    grid_alpha = 0.2
+
+    resonances(ax, imax, emax)
+
+    ax[0].set_ylim([ymin, imax])
+    ax[1].set_ylim([ymin, imax])
+    ax[2].set_ylim([ymin, emax])
+    ax[3].set_ylim([-180, 180])
+    plt.xlim([xinner, xouter])
+
+
+    ax[0].set_xticks(range(xinner, xouter, xticker))
+    ax[1].set_xticks(range(xinner, xouter, xticker))
+    ax[2].set_xticks(range(xinner, xouter, xticker))
+
+    plot_fanciness.remove_border(ax[0])
+    plot_fanciness.remove_border(ax[1])
+    plot_fanciness.remove_border(ax[2])
+    plot_fanciness.remove_border(ax[3])
+
+    ax[0].set_ylabel('inclination (degrees)')
+    ax[0].grid(True, alpha=grid_alpha)
+    ax[0].set_xlabel('heliocentric distance (AU)')
+    ax[1].set_ylabel('inclination (degrees)')
+    ax[1].grid(True, alpha=grid_alpha)
+    ax[2].set_ylabel('eccentricity')
+    ax[2].grid(True, alpha=grid_alpha)
+    # ax[2].set_xlabel('semimajor axis (AU)')
+    plt.xlabel('semimajor axis (AU)')
+    ax[3].grid(True, alpha=grid_alpha)
+    # ax[3].set_xlabel('perihelion (AU)')
+    ax[3].set_ylabel('arg. peri. (degrees)')
+
+    plt.draw()
+    outfile = 'OSSOS+CFEPS+NGVS_aei_argperi.pdf'
+    plt.savefig(outfile, transparent=True, bbox_inches='tight')
+
+
+
+    # full_aei(tnos)
     # classicals_qi(tnos)
 
 #     classicals = tnos[numpy.array([name.startswith('m') for name in tnos['p']])]

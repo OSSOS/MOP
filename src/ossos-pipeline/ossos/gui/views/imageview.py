@@ -2,7 +2,7 @@ from ossos.gui import config
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import ds9
+import pyds9 as ds9
 
 from ...fitsviewer.singletviewer import SingletViewer
 from ...fitsviewer.tripletviewer import TripletViewer
@@ -44,7 +44,7 @@ class ImageViewManager(object):
             while cnt < 10:
                 cnt += 1
                 try:
-                    self._ds9 = ds9.ds9(target='validate')
+                    self._ds9 = ds9.DS9(target='validate')
                     self.set_ds9(level="INIT")
                     self.set_ds9(level="PREF")
                     self._ds9.set("frame delete all")

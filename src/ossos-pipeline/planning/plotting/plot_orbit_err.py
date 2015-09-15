@@ -13,7 +13,7 @@ from parsers import ossos_discoveries
 from parameters import RELEASE_VERSION
 from ossos import mpc, orbfit
 
-path = '/Users/michele/Dropbox/Papers in progress/OSSOS/First_quarter/data/'
+path = '/Users/bannisterm/Dropbox/Papers in progress/OSSOS/First_quarter/data/'
 
 
 def cfeps_residuals(version='L7', regenerate=False):
@@ -26,7 +26,7 @@ def cfeps_residuals(version='L7', regenerate=False):
     else:
         all_resids = []
         if regenerate:
-            data_path = '/Users/michele/Dropbox/mpc/'
+            data_path = '/Users/bannisterm/Dropbox/mpc/'
             for filename in os.listdir(data_path):
                 observations = mpc.MPCReader(data_path + filename)
                 print observations.provisional_name
@@ -52,7 +52,7 @@ def cfeps_residuals(version='L7', regenerate=False):
                     all_resids.append(float(line))
             print len(all_resids)
 
-    cfeps_mas = np.array(all_resids) * 1000
+    cfeps_mas = np.array(all_resids)
     print cfeps_mas
     print 'cfeps', np.median(cfeps_mas)
 
@@ -83,7 +83,7 @@ def ossos_residuals(version=RELEASE_VERSION, regenerate=False):
                 all_resids.append(float(line))
         print len(all_resids)
 
-    ossos_mas = np.array(all_resids) * 1000
+    ossos_mas = np.array(all_resids)
     print ossos_mas
     print 'ossos', np.median(ossos_mas)
 
@@ -97,25 +97,25 @@ if __name__ == '__main__':
     ossos_mas = ossos_residuals()
 
     bins = 16
-    maxrange = 850
+    maxrange = .85
     ax.hist(cfeps_mas,
             histtype='step', bins=bins, range=(0, maxrange),  # these seem appropriate
-            color='k', linestyle='dotted', lw=1.9)
+            color='r', linestyle='solid', lw=2.1, alpha=0.3, label='CFEPS L7')
     ax.hist(ossos_mas,
             histtype='step', bins=bins, range=(0, maxrange),
-            color='b', linestyle='solid')
+            color='b', linestyle='solid', label='OSSOS 13A')
 
     ax.grid(True, alpha=0.3)
-    plt.xlabel("astrometric residual (milli-arcsec)")
+    plt.xlabel("astrometric residual (arcsec)")
     plt.ylabel("number of astrometric measurements")
-    plt.xlim([0, 850])
+    plt.xlim([0, .85])
 
     handler_map = [
-        mlines.Line2D([], [], color='k', ls='dotted', lw=1.9, label='CFEPS L7'),
+        mlines.Line2D([], [], color='r', linestyle='solid', lw=2.1, alpha=0.3, label='CFEPS L7'),
         mlines.Line2D([], [], color='b', label='OSSOS 13A'),
     ]
 
-    ppl.legend(handles=handler_map, title='TNOs',
+    ppl.legend(title="Survey",
                fontsize='small', handletextpad=0.5)
     plot_fanciness.remove_border(ax)
 
