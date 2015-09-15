@@ -12,10 +12,11 @@ import prettyplotlib as ppl
 import plot_fanciness
 from utils import read_smooth_fit, square_fit
 
-path = '/Users/michele/Dropbox/Papers in progress/OSSOS/First_quarter/data/'
+path = '/Users/bannisterm/Dropbox/Papers in progress/OSSOS/First_quarter/data/'
 
 def plot_smooth_fit(i, block, ax, colours, pwd, offset=0, single=False):
-    characterisation = {'13AE': 24.04, '13AO': 24.39}
+    characterisation = {'13AE': 24.09, '13AO': 24.39}
+    ls = ['-', '--', ':']
 
     smooth_parameter_files = filter(lambda name: name.startswith('smooth'), os.listdir('{}/{}/'.format(pwd, block)))
     smooth_parameter_files.sort(key=lambda x: float(x.split('-')[1]))
@@ -25,13 +26,16 @@ def plot_smooth_fit(i, block, ax, colours, pwd, offset=0, single=False):
     for j, fn in enumerate(smooth_parameter_files):
         pd, ps, mag_limit = read_smooth_fit('{}/{}/{}'.format(pwd, block, fn))
         ys = square_fit(x, ps)
+
+        print block, fn, mag_limit, square_fit(mag_limit, ps)
+
         if single:  # only want to add label to the legend if there is only one given
             ax[i].plot(x + (offset * j), ys * 100.,
-                       ls='-', color=colours[j],
+                       ls=ls[j], color=colours[j],
                        label='smooth fit {}-{} "/hr overall'.format(fn.split('-')[1], fn.split('-')[2]))
         else:
             ax[i].plot(x + (offset * j), ys * 100.,
-                       ls='-', color=colours[j])
+                       ls=ls[j], color=colours[j])
 
         # last, add the vertical line for characterisation limit for the block
         if j == len(smooth_parameter_files) - 1:
@@ -39,11 +43,11 @@ def plot_smooth_fit(i, block, ax, colours, pwd, offset=0, single=False):
             ax[i].vlines(characterisation[block], 0., 90,
                          linestyles=':', alpha=0.7)
             ax[i].annotate("$m_{{characterized}}$ = {:.2f}".format(characterisation[block]),
-                           (characterisation[block], 90), size=7, color='k')
+                           (characterisation[block], 90), size=10, color='k', ha='center')
 
 
 def plot_eff_data(i, block, ax, colours, pwd, offset):
-    fmt = ['*', 'x', 'o']
+    fmt = ['^', 'x', 'o']
     filenames = filter(lambda name: name.endswith('mag-rate.eff'), os.listdir('{}/{}/'.format(pwd, block)))
     filenames.sort(key=lambda x: float(x.split('-')[0]))
     for j, fn in enumerate(filenames):
@@ -123,12 +127,12 @@ def plot_eff_by_user(ax, blocks):
 
 
 if __name__ == '__main__':
-    fig, ax = plt.subplots(nrows=1, ncols=1, sharex=True, figsize=(9, 4))
+    fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=(9, 4))
     fig.subplots_adjust(hspace=0.1)
-    blocks = ['13AO']  # ['13AE', '13AO'] # [',
+    blocks =  ['13AE', '13AO'] # [',['13AO']  #
 
-    # outfile = plot_eff_by_rate_of_motion(ax, blocks)
-    outfile = plot_eff_by_user(ax, blocks)
+    outfile = plot_eff_by_rate_of_motion(ax, blocks)
+    # outfile = plot_eff_by_user(ax, blocks)
 
     plt.xlabel("$m_{r}$")
     plt.xlim([21.1, 25.])
