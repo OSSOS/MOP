@@ -13,7 +13,15 @@ from .gui import logger
 from .storage import open_vos_or_local
 from .util import Time
 
-DEFAULT_OBSERVERS = ['M. T. Bannister', 'J. J. Kavelaars']
+DEFAULT_OBSERVERS = ['M. T. Bannister',
+                     'J. J. Kavelaars',
+                     'B. J. Gladman',
+                     'J.-M. Petit',
+                     'T. Burdullis'
+                     ]
+DEFAULT_MEASURERS = ['S. D. J. Gwyn',
+                     'Y.-T. Chen.'
+                     ]
 DEFAULT_TELESCOPE = "CFHT 3.6m + CCD"
 DEFAULT_ASTROMETRIC_NETWORK = "UCAC4"
 
@@ -1251,8 +1259,12 @@ class MPCWriter(object):
         return sorted_obs
 
 
-def make_tnodb_header(observations, observatory_code=None, observers=DEFAULT_OBSERVERS,
-                      telescope=DEFAULT_TELESCOPE, astrometric_network=DEFAULT_ASTROMETRIC_NETWORK):
+def make_tnodb_header(observations,
+                      observatory_code=None,
+                      observers=DEFAULT_OBSERVERS,
+                      measurers=DEFAULT_MEASURERS,
+                      telescope=DEFAULT_TELESCOPE,
+                      astrometric_network=DEFAULT_ASTROMETRIC_NETWORK):
     """
     Write a header appropriate for a tnodb style of file.
     """
@@ -1271,7 +1283,14 @@ def make_tnodb_header(observations, observatory_code=None, observers=DEFAULT_OBS
         sep = ", "
     if len(observers) > 1:
         header += " and {}".format(observers[-1])
-
+    header += "\n"
+    header += "MEA "
+    sep = ""
+    for measurer in measurers[:-1]:
+        header += "{}{}".format(sep, measurer)
+        sep = ", "
+    if len(measurers) > 1:
+        header += " and {}".format(measurers[-1])
     header += "\n"
     header += "TEL {}\n".format(telescope)
     header += "NET {}\n".format(astrometric_network)
