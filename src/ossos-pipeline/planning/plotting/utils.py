@@ -1,8 +1,9 @@
 __author__ = 'jjk'
 
 import numpy as np
+import os
 
-path = '/Users/michele/Dropbox/Papers in progress/OSSOS/First_quarter/data/'
+path = '/Users/bannisterm/Dropbox/Papers in progress/OSSOS/First_quarter/data/'
 
 
 def square_fit(m, params):
