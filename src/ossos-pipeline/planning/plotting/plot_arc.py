@@ -34,11 +34,13 @@ security_colour = {'I': 'r',  # all insecure objects are 'I' or 'IH'
 names = ['cl', 'p', 'j', 'k', 'sh', 'object', 'mag', 'mag_uncert', 'F', 'H_sur', 'dist', 'dist_E', 'nobs',
          'time', 'av_xres', 'av_yres', 'max_x', 'max_y', 'a', 'a_E', 'e', 'e_E', 'i', 'i_E', 'node', 'node_E',
          'argperi', 'argperi_E', 'time_peri', 'time_peri_E', 'ra_dis', 'dec_dis', 'jd_dis', 'rate']
-one_opp_tnos = Table.read('/Users/michele/Dropbox/OSSOS/Release_summaries/v4/OSSOSv4/OSSOSv4.detections',
+one_opp_tnos = Table.read('/Users/bannisterm/Dropbox/OSSOS/Release_summaries/v4/OSSOSv4/OSSOSv4.detections',
                           format='ascii', guess=False,
                           delimiter=' ', data_start=0, comment='#', names=names, header_start=None)
 
 for tno in tnos['object']:
+    if tno.startswith('u'):
+        continue
     cl = tnos['cl'][tnos['object'] == tno]
     print tno, cl[0]
 
@@ -78,30 +80,32 @@ for tno in tnos['object']:
     one_opp_col = security_colour.get(one_opp_sec, 'b')
     fullarc_col = security_colour.get(fullarc_sec, 'b')
 
+    alpha = 0.55
     # it changed classification security status...
-    if one_opp_sec != fullarc_sec:
-        one_opp_t = np.where(np.array(t) < one_opp)[0]
-        multi_opp_t = np.where(np.array(t) >= one_opp)[0]
-        print t, one_opp_t, multi_opp_t
-        print len(one_opp_t), len(multi_opp_t), len(t) - 1
-
-        pyplot.plot(one_opp_t, da[:len(one_opp_t)],
-                    '-' + one_opp_col, linewidth=.1, alpha=0.2, label='_')
-        pyplot.plot(one_opp_t, da[:len(one_opp_t)],
-                    '.' + one_opp_col, ms=2, alpha=0.2, mec=one_opp_col, mew=0.1)
-        print 'changing colour'
-        pyplot.plot(multi_opp_t, da[:len(multi_opp_t)],
-                    '-' + fullarc_col, linewidth=.1, alpha=0.2, label='_')
-        pyplot.plot(multi_opp_t, da[:len(multi_opp_t)],
-                    '.' + fullarc_col, ms=2, alpha=0.2, mec=fullarc_col, mew=0.1)
+    # if one_opp_sec != fullarc_sec:
+    #     one_opp_t = np.where(np.array(t) < one_opp)[0]
+    #     multi_opp_t = np.where(np.array(t) >= one_opp)[0]
+    #     print t, one_opp_t, multi_opp_t
+    #     print len(one_opp_t), len(multi_opp_t), len(t) - 1
+    #
+    #     pyplot.plot(one_opp_t, da[:len(one_opp_t)],
+    #                 '-' + one_opp_col, linewidth=.1, alpha=alpha, label='_')
+    #     pyplot.plot(one_opp_t, da[:len(one_opp_t)],
+    #                 '.' + one_opp_col, ms=2, alpha=alpha, mec=one_opp_col, mew=0.1)
+    #     print 'changing colour'
+    #     pyplot.plot(multi_opp_t, da[:len(multi_opp_t)],
+    #                 '-' + fullarc_col, linewidth=.1, alpha=alpha, label='_')
+    #     pyplot.plot(multi_opp_t, da[:len(multi_opp_t)],
+    #                 '.' + fullarc_col, ms=2, alpha=alpha, mec=fullarc_col, mew=0.1)
     # the classification is constant. No reason to change colour.
-    else:
-        pyplot.plot(t, da, '-' + fullarc_col, linewidth=.1, alpha=0.2, label='_')
-        pyplot.plot(t, da, '.' + fullarc_col, ms=2, alpha=0.2, mec=fullarc_col, mew=0.1)
+    # else:
+    pyplot.plot(t, da, '-' + fullarc_col, linewidth=.1, alpha=alpha, label='_')
+    pyplot.plot(t, da, '.' + fullarc_col, ms=2, alpha=alpha, mec=fullarc_col, mew=0.1)
 
     # Symbol gets assigned based on final orbital classification regardless of earlier colour.
     msymbol = symbols[cl[0]]
-    pyplot.plot(t[-1], da[-1], msymbol + fullarc_col, alpha=0.5, ms=4, mec='k', mew=0.1)
+    alpha = 0.7
+    pyplot.plot(t[-1], da[-1], msymbol + fullarc_col, alpha=alpha, ms=4, mec='k', mew=0.1)
     # pyplot.annotate(tno, (t[-1], da[-1]), size=3)
 
 pyplot.xlabel('arc length (years)')
@@ -127,11 +131,11 @@ handler_map = [
     mlines.Line2D([], [], color='r', alpha=0.3, label='insecure'),
     mlines.Line2D([], [], color='b', alpha=0.3, label='secure'),
     # mlines.Line2D([], [], color='k', alpha=0.3, label='13BL'),
-    mlines.Line2D([], [], marker='d', color='None', mec='k', alpha=0.5, linestyle=None, label='centaur'),
-    mlines.Line2D([], [], marker='^', color='None', mec='k', alpha=0.5, linestyle=None, label='scattering'),
-    mlines.Line2D([], [], marker='o', color='None', mec='k', alpha=0.5, linestyle=None, label='classical'),
-    mlines.Line2D([], [], marker='*', color='None', mec='k', alpha=0.5, linestyle=None, label='resonant'),
-    mlines.Line2D([], [], marker='s', color='None', mec='k', alpha=0.5, linestyle=None, label='detached'),
+    mlines.Line2D([], [], marker='d', color='None', mec='k', alpha=alpha, linestyle=None, label='centaur'),
+    mlines.Line2D([], [], marker='^', color='None', mec='k', alpha=alpha, linestyle=None, label='scattering'),
+    mlines.Line2D([], [], marker='o', color='None', mec='k', alpha=alpha, linestyle=None, label='classical'),
+    mlines.Line2D([], [], marker='*', color='None', mec='k', alpha=alpha, linestyle=None, label='resonant'),
+    mlines.Line2D([], [], marker='s', color='None', mec='k', alpha=alpha, linestyle=None, label='detached'),
 ]
 legend = pyplot.legend(handles=handler_map,
                        numpoints=1, loc='upper right', frameon=True, fontsize='x-small')
