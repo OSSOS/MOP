@@ -18,7 +18,7 @@ import parameters
 from ossos.gui import context
 import plot_lightcurve
 from utils import square_fit_discovery_mag
-
+from deluxe_table_formatter import deluxe_table_formatter
 
 
 # from parameters import tno
@@ -251,55 +251,6 @@ def linesep(name, distinguish=None):
 
 
 def create_table(tnos, outfile):
-    # no. columns must match no. c's
-    # table has small font and is horizontal.
-    header = r"\begin{deluxetable}{ccccccccccccc}" + '\n' + \
-             r"\tabletypesize{\scriptsize}" + '\n' + \
-             r"\rotate" + '\n' + \
-             r"\tablecolumns{13}" + '\n' + \
-             r"\tablehead{\colhead{$m_{r}$} \vspace{-0.2cm} & " \
-             r"\colhead{$\sigma$ $m_{r}$} & " \
-             r"\colhead{Detectability} & " \
-             r"\colhead{RA} & " \
-             r"\colhead{Dec} & " \
-             r"\colhead{a} & " \
-             r"\colhead{e} & " \
-             r"\colhead{i} & " \
-             r"\colhead{r$_{H}$} & " \
-             r"\colhead{H$_{r}$} & " \
-             r"\colhead{MPC} & " \
-             r"\colhead{Object} & " \
-             r"\colhead{Status} \\" \
-             r"\colhead{discovery} & " \
-             r"\colhead{all obs} & " \
-             r"\colhead{} & " \
-             r"\colhead{discov.} & " \
-             r"\colhead{discov.} & " \
-             r"\colhead{(AU)} & " \
-             r"\colhead{} & " \
-             r"\colhead{($^{\circ}$)} & " \
-             r"\colhead{(AU)} & " \
-             r"\colhead{} & " \
-             r"\colhead{design.} & " \
-             r"\colhead{} & " \
-             r"\colhead{} " \
-             + r"}" \
-             + "\n" \
-             + "\startdata \n" \
-             + r"\cutinhead{Centaurs}" + "\n"
-
-    footer = r"\enddata " + "\n" + \
-             r"\tablecomments{$p:q$: object is in the $p:q$ resonance; I: the orbit classification is currently " \
-             r"insecure; " \
-             r"" \
-             r"" \
-             r"H: the human operator intervened to declare the orbit security status. " \
-             r"$a, e, i$ are J2000 ecliptic barycentric coordinates, with uncertainties from the covariant matrix fit " \
-             r"of \citet{Bernstein:2000p444}; full barycentric elements are available at \url{http://www.ossos-survey" \
-             r".org/}." \
-             r"The full heliocentric orbital elements are available in electronic form from the Minor Planet Center.} " "\n" + \
-             "\end{deluxetable} \n"
-
     # Scrape the index file for MPC designations - this would work better if the alternate designations were consistent
     idx = {}
     with open(parameters.IDX) as infile:
@@ -317,8 +268,7 @@ def create_table(tnos, outfile):
     # Sort by discovery mag within each classification.
     tnos.sort(['cl', 'p', 'j', 'k', 'mag'])
 
-    with open(outfile, 'w') as ofile:
-        ofile.write(header)
+    with deluxe_table_formatter(outfile) as ofile:
         for i, r in enumerate(tnos):
             # write line separator between object classification types
             if r['p'] != tnos[i - 1]['p']:
@@ -361,7 +311,6 @@ def create_table(tnos, outfile):
             else:
                 out += "  {} \n".format(r'\\')
             ofile.write(out)
-        ofile.write(footer)
 
 
 def release_to_latex(outfile):
