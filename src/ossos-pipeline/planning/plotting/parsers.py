@@ -23,7 +23,7 @@ from utils import square_fit_discovery_mag
 
 # from parameters import tno
 
-def ossos_release_parser(table=False):
+def ossos_release_parser(table=False, data_release=parameters.RELEASE_VERSION):
     """
     extra fun as this is space-separated so using CSV parsers is not an option
     """
@@ -33,13 +33,13 @@ def ossos_release_parser(table=False):
 
     if table:
         # have to specify the names because the header line contains duplicate IDs, which wrecks auto-column creation
-        retval = Table.read(parameters.RELEASE_DETECTIONS, format='ascii', guess=False,
+        retval = Table.read(parameters.RELEASE_DETECTIONS[data_release], format='ascii', guess=False,
                             delimiter=' ', data_start=0, comment='#', names=names, header_start=None)
     else:
         retval = []
-        with open(parameters.RELEASE_DETECTIONS, 'r') as detectionsfile:
+        with open(data_release, 'r') as detectionsfile:
             for line in detectionsfile.readlines()[1:]:  # first line is column definitions
-                obj = TNO.from_string(line, version=parameters.RELEASE_VERSION)
+                obj = TNO.from_string(line, version=parameters.RELEASE_DETECTIONS[data_release])
                 retval.append(obj)
 
     return retval
@@ -61,7 +61,8 @@ def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
                       suffix='ast',
                       no_nt_and_u=True,
                       single_object=None,
-                      all_releases=False,
+                      all_objects=False,
+                      data_release=parameters.RELEASE_VERSION,
                       ):
     """
     Returns a list of objects holding orbfit.Orbfit objects with the observations in the Orbfit.observations field.
@@ -73,9 +74,10 @@ def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
 
     if single_object is not None:
         files = filter(lambda name: name.startswith(single_object), files)
-    if not all_releases:
+    if not all_objects:
         # only return the objects corresponding to a particular Data Release
-        objects = ossos_release_parser(table=True)['object']
+        data_release = ossos_release_parser(table=True, data_release=data_release)
+        objects = data_release['object']
         files = filter(lambda name: name.partition(suffix)[0].rstrip('.') in objects, files)
 
     for filename in files:
@@ -299,9 +301,17 @@ def create_table(tnos, outfile):
              "\end{deluxetable} \n"
 
     # Scrape the index file for MPC designations - this would work better if the alternate designations were consistent
-    # idx = {}
-    # with open(parameters.IDX) as infile:
-    # lines = infile.readlines()
+    idx = {}
+    with open(parameters.IDX) as infile:
+        lines = infile.readlines()
+        for line in lines:
+            key = line.split(' ')[0].split('\t')[0]
+            if key.startswith('o3'):
+                ls = line[14:].split(' ')
+                if len(ls) == 3:
+                    ls = ls[1:]
+                mpcstr = "{} {}".format(ls[0], ls[1][0:2]) + r"$_{" + "{}".format(ls[1][2:].rstrip('\r\n')) + r"}$"
+                idx[key] = mpcstr
 
     # sort order gives Classical, Detached, Resonant, Scattered
     # Sort by discovery mag within each classification.
@@ -326,8 +336,8 @@ def create_table(tnos, outfile):
 
             # mag ± dmag, std dev of all clean photometry, efficiency function at that discovery mag
             # m ± dm sigma_m eff_discov RA Dec a ± da e ± de i ± di r ± dr H ± dH j k MPC obj status
-            # put characterisation limits in footnotes.
-            out = "{} & {} & {:2.2f} & {:3.3f} & {} & {} & {} & {} & {} & {} & {} & & ".format(
+
+            out = "{} & {} & {:2.2f} & {:3.3f} & {} & {} & {} & {} & {} & {} & {} & {} & ".format(
                 round_sig_error(r['mag'], r['mag_E']),
                 sigma_mag,
                 eff_at_discovery,
@@ -338,8 +348,8 @@ def create_table(tnos, outfile):
                 round_sig_error(r['i'], r['i_E']),
                 round_sig_error(r['dist'], r['dist_E']),
                 r['H_sur'],
-                r['object'],
-                # MPC designation
+                idx[r['object']],  # MPC designation is already formatted
+                r['object']
             )
             # make sure these come out with nice formatting
             if r['j'] != -1:
@@ -356,10 +366,10 @@ def create_table(tnos, outfile):
 
 def release_to_latex(outfile):
     tnos = ossos_release_parser(table=True)
-    uncharacterised = tnos[numpy.array([name.startswith("u") for name in tnos['object']])]
-    # characterised = tnos[numpy.array([name.startswith("o") for name in tnos['object']])]
-    # create_table(characterised, outfile)
-    create_table(uncharacterised, 'u_' + outfile)
+    # uncharacterised = tnos[numpy.array([name.startswith("u") for name in tnos['object']])]
+    characterised = tnos[numpy.array([name.startswith("o") for name in tnos['object']])]
+    create_table(characterised, outfile)
+    # create_table(uncharacterised, 'u_' + outfile)
 
     return
 
