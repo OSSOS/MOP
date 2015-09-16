@@ -250,43 +250,51 @@ def linesep(name, distinguish=None):
     return midline
 
 
-def create_table(tnos, outfile):
-    # Scrape the index file for MPC designations - this would work better if the alternate designations were consistent
+def extract_mpc_designations(initial_id='o3'):
+    # Scrape the index file for MPC designations, if they exist
     idx = {}
     with open(parameters.IDX) as infile:
         lines = infile.readlines()
         for line in lines:
             key = line.split(' ')[0].split('\t')[0]
-            if key.startswith('o3'):
+            if key.startswith(initial_id):
                 ls = line[14:].split(' ')
                 if len(ls) == 3:
                     ls = ls[1:]
                 mpcstr = "{} {}".format(ls[0], ls[1][0:2]) + r"$_{" + "{}".format(ls[1][2:].rstrip('\r\n')) + r"}$"
                 idx[key] = mpcstr
 
+    return idx
+
+
+def create_table(tnos, outfile, initial_id='o3'):
     # sort order gives Classical, Detached, Resonant, Scattered
     # Sort by discovery mag within each classification.
     tnos.sort(['cl', 'p', 'j', 'k', 'mag'])
+    # FIXME: add a catch if object doesn't yet have a MPC designation
+    idx = extract_mpc_designations(initial_id=initial_id)
 
     with deluxe_table_formatter(outfile) as ofile:
         for i, r in enumerate(tnos):
-            # write line separator between object classification types
+            # a labelled line separator heading for each new object classification type
             if r['p'] != tnos[i - 1]['p']:
-                if r['p'] == 'x':  # 'x' doesn't give enough info to set scattered or detached
+                if r['p'] == 'x':  # 'x' doesn't give enough info to set scattered or detached: go check
                     ofile.write(linesep(r['p'], distinguish=r['cl']))
                 else:
                     ofile.write(linesep(r['p']))
 
+            # Mag uncertainty is over the whole light curve. Uncharacterised objects might not have enough valid points.
             sigma_mag = plot_lightcurve.stddev_phot(r['object'])
             if not numpy.isnan(sigma_mag):
                 sigma_mag = '{:2.2f}'.format(sigma_mag)
             else:
                 sigma_mag = r'--'
+
+            # Individual object discovery efficiency from the function based on its mag + motion rate at discovery
             eff_at_discovery = square_fit_discovery_mag(r['object'], r['mag'], r['rate'])
 
             # mag ± dmag, std dev of all clean photometry, efficiency function at that discovery mag
             # m ± dm sigma_m eff_discov RA Dec a ± da e ± de i ± di r ± dr H ± dH j k MPC obj status
-
             out = "{} & {} & {:2.2f} & {:3.3f} & {} & {} & {} & {} & {} & {} & {} & {} & ".format(
                 round_sig_error(r['mag'], r['mag_E']),
                 sigma_mag,
@@ -298,10 +306,10 @@ def create_table(tnos, outfile):
                 round_sig_error(r['i'], r['i_E']),
                 round_sig_error(r['dist'], r['dist_E']),
                 r['H_sur'],
-                idx[r['object']],  # MPC designation is already formatted
+                idx[r['object']],  # MPC designation is already formatted.
                 r['object']
             )
-            # make sure these come out with nice formatting
+            # output the orbit classification with nice formatting, or leave a gap if unclassified (e.g. a classical)
             if r['j'] != -1:
                 out += "{}:{} ".format(r['j'], r['k'])  # resonant object: give the resonance
             else:
@@ -315,9 +323,10 @@ def create_table(tnos, outfile):
 
 def release_to_latex(outfile):
     tnos = ossos_release_parser(table=True)
-    # uncharacterised = tnos[numpy.array([name.startswith("u") for name in tnos['object']])]
     characterised = tnos[numpy.array([name.startswith("o") for name in tnos['object']])]
-    create_table(characterised, outfile)
+    create_table(characterised, outfile, initial_id='o3')
+
+    # uncharacterised = tnos[numpy.array([name.startswith("u") for name in tnos['object']])]
     # create_table(uncharacterised, 'u_' + outfile)
 
     return
