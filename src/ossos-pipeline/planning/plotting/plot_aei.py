@@ -5,6 +5,7 @@ import sys
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 import numpy
+from astropy import units
 
 import palettable
 import parsers
@@ -297,14 +298,22 @@ def classicals_aei(data):
 
 if __name__ == '__main__':
     # tnos = parsers.ossos_release_parser(table=True)  # return as an astropy.Table.Table
-    tnos = parsers.ossos_discoveries(directory='/Users/bannisterm/Dropbox/OSSOS/measure3/test_argperi_align/', all=True)
+    # dir = '/Users/bannisterm/Dropbox/OSSOS/measure3/test_argperi_align/'
+    directory = '/Users/bannisterm/Dropbox/OSSOS/measure3/2014B-H/track/'
+    tnos = parsers.ossos_discoveries(directory=directory, all_objects=True)
 
-    fig, ax = plt.subplots(4, 1, sharex=True, figsize=(7, 8))  # a4 is 1 x sqrt(2), so use those proportions
+    fig, ax = plt.subplots(3, 1, sharex=True, figsize=(7, 8))  # a4 is 1 x sqrt(2), so use those proportions
     fig.subplots_adjust(hspace=0.25)
 
     for obj in tnos:
+        if obj.orbit.arc_length < 60.*units.day:
+            print 'Skipping', obj.name, obj.orbit.arc_length
+            continue
+
         alpha = 0.4
 
+        obj_r = obj.orbit.distance.value
+        obj_dr = obj.orbit.distance_uncertainty.value
         obj_a = obj.orbit.a.value
         obj_da = obj.orbit.da.value
         obj_i = obj.orbit.inc.value
@@ -319,8 +328,8 @@ if __name__ == '__main__':
             obj_argP = obj_argP - 360.
         obj_dargP = obj.orbit.dom.value
 
-        ax[0].errorbar(obj.orbit.distance, obj_i,
-                       xerr=obj.orbit.distance_uncertainty,
+        ax[0].errorbar(obj_r, obj_i,
+                       xerr=obj_dr,
                        yerr=obj_di,
                        fmt='.', ms=10, color='b', alpha=alpha
                        )
@@ -334,18 +343,18 @@ if __name__ == '__main__':
                        yerr=obj_de,
                        fmt='.', ms=10, color='b', alpha=alpha
                        )
-        ax[3].errorbar(obj_a, obj_argP,
-                       xerr=obj_dargP,
-                       yerr=obj_da,
-                       fmt='.', ms=10, color='b', alpha=alpha
-                       )
+        # ax[3].errorbar(obj_a, obj_argP,
+        #                xerr=obj_dargP,
+        #                yerr=obj_da,
+        #                fmt='.', ms=10, color='b', alpha=alpha
+        #                )
 
     ymin = -0.001
-    imax = 40
+    imax = 50
     emax = .85
-    xinner = 25
-    xouter = 600
-    xticker = 50
+    xinner = 20
+    xouter = 80
+    xticker = 5
     grid_alpha = 0.2
 
     resonances(ax, imax, emax)
@@ -353,7 +362,7 @@ if __name__ == '__main__':
     ax[0].set_ylim([ymin, imax])
     ax[1].set_ylim([ymin, imax])
     ax[2].set_ylim([ymin, emax])
-    ax[3].set_ylim([-180, 180])
+    # ax[3].set_ylim([-180, 180])
     plt.xlim([xinner, xouter])
 
 
@@ -364,7 +373,7 @@ if __name__ == '__main__':
     plot_fanciness.remove_border(ax[0])
     plot_fanciness.remove_border(ax[1])
     plot_fanciness.remove_border(ax[2])
-    plot_fanciness.remove_border(ax[3])
+    # plot_fanciness.remove_border(ax[3])
 
     ax[0].set_ylabel('inclination (degrees)')
     ax[0].grid(True, alpha=grid_alpha)
@@ -375,12 +384,13 @@ if __name__ == '__main__':
     ax[2].grid(True, alpha=grid_alpha)
     # ax[2].set_xlabel('semimajor axis (AU)')
     plt.xlabel('semimajor axis (AU)')
-    ax[3].grid(True, alpha=grid_alpha)
+    # ax[3].grid(True, alpha=grid_alpha)
     # ax[3].set_xlabel('perihelion (AU)')
-    ax[3].set_ylabel('arg. peri. (degrees)')
+    # ax[3].set_ylabel('arg. peri. (degrees)')
 
     plt.draw()
-    outfile = 'OSSOS+CFEPS+NGVS_aei_argperi.pdf'
+    # ofile = 'OSSOS+CFEPS+NGVS_aei_argperi.pdf'
+    outfile = 'OSSOS_aei_Hblock.pdf'
     plt.savefig(outfile, transparent=True, bbox_inches='tight')
 
 
