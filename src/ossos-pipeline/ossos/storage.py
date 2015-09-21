@@ -1027,7 +1027,7 @@ def list_dbimages():
 
 def exists(uri, force=False):
     try:
-        return vospace.getNode(uri, force=force) is not None
+        return vospace.get_node(uri, force=force) is not None
     except EnvironmentError as e:
         logger.error(str(e))  # not critical enough to raise
         # Sometimes the error code returned is the OS version, sometimes the HTTP version
