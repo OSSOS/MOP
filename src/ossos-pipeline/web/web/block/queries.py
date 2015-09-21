@@ -195,7 +195,7 @@ class BlockQuery(object):
                     os.path.join(storage.MEASURE3, str(field), '.no_candidates')]
             for uri in uris:
                 if storage.exists(uri):
-                    node = storage.vospace.getNode(uri, force=force).props
+                    node = storage.vospace.get_node(uri, force=force).props
 
             done = storage.tag_uri('done')
         # get_tags is built to obtain tags on the dbimages
