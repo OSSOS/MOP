@@ -64,7 +64,7 @@ def ossos_residuals(version=RELEASE_VERSION, regenerate=False):
 
     if regenerate:
         # takes a few minutes to compute all these
-        discoveries = ossos_discoveries(release=version)  # gets the full MPC lines for the current release
+        discoveries = ossos_discoveries(data_release=version)  # gets the full MPC lines for the current release
         for obj in discoveries:
             print obj.name
             residuals = obj.orbit.residuals(overall=True)

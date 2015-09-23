@@ -12,19 +12,16 @@ ivo://ivoa.net/vospace/core%23httpget&view=cutout&cutout=CIRCLE+ICRS+242.1318+-1
 
 import argparse
 import logging
-import getpass
 import os
 
-import requests
-
+from astropy import units
+from astropy.units import Quantity
+from astropy.io import fits
 from ossos import mpc
 from ossos import storage
 
 
-BASEURL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/vospace/auth/synctrans"
-
-
-def cutout(obj, obj_dir, radius, username, password):
+def cutout(obj, obj_dir, radius):
     for obs in obj.mpc_observations:
         if obs.null_observation:
             continue
@@ -33,38 +30,21 @@ def cutout(obj, obj_dir, radius, username, password):
             logging.error('expnum {} parsed from comment line invalid. Check comment parsing.\n{}'.format(expnum, str(
                 obs.comment)))
             continue
-        # Using the WCS rather than the X/Y, as the X/Y can be unreliable on a long-term basis
-        this_cutout = "CIRCLE ICRS {} {} {}".format(obs.coordinate.ra.degree,
-                                                    obs.coordinate.dec.degree,
-                                                    radius)
-
-        # should be able to use line below, but bug in VOSpace requires direct-access workaround, for now.
-        # postage_stamp = storage.get_image(expnum, cutout=cutout)
-        logging.info('cutout {} from {}'.format(this_cutout, expnum))
-        target = storage.vospace.fixURI(storage.get_uri(expnum))
-        direction = "pullFromVoSpace"
-        protocol = "ivo://ivoa.net/vospace/core#httpget"
-        view = "cutout"
-        params = {"TARGET": target,
-                  "PROTOCOL": protocol,
-                  "DIRECTION": direction,
-                  "cutout": this_cutout,
-                  "view": view}
-        r = requests.get(BASEURL, params=params, auth=(username, password))
-        try:
-            r.raise_for_status()  # confirm the connection worked as hoped
-        except requests.HTTPError, e:
-            if r.status_code == 404:  # this one we can get away with just skipping
-                continue
-            else:
-                raise e
+        uri = storage.get_uri(expnum)
+        sky_coord = obs.coordinate  # Using the WCS rather than the X/Y (X/Y can be unreliable over the whole survey)
+        logging.info('Trying {} on {} on {}...\n'.format(obj.provisional_name, obs.date, expnum))
+        hdulist = storage.ra_dec_cutout(uri, sky_coord, radius)
+        # if not 'ASTLEVEL' in hdulist[1].header:   # FIXME: activate once all headers are retro-fitted with ASTLEVEL
+        #     logging.info('Cutout invalid for use. Skipping inclusion.\n')
+        #     continue
         postage_stamp_filename = "{}_{:11.5f}_{:09.5f}_{:+09.5f}.fits".format(obj.provisional_name,
                                                                               obs.date.mjd,
                                                                               obs.coordinate.ra.degree,
                                                                               obs.coordinate.dec.degree)
         logging.info("{}".format(postage_stamp_filename))
+
         with open(postage_stamp_filename, 'w') as tmp_file:
-            tmp_file.write(r.content)
+            hdulist.writeto(tmp_file, clobber=True)
             storage.copy(postage_stamp_filename, obj_dir + "/" + postage_stamp_filename)
         os.unlink(postage_stamp_filename)  # easier not to have them hanging around
 
@@ -85,11 +65,12 @@ def main():
     parser.add_argument("--blocks", "-b",
                         action="store",
                         default=["o3o"],
-                        choices=["o3e", "o3o", "O13BL", "Col3N"],
+                        choices=["o3e", "o3o", "Col3N", 'o3l', 'o4h'],
                         help="Prefixes of object designations to include.")
     parser.add_argument("--radius", '-r',
+                        # FIXME: figure out how to assign this a unit.degree before storage
                         action='store',
-                        default=0.02,
+                        default=0.02 * units.degree,
                         help='Radius (degree) of circle of cutout postage stamp.')
     parser.add_argument("--debug", "-d",
                         action="store_true")
@@ -98,24 +79,22 @@ def main():
 
     args = parser.parse_args()
 
-    username = raw_input("CADC username: ")
-    password = getpass.getpass("CADC password: ")
-
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
     elif args.verbose:
         logging.basicConfig(level=logging.INFO)
 
     for fn in storage.listdir(args.ossin):
-        obj = mpc.MPCReader(args.ossin + fn)  # let MPCReader's logic determine the provisional name
         for block in args.blocks:
-            if obj.provisional_name.startswith(block):
+            if fn.startswith(block):
+                obj = mpc.MPCReader(args.ossin + fn)
                 obj_dir = '{}/{}/{}'.format(storage.POSTAGE_STAMPS, args.version, obj.provisional_name)
                 if not storage.exists(obj_dir, force=True):
                     storage.mkdir(obj_dir)
                 # assert storage.exists(obj_dir, force=True)
                 print('{} beginning...\n'.format(obj.provisional_name))
-                cutout(obj, obj_dir, args.radius, username, password)
+                assert isinstance(args.radius, Quantity)
+                cutout(obj, obj_dir, args.radius)
                 print('{} complete.\n'.format(obj.provisional_name))
 
 
