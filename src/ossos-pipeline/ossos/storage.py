@@ -238,7 +238,7 @@ def get_uri(expnum, ccd=None,
     if version is None:
         version = ''
 
-    if version == 'p' and ext == '.fits' or ccd is None:
+    if ccd is None:
         uri = os.path.join(uri,
                            '%s%s%s%s' % (prefix, str(expnum),
                                          version,
@@ -259,7 +259,7 @@ dbimages_uri = get_uri
 
 
 def set_tags_on_uri(uri, keys, values=None):
-    node = vospace.getNode(uri)
+    node = vospace.get_node(uri)
     if values is None:
         values = []
         for idx in range(len(keys)):
@@ -275,7 +275,7 @@ def set_tags_on_uri(uri, keys, values=None):
 
 def _set_tags(expnum, keys, values=None):
     uri = os.path.join(DBIMAGES, str(expnum))
-    node = vospace.getNode(uri, force=True)
+    node = vospace.get_node(uri, force=True)
     if values is None:
         values = []
         for idx in range(len(keys)):
@@ -342,7 +342,7 @@ def get_process_tag(program, ccd, version='p'):
 
 def get_tags(expnum, force=False):
     uri = os.path.join(DBIMAGES, str(expnum))
-    return vospace.getNode(uri, force=force).props
+    return vospace.get_node(uri, force=force).props
 
 
 class Task(object):
@@ -542,21 +542,12 @@ def ra_dec_cutout(uri, sky_coord, radius):
                                               radius.to(units.degree).value)
 
     view = "cutout"
-    node = uri.lstrip('vos:')
-    params = {"cutout": this_cutout,
-              "view": view}
-    url = os.path.join(VOSPACE_WEB_SERVICE, node)
 
-    r = requests.get(url, params=params, cert=(vospace.conn.vospace_certfile,
-                                               vospace.conn.vospace_certfile))
-
-    r.raise_for_status()
-
-    cutouts = decompose_content_decomposition(r.headers.get('content-disposition', '0___'))
-    logger.debug("Got cutout boundaries of: {}".format(cutouts))
-
-    hdulist = fits.open(cStringIO.StringIO(r.content))
+    fobj = vospace.open(uri, view=view, cutout=this_cutout)
+    hdulist = fits.open(cStringIO.StringIO(fobj.read()))
     hdulist.verify('silentfix+ignore')
+    cutouts = decompose_content_decomposition(fobj.resp.headers.get('content-disposition', '0___'))
+    logger.debug("Got cutout boundaries of: {}".format(cutouts))
     logger.debug("Initial Length of HDUList: {}".format(len(hdulist)))
 
     # Make sure here is a primaryHDU
@@ -589,7 +580,7 @@ def ra_dec_cutout(uri, sky_coord, radius):
         try:
                 hdu.wcs = WCS(hdu.header)
         except Exception as ex:
-            logger.error("Failed trying to initialize the WCS for {}".format(node))
+            logger.error("Failed trying to initialize the WCS for {}".format(uri))
             raise ex
     logger.debug("Sending back {}".format(hdulist))
     return hdulist
@@ -678,8 +669,12 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
         try:
             for this_ext in [ext, ext + ".fz"]:
                 ext_no = int(ccd) + 1
+                # extension 1 -> 18 +  37,36 should be flipped.
+                flip_these_extensions = range(1,19)
+                flip_these_extensions.append(37)
+		flip_these_extensions.append(38)
                 flip = (cutout is None and "fits" in ext and (
-                    (ext_no < 19 and flip_image) and "[-*,-*]" or "[*,*]")) or cutout
+                    (ext_no in flip_these_extensions and flip_image) and "[-*,-*]" or "[*,*]")) or cutout
                 locations.append((get_uri(expnum, version=version, ext=this_ext, subdir=subdir),
                                   "[{}]{}".format(ext_no, flip)))
         except Exception as e:
@@ -1027,7 +1022,7 @@ def list_dbimages():
 
 def exists(uri, force=False):
     try:
-        return vospace.getNode(uri, force=force) is not None
+        return vospace.get_node(uri, force=force) is not None
     except EnvironmentError as e:
         logger.error(str(e))  # not critical enough to raise
         # Sometimes the error code returned is the OS version, sometimes the HTTP version
@@ -1059,7 +1054,7 @@ def get_property(node_uri, property_name, ossos_base=True):
     """
     # Must use force or we could have a cached copy of the node from before
     # properties of interest were set/updated.
-    node = vospace.getNode(node_uri, force=True)
+    node = vospace.get_node(node_uri, force=True)
     property_uri = tag_uri(property_name) if ossos_base else property_name
 
     if property_uri not in node.props:
@@ -1073,7 +1068,7 @@ def set_property(node_uri, property_name, property_value, ossos_base=True):
     Sets the value of a property on a node in VOSpace.  If the property
     already has a value then it is first cleared and then set.
     """
-    node = vospace.getNode(node_uri)
+    node = vospace.get_node(node_uri)
     property_uri = tag_uri(property_name) if ossos_base else property_name
 
     # If there is an existing value, clear it first
