@@ -9,11 +9,16 @@ L7MODEL = '/Users/bannisterm/Dropbox/OSSOS/Release_summaries/L7model-3.0-9.0'  #
 L7_HOME = '/Users/bannisterm/Dropbox/OSSOS/Release_summaries/'
 REAL_KBO_AST_DIR = '/Users/bannisterm/Dropbox/OSSOS/measure3/ossin/'
 # REAL_KBO_AST_DIR = 'vos:OSSOS/dbaseclone/ast/'
-RELEASE_VERSION = 4
-RELEASE_DETECTIONS = '/Users/bannisterm/Dropbox/Papers in progress/OSSOS/First_quarter/data/v5-oe+u.detections'
+RELEASE_VERSION = 4  # FIXME: this should be a dict that indexes to release detection paths. Less painful.
+
+first_quarter = '/Users/bannisterm/Dropbox/Papers in progress/OSSOS/First_quarter/'
+RELEASE_DETECTIONS = {
+    4: first_quarter + 'data/v5-oe+u.detections'
+}
 # v5prototype.detections'
 #
-IDX = REAL_KBO_AST_DIR + 'file.idx'  # for local  # 'vos:OSSOS/dbaseclone/idx/file.idx'  # for vos
+IDX = first_quarter + 'data/Correspondance.list'
+#REAL_KBO_AST_DIR + 'file.idx'  # for local  # 'vos:OSSOS/dbaseclone/idx/file.idx'  # for vos
 
 PLOT_FIELD_EPOCH = 'Jun14.00'  # Jun14.00 ==> '0' days since the New Moon on Jun14
 

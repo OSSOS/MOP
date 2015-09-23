@@ -15,7 +15,7 @@ from utils import read_smooth_fit, square_fit
 path = '/Users/bannisterm/Dropbox/Papers in progress/OSSOS/First_quarter/data/'
 
 def plot_smooth_fit(i, block, ax, colours, pwd, offset=0, single=False):
-    characterisation = {'13AE': 24.09, '13AO': 24.39}
+    characterisation = {'13AE': 24.09, '13AO': 24.40}
     ls = ['-', '--', ':']
 
     smooth_parameter_files = filter(lambda name: name.startswith('smooth'), os.listdir('{}/{}/'.format(pwd, block)))

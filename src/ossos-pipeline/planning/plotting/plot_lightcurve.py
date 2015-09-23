@@ -5,6 +5,7 @@ import sys
 import matplotlib.pyplot as plt
 import numpy
 
+from ossos.mpc import TNOdbComment
 import parsers
 # Define some CSS to control our custom labels
 css = """
@@ -40,8 +41,9 @@ def all_clean_phot(obj):
     # consider only the cleanest photometry: nothing with involvement or other weirdness
     tnoobs = []
     for n in tno.orbit.observations:
-        if n.comment.photometry_note == 'Y' and (n.comment.mpc_note == ' ' or n.comment.mpc_note == ''):
-            tnoobs.append(n)
+        if isinstance(n.comment, TNOdbComment):
+            if n.comment.photometry_note == 'Y' and (n.comment.mpc_note == ' ' or n.comment.mpc_note == ''):
+                tnoobs.append(n)
     if len(tnoobs) > 0:  # there better be some observations that are untainted
         tno_mags = [n.comment.mag for n in tnoobs]
         mag_dates = [n.date.jd for n in tnoobs]
