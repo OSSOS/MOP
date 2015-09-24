@@ -902,6 +902,9 @@ class Observation(object):
 
     # TODO Remove get_image_uri from here, use the storage methods.
     def get_image_uri(self):
+        if self.ftype == 'p' and self.fk is None or self.fk=='':
+            return storage.dbimages_uri(self.expnum)
+
         return storage.dbimages_uri(self.expnum,
                                     ccd=self.ccdnum,
                                     version=self.ftype,
@@ -909,7 +912,8 @@ class Observation(object):
                                     ext='.fits')
 
     def get_object_planted_uri(self):
-        return os.path.dirname(self.get_image_uri())+"/Object.planted"
+        dir = os.path.dirname(storage.dbimages_uri(self.expnum, ccd=self.ccdnum))
+        return dir+"/Object.planted"
 
     def get_apcor_uri(self):
         return storage.dbimages_uri(self.expnum,
