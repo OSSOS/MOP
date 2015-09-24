@@ -44,10 +44,11 @@ class SingletViewer(WxMPLFitsViewer):
 
         try:
             radii = (cutout.apcor.aperture, cutout.apcor.sky, cutout.apcor.swidth+cutout.apcor.sky)
+            radii = (cutout.apcor.sky, cutout.apcor.swidth+cutout.apcor.sky)
         except Exception as ex:
             logger.info("Exception: {0}".format(ex))
             logger.warning("Failed trying to get apcor radius values, using defaults for marking.")
-            radii = (4, 15, 30)
+            radii = (15, 30)
 
         if pixel:
             self._displayables_by_cutout[cutout].place_annulus(x, y, radii, colour='r')
