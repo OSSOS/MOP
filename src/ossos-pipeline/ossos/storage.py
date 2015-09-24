@@ -270,7 +270,7 @@ def set_tags_on_uri(uri, keys, values=None):
         value = values[idx]
         tag = tag_uri(key)
         node.props[tag] = value
-    return vospace.addProps(node)
+    return vospace.add_props(node)
 
 
 def _set_tags(expnum, keys, values=None):
@@ -286,7 +286,7 @@ def _set_tags(expnum, keys, values=None):
         tag = tag_uri(key)
         value = values[idx]
         node.props[tag] = value
-    return vospace.addProps(node)
+    return vospace.add_props(node)
 
 
 def set_tags(expnum, props):
@@ -1074,10 +1074,10 @@ def set_property(node_uri, property_name, property_value, ossos_base=True):
     # If there is an existing value, clear it first
     if property_uri in node.props:
         node.props[property_uri] = None
-        vospace.addProps(node)
+        vospace.add_props(node)
 
     node.props[property_uri] = property_value
-    vospace.addProps(node)
+    vospace.add_props(node)
 
 
 def build_counter_tag(epoch_field, dry_run=False):
