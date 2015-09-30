@@ -74,14 +74,19 @@ class WxMPLFitsViewer(object):
             colour = cutout.reading.null_observation and 'c' or colour
             dash = cutout.reading.null_observation and 1 or 0
             sky_coord = cutout.reading.sky_coord
+            # RA/DEC value of observation / prediction goes to X/Y  using PV keywords
             x, y, extno = cutout.world2pix(sky_coord.ra.to(units.degree).value,
                                            sky_coord.dec.to(units.degree).value)
-            hdulist = copy.copy(cutout.hdulist)
-            for hdu in hdulist[1:]:
-                del hdu.header['PV*']
-            ra, dec = hdulist[extno].wcs.xy2sky(x, y)
+
+            assert cutout.extno == extno
+            # The X/Y pixel values are then converted to RA/DEC without PV for use with DS9.
+            ra, dec = cutout.pix2world(x, y, usepv=False)
             uncertainty_ellipse = cutout.reading.uncertainty_ellipse
             self.current_displayable.place_ellipse((ra, dec), uncertainty_ellipse, colour=colour, dash=dash)
+
+            # Also mark on the image where source is localted, not just the ellipse.
+            ra, dec = cutout.pix2world(cutout.pixel_x, cutout.pixel_y, usepv=False)
+            self.current_displayable.place_marker((ra, dec), radius=8, colour=colour, dash=dash)
         except Exception as ex:
             logger.debug(type(ex))
             logger.debug(str(ex))
