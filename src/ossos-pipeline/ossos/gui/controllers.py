@@ -1,8 +1,10 @@
 from astropy import units
 from astropy.units import Quantity
+from ossos.astrom import SourceReading
 
 from ossos.downloads.cutouts.source import SourceCutout
 from ossos.gui.models.transactions import TransAckValidationModel
+from ossos.gui.models.workload import TracksWorkUnit
 from ossos.gui.views.appview import ApplicationView
 
 __author__ = "David Rusk <drusk@uvic.ca>"
@@ -18,7 +20,17 @@ from ..orbfit import OrbfitError, Orbfit
 
 
 class AbstractController(object):
+    """
+    The class that handles interactions between the data model and the users view of that data.
+    """
     def __init__(self, model, view):
+        """
+
+        @param model: The model that handles getting the data.
+        @type model: TransAckValidationModel
+        @param view: the display that is showing the controller interaction
+        @type view: ApplicationView
+        """
         self.model = model
         self.view = view
         events.subscribe(events.CHANGE_IMAGE, self.on_change_image)
@@ -264,7 +276,7 @@ class ProcessRealsController(AbstractController):
 
         obs_mag = phot_failure and None or obs_mag
         obs_mag_err = phot_failure and None or obs_mag_err
-        source_cutout.update_pixel_location((cen_x, cen_y))
+        source_cutout.update_pixel_location((cen_x, cen_y), extno=extno)
         source_cutout._adjusted = False
 
         if math.sqrt((cen_x - pre_daophot_pixel_x) ** 2 + (cen_y - pre_daophot_pixel_y) ** 2) > 1.5 or cen_failure:
@@ -397,6 +409,14 @@ class ProcessRealsController(AbstractController):
             ypos=source_cutout.observed_y,
             frame=reading.obs.rawname)
         mpc_observation._date_precision = 6
+
+        source_reading = self.model.get_current_reading()
+        source_reading.sky_coord = mpc_observation.coordinate
+        source_reading.pix_coord = mpc_observation.comment.x, mpc_observation.comment.y
+
+        data = self.model.get_current_workunit().data
+        key = mpc_observation.comment.frame.strip()
+        data.mpc_observations[key] = mpc_observation
 
         self.model.get_writer().write(mpc_observation)
 
@@ -554,7 +574,9 @@ class ProcessTracksController(ProcessRealsController):
         self.model.next_item()
 
     def on_save(self):
-        print "Saved to: {}".format(self.model.get_current_workunit().save())
+        workunit = self.model.get_current_workunit()
+        assert isinstance(workunit, TracksWorkUnit)
+        print "Saved to: {}".format(workunit.save())
 
 
 class ImageLoadingDialogManager(object):
