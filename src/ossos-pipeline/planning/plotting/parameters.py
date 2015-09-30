@@ -128,6 +128,17 @@ OPPOSITION_DATES = {"13AE": NEWMOONS['Apr13'],
 
 }
 
+OSSOS_FILTERS = ['r.MP9601',
+                 'r.MP9602',
+                 'R.MP9601',
+                 'R.MP9602',
+                 'u.MP9301',
+                 'u.MP9302',
+                 'U.MP9301',
+                 'U.MP9302',
+                 ''
+                 ]
+
 COLOSSOS = [
     # the L block in the old money - will need to translate after v5 numbering
     'O13BL3RB',  # o3l39
