@@ -182,8 +182,8 @@ class SourceCutout(object):
         """
         return self.hdulist[extno].converter.get_inverse_converter().convert(point)
 
-    def pix2world(self, x, y):
-        return self.hdulist[self.extno].wcs.xy2sky(x, y)
+    def pix2world(self, x, y, usepv=True):
+        return self.hdulist[self.extno].wcs.xy2sky(x, y, usepv=usepv)
 
     def world2pix(self, ra, dec, usepv=True):
         """
@@ -197,6 +197,8 @@ class SourceCutout(object):
         :return: X, Y, Extension position of source in cutout reference frame
         :rtype: (float, float, int)
         """
+        logger.debug("Converting (ra,dec) to (x,y) given {:8.3f} {:8.3f} for image {}".format(
+            ra, dec, self.reading.get_exposure_number()))
         for idx in range(1, len(self.hdulist)):
             logger.debug("Trying convert using extension: {0}".format(idx))
             hdu = self.hdulist[idx]
