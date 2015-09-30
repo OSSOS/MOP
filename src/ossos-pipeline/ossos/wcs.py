@@ -86,44 +86,44 @@ class WCS(astropy_wcs.WCS):
         """
         return self.header['NORDFIT']
 
-    def xy2sky(self, x, y):
+    def xy2sky(self, x, y, usepv=True):
         try:
-            return xy2sky(x=x, y=y,
-                          crpix1=self.crpix1,
-                          crpix2=self.crpix2,
-                          crval1=self.crval1,
-                          crval2=self.crval2,
-                          cd=self.cd,
-                          pv=self.pv,
-                          nord=self.nord)
+            if usepv:
+                return xy2sky(x=x, y=y,
+                              crpix1=self.crpix1,
+                              crpix2=self.crpix2,
+                              crval1=self.crval1,
+                              crval2=self.crval2,
+                              cd=self.cd,
+                              pv=self.pv,
+                              nord=self.nord)
         except Exception as ex:
             logger.warning("Error {} {}".format(type(ex), ex))
             logger.warning("Reverted to CD-Matrix WCS.")
-            pos = self.wcs_pix2world([[x, y]], 1)
-            return pos[0][0] * units.degree, pos[0][1] * units.degree
+        pos = self.wcs_pix2world([[x, y]], 1)
+        return pos[0][0] * units.degree, pos[0][1] * units.degree
 
     def sky2xy(self, ra, dec, usepv=True):
         try:
-            if not usepv:
-                raise ValueError("PV not activated.")
-            return sky2xy(ra=ra,
-                          dec=dec,
-                          crpix1=self.crpix1,
-                          crpix2=self.crpix2,
-                          crval1=self.crval1,
-                          crval2=self.crval2,
-                          dc=self.dc,
-                          pv=self.pv,
-                          nord=self.nord)
+            if usepv:
+                return sky2xy(ra=ra,
+                              dec=dec,
+                              crpix1=self.crpix1,
+                              crpix2=self.crpix2,
+                              crval1=self.crval1,
+                              crval2=self.crval2,
+                              dc=self.dc,
+                              pv=self.pv,
+                              nord=self.nord)
         except Exception as ex:
             logger.warning("sky2xy raised exception: {0}".format(ex))
             logger.warning("Reverted to CD-Matrix WCS to convert: {0} {1} ".format(ra, dec))
-            if isinstance(ra, Quantity):
-                ra = ra.to(units.degree).value
-            if isinstance(dec, Quantity):
-                dec = dec.to(units.degree).value
-            pos = self.wcs_world2pix([[ra, dec], ], 1)
-            return pos[0][0], pos[0][1]
+        if isinstance(ra, Quantity):
+            ra = ra.to(units.degree).value
+        if isinstance(dec, Quantity):
+            dec = dec.to(units.degree).value
+        pos = self.wcs_world2pix([[ra, dec], ], 1)
+        return pos[0][0], pos[0][1]
 
 
 def sky2xy(ra, dec, crpix1, crpix2, crval1, crval2, dc, pv, nord, maxiter=300):
