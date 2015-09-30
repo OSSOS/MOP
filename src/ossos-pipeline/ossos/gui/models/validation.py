@@ -9,7 +9,7 @@ from ...gui.models.collections import StatefulCollection
 from ...gui.models.exceptions import (ImageNotLoadedException,
                                       NoWorkUnitException,
                                       NoAvailableWorkException)
-from ...gui.models.workload import (CandidatesWorkUnit, RealsWorkUnit,
+from ...gui.models.workload import (WorkUnit, CandidatesWorkUnit, RealsWorkUnit,
                                     TracksWorkUnit)
 from ...astrom import SourceReading
 from ...downloads.cutouts.source import SourceCutout
@@ -133,11 +133,18 @@ class ValidationModel(object):
         return self.get_current_workunit().get_data()
 
     def get_current_workunit(self):
+        """
+        @return the current unit of work.
+        @rtype WorkUnit
+        """
         workunit = self.work_units.get_current_item()
         if workunit is None:
             raise NoWorkUnitException()
         else:
             return workunit
+
+    def set_current_workunit(self, workunit):
+        self.work_units.set_current_item(workunit)
 
     def get_writer(self):
         return self.get_current_workunit().get_writer()

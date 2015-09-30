@@ -42,6 +42,10 @@ class StatefulCollection(object):
         """Returns the index of the current item."""
         return self.index
 
+    def set_current_item(self, item):
+        """Repplace the current item with the provided item"""
+        self.items[self.index] = item
+
     def get_current_item(self):
         if self.items:
             return self.items[self.index]
