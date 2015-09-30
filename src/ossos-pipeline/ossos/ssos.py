@@ -226,7 +226,7 @@ class SSOSParser(object):
             # check if a dbimages object exists
             # For CFHT/MegaCam strip off the trailing character to get the exposure number.
             if (not row['Telescope_Insturment'] == 'CFHT/MegaCam'
-                or (row['Filter'] not in ['r.MP9601', 'u.MP9301'])
+                or (row['Filter'] not in ['R.MP9601', 'U.MP9301', 'GRI.MP9603'])
                     or row['Image_target'].startswith('WP')):
                 continue
 
