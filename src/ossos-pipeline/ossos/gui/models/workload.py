@@ -1,5 +1,6 @@
 from glob import glob
 import re
+from astropy import units
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -16,7 +17,8 @@ from .exceptions import (NoAvailableWorkException, SourceNotNamedException)
 
 from ..progress import FileLockedException
 
-from ...astrom import StreamingAstromWriter, Source
+from ...astrom import StreamingAstromWriter, Source, SourceReading
+from ...mpc import Observation
 from ...orbfit import Orbfit
 
 
@@ -396,6 +398,10 @@ class TracksWorkUnit(WorkUnit):
         return self.builder.build_workunit(mpc_filename)
 
     def save(self):
+        """
+        Update the SouceReading information for the currently recorded observations and then flush those to a file.
+        @return: mpc_filename of the resulting save.
+        """
         self.get_writer().flush()
         mpc_filename = self.output_context.get_full_path(self.get_writer().get_filename())
         self.get_writer().close()
