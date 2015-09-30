@@ -252,6 +252,8 @@ class ValidationModel(object):
             filter_value = header.get(keyword, None)
             if filter_value is not None:
                 break
+        if filter_value is not None and filter_value.startswith('gri'):
+            filter_value = 'w'
         return filter_value
 
     def get_current_pixel_source_point(self):
