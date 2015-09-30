@@ -20,6 +20,7 @@ from . import astrom
 from . import mpc
 from .gui import logger
 from .orbfit import Orbfit
+from planning.plotting import parameters
 
 SSOS_URL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssos.pl"
 RESPONSE_FORMAT = 'tsv'
@@ -223,13 +224,13 @@ class SSOSParser(object):
         logger.info("Loading {} observations\n".format(len(ssos_table)))
         expnums_examined = []
         for row in ssos_table:
-            # check if a dbimages object exists
-            # For CFHT/MegaCam strip off the trailing character to get the exposure number.
-            if (not row['Telescope_Insturment'] == 'CFHT/MegaCam'
-                or (row['Filter'] not in ['r.MP9601', 'u.MP9301'])
+            # Trim down to OSSOS-specific images
+            if ((row['Filter'] not in parameters.OSSOS_FILTERS)
                     or row['Image_target'].startswith('WP')):
                 continue
 
+            # check if a dbimages object exists
+            # For CFHT/MegaCam strip off the trailing character to get the exposure number.
             ftype = row['Image'][-1]
             expnum = row['Image'][:-1]
 
@@ -366,7 +367,8 @@ class ParamDictBuilder(object):
                  orbit_method='bern',
                  error_ellipse='bern',
                  resolve_extension=True,
-                 resolve_position=True):
+                 resolve_position=True,
+                 telescope_instrument='CFHT/MegaCam'):
         self._observations = []
         self.observations = observations
         self._verbose = False
@@ -383,6 +385,8 @@ class ParamDictBuilder(object):
         self.resolve_extension = resolve_extension
         self._resolve_position = None
         self.resolve_position = resolve_position
+        self._telescope_instrument = None
+        self.telescope_instrument = telescope_instrument
 
     @property
     def observations(self):
@@ -514,6 +518,22 @@ class ParamDictBuilder(object):
         self._resolve_position = (resolve_position and "yes") or "no"
 
     @property
+    def telescope_instrument(self):
+        """
+        :param The instrument on the facility. Still a SSOIS beta property.
+        Currently only takes one instrument at a time.
+        :return:
+        """
+        return self._telescope_instrument
+
+    @telescope_instrument.setter
+    def telescope_instrument(self, telescope_instrument):
+        assert isinstance(telescope_instrument, str)
+        if telescope_instrument in TELINST:
+            self._telescope_instrument = telescope_instrument
+
+
+    @property
     def params(self):
         """
         :return: A dictionary of SSOS query parameters.
@@ -527,6 +547,7 @@ class ParamDictBuilder(object):
                     eunits=self.error_ellipse,
                     extres=self.resolve_extension,
                     xyres=self.resolve_position,
+                    telinst=self.telescope_instrument,
                     obs=NEW_LINE.join((
                         str(observation) for observation in self.observations)))
 
@@ -550,7 +571,7 @@ class Query(object):
 
     def __init__(self,
                  observations,
-                 search_start_date=Time('2013-01-01', scale='utc'),
+                 search_start_date=Time(parameters.SURVEY_START, scale='utc'),
                  search_end_date=Time('2017-01-01', scale='utc')):
         self.param_dict_builder = ParamDictBuilder(
             observations,
@@ -583,3 +604,54 @@ class Query(object):
             lines += open("backdoor.tsv").read()
 
         return lines
+
+
+TELINST = [
+    'AAT/WFI',
+    'ALMA',
+    'CFHT/CFH12K',
+    'CFHT/MegaCam',
+    'CFHT/WIRCam',
+    'CTIO-4m/DECam',
+    'CTIO-4m/Mosaic2',
+    'CTIO-4m/NEWFIRM',
+    'ESO-LaSilla_2.2m/WFI',
+    'ESO-NTT/EFOSC',
+    'ESO-NTT/EMMI',
+    'ESO-NTT/SOFI',
+    'ESO-NTT/SUSI',
+    'ESO-NTT/SUSI2',
+    'ESO-VISTA/VIRCAM',
+    'ESO-VLT/FORS1',
+    'ESO-VLT/FORS2',
+    'ESO-VLT/HAWKI',
+    'ESO-VLT/ISAAC',
+    'ESO-VLT/NAOS-CONICA',
+    'ESO-VLT/VIMOS',
+    'ESO-VST/OMEGACAM',
+    'Gemini/GMOS',
+    'Gemini/GMOS-N',
+    'Gemini/GMOS-S',
+    'Gemini/NIRI',
+    'HST/ACS',
+    'HST/WFC3',
+    'HST/WFPC2',
+    'INT/WFC',
+    'JKT/JAG-CCD',
+    'KPNO-0.9m/Mosaic1',
+    'KPNO-0.9m/Mosaic1.1',
+    'KPNO-4m/Mosaic1',
+    'KPNO-4m/Mosaic1.1',
+    'KPNO-4m/NEWFIRM',
+    'NEAT-GEODSS-Maui',
+    'SDSS',
+    'SOAR/SOI',
+    'Subaru/SuprimeCam',
+    'WHT/AUXCAM',
+    'WHT/INGRID',
+    'WHT/LIRIS',
+    'WHT/Prime',
+    'WISE',
+    'WIYN/MiniMo',
+    'WIYN/ODI',
+]
