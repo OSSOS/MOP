@@ -313,7 +313,6 @@ class ProcessRealsController(AbstractController):
                 ypos=source_cutout.observed_y,
                 frame=self.model.get_current_reading().obs.rawname)
 
-            print this_observation.to_string()
             try:
                 previous_observations = self.model.get_writer().get_chronological_buffered_observations()
                 for idx, observation in enumerate(previous_observations):
