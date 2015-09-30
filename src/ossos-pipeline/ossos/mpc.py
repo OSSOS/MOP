@@ -1230,7 +1230,7 @@ class MPCWriter(object):
         self.filehandle.flush()
 
     def _flush_observation(self, obs):
-        isinstance(obs, Observation)
+        assert isinstance(obs, Observation)
         if (self.auto_discovery and
                 not obs.null_observation and
                 not self._discovery_written):
