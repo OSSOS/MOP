@@ -574,18 +574,21 @@ class Observation(object):
         mpc_line = input_line.strip('\n')
         logging.debug("Trying to create MPC record from:\n{}".format(mpc_line))
         if len(mpc_line) > 0 and mpc_line[0] == '#':
-            return MPCComment.from_string(mpc_line[1:])
+            try:
+               comment = MPCComment.from_string(mpc_line[1:])
+            except:
+               comment = None
+            return comment
 
         comment = mpc_line[81:]
         mpc_line = mpc_line[0:80]
         if len(mpc_line) != 80:
-            logging.debug("Line is short, trying .ted format")
+            logging.error("Line is short, trying .ted format")
             try:
                 return cls.from_ted(mpc_line)
             except Exception as ex:
                 logging.debug(type(ex))
                 logging.debug(str(ex))
-                return None
 
         obsrec = None
         for format_name in struct_formats:
@@ -988,6 +991,8 @@ class OSSOSComment(object):
                          y=values[5],
                          comment=comment_string)
         except Exception as e:
+            logging.error(values)
+            logging.error(comment)
             logging.error(str(e))
             raise e
 
