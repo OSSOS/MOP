@@ -6,10 +6,10 @@ import matplotlib.pyplot as plt
 from astropy.table import Table
 import numpy as np
 
-from palettable.colorbrewer import sequential
-from palettable import tableau
-import prettyplotlib as ppl
-import plot_fanciness
+#from palettable.colorbrewer import sequential
+#from palettable import tableau
+#import prettyplotlib as ppl
+#import plot_fanciness
 
 
 path = '/Users/michele/Dropbox/Papers in progress/OSSOS/First_quarter/data/'
