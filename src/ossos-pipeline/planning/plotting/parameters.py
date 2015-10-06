@@ -153,13 +153,23 @@ COLOSSOS = [
     'O13BL3R1',  # o3l18
     'O13BL3RH',  # o3l57
 
-    # the H block so far has some
-    'Col3N01',
-    'Col3N02',
-    'Col3N03',
-    'Col3N05',
-    'Col3N06',
-    'Col3N07',
+    'o4h05',
+    'o4h07',
+    'o4h50', # Col3N01 - observed 14B
+    'o4h01', # Col3N02 - observed 14B
+    'o4h03',
+    'o4h20', # Col3N06 - observed 14B
+    'o4h45', # Col3N03 - observed 14B
+    'o4h18',
+    'o4h19',
+    'o4h14',
+    'o4h31', # Col3N07
+    'o4h39', # Col3N05, variable
+    'o4h29', # variable
+    'o4h09',
+    'o4h48',
+    'o4h13',
+    'o4h11',
 
     # the O and E blocks ColOSSOS, will only ever be in these designations
     'o3e11',
