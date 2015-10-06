@@ -89,14 +89,14 @@ class WCS(astropy_wcs.WCS):
     def xy2sky(self, x, y, usepv=True):
         try:
             if usepv:
-                return xy2sky(x=x, y=y,
-                              crpix1=self.crpix1,
-                              crpix2=self.crpix2,
-                              crval1=self.crval1,
-                              crval2=self.crval2,
-                              cd=self.cd,
-                              pv=self.pv,
-                              nord=self.nord)
+                return xy2skypv(x=x, y=y,
+                                crpix1=self.crpix1,
+                                crpix2=self.crpix2,
+                                crval1=self.crval1,
+                                crval2=self.crval2,
+                                cd=self.cd,
+                                pv=self.pv,
+                                nord=self.nord)
         except Exception as ex:
             logger.warning("Error {} {}".format(type(ex), ex))
             logger.warning("Reverted to CD-Matrix WCS.")
@@ -106,15 +106,15 @@ class WCS(astropy_wcs.WCS):
     def sky2xy(self, ra, dec, usepv=True):
         try:
             if usepv:
-                return sky2xy(ra=ra,
-                              dec=dec,
-                              crpix1=self.crpix1,
-                              crpix2=self.crpix2,
-                              crval1=self.crval1,
-                              crval2=self.crval2,
-                              dc=self.dc,
-                              pv=self.pv,
-                              nord=self.nord)
+                return sky2xypv(ra=ra,
+                                dec=dec,
+                                crpix1=self.crpix1,
+                                crpix2=self.crpix2,
+                                crval1=self.crval1,
+                                crval2=self.crval2,
+                                dc=self.dc,
+                                pv=self.pv,
+                                nord=self.nord)
         except Exception as ex:
             logger.warning("sky2xy raised exception: {0}".format(ex))
             logger.warning("Reverted to CD-Matrix WCS to convert: {0} {1} ".format(ra, dec))
@@ -126,7 +126,7 @@ class WCS(astropy_wcs.WCS):
         return pos[0][0], pos[0][1]
 
 
-def sky2xy(ra, dec, crpix1, crpix2, crval1, crval2, dc, pv, nord, maxiter=300):
+def sky2xypv(ra, dec, crpix1, crpix2, crval1, crval2, dc, pv, nord, maxiter=300):
     """
     Transforms from celestial coordinates to pixel coordinates to taking
     non-linear distortion into account with the World Coordinate System
@@ -268,7 +268,7 @@ def sky2xy(ra, dec, crpix1, crpix2, crval1, crval2, dc, pv, nord, maxiter=300):
     return x, y
 
 
-def xy2sky(x, y, crpix1, crpix2, crval1, crval2, cd, pv, nord):
+def xy2skypv(x, y, crpix1, crpix2, crval1, crval2, cd, pv, nord):
     """
     Transforms from pixel coordinates to celestial coordinates taking
     non-linear distortion into account with the World Coordinate System
