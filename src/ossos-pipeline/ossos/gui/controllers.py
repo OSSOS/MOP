@@ -311,7 +311,8 @@ class ProcessRealsController(AbstractController):
                 comment=None,
                 xpos=source_cutout.observed_x,
                 ypos=source_cutout.observed_y,
-                frame=self.model.get_current_reading().obs.rawname)
+                frame=self.model.get_current_reading().obs.rawname,
+                astrometric_level=source_cutout.astrom_header.get('ASTLEVEL', None))
 
             try:
                 previous_observations = self.model.get_writer().get_chronological_buffered_observations()
@@ -406,7 +407,9 @@ class ProcessRealsController(AbstractController):
             comment=comment,
             xpos=source_cutout.observed_x,
             ypos=source_cutout.observed_y,
-            frame=reading.obs.rawname)
+            frame=reading.obs.rawname,
+            astrometric_level=source_cutout.astrom_header.get('ASTLEVEL', None)
+        )
         mpc_observation._date_precision = 6
 
         source_reading = self.model.get_current_reading()
