@@ -324,12 +324,14 @@ def tag_uri(key):
 
 
 def get_tag(expnum, key):
-    """given a key, return the vospace tag value."""
+    """given a key, return the vospace tag value.
+
+    @return: value of the tag requested.
+    """
 
     if tag_uri(key) not in get_tags(expnum):
         get_tags(expnum, force=True)
-    logger.debug("%s # %s -> %s" % (
-        expnum, tag_uri(key), get_tags(expnum).get(tag_uri(key), None)))
+    logger.debug("%s # %s -> %s" % (expnum, tag_uri(key), get_tags(expnum).get(tag_uri(key), None)))
     return get_tags(expnum).get(tag_uri(key), None)
 
 
@@ -341,6 +343,13 @@ def get_process_tag(program, ccd, version='p'):
 
 
 def get_tags(expnum, force=False):
+    """
+
+    @param expnum:
+    @param force:
+    @return: a dictionary of tags.
+    @rtype: dict
+    """
     uri = os.path.join(DBIMAGES, str(expnum))
     return vospace.get_node(uri, force=force).props
 
@@ -563,7 +572,7 @@ def ra_dec_cutout(uri, sky_coord, radius):
 
     for hdu in hdulist[1:]:
         cutout = cutouts.pop(0)
-        if not 'ASTLEVEL' in hdu.header:
+        if 'ASTLEVEL' not in hdu.header:
             print "******* NO ASTLEVEL ********* ASTROMETRY NOT POSSIBLE ********* IGNORE {0} ********".format(uri)
         hdu.header['EXTNO'] = cutout[0]
         hdu.header['DATASEC'] = reset_datasec("[{}:{},{}:{}]".format(cutout[1],
@@ -672,7 +681,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
                 # extension 1 -> 18 +  37,36 should be flipped.
                 flip_these_extensions = range(1,19)
                 flip_these_extensions.append(37)
-		flip_these_extensions.append(38)
+                flip_these_extensions.append(38)
                 flip = (cutout is None and "fits" in ext and (
                     (ext_no in flip_these_extensions and flip_image) and "[-*,-*]" or "[*,*]")) or cutout
                 locations.append((get_uri(expnum, version=version, ext=this_ext, subdir=subdir),
@@ -1186,6 +1195,8 @@ def _get_sghead(expnum, version):
     :rtype : list of astropy.io.fits.Header objects.
     """
 
+    logger.warning("_get_sghead is depricated, use get_astheader instead.")
+
     url = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHTSG/{}{}.head".format(expnum, version)
     logging.getLogger("requests").setLevel(logging.ERROR)
     resp = requests.get(url)
@@ -1221,26 +1232,13 @@ def get_astheader(expnum, ccd, version='p', prefix=None, ext=None):
     @return:
     """
     logger.debug("Getting ast header for {}".format(expnum))
-    ast_uri = dbimages_uri(expnum, ccd=None, version=version, ext='.head')
-    try:
-        # first try and get this from CFHT SG header from repo
-        if ast_uri not in astheaders:
-            astheaders[ast_uri] = _get_sghead(expnum, version)
-        if ccd is None:
-            return astheaders[ast_uri]
-        header = astheaders[ast_uri][int(ccd) + 1]
-    except Exception as err:
-        # An exception was raised, so try getting directly from a fits images instead.
-        logger.debug("Failed trying to retrieve .head file: {}".format(ast_uri))
-        logger.debug(str(err))
-        ast_uri = dbimages_uri(expnum, ccd, version=version, ext='.fits')
-        if ast_uri not in astheaders:
-            hdulist = get_image(expnum, ccd=ccd, version=version, prefix=prefix,
-                                cutout="[1:1,1:1]", return_file=False)
-            assert isinstance(hdulist, fits.HDUList)
-            astheaders[ast_uri] = hdulist[0].header
-        header = astheaders[ast_uri]
-    return header
+    ast_uri = dbimages_uri(expnum, ccd, version=version, ext='.fits')
+    if ast_uri not in astheaders:
+        hdulist = get_image(expnum, ccd=ccd, version=version, prefix=prefix,
+                            cutout="[1:1,1:1]", return_file=False)
+        assert isinstance(hdulist, fits.HDUList)
+        astheaders[ast_uri] = hdulist[0].header
+    return astheaders[ast_uri]
 
 
 def log_filename(prefix, task, version, ccd):
