@@ -29,7 +29,7 @@ from ossos.coord import Coord
 from ossos import mpc
 from ossos import wcs
 from ossos.cameras import Camera
-from planning.plotting import parsers, parameters
+from ossos.planning.plotting import parsers, parameters
 
 
 color_key = {"yellow": "Fill colour is yellow == tracking termination",
