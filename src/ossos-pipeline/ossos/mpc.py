@@ -574,11 +574,7 @@ class Observation(object):
         mpc_line = input_line.strip('\n')
         logging.debug("Trying to create MPC record from:\n{}".format(mpc_line))
         if len(mpc_line) > 0 and mpc_line[0] == '#':
-            try:
-               comment = MPCComment.from_string(mpc_line[1:])
-            except:
-               comment = None
-            return comment
+            return MPCComment.from_string(mpc_line[1:])
 
         comment = mpc_line[81:]
         mpc_line = mpc_line[0:80]
