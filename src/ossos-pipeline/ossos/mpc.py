@@ -579,13 +579,12 @@ class Observation(object):
         comment = mpc_line[81:]
         mpc_line = mpc_line[0:80]
         if len(mpc_line) != 80:
-            logging.debug("Line is short, trying .ted format")
+            logging.error("Line is short, trying .ted format")
             try:
                 return cls.from_ted(mpc_line)
             except Exception as ex:
                 logging.debug(type(ex))
                 logging.debug(str(ex))
-                return None
 
         obsrec = None
         for format_name in struct_formats:
@@ -988,6 +987,8 @@ class OSSOSComment(object):
                          y=values[5],
                          comment=comment_string)
         except Exception as e:
+            logging.error(values)
+            logging.error(comment)
             logging.error(str(e))
             raise e
 
