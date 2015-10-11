@@ -9,16 +9,17 @@ L7MODEL = '/Users/bannisterm/Dropbox/OSSOS/Release_summaries/L7model-3.0-9.0'  #
 L7_HOME = '/Users/bannisterm/Dropbox/OSSOS/Release_summaries/'
 REAL_KBO_AST_DIR = '/Users/bannisterm/Dropbox/OSSOS/measure3/ossin/'
 # REAL_KBO_AST_DIR = 'vos:OSSOS/dbaseclone/ast/'
-RELEASE_VERSION = 4  # FIXME: this should be a dict that indexes to release detection paths. Less painful.
+RELEASE_VERSION = 5  # FIXME: this should be a dict that indexes to release detection paths. Less painful.
 
 first_quarter = '/Users/bannisterm/Dropbox/Papers in progress/OSSOS/First_quarter/'
 RELEASE_DETECTIONS = {
-    4: first_quarter + 'data/v5-oe+u.detections'
+    4: first_quarter + 'data/v5-oe+u.detections',
+    5: L7_HOME + 'OSSOSv5/OSSOSv5.detections',
+    6: L7_HOME + 'All_Hblock.detections'
 }
 # v5prototype.detections'
 #
-IDX = first_quarter + 'data/Correspondance.list'
-#REAL_KBO_AST_DIR + 'file.idx'  # for local  # 'vos:OSSOS/dbaseclone/idx/file.idx'  # for vos
+IDX = REAL_KBO_AST_DIR + 'file.idx'  # for local  # 'vos:OSSOS/dbaseclone/idx/file.idx'  # for vos
 
 PLOT_FIELD_EPOCH = 'Jun14.00'  # Jun14.00 ==> '0' days since the New Moon on Jun14
 
@@ -97,7 +98,8 @@ BLOCKS = OrderedDict([
     ('13AE', {"RA": "14:15:28.89", "DEC": "-12:32:28.4"}),
     ('13AO', {"RA": "15:58:01.35", "DEC": "-12:19:54.2"}),  # O+0+0: image 1625346, ccd21 on May 8. O block are May 7,8.
     ('13BL', {'RA': "00:54:00.00", "DEC": "+03:50:00.00"}),  # 13B blocks are at their opposition locations
-    ('14BH', {'RA': "01:30:00.00", "DEC": "+13:00:00.00"}),  # due to bad weather, discovery wasn't until 2014, so 14
+    #('14BH', {'RA': "01:30:00.00", "DEC": "+13:00:00.00"}),  # due to bad weather, discovery wasn't until 2014, so 14
+    ('14BH', {'RA': "1:35:14.39", "DEC": "+13:28:25.2"}),   # the exact centre of the precessed 2014 observed location
 
     ('15AP', {'RA': "13:30:00.00", "DEC": "-7:45:00.00"}),  # on-plane
     ('15AM', {'RA': "15:35:00.00", "DEC": "-12:10:00.0"}),  # positioned for its 2015 discovery opposition.
@@ -155,16 +157,16 @@ COLOSSOS = [
 
     'o4h05',
     'o4h07',
-    'o4h50', # Col3N01 - observed 14B
-    'o4h01', # Col3N02 - observed 14B
+#    'o4h50', # Col3N01 - observed 14B
+#    'o4h01', # Col3N02 - observed 14B
     'o4h03',
-    'o4h20', # Col3N06 - observed 14B
-    'o4h45', # Col3N03 - observed 14B
+#    'o4h20', # Col3N06 - observed 14B
+#    'o4h45', # Col3N03 - observed 14B
     'o4h18',
     'o4h19',
     'o4h14',
     'o4h31', # Col3N07
-    'o4h39', # Col3N05, variable
+#    'o4h39', # Col3N05, variable - observed 15B before PV run
     'o4h29', # variable
     'o4h09',
     'o4h48',
