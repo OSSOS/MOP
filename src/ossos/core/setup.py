@@ -2,6 +2,20 @@ import os
 from setuptools import setup, find_packages
 import sys
 
+dependencies = ['pyraf >= 2.1.1',
+                    'astropy >= 0.2.5',
+                    'vos >= 2.0',
+                    'pyephem',
+                    'requests >= 2.7',
+                    'pyOpenSSL',
+                    'numpy >= 1.6.1',
+                    'wxPython-common > 2.8.1',
+                    'matplotlib',
+                    'Polygon2',
+                    'd2to1 >= 0.2.10', 'scipy', 'uncertainties', 'pyds9 == 1.8'
+                        ]
+
+
 if sys.version_info[0] > 2:
     print 'The MOP package is only compatible with Python version 2.7+, not yet with 3.x'
     sys.exit(-1)
@@ -16,7 +30,7 @@ for script in os.listdir(script_dir):
 
 
 setup(name='ossos',
-      version="0.4.1",
+      version="0.4.2",
       url='http://github.com/OSSOS/MOP',
       author='''JJ Kavelaars (jjk@uvic.ca),
               Michele Bannister (micheleb@uvic.ca),
@@ -34,19 +48,8 @@ setup(name='ossos',
                    'License :: OSI Approved :: GNU General Public License (GPL)',
                    ],
       package_data={'ossos': ['gui/*.json']},
-      dependency_links=['git+https://github.com/ericmandel/pyds9.git#egg=pyds9'],
-      install_requires=['pyraf >= 2.1.1',
-                        'astropy >= 0.2.5',
-                        'vos >= 2.0',
-                        'pyephem',
-                        'requests >= 2.7',
-                        'pyOpenSSL',
-                        'numpy >= 1.6.1',
-                        'wxPython >= 2.8.12.1',
-                        'matplotlib',
-                        'Polygon2',
-                        'd2to1 >= 0.2.10', 'scipy', 'uncertainties',
-                        ],
+      dependency_links=['git+https://github.com/ericmandel/pyds9.git#egg=pyds9-1.8'],
+      install_requires=dependencies,
       scripts=scripts,
       packages=find_packages(exclude=['tests.*',])
       )
