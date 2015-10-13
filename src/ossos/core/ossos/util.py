@@ -7,7 +7,7 @@ import os
 import re
 import subprocess
 import time
-import vos
+from vos import vos
 import sys
 
 try:
