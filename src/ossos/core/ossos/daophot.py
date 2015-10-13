@@ -71,7 +71,7 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
                   "DEFAULT": 26.0,
                   "g.MP9401": 32.0,
                   'r.MP9601': 31.9,
-                  'gri.MP9603': 33.0}
+                  'gri.MP9603': 33.520}
 
     if zmag is None:
         logger.warning("No zmag supplied to daophot, looking for header or default values.")

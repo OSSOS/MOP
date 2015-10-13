@@ -15,7 +15,7 @@ from astropy.io import ascii
 from astropy import units
 from astropy.units import Quantity
 from astropy.utils.exceptions import AstropyUserWarning
-import vos
+from vos import vos
 from astropy.io import fits
 import requests
 

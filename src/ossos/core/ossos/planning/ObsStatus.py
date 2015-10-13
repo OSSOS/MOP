@@ -21,7 +21,7 @@ from matplotlib.patches import Rectangle
 from matplotlib.backends.backend_pdf import PdfPages
 import logging
 
-from planning.plotting import parameters
+from ossos.planning.plotting import parameters
 
 
 def query_for_observations(mjd, observable, runids):

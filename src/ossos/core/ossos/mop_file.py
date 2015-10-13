@@ -1,5 +1,5 @@
 
-import vos
+from vos import vos
 import math
 import urlparse
 import re

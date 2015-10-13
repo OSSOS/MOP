@@ -14,6 +14,7 @@ for script in os.listdir(script_dir):
         continue
     scripts.append(os.path.join(script_dir, script))
 
+
 setup(name='ossos',
       version="0.4.1",
       url='http://github.com/OSSOS/MOP',
@@ -33,6 +34,7 @@ setup(name='ossos',
                    'License :: OSI Approved :: GNU General Public License (GPL)',
                    ],
       package_data={'ossos': ['gui/*.json']},
+      dependency_links=['git+https://github.com/ericmandel/pyds9.git#egg=pyds9'],
       install_requires=['pyraf >= 2.1.1',
                         'astropy >= 0.2.5',
                         'vos >= 2.0',
@@ -41,11 +43,10 @@ setup(name='ossos',
                         'pyOpenSSL',
                         'numpy >= 1.6.1',
                         'wxPython >= 2.8.12.1',
-                        'pyds9',
                         'matplotlib',
                         'Polygon2',
                         'd2to1 >= 0.2.10', 'scipy', 'uncertainties',
                         ],
       scripts=scripts,
-      packages=find_packages(exclude="tests*")
+      packages=find_packages(exclude=['tests.*',])
       )
