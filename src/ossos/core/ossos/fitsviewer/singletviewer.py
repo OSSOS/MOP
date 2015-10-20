@@ -43,7 +43,7 @@ class SingletViewer(WxMPLFitsViewer):
             return
 
         try:
-            radii = (cutout.apcor.aperture, cutout.apcor.sky, cutout.apcor.swidth+cutout.apcor.sky)
+            # radii = (cutout.apcor.aperture, cutout.apcor.sky, cutout.apcor.swidth+cutout.apcor.sky)
             radii = (cutout.apcor.sky, cutout.apcor.swidth+cutout.apcor.sky)
         except Exception as ex:
             logger.info("Exception: {0}".format(ex))
