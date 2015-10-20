@@ -3,15 +3,15 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import wx
 import wx.lib.inspection
 
-from ossos.gui import logger
-from ossos.gui.views import dialogs
-from ossos.gui.views.errorhandling import CertificateDialog, RetryDownloadDialog
-from ossos.gui.views.imageview import ImageViewManager
-from ossos.gui.views.keybinds import KeybindManager
-from ossos.gui.views.loading import WaitingGaugeDialog
-from ossos.gui.views.mainframe import MainFrame
-from ossos.gui.views.menu import Menu
-from ossos.gui.views.validation import AcceptSourceDialog, RejectSourceDialog, OffsetSourceDialog
+from .. import logger
+import dialogs
+from errorhandling import CertificateDialog, RetryDownloadDialog
+from imageview import ImageViewManager
+from keybinds import KeybindManager
+from loading import WaitingGaugeDialog
+from mainframe import MainFrame
+from menu import Menu
+from validation import AcceptSourceDialog, RejectSourceDialog, OffsetSourceDialog
 
 
 def guithread(function):
@@ -86,8 +86,8 @@ class ApplicationView(object):
         self.wx_app.MainLoop()
 
     @guithread
-    def display(self, cutout):
-        self.image_viewer.display(cutout)
+    def display(self, cutout, use_pixel_coords=False):
+        self.image_viewer.display(cutout, use_pixel_coords)
 
     @guithread
     def place_marker(self, cutout, x, y, radius=10, colour='r'):

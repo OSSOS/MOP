@@ -1,11 +1,10 @@
 from astropy import units
 from astropy.units import Quantity
-from ossos.astrom import SourceReading
 
-from ossos.downloads.cutouts.source import SourceCutout
-from ossos.gui.models.transactions import TransAckValidationModel
-from ossos.gui.models.workload import TracksWorkUnit
-from ossos.gui.views.appview import ApplicationView
+from ..downloads.cutouts.source import SourceCutout
+from ..gui.models.transactions import TransAckValidationModel
+from ..gui.models.workload import TracksWorkUnit
+from ..gui.views.appview import ApplicationView
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 import math
@@ -38,6 +37,7 @@ class AbstractController(object):
         events.subscribe(events.NO_AVAILABLE_WORK, self.on_no_available_work)
         self.mark_prediction = False
         self.mark_source = True
+        self.use_pixel_coords = True
         self.autoplay_manager = AutoplayManager(model)
         self.downloader = Downloader()
         self.image_loading_dialog_manager = ImageLoadingDialogManager(view)
@@ -59,7 +59,7 @@ class AbstractController(object):
             reading = self.model.get_current_reading()
             self.view.image_viewer.mark_source = self.mark_source
             self.view.image_viewer.mark_prediction = self.mark_prediction
-            self.view.display(cutout)
+            self.view.display(cutout, self.use_pixel_coords)
             self.view.align(cutout, reading, source)
         except ImageNotLoadedException as ex:
             logger.info("Waiting to load image: {}".format(ex))
@@ -510,6 +510,7 @@ class ProcessTracksController(ProcessRealsController):
         super(ProcessTracksController, self).__init__(model, view, name_generator)
         assert isinstance(model, TransAckValidationModel)
         assert isinstance(view, ApplicationView)
+        self.use_pixel_coords = False
         self.mark_prediction = True
         self.is_discovery = False
 
@@ -559,7 +560,7 @@ class ProcessTracksController(ProcessRealsController):
         if research or cutout.comparison_image is None:
             cutout.retrieve_comparison_image()
         if cutout.comparison_image is not None:  # if a comparison image was found
-            self.view.display(cutout.comparison_image)
+            self.view.display(cutout.comparison_image, self.use_pixel_coords)
             self.view.align(self.model.get_current_cutout(),
                             self.model.get_current_reading(),
                             self.model.get_current_source())

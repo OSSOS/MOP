@@ -1,14 +1,10 @@
-import copy
 import logging
-
 from astropy import units
-
 from astropy.coordinates import SkyCoord
-
-from ossos.astrom import SourceReading
-from ossos.downloads.cutouts.focus import SingletFocusCalculator
-from ossos.downloads.cutouts.source import SourceCutout
-from ossos.gui import logger
+from ..astrom import SourceReading
+from ..downloads.cutouts.focus import SingletFocusCalculator
+from ..downloads.cutouts.source import SourceCutout
+from ..gui import logger
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -32,7 +28,7 @@ class WxMPLFitsViewer(object):
     def ds9(self):
         return self._ds9
 
-    def display(self, cutout):
+    def display(self, cutout, use_pixel_coords=False):
         """
         :param cutout: source cutout object to be display
         :type cutout: source.SourceCutout
@@ -55,7 +51,7 @@ class WxMPLFitsViewer(object):
 
         self._do_render(self.current_displayable)
 
-        self.mark_apertures(cutout, pixel=False)
+        self.mark_apertures(cutout, pixel=use_pixel_coords)
 
         self.draw_uncertainty_ellipse(cutout)
 
