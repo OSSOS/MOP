@@ -20,6 +20,9 @@ DATASET_ROOT = storage.DBIMAGES
 
 # Images from CCDs < 18 have their coordinates flipped
 MAX_INVERTED_CCD = 17
+INVERTED_CCDS = range(0, 18)
+INVERTED_CCDS.append(36)
+INVERTED_CCDS.append(37)
 
 HEADER_LINE_LENGTH = 80
 
@@ -817,7 +820,7 @@ class SourceReading(object):
 
         if self.ssos or self.obs.is_fake():
             return False
-        return True if self.get_ccd_num() <= MAX_INVERTED_CCD else False
+        return True if self.get_ccd_num() in INVERTED_CCDS else False
 
 
 class Observation(object):
