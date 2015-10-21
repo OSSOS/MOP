@@ -42,7 +42,8 @@ class MainFrame(wx.Frame):
 
         self.validation_view = SourceValidationPanel(self.control_panel, self.controller)
 
-        self.mpc_save_view = MPCPanel(self.control_panel, self.controller)
+        if self.track_mode:
+            self.mpc_save_view = MPCPanel(self.control_panel, self.controller)
 
         self._do_layout()
 
@@ -67,7 +68,8 @@ class MainFrame(wx.Frame):
     def _create_data_notebook(self):
         notebook = wx.Notebook(self.control_panel)
 
-        columns = ("Key", "Value")
+        columns = ("{:15s}".format("Key".center(10)),
+                    "{:15s}".format("Value".center(10)))
         self.reading_data_panel = ListCtrlPanel(notebook, columns)
         self.obs_header_panel = ListCtrlPanel(notebook, columns)
 
