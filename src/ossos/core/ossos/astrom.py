@@ -818,7 +818,7 @@ class SourceReading(object):
         # dr2 = ((x-self.x)**2 + (y-self.y)**2)
         # return dr2 > 2
 
-        if self.ssos or self.obs.is_fake():
+        if self.ssos or self.obs.is_fake() or self.obs.ftype == 's':
             return False
         return True if self.get_ccd_num() in INVERTED_CCDS else False
 
@@ -905,7 +905,7 @@ class Observation(object):
 
     # TODO Remove get_image_uri from here, use the storage methods.
     def get_image_uri(self):
-        if self.ftype == 'p' and self.fk is None or self.fk=='':
+        if self.ftype == 'p' and (self.fk is None or self.fk == ''):
             return storage.dbimages_uri(self.expnum)
 
         return storage.dbimages_uri(self.expnum,
@@ -957,7 +957,6 @@ class Observation(object):
     def get_mpc_date(self):
         header = self.header
         if isinstance(header, list):
-            print "Got list when header expected, trying to use correct member of list."
             extno = self.ccdnum - 1
             header = header[extno]
         mpc_date = header.get('MJD_OBS_CENTER', None)
