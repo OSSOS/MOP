@@ -182,21 +182,36 @@ class ValidationModel(object):
         return int(self.get_current_reading().obs.expnum)
 
     def get_reading_data(self):
+        cutout = self.get_current_cutout()
         reading = self.get_current_reading()
-        return (("X", reading.x), ("Y", reading.y), ("X_0", reading.x0),
-                ("Y_0", reading.y0), ("R.A.", reading.ra),
-                ("DEC", reading.dec))
+        return (
+            ("Original", "(x,y)"),
+            (reading.x, reading.y),
+            ("Reference", "(x,y)"),
+            (reading.x0, reading.y0),
+            ("Cutout", "(x,y)"),
+            (cutout.pixel_x, cutout.pixel_y),
+            ("R.A.", "DEC"),
+            (reading.sky_coord.ra.to_string(unit='hour', sep=":", precision=2),
+             reading.sky_coord.dec.to_string(unit='degree', sep=":", precision=1))
+        )
 
     def get_header_data_list(self):
 
         try:
             header = self.get_current_astrom_header()
-            return [(key, value) for key, value in header.iteritems()]
-        except:
+            keys = ['MJD_OBS_CENTER',
+                    'MJD-OBSC',
+                    'EXPNUM',
+                    'CHIPNUM',
+                    'FWHM']
+            return [(key, header.get(key, None)) for key in keys]
+        except Exception as ex:
+            print "Failed to load mopheader, reverting to cutout header."
             pass
 
         try:
-            header = self.get_current_cutout().hdulist[0].header
+            header = self.get_current_cutout().hdulist[-1].header
             return [(key, value) for key, value in header.iteritems()]
         except:
             pass
