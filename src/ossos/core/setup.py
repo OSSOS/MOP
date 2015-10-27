@@ -1,6 +1,7 @@
 import os
-from setuptools import setup, find_packages
 import sys
+
+from setuptools import setup, find_packages
 
 dependencies = ['pyraf >= 2.1.1',
                     'astropy >= 0.2.5',
@@ -30,7 +31,7 @@ for script in os.listdir(script_dir):
 
 
 setup(name='ossos',
-      version="0.4.6",
+      version="0.4.8",
       url='http://github.com/OSSOS/MOP',
       author='''JJ Kavelaars (jjk@uvic.ca),
               Michele Bannister (micheleb@uvic.ca),
