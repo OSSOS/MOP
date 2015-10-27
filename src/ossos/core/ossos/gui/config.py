@@ -6,6 +6,7 @@ DEFAULT_CONFIG_FILE = "config.json"
 
 _configs = {}
 
+
 def read(keypath, configfile=None):
     """
     Reads a value from the configuration file.
