@@ -9,14 +9,14 @@ L7MODEL = '/Users/bannisterm/Dropbox/OSSOS/Release_summaries/L7model-3.0-9.0'  #
 L7_HOME = '/Users/bannisterm/Dropbox/OSSOS/Release_summaries/'
 REAL_KBO_AST_DIR = '/Users/bannisterm/Dropbox/OSSOS/measure3/ossin/'
 # REAL_KBO_AST_DIR = 'vos:OSSOS/dbaseclone/ast/'
-RELEASE_VERSION = 4  # FIXME: this should be a dict that indexes to release detection paths. Less painful.
+RELEASE_VERSION = 6
 
 first_quarter = '/Users/bannisterm/Dropbox/Papers in progress/OSSOS/First_quarter/'
 RELEASE_DETECTIONS = {
-    4: first_quarter + 'data/v5-oe+u.detections'
+    4: first_quarter + 'data/v5-oe+u.detections',
+    5: L7_HOME + 'v5/OSSOSv5.detections',
+    6: L7_HOME + 'v6.prototype.detections'
 }
-# v5prototype.detections'
-#
 IDX = first_quarter + 'data/Correspondance.list'
 #REAL_KBO_AST_DIR + 'file.idx'  # for local  # 'vos:OSSOS/dbaseclone/idx/file.idx'  # for vos
 
@@ -97,7 +97,9 @@ BLOCKS = OrderedDict([
     ('13AE', {"RA": "14:15:28.89", "DEC": "-12:32:28.4"}),
     ('13AO', {"RA": "15:58:01.35", "DEC": "-12:19:54.2"}),  # O+0+0: image 1625346, ccd21 on May 8. O block are May 7,8.
     ('13BL', {'RA': "00:54:00.00", "DEC": "+03:50:00.00"}),  # 13B blocks are at their opposition locations
-    ('14BH', {'RA': "01:30:00.00", "DEC": "+13:00:00.00"}),  # due to bad weather, discovery wasn't until 2014, so 14
+
+    # ('14BH', {'RA': "01:30:00.00", "DEC": "+13:00:00.00"}), # due to bad weather, discovery wasn't until 2014, so 14BH
+    ('14BH', {'RA': "01:35:14.39", "DEC": "+13:28:25.2"}),  # where it was actually observed after precession from 2013.
 
     ('15AP', {'RA': "13:30:00.00", "DEC": "-7:45:00.00"}),  # on-plane
     ('15AM', {'RA': "15:35:00.00", "DEC": "-12:10:00.0"}),  # positioned for its 2015 discovery opposition.
@@ -108,11 +110,11 @@ BLOCKS = OrderedDict([
 DISCOVERY_DATES = {"13AE": "2013/04/09 08:50:00",
                    "13AO": "2013/05/08 08:50:00",
                    "15AP": NEWMOONS['Apr15'],
-                   "15AM": NEWMOONS['May15'],  # Backup triplet was on 2014/05/29, 2014/06/01 at diff block centre
+                   "15AM": NEWMOONS['May15'],      # Backup triplet was on 2014/05/29, 2014/06/01 at diff block centre
                    "13BL": "2013/09/29 08:50:00",  # HOWEVER: discovery date is split between months (earliest)
                    "14BH": "2014/10/22 09:30:00",  # Note: Col3N triplet is instead 2014/01/03.
-                   "15BD": NEWMOONS['Nov15'],  # FIXME: set when observations taken
-                   "15BS": NEWMOONS['Sep15']  # FIXME: set when observations taken
+                   "15BS": "2015/09/09 08:50:00",  # both halves within a night: 09-08 and 09-09
+                   "15BD": NEWMOONS['Nov15']      # FIXME: set when observations taken
 }
 
 DISCOVERY_NEW_MOON = 'Apr13'  # applies to the 13A blocks
