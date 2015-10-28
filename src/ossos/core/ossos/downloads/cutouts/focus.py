@@ -8,7 +8,8 @@ class FocusCalculator(object):
         system of reference_reading.
         """
         offset_x, offset_y = reference_reading.get_coordinate_offset(source_reading)
-        return source_reading.x + offset_x, source_reading.y + offset_y
+        focus = source_reading.x + offset_x, source_reading.y + offset_y
+        return focus
 
 
 class SingletFocusCalculator(FocusCalculator):
@@ -29,7 +30,6 @@ class SingletFocusCalculator(FocusCalculator):
             The location of the source in the middle observation, in the
             coordinate system of the current source reading.
         """
-        middle_reading = reading
         middle_index = len(self.source.get_readings()) // 2
         middle_reading = self.source.get_reading(middle_index)
         return self.convert_source_location(middle_reading, reading)

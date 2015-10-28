@@ -30,7 +30,6 @@ class SingletViewer(WxMPLFitsViewer):
         :param pixel: Mark based on pixel locations or based on RA/DEC ?
         :type pixel: bool
         """
-
         try:
             x = cutout.reading.mpc_observation.comment.x
             y = cutout.reading.mpc_observation.comment.y
@@ -38,6 +37,8 @@ class SingletViewer(WxMPLFitsViewer):
             pixel = True
         except Exception as ex:
             x, y = cutout.pixel_x, cutout.pixel_y
+
+        (x, y) = cutout.pix2world(x, y, usepv=False)
 
         if not self.mark_source:
             return
@@ -51,6 +52,7 @@ class SingletViewer(WxMPLFitsViewer):
             radii = (15, 30)
 
         if pixel:
+            radii = [radius * 0.185 * units.arcsec for radius in radii]
             self._displayables_by_cutout[cutout].place_annulus(x, y, radii, colour='r')
         else:
             cutout.update_pixel_location((x, y), extno=cutout.original_observed_ext)
