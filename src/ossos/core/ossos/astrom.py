@@ -819,8 +819,11 @@ class SourceReading(object):
         # return dr2 > 2
 
         if self.ssos or self.obs.is_fake() or self.obs.ftype == 's':
-            return False
-        return True if self.get_ccd_num() in INVERTED_CCDS else False
+            inverted = False
+        else:
+            inverted = True if self.get_ccd_num() in INVERTED_CCDS else False
+        logger.debug("Got that {} is_inverted: {}".format(self.obs.rawname, inverted))
+        return inverted
 
 
 class Observation(object):
