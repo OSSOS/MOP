@@ -1,6 +1,8 @@
 import logging
+
 from astropy import units
 from astropy.coordinates import SkyCoord
+
 from ..astrom import SourceReading
 from ..downloads.cutouts.focus import SingletFocusCalculator
 from ..downloads.cutouts.source import SourceCutout
@@ -134,9 +136,12 @@ class WxMPLFitsViewer(object):
             logger.debug("Got focus calculator {} for source {}".format(focus_calculator, source))
             focus = cutout.flip_flip(focus_calculator.calculate_focus(reading))
             focus = cutout.get_pixel_coordinates(focus)
-            focus = cutout.pix2world(focus[0], focus[1])
+            focus = cutout.pix2world(focus[0], focus[1], usepv=False)
             focus_sky_coord = SkyCoord(focus[0], focus[1])
-            self.current_displayable.pan_to(focus_sky_coord)
+            minimum_pan = 60
+            if len(source.get_readings()) > 1:
+                minimum_pan = 0
+            self.current_displayable.pan_to(focus_sky_coord, minimum_pan=minimum_pan)
 
     @staticmethod
     def _do_render(displayable):

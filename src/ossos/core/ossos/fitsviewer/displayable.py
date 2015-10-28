@@ -8,7 +8,7 @@ from astropy.units import Quantity
 
 from .colormap import GrayscaleColorMap
 from .interaction import Signal
-from ossos.astrom import Ellipse
+from ..astrom import Ellipse
 
 
 class Region(object):
@@ -303,6 +303,7 @@ class DisplayableImageSinglet(Displayable):
         self.ellipse_placed = False
         self.annulus_placed = False
         self._focus = None
+        self.minimum_pan = 0 * units.arcsec
 
     @property
     def xy_changed(self):
@@ -321,11 +322,11 @@ class DisplayableImageSinglet(Displayable):
 
     @property
     def aligned(self):
-        if not self.focus:
+        if self.focus is None:
             return False
         focus = self.display.get("pan wcs degrees").split()
         focus = SkyCoord(focus[0], focus[1], unit=units.degree)
-        return focus.separation(self.focus) < 60 * units.arcsec
+        return focus.separation(self.focus) < self.minimum_pan
 
     @property
     def focus(self):
@@ -345,13 +346,14 @@ class DisplayableImageSinglet(Displayable):
             self._focus = focus
 
     def _do_align(self):
-        if not self.focus:
+        if self.focus is None:
             return
         if not self.aligned:
             self.display.set("pan to {} {} wcs fk5".format(self.focus.ra.degree,
                                                            self.focus.dec.degree))
 
-    def pan_to(self, pos):
+    def pan_to(self, pos, minimum_pan=0):
+        self.minimum_pan = minimum_pan * units.arcsec
         self.focus = pos
         self._do_align()
 

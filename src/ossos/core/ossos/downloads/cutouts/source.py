@@ -96,9 +96,14 @@ class SourceCutout(object):
                                                  self.reading.obs.header.get('NAXIS1', 256))
             naxis2 = self.reading.obs.header.get(self.reading.obs.HEADER_IMG_SIZE_Y,
                                                  self.reading.obs.header.get('NAXIS2', 256))
+            logger.debug("Got that image has size {}, {}".format(naxis1, naxis2))
 
+            x1 = x
+            y1 = y
             x = int(naxis1) - x + 1
             y = int(naxis2) - y + 1
+            logger.debug("Inverted source location from {},{} to {},{}".format(x1, y1, x, y))
+
         return x, y
 
     @property
