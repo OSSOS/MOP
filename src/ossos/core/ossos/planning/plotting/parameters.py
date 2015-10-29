@@ -17,8 +17,8 @@ RELEASE_DETECTIONS = {
     5: L7_HOME + 'v5/OSSOSv5.detections',
     6: L7_HOME + 'v6.prototype.detections'
 }
-IDX = first_quarter + 'data/Correspondance.list'
-#REAL_KBO_AST_DIR + 'file.idx'  # for local  # 'vos:OSSOS/dbaseclone/idx/file.idx'  # for vos
+
+IDX = REAL_KBO_AST_DIR + 'file.idx'  # for local  # 'vos:OSSOS/dbaseclone/idx/file.idx'  # for vos
 
 PLOT_FIELD_EPOCH = 'Jun14.00'  # Jun14.00 ==> '0' days since the New Moon on Jun14
 
