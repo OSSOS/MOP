@@ -267,6 +267,18 @@ def extract_mpc_designations(initial_id='o3'):
     return idx
 
 
+def extract_highest_designation(initial_id):
+    # Scrape the index file for MPC designations, if they exist
+    idx = {}
+    with open(parameters.IDX) as infile:
+        lines = infile.readlines()
+        for line in lines:
+            designations = line.split(' ')
+            if initial_id in designations:
+                # Highest internal OSSOS one will be leftmost. FIXME: some logic for getting MPC designations, to right
+                return designations[0].split('\t')[0]
+
+
 def create_table(tnos, outfile, initial_id='o3'):
     # sort order gives Classical, Detached, Resonant, Scattered
     # Sort by discovery mag within each classification.
