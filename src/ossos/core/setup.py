@@ -31,7 +31,7 @@ for script in os.listdir(script_dir):
 
 
 setup(name='ossos',
-      version="0.4.8",
+      version="0.4.9",
       url='http://github.com/OSSOS/MOP',
       author='''JJ Kavelaars (jjk@uvic.ca),
               Michele Bannister (micheleb@uvic.ca),
