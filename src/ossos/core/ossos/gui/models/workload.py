@@ -1,6 +1,5 @@
 from glob import glob
 import re
-from astropy import units
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -18,7 +17,6 @@ from .exceptions import (NoAvailableWorkException, SourceNotNamedException)
 from ..progress import FileLockedException
 
 from ...astrom import StreamingAstromWriter, Source, SourceReading
-from ...mpc import Observation
 from ...orbfit import Orbfit
 
 
@@ -263,7 +261,7 @@ class RealsWorkUnit(WorkUnit):
         # dependencies (like astropy) used in MPCWriter when they are not
         # needed (i.e. cands task).  This is to help reduce the application
         # startup time.
-        from ossos.mpc import MPCWriter
+        from ...mpc import MPCWriter
 
         return MPCWriter(self.output_context.open(filename),
                          auto_flush=False)
@@ -478,7 +476,7 @@ class TracksWorkUnit(WorkUnit):
         # dependencies (like astropy) used in MPCWriter when they are not
         # needed (i.e. cands task).  This is to help reduce the application
         # startup time.
-        from ossos.mpc import MPCWriter
+        from ...mpc import MPCWriter
 
         writer = MPCWriter(self.output_context.open(filename),
                            auto_flush=False, auto_discovery=False)
