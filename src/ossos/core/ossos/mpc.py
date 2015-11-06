@@ -840,7 +840,9 @@ class Observation(object):
         except:
             try:
                 self._ra_precision = compute_precision(val1)
+                self._ra_precision = self._ra_precision < 3 and self._ra_precision or 3
                 self._dec_precision = compute_precision(val2)
+                self._dec_precision = self._dec_precision < 2 and self._dec_precision or 2
                 self._coordinate = SkyCoord(val1, val2, unit=(units.hour, units.degree))
             except Exception as ex:
                 logging.debug(type(ex))
