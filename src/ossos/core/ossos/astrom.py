@@ -9,7 +9,6 @@ import re
 from astropy import units
 from astropy.coordinates import SkyCoord
 from astropy.units import Quantity
-
 from astropy.time import TimeDelta
 
 from .gui import logger
@@ -395,6 +394,7 @@ class AstromData(object):
             source readings must match the ordering of the observations.
         """
         self.observations = observations
+        self.mpc_observations = {}
         self.sys_header = sys_header
         self.sources = [Source(reading_list) for reading_list in sources]
 
@@ -530,6 +530,7 @@ class SourceReading(object):
         self.null_observation = null_observation
         self._discovery = None
         self.discovery = discovery
+        self.mpc_obseravtions = {}
 
     def _original_frame(self, x, y):
         """

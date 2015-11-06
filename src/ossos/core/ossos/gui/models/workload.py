@@ -1,6 +1,5 @@
 from glob import glob
 import re
-from astropy import units
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -18,7 +17,6 @@ from .exceptions import (NoAvailableWorkException, SourceNotNamedException)
 from ..progress import FileLockedException
 
 from ...astrom import StreamingAstromWriter, Source, SourceReading
-from ...mpc import Observation
 from ...orbfit import Orbfit
 
 
