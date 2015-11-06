@@ -38,7 +38,7 @@ class SingletViewer(WxMPLFitsViewer):
         except Exception as ex:
             x, y = cutout.pixel_x, cutout.pixel_y
 
-        (x, y) = cutout.pix2world(x, y, usepv=False)
+        (ra, dec) = cutout.pix2world(x, y, usepv=False)
 
         if not self.mark_source:
             return
@@ -53,7 +53,7 @@ class SingletViewer(WxMPLFitsViewer):
 
         if pixel:
             radii = [radius * 0.185 * units.arcsec for radius in radii]
-            self._displayables_by_cutout[cutout].place_annulus(x, y, radii, colour='r')
+            self._displayables_by_cutout[cutout].place_annulus(ra, dec, radii, colour='r')
         else:
             cutout.update_pixel_location((x, y), extno=cutout.original_observed_ext)
             radii = [radius * 0.185 * units.arcsec for radius in radii]
