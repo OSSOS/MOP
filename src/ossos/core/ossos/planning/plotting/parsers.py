@@ -10,6 +10,7 @@ import ephem
 from astropy.table import Table
 from uncertainties import ufloat
 import numpy
+import pandas
 
 from ossos import mpc
 from ossos import orbfit
@@ -50,7 +51,13 @@ class TNO(object):
     def __init__(self, observations):
         self.orbit = orbfit.Orbfit(observations.mpc_observations)
         try:
-            self.discovery = [n for n in observations.mpc_observations if n.discovery.is_discovery][0]
+            # Previously discovered objects can have 'discovery-marked' lines that predate the OSSOS survey.
+            discoveries = [n for n in observations.mpc_observations if (n.discovery.is_discovery and n.date > parameters.SURVEY_START)]
+            # Some objects were linked to independent OSSOS-observed triples; these are also multiply 'discovery-marked'
+            if len(discoveries) > 1:
+                discoveries.sort(key=lambda x: x.date)
+            # once sorted and restricted to within the survey timeframe, it's always the earliest such marked line.
+            self.discovery = discoveries[0]
         except:
             self.discovery = False
         self.name = observations.provisional_name.split('.')[0]
@@ -74,7 +81,9 @@ def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
 
     if single_object is not None:
         files = filter(lambda name: name.startswith(single_object), files)
-    if not all_objects:
+        print 'loading only {}'.format(files)
+    elif all_objects:
+        print 'loading data release {}'.format(data_release)
         # only return the objects corresponding to a particular Data Release
         data_release = ossos_release_parser(table=True, data_release=data_release)
         objects = data_release['object']
@@ -82,6 +91,7 @@ def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
 
     for filename in files:
         # keep out the not-tracked and uncharacteried.
+        print filename
         if no_nt_and_u:
             if not (filename.__contains__('nt') or filename.startswith('u')):
                 observations = mpc.MPCReader(directory + filename)
@@ -154,6 +164,17 @@ def _kbos_from_survey_sym_model_input_file(model_file):
         kbo._epoch_M = epoch
         kbo._epoch = epoch
         kbos.append(kbo)
+    return kbos
+
+
+def kbos_from_survey_sym_model_input_file(infile):
+    # names = ['a', 'e', 'i', 'node', 'peri', 'M', 'H', 'distance', 'orbtype', 'j', 'k']
+
+    # 3 components (hot [h], cold kernel [c] and cold stirred [f])
+    names = ['a', 'e', 'i', 'node', 'peri', 'M', 'H', 'distance', 'component', 'orbtype']
+
+    kbos = pandas.read_table(infile, names=names, delim_whitespace=True, comment='#')
+
     return kbos
 
 
