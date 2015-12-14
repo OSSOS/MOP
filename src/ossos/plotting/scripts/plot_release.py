@@ -3,14 +3,11 @@ __author__ = 'Michele Bannister   git:@mtbannister'
 import sys
 
 import matplotlib.pyplot as plt
-import matplotlib.lines as mlines
 import numpy
-from astropy import units
 from ossos import storage
 import palettable
-from ossos.planning.plotting import parsers, parameters, plot_fanciness
 
-def full_aei(data_release, icut=3.5, aiq=False, release='current', high_light=[]):
+def full_aei(data, icut=3.5, aiq=False, release='current', high_light=[]):
 
     fig, ax = plt.subplots(2, 2, figsize=(14, 16))  # a4 is 1 x sqrt(2), so use those proportions
     fig.subplots_adjust(hspace=0.15)
@@ -20,8 +17,6 @@ def full_aei(data_release, icut=3.5, aiq=False, release='current', high_light=[]
     xinner = 15
     xouter = 90
     annotation = False
-    # let's trim off anything with super-large error bars as well
-    data = data_release[numpy.array([nobs > 7 for nobs in data_release['nobs']])]
 
     data['peri'] = data['a'] * (1. - data['e'])
     data['peri.E'] = data['peri']*((data['a.E'] / data['a']) + (data['e.E'] / data['e']))
@@ -30,10 +25,7 @@ def full_aei(data_release, icut=3.5, aiq=False, release='current', high_light=[]
 
     col = palettable.wesanderson.Zissou_5.mpl_colors[0:3] + [(0.0, 0.6, 0.4)] + [(1.0, 0.0, 0.0)]
 
-    # palettable.wesanderson.Zissou_5.mpl_colors[4:]
-
     coldcol = col
-    e45col = col #[palettable.wesanderson.Moonrise5_6.mpl_colors[4]]
     ms = 8
     cold_alpha = 0.8  # when plotting blue only  # 0.7
     grid_alpha = 0.2
@@ -141,10 +133,4 @@ if __name__ == '__main__':
 
     tnos = storage.get_detections()
 
-    # argperi_a(parameters.REAL_KBO_AST_DIR)
-
     full_aei(tnos, release=release)
-    # classicals_qi(tnos)
-
-#     classicals = tnos[numpy.array([name.startswith('m') for name in tnos['p']])]
-#     classicals_aei(classicals)
