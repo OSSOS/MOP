@@ -1,24 +1,18 @@
 from glob import glob
 import re
-
-__author__ = "David Rusk <drusk@uvic.ca>"
-
 import os
 import random
 import threading
-
 from .. import tasks
 from .. import events
 from .. import logger
-
 from .collections import StatefulCollection
 from .exceptions import (NoAvailableWorkException, SourceNotNamedException)
-
 from ..progress import FileLockedException
-
 from ...astrom import StreamingAstromWriter, Source, SourceReading
 from ...orbfit import Orbfit
 
+__author__ = "David Rusk <drusk@uvic.ca>"
 
 class WorkUnit(object):
     """
