@@ -407,7 +407,7 @@ if __name__ == '__main__':
     else:  # do them all!
         blocks = parameters.BLOCKS
 
-    discoveries = parsers.ossos_release_parser(table=True)  # ossos_release_parser()
+    discoveries = parsers.ossos_release_parser()  # ossos_release_parser()
 
     # extent = plot_extents['13A'] # hardwired for doing both at once
 
