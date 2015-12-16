@@ -2,7 +2,11 @@ from ossos.gui import config
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
-import pyds9 as ds9
+try:
+   import pyds9 as ds9
+except:
+   import ds9
+   ds9.DS9 = ds9.ds9
 
 from ...fitsviewer.singletviewer import SingletViewer
 from ...fitsviewer.tripletviewer import TripletViewer

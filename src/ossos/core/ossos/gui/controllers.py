@@ -41,6 +41,7 @@ class AbstractController(object):
         self.autoplay_manager = AutoplayManager(model)
         self.downloader = Downloader()
         self.image_loading_dialog_manager = ImageLoadingDialogManager(view)
+        self.align = True
 
     def get_view(self):
         """
@@ -60,7 +61,11 @@ class AbstractController(object):
             self.view.image_viewer.mark_source = self.mark_source
             self.view.image_viewer.mark_prediction = self.mark_prediction
             self.view.display(cutout, self.use_pixel_coords)
-            self.view.align(cutout, reading, source)
+            logger.debug("Align: {}".format(self.align))
+            if self.align:
+                self.view.align(cutout, reading, source)
+            else:
+                self.view.image_viewer.ds9.set("wcs align yes")
         except ImageNotLoadedException as ex:
             logger.info("Waiting to load image: {}".format(ex))
             self.image_loading_dialog_manager.wait_for_item(ex.requested_item)
@@ -193,6 +198,11 @@ class AbstractController(object):
             self.view.refresh_markers()
         except ImageNotLoadedException:
             pass
+
+    def on_toggle_align(self):
+        self.align = not self.align
+        print self.align and "DS9 Focus Follow On" or "DS9 Focus Follow Off"
+        logger.debug("Setting align to : {}".format(self.align))
 
     def on_reset_colormap(self):
         self.view.reset_colormap()
@@ -513,6 +523,8 @@ class ProcessTracksController(ProcessRealsController):
         self.use_pixel_coords = False
         self.mark_prediction = True
         self.is_discovery = False
+        self.minimum_align_offset = 60
+
 
     def on_accept(self, auto=False):
         super(ProcessTracksController, self).on_accept(auto=False)
