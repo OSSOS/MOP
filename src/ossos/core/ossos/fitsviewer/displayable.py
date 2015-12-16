@@ -173,7 +173,7 @@ class Displayable(object):
     def _do_render(self):
         raise NotImplementedError()
 
-    def _do_align(self):
+    def _do_move_focus(self):
         raise NotImplementedError()
 
     def _apply_event_handlers(self, canvas):
@@ -231,7 +231,6 @@ class ImageSinglet(object):
                 while display.get('frame has fits') != 'yes':
                     print "Waiting for image to load."
                     pass
-                display.set('zoom to fit')
             except ValueError as ex:
                 logging.error("Failed while trying to display: {}".format(hdulist))
                 logging.error("{}".format(ex))
@@ -318,7 +317,7 @@ class DisplayableImageSinglet(Displayable):
 
     def _do_render(self):
         self.image_singlet.show_image(ds9=self.display)
-        self._do_align()
+        self._do_move_focus()
 
     @property
     def aligned(self):
@@ -342,20 +341,20 @@ class DisplayableImageSinglet(Displayable):
             else:
                 self._focus = SkyCoord(focus[0], focus[1])
         except Exception as ex:
-            print "Failed to convert position: {}".format(ex)
+            print "Focus setting failed to convert focus tuple {} to SkyCoord: {}".format(focus, ex)
             self._focus = focus
 
-    def _do_align(self):
+    def _do_move_focus(self):
         if self.focus is None:
             return
         if not self.aligned:
+            #print "Panning the image to focus position"
             self.display.set("pan to {} {} wcs fk5".format(self.focus.ra.degree,
                                                            self.focus.dec.degree))
 
-    def pan_to(self, pos, minimum_pan=0):
-        self.minimum_pan = minimum_pan * units.arcsec
+    def pan_to(self, pos):
         self.focus = pos
-        self._do_align()
+        self._do_move_focus()
 
     def _apply_event_handlers(self, canvas):
         self.image_singlet.apply_event_handlers(canvas)
