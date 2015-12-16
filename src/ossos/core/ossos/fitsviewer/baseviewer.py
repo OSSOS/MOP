@@ -108,8 +108,7 @@ class WxMPLFitsViewer(object):
             self.current_displayable.reset_colormap()
 
     def toggle_reticule(self):
-        result = self.current_displayable.toggle_reticule()
-        if result:
+        if self.current_displayable.toggle_reticule():
             self.mark_apertures(self.current_cutout, pixel=False)
             self.draw_uncertainty_ellipse(self.current_cutout)
 
@@ -143,10 +142,7 @@ class WxMPLFitsViewer(object):
             focus = cutout.get_pixel_coordinates(focus)
             focus = cutout.pix2world(focus[0], focus[1], usepv=False)
             focus_sky_coord = SkyCoord(focus[0], focus[1])
-            minimum_pan = 60
-            if len(source.get_readings()) > 1:
-                minimum_pan = 0
-            self.current_displayable.pan_to(focus_sky_coord, minimum_pan=minimum_pan)
+            self.current_displayable.pan_to(focus_sky_coord)
 
     @staticmethod
     def _do_render(displayable):
