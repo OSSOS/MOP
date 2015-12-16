@@ -42,6 +42,7 @@ DBIMAGES = 'vos:OSSOS/dbimages'
 MEASURE3 = 'vos:OSSOS/measure3'
 POSTAGE_STAMPS = 'vos:OSSOS/postage_stamps'
 TRIPLETS = 'vos:OSSOS/triplets'
+ASTROM_RELEASES = 'vos:OSSOS/0_OSSOSreleases'
 
 DATA_WEB_SERVICE = 'https://www.canfar.phys.uvic.ca/data/pub/'
 VOSPACE_WEB_SERVICE = 'https://www.canfar.phys.uvic.ca/vospace/nodes/'
@@ -83,6 +84,20 @@ zmag = {}
 APCOR_EXT = "apcor"
 ZEROPOINT_USED_EXT = "zeropoint.used"
 PSF_EXT = "psf.fits"
+
+
+def get_detections(release='current'):
+    """
+
+    @param release: the release to retrieve from VOSpace
+    @return: astropy.table.Table
+    """
+    detection_path = "{}/{}/OSSOS*.detections".format(ASTROM_RELEASES,release)
+    filenames = vospace.glob(detection_path)
+    if not len(filenames) > 0:
+        raise IOError("No detection file found using: {}".format(detection_path))
+
+    return ascii.read(open_vos_or_local(filenames[0]).read(), header_start=-1)
 
 
 def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2):

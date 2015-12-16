@@ -8,24 +8,19 @@ import numpy
 from astropy import units
 
 import palettable
-from ossos.planning import parsers
-from ossos.planning.plotting import parameters
-from ossos.planning.plotting import plot_fanciness
+from ossos.planning.plotting import parsers, parameters, plot_fanciness
 
 
 def full_aei(data_release, icut=False, aiq=False):
     fig, ax = plt.subplots(3, 1, sharex=True, figsize=(7, 8))  # a4 is 1 x sqrt(2), so use those proportions
     fig.subplots_adjust(hspace=0.25)
 
-    # don't want uncharacterised for this plot
-    data = data_release[numpy.array([name.startswith("o") for name in data_release['object']])]
+    ymin = -0.001
+    orbit_classes = ['cla', 'res', 'sca', 'det',]#, 'cen']
 
-    data['peri'] = data['a'] * (1. - data['e'])
-    data['peri_E'] = (data['a_E'] / data['a']) + (data['e_E'] / data['e'])
-
-    # Appropriate for v4 release. May want different in future...
     if parameters.RELEASE_VERSION == 4:
-        ymin = -0.001
+        # don't want uncharacterised for this plot
+        data = data_release[numpy.array([name.startswith("o") for name in data_release['object']])]
         imax = 55
         emax = .65
         qmin = data['peri'].min() - 4
@@ -34,10 +29,26 @@ def full_aei(data_release, icut=False, aiq=False):
         xouter = 90
         annotation = False
         e45_annotation = False
-        orbit_classes = ['cla', 'res', 'sca', 'det']#, 'cen']
-        data.sort('cl')
 
-    col = palettable.wesanderson.Zissou_5.mpl_colors[0:3] + ['0.6'] # palettable.wesanderson.Zissou_5.mpl_colors[4:]
+    if parameters.RELEASE_VERSION == 6:
+        imax = 55
+        emax = .85
+        xinner = 15
+        xouter = 90
+        annotation = False
+        e45_annotation = False
+        # let's trim off anything with super-large error bars as well
+        data = data_release[numpy.array([nobs > 7 for nobs in data_release['nobs']])]
+        # data = data_release[numpy.array([name.startswith("o4h") for name in data_release['object']])]
+
+
+    data['peri'] = data['a'] * (1. - data['e'])
+    data['peri_E'] = (data['a_E'] / data['a']) + (data['e_E'] / data['e'])
+
+    data.sort('cl')
+
+    col = palettable.wesanderson.Zissou_5.mpl_colors[0:3] + ['0.6'] + ['1.0']
+    # palettable.wesanderson.Zissou_5.mpl_colors[4:]
 
     coldcol = col
     hotcol = col[2]
@@ -105,7 +116,7 @@ def full_aei(data_release, icut=False, aiq=False):
     handles, labels = ax[2].get_legend_handles_labels()
     handles.append(mlines.Line2D([], [], marker='*', color=col[0], alpha=cold_alpha, linestyle=None))
     labels = ['classical', 'resonant', 'scattering', 'detached', 'o3e45']
-    plt.legend(handles, labels, loc='lower right', numpoints=1, fontsize='small')
+    ax[0].legend(handles, labels, loc='upper right', numpoints=1, fontsize='small')
 
     plt.xlabel('semimajor axis (AU)')
 
@@ -122,7 +133,6 @@ def full_aei(data_release, icut=False, aiq=False):
 def helio_i(ax, data, fmt, alpha, ebarcolor, capsize, ms, grid_alpha, colour, zorder, orbit_classes, annotation=False):
     for i, orbclass in enumerate(orbit_classes):
         tnos = data[numpy.where(data['cl'] == orbclass)]
-        print i, orbclass, colour[i]
         ax[0].errorbar(tnos['dist'], tnos['i'],
                        xerr=tnos['dist_E'], yerr=tnos['i_E'],
                        zorder=zorder,
@@ -296,10 +306,9 @@ def classicals_aei(data):
     plt.savefig(outfile, transparent=True, bbox_inches='tight')
 
 
-if __name__ == '__main__':
-    # tnos = parsers.ossos_release_parser(table=True)  # return as an astropy.Table.Table
+def argperi_a(directory):
     # dir = '/Users/bannisterm/Dropbox/OSSOS/measure3/test_argperi_align/'
-    directory = '/Users/bannisterm/Dropbox/OSSOS/measure3/2014B-H/track/'
+    # directory = '/Users/bannisterm/Dropbox/OSSOS/measure3/2014B-H/track/'
     tnos = parsers.ossos_discoveries(directory=directory, all_objects=True)
 
     fig, ax = plt.subplots(3, 1, sharex=True, figsize=(7, 8))  # a4 is 1 x sqrt(2), so use those proportions
@@ -390,12 +399,16 @@ if __name__ == '__main__':
 
     plt.draw()
     # ofile = 'OSSOS+CFEPS+NGVS_aei_argperi.pdf'
-    outfile = 'OSSOS_aei_Hblock.pdf'
+    outfile = 'OSSOS_aei_{}.pdf'.format(parameters.RELEASE_VERSION)
     plt.savefig(outfile, transparent=True, bbox_inches='tight')
 
 
+if __name__ == '__main__':
+    tnos = parsers.ossos_release_parser(table=True)  # return as an astropy.Table.Table
 
-    # full_aei(tnos)
+    # argperi_a(parameters.REAL_KBO_AST_DIR)
+
+    full_aei(tnos)
     # classicals_qi(tnos)
 
 #     classicals = tnos[numpy.array([name.startswith('m') for name in tnos['p']])]

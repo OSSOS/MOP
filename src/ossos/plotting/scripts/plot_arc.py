@@ -131,11 +131,11 @@ handler_map = [
     mlines.Line2D([], [], color='r', alpha=0.3, label='insecure'),
     mlines.Line2D([], [], color='b', alpha=0.3, label='secure'),
     # mlines.Line2D([], [], color='k', alpha=0.3, label='13BL'),
-    mlines.Line2D([], [], marker='d', color='None', mec='k', alpha=alpha, linestyle=None, label='centaur'),
-    mlines.Line2D([], [], marker='^', color='None', mec='k', alpha=alpha, linestyle=None, label='scattering'),
-    mlines.Line2D([], [], marker='o', color='None', mec='k', alpha=alpha, linestyle=None, label='classical'),
-    mlines.Line2D([], [], marker='*', color='None', mec='k', alpha=alpha, linestyle=None, label='resonant'),
-    mlines.Line2D([], [], marker='s', color='None', mec='k', alpha=alpha, linestyle=None, label='detached'),
+    mlines.Line2D([], [], marker='d', color='None', mec='k', alpha=alpha, linestyle='None', label='centaur'),
+    mlines.Line2D([], [], marker='^', color='None', mec='k', alpha=alpha, linestyle='None', label='scattering'),
+    mlines.Line2D([], [], marker='o', color='None', mec='k', alpha=alpha, linestyle='None', label='classical'),
+    mlines.Line2D([], [], marker='*', color='None', mec='k', alpha=alpha, linestyle='None', label='resonant'),
+    mlines.Line2D([], [], marker='s', color='None', mec='k', alpha=alpha, linestyle='None', label='detached'),
 ]
 legend = pyplot.legend(handles=handler_map,
                        numpoints=1, loc='upper right', frameon=True, fontsize='x-small')
