@@ -169,7 +169,7 @@ class Plot(Canvas):
             if directory_name == parameters.REAL_KBO_AST_DIR:
                 kbos = parsers.ossos_discoveries(all_objects=True)
             else:
-                kbos = parsers.ossos_discoveries(directory_name, all_objects=True)
+                kbos = parsers.ossos_discoveries(directory_name, all_objects=True, no_nt_and_u=False)
 
             for kbo in kbos:
                 # if kbo.orbit.arc_length > 30.:  # cull the short ones for now

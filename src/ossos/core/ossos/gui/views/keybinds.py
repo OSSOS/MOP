@@ -7,6 +7,13 @@ from ossos.gui import config, logger
 
 class KeybindManager(object):
     def __init__(self, view, controller):
+        """
+
+        :param view:
+        :param controller: the controller to bind this key to
+        :type controller: AbstractController
+        :return:
+        """
         logger.debug("Building KeybindManager.")
         self.controller = controller
         self.view = view
@@ -22,6 +29,7 @@ class KeybindManager(object):
         load_comparison_kb_id = wx.NewId()
         load_diff_comparison_kb_id = wx.NewId()
         toggle_reticule_kb_id = wx.NewId()
+        toggle_align_kb_id = wx.NewId()
 
         def bind(handler, kb_id):
             view.Bind(wx.EVT_MENU, handler, id=kb_id)
@@ -37,7 +45,9 @@ class KeybindManager(object):
         bind(self.on_reset_source_location_keybind, reset_src_kb_id)
         bind(self.on_toggle_autoplay, autoplay_kb_id)
         bind(self.on_toggle_reticule, toggle_reticule_kb_id)
+        bind(self.on_toggle_align, toggle_align_kb_id)
 
+        self.toggle_align_key = config.read("KEYBINDS.TOGGLE_ALIGN")
         self.accept_key = config.read("KEYBINDS.ACCEPT_SRC")
         self.auto_accept_key = config.read("KEYBINDS.AUTO_ACCEPT_SRC")
         self.reject_key = config.read("KEYBINDS.REJECT_SRC")
@@ -60,6 +70,7 @@ class KeybindManager(object):
             (wx.ACCEL_NORMAL, ord(self.load_diff_comparison_key), load_diff_comparison_kb_id),
             (wx.ACCEL_NORMAL, ord(self.autoplay_key), autoplay_kb_id),
             (wx.ACCEL_NORMAL, ord(self.toggle_reticule_key), toggle_reticule_kb_id),
+            (wx.ACCEL_NORMAL, ord(self.toggle_align_key), toggle_align_kb_id),
         ]
 
         for line in config.read("MPC.NOTE1OPTIONS"):
@@ -90,7 +101,8 @@ class KeybindManager(object):
                 ("Autoplay", self.autoplay_key),
                 ("Load Comparison Image", self.load_comparison_key),
                 ("Load Difference Comaprison", self.load_diff_comparison_key),
-                ("Toggle reticule", self.toggle_reticule_key)]
+                ("Toggle reticule", self.toggle_reticule_key),
+                ("Toggle focus", self.toggle_align_key)]
 
     def on_load_diff_comparison_keybind(self, event):
         logger.debug("BBB!")
@@ -128,3 +140,6 @@ class KeybindManager(object):
 
     def on_toggle_reticule(self, event):
         self.controller.on_toggle_reticule_key()
+
+    def on_toggle_align(self, event):
+        self.controller.on_toggle_align()

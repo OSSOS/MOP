@@ -10,7 +10,7 @@
       "view_physical": "no",
       "view_object": "no",
       "view_colorbar": "no",
-      "zoom": 1,
+      "zoom": 4,
       "width": 640,
       "height": 640
     },
@@ -21,7 +21,7 @@
       "cmap_lock": "yes",
       "cmap_invert": "yes",
       "smooth": "no",
-      "zoom": "to fit"
+      "zoom": 4
     }
   },
   "MARKER": {
@@ -38,6 +38,7 @@
     "RESET_SOURCE_LOCATION": "c",
     "AUTOPLAY": "d",
     "TOGGLE_RETICULE": "t",
+    "TOGGLE_ALIGN": "z",
     "LOAD_COMPARISON": "b",
     "LOAD_DIFF_COMPARISON": "n"
   },
