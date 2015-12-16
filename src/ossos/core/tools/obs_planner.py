@@ -167,7 +167,7 @@ class Plot(Canvas):
         if directory_name is not None:
             # defaults to looking at .ast files only
             if directory_name == parameters.REAL_KBO_AST_DIR:
-                kbos = parsers.ossos_discoveries()
+                kbos = parsers.ossos_discoveries(all_objects=True)
             else:
                 kbos = parsers.ossos_discoveries(directory_name, all_objects=True, no_nt_and_u=False)
 

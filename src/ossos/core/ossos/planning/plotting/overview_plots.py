@@ -19,7 +19,7 @@ rcParams['patch.facecolor'] = set2[0]
 
 
 def top_down_SolarSystem(discoveries,
-                         extent=65,
+                         extent=68,
                          plot_blocks=True,
                          future_blocks=True,
                          plot_Ijiraq=True,
@@ -54,12 +54,12 @@ def top_down_SolarSystem(discoveries,
     ax1.set_rlim(0, extent)
     ax1.set_rgrids([20, 40, 60], labels=["", "", '20 AU', '40 AU', '60 AU'], angle=197, alpha=0.45)  # angle = 308
     ax1.yaxis.set_major_locator(MultipleLocator(20))
-    ax1.xaxis.set_major_locator(MultipleLocator(math.radians(15)))  # every hour
+    ax1.xaxis.set_major_locator(MultipleLocator(math.radians(15)))  # every 2 hours
     ax1.grid(axis='x', color='k', linestyle='--', alpha=0.2)
-    ax1.set_xticklabels(['', '0h', "", '', "", '', "", '', "", '', "", '', "", '', "", '', "", '',
-                         "", '', "", '20h', "", '22h', "", ],
+    ax1.set_xticklabels(['', '0h', "", '2h', "", '4h', "", '6h', "", '8h', "", '10h', "", '12h', "", '14h', "", '16h',
+                         "", '18h', "", '20h', "", '22h', "", ],
                         # ""])  # str(r)+'h' for r in range(-1,24)],
-                        #        ['', '0h', '2h', '4h', '6h', '8h', '10h', '12h', '14h', '16h', '18h', '20h', '22h']) #
+                        #        ['', '0h', '2h', '4h', '6h', '8h', '10h', '12h', '14h', '16h', '18h', '20h', '22h'],
                         color='b', alpha=0.6)  # otherwise they get in the way
 
 
@@ -84,10 +84,10 @@ def top_down_SolarSystem(discoveries,
                 colour = 'b'
                 alpha = 0.1
                 cmap = plt.get_cmap('Blues')  # colorbrewer.sequential.Blues_4.mpl_colors
-                if blockname.endswith('AO'):
-                    colour = '#E47833'
-                    alpha = 0.17
-                    cmap = plt.get_cmap('Oranges')  # colorbrewer.sequential.Oranges_3.mpl_colors
+                # if blockname.endswith('AO'):
+                #     colour = '#E47833'
+                #     alpha = 0.17
+                #     cmap = plt.get_cmap('Oranges')  # colorbrewer.sequential.Oranges_3.mpl_colors
 
                 # want to apply a colour gradient to the block
                 # luminance = [[.6, .6],[.7,.7]]
@@ -117,7 +117,7 @@ def top_down_SolarSystem(discoveries,
         if future_blocks:
             if blockname.startswith('15'):
                 plt.bar(ephem.hours(block["RA"]) - math.radians(3.5), extent,
-                        width=math.radians(7), bottom=8, color='r', linewidth=0.1, alpha=0.2)
+                        width=math.radians(7), bottom=8, color='#E47833', linewidth=0.1, alpha=0.17)
                 if label_blocks:
                     ax1.annotate(blockname[3], (ephem.hours(block["RA"]) - math.radians(1.5), extent + 0.15), size=15,
                                  color='r')
@@ -127,7 +127,7 @@ def top_down_SolarSystem(discoveries,
     outer = plt.Circle(65)
     # plt.PatchCollection?
 
-    plot_ossos_discoveries(ax1, discoveries)
+    # plot_ossos_discoveries(ax1, discoveries)
 
     plot_planets_plus_Pluto(ax1)
 
@@ -168,10 +168,10 @@ def plot_planets_plus_Pluto(ax, date=parameters.NEWMOONS[parameters.DISCOVERY_NE
                    facecolor=fc,
                    edgecolor=fc,
                    alpha=alpha)
-        # if planet.name != 'Saturn':
-        #     ax.annotate(planet.name, (planet.ra - (math.radians(0.5)), planet.sun_distance + 2), size=fs)
-        # else:
-        #     ax.annotate(planet.name, (planet.ra + (math.radians(10)), planet.sun_distance - 2), size=fs)
+        if planet.name != 'Saturn':
+            ax.annotate(planet.name, (planet.ra - (math.radians(0.5)), planet.sun_distance + 2), size=fs)
+        else:
+            ax.annotate(planet.name, (planet.ra + (math.radians(10)), planet.sun_distance - 2), size=fs)
         # plot Neptune's orbit: e is 0.01 so can get away with a circle
         if planet.name == 'Neptune':
             orb = np.arange(0, 2 * np.pi, (2 * np.pi) / 360)
@@ -323,8 +323,8 @@ def delta_a_over_a(discoveries):
 def main():
     # parsers.output_discoveries_for_animation()
     discoveries = parsers.ossos_release_parser(table=True)
-    top_down_SolarSystem(discoveries, plot_blocks=True, future_blocks=False, plot_Ijiraq=False,
-                         label_blocks=False)
+    top_down_SolarSystem(discoveries, plot_blocks=True, future_blocks=False, plot_Ijiraq=True,
+                         label_blocks=True)
 
 # orbit_fit_residuals(discoveries)
 # delta_a_over_a(discoveries)
