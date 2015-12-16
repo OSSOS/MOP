@@ -42,12 +42,12 @@
     "LOAD_DIFF_COMPARISON": "n"
   },
   "PREFETCH": {
-    "NUMBER": 10
+    "NUMBER": 3
   },
   "CUTOUTS": {
     "SINGLETS": {
-      "SLICE_ROWS": 150,
-      "SLICE_COLS": 150,
+      "SLICE_ROWS": 50,
+      "SLICE_COLS": 50,
       "RADIUS": 0.3
     },
     "TRIPLETS": {
@@ -99,7 +99,7 @@
     ]
   },
   "APP": {
-    "MAX_THREADS": 10
+    "MAX_THREADS": 2
   },
   "UI": {
     "DIMENSIONS": {
