@@ -976,7 +976,7 @@ class OSSOSComment(object):
 
         values = values[0].split()
         try:
-            if values[0] != 'O' or len(values) < 5:
+            if values[0] != 'O' or len(values) < 6:
                 # this is NOT and OSSOS style comment string
                 raise ValueError("Can't parse non-OSSOS style comment: {}".format(comment))
             # first build a comment based on the required fields.
