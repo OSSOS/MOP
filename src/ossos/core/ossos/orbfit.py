@@ -75,7 +75,7 @@ class Orbfit(object):
         self.distance_uncertainty = result.contents[1] * units.AU
 
         # call abg_to_aei to get elliptical elements and their chi^2 uncertainty.
-        self.orbfit.abg_to_aei.restype = ctypes.POINTER(ctypes.c_double * 12)
+        self.orbfit.abg_to_aei.restype = ctypes.POINTER(ctypes.c_double * 13)
         self.orbfit.abg_to_aei.argtypes = [ctypes.c_char_p]
         result = self.orbfit.abg_to_aei(ctypes.c_char_p(_abg_file.name))
 
@@ -91,6 +91,7 @@ class Orbfit(object):
         self._dom = result.contents[10] * units.degree
         self._T = result.contents[5] * units.day
         self._dT = result.contents[11] * units.day
+        self._epoch = result.contents[12] * units.day
         _abg_file.seek(0)
         self.abg = _abg_file.read()
 
@@ -191,6 +192,15 @@ class Orbfit(object):
         :rtype: Quantity
         """
         return self._dT
+
+    @property
+    def epoch(self):
+        """
+        :return: Uncertainty in time of pericentre passage
+        :rtype: Quantity
+        """
+        return self._epoch
+
 
     def residuals(self, overall=False):
         """
