@@ -8,9 +8,9 @@ import numpy
 from astropy import units
 
 import palettable
-import parsers
-import parameters
-import plot_fanciness
+from ossos.planning import parsers
+from ossos.planning.plotting import parameters
+from ossos.planning.plotting import plot_fanciness
 
 
 def full_aei(data_release, icut=False, aiq=False):
