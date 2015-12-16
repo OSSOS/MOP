@@ -25,7 +25,7 @@ PROGRAMS = {'CALIBRATION': ((('', 'fk'), ('mkpsf', 'zeropoint', 'fwhm', 'snr_13'
             }
 PROGRAMS['FAKES'] = (PROGRAMS['FAKES'], (('',), ('astrom_mag_check',),('',)))
 PREP = ((('',), ('update_header',), ('o', 'p')),)
-ALL_CCDS = range(36)
+ALL_CCDS = range(40)
 
 logging.basicConfig(level=logging.INFO)
 
@@ -40,21 +40,25 @@ def check_tags(my_expnum, ops_set, my_ccds, dry_run=True):
 
     tags = storage.get_tags(my_expnum)
     count = 0
-    success = 0
-    for ops in ops_set:
-      for fake in ops[0]:
-        for my_program in ops[1]:
-            for version in ops[2]:
-                for ccd in my_ccds:
-                    count += 1
+    outcount = 0
+    fails = []
+    for ccd in my_ccds:
+      success = True
+      count += 1
+      for ops in ops_set:
+         for fake in ops[0]:
+            for my_program in ops[1]:
+               for version in ops[2]:
                     # print my_expnum, fake, my_program, version, ccd
                     key = storage.get_process_tag(fake + my_program, ccd, version)
                     uri = storage.tag_uri(key)
                     if tags.get(uri, None) != storage.SUCCESS:
-                        print "{} --> {}".format(uri, tags.get(uri, None))
-                    else: 
-                        success += 1
-    return "{} {} {:5.1f}%".format(success, count,100* float(success)/count)
+                        fails.append(ccd)
+                        success = False
+      if success:
+         outcount += 1
+    print "{} {} {:5.1f}%".format(outcount, count,100* float(outcount)/count)
+    return set(fails)
 
 if __name__ == '__main__':
 
@@ -102,4 +106,5 @@ if __name__ == '__main__':
         if "L+0-1" in field:
             continue
         result = check_tags(v[0], ops, ccds, dry_run=opt.dry_run)
-        print field, result
+        for ccd in result:
+           print line, ccd, ccd
