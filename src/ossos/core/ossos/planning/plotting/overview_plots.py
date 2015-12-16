@@ -322,7 +322,7 @@ def delta_a_over_a(discoveries):
 
 def main():
     # parsers.output_discoveries_for_animation()
-    discoveries = parsers.ossos_release_parser(table=True)
+    discoveries = parsers.ossos_release_parser()
     top_down_SolarSystem(discoveries, plot_blocks=True, future_blocks=False, plot_Ijiraq=True,
                          label_blocks=True)
 
