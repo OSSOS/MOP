@@ -2,7 +2,7 @@
 """
 Update the astrometric and photometric measurements of an mpc observation based on the header contents of the
 observation.
- """
+"""
 from copy import deepcopy
 import os
 import math
@@ -32,10 +32,12 @@ def remeasure(mpc_in, recentroided=False):
     logging.debug("rm start: {}".format(mpc_obs.to_string()))
 
     if not isinstance(mpc_obs.comment, mpc.OSSOSComment):
+        logging.error( "Failed to convert line")
         return mpc_in
 
     parts = re.search('(?P<expnum>\d{7})(?P<type>\S)(?P<ccd>\d\d)', mpc_obs.comment.frame)
     if not parts:
+        logging.error( "Failed to get expnum")
         return mpc_in
 
     start_coordinate = mpc_in.coordinate
@@ -50,9 +52,10 @@ def remeasure(mpc_in, recentroided=False):
 
     this_wcs = wcs.WCS(header)
     try:
-        x = float(mpc_obs.comment.x)
-        y = float(mpc_obs.comment.y)
-        if mpc_in.discovery and int(parts.group('ccd')) < 18:
+        (x , y ) = this_wcs.sky2xy(mpc_obs.ra, mpc_obs.dec, usepv=False) 
+        logging.error("{} {}".format( x, float(mpc_obs.comment.x)))
+        logging.error("{} {}".format( y, float(mpc_obs.comment.y)))
+        if mpc_in.discovery and int(parts.group('ccd')) < 18 or int(parts.group('ccd')) in [36, 37]:
             logging.debug("Discovery astrometric lines are normally flipped relative to storage.")
             x = header['NAXIS1'] - x + 1
             y = header['NAXIS2'] - y + 1
@@ -60,7 +63,7 @@ def remeasure(mpc_in, recentroided=False):
         logging.warn("Failed to X/Y from comment line.")
         return mpc_in
 
-    (ra, dec) = this_wcs.xy2sky(x, y)
+    (ra, dec) = this_wcs.xy2sky(x, y, usepv=True)
     mpc_obs.coordinate = (ra, dec)
     logging.debug("rm updat: {}".format(mpc_obs.to_string()))
     sep = start_coordinate.separation(mpc_obs.coordinate).degree * 3600.0
