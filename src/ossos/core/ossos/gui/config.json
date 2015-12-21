@@ -2,7 +2,9 @@
   "DS9": {
     "INIT": {
       "view_layout": "vertical",
-      "view_info": "yes",
+      "bg": "black",
+      "view_info": "no",
+      "view_magnifier": "no",
       "view_buttons": "no",
       "view_panner": "no",
       "view_filename": "no",
@@ -10,9 +12,8 @@
       "view_physical": "no",
       "view_object": "no",
       "view_colorbar": "no",
-      "zoom": 4,
-      "width": 640,
-      "height": 640
+      "width": 256,
+      "height": 256 
     },
     "PREF": {
       "frame_lock": "wcs",
@@ -20,8 +21,7 @@
       "scale_mode": "zscale",
       "cmap_lock": "yes",
       "cmap_invert": "yes",
-      "smooth": "no",
-      "zoom": 4
+      "smooth": "no"
     }
   },
   "MARKER": {
@@ -43,7 +43,7 @@
     "LOAD_DIFF_COMPARISON": "n"
   },
   "PREFETCH": {
-    "NUMBER": 3
+    "NUMBER": 10
   },
   "CUTOUTS": {
     "SINGLETS": {
