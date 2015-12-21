@@ -14,12 +14,13 @@ from ...gui import logger
 
 
 class ImageViewManager(object):
-    def __init__(self, mainframe):
+    def __init__(self, mainframe, zoom=1):
         # Note: the figure we pass in is just a temporary placeholder.
         # 'Displayable Items' provide their own figure which the canvas can
         # be made to use, but it also requires one on its creation.
         logger.debug("Building {}".format(self))
         self._ds9 = None
+        self.zoom = zoom
         self._singlet_viewer = SingletViewer(mainframe.main_panel, display=self.ds9)
         self._triplet_viewer = TripletViewer(mainframe.main_panel, display=self.ds9)
 
@@ -34,6 +35,12 @@ class ImageViewManager(object):
             value = ds9_settings[key]
             cmd = key.replace("_", " ")
             self.ds9.set("{} {}".format(cmd, value))
+        if level=="PREF":
+            self.set_zoom()
+
+    def set_zoom(self):
+        cmd = "zoom {}".format(self.zoom)
+        self.ds9.set(cmd)
 
     @property
     def ds9(self):

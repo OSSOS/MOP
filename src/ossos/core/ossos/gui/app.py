@@ -26,19 +26,19 @@ from ..ssos import TracksParser
 
 def create_application(task_name, working_directory, output_directory,
                        dry_run=False, debug=False, name_filter=None, user_id=None,
-                       skip_previous=False):
+                       skip_previous=False, zoom=1):
     logger.info("Starting %s task." % task_name)
 
     if task_name == tasks.CANDS_TASK:
         ProcessCandidatesApplication(working_directory, output_directory,
-                                     dry_run=dry_run, debug=debug, name_filter=name_filter, user_id=user_id)
+                                     dry_run=dry_run, debug=debug, name_filter=name_filter, user_id=user_id, zoom=zoom)
     elif task_name == tasks.REALS_TASK:
         ProcessRealsApplication(working_directory, output_directory,
-                                dry_run=dry_run, debug=debug, name_filter=name_filter, user_id=user_id)
+                                dry_run=dry_run, debug=debug, name_filter=name_filter, user_id=user_id, zoom=zoom)
     elif task_name == tasks.TRACK_TASK:
         ProcessTracksApplication(working_directory, output_directory,
                                  dry_run=dry_run, debug=debug, name_filter=name_filter,
-                                 skip_previous=skip_previous, user_id=user_id)
+                                 skip_previous=skip_previous, user_id=user_id, zoom=zoom)
     else:
         error_message = "Unknown task: %s" % task_name
         logger.critical(error_message)
@@ -47,7 +47,7 @@ def create_application(task_name, working_directory, output_directory,
 
 class ValidationApplication(object):
     def __init__(self, working_directory, output_directory,
-                 dry_run=False, debug=False, name_filter=None, user_id=None, mark_using_pixels=True):
+                 dry_run=False, debug=False, name_filter=None, user_id=None, mark_using_pixels=True, zoom=1):
 
         self.dry_run = dry_run
         self.user_id = user_id
@@ -92,7 +92,7 @@ class ValidationApplication(object):
                                         synchronization_manager)
         logger.debug("Created model.")
 
-        view = self._create_view(model, debug=debug, mark_using_pixels=mark_using_pixels)
+        view = self._create_view(model, debug=debug, mark_using_pixels=mark_using_pixels, zoom=zoom)
 
         logger.debug("Created view.")
         model.start_work()
@@ -144,10 +144,10 @@ class ValidationApplication(object):
     def should_randomize_workunits(self):
         raise NotImplementedError()
 
-    def _create_view(self, model, debug=False, mark_using_pixels=False):
+    def _create_view(self, model, debug=False, mark_using_pixels=False, zoom=1):
         return ApplicationView(self._create_controller_factory(model),
                                debug=debug,
-                               mark_using_pixels=mark_using_pixels)
+                               mark_using_pixels=mark_using_pixels, zoom=zoom)
 
     def _create_workunit_builder(self,
                                  input_context,
