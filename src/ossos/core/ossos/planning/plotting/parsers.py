@@ -33,9 +33,10 @@ def ossos_release_parser(table=False, data_release=parameters.RELEASE_VERSION):
              'argperi', 'argperi_E', 'time_peri', 'time_peri_E', 'ra_dis', 'dec_dis', 'jd_dis', 'rate']#, 'eff', 'm_lim']
 
     if table:
+        retval = storage.get_detections(release=data_release)
         # have to specify the names because the header line contains duplicate IDs, which wrecks auto-column creation
-        retval = Table.read(parameters.RELEASE_DETECTIONS[data_release], format='ascii', guess=False,
-                            delimiter=' ', data_start=0, comment='#', names=names, header_start=None)
+        # retval = Table.read(parameters.RELEASE_DETECTIONS[data_release], format='ascii', guess=False,
+        #                    delimiter=' ', data_start=0, comment='#', names=names, header_start=None)
     else:
         retval = []
         with open(data_release, 'r') as detectionsfile:
