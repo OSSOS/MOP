@@ -57,7 +57,7 @@ def check_tags(my_expnum, ops_set, my_ccds, dry_run=True):
                         success = False
       if success:
          outcount += 1
-    print "{} {} {:5.1f}%".format(outcount, count,100* float(outcount)/count)
+    sys.stderr.write("{} {} {:5.1f}%\n".format(outcount, count,100* float(outcount)/count))
     return set(fails)
 
 if __name__ == '__main__':
@@ -67,6 +67,7 @@ if __name__ == '__main__':
     parser.add_argument('--dry-run', action='store_true')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--ccd', action='append')
+    parser.add_argument('--big', action='store_true')
     group.add_argument('--PREP', dest='PREP', action='store_const', const=PREP)
     parser.add_argument('--ALL', help="Clear all processing tags except preproc and update_header",
                         dest='programs', action='store_const',
@@ -79,6 +80,11 @@ if __name__ == '__main__':
                             action='append_const', const=PROGRAMS[program])
 
     opt = parser.parse_args()
+    if opt.big:
+	ALL_CCDS = range(40)
+    else:
+	ALL_CCDS = range(36)
+
     ccds = opt.ccd is not None and opt.ccd or ALL_CCDS
 
     if opt.PREP is not None:
@@ -102,6 +108,7 @@ if __name__ == '__main__':
         v = line.split()
         if len(v) < 3:
             continue
+        sys.stderr.write("{} ".format(v[-1]))
         field = v[3]
         if "L+0-1" in field:
             continue
