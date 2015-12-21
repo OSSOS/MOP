@@ -136,12 +136,13 @@ class WxMPLFitsViewer(object):
         if not self.current_displayable:
             return
         if not self.current_displayable.aligned:
-            focus_calculator = SingletFocusCalculator(source)
-            logger.debug("Got focus calculator {} for source {}".format(focus_calculator, source))
-            focus = cutout.flip_flip(focus_calculator.calculate_focus(reading))
-            focus = cutout.get_pixel_coordinates(focus)
-            focus = cutout.pix2world(focus[0], focus[1], usepv=False)
-            focus_sky_coord = SkyCoord(focus[0], focus[1])
+            focus_sky_coord = reading.reference_sky_coord
+            #focus_calculator = SingletFocusCalculator(source)
+            #logger.debug("Got focus calculator {} for source {}".format(focus_calculator, source))
+            #focus = cutout.flip_flip(focus_calculator.calculate_focus(reading))
+            #focus = cutout.get_pixel_coordinates(focus)
+            #focus = cutout.pix2world(focus[0], focus[1], usepv=False)
+            #focus_sky_coord = SkyCoord(focus[0], focus[1])
             self.current_displayable.pan_to(focus_sky_coord)
 
     @staticmethod

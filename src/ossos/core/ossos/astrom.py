@@ -1,6 +1,7 @@
 """
 Reads and writes .astrom files.
 """
+import math
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 import os
@@ -184,6 +185,12 @@ class AstromParser(object):
                 fields.uncertainty_ellipse.a = ((max(x_0) - min(x_0) + 30) * 0.185) * units.arcsecond
                 fields.uncertainty_ellipse.b = ((max(y_0) - min(y_0) + 30) * 0.185) * units.arcsecond
                 fields.uncertainty_ellipse.pa = 0.0 * units.degree
+
+            # Add an ra/dec reference to the source.
+            ref_index = int(math.ceil(len(source) / 2.0)) - 1
+            for reading in source:
+                assert isinstance(reading, SourceReading)
+                reading.reference_sky_coord = source[ref_index].sky_coord
 
             sources.append(source)
 
@@ -531,6 +538,7 @@ class SourceReading(object):
         self._discovery = None
         self.discovery = discovery
         self.mpc_obseravtions = {}
+        self.reference_sky_coord = self.sky_coord
 
     def _original_frame(self, x, y):
         """
