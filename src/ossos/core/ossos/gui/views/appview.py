@@ -39,7 +39,7 @@ class ApplicationView(object):
     Provides the view's external interface.
     """
 
-    def __init__(self, controller_factory, track_mode=False, debug=False, mark_using_pixels=False):
+    def __init__(self, controller_factory, track_mode=False, debug=False, mark_using_pixels=False, zoom=1):
         logger.debug("Creating Application View")
         self.controller = controller_factory.create_controller(self)
 
@@ -49,7 +49,7 @@ class ApplicationView(object):
         self.mark_using_pixels = mark_using_pixels
 
         self.mainframe = MainFrame(self.controller, track_mode=track_mode)
-        self.image_view_manager = ImageViewManager(self.mainframe)
+        self.image_view_manager = ImageViewManager(self.mainframe, zoom)
         self.menu = Menu(self.mainframe, self.controller)
         self.keybind_manager = KeybindManager(self.mainframe, self.controller)
 

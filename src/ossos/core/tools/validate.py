@@ -11,7 +11,7 @@ from ossos import storage
 
 
 def launch_app(task, working_directory, output_directory, dry_run, debug, name_filter=None,
-               user_name=None, skip_previous=False):
+               user_name=None, skip_previous=False, zoom=1):
     # Put import here to avoid the delay loading them.  This allows quick
     # feedback when argparse can tell the arguments are invalid, and makes
     # getting help with the -h flag faster.
@@ -19,7 +19,7 @@ def launch_app(task, working_directory, output_directory, dry_run, debug, name_f
 
     create_application(task, working_directory, output_directory,
                        dry_run=dry_run, debug=debug, name_filter=name_filter,
-                       user_id=user_name, skip_previous=skip_previous)
+                       user_id=user_name, skip_previous=skip_previous, zoom=zoom)
 
 
 def main():
@@ -49,6 +49,7 @@ def main():
                         dest="skip_previous",
                         help="Don't show me observation that are already in the input files, TRACKS only")
     parser.add_argument("--username", dest="username", help="Your CADC username")
+    parser.add_argument('--zoom', dest='zoom', default=1)
 
     args = parser.parse_args()
 
@@ -64,7 +65,7 @@ def main():
     storage.DBIMAGES = args.dbimages
 
     launch_app(args.task, args.input, output, args.dry_run, args.debug, args.name_filter,
-               args.username, args.skip_previous)
+               args.username, args.skip_previous, args.zoom)
 
 
 if __name__ == "__main__":
