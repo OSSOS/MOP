@@ -19,7 +19,7 @@ from ossos import storage
 
 PROGRAMS = {'CALIBRATION': (('', 'fk'), ('mkpsf', 'zeropoint', 'fwhm', 'snr_13'), ('p', 's', '')),
             'DETECT': (('', 'fk'), ('step1', ), ('p', 's')),
-            'REAL': (('',), ('step1', 'step2', 'step3', 'combine'), ('p',)),
+            'REAL': (('',), ('mkpsf', 'step1', 'step2', 'step3', 'combine'), ('p',)),
             'SCRAMBLE': (('',), ('step1', 'step2', 'step3', 'combine'), ('s',)),
             'PLANT': (('',), ('scramble', 'plant', 'astrom_mag_check'), ('s',)),
             'FAKES': (('fk',), ('step1', 'step2', 'step3', 'combine', 'astrom_mag_check'), ('s',)),
@@ -56,7 +56,7 @@ def clear_tags(my_expnum, ops_set, my_ccds, dry_run=True):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('expnums', nargs='+')
+    parser.add_argument('field')
     parser.add_argument('--dbimages', default='vos:OSSOS/dbimages')
     parser.add_argument('--dry-run', action='store_true')
     group = parser.add_mutually_exclusive_group()
@@ -77,13 +77,22 @@ if __name__ == '__main__':
 
     storage.DBIMAGES = opt.dbimages
 
+    block_name = opt.field[3]
+    block_semester = opt.field[0:3]
     if opt.PREP is not None:
         opt.programs = opt.PREP
 
     if opt.programs is None or not len(opt.programs) > 0:
         parser.error("Must specify at least one program group to clear tags for.")
 
-    ccds = opt.PREP is not None and [36] or ccds
+    ccds = opt.PREP is not None and [40] or ccds
 
-    for expnum in opt.expnums:
-        clear_tags(expnum, opt.programs, ccds, dry_run=opt.dry_run)
+    triplist = storage.open_vos_or_local('vos:OSSOS/triplets/{}_{}_discovery_expnums.txt'.format(block_name, block_semester),'r').read().split('\n')
+    
+    print opt.field, opt.ccd
+    for tripline in triplist:
+        triplets = tripline.split()
+        if opt.field in triplets:
+           for expnum in triplets[0:3]:
+              print expnum
+              clear_tags(expnum, opt.programs, ccds, dry_run=opt.dry_run)
