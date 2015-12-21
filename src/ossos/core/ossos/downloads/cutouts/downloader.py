@@ -71,8 +71,8 @@ class ImageCutoutDownloader(Downloader):
 
         logger.debug("got radius for cutout: {}".format(radius))
         image_uri = reading.get_image_uri()
-        logger.debug("Getting cutout at {} for {}".format(reading.sky_coord, image_uri))
-        hdulist = storage.ra_dec_cutout(image_uri, reading.sky_coord, radius)
+        logger.debug("Getting cutout at {} for {}".format(reading.reference_sky_coord, image_uri))
+        hdulist = storage.ra_dec_cutout(image_uri, reading.reference_sky_coord, radius)
         logger.debug("Getting the aperture correction.")
         apcor = ApcorData.from_string("4 15 1.0 -99")
 
