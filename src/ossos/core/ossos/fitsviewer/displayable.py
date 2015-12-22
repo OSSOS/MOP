@@ -212,7 +212,7 @@ class ImageSinglet(object):
         display = ds9
 
         if self.frame_number is None:
-            display.set('frame new')
+            display.new_frame()
 
             # create a copy of the image that does not have Gwyn's PV keywords, ds9 fails on those.
             f = tempfile.NamedTemporaryFile(suffix=".fits")

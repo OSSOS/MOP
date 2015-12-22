@@ -35,12 +35,15 @@ class ImageViewManager(object):
             value = ds9_settings[key]
             cmd = key.replace("_", " ")
             self.ds9.set("{} {}".format(cmd, value))
-        if level=="PREF":
-            self.set_zoom()
 
     def set_zoom(self):
         cmd = "zoom {}".format(self.zoom)
         self.ds9.set(cmd)
+
+    def new_frame(self):
+        self.ds9.set('frame new')
+        self.set_zoom()
+
 
     @property
     def ds9(self):
