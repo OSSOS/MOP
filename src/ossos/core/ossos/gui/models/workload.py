@@ -1,13 +1,14 @@
-from glob import glob
-import re
 import os
 import random
+import re
 import threading
-from .. import tasks
-from .. import events
-from .. import logger
+from glob import glob
+
 from .collections import StatefulCollection
 from .exceptions import (NoAvailableWorkException, SourceNotNamedException)
+from .. import events
+from .. import logger
+from .. import tasks
 from ..progress import FileLockedException
 from ...astrom import StreamingAstromWriter, Source, SourceReading
 from ...orbfit import Orbfit
@@ -625,7 +626,6 @@ class PreFetchingWorkUnitProvider(object):
         return self.workunit_provider.directory
 
     def get_workunit(self):
-        logger.debug("Getting work unit using: {}".format(self))
         if self._all_fetched and len(self.workunits) == 0:
             raise NoAvailableWorkException()
 
