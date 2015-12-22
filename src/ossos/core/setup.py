@@ -1,5 +1,6 @@
 import os
 import sys
+from ossos.__version__ import version
 
 from setuptools import setup, find_packages
 
@@ -31,7 +32,7 @@ for script in os.listdir(script_dir):
 
 
 setup(name='ossos',
-      version="0.4.11",
+      version=version,
       url='http://github.com/OSSOS/MOP',
       author='''JJ Kavelaars (jjk@uvic.ca),
               Michele Bannister (micheleb@uvic.ca),
