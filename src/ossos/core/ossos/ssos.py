@@ -1,5 +1,6 @@
 from astropy.coordinates import SkyCoord
-import math
+
+from astrom import SourceReading
 
 __author__ = 'Michele Bannister, JJ Kavelaars'
 
@@ -126,11 +127,16 @@ class TracksParser(object):
                     logger.error(str(e))
                     logger.error(mpc_observation)
 
+        ref_sky_coord = None
         for source in tracks_data.get_sources():
             astrom_observations = tracks_data.observations
             source_readings = source.get_readings()
             for idx in range(len(source_readings)):
                 source_reading = source_readings[idx]
+                assert isinstance(source_reading, SourceReading)
+                if ref_sky_coord is None or source_reading.sky_coord.separation(ref_sky_coord) > 40 * units.arcsec:
+                    ref_sky_coord = source_reading.sky_coord
+                source_reading.reference_sky_coord = ref_sky_coord
                 astrom_observation = astrom_observations[idx]
                 self.orbit.predict(Time(astrom_observation.mjd, format='mjd', scale='utc'))
                 source_reading.pa = self.orbit.pa
