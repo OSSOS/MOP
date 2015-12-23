@@ -590,10 +590,37 @@ class WorkUnitProvider(object):
         not be locked and/or done.
         """
         exclude_prefix = self.taskid == tasks.suffixes.get(tasks.REALS_TASK, '') and 'fk' or None
-        return [filename for filename in self.directory_context.get_listing(self.taskid, exclude_prefix=exclude_prefix)
-                if filename not in ignore_list and
-                filename not in self._done and
-                filename not in self._already_fetched]
+        filenames = [filename for filename in
+                     self.directory_context.get_listing(self.taskid, exclude_prefix=exclude_prefix)
+                     if filename not in ignore_list and
+                     filename not in self._done and
+                     filename not in self._already_fetched]
+
+        # if the extension is .mpc. then we look for the largest numbered MPC file.
+        # look for the largest numbered MPC file only.
+        if self.taskid == tasks.suffixes.get(tasks.TRACK_TASK, ''):
+            basenames = {}
+            for filename in filenames:
+                fullname = os.path.splitext(filename)[0]
+                if fullname in basenames:
+                    continue
+                basename = os.path.splitext(fullname)[0]
+                # only do the 'maximum' search when the 2nd extension is an integer value
+                try:
+                    idx = int(filename.split('.')[-2])
+                    if idx > basenames.get(basename, 0):
+                        basenames[basename] = idx
+                except:
+                    # since we failed, just keep the file in the list
+                    basenames[fullname] = ''
+            filenames = []
+            for basename in basenames:
+                # sometimes the version is empty, so no '.' is needed
+                version = basenames[basename]
+                version = len(str(version)) > 0 and ".{}".format(version) or version
+                filenames.append("{}{}{}".format(basename, version, self.taskid))
+                print basename, basenames[basename], filenames[-1]
+        return filenames
 
     def select_potential_file(self, potential_files):
         if self.randomize:
