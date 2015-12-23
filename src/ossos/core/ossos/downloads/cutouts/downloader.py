@@ -35,14 +35,14 @@ class ImageCutoutDownloader(Downloader):
         """
         super(ImageCutoutDownloader, self).__init__()
 
-        #self.cutout_calculator = CutoutCalculator(slice_rows, slice_cols)
+        # self.cutout_calculator = CutoutCalculator(slice_rows, slice_cols)
 
     def download_cutout(self, reading, focus=None, needs_apcor=False):
         """
         Downloads a cutout of the FITS image for a given source reading.
 
         Args:
-          source_reading: ossos.astrom.SourceReading
+          reading: ossos.astrom.SourceReading
             The reading which will be the focus of the downloaded image.
           focus: tuple(int, int)
             The x, y coordinates that should be the focus of the downloaded
