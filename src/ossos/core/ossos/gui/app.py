@@ -7,18 +7,18 @@ from ..downloads.async import AsynchronousDownloadManager
 from ..downloads.cutouts.downloader import ImageCutoutDownloader
 from ..gui import config, tasks, logger
 from ..gui import context
-from ..gui.sync import SynchronizationManager
+from ..gui.controllers import (ProcessTracksController,
+                               ProcessRealsController,
+                               ProcessCandidatesController)
+from ..gui.errorhandling import DownloadErrorHandler
+from ..gui.models.imagemanager import ImageManager
+from ..gui.models.transactions import TransAckValidationModel
 from ..gui.models.workload import (WorkUnitProvider,
                                    RealsWorkUnitBuilder,
                                    TracksWorkUnitBuilder,
                                    CandidatesWorkUnitBuilder,
                                    PreFetchingWorkUnitProvider)
-from ..gui.errorhandling import DownloadErrorHandler
-from ..gui.controllers import (ProcessTracksController,
-                               ProcessRealsController,
-                               ProcessCandidatesController)
-from ..gui.models.imagemanager import ImageManager
-from ..gui.models.transactions import TransAckValidationModel
+from ..gui.sync import SynchronizationManager
 from ..gui.views.appview import ApplicationView
 from ..naming import ProvisionalNameGenerator, DryRunNameGenerator
 from ..ssos import TracksParser
@@ -182,12 +182,12 @@ class ProcessCandidatesApplication(ValidationApplication):
 
 class ProcessRealsApplication(ValidationApplication):
     def __init__(self, working_directory, output_directory,
-                 dry_run=False, debug=False, name_filter=None, user_id=None):
+                 dry_run=False, debug=False, name_filter=None, user_id=None, zoom=1):
         preload_iraf()
 
         super(ProcessRealsApplication, self).__init__(
             working_directory, output_directory, dry_run=dry_run,
-            debug=debug, name_filter=name_filter, user_id=user_id, mark_using_pixels=False)
+            debug=debug, name_filter=name_filter, user_id=user_id, mark_using_pixels=False, zoom=zoom)
 
     @property
     def input_suffix(self):
@@ -211,14 +211,14 @@ class ProcessRealsApplication(ValidationApplication):
 
 class ProcessTracksApplication(ValidationApplication):
     def __init__(self, working_directory, output_directory,
-                 dry_run=False, debug=False, name_filter=None, skip_previous=False, 
-                 user_id=None):
+                 dry_run=False, debug=False, name_filter=None, skip_previous=False,
+                 user_id=None, zoom=1):
         preload_iraf()
         self.skip_previous = skip_previous
         super(ProcessTracksApplication, self).__init__(
             working_directory, output_directory, dry_run=dry_run, debug=debug, 
             name_filter=name_filter,
-            user_id=user_id)
+            user_id=user_id, zoom=zoom)
         self.controller.is_discovery = False
 
     @property
@@ -240,9 +240,9 @@ class ProcessTracksApplication(ValidationApplication):
     def _create_controller_factory(self, model):
         return TracksControllerFactory(model, dry_run=self.dry_run)
 
-    def _create_view(self, model, debug=False, mark_using_pixels=False):
+    def _create_view(self, model, debug=False, mark_using_pixels=False, zoom=1):
         return ApplicationView(self._create_controller_factory(model),
-                               track_mode=True, debug=debug)
+                               track_mode=True, debug=debug, zoom=zoom)
 
 
 class ControllerFactory(object):
