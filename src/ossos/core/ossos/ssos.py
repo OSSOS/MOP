@@ -526,9 +526,7 @@ class ParamDictBuilder(object):
     @property
     def telescope_instrument(self):
         """
-        :param The instrument on the facility. Still a SSOIS beta property.
-        Currently only takes one instrument at a time.
-        :return:
+        Name of the telescope being used.
         """
         return self._telescope_instrument
 
