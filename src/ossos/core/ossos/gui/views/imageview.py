@@ -30,6 +30,7 @@ class ImageViewManager(object):
         """
         Set the default values on the ds9 display.
         """
+        self.set_zoom()
         ds9_settings = config.read("DS9."+level)
         for key in ds9_settings.keys():
             value = ds9_settings[key]
@@ -40,10 +41,8 @@ class ImageViewManager(object):
         cmd = "zoom {}".format(self.zoom)
         self.ds9.set(cmd)
 
-    def new_frame(self):
+    def _new_frame(self):
         self.ds9.set('frame new')
-        self.set_zoom()
-
 
     @property
     def ds9(self):
@@ -69,6 +68,7 @@ class ImageViewManager(object):
         if self._ds9 is None:
             raise IOError("Failed to connect to DS9.")
         self._ds9.reset_preferences = self.set_ds9
+        self._ds9.new_frame = self._new_frame
         return self._ds9
 
     @property
