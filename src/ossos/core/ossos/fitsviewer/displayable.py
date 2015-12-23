@@ -317,7 +317,7 @@ class DisplayableImageSinglet(Displayable):
 
     def _do_render(self):
         self.image_singlet.show_image(ds9=self.display)
-        self._do_move_focus()
+        # self._do_move_focus()
 
     @property
     def aligned(self):
