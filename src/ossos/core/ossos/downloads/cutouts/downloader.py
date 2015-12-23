@@ -1,12 +1,12 @@
-from astropy.units import Quantity
 from astropy import units
+from astropy.units import Quantity
+from ossos.gui import config
 
+from ..core import Downloader, ApcorData
+from ..cutouts.source import SourceCutout
 from ... import storage
 from ...astrom import SourceReading
 from ...gui import logger
-from ..core import Downloader, ApcorData
-from ..cutouts.source import SourceCutout
-from ossos.gui import config
 
 
 class ImageDownloader(Downloader):
@@ -66,8 +66,10 @@ class ImageCutoutDownloader(Downloader):
         if not isinstance(min_radius, Quantity):
             min_radius = min_radius * units.arcminute
         radius = max(reading.uncertainty_ellipse.a,
-                     reading.uncertainty_ellipse.b,
+                     reading.uncertainty_ellipse.b) * 2.5
+        radius = max(radius,
                      min_radius)
+        radius = radius + reading.reference_sky_coord.separation(reading.sky_coord)
 
         logger.debug("got radius for cutout: {}".format(radius))
         image_uri = reading.get_image_uri()
