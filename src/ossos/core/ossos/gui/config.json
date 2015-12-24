@@ -100,12 +100,12 @@
     ]
   },
   "APP": {
-    "MAX_THREADS": 20
+    "MAX_THREADS": 10
   },
   "UI": {
     "DIMENSIONS": {
-      "WIDTH": 340,
-      "HEIGHT": 510
+      "WIDTH": 320,
+      "HEIGHT": 620
     },
     "ALLPROC": {
       "MSG": "Congratulations, you have processed the last source.\n\nWould you like to exit the program?",
