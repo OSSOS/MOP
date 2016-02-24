@@ -179,18 +179,24 @@ class AstromParser(object):
 
                 source.append(SourceReading(*fields))
 
-            # Overloard the 'uncertainty' criterion to ensure we get a large enough cutout.
-            for fields in source:
-                assert isinstance(fields, SourceReading)
-                fields.uncertainty_ellipse.a = ((max(x_0) - min(x_0) + 30) * 0.185) * units.arcsecond
-                fields.uncertainty_ellipse.b = ((max(y_0) - min(y_0) + 30) * 0.185) * units.arcsecond
-                fields.uncertainty_ellipse.pa = 0.0 * units.degree
-
             # Add an ra/dec reference to the source.
             ref_index = int(math.ceil(len(source) / 2.0)) - 1
             for reading in source:
                 assert isinstance(reading, SourceReading)
                 reading.reference_sky_coord = source[ref_index].sky_coord
+
+            # determine the smallest cutout that will include the reference coordinate and all the readings
+            min_cutout = 30 * units.arcsec
+            for reading in source:
+                sep = reading.reference_sky_coord.separation(reading.sky_coord)
+                if min_cutout < sep:
+                    min_cutout = sep
+            # Overload the 'uncertainty' criterion to ensure we get a large enough cutout.
+            for fields in source:
+                assert isinstance(fields, SourceReading)
+                fields.uncertainty_ellipse.a = sep/2.5
+                fields.uncertainty_ellipse.b = sep/2.5
+                fields.uncertainty_ellipse.pa = 0.0 * units.degree
 
             sources.append(source)
 
@@ -539,6 +545,7 @@ class SourceReading(object):
         self.discovery = discovery
         self.mpc_obseravtions = {}
         self.reference_sky_coord = self.sky_coord
+        self.min_cutout = 0.3 * units.arcminute
 
     def _original_frame(self, x, y):
         """
