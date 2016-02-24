@@ -66,10 +66,7 @@ class ImageCutoutDownloader(Downloader):
         if not isinstance(min_radius, Quantity):
             min_radius = min_radius * units.arcminute
         radius = max(reading.uncertainty_ellipse.a,
-                     reading.uncertainty_ellipse.b) * 2.5
-        radius = max(radius,
-                     min_radius)
-        radius = radius + reading.reference_sky_coord.separation(reading.sky_coord)
+                     reading.uncertainty_ellipse.b) * 2.5 + min_radius
 
         logger.debug("got radius for cutout: {}".format(radius))
         image_uri = reading.get_image_uri()
