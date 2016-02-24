@@ -1,6 +1,7 @@
 
 from astropy.io import ascii
 from astropy.table import MaskedColumn, Table
+import logging
 import math
 import numpy
 import os
@@ -34,7 +35,6 @@ def measure_mags(measures):
                                              'source': image_downloader.download(reading, needs_apcor=True)}
             observations[reading.obs]['x'].append(reading.x)
             observations[reading.obs]['y'].append(reading.y)
-
 
     for observation in observations:
         source = observations[observation]['source']
