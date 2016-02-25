@@ -619,7 +619,7 @@ class WorkUnitProvider(object):
                 version = basenames[basename]
                 version = len(str(version)) > 0 and ".{}".format(version) or version
                 filenames.append("{}{}{}".format(basename, version, self.taskid))
-                print basename, basenames[basename], filenames[-1]
+                # print basename, basenames[basename], filenames[-1]
         return filenames
 
     def select_potential_file(self, potential_files):
