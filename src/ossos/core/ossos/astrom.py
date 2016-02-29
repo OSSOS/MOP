@@ -506,6 +506,10 @@ class Ellipse(object):
         """
         return self._a
 
+    @a.setter
+    def a(self, value):
+        self._a = value
+
     @property
     def b(self):
         """
@@ -514,13 +518,22 @@ class Ellipse(object):
         """
         return self._b
 
+    @b.setter
+    def b(self, value):
+        self._b = value
+
     @property
     def pa(self):
         """
         The orientation angle of the ellipse, counter-clock wise from due west.
         @return: Quantity
         """
-        return  self._pa
+        return self._pa
+
+    @pa.setter
+    def pa(self, value):
+        self._pa = value
+
 
 
 class SourceReading(object):
