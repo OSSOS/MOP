@@ -49,8 +49,8 @@ class AbstractController(object):
         """
         return self.view
 
-    def place_marker(self, x, y, radius=10, colour='r'):
-        self.view.place_marker(self.model.get_current_cutout(), x, y, radius, colour=colour)
+    def place_marker(self, x, y, radius=10, colour='r', force=False):
+        self.view.place_marker(self.model.get_current_cutout(), x, y, radius, colour=colour, force=force)
 
     def display_current_image(self):
         logger.debug("Displaying image.")
@@ -233,6 +233,7 @@ class ProcessRealsController(AbstractController):
         """
         Initiates acceptance procedure, gathering required data.
         """
+
         if self.model.is_current_source_named():
             provisional_name = self.model.get_current_source_name()
         else:
@@ -250,12 +251,13 @@ class ProcessRealsController(AbstractController):
             values = result.split()
             ra = Quantity(float(values[1]), unit=units.degree)
             dec = Quantity(float(values[2]), unit=units.degree)
-            self.place_marker(ra, dec, radius=2 * units.arcsec, colour='green')
+            self.place_marker(ra, dec, radius=source_cutout.apcor.ap_in*0.185*units.arcsec, colour='green', force=True)
             key = values[0]
         else:
             key = isinstance(auto, bool) and " " or auto
             ra = source_cutout.ra
             dec = source_cutout.dec
+            self.place_marker(ra, dec, radius=source_cutout.apcor.ap_in*0.185*units.arcsec, colour='cyan', force=True)
 
         (x, y, extno) = source_cutout.world2pix(ra, dec, usepv=False)
         source_cutout.update_pixel_location((float(x), float(y)), extno)
@@ -291,7 +293,7 @@ class ProcessRealsController(AbstractController):
 
         if math.sqrt((cen_x - pre_daophot_pixel_x) ** 2 + (cen_y - pre_daophot_pixel_y) ** 2) > 1.5 or cen_failure:
             # check if the user wants to use the 'hand' coordinates or these new ones.
-            self.place_marker(cen_x, cen_y, 6, colour='white')
+            self.place_marker(cen_x, cen_y, radius=source_cutout.apcor.ap_in*0.185*units.arcsec, colour='white', force=True)
             self.view.show_offset_source_dialog((pre_daophot_pixel_x, pre_daophot_pixel_y), (cen_x, cen_y))
 
         note1_default = ""

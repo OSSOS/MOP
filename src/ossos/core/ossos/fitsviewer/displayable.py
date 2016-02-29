@@ -50,7 +50,7 @@ class Region(object):
             try:
                 shape = '{}"'.format(self.shape.to(units.arcsec).value)
             except:
-                shape = self.shape
+                shape = '{}"'.format(0.185*self.shape)
 
         return iter(('regions', '{}; {}({},{},{}) # color={} {}'.format(self.coosys,
                                                                         self.style,
@@ -151,9 +151,9 @@ class Displayable(object):
         self.display.set(*r)
         self._annulus_placed = True
 
-    def place_marker(self, x, y, radius=10, colour='b'):
+    def place_marker(self, x, y, radius=10, colour='b', force=False):
 
-        if not self.display or self._marker_placed or not self.mark_reticule:
+        if not force and (not self.display or self._marker_placed or not self.mark_reticule):
             return
         self.display.set(*Region((x, y), style='circle', colour=colour, shape=radius))
         self._marker_placed = True
