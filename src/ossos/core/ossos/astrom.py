@@ -486,14 +486,41 @@ class Ellipse(object):
         :param pa: Position Angle (East is 0)
         :type pa: Quantity
         """
-        self.a = a
-        self.b = b
-        self.pa = pa
+        assert isinstance(a, Quantity)
+        assert isinstance(b, Quantity)
+        assert isinstance(pa, Quantity)
+        self._a = a
+        self._b = b
+        self._pa = pa
 
     def __str__(self):
         return '{}", {}", {}'.format(self.a.to(units.arcsec).value,
                                      self.b.to(units.arcsec).value,
                                      self.pa.to(units.degree).value + 90)
+
+    @property
+    def a(self):
+        """
+        The semi-major axis of the ellipse
+        @return: Quantity
+        """
+        return self._a
+
+    @property
+    def b(self):
+        """
+        The semi-minor axis of the ellipse.
+        @return: Quantity
+        """
+        return self._b
+
+    @property
+    def pa(self):
+        """
+        The orientation angle of the ellipse, counter-clock wise from due west.
+        @return: Quantity
+        """
+        return  self._pa
 
 
 class SourceReading(object):
