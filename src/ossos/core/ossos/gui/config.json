@@ -49,12 +49,12 @@
     "SINGLETS": {
       "SLICE_ROWS": 50,
       "SLICE_COLS": 50,
-      "RADIUS": 0.1
+      "RADIUS": 30
     },
     "TRIPLETS": {
       "SLICE_ROWS": 50,
       "SLICE_COLS": 50,
-      "RADIUS": 0.2
+      "RADIUS": 30
     }
   },
   "DISPLAY": {

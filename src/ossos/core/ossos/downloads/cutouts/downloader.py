@@ -62,9 +62,11 @@ class ImageCutoutDownloader(Downloader):
                                                                                                     focus,
                                                                                                     needs_apcor))
         assert isinstance(reading, SourceReading)
+
         min_radius = config.read('CUTOUTS.SINGLETS.RADIUS')
         if not isinstance(min_radius, Quantity):
-            min_radius = min_radius * units.arcminute
+            min_radius = min_radius * units.arcsec
+
         radius = max(reading.uncertainty_ellipse.a,
                      reading.uncertainty_ellipse.b) * 2.5 + min_radius
 
@@ -79,12 +81,14 @@ class ImageCutoutDownloader(Downloader):
             try:
                 apcor = self.download_apcor(reading.get_apcor_uri())
             except Exception as ex:
+                logger.debug("Failed while downloading aperture corrections: {}".format(ex))
                 pass
 
         zmag = None
         try:
             zmag = self.download_zmag(reading.get_zmag_uri())
         except Exception as ex:
+            logger.debug("Failed while downloading zeropoint.used file from vospace: {}".format(ex))
             pass
 
         header = reading.obs.header
