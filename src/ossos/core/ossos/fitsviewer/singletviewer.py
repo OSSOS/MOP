@@ -49,7 +49,7 @@ class SingletViewer(WxMPLFitsViewer):
         except Exception as ex:
             logger.info("Exception: {0}".format(ex))
             logger.warning("Failed trying to get apcor radius values, using defaults for marking.")
-            radii = (15, 30)
+            radii = (15, 30, 45)
 
         if pixel:
             radii = [radius * 0.185 * units.arcsec for radius in radii]
@@ -59,8 +59,8 @@ class SingletViewer(WxMPLFitsViewer):
             radii = [radius * 0.185 * units.arcsec for radius in radii]
             self._displayables_by_cutout[cutout].place_annulus(cutout.ra, cutout.dec, radii, colour='r')
 
-    def place_marker(self, cutout, x, y, radius, colour):
-        self._displayables_by_cutout[cutout].place_marker(x, y, radius, colour=colour)
+    def place_marker(self, cutout, x, y, radius, colour, force=False ):
+        self._displayables_by_cutout[cutout].place_marker(x, y, radius, colour=colour, force=force)
 
     def register_xy_changed_event_handler(self, handler):
         self.xy_changed.connect(handler)
