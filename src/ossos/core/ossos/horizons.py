@@ -136,8 +136,8 @@ class Query(object):
 
     @start_time.setter
     def start_time(self, start_time):
-        assert isinstance(Time, start_time)
-        self.start_time = start_time
+        assert isinstance(start_time, Time)
+        self._start_time = start_time
 
     @property
     def stop_time(self):
@@ -145,8 +145,8 @@ class Query(object):
 
     @stop_time.setter
     def stop_time(self, stop_time):
-        assert isinstance(Time, stop_time)
-        self.stop_time = stop_time
+        assert isinstance(stop_time, Time)
+        self._stop_time = stop_time
 
     @property
     def step_size(self):
@@ -155,7 +155,7 @@ class Query(object):
 
     @step_size.setter
     def step_size(self, step_size):
-        assert isinstance(Quantity, step_size)
+        assert isinstance(step_size, Quantity)
         self._step_size = step_size
 
     @property
