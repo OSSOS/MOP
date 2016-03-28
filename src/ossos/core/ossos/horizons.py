@@ -4,10 +4,13 @@ send queries to the Horizons batch query system via a web UI.
 import copy
 import re
 import requests
+import scipy
+from astropy.coordinates import SkyCoord
 from astropy.time import Time
 from astropy import units
 from astropy.units.quantity import Quantity
 from astropy.io.ascii import Csv
+from gui import logger
 
 
 class Query(object):
@@ -37,7 +40,10 @@ class Query(object):
                            'Earth->Site lt-time', 'RA & DEC uncertainty', 'POS error ellipse',
                            'POS uncertainty (RSS)', 'Range & Rng-rate sig.', 'Doppler/delay sigmas',
                            'True anomaly angle', 'Local app. hour angle']
-    default_quantities = [1, 3, 9]
+
+    default_quantities = ['Astrometric RA & DEC', 'Rates; RA & DEC',
+                          'RA & DEC uncertainty', 'Vis mag. & Surf Brt',
+                          'POS error ellipse']
 
     default_horizons_params = {'batch': "'{}'".format(1),
                                'COMMAND': "'{}'".format('Ceres'),
@@ -50,7 +56,7 @@ class Query(object):
                                'START_TIME': "'JD {}'".format(Time.now()),
                                'STOP_TIME': "'JD {}'".format(Time.now() + 10*units.day),
                                'STEP_SIZE': "'{} {}'".format(1, 'd'),
-                               'QUANTITIES': "'{}'".format(default_quantities),
+                               'QUANTITIES': None,
                                'REF_SYSTEM': "'J2000'",
                                'SKIP_DAYLT': "'NO'",
                                'EXTRA_PREC': "'NO'",
@@ -62,9 +68,10 @@ class Query(object):
 
         @return:
         """
-        self.target = target
+        self._target = target
         self._params = copy.copy(Query.default_horizons_params)
-        self._quantities = [1, 3, 9]
+        self._quantities = None
+        self.quantities = Query.default_quantities
         self._data = None
         self._ephemeris = None
         self._elements = None
@@ -72,6 +79,24 @@ class Query(object):
         self._stop_time = Time.now() + 1*units.day
         self._step_size = 1*units.day
         self._center = 568
+        self._nobs = None
+        self._arc_length = None
+        self._current_time = None
+
+    @property
+    def target(self):
+        return self._target
+
+    @target.setter
+    def target(self, target):
+        if self._target != target:
+            self._target = target
+            self.reset()
+
+    def reset(self):
+        self._data = None
+        self._ephemeris = None
+        self._elements = None
 
     @property
     def center(self):
@@ -113,13 +138,13 @@ class Query(object):
     @property
     def quantities(self):
         s = "{}".format(self._quantities)
-        return "'{}'".format(s[1:-2])
+        return "'{}'".format(s[1:-1])
 
     @quantities.setter
     def quantities(self, quantities=None):
         if quantities is None:
-            self._quantities = Query.default_quantities
-            return
+            quantities = []
+        quantities.extend(Query.default_quantities)
 
         self._quantities = []
         for quantity in quantities:
@@ -127,7 +152,7 @@ class Query(object):
                 idx = int(quantity)
             except:
                 idx = Query.horizons_quantities.index(quantity)
-            if idx is not None:
+            if idx is not None and idx not in self._quantities:
                 self._quantities.append(idx)
 
     @property
@@ -137,7 +162,9 @@ class Query(object):
     @start_time.setter
     def start_time(self, start_time):
         assert isinstance(start_time, Time)
-        self._start_time = start_time
+        if start_time != self._start_time:
+            self.reset()
+            self._start_time = start_time
 
     @property
     def stop_time(self):
@@ -146,17 +173,25 @@ class Query(object):
     @stop_time.setter
     def stop_time(self, stop_time):
         assert isinstance(stop_time, Time)
-        self._stop_time = stop_time
+        if self._stop_time != stop_time:
+            self._stop_time = stop_time
+            self.reset()
 
     @property
     def step_size(self):
-        s = "{:1.0f}".format(self._step_size * self._step_size)[:3]
+        """
+
+        @return: Quantity size of time step
+        """
+        s = "{:1.0f}".format(self._step_size)[:3]
         return "'{}'".format(s)
 
     @step_size.setter
     def step_size(self, step_size):
         assert isinstance(step_size, Quantity)
-        self._step_size = step_size
+        if self._step_size != step_size:
+            self._step_size = step_size
+            self.reset()
 
     @property
     def ephemeris(self):
@@ -184,6 +219,7 @@ class Query(object):
         url = '{}://{}/{}'.format(Query.PROTOCOL,
                                   Query.SERVER,
                                   Query.END_POINT)
+        logger.info("Sending JPL/Hoirzons query.\n")
         self._response = requests.get(url, params=self.params)
         self._response.raise_for_status()
         self._data = []
@@ -210,7 +246,9 @@ class Query(object):
         csv_lines = [self.data[start_idx - 2]]
         csv_lines.extend(self.data[start_idx + 1: end_idx])
         csv = Csv()
-        self._ephemeris = csv.read(csv_lines)
+        table = csv.read(csv_lines)
+        table['Time'] = Time(table['Date_________JDUT'], format='jd')
+        self._ephemeris = table
 
     def _parse_elements(self):
         """Parse the elements out of the response from Horizons and place in elements object."""
@@ -231,6 +269,99 @@ class Query(object):
                 except:
                     value = part[2].strip()
                 self._elements[key] = value
+
+    def _parse_obs_arc(self):
+        parts = re.search('# obs: (\d+) \((\d+)-(\d+)\)', self.data)
+        if parts is None:
+            # Just fake some data
+            self._arc_length = 30 * units.day
+            self._nobs = 3
+        else:
+            self._arc_length = (int(parts.group(3)) - int(parts.group(2))) * units.year
+            self._nobs = int(parts.group(1))
+
+    def nobs(self):
+        if self._nobs is None:
+            self._parse_obs_arc()
+        return self._nobs
+
+    def arc_length(self):
+        if self._arc_length is None:
+            self._parse_obs_arc()
+        return self._arc_length
+
+    @property
+    def current_time(self):
+        """
+        Current time for position predictions.
+
+        @return: Time
+        """
+        if self._current_time is None:
+            self._current_time = self._stop_time + (self._stop_time - self._start_time)/2.0
+        return self._current_time
+
+    @current_time.setter
+    def current_time(self, current_time):
+        self._current_time = Time(current_time, scale='utc')
+
+    @property
+    def coordinate(self):
+        """
+        Prediction position of the target at current_time
+
+        @return: SkyCoord
+        """
+        ra = scipy.interp(self.current_time.jd,
+                          self.ephemeris['Time'].jd,
+                          self.ephemeris['R.A._(ICRF/J2000.0)']) * units.degree
+        dec = scipy.interp(self.current_time.jd,
+                           self.ephemeris['Time'].jd,
+                           self.ephemeris['DEC_(ICRF/J2000.0)']) * units.degree
+        return SkyCoord(ra, dec)
+
+    @property
+    def dra(self):
+        """
+        Uncertainty in the prediction location.
+
+        @return: Quantity
+        """
+
+        dra = scipy.interp(self.current_time.jd,
+                           self.ephemeris['Time'].jd,
+                           self.ephemeris['RA_3sigma']) * units.arcsec
+
+        return dra
+
+    @property
+    def ddec(self):
+        """
+        Uncertainty in the prediction location.
+
+        @return: Quantity
+        """
+        return scipy.interp(self.current_time.jd,
+                            self.ephemeris['Time'].jd,
+                            self.ephemeris['DEC_3sigma']) * units.arcsec
+
+    @property
+    def pa(self):
+        """
+        Plane Of Sky angle of the ra/dec uncertainty ellipse.
+
+        @return: Quantity
+        """
+        return scipy.interp(self.current_time.jd,
+                            self.ephemeris['Time'].jd,
+                            self.ephemeris['Theta']) * units.degree
+
+    def predict(self, time):
+        self.current_time = time
+        if not (self._stop_time >= self.current_time >= self._start_time):
+            self.start_time = time - 1.0*units.day
+            self.stop_time = time + 1.0*units.day
+
 
 def get(target):
     return Query(target)
