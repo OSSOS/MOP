@@ -262,6 +262,7 @@ class Ephemeris(object):
     def __init__(self, body, start_time=None, stop_time=None, step_size=None):
         """
 
+        @rtype: Ephemeris
         @param body: Body to build an ephemeris for
         @param start_time:  start time of the ephemeris
         @type start_time: Time
@@ -269,7 +270,6 @@ class Ephemeris(object):
         @type stop_time: Time
         @param step_size: size of time step for ephemeris
         @type step_size: Quantity
-        @return:
         """
         self.body = body
 

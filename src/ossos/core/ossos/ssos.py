@@ -158,8 +158,7 @@ class TracksParser(object):
 class TrackTarget(TracksParser):
 
     def parse(self, target_name):
-        target_name = os.path.splitext(os.path.basename(target_name))[0]
-        self.orbit = horizons.Query(target_name)
+        self.target_name = os.path.splitext(os.path.basename(target_name))[0]
         # pass down the provisional name so the table lines are linked to this TNO
         self.ssos_parser = SSOSParser(target_name,
                                       input_observations=None,
@@ -192,9 +191,10 @@ class TrackTarget(TracksParser):
 
         tracks_data.mpc_observations = {}
 
-        self.orbit.start_time = Time(search_start_date)
-        self.orbit.stop_time = Time(search_end_date)
-        self.orbit.step_size = 5 * units.hour
+        start_time = Time(search_start_date)
+        stop_time = Time(search_end_date)
+        step_size = 5 * units.hour
+        self.orbit = horizons.Ephemeris(target_name, start_time, stop_time, step_size)
 
         ref_sky_coord = None
         for source in tracks_data.get_sources():
@@ -294,11 +294,10 @@ class SSOSParser(object):
         if mpc_observations is not None and isinstance(mpc_observations[0], mpc.Observation):
             orbit = Orbfit(mpc_observations)
         else:
-            orbit = horizons.Query(self.provisional_name)
-            orbit.start_time = Time(min(ssos_table['MJD']), format='mjd')
-            orbit.stop_time = Time(max(ssos_table['MJD']), format='mjd')
-            orbit.step_size = 5.0 * units.hour
-            e = orbit.ephemeris
+            start_time = Time(min(ssos_table['MJD']), format='mjd')
+            stop_time = Time(max(ssos_table['MJD']), format='mjd')
+            step_size = 5.0 * units.hour
+            orbit = horizons.Ephemeris(self.provisional_name, start_time, stop_time, step_size)
 
         warnings.filterwarnings('ignore')
         logger.info("Loading {} observations\n".format(len(ssos_table)))
