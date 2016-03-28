@@ -63,21 +63,23 @@ class Query(object):
                                'R_T_S_ONLY': "'NO'",
                                'CSV_FORMAT': "'YES'"}
 
-    def __init__(self, target):
+    def __init__(self, target, start_time, stop_time, step_size):
         """
 
-        @return:
+        @type start_time: Time
+        @type stop_time: Time
+        @type step_size: Quantity
+        @type target: str
+        @return: Query
         """
         self._target = target
         self._params = copy.copy(Query.default_horizons_params)
         self._quantities = None
         self.quantities = Query.default_quantities
         self._data = None
-        self._ephemeris = None
-        self._elements = None
-        self._start_time = Time.now()
-        self._stop_time = Time.now() + 1*units.day
-        self._step_size = 1*units.day
+        self._start_time = start_time
+        self._stop_time = stop_time
+        self._step_size = step_size
         self._center = 568
         self._nobs = None
         self._arc_length = None
@@ -85,6 +87,11 @@ class Query(object):
 
     @property
     def target(self):
+        """
+        The solar system body to get an ephemeris for.
+
+        @return: str
+        """
         return self._target
 
     @target.setter
@@ -95,15 +102,22 @@ class Query(object):
 
     def reset(self):
         self._data = None
-        self._ephemeris = None
-        self._elements = None
 
     @property
     def center(self):
+        """
+        The location of the observer.
+
+        @return: str
+        """
         return "'{}@399'".format(self._center)
 
     @property
     def command(self):
+        """
+        The command to send to horizons, this is the same as the targeted but formatted for Horizons
+        @return: str
+        """
         return "'{}'".format(self.target)
 
     @property
@@ -132,11 +146,13 @@ class Query(object):
         # this is a required setting, or we have trouble with parsing.
         self._params['CSV_FORMAT'] = "'YES'"
 
-    def parse(self):
-        return self._data
-
     @property
     def quantities(self):
+        """
+        An array of quantities to request from Horizons for the ephemeris.  Returned as a string for Horizons query.
+
+        @return: str
+        """
         s = "{}".format(self._quantities)
         return "'{}'".format(s[1:-1])
 
@@ -157,6 +173,13 @@ class Query(object):
 
     @property
     def start_time(self):
+        """
+        Start time of the ephemeris, expressed as Julian Date and in string formatted expected by Horizons.
+
+        This attribute is set to a Time object but returned as a Horizons formatted string, same for stop_time.
+
+        @return: str
+        """
         return "'JD {}'".format(self._start_time.jd)
 
     @start_time.setter
@@ -168,6 +191,13 @@ class Query(object):
 
     @property
     def stop_time(self):
+        """
+        Stop time of the ephemeris, expressed as Julian Date and in string formatted expected by Horizons.
+
+        This attribute is set to a Time object but returned as a Horizons formatted string, same for start_time.
+
+        @return: str
+        """
         return "'JD {}'".format(self._stop_time.jd)
 
     @stop_time.setter
@@ -180,8 +210,11 @@ class Query(object):
     @property
     def step_size(self):
         """
+        Size of the step in the ephemeris.
 
-        @return: Quantity size of time step
+        This is set as a Quantity object with time dimension but returned as a string in Horizons query format.
+
+        @return: str.
         """
         s = "{:1.0f}".format(self._step_size)[:3]
         return "'{}'".format(s)
@@ -194,43 +227,90 @@ class Query(object):
             self.reset()
 
     @property
-    def ephemeris(self):
-        if self._ephemeris is None:
-            self._parse_ephemeris()
-        return self._ephemeris
-
-    @property
     def data(self):
+        """
+        The a list of strings returned from the Horizons query.
+
+        @return: list
+        """
         if self._data is None:
-            self._get()
+            self.query()
         return self._data
 
-    @property
-    def elements(self):
-        if self._elements is None:
-            self._parse_elements()
-        return self._elements
-
-    def _get(self):
+    def query(self):
         """
         Connect to the service and make the query.
+
         @return:
         """
         url = '{}://{}/{}'.format(Query.PROTOCOL,
                                   Query.SERVER,
                                   Query.END_POINT)
         logger.info("Sending JPL/Hoirzons query.\n")
-        self._response = requests.get(url, params=self.params)
-        self._response.raise_for_status()
+        response = requests.get(url, params=self.params)
+        response.raise_for_status()
         self._data = []
-        for line in self._response.iter_lines():
+        for line in response.iter_lines():
             self._data.append(line)
+
+
+class Ephemeris(object):
+    """An Horizons Ephemeris returned as a result of a query to the JPL/Horizons.
+
+    """
+
+    def __init__(self, body, start_time=None, stop_time=None, step_size=None):
+        """
+
+        @param body: Body to build an ephemeris for
+        @param start_time:  start time of the ephemeris
+        @type start_time: Time
+        @param stop_time: stop time of the ephemeris
+        @type stop_time: Time
+        @param step_size: size of time step for ephemeris
+        @type step_size: Quantity
+        @return:
+        """
+        self.body = body
+
+        # make sure the input quantities are reasonable.
+        if start_time is None:
+            start_time = Time.now()
+        start_time = Time(start_time, scale='utc')
+        if stop_time is None:
+            stop_time = Time.now() + 1.0 * units.day
+        stop_time = Time(stop_time, scale='utc')
+        step_size = step_size is None and 1 or step_size
+        if not isinstance(step_size, Quantity):
+            step_size *= units.day
+
+        self.data = Query(body, start_time, stop_time, step_size).data
+        self.step_size = step_size
+        self._current_time = None
+        self._ephemeris = None
+
+    @property
+    def start_time(self):
+        """
+        Start time of the ephemeris that was retrieved from Horizons.
+        @rtype:  Time
+        """
+        return min(self.ephemeris['Time'])
+
+    @property
+    def stop_time(self):
+        """
+        Stop time of the ephemeris that was retrieved from Horizons.
+        @rtype: Time
+        """
+        return max(self.ephemeris['Time'])
 
     def _parse_ephemeris(self):
         """Parse the ephemeris out of the responses from Horizons and place in self._ephemeris."""
 
         start_of_ephemeris = '$$SOE'
         end_of_ephemeris = '$$EOE'
+        start_of_failure = '!$$SOF'
         start_idx = None
         end_idx = None
         for idx, line in enumerate(self.data):
@@ -240,14 +320,24 @@ class Query(object):
                 end_idx = idx
 
         if start_idx is None or end_idx is None:
-            raise ValueError(self._response.content, "Not a valid response.")
+            fail_idx = None
+            for idx, line in enumerate(self.data):
+                if start_of_failure in line:
+                    fail_idx = idx
+                    break
+            msg = fail_idx is None and self.data or self.data[fail_idx-2]
+            print msg
+            raise ValueError(msg, "failed to build ephemeris")
 
         # the header of the CSV structure is 2 lines before the start_of_ephmeris
         csv_lines = [self.data[start_idx - 2]]
         csv_lines.extend(self.data[start_idx + 1: end_idx])
         csv = Csv()
         table = csv.read(csv_lines)
-        table['Time'] = Time(table['Date_________JDUT'], format='jd')
+        try:
+            table['Time'] = Time(table['Date_________JDUT'], format='jd')
+        except KeyError:
+            raise ValueError(self.data, "Horizons result did not contain a JD Time column, rebuild the Query.")
         self._ephemeris = table
 
     def _parse_elements(self):
@@ -280,12 +370,46 @@ class Query(object):
             self._arc_length = (int(parts.group(3)) - int(parts.group(2))) * units.year
             self._nobs = int(parts.group(1))
 
+    @property
+    def elements(self):
+        """
+        The orbital elements for the body, as returned by JPL/Horizons.
+
+        @rtype: dict
+        """
+        if self._elements is None:
+            self._parse_elements()
+        return self._elements
+
+    @property
+    def ephemeris(self):
+        """
+        A table containing the ephemeris of the body.
+
+        @rtype: Table
+        """
+        if self._ephemeris is None:
+            self._parse_ephemeris()
+        return self._ephemeris
+
+    @property
     def nobs(self):
+        """
+        The number of observations used to determine the orbit used to build the ephmeris.
+
+        @rtype: int
+        """
         if self._nobs is None:
             self._parse_obs_arc()
         return self._nobs
 
+    @property
     def arc_length(self):
+        """
+        The length of the observed arc used to determine the orbit used to build the ephemeris.
+
+        @rtype: Quantity
+        """
         if self._arc_length is None:
             self._parse_obs_arc()
         return self._arc_length
@@ -295,22 +419,30 @@ class Query(object):
         """
         Current time for position predictions.
 
-        @return: Time
+        If current time is set to a value outside the bounds of the available ephemeris a new query to JPL/Horizons
+        occurs.
+
+        @rtype: Time
+        @return: the time of the current ra/dec/rates selected from the ephmeris.
         """
         if self._current_time is None:
-            self._current_time = self._stop_time + (self._stop_time - self._start_time)/2.0
+            self.current_time = self.stop_time + (self.stop_time - self.start_time)/2.0
         return self._current_time
 
     @current_time.setter
     def current_time(self, current_time):
         self._current_time = Time(current_time, scale='utc')
+        if not (self.stop_time >= self.current_time >= self.start_time):
+            start_time = Time(self.current_time - 10.0*units.minute)
+            stop_time = Time(self.current_time + 10.0*units.minute)
+            self.data = Query(self.body, start_time, stop_time, self.step_size).data
 
     @property
     def coordinate(self):
         """
         Prediction position of the target at current_time
 
-        @return: SkyCoord
+        @rtype: SkyCoord
         """
         ra = scipy.interp(self.current_time.jd,
                           self.ephemeris['Time'].jd,
@@ -325,27 +457,26 @@ class Query(object):
         """
         Uncertainty in the prediction location.
 
-        @return: Quantity
+        @rtype: Quantity angle/time
         """
 
         ra_rate = scipy.interp(self.current_time.jd,
-                           self.ephemeris['Time'].jd,
-                           self.ephemeris['dRA*cosD']) * units.arcsec / units.hour
+                               self.ephemeris['Time'].jd,
+                               self.ephemeris['dRA*cosD']) * units.arcsec / units.hour
 
         return ra_rate
-
 
     @property
     def dec_rate(self):
         """
         Uncertainty in the prediction location.
 
-        @return: Quantity
+        @rtpye: Quantity  angle/time
         """
 
         dec_rate = scipy.interp(self.current_time.jd,
-                           self.ephemeris['Time'].jd,
-                           self.ephemeris['d(DEC)/dt']) * units.arcsec / units.hour
+                                self.ephemeris['Time'].jd,
+                                self.ephemeris['d(DEC)/dt']) * units.arcsec / units.hour
 
         return dec_rate
 
@@ -354,7 +485,7 @@ class Query(object):
         """
         Uncertainty in the prediction location.
 
-        @return: Quantity
+        @rtpye: Quantity  angle
         """
 
         dra = scipy.interp(self.current_time.jd,
@@ -368,7 +499,7 @@ class Query(object):
         """
         Uncertainty in the prediction location.
 
-        @return: Quantity
+        @rtype: Quantity  angle
         """
         return scipy.interp(self.current_time.jd,
                             self.ephemeris['Time'].jd,
@@ -379,18 +510,18 @@ class Query(object):
         """
         Plane Of Sky angle of the ra/dec uncertainty ellipse.
 
-        @return: Quantity
+        @rtype: Quantity
         """
         return scipy.interp(self.current_time.jd,
                             self.ephemeris['Time'].jd,
                             self.ephemeris['Theta']) * units.degree
 
     def predict(self, time):
+        """
+        The time for which coordinate and other attributes will be computed.
+
+        This function exists so that a horizons.Ephemeris object can be used where a orbfit.Orbfit object is used.
+        @type time: Time
+        @param time: Time
+        """
         self.current_time = time
-        if not (self._stop_time >= self.current_time >= self._start_time):
-            self.start_time = time - 1.0*units.day
-            self.stop_time = time + 1.0*units.day
-
-
-def get(target):
-    return Query(target)
