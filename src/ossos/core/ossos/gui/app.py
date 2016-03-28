@@ -21,7 +21,7 @@ from ..gui.models.workload import (WorkUnitProvider,
 from ..gui.sync import SynchronizationManager
 from ..gui.views.appview import ApplicationView
 from ..naming import ProvisionalNameGenerator, DryRunNameGenerator
-from ..ssos import TracksParser
+from ..ssos import TracksParser, TrackTarget
 
 
 def create_application(task_name, working_directory, output_directory,
@@ -37,6 +37,10 @@ def create_application(task_name, working_directory, output_directory,
                                 dry_run=dry_run, debug=debug, name_filter=name_filter, user_id=user_id, zoom=zoom)
     elif task_name == tasks.TRACK_TASK:
         ProcessTracksApplication(working_directory, output_directory,
+                                 dry_run=dry_run, debug=debug, name_filter=name_filter,
+                                 skip_previous=skip_previous, user_id=user_id, zoom=zoom)
+    elif task_name == tasks.TARGET_TASK:
+        ProcessTargetApplication(working_directory, output_directory,
                                  dry_run=dry_run, debug=debug, name_filter=name_filter,
                                  skip_previous=skip_previous, user_id=user_id, zoom=zoom)
     else:
@@ -244,6 +248,41 @@ class ProcessTracksApplication(ValidationApplication):
         return ApplicationView(self._create_controller_factory(model),
                                track_mode=True, debug=debug, zoom=zoom)
 
+
+class ProcessTargetApplication(ProcessTracksApplication):
+    def __init__(self, working_directory, output_directory,
+                 dry_run=False, debug=False, name_filter=None, skip_previous=False,
+                 user_id=None, zoom=1):
+        preload_iraf()
+        self.skip_previous = skip_previous
+        super(ProcessTargetApplication, self).__init__(
+            working_directory, output_directory, dry_run=dry_run, debug=debug,
+            name_filter=name_filter,
+            user_id=user_id, zoom=zoom)
+        self.controller.is_discovery = False
+
+    @property
+    def input_suffix(self):
+        return tasks.suffixes[tasks.TARGET_TASK]
+
+    @property
+    def should_randomize_workunits(self):
+        return False
+
+    def _create_workunit_builder(self,
+                                 input_context,
+                                 output_context,
+                                 progress_manager):
+        return TracksWorkUnitBuilder(
+            TrackTarget(skip_previous=self.skip_previous), input_context, output_context, progress_manager,
+            dry_run=self.dry_run)
+
+    def _create_controller_factory(self, model):
+        return TracksControllerFactory(model, dry_run=self.dry_run)
+
+    def _create_view(self, model, debug=False, mark_using_pixels=False, zoom=1):
+        return ApplicationView(self._create_controller_factory(model),
+                               track_mode=True, debug=debug, zoom=zoom)
 
 class ControllerFactory(object):
     """
