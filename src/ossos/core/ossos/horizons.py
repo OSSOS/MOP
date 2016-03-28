@@ -321,6 +321,35 @@ class Query(object):
         return SkyCoord(ra, dec)
 
     @property
+    def ra_rate(self):
+        """
+        Uncertainty in the prediction location.
+
+        @return: Quantity
+        """
+
+        ra_rate = scipy.interp(self.current_time.jd,
+                           self.ephemeris['Time'].jd,
+                           self.ephemeris['dRA*cosD']) * units.arcsec / units.hour
+
+        return ra_rate
+
+
+    @property
+    def dec_rate(self):
+        """
+        Uncertainty in the prediction location.
+
+        @return: Quantity
+        """
+
+        dec_rate = scipy.interp(self.current_time.jd,
+                           self.ephemeris['Time'].jd,
+                           self.ephemeris['d(DEC)/dt']) * units.arcsec / units.hour
+
+        return dec_rate
+
+    @property
     def dra(self):
         """
         Uncertainty in the prediction location.
