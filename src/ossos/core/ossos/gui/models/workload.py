@@ -498,6 +498,23 @@ class TracksWorkUnit(WorkUnit):
             self._writer.close()
 
 
+class TargetWorkUnit(TracksWorkUnit):
+
+    def __init__(self,
+                 builder,
+                 filename,
+                 parsed_data,
+                 progress_manager,
+                 output_context,
+                 dry_run=False):
+        super(TracksWorkUnit, self).__init__(
+            filename,
+            parsed_data,
+            progress_manager,
+            output_context,
+            dry_run=dry_run)
+
+
 class WorkUnitProvider(object):
     """
     Obtains new units of work for the application.
@@ -559,7 +576,6 @@ class WorkUnitProvider(object):
         while len(potential_files) > 0:
             potential_file = self.select_potential_file(potential_files)
             potential_files.remove(potential_file)
-
             if self._filter(potential_file):
                 continue
 
@@ -576,7 +592,6 @@ class WorkUnitProvider(object):
                     continue
 
                 self._already_fetched.append(potential_file)
-
                 return self.builder.build_workunit(
                     self.directory_context.get_full_path(potential_file))
 
@@ -802,6 +817,43 @@ class TracksWorkUnitBuilder(WorkUnitBuilder):
                               readings[discovery_index + 3:])
 
         self.set_readings(data, reordered_readings)
+
+    def _do_build_workunit(self,
+                           filename,
+                           data,
+                           progress_manager,
+                           output_context,
+                           dry_run):
+
+        # Doesn't work... TODO: FixMe
+        # self.move_discovery_to_front(data)
+
+        return TracksWorkUnit(self, filename, data, progress_manager, output_context, dry_run=dry_run)
+
+
+class TargetWorkUnitBuilder(TracksWorkUnitBuilder):
+
+    def __init__(self, parser, input_context, output_context, progress_manager,
+                 dry_run=False):
+        super(TracksWorkUnitBuilder, self).__init__(
+            parser, input_context, output_context, progress_manager,
+            dry_run=dry_run)
+
+    @staticmethod
+    def get_readings(data):
+        # Note: Track workunits only have 1 source
+        return data.get_sources()[0].get_readings()
+
+    @staticmethod
+    def set_readings(data, readings):
+        # Note: Track workunits only have 1 source
+        data.get_sources()[0].readings = readings
+
+    def get_discovery_index(self, data):
+        return None
+
+    def move_discovery_to_front(self, data):
+        pass
 
     def _do_build_workunit(self,
                            filename,
