@@ -194,7 +194,7 @@ class TrackTarget(TracksParser):
         start_time = Time(search_start_date)
         stop_time = Time(search_end_date)
         step_size = 5 * units.hour
-        self.orbit = horizons.Ephemeris(target_name, start_time, stop_time, step_size)
+        self.orbit = horizons.Body(target_name, start_time, stop_time, step_size)
 
         ref_sky_coord = None
         for source in tracks_data.get_sources():
@@ -297,7 +297,7 @@ class SSOSParser(object):
             start_time = Time(min(ssos_table['MJD']), format='mjd')
             stop_time = Time(max(ssos_table['MJD']), format='mjd')
             step_size = 5.0 * units.hour
-            orbit = horizons.Ephemeris(self.provisional_name, start_time, stop_time, step_size)
+            orbit = horizons.Body(self.provisional_name, start_time, stop_time, step_size)
 
         warnings.filterwarnings('ignore')
         logger.info("Loading {} observations\n".format(len(ssos_table)))
