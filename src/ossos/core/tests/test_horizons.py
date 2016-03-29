@@ -33,7 +33,7 @@ class HorizonsQueryTest(unittest.TestCase):
         self.assertAlmostEqual(mid_exposure.jd, Time(2456659.84154, format='jd').jd, 5)
 
         for target in ['Ceres', 'Vesta']:
-            body = horizons.Ephemeris(target, start_time, stop_time, step_size)
+            body = horizons.Body(target, start_time, stop_time, step_size)
             body.predict(mid_exposure)
             self.assertLess(coords[target].separation(body.coordinate), 0.1 * units.arcsec)
 
