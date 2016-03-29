@@ -112,6 +112,10 @@ class Query(object):
         """
         return "'{}@399'".format(self._center)
 
+    @center.setter
+    def center(self, center):
+        self._center = center
+
     @property
     def command(self):
         """
@@ -254,16 +258,16 @@ class Query(object):
             self._data.append(line)
 
 
-class Ephemeris(object):
+class Body(object):
     """An Horizons Ephemeris returned as a result of a query to the JPL/Horizons.
 
     """
 
-    def __init__(self, body, start_time=None, stop_time=None, step_size=None):
+    def __init__(self, name, start_time=None, stop_time=None, step_size=None, center=None):
         """
 
         @rtype: Ephemeris
-        @param body: Body to build an ephemeris for
+        @param name: Body to build an ephemeris for
         @param start_time:  start time of the ephemeris
         @type start_time: Time
         @param stop_time: stop time of the ephemeris
@@ -271,24 +275,41 @@ class Ephemeris(object):
         @param step_size: size of time step for ephemeris
         @type step_size: Quantity
         """
-        self.body = body
+        self.name = str(name)
 
         # make sure the input quantities are reasonable.
         if start_time is None:
             start_time = Time.now()
-        start_time = Time(start_time, scale='utc')
+        self._start_time = Time(start_time, scale='utc')
+
         if stop_time is None:
             stop_time = Time.now() + 1.0 * units.day
-        stop_time = Time(stop_time, scale='utc')
+        self._stop_time = Time(stop_time, scale='utc')
         step_size = step_size is None and 1 or step_size
+
         if not isinstance(step_size, Quantity):
             step_size *= units.day
-
-        self.data = Query(body, start_time, stop_time, step_size).data
         self.step_size = step_size
-        self._current_time = None
+        if center is None:
+            center = 568
+        self._center = center
         self._ephemeris = None
         self._elements = None
+        self._current_time = None
+        self._data = None
+
+    def __str__(self):
+        s = '{:>5}: {}\n'.format('Name', self.name)
+        for attr in ['a', 'e', 'Inc', 'Omega', 'omega', 'M', 'Epoch', 'n']:
+            s += "{:>5}: {:<12}\n".format(attr, getattr(self, attr))
+        return s
+
+    def _reset(self):
+        self._ephemeris = None
+        self._elements = None
+        self._nobs = None
+        self._arc_length = None
+        self._data = None
 
     @property
     def start_time(self):
@@ -372,6 +393,14 @@ class Ephemeris(object):
             self._nobs = int(parts.group(1))
 
     @property
+    def data(self):
+        if self._data is None:
+            q = Query(self.name, self._start_time, self._stop_time, self.step_size)
+            q.center = self._center
+            self._data = q.data
+        return self._data
+
+    @property
     def elements(self):
         """
         The orbital elements for the body, as returned by JPL/Horizons.
@@ -434,9 +463,10 @@ class Ephemeris(object):
     def current_time(self, current_time):
         self._current_time = Time(current_time, scale='utc')
         if not (self.stop_time >= self.current_time >= self.start_time):
-            start_time = Time(self.current_time - 10.0*units.minute)
-            stop_time = Time(self.current_time + 10.0*units.minute)
-            self.data = Query(self.body, start_time, stop_time, self.step_size).data
+            self._start_time = Time(self.current_time - 10.0*units.minute)
+            self._stop_time = Time(self.current_time + 10.0*units.minute)
+            self.step_size = 5*units.minutes
+            self._reset()
 
     @property
     def coordinate(self):
@@ -543,17 +573,15 @@ class Ephemeris(object):
 
         @return: float
         """
-
         return self.elements['EC']
 
     @property
-    def inc(self):
+    def Inc(self):
         """
         orbital inclination
 
         @return: Quantity degree
         """
-
         return self.elements['IN'] * units.degree
 
     @property
@@ -563,35 +591,31 @@ class Ephemeris(object):
 
         @return: Quantity degree
         """
-
         return self.elements['MA'] * units.degree
 
     @property
-    def Om(self):
+    def Omega(self):
         """
         orbital argument of ascending node.
 
         @return: Quantity degree
         """
-
         return self.elements['OM'] * units.degree
 
     @property
-    def w(self):
+    def omega(self):
         """
         orbital argument of peri-focus
         @return:
         """
-
         return self.elements['W'] * units.degree
 
     @property
-    def epoch(self):
+    def Epoch(self):
         """
         epoch of the orbital elements  in dynamical barycenter units
         @return: Time
         """
-
         return Time(self.elements.get('EPOCH', Time.now().jd), format='jd')
 
     @property
@@ -600,5 +624,6 @@ class Ephemeris(object):
         mean motion
         @return: Quantity degree / day
         """
-
         return self.elements['N'] * units.degree / units.day
+
+Ephmeris = Body
