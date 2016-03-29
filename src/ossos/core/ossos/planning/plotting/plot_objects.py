@@ -1,23 +1,18 @@
 __author__ = 'Michele Bannister   git:@mtbannister'
 
+import datetime
 import math
 import os
-import datetime
 
-import numpy as np
 import ephem
 import matplotlib.pyplot as plt
+import numpy as np
 
-import parameters
 import mpcread
+import parameters
 import parsers
-import horizons
-
-
-
-
-
-
+from ossos import horizons
+#from src.ossos.core.ossos import horizons
 
 # FIXME: make this an args setting rather than hardwired
 PLOT_MPCORB = True and os.access(parameters.MPCORB_FILE, os.F_OK)
@@ -176,13 +171,10 @@ def plot_known_tnos_batch(handles, labels, date):
 
 
 def plot_single_known_tno(ax, name, date, close=[]):
-    # date formatted as %Y-%m-%d %H:%M
-    # FIXME: rewrite this to use astroquery.mpc's single-object retrieval.
-    dateplus1hr = (datetime.datetime.strptime(date, '%Y-%m-%d %H:%M') + datetime.timedelta(1 / 24.)).strftime(
-        '%Y-%m-%d %H:%M')
-    obj_elems, single_ephem = horizons.batch(name, date, dateplus1hr, None, su='d')  # pull back one position only
-    ra = math.degrees(ephem.degrees(ephem.hours(single_ephem[0]['RA'])))
-    dec = math.degrees(ephem.degrees(single_ephem[0]['DEC']))
+    obj = horizons.Body(name)
+    obj.predict(date)
+    ra = obj.coordinate.ra.degree
+    dec = obj.coordinate.dec.degree
     if name == 'Ijiraq':
         fc = ec = 'k'
     else:
