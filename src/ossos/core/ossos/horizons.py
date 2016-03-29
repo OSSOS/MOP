@@ -288,6 +288,7 @@ class Ephemeris(object):
         self.step_size = step_size
         self._current_time = None
         self._ephemeris = None
+        self._elements = None
 
     @property
     def start_time(self):
@@ -525,3 +526,79 @@ class Ephemeris(object):
         @param time: Time
         """
         self.current_time = time
+
+    @property
+    def a(self):
+        """
+        Orbital semi-major axes
+        @return: Quantity AU
+
+        """
+        return self.elements['A'] * units.AU
+
+    @property
+    def e(self):
+        """
+        orbital eccentricity
+
+        @return: float
+        """
+
+        return self.elements['EC']
+
+    @property
+    def inc(self):
+        """
+        orbital inclination
+
+        @return: Quantity degree
+        """
+
+        return self.elements['IN'] * units.degree
+
+    @property
+    def M(self):
+        """
+        orbital Mean anomaly
+
+        @return: Quantity degree
+        """
+
+        return self.elements['MA'] * units.degree
+
+    @property
+    def Om(self):
+        """
+        orbital argument of ascending node.
+
+        @return: Quantity degree
+        """
+
+        return self.elements['OM'] * units.degree
+
+    @property
+    def w(self):
+        """
+        orbital argument of peri-focus
+        @return:
+        """
+
+        return self.elements['W'] * units.degree
+
+    @property
+    def epoch(self):
+        """
+        epoch of the orbital elements  in dynamical barycenter units
+        @return: Time
+        """
+
+        return Time(self.elements.get('EPOCH', Time.now().jd), format='jd')
+
+    @property
+    def n(self):
+        """
+        mean motion
+        @return: Quantity degree / day
+        """
+
+        return self.elements['N'] * units.degree / units.day
