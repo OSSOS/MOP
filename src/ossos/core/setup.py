@@ -53,5 +53,5 @@ setup(name='ossos',
       dependency_links=['git+https://github.com/ericmandel/pyds9.git#egg=pyds9-1.8'],
       install_requires=dependencies,
       scripts=scripts,
-      packages=find_packages(exclude=['tests.*',])
+      packages=find_packages(exclude=['tests',])
       )
