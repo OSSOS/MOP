@@ -466,7 +466,7 @@ class Body(object):
         if not (self.stop_time >= self.current_time >= self.start_time):
             self._start_time = Time(self.current_time - 10.0*units.minute)
             self._stop_time = Time(self.current_time + 10.0*units.minute)
-            self.step_size = 5*units.minutes
+            self.step_size = 5*units.minute
             self._reset()
 
     @property
