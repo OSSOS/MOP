@@ -10,14 +10,18 @@ from astropy.time import Time, TimeDelta
 import Polygon
 from matplotlib.patches import Rectangle
 from matplotlib.font_manager import FontProperties
-import matplotlib.pyplot as plt
 
+import matplotlib.pyplot as plt
 from planning import megacam
-import parsers
-import parameters
-import plot_fanciness
-import plot_objects
 from planning import invariable
+
+import parsers
+from src.ossos.core.ossos import parameters
+import src.ossos.core.ossos.planning.plotting.plot_fanciness
+import plot_objects
+
+
+
 
 
 
@@ -27,7 +31,7 @@ from planning import invariable
 plot_extents = {"13AE": [209.8, 218.2, -15.5, -9.5],
                 "13AO": [235.4, 243.8, -15.5, -9.5],
                 "13A": [209, 244, -22, -9],  # for both 13A blocks together
-                "15AM": [229, 235, -15, -9],
+                "15AM": [230, 238, -16, -9],
                 "15AP": [198, 207, -12, -4],
                 "13B": [30, 5, -2, 18],  # for both 13B blocks together
                 "13BL": [9, 18, 1, 7],
@@ -152,7 +156,7 @@ def plot_invariable_plane(handles, labels, from_plane=ephem.degrees('0')):
     handles.append(plt.plot([math.degrees(coord.ra) for coord in eq],
                             [math.degrees(coord.dec) for coord in eq],
                             ls='--',
-                            color=plot_fanciness.ALMOST_BLACK,
+                            color=src.ossos.core.ossos.planning.plotting.plot_fanciness.ALMOST_BLACK,
                             lw=1,
                             alpha=0.7))
     labels.append('invariable')
@@ -161,6 +165,25 @@ def plot_invariable_plane(handles, labels, from_plane=ephem.degrees('0')):
 
 
 def build_ossos_footprint(ax, block_name, block, field_offset, plot=True, plot_col='b'):
+    ## camera_dimen is the size of the field.
+    ## this is the 40 CD Layout.  The width is set to exlcude one of the
+    ## Ears.  dimen is really the height
+    pixscale = 0.184
+    detsec_ccd09 = ((4161, 2114), (14318, 9707))
+    detsec_ccd10 = ((6279, 4232), (14317, 9706))
+    detsec_ccd36 = ((2048, 1), (14318, 9707))
+    detsec_ccd37 = ((23219, 21172), (14309, 9698))
+    detsec_ccd00 = ((4160, 2113), (19351, 14740))
+    detsec_ccd17 = ((21097, 19050), (14309, 9698))
+    detsec_ccd35 = ((16934, 18981), (11, 4622))
+
+    print detsec_ccd09[0][0] - detsec_ccd10[0][1], detsec_ccd09[0][1] - detsec_ccd36[0][0]
+
+    camera_width =  (max(detsec_ccd37[0]) - min(detsec_ccd09[0]) + 1 )* pixscale / 3600.0
+    camera_height = (max(detsec_ccd00[1]) - min(detsec_ccd35[1]) + 1 )* pixscale / 3600.0
+    camera_width_40 =  (max(detsec_ccd37[0]) - min(detsec_ccd36[0]) + 1 )* pixscale / 3600.0
+    camera_width_36 = (max(detsec_ccd17[0]) - min(detsec_ccd09[0]) + 1 ) * pixscale / 3600.0
+
     # build the pointings that will be used for the discovery fields
     x = []
     y = []
@@ -169,6 +192,9 @@ def build_ossos_footprint(ax, block_name, block, field_offset, plot=True, plot_c
     year = '2014'
     if year == 'astr':
         field_offset = field_offset * 0.75
+
+    camera_width=0.983*camera_width
+    camera_height=0.983*camera_height
 
     sign = -1
     # if 'f' in block:  # unsure what this was ever meant to do
@@ -200,12 +226,28 @@ def build_ossos_footprint(ax, block_name, block, field_offset, plot=True, plot_c
                 (xcen - dimen / 2.0, ycen - dimen / 2.0))))
 
             if plot:
-                ax.add_artist(Rectangle(xy=(ra - dimen / 2.0, dec - dimen / 2.0),
-                                        height=dimen,
-                                        width=dimen,
-                                        edgecolor='k',
-                                        facecolor=plot_col,
-                                        lw=0.5, fill=True, alpha=0.15, zorder=0))
+                fill = True
+                # ax.add_artist(Rectangle(xy=(ra - dimen / 2.0, dec - dimen / 2.0),
+                #                         height=dimen,
+                #                         width=dimen,
+                #                         edgecolor='k',
+                #                         facecolor=plot_col,
+                #                         lw=0.5, fill=True, alpha=0.15, zorder=0))
+                ax.add_artist(Rectangle(xy=(math.degrees(ra) - camera_width_40/2.0, math.degrees(dec) - camera_height / 4.0 ),
+                                        width= camera_width_40,
+                                        height= camera_height/2.0,
+                                        color='b',
+                                        lw=0.5, fill=fill, alpha=0.3))
+                ax.add_artist(Rectangle(xy=(math.degrees(ra) - camera_width_36/2.0, math.degrees(dec) - camera_height / 2.0),
+                                        height=camera_height/4.0,
+                                        width=camera_width_36,
+                                        color='b',
+                                        lw=0.5, fill=fill, alpha=0.3))
+                ax.add_artist(Rectangle(xy=(math.degrees(ra) - camera_width_36/2.0, math.degrees(dec) + camera_height / 4.0),
+                                        height=camera_height/4.0,
+                                        width=camera_width_36,
+                                        color='b',
+                                        lw=0.5, fill=fill, alpha=0.3))
 
         rac += field_offset / math.cos(decc)
         for i in range(3):
@@ -407,7 +449,7 @@ if __name__ == '__main__':
     else:  # do them all!
         blocks = parameters.BLOCKS
 
-    discoveries = parsers.ossos_release_parser()  # ossos_release_parser()
+    discoveries = parsers.ossos_objects_parser(parameters.L7_HOME+'Mtmp.objects') #parsers.ossos_release_parser()  # ossos_release_parser()
 
     # extent = plot_extents['13A'] # hardwired for doing both at once
 
@@ -453,9 +495,9 @@ if __name__ == '__main__':
                                                    elongation=args.elongation, plot=True)
             ax = plot_objects.plot_synthetic_kbos(ax, coverage)
 
-        block_discoveries = discoveries[
-            np.array([name.startswith('o3' + blockname[-1].lower()) for name in discoveries['object']])]
-        ax = plot_objects.plot_ossos_discoveries(ax, block_discoveries, blockname,
+        # block_discoveries = discoveries[
+        #     np.array([name.startswith('o3' + blockname[-1].lower()) for name in discoveries['object']])]
+        ax = plot_objects.plot_ossos_discoveries(ax, discoveries, blockname,
                                                  prediction_date=date)  # will predict for dates other than discovery
 
         # ax = plot_objects.plot_planets(ax, extent, date)

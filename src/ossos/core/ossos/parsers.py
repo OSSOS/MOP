@@ -16,10 +16,9 @@ from ossos import mpc
 from ossos import orbfit
 from ossos import storage
 import parameters
-from ossos.gui import context
-import plot_lightcurve
-from utils import square_fit_discovery_mag
-from deluxe_table_formatter import deluxe_table_formatter
+import src.ossos.plotting.scripts.plot_lightcurve
+from src.ossos.core.ossos.planning.plotting.utils import square_fit_discovery_mag
+from src.ossos.core.ossos.planning.plotting.deluxe_table_formatter import deluxe_table_formatter
 
 
 # from parameters import tno
@@ -33,10 +32,10 @@ def ossos_release_parser(table=False, data_release=parameters.RELEASE_VERSION):
              'argperi', 'argperi_E', 'time_peri', 'time_peri_E', 'ra_dis', 'dec_dis', 'jd_dis', 'rate']#, 'eff', 'm_lim']
 
     if table:
-        retval = storage.get_detections(release=data_release)
+#        retval = storage.get_detections(release=data_release)
         # have to specify the names because the header line contains duplicate IDs, which wrecks auto-column creation
-        # retval = Table.read(parameters.RELEASE_DETECTIONS[data_release], format='ascii', guess=False,
-        #                    delimiter=' ', data_start=0, comment='#', names=names, header_start=None)
+        retval = Table.read(parameters.RELEASE_DETECTIONS[data_release], format='ascii', guess=False,
+                           delimiter=' ', data_start=0, comment='#', names=names, header_start=None)
     else:
         retval = []
         with open(data_release, 'r') as detectionsfile:
@@ -45,6 +44,15 @@ def ossos_release_parser(table=False, data_release=parameters.RELEASE_VERSION):
                 retval.append(obj)
 
     return retval
+
+
+def ossos_objects_parser(fn):
+        names = ['object', 'mag', 'mag_E', 'dist', 'dist_E', 'nobs',
+             'time', 'av_xres', 'av_yres', 'max_x', 'max_y', 'a', 'a_E', 'e', 'e_E', 'i', 'i_E', 'node', 'node_E',
+             'argperi', 'argperi_E', 'time_peri', 'time_peri_E', 'ra_dis', 'dec_dis',]
+        retval = Table.read(fn, format='ascii', guess=False,
+                           delimiter=' ', data_start=0, comment='#', names=names, header_start=None)
+        return retval
 
 
 class TNO(object):
@@ -61,12 +69,15 @@ class TNO(object):
             self.discovery = discoveries[0]
         except:
             self.discovery = False
-        self.name = observations.provisional_name.split('.')[0]
+        if observations.provisional_name.startswith('15AM'):  # quick hack for working with in-progress 15AM
+            self.name = observations.provisional_name.rstrip('.mpc').rstrip('.ast').rsplit('.')[-1]
+        else:
+            self.name = observations.provisional_name.rstrip('.mpc').split('.')[0]  #.rstrip('.ast').rsplit('.')[-1]
         return
 
 
 def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
-                      suffix='ast',
+                      suffix='mpc',
                       no_nt_and_u=True,
                       single_object=None,
                       all_objects=False,
@@ -77,8 +88,9 @@ def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
     Default is to return only the objects corresponding to the current Data Release.
     """
     retval = []
-    working_context = context.get_context(directory)
-    files = working_context.get_listing(suffix)
+    # working_context = context.get_context(directory)
+    # files = working_context.get_listing(suffix)
+    files = [f for f in os.listdir(directory) if (f.endswith('mpc') or f.endswith('ast'))]
 
     if single_object is not None:
         files = filter(lambda name: name.startswith(single_object), files)
@@ -318,7 +330,7 @@ def create_table(tnos, outfile, initial_id='o3'):
                     ofile.write(linesep(r['p']))
 
             # Mag uncertainty is over the whole light curve. Uncharacterised objects might not have enough valid points.
-            sigma_mag = plot_lightcurve.stddev_phot(r['object'])
+            sigma_mag = src.ossos.plotting.scripts.plot_lightcurve.stddev_phot(r['object'])
             if not numpy.isnan(sigma_mag):
                 sigma_mag = '{:2.2f}'.format(sigma_mag)
             else:
@@ -414,6 +426,10 @@ def parse_subaru_mags():
 
 
 def block_table_pprint():
+    """
+
+    :return:
+    """
     with open('block_table.tex', 'w') as outfile:
         for name, coords in parameters.BLOCKS.items():
             print name, coords
@@ -429,6 +445,29 @@ def block_table_pprint():
                 math.degrees(ec.lon),
                 r"\\"))
     return
+
+
+def read_smooth_fit(fichier):
+    """
+
+    :param fichier:
+    :return:
+    """
+    pd, ps, mag_limit = None, None, None
+    with open(fichier, 'r') as infile:
+        lines = infile.readlines()
+        for line in lines:
+            if line[0] != "#":
+                if line.startswith("double_param="):
+                    pd = map(float, line[13:-1].split())
+                if line.startswith("square_param="):
+                    ps = map(float, line[13:-1].split())
+                if line.startswith("mag_lim="):
+                    mag_limit = float(line.split()[1])
+
+    return pd, ps, mag_limit
+
+
 
 
 if __name__ == '__main__':

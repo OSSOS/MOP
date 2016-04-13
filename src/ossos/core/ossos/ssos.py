@@ -1,27 +1,23 @@
-from astropy.coordinates import SkyCoord
-
-from astrom import SourceReading
-
+from __future__ import absolute_import
 __author__ = 'Michele Bannister, JJ Kavelaars'
 
 import datetime
 import os
 import pprint
 import warnings
+import requests
 
 from astropy.io import ascii
 from astropy import units
-
+from astropy.coordinates import SkyCoord
 from astropy.time import Time
-import requests
 
-requests.packages.urllib3.disable_warnings()
-
-from . import astrom
-from . import mpc
+from . import (astrom, mpc, parameters)
+from .astrom import SourceReading
 from .gui import logger
 from .orbfit import Orbfit
-from planning.plotting import parameters
+
+requests.packages.urllib3.disable_warnings()
 
 SSOS_URL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssos.pl"
 RESPONSE_FORMAT = 'tsv'
