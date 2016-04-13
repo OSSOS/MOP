@@ -1,27 +1,25 @@
+from __future__ import absolute_import
 # !python
 # Copyright 2012, 2013 JJ Kavelaars
 
 import argparse
-import tempfile
+import ephem
+import logging
 import math
 import sys
+import tempfile
 import time
-
 import requests
-import ephem
+
 from astropy.io.votable import parse
+
 import matplotlib
-
-from ossos import storage
-
-
 matplotlib.use('Agg')
 from matplotlib.pyplot import figure, close
 from matplotlib.patches import Rectangle
 from matplotlib.backends.backend_pdf import PdfPages
-import logging
 
-from ossos.planning.plotting import parameters
+from ossos import (storage, parameters)
 
 
 def query_for_observations(mjd, observable, runids):
