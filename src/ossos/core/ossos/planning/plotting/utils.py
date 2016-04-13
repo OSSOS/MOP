@@ -27,17 +27,3 @@ def square_fit_discovery_mag(obj, discov_mag, discov_rate):
     return float(eta)
 
 
-def read_smooth_fit(fichier):
-    pd, ps, mag_limit = None, None, None
-    with open(fichier, 'r') as infile:
-        lines = infile.readlines()
-        for line in lines:
-            if line[0] != "#":
-                if line.startswith("double_param="):
-                    pd = map(float, line[13:-1].split())
-                if line.startswith("square_param="):
-                    ps = map(float, line[13:-1].split())
-                if line.startswith("mag_lim="):
-                    mag_limit = float(line.split()[1])
-
-    return pd, ps, mag_limit

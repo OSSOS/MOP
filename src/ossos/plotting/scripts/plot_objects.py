@@ -4,14 +4,15 @@ import math
 import os
 import datetime
 
-import numpy as np
 import ephem
 import matplotlib.pyplot as plt
 
-import parameters
-import mpcread
+from src.ossos.core.ossos import parameters
+import src.ossos.core.ossos.planning.plotting.mpcread
 import parsers
-import horizons
+import src.ossos.core.ossos.planning.plotting.horizons
+
+
 
 
 
@@ -65,15 +66,15 @@ def plot_ossos_discoveries(ax, discoveries, blockname, prediction_date=False):
     fc = ['b', '#E47833']
     alpha = [0.6, 1]
     marker = ['o', 'd']
-    size = [25, 30]
-    pl_index = np.where((discoveries['cl'] == 'res') & (discoveries['j'] == 3) & (discoveries['k'] == 2))
-    l = []
-    for k, n in enumerate(discoveries):
-        if k not in pl_index[0]:
-            l.append(k)
-    not_plutinos = discoveries[l]
-    plutinos = discoveries[pl_index]
-    for j, d in enumerate([not_plutinos, plutinos]):
+    size = [15, 20]
+    # pl_index = np.where((discoveries['cl'] == 'res') & (discoveries['j'] == 3) & (discoveries['k'] == 2))
+    # l = []
+    # for k, n in enumerate(discoveries):
+    #     if k not in pl_index[0]:
+    #         l.append(k)
+    not_plutinos = discoveries#[l]
+    # plutinos = discoveries[pl_index]
+    for j, d in enumerate([not_plutinos]):#, plutinos]):
         print len(d)
         ra = [math.degrees(ephem.degrees(ephem.hours(str(n)))) for n in d['ra_dis']]
         dec = [float(q) for q in d['dec_dis']]
@@ -83,18 +84,18 @@ def plot_ossos_discoveries(ax, discoveries, blockname, prediction_date=False):
         for kbo in d:
             ra = math.degrees(ephem.degrees(ephem.hours(str(kbo['ra_dis']))))
             dec = kbo['dec_dis']
-            name = kbo['object'].rpartition('o3' + blockname[-1].lower())[2]
+            name = kbo['object'].rpartition("O15AM")[2]#rpartition('o3' + blockname[-1].lower())[2]
             if j == 1:
                 sep = 0.20
             else:
-                sep = 0.18
+                sep = 0.13
             if name.endswith('PD'):
                 latsep = .2
             else:
                 latsep = .07
             ax.annotate(name,
                         (ra - latsep, dec - sep),
-                        size=9,
+                        size=6,
                         color='k')
 
     return ax
@@ -135,7 +136,7 @@ def plot_ossos_discoveries(ax, discoveries, blockname, prediction_date=False):
 def plot_known_tnos_singly(ax, extent, date):
     rate_cut = 'a > 15'
     print "PLOTTING LOCATIONS OF KNOWN KBOs (using {})".format(parameters.MPCORB_FILE)
-    kbos = mpcread.getKBOs(parameters.MPCORB_FILE)
+    kbos = src.ossos.core.ossos.planning.plotting.mpcread.getKBOs(parameters.MPCORB_FILE)
     print('Known KBOs: {}'.format(len(kbos)))
     retkbos = []
     for kbo in kbos:
@@ -162,7 +163,7 @@ def plot_known_tnos_singly(ax, extent, date):
 def plot_known_tnos_batch(handles, labels, date):
     rate_cut = 'a > 15'
     if os.access(MPCORB, os.F_OK):
-        kbos = mpcread.getKBOs(MPCORB, cond=rate_cut)
+        kbos = src.ossos.core.ossos.planning.plotting.mpcread.getKBOs(MPCORB, cond=rate_cut)
         kbo_ra = []
         kbo_dec = []
         for kbo in kbos:
@@ -180,7 +181,7 @@ def plot_single_known_tno(ax, name, date, close=[]):
     # FIXME: rewrite this to use astroquery.mpc's single-object retrieval.
     dateplus1hr = (datetime.datetime.strptime(date, '%Y-%m-%d %H:%M') + datetime.timedelta(1 / 24.)).strftime(
         '%Y-%m-%d %H:%M')
-    obj_elems, single_ephem = horizons.batch(name, date, dateplus1hr, None, su='d')  # pull back one position only
+    obj_elems, single_ephem = src.ossos.core.ossos.planning.plotting.horizons.batch(name, date, dateplus1hr, None, su='d')  # pull back one position only
     ra = math.degrees(ephem.degrees(ephem.hours(single_ephem[0]['RA'])))
     dec = math.degrees(ephem.degrees(single_ephem[0]['DEC']))
     if name == 'Ijiraq':

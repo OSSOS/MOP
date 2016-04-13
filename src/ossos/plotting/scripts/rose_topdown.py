@@ -7,11 +7,12 @@ from matplotlib import rcParams
 from matplotlib.ticker import MultipleLocator
 import numpy as np
 import ephem
-
+from astropy import table
 import brewer2mpl
+
 import parsers
-import parameters
-import plot_fanciness
+from src.ossos.core.ossos import parameters
+import src.ossos.core.ossos.planning.plotting.plot_fanciness
 
 set2 = brewer2mpl.get_map('Set2', 'qualitative', 8).mpl_colors
 rcParams['font.size'] = 12  # good for posters/slides
@@ -19,7 +20,7 @@ rcParams['patch.facecolor'] = set2[0]
 
 
 def top_down_SolarSystem(discoveries,
-                         extent=68,
+                         extent=75,
                          plot_blocks=True,
                          future_blocks=True,
                          plot_Ijiraq=True,
@@ -46,7 +47,7 @@ def top_down_SolarSystem(discoveries,
     think they are symmetric?
     """
     fig = plt.figure(figsize=(6, 6))
-    rect = [0.1, 0.1, 0.8, .8]  # the plot occupies not all the figspace
+    rect = [0.01, 0.01, 0.95, .95]  # the plot occupies not all the figspace
 
     ax1 = fig.add_axes(rect, polar=True, frameon=False)  # theta (RA) is zero at E, increases anticlockwise
     ax1.set_aspect('equal')
@@ -80,7 +81,8 @@ def top_down_SolarSystem(discoveries,
 
     for blockname, block in parameters.BLOCKS.items():  # ["14:15:28.89", "15:58:01.35", "00:54:00.00", "01:30:00.00"]:
         if plot_blocks:
-            if blockname.startswith('13') or blockname.startswith('14'):
+            if blockname.startswith('13') or blockname.startswith('14') \
+                    or blockname.startswith('15AP') or blockname.startswith('15AM'):
                 colour = 'b'
                 alpha = 0.1
                 cmap = plt.get_cmap('Blues')  # colorbrewer.sequential.Blues_4.mpl_colors
@@ -111,11 +113,11 @@ def top_down_SolarSystem(discoveries,
                 # bar[0].set_facecolor(cmap)
                 # bar[0].set_alpha(0.8)
                 if label_blocks:
-                    ax1.annotate(blockname[3], (ephem.hours(block["RA"]) + math.radians(0.3), extent + 0.15), size=15,
+                    ax1.annotate(blockname[3], (ephem.hours(block["RA"]) + math.radians(0.36), extent - 3.), size=15,
                                  color='b')
 
         if future_blocks:
-            if blockname.startswith('15'):
+            if blockname.startswith('15BS') or blockname.startswith('15BD'):
                 plt.bar(ephem.hours(block["RA"]) - math.radians(3.5), extent,
                         width=math.radians(7), bottom=8, color='#E47833', linewidth=0.1, alpha=0.17)
                 if label_blocks:
@@ -127,7 +129,7 @@ def top_down_SolarSystem(discoveries,
     outer = plt.Circle(65)
     # plt.PatchCollection?
 
-    # plot_ossos_discoveries(ax1, discoveries)
+    plot_ossos_discoveries(ax1, discoveries)
 
     plot_planets_plus_Pluto(ax1)
 
@@ -135,13 +137,13 @@ def top_down_SolarSystem(discoveries,
         # special detection in 13AE: Ijiraq at 2013-04-09 shows inner limit of sensitivity.
         # Position from Horizons as it's excluded from the list of detections
         ax1.scatter(ephem.hours('14 29 46.57'), 9.805,
-                    marker='o', s=4, facecolor='b', edgecolor=plot_fanciness.ALMOST_BLACK, linewidth=0.15, alpha=0.8)
+                    marker='o', s=4, facecolor='b', edgecolor=src.ossos.core.ossos.planning.plotting.plot_fanciness.ALMOST_BLACK, linewidth=0.15, alpha=0.8)
         # ax1.annotate('Ijiraq', (ephem.hours('14 29 46.57') + math.radians(7), 9.8 + 2), size=5)
 
     ra, dist, hlat, Hmag = parsers.synthetic_model_kbos(kbotype='resonant', arrays=True, maglimit=24.7)
     # can't plot Hmag as marker size in current setup.
-    ax1.scatter(ra, dist, marker='o', s=2, facecolor=plot_fanciness.ALMOST_BLACK,
-                edgecolor=plot_fanciness.ALMOST_BLACK, linewidth=0.1, alpha=0.12, zorder=1)
+    ax1.scatter(ra, dist, marker='o', s=2, facecolor=src.ossos.core.ossos.planning.plotting.plot_fanciness.ALMOST_BLACK,
+                edgecolor=src.ossos.core.ossos.planning.plotting.plot_fanciness.ALMOST_BLACK, linewidth=0.1, alpha=0.12, zorder=1)
 
     plt.draw()
     outfile = 'topdown_RA_d_OSSOS_v{}.pdf'.format(parameters.RELEASE_VERSION)
@@ -153,7 +155,7 @@ def top_down_SolarSystem(discoveries,
 def plot_planets_plus_Pluto(ax, date=parameters.NEWMOONS[parameters.DISCOVERY_NEW_MOON]):
     for planet in [ephem.Saturn(), ephem.Uranus(), ephem.Neptune(), ephem.Pluto()]:
         planet.compute(ephem.date(date))
-        fc = plot_fanciness.ALMOST_BLACK
+        fc = src.ossos.core.ossos.planning.plotting.plot_fanciness.ALMOST_BLACK
         if planet.name == 'Pluto':
             alpha = 0.35
             size = 10
@@ -186,10 +188,11 @@ def plot_ossos_discoveries(ax, discoveries, lpmag=False):
     which are provided by the Version Releases in decimal hours.
     """
     # need to make this row-wise
-    fc = ['b', '#E47833']
+    fc = ['b', '#E47833', 'b']
     alph = 0.85
-    marker = ['o', 'd']
-    size = [7, 11]
+    marker = ['o', 'd', 'o']
+    size = [7, 11, 7]
+
     pl_index = np.where((discoveries['cl'] == 'res') & (discoveries['j'] == 3) & (discoveries['k'] == 2))
     l = []
     for k, n in enumerate(discoveries):
@@ -197,7 +200,13 @@ def plot_ossos_discoveries(ax, discoveries, lpmag=False):
             l.append(k)
     not_plutinos = discoveries[l]
     plutinos = discoveries[pl_index]
-    for j, d in enumerate([not_plutinos, plutinos]):
+
+    # hack to get M block plotted on as well pre-release
+    # print discoveries
+    Mblock = discoveries[378:]
+    # print Mblock
+
+    for j, d in enumerate([not_plutinos, plutinos, Mblock]):
         ra = [ephem.hours(str(n)) for n in d['ra_dis']]
         ax.scatter(ra, d['dist'],
                    marker=marker[j], s=size[j], facecolor=fc[j], edgecolor='w', linewidth=0.25,
@@ -309,11 +318,11 @@ def delta_a_over_a(discoveries):
             arclen.append(orbit.arc_length)
 
     plt.figure(figsize=(6, 6))
-    plt.scatter(arclen, da_over_a, marker='o', facecolor='b', edgecolor=plot_fanciness.ALMOST_BLACK,
+    plt.scatter(arclen, da_over_a, marker='o', facecolor='b', edgecolor=src.ossos.core.ossos.planning.plotting.plot_fanciness.ALMOST_BLACK,
                 linewidth=0.15, alpha=0.5)
     plt.xlabel('arc length of orbit (days)')
     plt.ylabel('d(a)/a (percent)')
-    plot_fanciness.remove_border()
+    src.ossos.core.ossos.planning.plotting.plot_fanciness.remove_border()
     plt.draw()
     outfile = 'delta_a_over_a_13AE_corrected'
     plt.savefig(outfile + '.pdf', transparent=True)
@@ -322,8 +331,11 @@ def delta_a_over_a(discoveries):
 
 def main():
     # parsers.output_discoveries_for_animation()
-    discoveries = parsers.ossos_release_parser()
-    top_down_SolarSystem(discoveries, plot_blocks=True, future_blocks=False, plot_Ijiraq=True,
+    v7 = parsers.ossos_release_parser(table=True)
+    Mblock = parsers.ossos_objects_parser(parameters.L7_HOME+'Mtmp.objects')
+    discoveries = table.vstack([v7, Mblock])  # defaults to masking out missing rows
+
+    top_down_SolarSystem(discoveries, plot_blocks=True, future_blocks=True, plot_Ijiraq=True,
                          label_blocks=True)
 
 # orbit_fit_residuals(discoveries)

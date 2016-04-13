@@ -6,11 +6,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 from astropy.table import Table
-
 import prettyplotlib as ppl
-import plot_fanciness
+
+import src.ossos.core.ossos.planning.plotting.plot_fanciness
 from parsers import ossos_discoveries
-from parameters import RELEASE_VERSION
+from src.ossos.core.ossos.parameters import RELEASE_VERSION
 from ossos import mpc, orbfit
 
 path = '/Users/bannisterm/Dropbox/Papers in progress/OSSOS/First_quarter/data/'
@@ -117,7 +117,7 @@ if __name__ == '__main__':
 
     ppl.legend(title="Survey",
                fontsize='small', handletextpad=0.5)
-    plot_fanciness.remove_border(ax)
+    src.ossos.core.ossos.planning.plotting.plot_fanciness.remove_border(ax)
 
     plt.draw()
     outfile = path.rpartition('data')[0] + 'figures/astrometric_residual_50mas_bins.pdf'
