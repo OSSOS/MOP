@@ -328,9 +328,26 @@ def mag_at_radius(r, d, p=0.10, phi=1):
     m_sun = -27.1
 
     m_r = m_sun - 2.5 * math.log10((p * phi * r ** 2) / (2.25 * 10 ** 16 * (d ** 2) * (d - 1) ** 2))
-    print "m_r = {:2.2f} for a {} km radius TNO at {} AU at opposition, assuming {} albedo.".format(
-        m_r, r, d, p)
+    print("m_r = {:2.2f} for a {} km radius TNO at {} AU at opposition, assuming {} albedo.".format(
+        m_r, r, d, p))
 
+    return m_r
+
+
+def apmag_at_absmag(H, d, phi=1):
+    """
+    Calculate the apparent magnitude of a TNO given its absolute magnitude H, for a given distance.
+
+    :param H: TNO absolute magnitude (unitless)
+    :param d: barycentric distance (AU)
+    :param phi: phase angle (0-1, always v close to 1 for TNOs)
+    :return: apparent magnitude of TNO
+    """
+    d_observer = 1.  # 1 AU
+    # approximate object's distance d_heliocentric and d_geocentric as the same, d, because TNO
+    m_r = H + 2.5 * math.log10((d**4)/(phi * d_observer**4))
+    print("m_r = {:2.2f} for a H = {} TNO at {} AU at opposition.".format(
+        m_r, H, d))
     return m_r
 
 

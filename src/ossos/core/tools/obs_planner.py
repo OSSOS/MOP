@@ -1,5 +1,6 @@
+from __future__ import absolute_import
 #!python
-from Tkinter import *
+from Tkinter import *  #FIXME
 import logging
 import tkFileDialog
 import math
@@ -7,7 +8,7 @@ import optparse
 import re
 import sys
 import time
-
+import ephem
 import Polygon
 import Polygon.IO
 from astropy.coordinates import SkyCoord
@@ -20,16 +21,11 @@ except:
 
 from astropy import units
 
-import ephem
 
+from ossos import (cadc, mpc, orbfit, parsers, parameters, storage, wcs)
 from ossos.ephem_target import EphemTarget
-from ossos import orbfit, cadc
-from ossos import storage
 from ossos.coord import Coord
-from ossos import mpc
-from ossos import wcs
 from ossos.cameras import Camera
-from ossos.planning.plotting import parsers, parameters
 
 
 color_key = {"yellow": "Fill colour is yellow == tracking termination",
@@ -161,15 +157,15 @@ class Plot(Canvas):
         """Load the targets from a file.
 
         """
-        for name in Neptune:
-            self.kbos[name] = Neptune[name]
+        # for name in Neptune:
+        #     self.kbos[name] = Neptune[name]
 
         if directory_name is not None:
             # defaults to looking at .ast files only
             if directory_name == parameters.REAL_KBO_AST_DIR:
                 kbos = parsers.ossos_discoveries(all_objects=True)
             else:
-                kbos = parsers.ossos_discoveries(directory_name, all_objects=True, no_nt_and_u=False)
+                kbos = parsers.ossos_discoveries(directory_name, all_objects=False)#, no_nt_and_u=True)
 
             for kbo in kbos:
                 # if kbo.orbit.arc_length > 30.:  # cull the short ones for now
@@ -844,8 +840,8 @@ class Plot(Canvas):
                 center_dec = 0
 
                 pointing_date = mpc.Time(self.date.get(), scale='utc')
-                start_date = mpc.Time(self.date.get(), scale='utc') - TimeDelta(14.1*units.day)
-                end_date = start_date + TimeDelta(28*units.day)
+                start_date = mpc.Time(self.date.get(), scale='utc') - TimeDelta(7.1*units.day)
+                end_date = start_date + TimeDelta(14*units.day)
                 time_step = TimeDelta(1*units.hour)
 
                 # Compute the mean position of KBOs in the field on current date.
@@ -1074,7 +1070,8 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                                          b,
                                          ang)
                     if w.show_labels.get() == 1:
-                        w.label(ra, dec,  name[-4:], offset=[xoffset, yoffset])
+                        print name
+                        w.label(ra, dec, name, offset=[xoffset, yoffset])
             else:
                 ra = kbos[name]['RA']
                 dec = kbos[name]['DEC']
