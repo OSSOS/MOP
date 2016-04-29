@@ -5,7 +5,12 @@ import urlparse
 import re
 import sys
 import logging
-from ossos import util
+import util
+from astropy.table import Table, Column
+import numpy
+import wcs
+import storage
+
 
 
 VOS_SCHEME = 'vos'
@@ -15,9 +20,14 @@ MJD_OFFSET = 2400000.5
 class Parser(object):
     """Read in a MOP formatted file"""
 
-    def __init__(self):
+    def __init__(self, expnum, ccd, extension, type='p', prefix=None):
         """does nothing"""
 
+        self.expnum = expnum
+        self.ccd = ccd
+        self.extension = extension
+        self.type = type
+        self.prefix = prefix
         self.fobj = None
         self.keywords  = []
         self.values = []
@@ -25,26 +35,27 @@ class Parser(object):
         self.header = {}
         self.cdata ={}
         
-    def open(self, filename):
-        """Open the file for reading"""
 
-        # is this a vospace file reference?
-        parts = urlparse.urlparse(filename)
-        if parts.scheme == VOS_SCHEME:
-            self.fobj = vos.Client().open(filename)
-        elif parts.scheme == FILE_SCHEME or parts.scheme == '':
-            self.fobj = open(filename)
-        else:
-            raise IOError("unknown scheme: %s" %(parts.scheme))
-
-        return
-    
-    def parse(self, filename):
+    def parse(self):
         """read in a file and return a MOPFile object."""
-        self.open(filename)
+        self.filename =  storage.get_file(self.expnum,
+                                       self.ccd,
+                                       ext=self.extension,
+                                       version=self.type,
+                                       prefix=self.prefix)
+        self.fobj = open(self.filename,'r')
         lines = self.fobj.read().split('\n')
         self.header = HeaderParser().parser(lines)
+        data = numpy.loadtxt(self.filename)
+        self.data = Table(data, names=self.header.column_names[0:data.shape[1]])
+        self.wcs = wcs.WCS(storage.get_astheader(self.header.keywords['EXPNUM'][0],
+                                                 ccd=int(self.header.keywords['CHIP'][0])-1))
+        ra, dec = self.wcs.xy2sky(self.data['X'], self.data['Y'], usepv=True)
+
+        self.data.add_columns([Column(ra, name='RA'), Column(dec, name='DEC')])
         return self
+
+
 
         
 class HeaderParser(object):
@@ -69,7 +80,7 @@ class HeaderParser(object):
                 ## Filenames start here
                 self._append_file_id(lines.pop(0))
             elif lines[0].startswith('##'):
-                self._set_column_names(lines.pop(0))
+                self._set_column_names(lines.pop(0)[2:])
             else:
                 return self
         raise IOError("Failed trying to read header")
