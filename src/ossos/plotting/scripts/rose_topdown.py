@@ -1,18 +1,16 @@
+from __future__ import absolute_import
 __author__ = 'Michele Bannister'
 
 import math
-
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from matplotlib.ticker import MultipleLocator
 import numpy as np
 import ephem
-from astropy import table
 import brewer2mpl
 
-import parsers
-from src.ossos.core.ossos import parameters
-import src.ossos.core.ossos.planning.plotting.plot_fanciness
+from ossos import (parsers, parameters)
+from ossos.planning.plotting import plot_fanciness
 
 set2 = brewer2mpl.get_map('Set2', 'qualitative', 8).mpl_colors
 rcParams['font.size'] = 12  # good for posters/slides
@@ -20,23 +18,24 @@ rcParams['patch.facecolor'] = set2[0]
 
 
 def top_down_SolarSystem(discoveries,
-                         extent=75,
-                         plot_blocks=True,
-                         future_blocks=True,
-                         plot_Ijiraq=True,
-                         label_blocks=True):
+                         inner_limit=8,      # truncate at 8 AU to show that we don't have sensitivity in close
+                         extent=75,          # extend to 75 AU as indicative only, sensitivity is to ~300 AU
+                         plot_discoveries=None,
+                         plot_blocks=None,
+                         plot_galaxy=False,
+                         future_blocks=None,
+                         plot_Ijiraq=False,  # detected Ijiraq at 9.80 AU in the 13AE block
+                         label_blocks=True,
+                         savefilename=None):
     """
     Plot the OSSOS discoveries on a top-down Solar System showing the position of Neptune and model TNOs.
     Discoveries are plotted each at their time of discovery according to the value in the Version Release.
     Coordinates should be polar to account for RA hours, radial axis is in AU.
     :return: a saved plot
 
-    This is not a 'projection' of the particles into any
-    common plane.  Each wedge is a different latitude above
-    the plane, but inside each wedge it is heliocentric distance
-    vs RA.
-     That is fine.  It's just important to know that if someone
-    asks we know this is NOT (for example) a projection of each
+    This is not a 'projection' of the particles into any common plane.  Each wedge is a different latitude above
+    the plane, but inside each wedge it is heliocentric distance vs RA.
+     That is fine.  It's just important to know that if someone asks we know this is NOT (for example) a projection of each
     object down into the ecliptic.
      A very minor future long-term improvement is that the galactic
     plane wedge is not (I don't think) symmetric around 18h and 6h.
@@ -53,7 +52,7 @@ def top_down_SolarSystem(discoveries,
     ax1.set_aspect('equal')
 
     ax1.set_rlim(0, extent)
-    ax1.set_rgrids([20, 40, 60], labels=["", "", '20 AU', '40 AU', '60 AU'], angle=197, alpha=0.45)  # angle = 308
+    ax1.set_rgrids([20, 40, 60], labels=["", "", '20 AU', '40 AU', '60 AU'], angle=190, alpha=0.45)  # angle = 308
     ax1.yaxis.set_major_locator(MultipleLocator(20))
     ax1.xaxis.set_major_locator(MultipleLocator(math.radians(15)))  # every 2 hours
     ax1.grid(axis='x', color='k', linestyle='--', alpha=0.2)
@@ -64,54 +63,30 @@ def top_down_SolarSystem(discoveries,
                         color='b', alpha=0.6)  # otherwise they get in the way
 
 
-    # plot exclusion zones due to Galactic plane: RAs indicate where bar starts, rather than its centre angle
-    # can I do this with a warp, or will it make more sense to just plot stellar density? maybe that?
-    width = math.radians(3 * 15)
-    # plt.bar(math.radians(4.5 * 15), extent, width=width, color=plot_fanciness.ALMOST_BLACK, linewidth=0, alpha=0.2)
-    # plt.bar(math.radians(16.5 * 15), extent, width=width, color=plot_fanciness.ALMOST_BLACK, linewidth=0, alpha=0.2)
-    # ax1.annotate('galactic plane', (math.radians(6.9 * 15), extent - 15), size=10, color='k', alpha=0.45)
-    # ax1.annotate('  galactic plane\navoidance zone', (math.radians(16.9 * 15), extent - 12), size=10, color='k', alpha=0.45)
+    if plot_galaxy:
+        # plot exclusion zones due to Galactic plane: RAs indicate where bar starts, rather than its centre angle
+        width = math.radians(3 * 15)
+        plt.bar(math.radians(4.5 * 15), extent, width=width, color=plot_fanciness.ALMOST_BLACK, linewidth=0, alpha=0.2)
+        plt.bar(math.radians(16.5 * 15), extent, width=width, color=plot_fanciness.ALMOST_BLACK, linewidth=0, alpha=0.2)
+        ax1.annotate('galactic plane', (math.radians(6.9 * 15), extent - 15), size=10, color='k', alpha=0.45)
+        ax1.annotate('  galactic plane\navoidance zone', (math.radians(16.9 * 15), extent - 12), size=10, color='k', alpha=0.45)
 
-
-    # FIXME: should probably convert hours to ecliptic coords with a bit more finesse than just overplotting it
-    # truncate these at 8 AU to show that we don't have sensitivity in close; detect Ijiraq at 9.80 AU
-    # extend to 75 AU as indicative only, sensitivity is to ~300 AU
     # again RAs indicate where bar starts, so subtract half the block width from the block centrepoints
     # and approximate blocks as math.radians(7) degrees wide.
 
-    for blockname, block in parameters.BLOCKS.items():  # ["14:15:28.89", "15:58:01.35", "00:54:00.00", "01:30:00.00"]:
+    for blockname, block in parameters.BLOCKS.items():
         if plot_blocks:
-            if blockname.startswith('13') or blockname.startswith('14') \
-                    or blockname.startswith('15AP') or blockname.startswith('15AM'):
+            if blockname in plot_blocks:
                 colour = 'b'
                 alpha = 0.1
-                cmap = plt.get_cmap('Blues')  # colorbrewer.sequential.Blues_4.mpl_colors
+                # cmap = plt.get_cmap('Blues')
                 # if blockname.endswith('AO'):
                 #     colour = '#E47833'
                 #     alpha = 0.17
                 #     cmap = plt.get_cmap('Oranges')  # colorbrewer.sequential.Oranges_3.mpl_colors
 
-                # want to apply a colour gradient to the block
-                # luminance = [[.6, .6],[.7,.7]]
-                # gradient = np.linspace(0, 1, 256)
-                # gradient = np.vstack((gradient, gradient))
-                #
-                # r_i = np.linspace(8, extent, 256)
-                # r_i = np.vstack((r_i, r_i))
-                # theta_i = np.linspace(ephem.hours(block["RA"]) - math.radians(3.5),
-                #                       ephem.hours(block["RA"]) + math.radians(3.5), 7)
-                # grid = np.meshgrid(theta_i, r_i)
-                #
-                # ax1.imshow(r_i,
-                #            extent=(ephem.hours(block["RA"]) - math.radians(3.5),
-                #                    ephem.hours(block["RA"]) + math.radians(3.5),
-                #                    8, extent),
-                #            cmap=cmap)
-
-                bar = ax1.bar(ephem.hours(block["RA"]) - math.radians(3.5), extent, linewidth=0.1,
-                              width=math.radians(7), bottom=8, zorder=0, color=colour, alpha=alpha)
-                # bar[0].set_facecolor(cmap)
-                # bar[0].set_alpha(0.8)
+                ax1.bar(ephem.hours(block["RA"]) - math.radians(3.5), extent, linewidth=0.1,
+                        width=math.radians(7), bottom=inner_limit, zorder=0, color=colour, alpha=alpha)
                 if label_blocks:
                     ax1.annotate(blockname[3], (ephem.hours(block["RA"]) + math.radians(0.36), extent - 3.), size=15,
                                  color='b')
@@ -123,30 +98,27 @@ def top_down_SolarSystem(discoveries,
                 if label_blocks:
                     ax1.annotate(blockname[3], (ephem.hours(block["RA"]) - math.radians(1.5), extent + 0.15), size=15,
                                  color='r')
-
-    # what if try adding a ring around the whole thing with alpha gradient to get the wedge-edge fadeout?
-    inner = plt.Circle(58)
-    outer = plt.Circle(65)
-    # plt.PatchCollection?
-
-    plot_ossos_discoveries(ax1, discoveries)
-
+    # No optional on these just yet
     plot_planets_plus_Pluto(ax1)
-
-    if plot_Ijiraq:
-        # special detection in 13AE: Ijiraq at 2013-04-09 shows inner limit of sensitivity.
-        # Position from Horizons as it's excluded from the list of detections
-        ax1.scatter(ephem.hours('14 29 46.57'), 9.805,
-                    marker='o', s=4, facecolor='b', edgecolor=src.ossos.core.ossos.planning.plotting.plot_fanciness.ALMOST_BLACK, linewidth=0.15, alpha=0.8)
-        # ax1.annotate('Ijiraq', (ephem.hours('14 29 46.57') + math.radians(7), 9.8 + 2), size=5)
-
     ra, dist, hlat, Hmag = parsers.synthetic_model_kbos(kbotype='resonant', arrays=True, maglimit=24.7)
     # can't plot Hmag as marker size in current setup.
-    ax1.scatter(ra, dist, marker='o', s=2, facecolor=src.ossos.core.ossos.planning.plotting.plot_fanciness.ALMOST_BLACK,
-                edgecolor=src.ossos.core.ossos.planning.plotting.plot_fanciness.ALMOST_BLACK, linewidth=0.1, alpha=0.12, zorder=1)
+    ax1.scatter(ra, dist, marker='o', s=2, facecolor=plot_fanciness.ALMOST_BLACK,
+                edgecolor=plot_fanciness.ALMOST_BLACK, linewidth=0.1, alpha=0.12, zorder=1)
+
+    if plot_discoveries is not None:
+        plot_ossos_discoveries(ax1, discoveries, plot_discoveries)
+
+    # special detection in 13AE: Saturn's moon Ijiraq at 2013-04-09 shows inner limit of sensitivity.
+    if plot_Ijiraq:
+        # Position from Horizons as it's excluded from the list of detections
+        ax1.scatter(ephem.hours('14 29 46.57'), 9.805,
+                    marker='o', s=4, facecolor='b', edgecolor=plot_fanciness.ALMOST_BLACK, linewidth=0.15, alpha=0.8)
 
     plt.draw()
-    outfile = 'topdown_RA_d_OSSOS_v{}.pdf'.format(parameters.RELEASE_VERSION)
+    if savefilename is not None:
+        outfile = '{}.pdf'.format(savefilename)
+    else:
+        outfile = 'topdown_RA_d_OSSOS_v{}.pdf'.format(parameters.RELEASE_VERSION)
     plt.savefig(outfile, transparent=True, bbox_inches='tight')
 
     return
@@ -155,7 +127,7 @@ def top_down_SolarSystem(discoveries,
 def plot_planets_plus_Pluto(ax, date=parameters.NEWMOONS[parameters.DISCOVERY_NEW_MOON]):
     for planet in [ephem.Saturn(), ephem.Uranus(), ephem.Neptune(), ephem.Pluto()]:
         planet.compute(ephem.date(date))
-        fc = src.ossos.core.ossos.planning.plotting.plot_fanciness.ALMOST_BLACK
+        fc = plot_fanciness.ALMOST_BLACK
         if planet.name == 'Pluto':
             alpha = 0.35
             size = 10
@@ -174,7 +146,7 @@ def plot_planets_plus_Pluto(ax, date=parameters.NEWMOONS[parameters.DISCOVERY_NE
             ax.annotate(planet.name, (planet.ra - (math.radians(0.5)), planet.sun_distance + 2), size=fs)
         else:
             ax.annotate(planet.name, (planet.ra + (math.radians(10)), planet.sun_distance - 2), size=fs)
-        # plot Neptune's orbit: e is 0.01 so can get away with a circle
+        # Neptune's orbit has e = 0.01, so can get away with a circle
         if planet.name == 'Neptune':
             orb = np.arange(0, 2 * np.pi, (2 * np.pi) / 360)
             ax.plot(orb, np.repeat(planet.sun_distance, len(orb)), color='b', linestyle=':', linewidth=0.4, alpha=0.7)
@@ -182,7 +154,7 @@ def plot_planets_plus_Pluto(ax, date=parameters.NEWMOONS[parameters.DISCOVERY_NE
     return
 
 
-def plot_ossos_discoveries(ax, discoveries, lpmag=False):
+def plot_ossos_discoveries(ax, discoveries, plot_discoveries, lpmag=False, split_plutinos=False):
     """
     these are all being plotted at their discovery locations now,
     which are provided by the Version Releases in decimal hours.
@@ -193,24 +165,34 @@ def plot_ossos_discoveries(ax, discoveries, lpmag=False):
     marker = ['o', 'd', 'o']
     size = [7, 11, 7]
 
-    pl_index = np.where((discoveries['cl'] == 'res') & (discoveries['j'] == 3) & (discoveries['k'] == 2))
-    l = []
-    for k, n in enumerate(discoveries):
-        if k not in pl_index[0]:
-            l.append(k)
-    not_plutinos = discoveries[l]
-    plutinos = discoveries[pl_index]
+    if split_plutinos:
+        pl_index = np.where((discoveries['cl'] == 'res') & (discoveries['j'] == 3) & (discoveries['k'] == 2))
+        l = []
+        for k, n in enumerate(discoveries):
+            if k not in pl_index[0]:
+                l.append(k)
+        not_plutinos = discoveries[l]
+        plutinos = discoveries[pl_index]
 
-    # hack to get M block plotted on as well pre-release
-    # print discoveries
-    Mblock = discoveries[378:]
-    # print Mblock
+        for j, d in enumerate([not_plutinos, plutinos]):
+            ra = [ephem.hours(str(n)) for n in d['ra_dis']]
+            ax.scatter(ra, d['dist'],
+                       marker=marker[j], s=size[j], facecolor=fc[j], edgecolor='w', linewidth=0.25,
+                       alpha=alph, zorder=2)  # original size=4.5
 
-    for j, d in enumerate([not_plutinos, plutinos, Mblock]):
-        ra = [ephem.hours(str(n)) for n in d['ra_dis']]
-        ax.scatter(ra, d['dist'],
+    else:
+        j = 0
+        plottable = []
+        for d in discoveries:
+            for n in plot_discoveries:
+                if d['object'].startswith(n):  # can for sure be better, but this hack works. Need to get where going
+                    plottable.append(d)
+        ra = [ephem.hours(str(n['ra_dis'])) for n in plottable]
+        dist = [n['dist'] for n in plottable]
+        ax.scatter(ra, dist,
                    marker=marker[j], s=size[j], facecolor=fc[j], edgecolor='w', linewidth=0.25,
                    alpha=alph, zorder=2)  # original size=4.5
+
 
     # for obj in discoveries:
     # if lpmag:
@@ -299,7 +281,7 @@ def orbit_fit_residuals(discoveries, blockID='O13AE'):
     # clean_legend()
     plt.draw()
     outfile = 'orbit_fit_residuals_13AE_corrected'
-    plt.savefig(outfile + '.pdf', transparent=True)
+    plt.savefig('/ossos_sequence/'+ outfile + '.pdf', transparent=True)
 
     return
 
@@ -329,14 +311,42 @@ def delta_a_over_a(discoveries):
     print 'objects plotted:', len(arclen)
 
 
+def ossos_sequence(discoveries):
+    block_labels = ['E', 'O', 'L', 'H', 'P', 'M', 'S', 'D']
+    # Sky with reference rings and plutino model
+    top_down_SolarSystem(discoveries, savefilename='1_reference')
+    # Add a wedge for E and O
+    top_down_SolarSystem(discoveries, plot_blocks=['13AE', '13AO'],
+                         label_blocks=block_labels[0:2], savefilename='2_EO')
+    # 3. Add H and L wedges
+    top_down_SolarSystem(discoveries, plot_blocks=['13AE', '13AO', '13BL', '14BH'],
+                     label_blocks=block_labels[0:4], savefilename='3_EOHL')
+    # 4. Add E and O detections
+    top_down_SolarSystem(discoveries, plot_discoveries=['o3e', 'o3o'], plot_Ijiraq=True,
+                         plot_blocks=['13AE', '13AO', '13BL', '14BH'],
+                         label_blocks=block_labels[0:4], savefilename='4_EOHL_discoveries')
+    # 5. Add H and L detections
+    top_down_SolarSystem(discoveries, plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h'], plot_Ijiraq=True,
+                         plot_blocks=['13AE', '13AO', '13BL', '14BH'],
+                         label_blocks=block_labels[0:4], savefilename='5_EOHL_discoveries')
+    # 6. Add P and M wedges
+    top_down_SolarSystem(discoveries, plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h'], plot_Ijiraq=True,
+                     plot_blocks=['13AE', '13AO', '13BL', '14BH', '15AM', '15AP'],
+                     label_blocks=block_labels[0:6], savefilename='6_EOHLPM')
+    # 7. Add S and D wedges
+    top_down_SolarSystem(discoveries, plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h'], plot_Ijiraq=True,
+                     plot_blocks=['13AE', '13AO', '13BL', '14BH', '15AM', '15AP', '15BS', '15BD'],
+                     label_blocks=block_labels, savefilename='7_EOHLPMSD')
+    # 8. Add P and M detections
+    top_down_SolarSystem(discoveries, plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h', 'o5p', 'O15AM'], plot_Ijiraq=True,
+                     plot_blocks=['13AE', '13AO', '13BL', '14BH', '15AM', '15AP', '15BS', '15BD'],
+                     label_blocks=block_labels, savefilename='8_EOHLPM_detections')
+
+
 def main():
     # parsers.output_discoveries_for_animation()
-    v7 = parsers.ossos_release_parser(table=True)
-    Mblock = parsers.ossos_objects_parser(parameters.L7_HOME+'Mtmp.objects')
-    discoveries = table.vstack([v7, Mblock])  # defaults to masking out missing rows
-
-    top_down_SolarSystem(discoveries, plot_blocks=True, future_blocks=True, plot_Ijiraq=True,
-                         label_blocks=True)
+    discoveries = parsers.ossos_release_parser(table=True)
+    ossos_sequence(discoveries)
 
 # orbit_fit_residuals(discoveries)
 # delta_a_over_a(discoveries)
