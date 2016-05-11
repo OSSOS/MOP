@@ -24,35 +24,22 @@ def load_observations((observations, regex, rename), path, filenames):
         if re.search(regex, filename) is None:
             logging.warning("Skipping {}".format(filename))
             continue
-        with open(os.path.join(path, filename)) as ifptr:
-            # # use the filename as the new_provisional name of an object
-            new_provisional_name = os.path.basename(filename)
-            new_provisional_name = new_provisional_name[0:new_provisional_name.find(".")]
-            for line in ifptr.readlines():
-                observation = None
-                try:
-                    observation = mpc.Observation.from_string(line)
-                    if rename:
-                        observation.provisional_name = new_provisional_name
-                except Exception as e:
-                    logger.error(str(e))
-                    logger.error(os.path.join(path, filename))
-                    logger.error(line)
-                if observation is None:
-                    continue
-                key1 = observation.date.mjd
-                if key1 not in observations.keys():
-                    observations[key1] = {}
-                key2 = observation.provisional_name
-                if key2 in observations[key1]:
-                    if observations[key1][key2]:
-                        continue
-                    if not observation.null_observation:
-                        logger.error(filename)
-                        logger.error(line)
-                        logger.error(str(observations[key1][key2]))
-                        raise ValueError("conflicting observations for {} in {}".format(key2, key1))
-                observations[key1][key2] = observation
+        print os.path.join(path,filename)
+        obs = mpc.MPCReader().read(os.path.join(path,filename))
+        for ob in obs:
+            key1 = ob.date.mjd
+            key2 = ob.provisional_name 
+            if key1 not in observations:
+                 observations[key1] = {}
+            if key2 in observations[key1]:
+               if observations[key1][key2]:
+                   continue
+               if not observation.null_observation:
+                   logger.error(filename)
+                   logger.error(line)
+                   logger.error(str(observations[key1][key2]))
+                   raise ValueError("conflicting observations for {} in {}".format(key2, key1))
+            observations[key1][key2] = ob
 
 
 if __name__ == '__main__':
@@ -180,7 +167,7 @@ auto-magical way.
     outfile.write("\n")
 
     for name in report_observations:
-        sorted("This is a test string from Andrew".split(), key=str.lower)
+        #sorted("This is a test string from Andrew".split(), key=str.lower)
         report_observations[name].sort(key=lambda x: x.date.jd)
         for observation in report_observations[name]:
             outfile.write(observation.to_tnodb() + "\n")
