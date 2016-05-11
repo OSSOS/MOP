@@ -1,14 +1,16 @@
+from __future__ import absolute_import
 __author__ = 'Michele Bannister   git:@mtbannister'
 
 import sys
+import numpy
 
 import matplotlib.pyplot as plt
-import matplotlib.lines as mlines
-import numpy
+#import matplotlib.lines as mlines
 from astropy import units
 
 import palettable
-from ossos.planning.plotting import parsers, parameters, plot_fanciness
+from ossos import (parsers, parameters)
+from ossos.planning.plotting import plot_fanciness
 
 
 def full_aei(data_release, icut=False, aiq=False):
@@ -16,13 +18,15 @@ def full_aei(data_release, icut=False, aiq=False):
     fig.subplots_adjust(hspace=0.25)
 
     ymin = -0.001
-    orbit_classes = ['cla', 'res', 'sca', 'det',]#, 'cen']
+    orbit_classes = ['cen', 'cla', 'res', 'sca', 'det', 'xxx']
+    colmap = palettable.wesanderson.Zissou_5.mpl_colors
+    col = [colmap[4]] + colmap[0:4] + ['m']
 
-    if parameters.RELEASE_VERSION == 4:
+    if parameters.RELEASE_VERSION == '4':
         # don't want uncharacterised for this plot
         data = data_release[numpy.array([name.startswith("o") for name in data_release['object']])]
         imax = 55
-        emax = .65
+        emax = 0.45 #.65
         qmin = data['peri'].min() - 4
         qmax = data['peri'].max() + 4
         xinner = 25
@@ -30,30 +34,28 @@ def full_aei(data_release, icut=False, aiq=False):
         annotation = False
         e45_annotation = False
 
-    if parameters.RELEASE_VERSION == 6:
-        imax = 55
-        emax = .85
-        xinner = 15
-        xouter = 90
+    if parameters.RELEASE_VERSION == '8':
+        imax = 35 #55
+        emax = 0.49 #.99
+        xinner = 36 #10
+        xouter = 56 #720
+        xstep = 2 #50
+        ms = 5
         annotation = False
         e45_annotation = False
         # let's trim off anything with super-large error bars as well
         data = data_release[numpy.array([nobs > 7 for nobs in data_release['nobs']])]
         # data = data_release[numpy.array([name.startswith("o4h") for name in data_release['object']])]
-
+        plot_resonances = True
 
     data['peri'] = data['a'] * (1. - data['e'])
     data['peri_E'] = (data['a_E'] / data['a']) + (data['e_E'] / data['e'])
 
     data.sort('cl')
 
-    col = palettable.wesanderson.Zissou_5.mpl_colors[0:3] + ['0.6'] + ['1.0']
-    # palettable.wesanderson.Zissou_5.mpl_colors[4:]
-
     coldcol = col
     hotcol = col[2]
     e45col = col #[palettable.wesanderson.Moonrise5_6.mpl_colors[4]]
-    ms = 8
     cold_alpha = 0.8  # when plotting blue only  # 0.7
     hot_alpha = 0.25
     grid_alpha = 0.2
@@ -61,26 +63,27 @@ def full_aei(data_release, icut=False, aiq=False):
     capsize = 1  # error bar cap width
     fmt = '.'
 
-    sans_o3e45 = data[numpy.where(data['object'] != 'o3e45')]
-    if icut:
-        cold = sans_o3e45[numpy.where(sans_o3e45['i'] < 5.)]
-        hot = sans_o3e45[numpy.where(sans_o3e45['i'] >= 5.)]
-    else:  # no splits whatsoever
-        cold = sans_o3e45
+    # sans_o3e45 = data[numpy.where(data['object'] != 'o3e45')]
+    # if icut:
+    #     cold = sans_o3e45[numpy.where(sans_o3e45['i'] < 5.)]
+    #     hot = sans_o3e45[numpy.where(sans_o3e45['i'] >= 5.)]
+    # else:  # no splits whatsoever
+    #     cold = sans_o3e45
+    cold = data
 
     # want to show o3e45 with a different symbol.
-    o3e45 = data[numpy.where(data['object'] == 'o3e45')]
+    # o3e45 = data[numpy.where(data['object'] == 'o3e45')]
 
     ax = helio_i(ax, cold, fmt, cold_alpha, ebarcolor, capsize, ms, grid_alpha, coldcol, 1, orbit_classes, annotation=annotation)
     if icut:
         ax = helio_i(ax, hot, fmt, hot_alpha, ebarcolor, capsize, ms, grid_alpha, hotcol, 0, orbit_classes, annotation=annotation)
-    ax = helio_i(ax, o3e45, '*', 0.7, ebarcolor, capsize, ms, grid_alpha, e45col, 2, ['cla'], annotation=e45_annotation)
+    # ax = helio_i(ax, o3e45, '*', 0.7, ebarcolor, capsize, ms, grid_alpha, e45col, 2, ['cla'], annotation=e45_annotation)
     ax[0].set_ylim([ymin, imax])
 
     ax = a_i(ax, cold, fmt, cold_alpha, ebarcolor, capsize, ms, grid_alpha, coldcol, 1, orbit_classes, annotation=annotation)
     if icut:
         ax = a_i(ax, hot, fmt, hot_alpha, ebarcolor, capsize, ms, grid_alpha, hotcol, 0, annotation=annotation)
-    ax = a_i(ax, o3e45, '*', 0.7, ebarcolor, capsize, ms, grid_alpha, e45col, 2, ['cla'], annotation=e45_annotation)
+    # ax = a_i(ax, o3e45, '*', 0.7, ebarcolor, capsize, ms, grid_alpha, e45col, 2, ['cla'], annotation=e45_annotation)
     ax[1].set_ylim([ymin, imax])
 
     if aiq:
@@ -99,23 +102,24 @@ def full_aei(data_release, icut=False, aiq=False):
         if icut:
             ax = a_e(ax, hot, fmt, hot_alpha, ebarcolor, capsize, ms, grid_alpha, hotcol, '$i \geq 5^{\circ}$',
                      0, orbit_classes, annotation=annotation)
-        ax = a_e(ax, o3e45, '*', 0.7, ebarcolor, capsize, ms, grid_alpha, e45col, '', 2, ['cla'], annotation=e45_annotation)
+        # ax = a_e(ax, o3e45, '*', 0.7, ebarcolor, capsize, ms, grid_alpha, e45col, '', 2, ['cla'], annotation=e45_annotation)
         ax[2].set_ylim([ymin, emax])
 
     plt.xlim([xinner, xouter])
-    ax[0].set_xticks(range(xinner, xouter, 5))
-    ax[1].set_xticks(range(xinner, xouter, 5))
-    ax[2].set_xticks(range(xinner, xouter, 5))
+    ax[0].set_xticks(range(xinner, xouter, xstep))
+    ax[1].set_xticks(range(xinner, xouter, xstep))
+    ax[2].set_xticks(range(xinner, xouter, xstep))
 
     plot_fanciness.remove_border(ax[0])
     plot_fanciness.remove_border(ax[1])
     plot_fanciness.remove_border(ax[2])
 
-    resonances(ax, imax, emax)
+    if plot_resonances:
+        resonances(ax, imax, emax)
 
     handles, labels = ax[2].get_legend_handles_labels()
-    handles.append(mlines.Line2D([], [], marker='*', color=col[0], alpha=cold_alpha, linestyle=None))
-    labels = ['classical', 'resonant', 'scattering', 'detached', 'o3e45']
+    # handles.append(mlines.Line2D([], [], marker='*', color=col[0], alpha=cold_alpha, linestyle=None))
+    labels = ['centaurs', 'classical', 'resonant', 'scattering', 'detached', 'unclassified']#, 'o3e45']
     ax[0].legend(handles, labels, loc='upper right', numpoints=1, fontsize='small')
 
     plt.xlabel('semimajor axis (AU)')
@@ -132,7 +136,9 @@ def full_aei(data_release, icut=False, aiq=False):
 
 def helio_i(ax, data, fmt, alpha, ebarcolor, capsize, ms, grid_alpha, colour, zorder, orbit_classes, annotation=False):
     for i, orbclass in enumerate(orbit_classes):
+        print i, orbclass
         tnos = data[numpy.where(data['cl'] == orbclass)]
+
         ax[0].errorbar(tnos['dist'], tnos['i'],
                        xerr=tnos['dist_E'], yerr=tnos['i_E'],
                        zorder=zorder,
@@ -203,8 +209,12 @@ def a_q(ax, data, fmt, alpha, ebarcolor, capsize, ms, grid_alpha, colour, label,
 
 
 def resonances(ax, imax, emax):
-    res_ids = ['1:1', '2:1', '3:2', '5:2', '7:3', '7:4', '5:3', '11:4', '8:5', '15:8', '13:5']
-    a_N = 30.
+    res_ids = ['1:1', '2:1', '3:1', '4:1', '5:1',
+               '3:2', '5:2',
+               '4:3', '5:3', '7:3',
+               '5:4', '7:4',
+               ]
+    a_N = 30.06896348
     for res in res_ids:
         m, n = res.split(':')
         a_res = a_N * (float(m)/float(n))**(2/3.)

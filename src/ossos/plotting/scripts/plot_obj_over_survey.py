@@ -14,7 +14,7 @@ from astropy.time import Time, TimeDelta
 from ossos import mpc
 from ossos import orbfit
 import sky_location_plots
-import parameters
+from src.ossos.core.ossos import parameters
 # import parsers
 from planning.ObsStatus import query_for_observations
 
