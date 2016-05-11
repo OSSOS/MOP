@@ -1,5 +1,6 @@
+from __future__ import absolute_import
 #!python
-from Tkinter import *
+from Tkinter import *  #FIXME
 import logging
 import tkFileDialog
 import math
@@ -7,7 +8,7 @@ import optparse
 import re
 import sys
 import time
-
+import ephem
 import Polygon
 import Polygon.IO
 from astropy.coordinates import SkyCoord
@@ -20,16 +21,11 @@ except:
 
 from astropy import units
 
-import ephem
 
+from ossos import (cadc, mpc, orbfit, parsers, parameters, storage, wcs)
 from ossos.ephem_target import EphemTarget
-from ossos import orbfit, cadc
-from ossos import storage
 from ossos.coord import Coord
-from ossos import mpc
-from ossos import wcs
 from ossos.cameras import Camera
-from ossos.planning.plotting import parsers, parameters
 
 
 color_key = {"yellow": "Fill colour is yellow == tracking termination",
@@ -44,7 +40,68 @@ Neptune = {'Halimde': {"RA": ephem.hours("22:32:05.1"), "DEC": ephem.degrees("-1
            'Neso': {"RA": ephem.hours("22:31:31.9"), "DEC": ephem.degrees("-10:19:18")},
            'Neptune': {"RA": ephem.hours("22:32:49.39"), "DEC": ephem.degrees("-09:57:02.8")}}
 
-tracking_termination = [  # 'o3e01',
+tracking_termination = [
+    # secure with very small a uncertainties
+    'O15AM110',
+    'O15AM11F',
+    'O15AM12D',
+    'O15AM15I',
+    'O15AM15P',
+    'O15AM165',
+    'O15AM16E',
+    'O15AM16I',
+    'O15AM17O',
+    'O15AM17R',
+    'O15AMTL',
+    'O15AMU3',
+    'O15AMUX',
+    'O15AMVH',
+    'O15AMVK',
+    'O15AMWV',
+    'O15AMX4',
+    'O15AMXA',
+    'O15AMYZ',
+    'O15AMZ5',
+    'O15AMW9',
+    # libration amplitude known to 1 deg
+    'O15AM129',
+    # libration amplitude known to 10 deg: image later in semester away from opposition
+    'O15AM10Q',
+    'O15AM11C',
+    'O15AMWY',
+    'O15AMY4',
+    'O15AMZ2',
+    'O15AMZB',
+    # secure, min-max orbits < 0.05 AU
+    'o5p044',
+    'o5p045',
+    'o5p050',
+    'o5p053',
+    'o5p055',
+    'o5p058',
+    'o5p059',
+    'o5p072',
+    'o5p081',
+    'o5p083',
+    'o5p104',
+    'o5p108',
+    'o5p119',
+    'o5p131',
+    'o5p136',
+    'o5p144',
+    # secure, libration < 5 deg
+    'o5p013',
+    # secure, libration < 10 deg
+    'o5p006',
+    'o5p010',
+    # 1 yr arcs + secure
+    'o5p001',
+    'o5p003',
+    'o5p004',
+    'o5p005',
+    'o5p019',
+
+  # 'o3e01',
     # 'o3e10',
     #                         'o3e15',
     #                         'o3e16',
@@ -161,15 +218,15 @@ class Plot(Canvas):
         """Load the targets from a file.
 
         """
-        for name in Neptune:
-            self.kbos[name] = Neptune[name]
+        # for name in Neptune:
+        #     self.kbos[name] = Neptune[name]
 
         if directory_name is not None:
             # defaults to looking at .ast files only
             if directory_name == parameters.REAL_KBO_AST_DIR:
                 kbos = parsers.ossos_discoveries(all_objects=True)
             else:
-                kbos = parsers.ossos_discoveries(directory_name, all_objects=True, no_nt_and_u=False)
+                kbos = parsers.ossos_discoveries(directory_name, all_objects=False)#, no_nt_and_u=True)
 
             for kbo in kbos:
                 # if kbo.orbit.arc_length > 30.:  # cull the short ones for now
@@ -844,9 +901,9 @@ class Plot(Canvas):
                 center_dec = 0
 
                 pointing_date = mpc.Time(self.date.get(), scale='utc')
-                start_date = mpc.Time(self.date.get(), scale='utc') - TimeDelta(14.1*units.day)
-                end_date = start_date + TimeDelta(28*units.day)
-                time_step = TimeDelta(1*units.hour)
+                start_date = mpc.Time(self.date.get(), scale='utc') - TimeDelta(8.1*units.day)
+                end_date = start_date + TimeDelta(17*units.day)
+                time_step = TimeDelta(1.5*units.hour)
 
                 # Compute the mean position of KBOs in the field on current date.
                 for kbo_name, kbo in self.kbos.items():
@@ -1074,7 +1131,8 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                                          b,
                                          ang)
                     if w.show_labels.get() == 1:
-                        w.label(ra, dec,  name[-4:], offset=[xoffset, yoffset])
+                        print name
+                        w.label(ra, dec, name, offset=[xoffset, yoffset])
             else:
                 ra = kbos[name]['RA']
                 dec = kbos[name]['DEC']

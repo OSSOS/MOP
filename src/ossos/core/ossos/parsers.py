@@ -1,7 +1,10 @@
+from __future__ import absolute_import
 # coding=utf-8
 __author__ = 'Michele Bannister   git:@mtbannister'
 
 import os
+import re
+import sys
 import cPickle
 from collections import OrderedDict
 import math
@@ -12,14 +15,10 @@ from uncertainties import ufloat
 import numpy
 import pandas
 
-from ossos import mpc
-from ossos import orbfit
-from ossos import storage
-import parameters
-from ossos.gui import context
-import plot_lightcurve
-from utils import square_fit_discovery_mag
-from deluxe_table_formatter import deluxe_table_formatter
+from ossos import (mpc, orbfit, parameters, storage)
+#from ossos.plotting.scripts.plot_lightcurve import stddev_phot
+from ossos.planning.plotting.utils import square_fit_discovery_mag
+from ossos.planning.plotting.deluxe_table_formatter import deluxe_table_formatter
 
 
 # from parameters import tno
@@ -33,10 +32,10 @@ def ossos_release_parser(table=False, data_release=parameters.RELEASE_VERSION):
              'argperi', 'argperi_E', 'time_peri', 'time_peri_E', 'ra_dis', 'dec_dis', 'jd_dis', 'rate']#, 'eff', 'm_lim']
 
     if table:
-        retval = storage.get_detections(release=data_release)
+#        retval = storage.get_detections(release=data_release)
         # have to specify the names because the header line contains duplicate IDs, which wrecks auto-column creation
-        # retval = Table.read(parameters.RELEASE_DETECTIONS[data_release], format='ascii', guess=False,
-        #                    delimiter=' ', data_start=0, comment='#', names=names, header_start=None)
+        retval = Table.read(parameters.RELEASE_DETECTIONS[data_release], format='ascii', guess=False,
+                           delimiter=' ', data_start=0, comment='#', names=names, header_start=None)
     else:
         retval = []
         with open(data_release, 'r') as detectionsfile:
@@ -45,6 +44,15 @@ def ossos_release_parser(table=False, data_release=parameters.RELEASE_VERSION):
                 retval.append(obj)
 
     return retval
+
+
+def ossos_objects_parser(fn):
+        names = ['object', 'mag', 'mag_E', 'dist', 'dist_E', 'nobs',
+             'time', 'av_xres', 'av_yres', 'max_x', 'max_y', 'a', 'a_E', 'e', 'e_E', 'i', 'i_E', 'node', 'node_E',
+             'argperi', 'argperi_E', 'time_peri', 'time_peri_E', 'ra_dis', 'dec_dis',]
+        retval = Table.read(fn, format='ascii', guess=False,
+                           delimiter=' ', data_start=0, comment='#', names=names, header_start=None)
+        return retval
 
 
 class TNO(object):
@@ -61,12 +69,15 @@ class TNO(object):
             self.discovery = discoveries[0]
         except:
             self.discovery = False
-        self.name = observations.provisional_name.split('.')[0]
+        if observations.provisional_name.startswith('15AM'):  # quick hack for working with in-progress 15AM
+            self.name = observations.provisional_name.rstrip('.mpc').rstrip('.ast').rsplit('.')[-1]
+        else:
+            self.name = observations.provisional_name.rstrip('.mpc').split('.')[0]  #.rstrip('.ast').rsplit('.')[-1]
         return
 
 
 def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
-                      suffix='ast',
+                      suffix='mpc',
                       no_nt_and_u=True,
                       single_object=None,
                       all_objects=False,
@@ -77,8 +88,9 @@ def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
     Default is to return only the objects corresponding to the current Data Release.
     """
     retval = []
-    working_context = context.get_context(directory)
-    files = working_context.get_listing(suffix)
+    # working_context = context.get_context(directory)
+    # files = working_context.get_listing(suffix)
+    files = [f for f in os.listdir(directory) if (f.endswith('mpc') or f.endswith('ast'))]
 
     if single_object is not None:
         files = filter(lambda name: name.startswith(single_object), files)
@@ -318,7 +330,7 @@ def create_table(tnos, outfile, initial_id='o3'):
                     ofile.write(linesep(r['p']))
 
             # Mag uncertainty is over the whole light curve. Uncharacterised objects might not have enough valid points.
-            sigma_mag = plot_lightcurve.stddev_phot(r['object'])
+            sigma_mag = stddev_phot(r['object'])
             if not numpy.isnan(sigma_mag):
                 sigma_mag = '{:2.2f}'.format(sigma_mag)
             else:
@@ -327,8 +339,8 @@ def create_table(tnos, outfile, initial_id='o3'):
             # Individual object discovery efficiency from the function based on its mag + motion rate at discovery
             eff_at_discovery = square_fit_discovery_mag(r['object'], r['mag'], r['rate'])
 
-            # mag ± dmag, std dev of all clean photometry, efficiency function at that discovery mag
-            # m ± dm sigma_m eff_discov RA Dec a ± da e ± de i ± di r ± dr H ± dH j k MPC obj status
+            # mag +\- dmag, std dev of all clean photometry, efficiency function at that discovery mag
+            # m +\- dm sigma_m eff_discov RA Dec a +\- da e +\- de i +\- di r +\- dr H +\- dH j k MPC obj status
             out = "{} & {} & {:2.2f} & {:3.3f} & {} & {} & {} & {} & {} & {} & {} & {} & ".format(
                 round_sig_error(r['mag'], r['mag_E']),
                 sigma_mag,
@@ -414,6 +426,10 @@ def parse_subaru_mags():
 
 
 def block_table_pprint():
+    """
+
+    :return:
+    """
     with open('block_table.tex', 'w') as outfile:
         for name, coords in parameters.BLOCKS.items():
             print name, coords
@@ -429,6 +445,118 @@ def block_table_pprint():
                 math.degrees(ec.lon),
                 r"\\"))
     return
+
+
+def read_smooth_fit(fichier):
+    """
+
+    :param fichier:
+    :return:
+    """
+    pd, ps, mag_limit = None, None, None
+    with open(fichier, 'r') as infile:
+        lines = infile.readlines()
+        for line in lines:
+            if line[0] != "#":
+                if line.startswith("double_param="):
+                    pd = map(float, line[13:-1].split())
+                if line.startswith("square_param="):
+                    ps = map(float, line[13:-1].split())
+                if line.startswith("mag_lim="):
+                    mag_limit = float(line.split()[1])
+
+    return pd, ps, mag_limit
+
+
+# Number_Mil={'B': 110000, 'C': 120000, 'D': 130000, 'E': 140000, 'F': 150000}
+#Number_Cent={'J': 1900, 'K': 2000}
+def date_unpack(pdate):
+    (yyyy, mm, dd) = (2000, 01, 01)
+    try:
+        YY = {'I': 1800, 'J': 1900, 'K': 2000}
+        Ncode = '0123456789ABCDEFGHIJKLMNOPQRSTUV'
+        yyyy = YY[pdate[0]] + int(pdate[1:3])
+        mm = Ncode.rindex(pdate[3])
+        dd = float(Ncode.rindex(pdate[4]))
+    except:
+        sys.stderr.write("ERROR converting date part {}:".format(pdate))
+    return (yyyy, mm, dd)
+
+
+def mpcorb_desig_unpack(desig):
+    if re.match('\d+', desig):
+        return str(int(desig))
+    Kilo = 'ABCDEFGHIJKLMNOPQRSTUV'
+    j = Kilo.rfind(desig[0])
+    if j != -1:
+        if re.match('^\d+$', desig[1:7]):
+            return str(100000 + j * 10000 + int(desig[1:7]))
+    YY = {'I': 1800, 'J': 1900, 'K': 2000}
+    try:
+        yyyy = str(YY[desig[0]] + int(desig[1:3]))
+    except KeyError as e:
+        return desig
+    Ncode = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+    Mcode = desig[3] + desig[6]
+    cycle = Ncode.rindex(desig[4]) * 10 + int(desig[5])
+    if (cycle > 0):
+        cycle = str(cycle)
+    else:
+        cycle = ''
+    return yyyy + ' ' + Mcode + cycle
+
+
+def mpcorb_getKBOs(mpc_file, cond='a > 30'):
+    f = open(mpc_file)
+    lines = f.readlines()
+    f.close()
+
+    # while "------" not in lines[0]:
+    #     lines.pop(0)
+    lines.pop(0)
+    nobj = 0
+    lineCount = 0
+    kbos = []
+    for line in lines:
+        lineCount = lineCount + 1
+        if line[0] == '#' or len(line) < 103 or line[0:3] == '---':
+            continue
+        kbo = ephem.EllipticalBody()
+
+        if len(line[8:13].strip()):
+            kbo._H = float(line[8:13])
+            kbo._G = float(line[14:19])
+        else:
+            kbo._H = 20
+            kbo._G = 0
+        arc = line[127:136]
+        try:
+            if 'days' in arc:
+                arc = int(arc.split()[0]) / 365.25
+            else:
+                arc = -eval(arc)
+        except:
+            arc = 0
+        kbo._epoch_M = date_unpack(line[20:25].strip())
+        kbo._M = float(line[26:35].strip())
+        kbo._om = float(line[37:46].strip())
+        kbo._Om = float(line[48:57].strip())
+        kbo._inc = float(line[59:68].strip())
+        kbo._e = float(line[70:79].strip())
+        kbo._epoch = '2011/08/01'
+        kbo._a = float(line[92:103].strip())
+        kbo.compute()
+
+        a = kbo._a
+        q = kbo._a * (1 - kbo._e)
+        H = kbo._H
+
+        if eval(cond):
+            kbo.name = mpcorb_desig_unpack(line[0:7].strip())
+            kbos.append(kbo)
+
+    return kbos
+
 
 
 if __name__ == '__main__':

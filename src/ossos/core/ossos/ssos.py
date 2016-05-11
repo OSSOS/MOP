@@ -1,25 +1,22 @@
-from astropy.coordinates import SkyCoord
+from __future__ import absolute_import
 
-from astrom import SourceReading
-from . import astrom
-from . import mpc
-from .gui import logger
-from .orbfit import Orbfit
-from planning.plotting import parameters
-from . import horizons
 import datetime
 import os
 import pprint
 import warnings
-from astropy.io import ascii
-from astropy import units
-from astropy.time import Time
 import requests
 
-try:
-    requests.packages.urllib3.disable_warnings()
-except:
-    pass
+from astropy.io import ascii
+from astropy import units
+from astropy.coordinates import SkyCoord
+from astropy.time import Time
+
+from . import (astrom, mpc, parameters, horizons)
+from .astrom import SourceReading
+from .gui import logger
+from .orbfit import Orbfit
+
+requests.packages.urllib3.disable_warnings()
 
 __author__ = 'Michele Bannister, JJ Kavelaars'
 
@@ -41,7 +38,6 @@ class TracksParser(object):
 
     def parse(self, filename):
         logger.debug("Parsing SSOS Query.")
-
         mpc_observations = mpc.MPCReader(filename).mpc_observations
 
         # pass down the provisional name so the table lines are linked to this TNO
@@ -768,4 +764,5 @@ TELINST = [
     'WHT/Prime',
     'WISE',
     'WIYN/MiniMo',
-    'WIYN/ODI', ]
+    'WIYN/ODI',
+]

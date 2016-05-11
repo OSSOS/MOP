@@ -9,8 +9,8 @@ import numpy as np
 from palettable.colorbrewer import sequential
 from palettable import tableau
 import prettyplotlib as ppl
-import plot_fanciness
-from utils import read_smooth_fit, square_fit
+import src.ossos.core.ossos.planning.plotting.plot_fanciness
+from src.ossos.core.ossos.planning.plotting.utils import read_smooth_fit, square_fit
 
 path = '/Users/bannisterm/Dropbox/Papers in progress/OSSOS/First_quarter/data/'
 
@@ -73,7 +73,7 @@ def plot_eff_by_rate_of_motion(ax, blocks):
         plot_eff_data(i, block, ax, colours, pwd, offset)
         ax[i].grid(True, alpha=0.3)
         ax[i].set_ylabel('efficiency (%)')
-        plot_fanciness.remove_border(ax[i])
+        src.ossos.core.ossos.planning.plotting.plot_fanciness.remove_border(ax[i])
         ppl.legend(ax[i], loc='lower left', title=block, numpoints=1, fontsize='small', handletextpad=0.5)
 
     return outfile
@@ -120,7 +120,7 @@ def plot_eff_by_user(ax, blocks):
         ax.grid(True, alpha=0.3)
         ax.set_ylabel('efficiency (%)')
         ax.set_ylim([0., 100.])
-        plot_fanciness.remove_border(ax)
+        src.ossos.core.ossos.planning.plotting.plot_fanciness.remove_border(ax)
         ppl.legend(ax, loc='lower left', title=block, numpoints=1, fontsize='small', handletextpad=0.5)
 
     return outfile

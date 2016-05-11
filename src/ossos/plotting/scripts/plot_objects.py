@@ -1,18 +1,21 @@
+from __future__ import relative_import
 __author__ = 'Michele Bannister   git:@mtbannister'
 
-import datetime
 import math
 import os
+import datetime
 
+import numpy as np
 import ephem
 import matplotlib.pyplot as plt
-import numpy as np
 
-import mpcread
-import parameters
-import parsers
-from ossos import horizons
-#from src.ossos.core.ossos import horizons
+from ossos import (parameters, mpcread, parsers, horizons)
+
+
+
+
+
+
 
 # FIXME: make this an args setting rather than hardwired
 PLOT_MPCORB = True and os.access(parameters.MPCORB_FILE, os.F_OK)

@@ -9,13 +9,15 @@ L7MODEL = '/Users/bannisterm/Dropbox/OSSOS/Release_summaries/L7model-3.0-9.0'  #
 L7_HOME = '/Users/bannisterm/Dropbox/OSSOS/Release_summaries/'
 REAL_KBO_AST_DIR = '/Users/bannisterm/Dropbox/OSSOS/measure3/ossin/'
 # REAL_KBO_AST_DIR = 'vos:OSSOS/dbaseclone/ast/'
-RELEASE_VERSION = 'current'
+RELEASE_VERSION = '8'
 
 first_quarter = '/Users/bannisterm/Dropbox/Papers in progress/OSSOS/First_quarter/'
 RELEASE_DETECTIONS = {
-    4: first_quarter + 'data/v5-oe+u.detections',
-    5: L7_HOME + 'v5/OSSOSv5.detections',
-    6: L7_HOME + 'v6.prototype.detections'
+    '4': first_quarter + 'data/v5-oe+u.detections',
+    '5': L7_HOME + 'v5/OSSOSv5.detections',
+    '6': L7_HOME + 'v6.prototype.detections',
+    '7': L7_HOME + 'v7/OSSOSv7.detections',
+    '8': L7_HOME + 'OSSOSv8.prototype.detections',
 }
 
 IDX = REAL_KBO_AST_DIR + 'file.idx'  # for local  # 'vos:OSSOS/dbaseclone/idx/file.idx'  # for vos
@@ -109,12 +111,13 @@ BLOCKS = OrderedDict([
 
 DISCOVERY_DATES = {"13AE": "2013/04/09 08:50:00",
                    "13AO": "2013/05/08 08:50:00",
-                   "15AP": NEWMOONS['Apr15'],
-                   "15AM": NEWMOONS['May15'],      # Backup triplet was on 2014/05/29, 2014/06/01 at diff block centre
+                   "15AP": "2015/04/",
+                   "15AM": "2015/05/24 09:06:53",  # 05/24 and 05/25.
+                                                   # Backup M triplet was on 2014/05/29, 2014/06/01 at diff block centre
                    "13BL": "2013/09/29 08:50:00",  # HOWEVER: discovery date is split between months (earliest)
                    "14BH": "2014/10/22 09:30:00",  # Note: Col3N triplet is instead 2014/01/03.
                    "15BS": "2015/09/09 08:50:00",  # both halves within a night: 09-08 and 09-09
-                   "15BD": NEWMOONS['Nov15']      # FIXME: set when observations taken
+                   "15BD": "2015/11/"
 }
 
 DISCOVERY_NEW_MOON = 'Apr13'  # applies to the 13A blocks
@@ -127,7 +130,6 @@ OPPOSITION_DATES = {"13AE": NEWMOONS['Apr13'],
                     "14BH": NEWMOONS['Oct13'],
                     "15BS": NEWMOONS['Sep15'],
                     "15BD": NEWMOONS['Nov15'],
-
 }
 
 OSSOS_FILTERS = ['R.MP9601',
@@ -326,9 +328,26 @@ def mag_at_radius(r, d, p=0.10, phi=1):
     m_sun = -27.1
 
     m_r = m_sun - 2.5 * math.log10((p * phi * r ** 2) / (2.25 * 10 ** 16 * (d ** 2) * (d - 1) ** 2))
-    print "m_r = {:2.2f} for a {} km radius TNO at {} AU at opposition, assuming {} albedo.".format(
-        m_r, r, d, p)
+    print("m_r = {:2.2f} for a {} km radius TNO at {} AU at opposition, assuming {} albedo.".format(
+        m_r, r, d, p))
 
+    return m_r
+
+
+def apmag_at_absmag(H, d, phi=1):
+    """
+    Calculate the apparent magnitude of a TNO given its absolute magnitude H, for a given distance.
+
+    :param H: TNO absolute magnitude (unitless)
+    :param d: barycentric distance (AU)
+    :param phi: phase angle (0-1, always v close to 1 for TNOs)
+    :return: apparent magnitude of TNO
+    """
+    d_observer = 1.  # 1 AU
+    # approximate object's distance d_heliocentric and d_geocentric as the same, d, because TNO
+    m_r = H + 2.5 * math.log10((d**4)/(phi * d_observer**4))
+    print("m_r = {:2.2f} for a H = {} TNO at {} AU at opposition.".format(
+        m_r, H, d))
     return m_r
 
 
