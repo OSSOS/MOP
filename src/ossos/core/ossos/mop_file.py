@@ -46,10 +46,16 @@ class Parser(object):
         self.fobj = open(self.filename,'r')
         lines = self.fobj.read().split('\n')
         self.header = HeaderParser().parser(lines)
-        data = numpy.loadtxt(self.filename)
+        data = numpy.genfromtxt(self.filename)
         self.data = Table(data, names=self.header.column_names[0:data.shape[1]])
-        self.wcs = wcs.WCS(storage.get_astheader(self.header.keywords['EXPNUM'][0],
-                                                 ccd=int(self.header.keywords['CHIP'][0])-1))
+        ast_header = storage.get_astheader(self.expnum, self.ccd)
+        self.wcs = wcs.WCS(ast_header)
+        flip_these_extensions = range(1,19)
+        flip_these_extensions.append(37)
+        flip_these_extensions.append(38)
+        if self.ccd + 1 in flip_these_extensions:
+            self.data['X'] = float(self.header.keywords['NAX1'][0])-self.data['X'] + 1
+            self.data['Y'] = float(self.header.keywords['NAX2'][0])-self.data['Y'] + 1
         ra, dec = self.wcs.xy2sky(self.data['X'], self.data['Y'], usepv=True)
 
         self.data.add_columns([Column(ra, name='RA'), Column(dec, name='DEC')])
