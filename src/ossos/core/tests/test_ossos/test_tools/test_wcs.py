@@ -10,7 +10,7 @@ from tests.base_tests import FileReadingTestCase
 from tests.matchers import almost_equal
 from ossos import wcs
 
-SIGFIGS = 16
+SIGFIGS = 11
 
 
 class WCSTest(unittest.TestCase):
@@ -18,6 +18,39 @@ class WCSTest(unittest.TestCase):
     Source for test case data:
     http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHTSG/821543p.head
     """
+    header=dict(crpix1=-7535.57493517,
+                crpix2 = 9808.40914361,
+                crval1 = 176.486157083,
+                crval2 = 8.03697351091,
+                cd1_1 = 5.115244026718E-05, 
+                cd1_2 = 7.064503033578E-07,
+                cd2_1 = -1.280229655229E-07, 
+                cd2_2 = -5.123112374523E-05,
+                pv1_1 = -7.030338745606E-03, 
+                pv1_2 = 1.01755337222, 
+                pv1_3 = 8.262429361142E-03,
+                pv1_4 = 0.00000000000, 
+                pv1_5 = -5.910145454849E-04, 
+                pv1_6 = -7.494178330178E-04,
+                pv1_7 = -3.470178516657E-04, 
+                pv1_8 = -2.331150605755E-02, 
+                pv1_9 = -8.187062772669E-06,
+                pv1_10 = -2.325429510806E-02, 
+                pv1_11 = 1.135299506292E-04,
+                pv2_1 = -6.146513090656E-03, 
+                pv2_2 = 1.01552885426, 
+                pv2_3 = 8.259666421752E-03,
+                pv2_4 = 0.00000000000, 
+                pv2_5 = -4.567030382243E-04, 
+                pv2_6 = -6.978676921999E-04,
+                pv2_7 = -3.732572951216E-04, 
+                pv2_8 = -2.332572754467E-02, 
+                pv2_9 = -2.354317291723E-05,
+                pv2_10 = -2.329623852891E-02, 
+                pv2_11 = 1.196394469003E-04,
+                nord = 3)
+
+
 
     def test_xy2sky_nord3(self):
         x = 15000
@@ -37,11 +70,12 @@ class WCSTest(unittest.TestCase):
                -3.732572951216E-04, -2.332572754467E-02, -2.354317291723E-05,
                -2.329623852891E-02, 1.196394469003E-04]]
         nord = 3
-
-        ra, dec = wcs.xy2sky(x, y, crpix1, crpix2, crval1, crval2, cd, pv, nord)
-
-        assert_that(ra, almost_equal(177.62041959006154, SIGFIGS))
-        assert_that(dec, almost_equal(7.5256066570082263, SIGFIGS))
+        import numpy
+        x = numpy.array([x,])
+        y = numpy.array([y,])
+        ra, dec = wcs.xy2skypv(x, y, crpix1, crpix2, crval1, crval2, cd, pv, nord)
+        assert_that(ra.to('deg').value, almost_equal(177.62041959006154, SIGFIGS))
+        assert_that(dec.to('deg').value, almost_equal(7.5256066570082263, SIGFIGS))
 
     def test_sky2xy_nord3(self):
         ra = 177.62042274595882
@@ -62,7 +96,7 @@ class WCSTest(unittest.TestCase):
                -2.329623852891E-02, 1.196394469003E-04]]
         nord = 3
 
-        x, y = wcs.sky2xy(ra, dec, crpix1, crpix2, crval1, crval2, dc, pv, nord)
+        x, y = wcs.sky2xypv(ra, dec, crpix1, crpix2, crval1, crval2, dc, pv, nord)
 
         assert_that(x, almost_equal(15000.066582252624, SIGFIGS))
         assert_that(y, almost_equal(19999.992539886229, SIGFIGS))
