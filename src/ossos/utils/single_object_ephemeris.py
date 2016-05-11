@@ -5,10 +5,10 @@ from ossos import ephem_target as et
 if __name__ == '__main__':
     -    logger = logging.getLogger()
 -    parser = argparse.ArgumentParser()
--    parser.add_argument('mpc_files', nargs='+', help='mpc_file to base ephemeris from.')
+-    parser.add_argument('mpc_files', nargs='+', help='mpc_file to base table from.')
 -    parser.add_argument('--verbose', '-v', action='store_true', default=None, help='verbose feedback')
 -    parser.add_argument('--start', '-s', default=None, help='Date as YYYY/MM/DD, default is current date')
--    parser.add_argument('--range', '-r', default=30, help='Length of ephemeris is days', type=int)
+-    parser.add_argument('--range', '-r', default=30, help='Length of table is days', type=int)
 -    parser.add_argument('--ccd', '-c', default=22, help='Offset so target is on this CCD (0 is the first CCD)')
 -    parser.add_argument('--geometry', '-g', default="MEGACAM_36",
                          -                        help = 'camera geometry (see ossos.cameras for options); default is ' \
