@@ -34,7 +34,7 @@ from ossos.planning.plotting import parsers, parameters
 
 color_key = {"yellow": "Fill colour is yellow == tracking termination",
              "blue": "Outline is blue == ColOSSOS target.",
-             'red': "Large ephemeris uncertainty object.",
+             'red': "Large table uncertainty object.",
              'magenta': "Needs a double."}
 
 Neptune = {'Halimde': {"RA": ephem.hours("22:32:05.1"), "DEC": ephem.degrees("-10:08:42")},
@@ -824,7 +824,7 @@ class Plot(Canvas):
         """Print the currently defined FOVs"""
         i = 0
         if self.pointing_format.get() in ['GEMINI ET', 'CFHT ET']:
-            logging.info('Beginning ephemeris pointing save.')
+            logging.info('Beginning table pointing save.')
             for pointing in self.pointings:
                 name = pointing["label"]["text"]
                 camera = pointing["camera"]
