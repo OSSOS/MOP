@@ -121,7 +121,7 @@ def get_pixel_bounds_from_datasec_keyword(datasec):
     return (x1, x2), (y1, y2)
 
 
-def match_lists(pos1, pos2, tolerance=MATCH_TOLERANCE):
+def match_lists(pos1, pos2, tolerance=MATCH_TOLERANCE, spherical=False):
     """
     Given two sets of x/y positions match the lists, uniquely.
 
@@ -159,7 +159,11 @@ def match_lists(pos1, pos2, tolerance=MATCH_TOLERANCE):
     for idx1 in range(npts1):
 
         # compute the distance source idx1 to each member of pos2
-        sep = numpy.sqrt((pos2[:, 0] - pos1[idx1, 0]) ** 2 + (pos2[:, 1] - pos1[idx1, 1]) ** 2)
+        if not spherical :
+           sep = numpy.sqrt((pos2[:, 0] - pos1[idx1, 0]) ** 2 + (pos2[:, 1] - pos1[idx1, 1]) ** 2)
+        else:
+           sep = numpy.sqrt((numpy.cos(numpy.radians(pos1[idx1,1]))*(pos2[:, 0] - pos1[idx1, 0])) ** 2 + (pos2[:, 1] - pos1[idx1, 1]) ** 2)
+        
 
         # considered a match if sep is below tolerance and is the closest match available.
         match_condition = numpy.all((sep <= tolerance, sep == sep.min()), axis=0)
