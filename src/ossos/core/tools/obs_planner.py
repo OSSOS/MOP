@@ -40,7 +40,68 @@ Neptune = {'Halimde': {"RA": ephem.hours("22:32:05.1"), "DEC": ephem.degrees("-1
            'Neso': {"RA": ephem.hours("22:31:31.9"), "DEC": ephem.degrees("-10:19:18")},
            'Neptune': {"RA": ephem.hours("22:32:49.39"), "DEC": ephem.degrees("-09:57:02.8")}}
 
-tracking_termination = [  # 'o3e01',
+tracking_termination = [
+    # secure with very small a uncertainties
+    'O15AM110',
+    'O15AM11F',
+    'O15AM12D',
+    'O15AM15I',
+    'O15AM15P',
+    'O15AM165',
+    'O15AM16E',
+    'O15AM16I',
+    'O15AM17O',
+    'O15AM17R',
+    'O15AMTL',
+    'O15AMU3',
+    'O15AMUX',
+    'O15AMVH',
+    'O15AMVK',
+    'O15AMWV',
+    'O15AMX4',
+    'O15AMXA',
+    'O15AMYZ',
+    'O15AMZ5',
+    'O15AMW9',
+    # libration amplitude known to 1 deg
+    'O15AM129',
+    # libration amplitude known to 10 deg: image later in semester away from opposition
+    'O15AM10Q',
+    'O15AM11C',
+    'O15AMWY',
+    'O15AMY4',
+    'O15AMZ2',
+    'O15AMZB',
+    # secure, min-max orbits < 0.05 AU
+    'o5p044',
+    'o5p045',
+    'o5p050',
+    'o5p053',
+    'o5p055',
+    'o5p058',
+    'o5p059',
+    'o5p072',
+    'o5p081',
+    'o5p083',
+    'o5p104',
+    'o5p108',
+    'o5p119',
+    'o5p131',
+    'o5p136',
+    'o5p144',
+    # secure, libration < 5 deg
+    'o5p013',
+    # secure, libration < 10 deg
+    'o5p006',
+    'o5p010',
+    # 1 yr arcs + secure
+    'o5p001',
+    'o5p003',
+    'o5p004',
+    'o5p005',
+    'o5p019',
+
+  # 'o3e01',
     # 'o3e10',
     #                         'o3e15',
     #                         'o3e16',
@@ -840,9 +901,9 @@ class Plot(Canvas):
                 center_dec = 0
 
                 pointing_date = mpc.Time(self.date.get(), scale='utc')
-                start_date = mpc.Time(self.date.get(), scale='utc') - TimeDelta(7.1*units.day)
-                end_date = start_date + TimeDelta(14*units.day)
-                time_step = TimeDelta(1*units.hour)
+                start_date = mpc.Time(self.date.get(), scale='utc') - TimeDelta(8.1*units.day)
+                end_date = start_date + TimeDelta(17*units.day)
+                time_step = TimeDelta(1.5*units.hour)
 
                 # Compute the mean position of KBOs in the field on current date.
                 for kbo_name, kbo in self.kbos.items():
