@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-__author__ = 'Michele Bannister, JJ Kavelaars'
 
 import datetime
 import os
@@ -12,12 +11,14 @@ from astropy import units
 from astropy.coordinates import SkyCoord
 from astropy.time import Time
 
-from . import (astrom, mpc, parameters)
+from . import (astrom, mpc, parameters, horizons)
 from .astrom import SourceReading
 from .gui import logger
 from .orbfit import Orbfit
 
 requests.packages.urllib3.disable_warnings()
+
+__author__ = 'Michele Bannister, JJ Kavelaars'
 
 SSOS_URL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssos.pl"
 RESPONSE_FORMAT = 'tsv'
@@ -25,6 +26,7 @@ NEW_LINE = '\r\n'
 
 
 class TracksParser(object):
+
     def __init__(self, inspect=True, skip_previous=False):
         logger.debug("Setting up TracksParser")
         self.orbit = None
@@ -149,6 +151,70 @@ class TracksParser(object):
         return tracks_data  # a SSOSData with .sources and .observations only
 
 
+class TrackTarget(TracksParser):
+
+    def parse(self, target_name):
+        self.target_name = os.path.splitext(os.path.basename(target_name))[0]
+        # pass down the provisional name so the table lines are linked to this TNO
+        self.ssos_parser = SSOSParser(target_name,
+                                      input_observations=None,
+                                      skip_previous=False)
+
+        return self.query_ssos(target_name=target_name)
+
+    def query_ssos(self, target_name, lunation_count=None):
+        """Send a query to the SSOS web service, looking for available observations using the given track.
+
+        :param target_name: name of target to query against SSOIS db
+        :param lunation_count: ignored
+        :rtype: SSOSData
+        """
+
+        # we observe ~ a week either side of new moon
+        # but we don't know when in the dark run the discovery happened
+        # so be generous with the search boundaries, add extra 2 weeks
+        # current date just has to be the night of the triplet,
+
+        search_start_date = Time('2013-02-08', scale='utc')
+        search_end_date = Time(datetime.datetime.now().strftime('%Y-%m-%d'), scale='utc')
+        logger.info("Sending query to SSOS start_date: {} end_data: {}\n".format(search_start_date, search_end_date))
+        query = Query(target_name,
+                      search_start_date=search_start_date,
+                      search_end_date=search_end_date)
+
+        logger.debug("Parsing query results...")
+        tracks_data = self.ssos_parser.parse(query.get())
+
+        tracks_data.mpc_observations = {}
+
+        start_time = Time(search_start_date)
+        stop_time = Time(search_end_date)
+        step_size = 5 * units.hour
+        self.orbit = horizons.Body(target_name, start_time, stop_time, step_size)
+
+        ref_sky_coord = None
+        for source in tracks_data.get_sources():
+            astrom_observations = tracks_data.observations
+            source_readings = source.get_readings()
+            for idx in range(len(source_readings)):
+                source_reading = source_readings[idx]
+                assert isinstance(source_reading, SourceReading)
+                if ref_sky_coord is None or source_reading.sky_coord.separation(ref_sky_coord) > 40 * units.arcsec:
+                    ref_sky_coord = source_reading.sky_coord
+                source_reading.reference_sky_coord = ref_sky_coord
+                astrom_observation = astrom_observations[idx]
+                self.orbit.predict(Time(astrom_observation.mjd, format='mjd', scale='utc'))
+                source_reading.pa = self.orbit.pa
+                # why are these being recorded just in pixels?  Because the error ellipse is drawn in pixels.
+                # TODO: Modify error ellipse drawing routine to use WCS but be sure
+                # that this does not cause trouble with the use of dra/ddec for cutout computer
+                source_reading.dx = self.orbit.dra
+                source_reading.dy = self.orbit.ddec
+
+        logger.debug("Sending back set of observations that might contain the target: {}".format(tracks_data))
+        return tracks_data  # a SSOSData with .sources and .observations only
+
+
 class SSOSParser(object):
     """
     Parse the result of an SSOS query, which is stored in an astropy Table object
@@ -210,6 +276,7 @@ class SSOSParser(object):
         given the result table create 'source' objects.
 
         :param ssos_result_filename_or_lines:
+        :param mpc_observations: a list of mpc.Observation objects used to retrieve the SSOS observations
         """
         table_reader = ascii.get_reader(Reader=ascii.Basic)
         table_reader.inconsistent_handler = self._skip_missing_data
@@ -220,15 +287,20 @@ class SSOSParser(object):
         sources = []
         observations = []
         source_readings = []
-        orbit = Orbfit(mpc_observations)
+        if mpc_observations is not None and isinstance(mpc_observations[0], mpc.Observation):
+            orbit = Orbfit(mpc_observations)
+        else:
+            start_time = Time(min(ssos_table['MJD']), format='mjd')
+            stop_time = Time(max(ssos_table['MJD']), format='mjd')
+            step_size = 5.0 * units.hour
+            orbit = horizons.Body(self.provisional_name, start_time, stop_time, step_size)
 
         warnings.filterwarnings('ignore')
         logger.info("Loading {} observations\n".format(len(ssos_table)))
         expnums_examined = []
         for row in ssos_table:
             # Trim down to OSSOS-specific images
-            if ((row['Filter'] not in parameters.OSSOS_FILTERS)
-                    or row['Image_target'].startswith('WP')):
+            if (row['Filter'] not in parameters.OSSOS_FILTERS) or row['Image_target'].startswith('WP'):
                 continue
 
             # check if a dbimages object exists
@@ -250,7 +322,7 @@ class SSOSParser(object):
             if not 0 < x.value < 2060 or not 0 < y.value < 4700:
                 continue
 
-            obs_date = Time(mjd, format='mjd', scale='utc').iso
+            obs_date = Time(mjd, format='mjd', scale='utc')
             orbit.predict(obs_date)
             if orbit.dra > 4 * units.arcminute or orbit.ddec > 4.0 * units.arcminute:
                 print "Skipping entry as orbit uncertainty at date {} is large.".format(obs_date)
@@ -358,11 +430,22 @@ class ParamDictBuilder(object):
     """
     Build a dictionary of parameters needed for an SSOS Query.
 
+    http://www4.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssosclf.pl?
+    lang=en
+    object=2
+    search=bynameCADC
+    epoch1=1990+01+01
+    epoch2=2016+3+27
+    eellipse=
+    eunits=arcseconds
+    extres=yes
+    xyres=yes
+
     This should be fun!
     """
 
     def __init__(self,
-                 observations,
+                 observations=None,
                  verbose=False,
                  search_start_date=Time('2013-01-01', scale='utc'),
                  search_end_date=Time('2017-01-01', scale='utc'),
@@ -371,24 +454,25 @@ class ParamDictBuilder(object):
                  resolve_extension=True,
                  resolve_position=True,
                  telescope_instrument='CFHT/MegaCam'):
-        self._observations = []
-        self.observations = observations
+
+        self._orbit_method = orbit_method
         self._verbose = False
         self.verbose = verbose
         self._search_start_date = None
         self.search_start_date = search_start_date
         self._search_end_date = None
         self.search_end_date = search_end_date
-        self._orbit_method = None
-        self.orbit_method = orbit_method
         self._error_ellipse = None
-        self.error_ellipse = error_ellipse
         self._resolve_extension = None
         self.resolve_extension = resolve_extension
         self._resolve_position = None
         self.resolve_position = resolve_position
         self._telescope_instrument = None
         self.telescope_instrument = telescope_instrument
+        self._error_units = None
+        self._observations = []
+        self.observations = observations
+        self.error_ellipse = error_ellipse
 
     @property
     def observations(self):
@@ -403,11 +487,20 @@ class ParamDictBuilder(object):
 
     @observations.setter
     def observations(self, observations):
+        if not isinstance(observations, list):
+            observations = [observations]
         self._observations = []
+        orbit_method_set = None
         for observation in observations:
-            assert isinstance(observation, mpc.Observation)
-            if not observation.null_observation:
-                self._observations.append(observation)
+            use_bern = isinstance(observation, mpc.Observation)
+            self.orbit_method = use_bern and 'bern' or 'bynameCADC'
+            orbit_method_set = orbit_method_set is None and self.orbit_method or orbit_method_set
+            if orbit_method_set != self.orbit_method:
+                raise ValueError("All members of observations list must be same type.")
+            # use_bern needs to have any null observations removed.
+            if use_bern and observation.null_observation:
+                continue
+            self._observations.append(observation)
 
     @property
     def verbose(self):
@@ -468,8 +561,18 @@ class ParamDictBuilder(object):
 
     @orbit_method.setter
     def orbit_method(self, orbit_method):
-        assert orbit_method in ['bern', 'mpc']
+        assert orbit_method in ['bern', 'mpc', 'bynameCADC']
         self._orbit_method = orbit_method
+        if self._orbit_method == 'bynameCADC':
+            self.error_units = 'arcseconds'
+
+    @property
+    def error_units(self):
+        return self._error_units
+
+    @error_units.setter
+    def error_units(self, error_units):
+        self._error_units = error_units
 
     @property
     def error_ellipse(self):
@@ -485,10 +588,11 @@ class ParamDictBuilder(object):
 
         :param error_ellipse: either a number or the work 'bern'
         """
-        if error_ellipse == 'bern':
-            assert self.orbit_method == 'bern'
-        else:
-            error_ellipse = float(error_ellipse)
+        if not self.orbit_method == 'bern':
+            try:
+                error_ellipse = float(error_ellipse)
+            except:
+                error_ellipse = ''
         self._error_ellipse = error_ellipse
 
     @property
@@ -532,24 +636,28 @@ class ParamDictBuilder(object):
         if telescope_instrument in TELINST:
             self._telescope_instrument = telescope_instrument
 
-
     @property
     def params(self):
         """
         :return: A dictionary of SSOS query parameters.
         :rtype: dict
         """
-        return dict(format=RESPONSE_FORMAT,
-                    verbose=self.verbose,
-                    epoch1=str(self.search_start_date),
-                    epoch2=str(self.search_end_date),
-                    search=self.orbit_method,
-                    eunits=self.error_ellipse,
-                    extres=self.resolve_extension,
-                    xyres=self.resolve_position,
-                    telinst=self.telescope_instrument,
-                    obs=NEW_LINE.join((
-                        str(observation) for observation in self.observations)))
+        params = dict(format=RESPONSE_FORMAT,
+                      verbose=self.verbose,
+                      epoch1=str(self.search_start_date),
+                      epoch2=str(self.search_end_date),
+                      search=self.orbit_method,
+                      eunits=self.error_units,
+                      eellipse=self.error_ellipse,
+                      extres=self.resolve_extension,
+                      xyres=self.resolve_position,
+                      telinst=self.telescope_instrument)
+
+        if self.orbit_method == 'bynameCADC':
+            params['object'] = NEW_LINE.join((str(target_name) for target_name in self.observations))
+        else:
+            params['obs'] = NEW_LINE.join((str(observation) for observation in self.observations))
+        return params
 
 
 class Query(object):
@@ -570,13 +678,16 @@ class Query(object):
     """
 
     def __init__(self,
-                 observations,
+                 observations=None,
                  search_start_date=Time(parameters.SURVEY_START, scale='utc'),
-                 search_end_date=Time('2017-01-01', scale='utc')):
+                 search_end_date=Time('2017-01-01', scale='utc'),
+                 error_ellipse='bern'):
+
         self.param_dict_builder = ParamDictBuilder(
-            observations,
+            observations=observations,
             search_start_date=search_start_date,
-            search_end_date=search_end_date)
+            search_end_date=search_end_date,
+            error_ellipse=error_ellipse)
         self.headers = {'User-Agent': 'OSSOS'}
 
     def get(self):
@@ -597,14 +708,14 @@ class Query(object):
         lines = response.content
         # note: spelling 'occured' is in SSOIS
         if len(lines) < 2 or "An error occured getting the ephemeris" in lines:
+            print lines
+            print response.url
             raise IOError(os.errno.EACCES,
                           "call to SSOIS failed on format error")
 
         if os.access("backdoor.tsv", os.R_OK):
             lines += open("backdoor.tsv").read()
-
         return lines
-
 
 TELINST = [
     'AAT/WFI',
