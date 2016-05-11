@@ -87,8 +87,8 @@ class WCS(astropy_wcs.WCS):
         return self.header['NORDFIT']
 
     def xy2sky(self, x, y, usepv=True):
-        try:
-            if usepv:
+        if usepv:
+            try:
                 return xy2skypv(x=x, y=y,
                                 crpix1=self.crpix1,
                                 crpix2=self.crpix2,
@@ -97,11 +97,13 @@ class WCS(astropy_wcs.WCS):
                                 cd=self.cd,
                                 pv=self.pv,
                                 nord=self.nord)
-        except Exception as ex:
-            logger.warning("Error {} {}".format(type(ex), ex))
-            logger.warning("Reverted to CD-Matrix WCS.")
-        pos = self.wcs_pix2world([[x, y]], 1)
-        return pos[0][0] * units.degree, pos[0][1] * units.degree
+            except Exception as ex:
+                logger.warning("Error {} {}".format(type(ex), ex))
+                logger.warning("Reverted to CD-Matrix WCS.")
+                print ex
+        xy = numpy.array([x, y]).transpose()
+        pos = self.wcs_pix2world(xy, 1).transpose()
+        return pos[0] * units.degree, pos[1] * units.degree
 
     def sky2xy(self, ra, dec, usepv=True):
         try:
@@ -319,7 +321,7 @@ def xy2skypv(x, y, crpix1, crpix2, crval1, crval2, cd, pv, nord):
         eta = pv[1][0]
 
     if nord >= 1:
-        r = math.sqrt(x_deg ** 2 + y_deg ** 2)
+        r = numpy.sqrt(x_deg ** 2 + y_deg ** 2)
         xi += pv[0][1] * x_deg + pv[0][2] * y_deg + pv[0][3] * r
         eta += pv[1][1] * y_deg + pv[1][2] * x_deg + pv[1][3] * r
 
@@ -340,23 +342,27 @@ def xy2skypv(x, y, crpix1, crpix2, crval1, crval2, cd, pv, nord):
                 xi += pv[0][7] * x3 + pv[0][8] * x2y + pv[0][9] * xy2 + pv[0][10] * y3
                 eta += pv[1][7] * y3 + pv[1][8] * xy2 + pv[1][9] * x2y + pv[1][10] * x3
 
-    xir = float(xi) / PI180
-    etar = float(eta) / PI180
+    xir = xi / PI180
+    etar = eta / PI180
 
     ra0 = crval1 / PI180
     dec0 = crval2 / PI180
 
-    ctan = math.tan(dec0)
-    ccos = math.cos(dec0)
-    raoff = math.atan2(xir / ccos, 1 - etar * ctan)
+    ctan = numpy.tan(dec0)
+    ccos = numpy.cos(dec0)
+    raoff = numpy.arctan2(xir / ccos, 1 - etar * ctan)
     ra = raoff + ra0
-    dec = math.atan(math.cos(raoff) / ((1 - (etar * ctan)) / (etar + ctan)))
+    dec = numpy.arctan(numpy.cos(raoff) / ((1 - (etar * ctan)) / (etar + ctan)))
 
     ra *= PI180
-    if ra < 0:
-        ra += 360
-    if ra >= 360:
-        ra -= 360
+    ra = numpy.where(ra < 0 , ra + 360, ra)
+    ra = numpy.where(ra > 360, ra - 360, ra)
+    # f = numpy.int(ra < 0) + 360
+    # print f
+    # if ra < 0:
+    #     ra += 360
+    # if ra >= 360:
+    #     ra -= 360
 
     dec *= PI180
 
