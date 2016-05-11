@@ -19,7 +19,7 @@ from ossos import orbfit
 import argparse
 
 # Maximum allowed change in angle during re-measure
-TOLERANCE = 0.35
+TOLERANCE = 2.00
 
 
 def remeasure(mpc_in, recentroided=False):
@@ -32,19 +32,19 @@ def remeasure(mpc_in, recentroided=False):
     logging.debug("rm start: {}".format(mpc_obs.to_string()))
 
     if not isinstance(mpc_obs.comment, mpc.OSSOSComment):
-        logging.error( "Failed to convert line")
+        logging.error( "Failed to convert comment line")
         return mpc_in
 
     parts = re.search('(?P<expnum>\d{7})(?P<type>\S)(?P<ccd>\d\d)', mpc_obs.comment.frame)
     if not parts:
-        logging.error( "Failed to get expnum")
+        logging.error( "Failed to parse expnum from frame info in comment line")
         return mpc_in
 
     start_coordinate = mpc_in.coordinate
     #assert isinstance(start_coordinate, ICRSCoordinates)
 
     try:
-        header = storage.get_astheader(parts.group('expnum'), int(parts.group('ccd')))
+        header = storage._get_sghead(parts.group('expnum'),'p')[int(parts.group('ccd'))+1]
     except IOError as ioerr:
         logging.error(str(ioerr))
         logging.error("Failed to get astrometric header for: {}".format(mpc_obs))
@@ -52,37 +52,37 @@ def remeasure(mpc_in, recentroided=False):
 
     this_wcs = wcs.WCS(header)
     try:
-        (x , y ) = this_wcs.sky2xy(mpc_obs.ra, mpc_obs.dec, usepv=False) 
-        logging.error("{} {}".format( x, float(mpc_obs.comment.x)))
-        logging.error("{} {}".format( y, float(mpc_obs.comment.y)))
+        #(x , y ) = this_wcs.sky2xy(mpc_obs.coordinate.ra.degree, mpc_obs.coordinate.dec.degree, usepv=True) 
+        x = mpc_obs.comment.x
+        y = mpc_obs.comment.y
+        #logging.error("{} {}".format( x, float(mpc_obs.comment.x)))
+        #logging.error("{} {}".format( y, float(mpc_obs.comment.y)))
         if mpc_in.discovery and int(parts.group('ccd')) < 18 or int(parts.group('ccd')) in [36, 37]:
-            logging.debug("Discovery astrometric lines are normally flipped relative to storage.")
+            logging.warn("This is a discovery line so flipping/flopping the x/y position recorded in comment as that is likely take from the flip/flopped image.")
+            print header['NAXIS1'], header['NAXIS2']
             x = header['NAXIS1'] - x + 1
             y = header['NAXIS2'] - y + 1
     except:
-        logging.warn("Failed to X/Y from comment line.")
+        logging.warn("Failed to get the X Y coordinate from comment line.")
         return mpc_in
 
     (ra, dec) = this_wcs.xy2sky(x, y, usepv=True)
     mpc_obs.coordinate = (ra, dec)
-    logging.debug("rm updat: {}".format(mpc_obs.to_string()))
-    sep = start_coordinate.separation(mpc_obs.coordinate).degree * 3600.0
+    sep = mpc_in.coordinate.separation(mpc_obs.coordinate).degree * 3600.0
+
     if sep > TOLERANCE and mpc_in.discovery and not recentroided :
-        logging.warn("{} --> Using the unflipped X/Y for a discovery observation line.".format(sep))
-        logging.debug("{} {} {} {} {}".format(sep, x, y, mpc_obs.comment.x, mpc_obs.comment.y))
+        logging.warn("sep: {} --> The RA/DEC determined using the flip/flopped coordinates is not close enough to original value reverting to oringal values.".format(sep))
         # Try un-flipping.
-        x = float(mpc_obs.comment.x)
-        y = float(mpc_obs.comment.y)
+        x = float(mpc_in.comment.x)
+        y = float(mpc_in.comment.y)
         (ra, dec) = this_wcs.xy2sky(x, y)
         #print "--> x/y coordinates ({},{}) and recomputing ra/dec ({},{})".format(x, y, ra, dec)
         mpc_obs.coordinate = (ra, dec)
-        sep = start_coordinate.separation(mpc_obs.coordinate).degree * 3600.0
-        logging.debug("remod: {}".format(mpc_obs.coordinate))
-        logging.debug("SEP: {}".format(sep))
-        logging.debug("rm  flip: {}".format(mpc_obs.to_string()))
+        sep = mpc_in.coordinate.separation(mpc_obs.coordinate).degree * 3600.0
+
     if sep > TOLERANCE and not recentroided:
-        ## use the old header RA/DEC to predict the X/Y and then use that X/Y to get new RA/DEC
-        logging.debug("Ignoring recorded X/Y and using previous to RA/DEC and WCS to compute X/Y")
+        # use the old header RA/DEC to predict the X/Y and then use that X/Y to get new RA/DEC
+        logging.warn("sep: {} --> large offset when using comment line X/Y to compute RA/DEC, using RA/DEC and original WCS to compute X/Y and replacing X/Y reported in astrometry file.".format(sep))
         header2 = storage.get_image(parts.group('expnum'),
                                     int(parts.group('ccd')),
                                     return_file=False,
@@ -90,10 +90,12 @@ def remeasure(mpc_in, recentroided=False):
         image_wcs = wcs.WCS(header2)
         (x, y) = image_wcs.sky2xy(mpc_in.coordinate.ra.degree, mpc_in.coordinate.dec.degree)
         (ra, dec) = this_wcs.xy2sky(x, y)
-        logging.debug("({},{}) --> ({},{})".format(mpc_obs.comment.x, mpc_obs.comment.y, x, y))
+        logging.warn("Coordinate changed: ({:5.2f},{:5.2f}) --> ({:5.2f},{:5.2f})".format(mpc_obs.comment.x, mpc_obs.comment.y, x, y))
         mpc_obs.coordinate = (ra, dec)
         mpc_obs.comment.x = x
         mpc_obs.comment.y = y
+
+
     try:
         merr = float(mpc_obs.comment.mag_uncertainty)
         fwhm = float(storage.get_fwhm(parts.group('expnum'), int(parts.group('ccd')))) * header['PIXSCAL1']
@@ -104,7 +106,9 @@ def remeasure(mpc_in, recentroided=False):
         logging.error("Failed to compute centroid for observation:\n"
                       "{}\nUsing default of 0.2".format(mpc_obs.to_string()))
         centroid_err = 0.2
+
     mpc_obs.comment.astrometric_level = header.get('ASTLEVEL', "0")
+
     try:
         asterr = float(header['ASTERR'])
         residuals = (asterr ** 2 + centroid_err ** 2) ** 0.5
@@ -114,8 +118,11 @@ def remeasure(mpc_in, recentroided=False):
         logging.error("Failed while trying to compute plate uncertainty for\n{}".format(mpc_obs.to_stirng()))
         logging.error('Using default of 0.25')
         residuals = 0.25
+
     mpc_obs.comment.plate_uncertainty = residuals
+
     logging.debug("sending back: {}".format(mpc_obs.to_string()))
+
     return mpc_obs
 
 
@@ -124,7 +131,11 @@ def recompute_mag(mpc_in):
     Get the mag of the object given the mpc.Observation
     """
     # TODO this really shouldn't need to build a 'reading' to get the cutout...
-    from ossos.downloads.cutouts import ImageCutoutDownloader
+
+    from ossos.downloads.cutouts import downloader
+    dlm = downloader.ImageCutoutDownloader()
+
+
 
     mpc_obs = deepcopy(mpc_in)
     assert isinstance(mpc_obs, mpc.Observation)
@@ -139,7 +150,7 @@ def recompute_mag(mpc_in):
 
     observation = astrom.Observation(expnum, file_type, ccd)
     assert isinstance(observation, astrom.Observation)
-    ast_header = storage.get_astheader(int(expnum), int(ccd))
+    ast_header = storage._get_sghead(int(expnum),'p')[int(ccd)+1]
 
     # The ZP for the current astrometric lines is the pipeline one.  The new ZP is in the astheader file.
     new_zp = ast_header.get('PHOTZP')
@@ -152,19 +163,28 @@ def recompute_mag(mpc_in):
                                    observation, ssos=True, from_input_file=True, null_observation=False,
                                    discovery=mpc_obs.discovery)
     # reading.is_inverted = reading.compute_inverted()
-    reading._header = storage.get_mopheader(expnum, ccd)
-    reading._header['MAXCOUNT'] = 30000.0
-    image_slice_downloader = ImageCutoutDownloader(slice_rows=100, slice_cols=100)
-    cutout = image_slice_downloader.download_cutout(reading, needs_apcor=True)
+    #try:
+    #   reading._header = storage.get_mopheader(expnum, ccd)
+    #except:
+    #   reading._header = storage.get_astheader(expnum, ccd)
+    # reading._header['MAXCOUNT'] = 30000.0
+    cutout = dlm.download_cutout(reading, needs_apcor=True)
     cutout.zmag = new_zp
 
     if math.fabs(new_zp - old_zp) > 0.3:
         logging.warning("Large change in zeropoint detected: {}  -> {}".format(old_zp, new_zp))
 
     try:
-        (x, y, mag, merr) = cutout.get_observed_magnitude(zmag=new_zp)
-        (x, y) = cutout.get_observed_coordinates((x, y))
-    except:
+        PHOT = cutout.get_observed_magnitude()
+        x = PHOT['XCENTER']
+        y = PHOT['YCENTER']
+        mag = PHOT['MAG']
+        merr = PHOT['MERR']
+        cutout.update_pixel_location((x, y))
+        x = cutout.observed_x
+        y = cutout.observed_y
+    except Exception as ex:
+        logging.error("ERROR: {}".format(str(ex)))
         logging.warn("Failed to do photometry.")
         return mpc_obs
     if mpc_obs.comment.mag is not None and math.fabs(mpc_obs.comment.mag - mag) > 3.5 * mpc_obs.comment.mag_uncertainty:
@@ -199,9 +219,12 @@ def main(mpc_file, cor_file, skip_mags=False):
 
     original_obs = []
     modified_obs = []
+    logging.info("ASTROMETRY FILE: {} --> {}".format(mpc_file, cor_file))
     for mpc_in in observations:
-        logging.info("orig: {}".format(mpc_in.to_string()))
+        logging.info("="*220)
+        logging.info("   orig: {}".format(mpc_in.to_string()))
         mpc_obs = remeasure(mpc_in)
+        logging.info("new wcs: {}".format(mpc_obs.to_string()))
 
         if skip_mags and not mpc_obs.comment.photometry_note[0] == "Z":
             mpc_mag = remeasure(recompute_mag(mpc_obs), recentroided=True)
@@ -215,10 +238,10 @@ def main(mpc_file, cor_file, skip_mags=False):
             logging.error(" new: {}".format(mpc_mag.to_string()))
             new_comment = raw_input("COMMENT: ")
             mpc_mag.comment.comment = mpc_mag.comment.comment + " " + new_comment
-        logging.info("modi: {}".format(mpc_mag.to_string()))
-        logging.info("")
+        logging.info("new cen: {}".format(mpc_mag.to_string()))
         original_obs.append(mpc_in)
         modified_obs.append(mpc_mag)
+        logging.info("="*220)
 
     optr = file(cor_file+".tlf", 'w')
     for idx in range(len(modified_obs)):
@@ -227,22 +250,36 @@ def main(mpc_file, cor_file, skip_mags=False):
         if inp != out:
             optr.write(out.to_tnodb()+"\n")
     optr.close()
+
+    compare_orbits(original_obs, modified_obs, cor_file)
+    logging.info("="*220)
+
     return True
 
 
-def compare_orbits(original_obs, modified_obs):
+def compare_orbits(original_obs, modified_obs, cor_file):
+    """Compare the orbit fit given the oringal and modified astrometry."""
+
     origin = orbfit.Orbfit(original_obs)
     modified = orbfit.Orbfit(modified_obs)
 
     orbpt = file(cor_file+".orb", 'w')
-    orbpt.write(modified.summarize()+"\n")
-    orbpt.write(origin.summarize()+"\n")
 
+    # Dump summaries of the orbits
+    orbpt.write("#"*80+"\n")
+    orbpt.write("# ORIGINAL ORBIT\n")
+    orbpt.write(origin.summarize()+"\n")
+    orbpt.write("#"*80+"\n")
+    orbpt.write("# MODIFIED ORBIT\n")
+    orbpt.write(modified.summarize()+"\n")
+    orbpt.write("#"*80+"\n")
+
+    # Create a report of the change in orbit parameter uncertainty
     for element in ['a', 'e', 'inc', 'om', 'Node', 'T']:
-        oval = getattr(origin, element)
-        doval = getattr(origin, "d"+element)
-        mval = getattr(modified, element)
-        dmval = getattr(modified, "d"+element)
+        oval = getattr(origin, element).value
+        doval = getattr(origin, "d"+element).value
+        mval = getattr(modified, element).value
+        dmval = getattr(modified, "d"+element).value
         precision = max(int(-1*math.floor(math.log10(dmval))), int(-1*math.floor(math.log10(doval)))) + 1
         precision = max(0, precision)
         vdigits = 12
@@ -271,22 +308,31 @@ def compare_orbits(original_obs, modified_obs):
         if delta > 3.5 * doval:
             logging.warn("large delta for element {}: {} --> {}".format(element, oval, mval))
 
-    for orb in [orbfit.Orbfit(modified_obs)]:
+
+    # Compute the stdev of the residuals and report the change given the new observations
+    sep = "STD: "
+    for orb in [origin, modified]:
+        orbpt.write(sep)
+        sep = " ==> "
         residuals = orb.residuals
         dra = []
         ddec = []
+        mags = []
         for observation in orb.observations:
             if not observation.null_observation:
                 dra.append(observation.ra_residual)
                 ddec.append(observation.dec_residual)
+                mags.append(observation.mag)
                 if observation.comment.plate_uncertainty * 5.0 < \
                         ((observation.ra_residual ** 2 + observation.dec_residual ** 2) ** 0.5):
                     logging.warn("LARGE RESIDUAL ON: {}".format(observation.to_string()))
                     logging.warn("Fit residual  unreasonably large.")
         dra = numpy.array(dra)
         ddec = numpy.array(ddec)
-        orbpt.write("STD: {} {}\n".format(dra.std(), ddec.std()))
-
+        mags = numpy.percentile(numpy.array(mags), (5,95))
+        merr = (mags[1] - mags[0])/6.0 
+        orbpt.write("ra_std:{:8.4} dec_std:{:8.4} mag_std:{:8.2}".format(dra.std(), ddec.std(), merr))
+    orbpt.write("\n")
     orbpt.close()
 
 
@@ -303,17 +349,13 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    level = logging.ERROR
+    level = logging.INFO
     if args.debug:
         level = logging.DEBUG
 
-    logger = logging.getLogger('update_astrom')
     import coloredlogs
+    logger = logging.getLogger('update_astrom')
     coloredlogs.install(level=level)
-
-    # set the VOS logging off, its too noisy.
-    vos = logging.getLogger('vos')
-    vos.setLevel(level=logging.CRITICAL)
 
     if args.result_base_name is None:
         base_name = os.path.splitext(os.path.basename(args.ast_file))[0]
