@@ -583,7 +583,7 @@ class SourceReading(object):
         self.null_observation = null_observation
         self._discovery = None
         self.discovery = discovery
-        self.mpc_obseravtions = {}
+        self.mpc_observations = {}
         self.reference_sky_coord = self.sky_coord
         self.min_cutout = 0.3 * units.arcminute
 
