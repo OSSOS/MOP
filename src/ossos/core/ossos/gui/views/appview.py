@@ -89,9 +89,9 @@ class ApplicationView(object):
     def display(self, cutout, use_pixel_coords=False):
         self.image_viewer.display(cutout, use_pixel_coords)
 
-    @guithread
-    def place_marker(self, cutout, x, y, radius=10, colour='r', force=False):
-        self.image_viewer.place_marker(cutout, x, y, radius, colour, force=force)
+#    @guithread
+#    def place_marker(self, cutout, x, y, radius=10, colour='r', force=False):
+#        self.image_viewer.place_marker(cutout, x, y, radius, colour, force=force)
 
     @property
     def ds9(self):
