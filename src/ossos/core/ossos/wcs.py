@@ -89,7 +89,7 @@ class WCS(astropy_wcs.WCS):
     def xy2sky(self, x, y, usepv=True):
         if usepv:
             try:
-                return xy2skypv(x=x, y=y,
+                return xy2skypv(x=numpy.array(x), y=numpy.array(y),
                                 crpix1=self.crpix1,
                                 crpix2=self.crpix2,
                                 crval1=self.crval1,
