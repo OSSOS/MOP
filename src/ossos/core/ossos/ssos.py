@@ -5,6 +5,7 @@ import os
 import pprint
 import warnings
 import requests
+import numpy
 
 from astropy.io import ascii
 from astropy import units
@@ -110,7 +111,6 @@ class TracksParser(object):
         query = Query(mpc_observations,
                       search_start_date=search_start_date,
                       search_end_date=search_end_date)
-
         logger.debug("Parsing query results...")
         tracks_data = self.ssos_parser.parse(query.get(), mpc_observations=mpc_observations)
 
@@ -287,6 +287,7 @@ class SSOSParser(object):
         sources = []
         observations = []
         source_readings = []
+
         if mpc_observations is not None and isinstance(mpc_observations[0], mpc.Observation):
             orbit = Orbfit(mpc_observations)
         else:
@@ -487,7 +488,7 @@ class ParamDictBuilder(object):
 
     @observations.setter
     def observations(self, observations):
-        if not isinstance(observations, list):
+        if not isinstance(observations, list) and not isinstance(observations, numpy.ndarray):
             observations = [observations]
         self._observations = []
         orbit_method_set = None
@@ -500,7 +501,7 @@ class ParamDictBuilder(object):
             # use_bern needs to have any null observations removed.
             if use_bern and observation.null_observation:
                 continue
-            self._observations.append(observation)
+            self._observations.append(str(observation))
 
     @property
     def verbose(self):
