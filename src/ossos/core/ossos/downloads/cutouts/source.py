@@ -188,7 +188,8 @@ class SourceCutout(object):
         return self.hdulist[extno].converter.get_inverse_converter().convert(point)
 
     def pix2world(self, x, y, usepv=True):
-        return self.hdulist[self.extno].wcs.xy2sky(x, y, usepv=usepv)
+        ra, dec = self.hdulist[self.extno].wcs.xy2sky([x], [y], usepv=usepv)
+        return ra[0], dec[0]
 
     def world2pix(self, ra, dec, usepv=True):
         """
@@ -272,7 +273,9 @@ class SourceCutout(object):
 
     def _update_ra_dec(self):
         hdu = self.hdulist[self.original_observed_ext]
-        self._ra, self._dec = hdu.wcs.xy2sky(self.pixel_x, self.pixel_y)
+        ra, dec = hdu.wcs.xy2sky([self.pixel_x], [self.pixel_y])
+        self._ra = ra[0] 
+        self._dec = dec[0] 
 
     @property
     def comparison_image(self):
