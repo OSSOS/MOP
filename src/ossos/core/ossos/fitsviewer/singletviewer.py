@@ -79,9 +79,9 @@ class SingletViewer(WxMPLFitsViewer):
             radii = [radius * 0.185 * units.arcsec for radius in radii]
             self._displayables_by_cutout[cutout].place_annulus(cutout.ra, cutout.dec, radii, colour='r')
 
-    # def place_marker(self, cutout, x, y, radius, colour, force=False ):
-    #     self._displayables_by_cutout[cutout].place_marker(x, y, radius, colour=colour, force=force)
-    #
+    def place_marker(self, cutout, x, y, radius, colour, force=False ):
+        self._displayables_by_cutout[cutout].place_marker(x, y, radius, colour=colour, force=force)
+
     def register_xy_changed_event_handler(self, handler):
         self.xy_changed.connect(handler)
 
