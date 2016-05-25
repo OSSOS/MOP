@@ -1,5 +1,6 @@
 import logging
 import tempfile
+import inspect
 
 from astropy import units
 from astropy.coordinates import SkyCoord
@@ -144,6 +145,12 @@ class Displayable(object):
         self._ellipse_placed = True
 
     def place_annulus(self, x, y, annuli, colour='b'):
+
+        import inspect
+        curframe = inspect.currentframe()
+        calframe = inspect.getouterframes(curframe, 2)
+        logging.debug("{} called place_annulus".format(calframe[1][3]))
+
         if not self.display or self._annulus_placed or not self.mark_reticule:
             return
         r = Region((x, y), style='annulus', colour=colour, shape=annuli)
@@ -152,6 +159,11 @@ class Displayable(object):
         self._annulus_placed = True
 
     def place_marker(self, x, y, radius=10, colour='b', force=False):
+
+        import inspect
+        curframe = inspect.currentframe()
+        calframe = inspect.getouterframes(curframe, 2)
+        logging.debug("{} called place_maker".format(calframe[1][3]))
 
         if not force and (not self.display or self._marker_placed or not self.mark_reticule):
             return
