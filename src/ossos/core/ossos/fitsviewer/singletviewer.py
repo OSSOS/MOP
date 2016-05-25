@@ -1,4 +1,5 @@
 from astropy import units
+from astropy.coordinates import SkyCoord
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 from baseviewer import WxMPLFitsViewer
@@ -30,20 +31,37 @@ class SingletViewer(WxMPLFitsViewer):
         :param pixel: Mark based on pixel locations or based on RA/DEC ?
         :type pixel: bool
         """
+
+        if not self.mark_source:
+            return
+
+
         try:
             x = cutout.reading.mpc_observation.comment.x
             y = cutout.reading.mpc_observation.comment.y
             (x, y) = cutout.get_pixel_coordinates((x, y))
-            pixel = True
+            (ra, dec) = cutout.pix2world(x, y, usepv=False)
+            sky_coord = cutout.reading.sky_coord
+            sky_coord2 = SkyCoord(ra, dec, unit=('degree','degree'))
+            # Check if the comment x/y are flipped coordinates via comparison with WCS
+            if sky_coord.separation(sky_coord2) > 10 * units.arcsec:
+                ValueError("Computing RA/DEC from comment.x/comment.y failed: {}".format(
+                    cutout.reading.mpc_observation.to_string()))
         except Exception as ex:
+            logger.warning(str(ex))
+            logger.warning("Didn't get x/y location from the MPC line.")
+            logger.warning("Using the predicted source location instead.")
             x, y = cutout.pixel_x, cutout.pixel_y
+            ra, dec = cutout.pix2world(x, y, usepv=False)
 
-        print cutout.reading.mpc_observation.to_string()
+        pixel = True
 
-        (ra, dec) = cutout.pix2world(x, y, usepv=True)
-
-        if not self.mark_source:
-            return
+        try:
+            print "{:5.2f} {:5.2f} # {}".format(cutout.reading.uncertainty_ellipse.a,
+                                                cutout.reading.uncertainty_ellipse.b,
+                                                cutout.reading.mpc_observation.to_string())
+        except:
+            pass
 
         try:
             # radii = (cutout.apcor.aperture, cutout.apcor.sky, cutout.apcor.swidth+cutout.apcor.sky)

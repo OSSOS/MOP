@@ -77,8 +77,6 @@ class WxMPLFitsViewer(object):
             x, y, extno = cutout.world2pix(sky_coord.ra.to(units.degree).value,
                                            sky_coord.dec.to(units.degree).value, usepv=True)
 
-
-            # assert cutout.extno == extno
             # The X/Y pixel values are then converted to RA/DEC without PV for use with DS9.
             ra, dec = cutout.pix2world(x, y, usepv=False)
             uncertainty_ellipse = cutout.reading.uncertainty_ellipse
@@ -86,7 +84,24 @@ class WxMPLFitsViewer(object):
             self.current_displayable.place_ellipse((ra, dec), uncertainty_ellipse, colour=colour, dash=dash)
 
             # Also mark on the image where source is localted, not just the ellipse.
-            ra, dec = cutout.pix2world(cutout.pixel_x, cutout.pixel_y, usepv=False)
+            try:
+                (xc, yc)  = (cutout.reading.mpc_observation.comment.x, cutout.reading.mpc_observation.comment.y)
+                (xp, yp) = cutout.get_pixel_coordinates((xc, yc))
+                # The X/Y pixel values are then converted to RA/DEC without PV for use with DS9.
+                # This is the wrong place to do this.
+                ra, dec = cutout.pix2world(xp, yp, usepv=False)
+                # Check if the comment x/y are flipped coordinates via comparison with WCS
+                if sky_coord.separation(SkyCoord(ra, dec, unit=('degree','degree'))) > 10 * units.arcsec:
+                    (x, y)  = cutout.get_pixel_coordinates(cutout.flip_flip((xc,yc)))
+                    ra, dec = cutout.pix2world(x, y, usepv=False)
+                if sky_coord.separation(SkyCoord(ra, dec, unit=('degree','degree'))) > 10 * units.arcsec:
+                    raise ValueError("Computing RA/DEC from comment.x/comment.y failed: {}".format(
+                        cutout.reading.mpc_observation.to_string()))
+
+            except Exception as ex:
+                logging.debug(str(ex))
+                logging.debug("Failed to get x/y from previous observation, using prediction.")
+                ra, dec = cutout.pix2world(cutout.pixel_x, cutout.pixel_y, usepv=False)
 
             self.current_displayable.place_marker(ra, dec, radius=8, colour=colour)
         except Exception as ex:
