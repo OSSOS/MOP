@@ -1,21 +1,21 @@
 """OSSOS helper methods"""
 from datetime import datetime
 from logging import handlers
+from . import vospace
 import logging
 import numpy
 import os
 import re
 import subprocess
 import time
-from vos import vos
 import sys
+import six
 
 try:
     from astropy.time import erfa_time
 except ImportError:
     from astropy.time import sofa_time as erfa_time
 from astropy.time import TimeString
-from astropy.time import Time
 
 
 MATCH_TOLERANCE = 100.0
@@ -60,7 +60,7 @@ class VOFileHandler(handlers.BufferingHandler):
         """
         if self._client is not None:
             return self._client
-        self._client = vos.Client()
+        self._client = vospace.client
         return self._client
 
     def close(self):
@@ -218,8 +218,55 @@ class TimeMPC(TimeString):
                                       from_jd=from_jd)
         self.precision = precision
 
+    def parse_string(self, timestr, subfmts):
+        """Read time from a single string, using a set of possible formats."""
+        # Datetime components required for conversion to JD by ERFA, along
+        # with the default values.
+        components = ('year', 'mon', 'mday')
+        defaults = (None, 1, 1, 0)
+        # Assume that anything following "." on the right side is a
+        # floating fraction of a second.
+        try:
+            idot = timestr.rindex('.')
+        except:
+            fracday = 0.0
+        else:
+            timestr, fracday = timestr[:idot], timestr[idot:]
+            fracday = float(fracday)
+
+        for _, strptime_fmt_or_regex, _ in subfmts:
+
+            vals = []
+            if isinstance(strptime_fmt_or_regex, six.string_types):
+                try:
+                    tm = time.strptime(timestr, strptime_fmt_or_regex)
+                except ValueError:
+                    continue
+                else:
+                    vals = [getattr(tm, 'tm_' + component)
+                            for component in components]
+
+            else:
+                tm = re.match(strptime_fmt_or_regex, timestr)
+                if tm is None:
+                    continue
+                tm = tm.groupdict()
+                vals = [int(tm.get(component, default)) for component, default
+                        in six.moves.zip(components, defaults)]
+
+            hrprt = int(24 * fracday)
+            vals.append(hrprt)
+            mnprt = int(60 * (24 * fracday - hrprt))
+            vals.append(mnprt)
+            scprt = 60 * (60 * (24 * fracday - hrprt) - mnprt)
+            vals.append(scprt)
+            return vals
+        else:
+            raise ValueError('Time {0} does not match {1} format'
+                             .format(timestr, self.name))
+
     # ## need our own 'set_jds' function as the MPC Time string is not typical
-    def set_jds(self, val1, val2):
+    def old_set_jds(self, val1, val2):
         """
 
         Parse the time strings contained in val1 and set jd1, jd2
@@ -246,7 +293,7 @@ class TimeMPC(TimeString):
                 time_str, fracday = time_str[:idot], time_str[idot:]
                 fracday = float(fracday)
 
-            for _, strptime_fmt, _ in subfmts:
+            for _, strptime_fmt_or_regex, _ in subfmts:
                 try:
                     tm = time.strptime(time_str, strptime_fmt)
                 except ValueError:
@@ -302,4 +349,3 @@ class TimeMPC(TimeString):
                    'hour': int(ihr), 'min': int(imin), 'sec': int(isec),
                    'fracsec': int(ifracsec), 'yday': yday, 'fracday': fracday}
 
-Time.FORMATS['mpc'] = TimeMPC
