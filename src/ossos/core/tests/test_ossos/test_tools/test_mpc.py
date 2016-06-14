@@ -1,16 +1,26 @@
 import os
 import numpy
-
-__author__ = "David Rusk <drusk@uvic.ca>"
-
 import unittest
 import tempfile
-
 from ossos import mpc
-from ossos.util import Time
+from astropy.time import Time
+from ossos import util
+__author__ = "David Rusk <drusk@uvic.ca>"
 
 
 class ObservationTest(unittest.TestCase):
+
+    def test_ast_line(self):
+        """Test that a dbase .ast file line is correctly parsed"""
+
+        ast_line = '     O14BH54  C2013 09 01.54512 01 33 24.655+11 47 59.22         23.3 r' \
+                   '      568 20130801_568_1 20151001 0010400000                      ' \
+                   'O   1651194p29 H54         Y  1939.58  482.54 0.20 0 23.29 0.07 % A Comment '
+        frame = "1651194p29"
+
+        parsed = mpc.Observation.from_string(ast_line)
+        self.assertEquals(frame, parsed.comment.frame)
+
     def test_create_from_line(self):
         expected = '     NONE     C2009 02 23.62578512 32 05.249+07 08 55.70         30.0 g      568'
         self.assertEquals(expected, str(mpc.Observation.from_string(expected)))
@@ -30,8 +40,8 @@ class ObservationTest(unittest.TestCase):
         self.assertEquals(expected, actual)
 
     def test_mpcdatabase_line(self):
-        MPC_LINE = "08611K01QT7T  C2004 05 29.32355 22 01 19.57 -11 03 12.4                ok8659304"
-        obs = mpc.Observation.from_string(MPC_LINE)
+        mpc_line = "08611K01QT7T  C2004 05 29.32355 22 01 19.57 -11 03 12.4                ok8659304"
+        obs = mpc.Observation.from_string(mpc_line)
         self.assertEquals(str(obs.ra), "22 01 19.570")
         self.assertEquals(obs.provisional_name, "K01QT7T")
         self.assertEquals(obs.minor_planet_number, 8611)
@@ -376,7 +386,7 @@ class MPCWriterTest(unittest.TestCase):
         self.undertest.write(obs)
 
         expected = ("     A234567*HN2012 10 21.40516001 46 44.001+29 13 13.27"
-                    "         23.5 A      523 O 1234567p00 A234567     ZH"
+                    "         23.5 A      523 O   1234567p00 A234567     ZH"
                     "  334.56  884.22 0.20 0 23.50 ---- % Something fishy.\n")
         self.assertEqual(self.read_outputfile(), expected)
 
@@ -401,7 +411,7 @@ class MPCWriterTest(unittest.TestCase):
         self.undertest.write(obs)
 
         expected = ("!    A234567   2012 10 21.40516001 46 44.001+29 13 13.27"
-                    "                     568 O 1234567p00 A234567     Z"
+                    "                     568 O   1234567p00 A234567     Z"
                     "   334.56  884.22 0.20 0 ----- ---- % Something fishy.\n")
 
         actual = self.read_outputfile()
@@ -430,7 +440,7 @@ class MPCWriterTest(unittest.TestCase):
         obs2 = mpc.Observation(date="2012 10 22.405160",
                                ra="26.683336700",  # 01 46 44.001
                                dec="29.220353200",  # +29 13 13.27
-        )
+                               )
 
         obs2.null_observation = True
 
@@ -551,9 +561,9 @@ class MPCWriterTest(unittest.TestCase):
 
         self.undertest.flush()
 
-        expected_first_line = ("!    A234567   2012 10 21.40516001 46 44.001+29 13 13.27                     523\n")
+        expected_first_line = "!    A234567   2012 10 21.40516001 46 44.001+29 13 13.27                     523\n"
         # "     A234567 HN2012 11 21.40516001 46 44.001+29 13 13.27         123.5A      523\n"
-        expected_second_line = ("     A234567*HN2012 11 21.40516001 46 44.001+29 13 13.27         23.5 A      523\n")
+        expected_second_line = "     A234567*HN2012 11 21.40516001 46 44.001+29 13 13.27         23.5 A      523\n"
 
         self.assertEqual(self.read_outputfile(),
                          expected_first_line + expected_second_line)
@@ -589,7 +599,7 @@ class TestOSSOSComment(unittest.TestCase):
 class TestMPCReader(unittest.TestCase):
     def setUp(self):
         self.fileobj = tempfile.NamedTemporaryFile()
-        self.fileobj.write("""#O  1698860p25 O13AE2O Y   990.0 3698.0 22.79 0.08 0.096    3 % This is a comment.\n""")
+        self.fileobj.write("""#O   1698860p25 O13AE2O Y   990.0 3698.0 22.79 0.08 0.096    3 % This is a comment.\n""")
         self.fileobj.write("""     o3e05    C2013 06 12.37153 14 19 34.135-14 01 53.33                     568\n""")
         self.fileobj.write(
             "-    O13AE3M   2014 02 03.59026 14 28 51.800-15 18 59.40                     568 20140201_568_1 20140221 "
@@ -619,7 +629,6 @@ class TestMPCReader(unittest.TestCase):
         self.fileobj.seek(0)
         self._default_provisional = os.path.basename(self.fileobj.name)
         self.long_test_name = 'O13BL3T0'
-
 
     def test_old_school(self):
         """
