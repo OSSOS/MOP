@@ -1,9 +1,4 @@
 
-from vos import vos
-import math
-import urlparse
-import re
-import sys
 import logging
 import util
 from astropy.table import Table, Column
@@ -45,8 +40,12 @@ class Parser(object):
                                        prefix=self.prefix)
         self.fobj = open(self.filename,'r')
         lines = self.fobj.read().split('\n')
-        self.header = HeaderParser().parser(lines)
-        data = numpy.genfromtxt(self.filename)
+        self.header = HeaderParser(self.extension).parser(lines)
+        if 'matt' in self.extension:
+            usecols=[0,1,2,3,4]
+            data = numpy.genfromtxt(self.filename, usecols=usecols)
+        else:
+            data = numpy.genfromtxt(self.filename)
         self.data = Table(data, names=self.header.column_names[0:data.shape[1]])
         ast_header = storage.get_astheader(self.expnum, self.ccd)
         self.wcs = wcs.WCS(ast_header)
@@ -58,7 +57,7 @@ class Parser(object):
             self.data['Y'] = float(self.header.keywords['NAX2'][0])-self.data['Y'] + 1
         ra, dec = self.wcs.xy2sky(self.data['X'], self.data['Y'], usepv=True)
 
-        self.data.add_columns([Column(ra, name='RA'), Column(dec, name='DEC')])
+        self.data.add_columns([Column(ra, name='RA_J2000'), Column(dec, name='DE_J2000')])
         return self
 
 
@@ -67,9 +66,10 @@ class Parser(object):
 class HeaderParser(object):
     """A MOPFile Header object"""
 
-    def __init__(self):
+    def __init__(self, extension):
 
         self.keywords = {}
+        self.extension = extension
         self.file_ids = []
         self.column_names = []
 
@@ -86,7 +86,7 @@ class HeaderParser(object):
                 ## Filenames start here
                 self._append_file_id(lines.pop(0))
             elif lines[0].startswith('##'):
-                self._set_column_names(lines.pop(0)[2:])
+                self._set_column_names(lines.pop(0)[2:], ext= self.extension)
             else:
                 return self
         raise IOError("Failed trying to read header")
@@ -141,5 +141,9 @@ class HeaderParser(object):
         self.file_ids.append(line.split()[1].strip())
 
 
-    def _set_column_names(self, line):
-        self.column_names = line[1:].split()
+    def _set_column_names(self, line, ext='obj.jmp'):
+        if 'matt' in ext:
+            self.column_names = line[1:].split()[0:5]
+        else:
+            self.column_names = line[1:].split()
+        print ext, len(self.column_names), line
