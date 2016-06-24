@@ -10,11 +10,11 @@ import re
 from astropy import units
 from astropy.coordinates import SkyCoord
 from astropy.units import Quantity
-from astropy.time import TimeDelta
+from astropy.time import TimeDelta, Time
+import util
 
 from .gui import logger
 from . import storage
-from .util import Time
 
 DATASET_ROOT = storage.DBIMAGES
 
@@ -535,7 +535,6 @@ class Ellipse(object):
         self._pa = value
 
 
-
 class SourceReading(object):
     """
     Data for a detected point source (which is a potential moving objects).
@@ -583,6 +582,7 @@ class SourceReading(object):
         self.null_observation = null_observation
         self._discovery = None
         self.discovery = discovery
+        self.mpc_observation = None
         self.mpc_observations = {}
         self.reference_sky_coord = self.sky_coord
         self.min_cutout = 0.3 * units.arcminute
@@ -857,9 +857,13 @@ class SourceReading(object):
 
     @property
     def inverted(self):
-        if not self._inverted:
-            self._inverted = self.compute_inverted()
+        if  self._inverted is None:
+            self.inverted = self.compute_inverted()
         return self._inverted
+
+    @inverted.setter
+    def inverted(self, inverted):
+        self._inverted = inverted
 
     def compute_inverted(self):
         """
@@ -877,7 +881,7 @@ class SourceReading(object):
         if self.ssos or self.obs.is_fake() or self.obs.ftype == 's':
             inverted = False
         else:
-            inverted = True if self.get_ccd_num() in INVERTED_CCDS else False
+            inverted = True if self.get_ccd_num() - 1 in INVERTED_CCDS else False
         logger.debug("Got that {} is_inverted: {}".format(self.obs.rawname, inverted))
         return inverted
 
@@ -885,7 +889,7 @@ class SourceReading(object):
 class Observation(object):
     """
     Stores data for a single observation (which may be associated with many
-    point sources/readings).
+    point sources/readings).  The observation refers the frame taken at the telescope.
     """
 
     # Aliases for useful header keys
@@ -1007,7 +1011,7 @@ class Observation(object):
     def header(self):
         if self._header is None:
             try:
-                self._header = storage.get_mopheader(self.expnum, self.ccdnum)
+                self._header = storage.get_mopheader(self.expnum, self.ccdnum, self.ftype, self.fk)
             except Exception as ex:
                 logger.error(str(ex))
                 self._header = self.astheader
@@ -1017,6 +1021,7 @@ class Observation(object):
         header = self.header
         if isinstance(header, list):
             extno = self.ccdnum - 1
+            print "Reading extension {} looking for header of CCD {}".format(extno, self.ccdnum)
             header = header[extno]
         mpc_date = header.get('MJD_OBS_CENTER', None)
         if mpc_date is None and 'MJD-OBS' in header:

@@ -251,21 +251,26 @@ class ProcessRealsController(AbstractController):
             values = result.split()
             ra = Quantity(float(values[1]), unit=units.degree)
             dec = Quantity(float(values[2]), unit=units.degree)
-            self.place_marker(ra, dec, radius=source_cutout.apcor.ap_in*0.185*units.arcsec, colour='green', force=True)
+            self.place_marker(ra, dec, radius=int(source_cutout.apcor.ap_in*0.185+1)*units.arcsec,
+                              colour='green', force=True)
             key = values[0]
+
+            (x, y, hdulist_index) = source_cutout.world2pix(ra, dec, usepv=False)
+            source_cutout.update_pixel_location((float(x), float(y)), hdulist_index)
+            source_cutout.reading.inverted = False
         else:
             key = isinstance(auto, bool) and " " or auto
-            ra = source_cutout.ra
-            dec = source_cutout.dec
-            self.place_marker(ra, dec, radius=source_cutout.apcor.ap_in*0.185*units.arcsec, colour='cyan', force=True)
+            ra = source_cutout.reading.ra * units.degree
+            dec = source_cutout.reading.dec * units.degree
+            self.place_marker(ra, dec, radius=int(source_cutout.apcor.ap_in*0.185+1)*units.arcsec,
+                              colour='cyan', force=True)
+            (x, y, hdulist_index) = source_cutout.world2pix(ra, dec, usepv=False)
+            source_cutout.update_pixel_location((float(x), float(y)), hdulist_index)
+            # now we've reset the pixel locations, so they are no longer inverted.
+            source_cutout.reading.inverted = False
 
-        (x, y, extno) = source_cutout.world2pix(ra, dec, usepv=False)
-        source_cutout.update_pixel_location((float(x), float(y)), extno)
 
-        pre_daophot_pixel_x = source_cutout.pixel_x
-        pre_daophot_pixel_y = source_cutout.pixel_y
-
-        # self.view.mark_apertures(source_cutout, pixel=False)
+        init_skycoord = source_cutout.reading.sky_coord
 
         try:
             phot = self.model.get_current_source_observed_magnitude()
@@ -276,25 +281,28 @@ class ProcessRealsController(AbstractController):
             phot_failure = phot['PIER'][0] != 0
             sky_failure = phot['SIER'][0] != 0
             cen_failure = phot['CIER'][0] != 0
+            if key != 'h':
+                source_cutout.update_pixel_location((cen_x, cen_y), hdulist_index)
         except Exception as er:
+            print "DAOPhot failure: {}".format(er)
             logger.critical("PHOT ERROR: {}".format(er))
             phot_failure = sky_failure = cen_failure = True
             obs_mag = ""
-            cen_x = pre_daophot_pixel_x
-            cen_y = pre_daophot_pixel_y
             obs_mag_err = -1
             band = ""
             default_comment = str(er)
 
         obs_mag = phot_failure and None or obs_mag
         obs_mag_err = phot_failure and None or obs_mag_err
-        source_cutout.update_pixel_location((cen_x, cen_y), extno=extno)
-        source_cutout._adjusted = False
 
-        if math.sqrt((cen_x - pre_daophot_pixel_x) ** 2 + (cen_y - pre_daophot_pixel_y) ** 2) > 1.5 or cen_failure:
-            # check if the user wants to use the 'hand' coordinates or these new ones.
-            self.place_marker(cen_x, cen_y, radius=source_cutout.apcor.ap_in*0.185*units.arcsec, colour='white', force=True)
-            self.view.show_offset_source_dialog((pre_daophot_pixel_x, pre_daophot_pixel_y), (cen_x, cen_y))
+        # compare the RA/DEC position of the reading now that we have measured it to the initial value.
+        if init_skycoord.separation(source_cutout.reading.sky_coord) > 1 * units.arcsec or cen_failure:
+            # check if the user wants to use the selected location or the DAOPhot centroid.
+            self.place_marker(source_cutout.ra *units.degree, source_cutout.dec*units.degree,
+                              radius=int(source_cutout.apcor.ap_in*0.185+1)*units.arcsec,
+                              colour='white',
+                              force=True)
+            self.view.show_offset_source_dialog(source_cutout.reading.sky_coord, init_skycoord)
 
         note1_default = ""
         if self.model.is_current_source_adjusted():
@@ -321,9 +329,9 @@ class ProcessRealsController(AbstractController):
                 observatory_code=config.read("MPC.DEFAULT_OBSERVATORY_CODE"),
                 discovery=self.is_discovery,
                 comment=None,
-                xpos=source_cutout.observed_x,
-                ypos=source_cutout.observed_y,
-                frame=self.model.get_current_reading().obs.rawname,
+                xpos=source_cutout.reading.x,
+                ypos=source_cutout.reading.y,
+                frame=source_cutout.reading.obs.rawname,
                 astrometric_level=source_cutout.astrom_header.get('ASTLEVEL', None))
 
             try:
@@ -417,8 +425,8 @@ class ProcessRealsController(AbstractController):
             observatory_code=observatory_code,
             discovery=self.is_discovery,
             comment=comment,
-            xpos=source_cutout.observed_x,
-            ypos=source_cutout.observed_y,
+            xpos=source_cutout.reading.x,
+            ypos=source_cutout.reading.y,
             frame=reading.obs.rawname,
             astrometric_level=source_cutout.astrom_header.get('ASTLEVEL', None)
         )
@@ -454,14 +462,21 @@ class ProcessRealsController(AbstractController):
 
         source_cutout = self.model.get_current_cutout()
         assert isinstance(source_cutout, SourceCutout)
-        source_cutout.update_pixel_location(cen_coords, source_cutout.original_observed_ext)
+        (x, y, hdulist_index) = source_cutout.world2pix(cen_coords.ra,
+                                                        cen_coords.dec,
+                                                        usepv=False)
+        source_cutout.update_pixel_location((x,y), hdulist_index)
         source_cutout._adjusted = False
 
     def on_cancel_offset(self, pix_coords):
         self.view.close_offset_source_dialog()
 
         source_cutout = self.model.get_current_cutout()
-        source_cutout.update_pixel_location(pix_coords)
+        (x, y, hdulist_index) = source_cutout.world2pix(pix_coords.ra,
+                                                        pix_coords.dec,
+                                                        usepv=False)
+        source_cutout.update_pixel_location((x,y), hdulist_index)
+        source_cutout._adjusted = True
 
     def on_do_reject(self, comment):
         self.view.close_reject_source_dialog()
