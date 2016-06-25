@@ -13,10 +13,16 @@ class ImageDownloader(Downloader):
 
     def download(self, reading, needs_apcor=False):
 
+        """
+
+        @param reading:
+        @param needs_apcor:
+        @return: SourceCutout
+        """
         hdulist = storage.get_hdu(reading.get_image_uri())
-        apcor = needs_apcor and self.download_apcor(reading.get_apcor_uri()) or None
-        zmag = self.download_zmag(reading.get_zmag_uri())
-        return SourceCutout(reading, hdulist, apcor, zmag=zmag)
+        #apcor = needs_apcor and self.download_apcor(reading.get_apcor_uri()) or None
+        #zmag = self.download_zmag(reading.get_zmag_uri())
+        return SourceCutout(reading, hdulist)
 
 
 class ImageCutoutDownloader(Downloader):
@@ -73,24 +79,21 @@ class ImageCutoutDownloader(Downloader):
         logger.debug("got radius for cutout: {}".format(radius))
         image_uri = reading.get_image_uri()
         logger.debug("Getting cutout at {} for {}".format(reading.reference_sky_coord, image_uri))
-        hdulist = storage.ra_dec_cutout(image_uri, reading.reference_sky_coord, radius)
+        hdulist = storage._cutout_expnum(reading.obs,
+                                         reading.reference_sky_coord, radius)
+        # hdulist = storage.ra_dec_cutout(image_uri, reading.reference_sky_coord, radius)
         logger.debug("Getting the aperture correction.")
-        apcor = ApcorData.from_string("4 15 1.0 -99")
-
-        if needs_apcor:
-            try:
-                apcor = self.download_apcor(reading.get_apcor_uri())
-            except Exception as ex:
-                logger.debug("Failed while downloading aperture corrections: {}".format(ex))
-                pass
-
-        zmag = None
+        source = SourceCutout(reading, hdulist, radius=radius)
+        # Accessing the attribute here to trigger the download.
         try:
-            zmag = self.download_zmag(reading.get_zmag_uri())
+            apcor = source.apcor
+            zmag = source.zmag
         except Exception as ex:
-            logger.debug("Failed while downloading zeropoint.used file from vospace: {}".format(ex))
+            if needs_apcor:
+                import sys, traceback
+                sys.stderr.write("Failed to retrieve apcor but apcor required.  Raising error, see logs for more details")
+                sys.stderr.write(traceback.print_exc())
+                sys.exit(-1)
             pass
-
-        header = reading.obs.header
         logger.debug("Sending back the source reading.")
-        return SourceCutout(reading, hdulist, apcor, zmag=zmag, radius=radius)
+        return source
