@@ -30,6 +30,7 @@ class Downloader(object):
             The requests FITS image as an Astropy HDUList object
             (http://docs.astropy.org/en/latest/io/fits/api/hdulists.html).
         """
+
         logger.debug(str(kwargs))
         hdulist = None
         try:
@@ -61,20 +62,26 @@ class Downloader(object):
         Returns:
           apcor: ossos.downloads.core.ApcorData
         """
+
         local_file = os.path.basename(uri)
         if os.access(local_file, os.F_OK):
             fobj = open(local_file)
         else:
             fobj = storage.vofile(uri, view='data')
-        apcor_str = fobj.read()
+            fobj.seek(0)
+        str = fobj.read()
         fobj.close()
+        apcor_str = str
         return ApcorData.from_string(apcor_str)
 
     def download_zmag(self, uri):
         local_file = os.path.basename(uri)
         if os.access(local_file, os.F_OK):
             return float(open(local_file).read())
-        return float(storage.vofile(uri, view="data").read())
+        fobj = storage.vofile(uri, view="data")
+        fobj.seek(0)
+        str = fobj.read()
+        return float(str)
 
 
 class ApcorData(object):
@@ -92,7 +99,12 @@ class ApcorData(object):
         Expected string format:
         ap_in ap_out   ap_cor  apcor_err
         """
-        args = map(float, rawstr.split())
+        try:
+            args = map(float, rawstr.split())
+        except Exception as ex:
+            import sys
+            logger.error("Failed to convert aperture correction: {}".format(ex))
+            raise ex
         return cls(*args)
 
     @property
