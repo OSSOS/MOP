@@ -1,6 +1,6 @@
 """
 send queries to the Horizons batch query system via a web UI.  Derived from code supplied by
-Wes Fraser and Michele Bannister.
+Wes Fraser and Michele Bannister with more smarty pants stuff added by JJ Kavelaars.
 """
 import copy
 import re

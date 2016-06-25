@@ -12,7 +12,7 @@ from astropy import units
 from astropy.coordinates import SkyCoord
 from astropy.time import Time
 
-from . import (astrom, mpc, parameters, horizons)
+from . import astrom, mpc, parameters
 from .astrom import SourceReading
 from .gui import logger
 from .orbfit import Orbfit
@@ -174,7 +174,7 @@ class TrackTarget(TracksParser):
         # but we don't know when in the dark run the discovery happened
         # so be generous with the search boundaries, add extra 2 weeks
         # current date just has to be the night of the triplet,
-
+        from . import horizons
         search_start_date = Time('2013-02-08', scale='utc')
         search_end_date = Time(datetime.datetime.now().strftime('%Y-%m-%d'), scale='utc')
         logger.info("Sending query to SSOS start_date: {} end_data: {}\n".format(search_start_date, search_end_date))
@@ -291,6 +291,7 @@ class SSOSParser(object):
         if mpc_observations is not None and isinstance(mpc_observations[0], mpc.Observation):
             orbit = Orbfit(mpc_observations)
         else:
+            from . import horizons
             start_time = Time(min(ssos_table['MJD']), format='mjd')
             stop_time = Time(max(ssos_table['MJD']), format='mjd')
             step_size = 5.0 * units.hour
@@ -349,6 +350,7 @@ class SSOSParser(object):
                 for mpc_observation in mpc_observations:
                     try:
                         if mpc_observation.comment.frame.strip() == observation.rawname:
+                            # only skip previous obseravtions if not discovery.
                             previous = not mpc_observation.discovery.is_initial_discovery
                             break
                     except Exception as e:
@@ -357,7 +359,7 @@ class SSOSParser(object):
                     mpc_observation = None
 
             # skip previously measured observations if requested.
-            if self.skip_previous and previous:
+            if self.skip_previous and ( previous or observation.rawname in self.null_observations):
                 continue
 
             logger.debug('built observation {}'.format(observation))
