@@ -1,19 +1,17 @@
 from astropy import units
 from astropy.time import TimeDelta
-
-__author__ = "David Rusk <drusk@uvic.ca>"
-
 from ...gui import events
-from ...gui import logger
+from ...gui import logger, config
 from ...gui.models.collections import StatefulCollection
 from ...gui.models.exceptions import (ImageNotLoadedException,
                                       NoWorkUnitException,
                                       NoAvailableWorkException)
-from ...gui.models.workload import (WorkUnit, CandidatesWorkUnit, RealsWorkUnit,
+from ...gui.models.workload import (CandidatesWorkUnit, RealsWorkUnit,
                                     TracksWorkUnit)
 from ...astrom import SourceReading
 from ...downloads.cutouts.source import SourceCutout
 from ...mpc import Time
+__author__ = "David Rusk <drusk@uvic.ca>"
 
 
 class ValidationModel(object):
@@ -100,7 +98,8 @@ class ValidationModel(object):
     def expect_observation_transition(self):
         self.expect_image_transition()
 
-    def expect_image_transition(self):
+    @staticmethod
+    def expect_image_transition():
         events.send(events.CHANGE_IMAGE)
 
     def acknowledge_image_displayed(self):
@@ -207,33 +206,38 @@ class ValidationModel(object):
                     'FWHM']
             return [(key, header.get(key, None)) for key in keys]
         except Exception as ex:
+            print ex
             print "Failed to load mopheader, reverting to cutout header."
             pass
 
         try:
             header = self.get_current_cutout().hdulist[-1].header
             return [(key, value) for key, value in header.iteritems()]
-        except:
+        except Exception as ex:
+            print ex
             pass
 
         return [('Header_Get', 'FAILED')]
 
     def get_current_observation_date(self):
-        header = self.get_current_workunit().get_current_reading().obs.header
-        if isinstance(header, list):
-            print "Got list when header expected, trying to use correct member of list."
-            extno = self.get_current_cutout().extno
-            header = header[extno]
-        mpc_date = header.get('MJD_OBS_CENTER',None)
-        if mpc_date is None and 'MJD-OBS' in header:
-            mjd_obs = float(header.get('MJD-OBS'))
-            exptime = float(header.get('EXPTIME'))
-            mpc_date = Time(mjd_obs,
-                            format='mjd',
-                            scale='utc',
-                            precision=6)
-            mpc_date += TimeDelta(exptime * units.second) / 2.0
-            mpc_date = mpc_date.mpc
+        """
+        Get the date of the current observation by looking in the header
+        of the observation for the DATE and EXPTIME keywords.
+
+        The 'DATE AT MIDDLE OF OBSERVATION' of the observation is returned
+        @return: Time
+        """
+        # All HDU elements have the same date and time so just use
+        # last one, sometimes the first one is missing the header, in MEF
+        header = self.get_current_cutout().hdulist[-1].header
+        mjd_obs = float(header.get('MJD-OBS'))
+        exptime = float(header.get('EXPTIME'))
+        mpc_date = Time(mjd_obs,
+                        format='mjd',
+                        scale='utc',
+                        precision=config.read('MPC.DATE_PRECISION'))
+        mpc_date += TimeDelta(exptime * units.second) / 2.0
+        mpc_date = mpc_date.mpc
         return mpc_date
 
     def get_current_ra(self):
@@ -277,7 +281,7 @@ class ValidationModel(object):
     def get_current_source_observed_magnitude(self):
         return self.get_current_cutout().get_observed_magnitude()
 
-    def get_current_image_FWHM(self):
+    def get_current_image_fwhm(self):
         return float(self.get_current_astrom_header().get("FWHM", 4.))
 
     def get_current_image_maxcount(self):
@@ -296,18 +300,10 @@ class ValidationModel(object):
         self.image_manager.refresh_vos_clients()
 
     def update_current_source_location(self, new_location):
-        """
-        Updates the location of the source in the image.
-
-        Args:
-          new_location: tuple(x, y)
-            The source location using pixel coordinates from the
-            displayed image (may be a cutout).
-        """
-        self.get_current_cutout().update_pixel_location(new_location)
+        raise NotImplementedError()
 
     def reset_current_source_location(self):
-        self.get_current_cutout().reset_source_location()
+        raise NotImplementedError()
 
     def enable_synchronization(self):
         if self.synchronization_manager:
@@ -320,8 +316,8 @@ class ValidationModel(object):
             logger.info("Synchronization disabled")
 
     def exit(self):
-        for workunit in self.work_units:
-            workunit.unlock()
+        for work_unit in self.work_units:
+            work_unit.unlock()
 
         self.image_manager.stop_downloads()
         self.workunit_provider.shutdown()
