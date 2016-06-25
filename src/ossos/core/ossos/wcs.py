@@ -106,6 +106,10 @@ class WCS(astropy_wcs.WCS):
         return pos[0] * units.degree, pos[1] * units.degree
 
     def sky2xy(self, ra, dec, usepv=True):
+        if isinstance(ra, Quantity):
+            ra = ra.to(units.degree).value
+        if isinstance(dec, Quantity):
+            dec = dec.to(units.degree).value
         try:
             if usepv:
                 return sky2xypv(ra=ra,
@@ -120,10 +124,7 @@ class WCS(astropy_wcs.WCS):
         except Exception as ex:
             logger.warning("sky2xy raised exception: {0}".format(ex))
             logger.warning("Reverted to CD-Matrix WCS to convert: {0} {1} ".format(ra, dec))
-        if isinstance(ra, Quantity):
-            ra = ra.to(units.degree).value
-        if isinstance(dec, Quantity):
-            dec = dec.to(units.degree).value
+            print ex
         pos = self.wcs_world2pix([[ra, dec], ], 1)
         return pos[0][0], pos[0][1]
 
