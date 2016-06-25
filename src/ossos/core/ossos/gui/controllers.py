@@ -1,13 +1,9 @@
 from astropy import units
 from astropy.units import Quantity
-
 from ..downloads.cutouts.source import SourceCutout
 from ..gui.models.transactions import TransAckValidationModel
 from ..gui.models.workload import TracksWorkUnit
 from ..gui.views.appview import ApplicationView
-
-__author__ = "David Rusk <drusk@uvic.ca>"
-import math
 from ..downloads.core import Downloader
 from ..gui.autoplay import AutoplayManager
 from ..gui import config, logger
@@ -16,6 +12,9 @@ from ..gui.models.exceptions import (ImageNotLoadedException,
                                      NoWorkUnitException)
 from .. import mpc
 from ..orbfit import OrbfitError, Orbfit
+
+
+__author__ = "David Rusk <drusk@uvic.ca>"
 
 
 class AbstractController(object):
@@ -232,6 +231,7 @@ class ProcessRealsController(AbstractController):
     def on_accept(self, auto=False):
         """
         Initiates acceptance procedure, gathering required data.
+        @param auto: Set on_accept to automatic measure of source?
         """
 
         if self.model.is_current_source_named():
@@ -269,7 +269,6 @@ class ProcessRealsController(AbstractController):
             # now we've reset the pixel locations, so they are no longer inverted.
             source_cutout.reading.inverted = False
 
-
         init_skycoord = source_cutout.reading.sky_coord
 
         try:
@@ -298,7 +297,7 @@ class ProcessRealsController(AbstractController):
         # compare the RA/DEC position of the reading now that we have measured it to the initial value.
         if init_skycoord.separation(source_cutout.reading.sky_coord) > 1 * units.arcsec or cen_failure:
             # check if the user wants to use the selected location or the DAOPhot centroid.
-            self.place_marker(source_cutout.ra *units.degree, source_cutout.dec*units.degree,
+            self.place_marker(source_cutout.ra * units.degree, source_cutout.dec*units.degree,
                               radius=int(source_cutout.apcor.ap_in*0.185+1)*units.arcsec,
                               colour='white',
                               force=True)
@@ -397,7 +396,20 @@ class ProcessRealsController(AbstractController):
                      observatory_code,
                      comment):
         """
-        Final acceptance with collected data.
+        After a source has been mark for acceptance create an MPC Observation record.
+
+        @param minor_planet_number: The MPC Number associated with the object
+        @param provisional_name: A provisional name associated with the object
+        @param note1: The observational quality note
+        @param note2: The observational circumstance note
+        @param date_of_obs: Date of the observation as a Time object.
+        @param ra: RA in degrees
+        @param dec: DE in degrees
+        @param obs_mag: observed magnitude.
+        @param obs_mag_err: Uncertainty in the observed magnitude.
+        @param band: filter/band of the observations
+        @param observatory_code: MPC Observatory Code of telescope.
+        @param comment: A free form comment (not part of MPC standard record)
         """
         # Just extract the character code from the notes, not the
         # full description
@@ -405,10 +417,8 @@ class ProcessRealsController(AbstractController):
         note2_code = note2.split(" ")[0]
 
         self.view.close_accept_source_dialog()
-
         self.model.set_current_source_name(provisional_name)
 
-        reading = self.model.get_current_reading()
         source_cutout = self.model.get_current_cutout()
 
         mpc_observation = mpc.Observation(
@@ -427,22 +437,22 @@ class ProcessRealsController(AbstractController):
             comment=comment,
             xpos=source_cutout.reading.x,
             ypos=source_cutout.reading.y,
-            frame=reading.obs.rawname,
+            frame=source_cutout.reading.obs.rawname,
             astrometric_level=source_cutout.astrom_header.get('ASTLEVEL', None)
         )
-        mpc_observation._date_precision = 6
 
-        source_reading = self.model.get_current_reading()
-        source_reading.sky_coord = mpc_observation.coordinate
-        source_reading.pix_coord = mpc_observation.comment.x, mpc_observation.comment.y
-
+        # Store the observation into the model.
         data = self.model.get_current_workunit().data
         key = mpc_observation.comment.frame.strip()
         data.mpc_observations[key] = mpc_observation
 
+        # And write this observation out.
         self.model.get_writer().write(mpc_observation)
 
+        # Mark the current item of the work unit as accepted.
         self.model.accept_current_item()
+
+        # Detemine if the display should be reset.
         reset_frame = False
         if self.model.get_current_workunit().get_current_source_readings().is_on_last_item():
             self.view.clear()
@@ -465,7 +475,7 @@ class ProcessRealsController(AbstractController):
         (x, y, hdulist_index) = source_cutout.world2pix(cen_coords.ra,
                                                         cen_coords.dec,
                                                         usepv=False)
-        source_cutout.update_pixel_location((x,y), hdulist_index)
+        source_cutout.update_pixel_location((x, y), hdulist_index)
         source_cutout._adjusted = False
 
     def on_cancel_offset(self, pix_coords):
@@ -475,7 +485,7 @@ class ProcessRealsController(AbstractController):
         (x, y, hdulist_index) = source_cutout.world2pix(pix_coords.ra,
                                                         pix_coords.dec,
                                                         usepv=False)
-        source_cutout.update_pixel_location((x,y), hdulist_index)
+        source_cutout.update_pixel_location((x, y), hdulist_index)
         source_cutout._adjusted = True
 
     def on_do_reject(self, comment):
@@ -542,6 +552,8 @@ class ProcessTracksController(ProcessRealsController):
         self.is_discovery = False
         self.minimum_align_offset = 60
 
+    def on_reject(self):
+        self.view.show_reject_source_dialog()
 
     def on_accept(self, auto=False):
         super(ProcessTracksController, self).on_accept(auto=False)
@@ -582,6 +594,7 @@ class ProcessTracksController(ProcessRealsController):
     def on_load_comparison(self, research=False):
         """
         Display the comparison image
+        @param research: find a new comparison image even if one already known?
         """
 
         logger.debug(str(research))
