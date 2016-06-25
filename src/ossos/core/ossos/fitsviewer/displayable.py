@@ -39,6 +39,12 @@ class Region(object):
         self.shape = shape
         self.option = option
 
+    def __str__(self):
+        s = ""
+        for c in self:
+            s += str(c)+" "
+        return s
+
     def __iter__(self):
         try:
             if isinstance(self.shape, Ellipse):
@@ -154,8 +160,11 @@ class Displayable(object):
         if not self.display or self._annulus_placed or not self.mark_reticule:
             return
         r = Region((x, y), style='annulus', colour=colour, shape=annuli)
+        try:
+            self.display.set(*r)
+        except Exception as ex:
+            print ex
 
-        self.display.set(*r)
         self._annulus_placed = True
 
     def place_marker(self, x, y, radius=10, colour='b', force=False):
