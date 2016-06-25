@@ -9,34 +9,31 @@ from string import upper
 import tempfile
 import logging
 import warnings
-
 from astropy.coordinates import SkyCoord
 from astropy.io import ascii
 from astropy import units
 from astropy.units import Quantity
 from astropy.utils.exceptions import AstropyUserWarning
-from vos import vos
+import vospace
 from astropy.io import fits
 import requests
-
-requests.packages.urllib3.disable_warnings()
-requests_log = logging.getLogger("requests.packages.urllib3")
-requests_log.setLevel(logging.ERROR)
-
-
 from .downloads.cutouts.calculator import CoordinateConverter
-
 import coding
 import util
+from astropy.time import Time
 from .gui import logger
 from .wcs import WCS
 
+# Try and turn off warnings, only works for some releases of requests.
+try:
+    requests.packages.urllib3.disable_warnings()
+    requests_log = logging.getLogger("requests.packages.urllib3")
+    requests_log.setLevel(logging.ERROR)
+except:
+    pass
+
 MAXCOUNT = 30000
 _TARGET = "TARGET"
-
-CERTFILE = os.path.join(os.getenv('HOME'),
-                        '.ssl',
-                        'cadcproxy.pem')
 
 DBIMAGES = 'vos:OSSOS/dbimages'
 MEASURE3 = 'vos:OSSOS/measure3'
@@ -69,17 +66,15 @@ class Wrapper(object):
         else:
             return orig_attr
 
-
-# vospace = Wrapper(vos.Client)
-vospace = vos.Client()
-
 SUCCESS = 'success'
 
-# ## some cache holders.
+# cache holders.
 mopheaders = {}
 astheaders = {}
+sgheaders = {}
 fwhm = {}
 zmag = {}
+tags = {}
 
 APCOR_EXT = "apcor"
 ZEROPOINT_USED_EXT = "zeropoint.used"
@@ -92,8 +87,8 @@ def get_detections(release='current'):
     @param release: the release to retrieve from VOSpace
     @return: astropy.table.Table
     """
-    detection_path = "{}/{}/OSSOS*.detections".format(ASTROM_RELEASES,release)
-    filenames = vospace.glob(detection_path)
+    detection_path = "{}/{}/OSSOS*.detections".format(ASTROM_RELEASES, release)
+    filenames = vospace.client.glob(detection_path)
     if not len(filenames) > 0:
         raise IOError("No detection file found using: {}".format(detection_path))
 
@@ -104,14 +99,17 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2):
     """Do a QUERY on the TAP service for all observations that are part of OSSOS (*P05/*P016)
     where taken after mjd and have calibration 'observable'.
 
-    :param ra: RA center of search cont
-    :type ra: Quantity
-    :param dec: float degrees
-    :type dec: Quantity
-    :param dra: float degrees
-    :type dra: Quantity
-    :param ddec: float degrees
-    :type ddec: Quantity
+    @param ra: RA center of search cont
+    @type ra: Quantity
+    @param dec: float degrees
+    @type dec: Quantity
+    @param dra: float degrees
+    @type dra: Quantity
+    @param ddec: float degrees
+    @type ddec: Quantity
+    @param calibration_level: What calibration level must the found image have,
+    @param mjdate: what data must the observation be take on.
+    this is a CAOM2 parameter of CADC, 2 means calibrated data.
     """
 
     data = dict(QUERY=(" SELECT Observation.observationID as collectionID, "
@@ -151,10 +149,12 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2):
     return table
 
 
-def populate(dataset_name,
-             data_web_service_url=DATA_WEB_SERVICE + "CFHT"):
+def populate(dataset_name, data_web_service_url=DATA_WEB_SERVICE + "CFHT"):
     """Given a dataset_name created the desired dbimages directories
-    and links to the raw data files stored at CADC."""
+    and links to the raw data files stored at CADC.
+    @param dataset_name: the name of the CFHT dataset to make a link to.
+    @param data_web_service_url: the URL of the data web service run by CADC.
+    """
 
     data_dest = get_uri(dataset_name, version='o', ext='fits.fz')
     data_source = "%s/%so.fits.fz" % (data_web_service_url, dataset_name)
@@ -162,7 +162,7 @@ def populate(dataset_name,
     mkdir(os.path.dirname(data_dest))
 
     try:
-        vospace.link(data_source, data_dest)
+        vospace.client.link(data_source, data_dest)
     except IOError as e:
         if e.errno == errno.EEXIST:
             pass
@@ -173,7 +173,7 @@ def populate(dataset_name,
     header_source = "%s/%so.fits.fz?cutout=[0]" % (
         data_web_service_url, dataset_name)
     try:
-        vospace.link(header_source, header_dest)
+        vospace.client.link(header_source, header_dest)
     except IOError as e:
         if e.errno == errno.EEXIST:
             pass
@@ -184,7 +184,7 @@ def populate(dataset_name,
     header_source = "%s/%s/%sp.head" % (
         'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub', 'CFHTSG', dataset_name)
     try:
-        vospace.link(header_source, header_dest)
+        vospace.client.link(header_source, header_dest)
     except IOError as e:
         if e.errno == errno.EEXIST:
             pass
@@ -197,7 +197,15 @@ def populate(dataset_name,
 def get_cands_uri(field, ccd, version='p', ext='measure3.cands.astrom', prefix=None,
                   block=None):
     """
-    return the nominal URI for a candidate file.
+        return the nominal URI for a candidate file.
+
+    @param field: the OSSOS field name
+    @param ccd: which CCD are the candidates on
+    @param version: either the 'p', or 's' (scrambled) candidates.
+    @param ext: Perhaps we'll change this one day.
+    @param prefix: if this is a 'fake' dataset then add 'fk'
+    @param block: Which BLOCK of the field are we looking at? eg. 15BS+1+1
+    @return:
     """
 
     if prefix is None:
@@ -274,7 +282,7 @@ dbimages_uri = get_uri
 
 
 def set_tags_on_uri(uri, keys, values=None):
-    node = vospace.get_node(uri)
+    node = vospace.client.get_node(uri)
     if values is None:
         values = []
         for idx in range(len(keys)):
@@ -285,12 +293,12 @@ def set_tags_on_uri(uri, keys, values=None):
         value = values[idx]
         tag = tag_uri(key)
         node.props[tag] = value
-    return vospace.add_props(node)
+    return vospace.client.add_props(node)
 
 
 def _set_tags(expnum, keys, values=None):
     uri = os.path.join(DBIMAGES, str(expnum))
-    node = vospace.get_node(uri, force=True)
+    node = vospace.client.get_node(uri, force=True)
     if values is None:
         values = []
         for idx in range(len(keys)):
@@ -301,7 +309,7 @@ def _set_tags(expnum, keys, values=None):
         tag = tag_uri(key)
         value = values[idx]
         node.props[tag] = value
-    return vospace.add_props(node)
+    return vospace.client.add_props(node)
 
 
 def set_tags(expnum, props):
@@ -330,8 +338,8 @@ def set_tag(expnum, key, value):
 def tag_uri(key):
     """Build the uri for a given tag key. 
 
-    key: (str) eg 'mkpsf_00'
-
+    @param key: what is the key that we need a stadanrd uri tag for? eg 'mkpsf_00'
+    @type key: str
     """
     if OSSOS_TAG_URI_BASE in key:
         return key
@@ -341,18 +349,25 @@ def tag_uri(key):
 def get_tag(expnum, key):
     """given a key, return the vospace tag value.
 
-    @return: value of the tag requested.
+    @param expnum: Number of the CFHT exposure that a tag value is needed for
+    @param key: The process tag (such as mkpsf_00) that is being looked up.
+    @return: the value of the tag
+    @rtype: str
     """
 
-    if tag_uri(key) not in get_tags(expnum):
-        get_tags(expnum, force=True)
-    logger.debug("%s # %s -> %s" % (expnum, tag_uri(key), get_tags(expnum).get(tag_uri(key), None)))
-    return get_tags(expnum).get(tag_uri(key), None)
+    uri = tag_uri(key)
+    force = uri not in get_tags(expnum)
+    value = get_tags(expnum, force=force).get(uri, None)
+    return value
 
 
 def get_process_tag(program, ccd, version='p'):
-    """make a process tag have a suffix indicating which ccd its for.
-
+    """
+    make a process tag have a suffix indicating which ccd its for.
+    @param program: Name of the process that a tag is built for.
+    @param ccd: the CCD number that this process ran on.
+    @param version: The version of the exposure (s, p, o) that the process ran on.
+    @return: The string that represents the processing tag.
     """
     return "%s_%s%s" % (program, str(version), str(ccd).zfill(2))
 
@@ -362,11 +377,11 @@ def get_tags(expnum, force=False):
 
     @param expnum:
     @param force:
-    @return: a dictionary of tags.
+    @return: dict
     @rtype: dict
     """
     uri = os.path.join(DBIMAGES, str(expnum))
-    return vospace.get_node(uri, force=force).props
+    return vospace.client.get_node(uri, force=force).props
 
 
 class Task(object):
@@ -435,7 +450,7 @@ class Task(object):
 
     @status.setter
     def status(self, status):
-        status += util.Time.now().iso
+        status += Time.now().iso
         set_tag(self.target.expnum, self.tag, status)
 
     @property
@@ -490,9 +505,16 @@ class Target(object):
 
 
 def get_status(task, prefix, expnum, version, ccd, return_message=False):
-    """Report back status of the given program.
+    """
+    Report back status of the given program by looking up the associated VOSpace annotation.
 
-    @param prefix:
+    @param task:  name of the process or task that will be checked.
+    @param prefix: prefix of the file that was processed (often fk or None)
+    @param expnum: which exposure number (or base filename)
+    @param version: which version of that exposure (p, s, o)
+    @param ccd: which CCD within the exposure.
+    @param return_message: Return what did the TAG said or just /True/False/ for Success/Failure?
+    @return: the status of the processing based on the annotation value.
     """
     key = get_process_tag(prefix+task, ccd, version)
     status = get_tag(expnum, key)
@@ -504,11 +526,16 @@ def get_status(task, prefix, expnum, version, ccd, return_message=False):
 
 
 def set_status(task, prefix, expnum, version, ccd, status):
-    """set the processing status of the given program.
-
-    @param prefix:
     """
-
+    set the processing status of the given program.
+    @param task: name of the processing task
+    @param prefix: was there a prefix on the exposure number processed?
+    @param expnum: exposure number processed.
+    @param version: which version of the exposure? (p, s, o)
+    @param ccd: the number of the CCD processing.
+    @param status: What status to record:  "SUCCESS" we hope.
+    @return: Success?
+    """
     return set_tag(expnum, get_process_tag(prefix+task, ccd, version), status)
 
 
@@ -534,6 +561,73 @@ def decompose_content_decomposition(content_decomposition):
     if len(content_decomposition) == 0:
         content_decomposition = [(0, 1, -1, 1, -1)]
     return content_decomposition
+
+
+def _cutout_expnum(observation, sky_coord, radius):
+    """
+    Get a cutout from an exposure based on the RA/DEC location.
+    @param observation: The Observation object that contains the expusre number information.
+    @type observation: Observation
+    @param sky_coord: which RA/DEC is needed,
+    @type sky_coord:  SkyCoord
+    @param radius:
+    @type radius: Quantity
+    @return: HDUList containing the cutout image.
+    @rtype: list(HDUList)
+    """
+
+    uri = observation.get_image_uri()
+    base_url = ("http://{}/vospace/auth/nodes/{}?view=cutout&"
+                "cutout=CIRCLE+ICRS+{}+{}+{}")
+    url = base_url.format(vospace.VOSPACE_SERVER,
+                          uri[4:],
+                          sky_coord.ra.to('degree').value,
+                          sky_coord.dec.to('degree').value,
+                          radius.to('degree').value)
+
+    resp = requests.get(url, auth=vospace.authentication)
+    hdulist = fits.open(cStringIO.StringIO(resp.content))
+
+    hdulist.verify('silentfix+ignore')
+    cutouts = decompose_content_decomposition(resp.headers.get('content-disposition', '0___'))
+    logger.debug("Got cutout boundaries of: {}".format(cutouts))
+    logger.debug("Initial Length of HDUList: {}".format(len(hdulist)))
+
+    # Make sure here is a primaryHDU
+    if len(hdulist) == 1:
+        phdu = fits.PrimaryHDU()
+        phdu.header['ORIGIN'] = "OSSOS"
+        hdulist.insert(0, phdu)
+
+    logger.debug("Final Length of HDUList: {}".format(len(hdulist)))
+
+    if len(cutouts) != len(hdulist) - 1:
+        raise ValueError("Wrong number of cutout structures found in Content-Disposition response.")
+
+    for hdu in hdulist[1:]:
+        cutout = cutouts.pop(0)
+        if 'ASTLEVEL' not in hdu.header:
+            print "******* NO ASTLEVEL ****************** for {0} ********".format(observation.get_image_uri)
+            hdu.header['ASTLEVEL'] = 0
+        hdu.header['EXTNO'] = cutout[0]
+        hdu.header['DATASEC'] = reset_datasec("[{}:{},{}:{}]".format(cutout[1],
+                                                                     cutout[2],
+                                                                     cutout[3],
+                                                                     cutout[4]),
+                                              hdu.header.get('DATASEC', None),
+                                              hdu.header['NAXIS1'],
+                                              hdu.header['NAXIS2'])
+        hdu.header['XOFFSET'] = int(cutout[1]) - 1
+        hdu.header['YOFFSET'] = int(cutout[3]) - 1
+
+        hdu.converter = CoordinateConverter(hdu.header['XOFFSET'], hdu.header['YOFFSET'])
+        try:
+                hdu.wcs = WCS(hdu.header)
+        except Exception as ex:
+            logger.error("Failed trying to initialize the WCS for {}".format(uri))
+            raise ex
+    logger.debug("Sending back {}".format(hdulist))
+    return hdulist
 
 
 def ra_dec_cutout(uri, sky_coord, radius):
@@ -566,11 +660,16 @@ def ra_dec_cutout(uri, sky_coord, radius):
                                               radius.to(units.degree).value)
 
     view = "cutout"
-
-    fobj = vospace.open(uri, view=view, cutout=this_cutout)
-    hdulist = fits.open(cStringIO.StringIO(fobj.read()))
+    url = "http://{}/vospace/auth/nodes/{}".format(vospace.VOSPACE_SERVER,
+                                                   uri[4:])
+    params = {"view": view,
+              "cutout": this_cutout}
+    resp = requests.get(url, params, auth=vospace.authentication)
+    fobj = cStringIO.StringIO(resp.content)
+    fobj.seek(0)
+    hdulist = fits.open(fobj)
     hdulist.verify('silentfix+ignore')
-    cutouts = decompose_content_decomposition(fobj.resp.headers.get('content-disposition', '0___'))
+    cutouts = decompose_content_decomposition(resp.headers.get('content-disposition', '0___'))
     logger.debug("Got cutout boundaries of: {}".format(cutouts))
     logger.debug("Initial Length of HDUList: {}".format(len(hdulist)))
 
@@ -588,7 +687,8 @@ def ra_dec_cutout(uri, sky_coord, radius):
     for hdu in hdulist[1:]:
         cutout = cutouts.pop(0)
         if 'ASTLEVEL' not in hdu.header:
-            print "******* NO ASTLEVEL ********* ASTROMETRY NOT POSSIBLE ********* IGNORE {0} ********".format(uri)
+            print "******* NO ASTLEVEL ****************** for {0} ********".format(uri)
+            hdu.header['ASTLEVEL'] = 0
         hdu.header['EXTNO'] = cutout[0]
         hdu.header['DATASEC'] = reset_datasec("[{}:{},{}:{}]".format(cutout[1],
                                                                      cutout[2],
@@ -623,6 +723,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     @param ext:
     @param subdir:
     @param prefix:
+    @param flip_image: Should the image be x/y flipped after being retrieved?
     @return: astropy.io.fits.PrimaryHDU
     """
 
@@ -694,7 +795,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
             for this_ext in [ext, ext + ".fz"]:
                 ext_no = int(ccd) + 1
                 # extension 1 -> 18 +  37,36 should be flipped.
-                flip_these_extensions = range(1,19)
+                flip_these_extensions = range(1, 19)
                 flip_these_extensions.append(37)
                 flip_these_extensions.append(38)
                 flip = (cutout is None and "fits" in ext and (
@@ -720,10 +821,10 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
             else:
                 return hdu_list
         except Exception as e:
+            logging.warning("Failed to get image using: {}{}".format(uri, cutout))
             logger.debug("{}".format(type(e)))
             logger.debug("Failed to open {} cutout:{}".format(uri, cutout))
             logger.debug("vos sent back error: {} code: {}".format(str(e), getattr(e, 'errno', 0)))
-
     raise IOError(errno.ENOENT, "Failed to get image using {} {} {} {}.".format(expnum, version, ccd, cutout))
 
 
@@ -743,6 +844,8 @@ def reset_datasec(cutout, datasec, naxis1, naxis2):
 
     @param cutout:
     @param datasec:
+    @param naxis1: size of the original image in the 'x' direction
+    @param naxis2: size of the oringal image in the 'y' direction
     @return:
     """
 
@@ -806,47 +909,59 @@ def get_hdu(uri, cutout=None):
     If the cutout is flips the image then we also must flip the datasec keywords.  Also, we must offset the
     datasec to reflect the cutout area being used.
 
+    @param uri: The URI in VOSpace of the image to HDU to retrieve.
+    @param cutout: A CADC data service CUTOUT paramter to be used when retrieving the observation.
     @return: fits.HDU
     """
+    try:
+        # the filename is based on the Simple FITS images file.
+        filename = os.path.basename(uri)
+        if os.access(filename, os.F_OK) and cutout is None:
+            logger.debug("File already on disk: {}".format(filename))
+            hdu_list = fits.open(filename, scale_back=True)
+            hdu_list.verify('silentfix+ignore')
 
-    # the filename is based on the Simple FITS images file.
-    filename = os.path.basename(uri)
-    if os.access(filename, os.F_OK) and cutout is None:
-        logger.debug("File already on disk: {}".format(filename))
-        hdu_list = fits.open(filename, scale_back=True)
-        hdu_list.verify('silentfix+ignore')
+        else:
+            logger.debug("Pulling: {}{} from VOSpace".format(uri, cutout))
+            fpt = tempfile.NamedTemporaryFile(suffix='.fits')
+            cutout = cutout is not None and cutout or ""
+            vospace.client.copy(uri+cutout, fpt.name)
+            fpt.seek(0, 2)
+            fpt.seek(0)
+            logger.debug("Read from vospace completed. Building fits object.")
+            hdu_list = fits.open(fpt, scale_back=False)
+            hdu_list.verify('silentfix+ignore')
 
-    else:
-        logger.debug("Pulling: {}{} from VOSpace".format(uri, cutout))
-        fpt = tempfile.NamedTemporaryFile(suffix='.fits')
-        cutout = cutout is not None and cutout or ""
-        vospace.copy(uri+cutout, fpt.name)
-        fpt.seek(0, 2)
-        fpt.seek(0)
-        logger.debug("Read from vospace completed. Building fits object.")
-        hdu_list = fits.open(fpt, scale_back=False)
-        hdu_list.verify('silentfix+ignore')
+            logger.debug("Got image from vospace")
+            try:
+                hdu_list[0].header['DATASEC'] = reset_datasec(cutout, hdu_list[0].header['DATASEC'],
+                                                              hdu_list[0].header['NAXIS1'],
+                                                              hdu_list[0].header['NAXIS2'])
+            except Exception as e:
+                logging.debug("error converting datasec: {}".format(str(e)))
 
-        logger.debug("Got image from vospace")
-        try:
-            hdu_list[0].header['DATASEC'] = reset_datasec(cutout, hdu_list[0].header['DATASEC'],
-                                                          hdu_list[0].header['NAXIS1'],
-                                                          hdu_list[0].header['NAXIS2'])
-        except Exception as e:
-            logging.debug("error converting datasec: {}".format(str(e)))
-
-    for hdu in hdu_list:
-        logging.debug("Adding converter to {}".format(hdu))
-        hdu.converter = CoordinateConverter(0, 0)
-        try:
-            hdu.wcs = WCS(hdu.header)
-        except Exception as ex:
-            logger.error("Failed trying to initialize the WCS: {}".format(ex))
-
+        for hdu in hdu_list:
+            logging.debug("Adding converter to {}".format(hdu))
+            hdu.converter = CoordinateConverter(0, 0)
+            try:
+                hdu.wcs = WCS(hdu.header)
+            except Exception as ex:
+                logger.error("Failed trying to initialize the WCS: {}".format(ex))
+    except Exception as ex:
+        print ex
+        raise ex
     return hdu_list
 
 
 def get_trans(expnum, ccd, prefix=None, version='p'):
+    """
+
+    @param expnum: The exposure number to get the WCS transformation for.
+    @param ccd: The CCD of that exposure
+    @param prefix: Any possible prefixs (such as 'fk')
+    @param version: which version of the exposure?
+    @return:
+    """
     uri = get_uri(expnum, ccd, version, ext='trans.jmp', prefix=prefix)
     logging.info("get_trans: {}".format(uri))
     fobj = open_vos_or_local(uri)
@@ -881,7 +996,7 @@ def get_fwhm(expnum, ccd, prefix=None, version='p'):
         pass
 
     try:
-        fwhm[uri]=float(open(filename, 'r').read())
+        fwhm[uri] = float(open(filename, 'r').read())
         return fwhm[uri]
     except:
         pass
@@ -889,14 +1004,30 @@ def get_fwhm(expnum, ccd, prefix=None, version='p'):
     try:
         fwhm[uri] = float(open_vos_or_local(uri).read())
         return fwhm[uri]
-    except Exception as e:
+    except Exception as ex:
+        logger.error(str(ex))
         fwhm[uri] = 4.0
         return fwhm[uri]
 
 
+def _get_zeropoint(expnum, ccd, prefix=None, version='p'):
+    """
+    Retrieve the zeropoint stored in the tags associated with this image.
+    @param expnum: Exposure number
+    @param ccd: ccd of the exposure
+    @param prefix: possible prefix (such as 'fk')
+    @param version: which version: p, s, or o ?
+    @return: zeropoint
+    """
+    if prefix is not None:
+        DeprecationWarning("Prefix is no longer used here as the 'fk' and 's' have the same zeropoint.")
+
+    key = "zeropoint_{:1s}{:02d}".format(version, int(ccd))
+    return get_tag(expnum, key)
+
 
 def get_zeropoint(expnum, ccd, prefix=None, version='p'):
-    """Get the zeropoint for this exposure.
+    """Get the zeropoint for this exposure using the zeropoint.used file created during source planting..
 
     This command expects that there is a file called #######p##.zeropoint.used which contains the zeropoint.
 
@@ -904,7 +1035,7 @@ def get_zeropoint(expnum, ccd, prefix=None, version='p'):
     @param ccd: which ccd (extension - 1) to get zp
     @param prefix: possible string prefixed to expsoure number.
     @param version:  one of [spo] as in #######p##
-    @return:
+    @return: zeropoint
     """
     uri = get_uri(expnum, ccd, version, ext='zeropoint.used', prefix=prefix)
     try:
@@ -929,13 +1060,13 @@ def mkdir(dirname):
     """
     dir_list = []
 
-    while not vospace.isdir(dirname):
+    while not vospace.client.sdir(dirname):
         dir_list.append(dirname)
         dirname = os.path.dirname(dirname)
     while len(dir_list) > 0:
         logging.info("Creating directory: %s" % (dir_list[-1]))
         try:
-            vospace.mkdir(dir_list.pop())
+            vospace.client.mkdir(dir_list.pop())
         except IOError as e:
             if e.errno == errno.EEXIST:
                 pass
@@ -944,17 +1075,34 @@ def mkdir(dirname):
 
 
 def vofile(filename, **kwargs):
-    """Open and return a handle on a VOSpace data connection"""
+    """
+    Open and return a handle on a VOSpace data connection
+    @param filename:
+    @param kwargs:
+    @return:
+    """
     basename = os.path.basename(filename)
     if os.access(basename, os.R_OK):
         return open(basename, 'r')
     kwargs['view'] = kwargs.get('view', 'data')
-    return vospace.open(filename, **kwargs)
+    try:
+        url = "http://{}/data/auth/vospace/{}".format(vospace.VOSPACE_SERVER,
+                                                      filename[4:])
+        return cStringIO.StringIO(requests.get(url,
+                                               params=kwargs,
+                                               auth=vospace.authentication).content)
+    except Exception as ex:
+        logging.info("Error using quick vofile access: {}".format(ex))
+        return vospace.client.open(filename, **kwargs)
 
 
 def open_vos_or_local(path, mode="rb"):
     """
     Opens a file which can either be in VOSpace or the local filesystem.
+
+    @param path:
+    @param mode:
+    @return:
     """
     if path.startswith("vos:"):
         primary_mode = mode[0]
@@ -973,17 +1121,16 @@ def open_vos_or_local(path, mode="rb"):
 
 
 def copy(source, dest):
-    """use the vospace service to get a file. """
+    """
+    use the vospace service to get a file.
 
-    #logger.debug("deleting {} ".format(dest))
-    #try:
-    #    vospace.delete(dest)
-    #except Exception as e:
-    #    logger.debug(str(e))
-    #    pass
+    @param source:
+    @param dest:
+    @return:
+    """
     logger.info("copying {} -> {}".format(source, dest))
 
-    return vospace.copy(source, dest)
+    return vospace.client.copy(source, dest)
 
 
 def vlink(s_expnum, s_ccd, s_version, s_ext,
@@ -1005,24 +1152,38 @@ def vlink(s_expnum, s_ccd, s_version, s_ext,
     source_uri = get_uri(s_expnum, ccd=s_ccd, version=s_version, ext=s_ext, prefix=s_prefix)
     link_uri = get_uri(l_expnum, ccd=l_ccd, version=l_version, ext=l_ext, prefix=l_prefix)
 
-    return vospace.link(source_uri, link_uri)
+    return vospace.client.link(source_uri, link_uri)
 
 
 def remove(uri):
     try:
-        vospace.delete(uri)
+        vospace.client.delete(uri)
     except Exception as e:
         logger.debug(str(e))
 
 
 def delete(expnum, ccd, version, ext, prefix=None):
-    """delete a file, no error on does not exist."""
+    """
+    delete a file, no error on does not exist
+
+    @param expnum:
+    @param ccd:
+    @param version:
+    @param ext:
+    @param prefix:
+    @return:
+    """
     uri = get_uri(expnum, ccd=ccd, version=version, ext=ext, prefix=prefix)
     remove(uri)
 
 
 def my_glob(pattern):
-    """get a listing matching pattern"""
+    """
+    get a listing matching pattern
+
+    @param pattern:
+    @return:
+    """
     result = []
     if pattern[0:4] == 'vos:':
         dirname = os.path.dirname(pattern)
@@ -1037,7 +1198,7 @@ def my_glob(pattern):
 
 
 def listdir(directory, force=False):
-    return vospace.listdir(directory, force=force)
+    return vospace.client.listdir(directory, force=force)
 
 
 def list_dbimages():
@@ -1046,7 +1207,7 @@ def list_dbimages():
 
 def exists(uri, force=False):
     try:
-        return vospace.get_node(uri, force=force) is not None
+        return vospace.client.get_node(uri, force=force) is not None
     except EnvironmentError as e:
         logger.error(str(e))  # not critical enough to raise
         # Sometimes the error code returned is the OS version, sometimes the HTTP version
@@ -1055,16 +1216,21 @@ def exists(uri, force=False):
 
 
 def move(old_uri, new_uri):
-    vospace.move(old_uri, new_uri)
+    vospace.client.move(old_uri, new_uri)
 
 
 def delete_uri(uri):
-    vospace.delete(uri)
+    vospace.client.delete(uri)
 
 
 def has_property(node_uri, property_name, ossos_base=True):
     """
     Checks if a node in VOSpace has the specified property.
+
+    @param node_uri:
+    @param property_name:
+    @param ossos_base:
+    @return:
     """
     if get_property(node_uri, property_name, ossos_base) is None:
         return False
@@ -1075,10 +1241,15 @@ def has_property(node_uri, property_name, ossos_base=True):
 def get_property(node_uri, property_name, ossos_base=True):
     """
     Retrieves the value associated with a property on a node in VOSpace.
+
+    @param node_uri:
+    @param property_name:
+    @param ossos_base:
+    @return:
     """
     # Must use force or we could have a cached copy of the node from before
     # properties of interest were set/updated.
-    node = vospace.get_node(node_uri, force=True)
+    node = vospace.client.get_node(node_uri, force=True)
     property_uri = tag_uri(property_name) if ossos_base else property_name
 
     if property_uri not in node.props:
@@ -1091,23 +1262,32 @@ def set_property(node_uri, property_name, property_value, ossos_base=True):
     """
     Sets the value of a property on a node in VOSpace.  If the property
     already has a value then it is first cleared and then set.
+
+    @param node_uri:
+    @param property_name:
+    @param property_value:
+    @param ossos_base:
+    @return:
     """
-    node = vospace.get_node(node_uri)
+    node = vospace.client.get_node(node_uri)
     property_uri = tag_uri(property_name) if ossos_base else property_name
 
     # If there is an existing value, clear it first
     if property_uri in node.props:
         node.props[property_uri] = None
-        vospace.add_props(node)
+        vospace.client.add_props(node)
 
     node.props[property_uri] = property_value
-    vospace.add_props(node)
+    vospace.client.add_props(node)
 
 
 def build_counter_tag(epoch_field, dry_run=False):
     """
-    Builds the tag for the counter of a given epoch/field,
-    without the OSSOS base.
+    Builds the tag for the counter of a given epoch/field, without the OSSOS base.
+
+    @param epoch_field:
+    @param dry_run:
+    @return:
     """
     logger.info("Epoch Field: {}, OBJECT_COUNT {}".format(str(epoch_field), str(OBJECT_COUNT)))
     tag = epoch_field[1] + "-" + OBJECT_COUNT
@@ -1120,12 +1300,12 @@ def build_counter_tag(epoch_field, dry_run=False):
 
 def read_object_counter(node_uri, epoch_field, dry_run=False):
     """
-    Reads the object counter for the given epoch/field on the specified
-    node.
+    Reads the object counter for the given epoch/field on the specified node.
 
-    Returns:
-      count: str
-        The current object count.
+    @param node_uri:
+    @param epoch_field:
+    @param dry_run:
+    @return: the current object count.
     """
     return get_property(node_uri, build_counter_tag(epoch_field, dry_run),
                         ossos_base=True)
@@ -1133,12 +1313,13 @@ def read_object_counter(node_uri, epoch_field, dry_run=False):
 
 def increment_object_counter(node_uri, epoch_field, dry_run=False):
     """
-    Increments the object counter for the given epoch/field on the specified
-    node.
+    Increment the object counter used to create unique object identifiers.
 
-    Returns:
-      new_count: str
-        The object count AFTER incrementing.
+    @param node_uri:
+    @param epoch_field:
+    @param dry_run:
+    @return: The object count AFTER incrementing.
+
     """
     current_count = read_object_counter(node_uri, epoch_field, dry_run=dry_run)
 
@@ -1159,7 +1340,12 @@ def increment_object_counter(node_uri, epoch_field, dry_run=False):
 def get_mopheader(expnum, ccd, version='p', prefix=None):
     """
     Retrieve the mopheader, either from cache or from vospace
-    :rtype : fits.Header
+
+    @param expnum:
+    @param ccd:
+    @param version:
+    @param prefix:
+    @return: Header
     """
     prefix = prefix is None and "" or prefix
     mopheader_uri = dbimages_uri(expnum=expnum,
@@ -1192,25 +1378,27 @@ def get_mopheader(expnum, ccd, version='p', prefix=None):
         header['NAX1'] = header['NAXIS1']
         header['NAX2'] = header['NAXIS2']
         header['MOPversion'] = header['MOP_VER']
-        header['MJD_OBS_CENTER'] = str(util.Time(header['MJD-OBSC'],
-                                                 format='mjd',
-                                                 scale='utc', precision=5).replicate(format='mpc'))
+        header['MJD_OBS_CENTER'] = str(Time(header['MJD-OBSC'],
+                                            format='mjd',
+                                            scale='utc', precision=5).replicate(format='mpc'))
         header['MAXCOUNT'] = MAXCOUNT
         mopheaders[mopheader_uri] = header
         mopheader.close()
     return mopheaders[mopheader_uri]
 
 
-def _get_sghead(expnum, version):
+def _get_sghead(expnum):
     """
     Use the data web service to retrieve the stephen's astrometric header.
 
     :param expnum: CFHT exposure number you want the header for
-    :param version: Which version of the header? ('p', 's', 'o')
     :rtype : list of astropy.io.fits.Header objects.
     """
+    version = 'p'
 
-    logger.warning("_get_sghead is depricated, use get_astheader instead.")
+    key = "{}{}".format(expnum, version)
+    if key in sgheaders:
+        return sgheaders[key]
 
     url = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHTSG/{}{}.head".format(expnum, version)
     logging.getLogger("requests").setLevel(logging.ERROR)
@@ -1224,33 +1412,58 @@ def _get_sghead(expnum, version):
     headers = [None]
     for header_str in header_str_list:
         headers.append(fits.Header.fromstring(header_str, sep='\n'))
-
-    return headers
+    sgheaders[key] = headers
+    return sgheaders[key]
 
 
 def get_header(uri):
     """
     Pull a FITS header from observation at the given URI
+
+    @param uri:  The URI of the image in VOSpace.
     """
     if uri not in astheaders:
         astheaders[uri] = get_hdu(uri, cutout="[1:1,1:1]")[0].header
     return astheaders[uri]
 
 
-def get_astheader(expnum, ccd, version='p', prefix=None, ext=None):
+def get_astheader(expnum, ccd, version='p', prefix=None):
     """
     Retrieve the header for a given dbimages file.
 
     @param expnum:  CFHT odometer number
     @param ccd: which ccd based extension (0..35)
     @param version: 'o','p', or 's'
+    @param prefix:
     @return:
     """
     logger.debug("Getting ast header for {}".format(expnum))
+    if version == 'p':
+        # Get the SG header if possible.
+        sg_key = "{}{}".format(expnum, version)
+        if sg_key not in sgheaders:
+            _get_sghead(expnum)
+        if sg_key in sgheaders:
+            for header in sgheaders[sg_key]:
+                try:
+                    if header.get('EXTVER', -1) == int(ccd):
+                        return header
+                except:
+                    pass
+
     ast_uri = dbimages_uri(expnum, ccd, version=version, ext='.fits')
     if ast_uri not in astheaders:
-        hdulist = get_image(expnum, ccd=ccd, version=version, prefix=prefix,
-                            cutout="[1:1,1:1]", return_file=False)
+        try:
+            url = 'http://{}/data/auth/vospace/{}'.format(
+                vospace.VOSPACE_SERVER,
+                ast_uri[4:])
+            resp = requests.get(url, params={'view': 'cutout', 'cutout': '[1:1,1:1]'},
+                                auth=vospace.authentication)
+            hdulist = fits.open(cStringIO.StringIO(resp.content))
+        except Exception as ex:
+            logging.info("Failed: {}".format(ex))
+            hdulist = get_image(expnum, ccd=ccd, version=version, prefix=prefix,
+                                cutout="[1:1,1:1]", return_file=False)
         assert isinstance(hdulist, fits.HDUList)
         astheaders[ast_uri] = hdulist[0].header
     return astheaders[ast_uri]
