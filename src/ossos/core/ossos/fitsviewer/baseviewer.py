@@ -1,5 +1,6 @@
 import logging
 
+import math
 from astropy import units
 from astropy.coordinates import SkyCoord
 
@@ -67,43 +68,50 @@ class WxMPLFitsViewer(object):
         """
         if not self.mark_prediction:
             return
+
         try:
             colour = cutout.reading.from_input_file and 'b' or 'g'
             colour = cutout.reading.null_observation and 'c' or colour
             dash = cutout.reading.null_observation and 1 or 0
             sky_coord = cutout.reading.sky_coord
 
+
             # RA/DEC value of observation / prediction goes to X/Y  using PV keywords
-            x, y, extno = cutout.world2pix(sky_coord.ra.to(units.degree).value,
-                                           sky_coord.dec.to(units.degree).value, usepv=True)
+            predict_ra = sky_coord.ra.to(units.degree)
+            predict_dec = sky_coord.dec.to(units.degree)
+            x, y, extno = cutout.world2pix(predict_ra, predict_dec, usepv=True)
 
             # The X/Y pixel values are then converted to RA/DEC without PV for use with DS9.
-            ra, dec = cutout.pix2world(x, y, usepv=False)
+            ra, dec = cutout.pix2world(x, y, extno, usepv=False)
             uncertainty_ellipse = cutout.reading.uncertainty_ellipse
 
             self.current_displayable.place_ellipse((ra, dec), uncertainty_ellipse, colour=colour, dash=dash)
 
             # Also mark on the image where source is localted, not just the ellipse.
             try:
-                (xc, yc)  = (cutout.reading.mpc_observation.comment.x, cutout.reading.mpc_observation.comment.y)
-                (xp, yp) = cutout.get_pixel_coordinates((xc, yc))
-                # The X/Y pixel values are then converted to RA/DEC without PV for use with DS9.
-                # This is the wrong place to do this.
-                ra, dec = cutout.pix2world(xp, yp, usepv=False)
-                # Check if the comment x/y are flipped coordinates via comparison with WCS
-                if sky_coord.separation(SkyCoord(ra, dec, unit=('degree','degree'))) > 10 * units.arcsec:
-                    (x, y)  = cutout.get_pixel_coordinates(cutout.flip_flip((xc,yc)))
-                    ra, dec = cutout.pix2world(x, y, usepv=False)
-                if sky_coord.separation(SkyCoord(ra, dec, unit=('degree','degree'))) > 10 * units.arcsec:
-                    raise ValueError("Computing RA/DEC from comment.x/comment.y failed: {}".format(
-                        cutout.reading.mpc_observation.to_string()))
+                measured_ra = cutout.reading.mpc_observation.coordinate.ra.to(units.degree)
+                measured_dec = cutout.reading.mpc_observation.coordinate.dec.to(units.degree)
+                try:
+                    print "{:5.2f} {:5.2f} || {:5.2f} {:5.2f} # {}".format((predict_ra - measured_ra).to('arcsec'),
+                                                        (predict_dec - measured_dec).to('arcsec'),
+                                                        cutout.reading.uncertainty_ellipse.a,
+                                                        cutout.reading.uncertainty_ellipse.b,
+                                                        cutout.reading.mpc_observation.to_string())
+                except Exception as ex:
+                    print "Failed trying to write out the prevoiusly recorded measurement: {}".format(ex)
+                    pass
+                # x, y, extno = cutout.world2pix(measured_ra, measured_dec, usepv=True)
+                # ra, dec = cutout.pix2world(x, y, extno, usepv=False)
 
             except Exception as ex:
+                # print "We had an error :{}".format(ex)
                 logging.debug(str(ex))
                 logging.debug("Failed to get x/y from previous observation, using prediction.")
-                ra, dec = cutout.pix2world(cutout.pixel_x, cutout.pixel_y, usepv=False)
+                hdulist_index = cutout.get_hdulist_idx(cutout.reading.get_ccd_num())
+                measured_ra, measured_dec = cutout.pix2world(cutout.pixel_x, cutout.pixel_y, hdulist_index, usepv=True)
+                colour = 'm'
 
-            self.current_displayable.place_marker(ra, dec, radius=8, colour=colour)
+            self.current_displayable.place_marker(measured_ra, measured_dec, radius=8, colour=colour)
         except Exception as ex:
             print "EXCEPTION: {}".format(ex)
             logger.debug(type(ex))
