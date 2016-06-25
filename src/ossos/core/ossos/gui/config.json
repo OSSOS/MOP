@@ -61,6 +61,7 @@
     "AUTOPLAY_INTERVAL": 0.50
   },
   "MPC": {
+    "DATE_PRECISION": 5,
     "DEFAULT_OBSERVATORY_CODE": "568",
     "NOTE1_HAND_ADJUSTED": "H  hand measurement of CCD image",
     "NOTE1OPTIONS": [
