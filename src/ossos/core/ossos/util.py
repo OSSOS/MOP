@@ -202,6 +202,9 @@ class TimeMPC(TimeString):
     t = Time('2000 01 01.00001', format='mpc', scale='utc')
 
     str(t) == '2000 01 01.000001'
+
+
+    New Docs.
     """
 
     name = 'mpc'
@@ -235,12 +238,18 @@ class TimeMPC(TimeString):
             fracday = float(fracday)
 
         for _, strptime_fmt_or_regex, _ in subfmts:
-
             vals = []
+            #print strptime_fmt_or_regex
             if isinstance(strptime_fmt_or_regex, six.string_types):
                 try:
+                    #print timstr
+                    #print strptime_fmt_or_regex
                     tm = time.strptime(timestr, strptime_fmt_or_regex)
-                except ValueError:
+                    tm.tm_hour += int(24 * fracday)
+                    tm.tm_min += int(60 * (24 * fracday - tm.tm_hour))
+                    tm.tm_sec += 60 * (60 * (24 * fracday - tm.tm_hour) - tm.tm_min)
+                except ValueError as ex:
+                    print ex
                     continue
                 else:
                     vals = [getattr(tm, 'tm_' + component)
@@ -254,12 +263,12 @@ class TimeMPC(TimeString):
                 vals = [int(tm.get(component, default)) for component, default
                         in six.moves.zip(components, defaults)]
 
-            hrprt = int(24 * fracday)
-            vals.append(hrprt)
-            mnprt = int(60 * (24 * fracday - hrprt))
-            vals.append(mnprt)
-            scprt = 60 * (60 * (24 * fracday - hrprt) - mnprt)
-            vals.append(scprt)
+                hrprt = int(24 * fracday)
+                vals.append(hrprt)
+                mnprt = int(60 * (24 * fracday - hrprt))
+                vals.append(mnprt)
+                scprt = 60 * (60 * (24 * fracday - hrprt) - mnprt)
+                vals.append(scprt)
             return vals
         else:
             raise ValueError('Time {0} does not match {1} format'
