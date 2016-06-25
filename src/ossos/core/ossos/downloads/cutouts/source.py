@@ -1,16 +1,20 @@
+"""
+The cutouts.source module contains SourceCutout class that provides access to the section of an image containing
+the source.  The SourceCutout provides RA/DEC -> X/Y and X/Y -> RA/DEC mapping as well as cutout X/Y -> full image X/Y
+"""
+
 import traceback
 import tempfile
-
 from astropy import units
-
 from astropy.coordinates import SkyCoord
-
 from astropy.io import fits
+from astropy.units import Quantity
 
 from ...astrom import SourceReading, Observation
 from ...gui import logger
 from ... import storage
 from ossos.gui import config
+from downloader import Downloader, ApcorData
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -20,71 +24,99 @@ class SourceCutout(object):
     A cutout around a source.
     """
 
-    def __init__(self, reading, hdulist, apcor=None, zmag=None, radius=None):
+    def __init__(self, reading, hdulist, radius=None):
         """
         :param reading: A source reading giving the measurement of the object associated with this cutout.
         :param hdulist: the HDUList containing the cutout.
-        :param apcor: The aperture correction for this cutout.
-        :param zmag: The zeropoint of the flux calibration for this cutout.
         :return:
         """
         logger.debug("building a SourceCutout.")
         assert isinstance(reading, SourceReading)
         assert isinstance(hdulist, fits.HDUList)
-        # assert isinstance(apcor, ApcorData)
 
         self.radius = radius
         self.reading = reading
         self.hdulist = hdulist
-        self.apcor = apcor
-        self.zmag = zmag
-        self.pixel_y = self.pixel_x = self._extno = None
+        self._adjusted = False
+        self._apcor = None
+        self._zmag = None
 
         if self.reading.x is None or self.reading.y is None or (self.reading.x == -9999 and self.reading.y == -9999):
-            (x, y) = self.hdulist[self.extno].wcs.sky2xy(self.reading.ra, self.reading.dec)
-            self.reading.pix_coord = hdulist[self.extno].converter.get_inverse_converter().convert((x, y))
-            self.reading.obs.ccdnum = self.extno - 1
+            # indicates that reading assocated with this SourceCutout doesn't have x/y/extension information.
+            # Here we derive that information from the RA/DEC and the cutout parameters.
+            (x, y, extno) = self.world2pix(self.reading.ra, self.reading.dec)
+            self.reading.pix_coord = self.get_observation_coordinates(x, y, extno)
+            self.reading.obs.ccdnum = self.get_ccdnum(extno)
 
-        self.original_observed_ext = self.extno
-        self.original_observed_x = self.reading.x
-        self.original_observed_y = self.reading.y
-
-        self.observed_x = self.original_observed_x
-        self.observed_y = self.original_observed_y
-
-        if self.pixel_x is None or self.pixel_y is None:
-            self.pixel_x, self.pixel_y = self.get_pixel_coordinates(self.flip_flip(self.observed_source_point))
-
-        self._ra = self.reading.ra * units.degree
-        self._dec = self.reading.dec * units.degree
-        self._ext = self.original_observed_ext
-
-        self._stale = False
-        self._adjusted = False
         self._comparison_image = None
         self._tempfile = None
         self._bad_comparison_images = [self.hdulist[-1].header.get('EXPNUM', None)]
-        logger.debug("type X/Y {}/{}".format(type(self.pixel_x),
-                                             type(self.pixel_y)))
+
+    @property
+    def pixel_coord(self):
+        """
+        Return the coordinates of the source in the cutout reference frame.
+        @return:
+        """
+        return self.get_pixel_coordinates(self.reading.pix_coord, self.reading.get_ccd_num())
+
+    @property
+    def pixel_x(self):
+        """
+        The X coordinate of the reading in the cutout reference frame.
+        @return: int
+        """
+        return self.pixel_coord[0]
+
+    @property
+    def pixel_y(self):
+        """
+        The Y coordiante of the reading in the cutout reference frame.
+        @return:
+        """
+        return self.pixel_coord[1]
 
     @property
     def extno(self):
-        if self._extno is None:
-            self._extno = SourceCutout.resolve_extno(self.hdulist, self.reading.get_ccd_num())
-        return self._extno
+        """
+        Which extension of the cutout is the current reading located in.
+        A cutout can have multiple extensions.  The reading gives an x/y which refers to a
+        specific extension.   If extno is not set then we can resolve the correct one.
 
-    @staticmethod
-    def resolve_extno(hdulist, ccdnum):
-        for (extno, hdu) in enumerate(hdulist):
-            if ccdnum == int(hdu.header.get('EXTVER', -1)):
+        @return: int
+        """
+
+        return self.get_hdulist_idx(self.reading.get_ccd_num())
+
+    def get_ccdnum(self, hdulist_index):
+        """
+        Get the CCDNUM for a given hdulist idx.
+
+        @param hdulist_index:  the index of the HDUList entry that the CCDNUM is needed for.
+        @return: ccdnum
+        """
+        return self.hdulist[hdulist_index].header.get('EXTVER')
+
+    def get_hdulist_idx(self, ccdnum):
+        """
+        The SourceCutout is a list of HDUs, this method returns the index of the HDU that corresponds to the given
+        ccd number.  CCDs are numbers from 0, but the first CCD (CCDNUM=0) is often in extension 1 of an MEF.
+        @param ccdnum: the number of the CCD in the MEF that is being referenced.
+        @return: the index of in self.hdulist that corresponds to the given CCD number.
+        """
+        for (extno, hdu) in enumerate(self.hdulist):
+            if ccdnum == int(hdu.header.get('EXTVER', -1)) or str(ccdnum) in hdu.header.get('AMPNAME', ''):
                 return extno
-        return len(hdulist) - 1
+        raise ValueError("Failed to find requested CCD Number {} in cutout {}".format(ccdnum,
+                                                                                      self))
 
     def flip_flip(self, point):
         """
         Sometimes we 'flipped' the X/Y coordinates of the image during processing.  This function takes an
         (x,y) location from the processing pipeline and returns the x/y location relative to the original
         reference frame.   (Correctly checks if the coordinate is flipped to begin with.)
+
+        This is only for use on the original X/Y coordinates as provided by an input reading.
 
         @param point: an x/y location on the image.
         @type point: [x, y]
@@ -116,50 +148,51 @@ class SourceCutout(object):
 
     @property
     def observed_source_point(self):
-        return self.observed_x, self.observed_y
+        return self.reading.pix_coord
 
     @property
     def pixel_source_point(self):
-        return self.pixel_x, self.pixel_y
+        return self.pixel_coord
 
-    def update_pixel_location(self, new_pixel_location, extno=1):
-        self.pixel_x, self.pixel_y = new_pixel_location
-        self.observed_x, self.observed_y = self.get_observed_coordinates(
-            new_pixel_location, extno=extno)
-        self._ext = extno
-        self._stale = True
-        self._adjusted = True
-
-    def reset_source_location(self):
-        self.observed_x = self.original_observed_x
-        self.observed_y = self.original_observed_y
-        self.pixel_x, self.pixel_y = self.get_pixel_coordinates(
-            self.observed_source_point)
-
-        self._stale = True
-        self._adjusted = False
+    def update_pixel_location(self, new_pixel_location, hdu_index):
+        """
+        Update the x/y location of the associated reading by using new_pixel_location and transforming from cutout
+        reference frame to observation refrence frame.
+        @param new_pixel_location: (x, y) location of the source in cutout pixel reference frame
+        @param hdu_index: index of the associate hdu in the hdulist for this cutout
+        """
+        self.reading.pix_coord = self.get_observation_coordinates(new_pixel_location[0],
+                                                                  new_pixel_location[1],
+                                                                  hdu_index)
+        new_ccd = self.get_ccdnum(hdu_index)
+        if new_ccd != self.reading.get_ccd_num():
+            self._apcor = None
+            self._zmag = None
+            self.reading.obs.ccdnum = self.get_ccdnum(hdu_index)
+        self.reading.sky_coord = self.pix2world(new_pixel_location[0],
+                                                new_pixel_location[1],
+                                                hdu_index)
 
     @property
     def ra(self):
-        self._lazy_refresh()
-        return self._ra
+        """
+        Return the RA source.
+        @return:
+        """
+        return self.reading.ra
 
     @property
     def dec(self):
-        self._lazy_refresh()
-        return self._dec
+        return self.reading.dec
 
     def is_adjusted(self):
         return self._adjusted
 
-    def get_pixel_coordinates(self, point, extno=None):
+    def get_pixel_coordinates(self, point, ccdnum):
         """
         Retrieves the pixel location of a point within the current HDUList given the
         location in the original FITS image.  This takes into account that
         the image may be a cutout of a larger original.
-
-        The approximate RA/DEC are required in-case there is more than one HDU for this source,
-        that can happen when a source is near the pixel boundary.
 
         Args:
           point: tuple(float, float)
@@ -167,33 +200,40 @@ class SourceCutout(object):
 
         Returns:
           (x, y) pixel in this image.
+          @param extno: the extno from the original Mosaic that the x/y coordinates are from.
         """
-        if not extno:
-            extno = self.original_observed_ext
-        return self.hdulist[extno].converter.convert(point)
+        hdulist_index = self.get_hdulist_idx(ccdnum)
+        if isinstance(point[0], Quantity) and isinstance(point[1], Quantity):
+            pix_point = point[0].value, point[1].value
+        else:
+            pix_point = point
+        if self.reading.inverted:
+            pix_point = self.reading.obs.naxis1 - pix_point[0] +1 , self.reading.obs.naxis2 - pix_point[1] + 1
 
-    def get_observed_coordinates(self, point, extno=None):
+        (x, y) = self.hdulist[hdulist_index].converter.convert(pix_point)
+        return x, y, hdulist_index
+
+    def get_observation_coordinates(self, x, y, hdulist_index):
         """
         Retrieves the location of a point using the coordinate system of
         the original observation, i.e. the original image before any
         cutouts were done.
 
-        Args:
-          point: tuple(float, float)
-            The pixel coordinates.
-
         Returns:
           (x, y) in the original image coordinate system.
+          @param x: x-pixel location in the cutout frame of reference
+          @param y: y-pixel location in the cutout frame of reference
+          @param idx: index of hdu in hdulist that the given x/y corresponds to.
         """
-        return self.hdulist[extno].converter.get_inverse_converter().convert(point)
+        return self.hdulist[hdulist_index].converter.get_inverse_converter().convert((x, y))
 
-    def pix2world(self, x, y, usepv=True):
-        ra, dec = self.hdulist[self.extno].wcs.xy2sky([x], [y], usepv=usepv)
+    def pix2world(self, x, y, hdulist_index, usepv=True):
+        ra, dec = self.hdulist[hdulist_index].wcs.xy2sky([x], [y], usepv=usepv)
         return ra[0], dec[0]
 
     def world2pix(self, ra, dec, usepv=True):
         """
-        Convert a given RA/DEC position to the Extension X/Y location.
+        Convert a given RA/DEC position to the  X/Y/HDULIST_INDEX in the cutout frame.
 
          Here we loop over the hdulist to find the extension is RA/DEC are from and then return the appropriate X/Y
         :param ra: The Right Ascension of the point
@@ -202,18 +242,39 @@ class SourceCutout(object):
         :type dec: Quantity
         :return: X, Y, Extension position of source in cutout reference frame
         :rtype: (float, float, int)
+        @param usepv: Should the non-linear part of the WCS be using to compute the transformation? (default: True)
         """
-        logger.debug("Converting (ra,dec) to (x,y) given {:8.3f} {:8.3f} for image {}".format(
-            ra, dec, self.reading.get_exposure_number()))
         for idx in range(1, len(self.hdulist)):
-            logger.debug("Trying convert using extension: {0}".format(idx))
             hdu = self.hdulist[idx]
             x, y = hdu.wcs.sky2xy(ra, dec, usepv=usepv)
-            logger.debug("Tried converting RA/DEC {0},{1} to X/Y and got {2},{3}".format(ra, dec, x, y))
             if 0 < x < hdu.header['NAXIS1'] and 0 < y < hdu.header['NAXIS2']:
-                logger.debug("Inside the frame.")
+                # print "Inside the frame."
                 return x, y, idx
         return None, None, None
+
+    @property
+    def zmag(self,):
+        """
+        Return the photometric zeropoint of the CCD associated with the reading.
+        @return: float
+        """
+        if self._zmag is None:
+            hdulist_index = self.get_hdulist_idx(self.reading.get_ccd_num())
+            self._zmag = self.hdulist[hdulist_index].header.get('PHOTZP', 0.0)
+        return self._zmag
+
+    @property
+    def apcor(self):
+        """
+        return the aperture correction of for the CCD assocated with the reading.
+        @return: Apcor
+        """
+        if self._apcor is None:
+            try:
+                self._apcor = Downloader().download_apcor(self.reading.get_apcor_uri())
+            except:
+                self._apcor = ApcorData.from_string("5 15 99.99 99.99")
+        return self._apcor
 
     def get_observed_magnitude(self):
         # NOTE: this import is only here so that we don't load up IRAF
@@ -223,15 +284,14 @@ class SourceCutout(object):
 
         :return: Table
         """
-        from ossos import daophot
 
         max_count = float(self.astrom_header.get("MAXCOUNT", 30000))
-        tmp_file = self._hdulist_on_disk()
-        if not self.zmag:
-            self.zmag = self.hdulist[self._ext].header.get('PHOTZP', 0.0)
+        (x, y, hdulist_index) = self.pixel_coord
+        tmp_file = self._hdu_on_disk(hdulist_index)
         try:
+            from ossos import daophot
             phot = daophot.phot_mag(tmp_file,
-                                    self.pixel_x, self.pixel_y,
+                                    x, y,
                                     aperture=self.apcor.aperture,
                                     sky=self.apcor.sky,
                                     swidth=self.apcor.swidth,
@@ -244,7 +304,7 @@ class SourceCutout(object):
         finally:
             self.close()
 
-    def _hdulist_on_disk(self):
+    def _hdu_on_disk(self, hdulist_index):
         """
         IRAF routines such as daophot need input on disk.
 
@@ -255,7 +315,7 @@ class SourceCutout(object):
         if self._tempfile is None:
             self._tempfile = tempfile.NamedTemporaryFile(
                 mode="r+b", suffix=".fits")
-            self.hdulist[self._ext].writeto(self._tempfile.name)
+            self.hdulist[hdulist_index].writeto(self._tempfile.name)
         return self._tempfile.name
 
     def close(self):
@@ -265,17 +325,6 @@ class SourceCutout(object):
         if self._tempfile is not None:
             self._tempfile.close()
             self._tempfile = None
-
-    def _lazy_refresh(self):
-        if self._stale:
-            self._update_ra_dec()
-            self._stale = False
-
-    def _update_ra_dec(self):
-        hdu = self.hdulist[self.original_observed_ext]
-        ra, dec = hdu.wcs.xy2sky([self.pixel_x], [self.pixel_y])
-        self._ra = ra[0] 
-        self._dec = dec[0] 
 
     @property
     def comparison_image(self):
