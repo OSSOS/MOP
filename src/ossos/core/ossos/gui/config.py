@@ -1,6 +1,6 @@
-__author__ = "David Rusk <drusk@uvic.ca>"
 import json
 import os
+__author__ = "David Rusk <drusk@uvic.ca>"
 
 DEFAULT_CONFIG_FILE = "config.json"
 
