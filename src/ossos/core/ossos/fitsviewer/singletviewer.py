@@ -1,12 +1,10 @@
 from astropy import units
-from astropy.coordinates import SkyCoord
-
-__author__ = "David Rusk <drusk@uvic.ca>"
 from baseviewer import WxMPLFitsViewer
 from displayable import DisplayableImageSinglet
 from interaction import Signal
 from ..gui import logger
 from ..downloads.cutouts.source import SourceCutout
+__author__ = "David Rusk <drusk@uvic.ca>"
 
 
 class SingletViewer(WxMPLFitsViewer):
@@ -35,33 +33,17 @@ class SingletViewer(WxMPLFitsViewer):
         if not self.mark_source:
             return
 
-
-        try:
-            x = cutout.reading.mpc_observation.comment.x
-            y = cutout.reading.mpc_observation.comment.y
-            (x, y) = cutout.get_pixel_coordinates((x, y))
-            (ra, dec) = cutout.pix2world(x, y, usepv=False)
-            sky_coord = cutout.reading.sky_coord
-            sky_coord2 = SkyCoord(ra, dec, unit=('degree','degree'))
-            # Check if the comment x/y are flipped coordinates via comparison with WCS
-            if sky_coord.separation(sky_coord2) > 10 * units.arcsec:
-                ValueError("Computing RA/DEC from comment.x/comment.y failed: {}".format(
-                    cutout.reading.mpc_observation.to_string()))
-        except Exception as ex:
-            logger.warning(str(ex))
-            logger.warning("Didn't get x/y location from the MPC line.")
-            logger.warning("Using the predicted source location instead.")
-            x, y = cutout.pixel_x, cutout.pixel_y
-            ra, dec = cutout.pix2world(x, y, usepv=False)
-
-        pixel = True
-
-        try:
-            print "{:5.2f} {:5.2f} # {}".format(cutout.reading.uncertainty_ellipse.a,
-                                                cutout.reading.uncertainty_ellipse.b,
-                                                cutout.reading.mpc_observation.to_string())
-        except:
-            pass
+        if cutout.reading.mpc_observation is not None:
+            # Try using the mpc observation attached to this image.
+            ra = cutout.reading.mpc_observation.coordinate.ra.to('degree').value
+            dec = cutout.reading.mpc_observation.coordinate.dec.to('degree').value
+            x, y, hdulist_idx = cutout.world2pix(ra, dec, usepv=True)
+            (ra, dec) = cutout.pix2world(x, y, hdulist_idx, usepv=False)
+        else:
+            ra = cutout.reading.sky_coord.ra.to('degree').value
+            dec = cutout.reading.sky_coord.dec.to('degree').value
+            x, y, hdulist_idx = cutout.world2pix(ra, dec, usepv=True)
+            (ra, dec) = cutout.pix2world(x, y, hdulist_idx, usepv=False)
 
         try:
             # radii = (cutout.apcor.aperture, cutout.apcor.sky, cutout.apcor.swidth+cutout.apcor.sky)
@@ -71,16 +53,13 @@ class SingletViewer(WxMPLFitsViewer):
             logger.warning("Failed trying to get apcor radius values, using defaults for marking.")
             radii = (15, 30, 45)
 
-        if pixel:
-            radii = [radius * 0.185 * units.arcsec for radius in radii]
-            self._displayables_by_cutout[cutout].place_annulus(ra, dec, radii, colour='r')
-        else:
-            cutout.update_pixel_location((x, y), extno=cutout.original_observed_ext)
-            radii = [radius * 0.185 * units.arcsec for radius in radii]
-            self._displayables_by_cutout[cutout].place_annulus(cutout.ra, cutout.dec, radii, colour='r')
+        radii = [radius * 0.185 * units.arcsec for radius in radii]
+        self._displayables_by_cutout[cutout].place_annulus(ra, dec, radii, colour='r')
 
-    def place_marker(self, cutout, x, y, radius, colour, force=False ):
-        self._displayables_by_cutout[cutout].place_marker(x, y, radius, colour=colour, force=force)
+    def place_marker(self, cutout, ra, dec, radius, colour, force=False):
+        x, y, hdulist_index = cutout.world2pix(ra, dec, usepv=True)
+        ra, dec = cutout.pix2world(x, y, hdulist_index, usepv=False)
+        self._displayables_by_cutout[cutout].place_marker(ra, dec, radius, colour=colour, force=force)
 
     def register_xy_changed_event_handler(self, handler):
         self.xy_changed.connect(handler)
