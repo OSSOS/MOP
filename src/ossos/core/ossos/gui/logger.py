@@ -14,7 +14,7 @@ logging.getLogger('vos').setLevel(logging.ERROR)
 
 logfile = os.path.join(tempfile.gettempdir(), "ossos_validation.log")
 logging.basicConfig(filename=logfile,
-                    format="%(levelname)s: %(thread)d %(module)s.%(funcName)s %(lineno)d: %(message)s (%(asctime)s)",
+                    format="%(levelname)s: %(asctime)s %(thread)d %(module)s.%(funcName)s %(lineno)d: %(message)s",
                     datefmt="%m/%d/%Y %I:%M:%S %p",
                     level=logging.ERROR)
 
