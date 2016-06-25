@@ -95,10 +95,7 @@ class AbstractController(object):
         return True
 
     def on_reposition_source(self, new_x, new_y):
-        try:
-            self.model.update_current_source_location((new_x, new_y))
-        except ImageNotLoadedException:
-            pass
+        raise NotImplementedError()
 
     def on_image_loaded(self, event):
         displayable_item = event.data
@@ -192,11 +189,7 @@ class AbstractController(object):
         raise NotImplementedError()
 
     def on_reset_source_location(self):
-        try:
-            self.model.reset_current_source_location()
-            self.view.refresh_markers()
-        except ImageNotLoadedException:
-            pass
+        raise NotImplementedError()
 
     def on_toggle_align(self):
         self.align = not self.align
