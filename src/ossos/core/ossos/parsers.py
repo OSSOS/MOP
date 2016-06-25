@@ -1,24 +1,20 @@
-from __future__ import absolute_import
 # coding=utf-8
-__author__ = 'Michele Bannister   git:@mtbannister'
-
+from __future__ import absolute_import
 import os
 import re
 import sys
 import cPickle
 from collections import OrderedDict
 import math
-
 import ephem
 from astropy.table import Table
 from uncertainties import ufloat
 import numpy
 import pandas
-
 from ossos import (mpc, orbfit, parameters, storage)
-#from ossos.plotting.scripts.plot_lightcurve import stddev_phot
 from ossos.planning.plotting.utils import square_fit_discovery_mag
 from ossos.planning.plotting.deluxe_table_formatter import deluxe_table_formatter
+__author__ = 'Michele Bannister   git:@mtbannister'
 
 
 # from parameters import tno
@@ -32,8 +28,6 @@ def ossos_release_parser(table=False, data_release=parameters.RELEASE_VERSION):
              'argperi', 'argperi_E', 'time_peri', 'time_peri_E', 'ra_dis', 'dec_dis', 'jd_dis', 'rate']#, 'eff', 'm_lim']
 
     if table:
-#        retval = storage.get_detections(release=data_release)
-        # have to specify the names because the header line contains duplicate IDs, which wrecks auto-column creation
         retval = Table.read(parameters.RELEASE_DETECTIONS[data_release], format='ascii', guess=False,
                            delimiter=' ', data_start=0, comment='#', names=names, header_start=None)
     else:
@@ -77,16 +71,17 @@ class TNO(object):
 
 
 def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
-                      suffix='mpc',
-                      no_nt_and_u=True,
+                      suffix='ast',
+                      no_nt_and_u=False,
                       single_object=None,
-                      all_objects=False,
-                      data_release=parameters.RELEASE_VERSION,
+                      all_objects=True,
+                      data_release=None,
                       ):
     """
     Returns a list of objects holding orbfit.Orbfit objects with the observations in the Orbfit.observations field.
     Default is to return only the objects corresponding to the current Data Release.
     """
+    print "CALLED WITH {}".format(data_release)
     retval = []
     # working_context = context.get_context(directory)
     # files = working_context.get_listing(suffix)
@@ -95,7 +90,7 @@ def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
     if single_object is not None:
         files = filter(lambda name: name.startswith(single_object), files)
         print 'loading only {}'.format(files)
-    elif all_objects:
+    elif all_objects and data_release is not None:
         print 'loading data release {}'.format(data_release)
         # only return the objects corresponding to a particular Data Release
         data_release = ossos_release_parser(table=True, data_release=data_release)
@@ -311,6 +306,14 @@ def extract_highest_designation(initial_id):
             if initial_id in designations:
                 # Highest internal OSSOS one will be leftmost. FIXME: some logic for getting MPC designations, to right
                 return designations[0].split('\t')[0]
+
+def stddev_phot(observations):
+    """
+    Compute the flux variation over the set of observations provided.
+    @param observations:
+    @return: float
+    """
+    return -9.99
 
 
 def create_table(tnos, outfile, initial_id='o3'):
