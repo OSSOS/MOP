@@ -225,20 +225,15 @@ class AcceptSourceDialog(SourceValidationDialog):
         self.dec = dec
         self.ra_str = "{:>14} {:>5.2f}".format(ra, float(pixel_x))
         self.dec_str = "{:>14} {:>5.2f}".format(dec, float(pixel_y))
-
         if self.phot_failure:
             message = "Photometry failed.  Will be left blank."
             self.obs_mag = message
             self.band = message
             self.obs_mag_err = message
         else:
-            try:
-                self.obs_mag = "{:5.2f}".format(obs_mag)
-                self.obs_mag_err = "{:5.2f}".format(obs_mag_err)
-                self.band = "{}".format(band)
-            except:
-                print obs_mag, obs_mag_err, band
-                self.obs_mag = self.obs_mag_err = self.band = "failure"
+            self.obs_mag = "{:5.2f}".format(obs_mag)
+            self.obs_mag_err = "{:5.2f}".format(obs_mag_err)
+            self.band = "{}".format(band)
 
         self.default_observatory_code = str(default_observatory_code)
 
