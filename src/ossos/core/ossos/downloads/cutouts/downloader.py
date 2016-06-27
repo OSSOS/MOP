@@ -88,6 +88,7 @@ class ImageCutoutDownloader(Downloader):
         try:
             apcor = source.apcor
             zmag = source.zmag
+            source.reading.get_observation_header()
         except Exception as ex:
             if needs_apcor:
                 import sys, traceback
