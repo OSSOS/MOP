@@ -1,3 +1,5 @@
+import warnings
+
 from astropy import units
 from astropy.units import Quantity
 from ..downloads.cutouts.source import SourceCutout
@@ -95,7 +97,7 @@ class AbstractController(object):
         return True
 
     def on_reposition_source(self, new_x, new_y):
-        raise NotImplementedError()
+        warnings.warn("Source Repositioning no-longer supported", RuntimeWarning)
 
     def on_image_loaded(self, event):
         displayable_item = event.data
@@ -189,7 +191,7 @@ class AbstractController(object):
         raise NotImplementedError()
 
     def on_reset_source_location(self):
-        raise NotImplementedError()
+        warnings.warn("Source Repositioning no longer supported", RuntimeWarning)
 
     def on_toggle_align(self):
         self.align = not self.align
