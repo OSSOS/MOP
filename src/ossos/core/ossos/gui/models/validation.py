@@ -199,12 +199,12 @@ class ValidationModel(object):
 
         try:
             header = self.get_current_astrom_header()
+            header2 = self.get_current_astrom_header()
             keys = ['MJD_OBS_CENTER',
                     'MJD-OBSC',
                     'EXPNUM',
-                    'CHIPNUM',
-                    'FWHM']
-            return [(key, header.get(key, None)) for key in keys]
+                    'CHIPNUM', 'FWHM', 'FILTER']
+            return [(key, header.get(key, header2.get(key, None))) for key in keys]
         except Exception as ex:
             print ex
             print "Failed to load mopheader, reverting to cutout header."
