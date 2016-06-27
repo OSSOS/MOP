@@ -250,7 +250,7 @@ class SourceCutout(object):
             if 0 < x < hdu.header['NAXIS1'] and 0 < y < hdu.header['NAXIS2']:
                 # print "Inside the frame."
                 return x, y, idx
-        return None, None, None
+        return x, y, idx
 
     @property
     def zmag(self,):
