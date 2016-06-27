@@ -4,6 +4,8 @@ from displayable import DisplayableImageSinglet
 from interaction import Signal
 from ..gui import logger
 from ..downloads.cutouts.source import SourceCutout
+import sys
+
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 
@@ -29,26 +31,29 @@ class SingletViewer(WxMPLFitsViewer):
         :param pixel: Mark based on pixel locations or based on RA/DEC ?
         :type pixel: bool
         """
-
+        ra = dec = None
         if not self.mark_source:
             return
-
-        if cutout.reading.mpc_observation is not None:
-            # Try using the mpc observation attached to this image.
-            ra = cutout.reading.mpc_observation.coordinate.ra.to('degree').value
-            dec = cutout.reading.mpc_observation.coordinate.dec.to('degree').value
-            x, y, hdulist_idx = cutout.world2pix(ra, dec, usepv=True)
-            (ra, dec) = cutout.pix2world(x, y, hdulist_idx, usepv=False)
-        else:
-            ra = cutout.reading.sky_coord.ra.to('degree').value
-            dec = cutout.reading.sky_coord.dec.to('degree').value
-            x, y, hdulist_idx = cutout.world2pix(ra, dec, usepv=True)
-            (ra, dec) = cutout.pix2world(x, y, hdulist_idx, usepv=False)
+        try:
+            if cutout.reading.mpc_observation is not None:
+                # Try using the mpc observation attached to this image.
+                ra = cutout.reading.mpc_observation.coordinate.ra.to('degree').value
+                dec = cutout.reading.mpc_observation.coordinate.dec.to('degree').value
+                x, y, hdulist_idx = cutout.world2pix(ra, dec, usepv=True)
+                (ra, dec) = cutout.pix2world(x, y, hdulist_idx, usepv=False)
+            else:
+                ra = cutout.reading.sky_coord.ra.to('degree').value
+                dec = cutout.reading.sky_coord.dec.to('degree').value
+                x, y, hdulist_idx = cutout.world2pix(ra, dec, usepv=True)
+                (ra, dec) = cutout.pix2world(x, y, hdulist_idx, usepv=False)
+        except Exception as ex:
+            sys.stderr.write("Exception while computing location to mark aperture: {}\n".format(ex))
 
         try:
             # radii = (cutout.apcor.aperture, cutout.apcor.sky, cutout.apcor.swidth+cutout.apcor.sky)
             radii = (cutout.apcor.sky, cutout.apcor.swidth+cutout.apcor.sky)
         except Exception as ex:
+            sys.stderr.write("Exception while accessing the aperture correction: {}\n".format(ex))
             logger.info("Exception: {0}".format(ex))
             logger.warning("Failed trying to get apcor radius values, using defaults for marking.")
             radii = (15, 30, 45)
