@@ -81,6 +81,21 @@ ZEROPOINT_USED_EXT = "zeropoint.used"
 PSF_EXT = "psf.fits"
 
 
+def get_apcor(expnum, ccd, version='p', prefix=None):
+    """
+    retrieve the aperture correction for this exposure
+    @param expnum:
+    @param ccd:
+    @param version:
+    @param prefix:
+    @return:
+    """
+    uri = get_uri(expnum, ccd, ext=APCOR_EXT, version=version, prefix=prefix)
+    url = "http://{}/vospace/auth/nodes/{}".format(vospace.VOSPACE_SERVER,
+                                                    uri[4:])
+    resp = requests.get(url, params={'view': 'data'}, auth=vospace.authentication)
+    return [float (x) for x in resp.content.split()]
+
 def get_detections(release='current'):
     """
 
@@ -976,6 +991,21 @@ def get_trans(expnum, ccd, prefix=None, version='p'):
              'cd22': float(vs[5])}
     return trans
 
+def get_fwhm_tag(expnum, ccd, prefix=None, version='p'):
+    """
+    Get the FWHM from the VOSpace annotation.
+
+    @param expnum:
+    @param ccd:
+    @param prefix:
+    @param version:
+    @return:
+    """
+    uri = get_uri(expnum, ccd, version, ext='fwhm', prefix=prefix)
+    if uri not in fwhm:
+        key = "fwhm_{:1s}{:02d}".format(version, int(ccd))
+        fwhm[uri] = get_tag(expnum, key)
+    return fwhm[uri]
 
 def get_fwhm(expnum, ccd, prefix=None, version='p'):
     """Get the FWHM computed for the given expnum/ccd combo.
