@@ -270,8 +270,11 @@ class ProcessRealsController(AbstractController):
             cen_y = phot['YCENTER'][0]
             obs_mag = phot['MAG'][0]
             obs_mag_err = phot['MERR'][0]
-            phot_failure = phot['PIER'][0] != 0
-            sky_failure = phot['SIER'][0] != 0
+            if phot.mask[0]['MAG'] or phot.mask[0]['MERR']:
+                obs_mag = None
+                obs_mag_err = None
+            phot_failure = phot['PIER'][0] != 0 or phot.mask[0]['MAG']
+            sky_failure = phot['SIER'][0] != 0 or phot.mask[0]['MAG']
             cen_failure = phot['CIER'][0] != 0
             if key != 'h':
                 source_cutout.update_pixel_location((cen_x, cen_y), hdulist_index)
@@ -279,9 +282,9 @@ class ProcessRealsController(AbstractController):
             print "DAOPhot failure: {}".format(er)
             logger.critical("PHOT ERROR: {}".format(er))
             phot_failure = sky_failure = cen_failure = True
-            obs_mag = ""
-            obs_mag_err = -1
-            band = ""
+            obs_mag = None
+            obs_mag_err = None
+            band = None
             default_comment = str(er)
 
         obs_mag = phot_failure and None or obs_mag
