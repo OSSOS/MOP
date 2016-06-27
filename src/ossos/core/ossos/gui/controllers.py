@@ -244,13 +244,13 @@ class ProcessRealsController(AbstractController):
             values = result.split()
             ra = Quantity(float(values[1]), unit=units.degree)
             dec = Quantity(float(values[2]), unit=units.degree)
-            self.place_marker(ra, dec, radius=int(source_cutout.apcor.ap_in*0.185+1)*units.arcsec,
-                              colour='green', force=True)
             key = values[0]
-
             (x, y, hdulist_index) = source_cutout.world2pix(ra, dec, usepv=False)
             source_cutout.update_pixel_location((float(x), float(y)), hdulist_index)
             source_cutout.reading.inverted = False
+            (ra, dec) = source_cutout.pix2world(x, y, hdulist_index, usepv=True)
+            self.place_marker(ra, dec, radius=int(source_cutout.apcor.ap_in*0.185+1)*units.arcsec,
+                              colour='green', force=True)
         else:
             key = isinstance(auto, bool) and " " or auto
             ra = source_cutout.reading.ra * units.degree
