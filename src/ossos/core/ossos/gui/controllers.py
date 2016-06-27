@@ -75,8 +75,8 @@ class AbstractController(object):
             logger.debug("No work? {}".format(ex))
             return False
         except Exception as ex:
-            logger.error("Exception in get_current_cutout: {}".format(ex))
-            return False
+            logger.error("Exception in display_current_cutout: {}".format(ex))
+            pass
 
         logger.debug("Displaying metadata.")
         try:
@@ -96,7 +96,7 @@ class AbstractController(object):
 
         return True
 
-    def on_reposition_source(self, new_x, new_y):
+    def on_reposition_source(self):
         warnings.warn("Source Repositioning no-longer supported", RuntimeWarning)
 
     def on_image_loaded(self, event):
