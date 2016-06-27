@@ -130,9 +130,6 @@ class SourceValidationDialog(wx.Dialog):
         self.comment_label = wx.StaticText(self, label=SourceValidationDialog.COMMENT)
         self.comment_text = wx.TextCtrl(self, name=SourceValidationDialog.COMMENT)
 
-        #self.comment_text.SetValue(self.default_comment)
-        #self.comment_text.Bind(wx.EVT_TEXT_ENTER, self._on_enter_comment)
-
         self.submit_button = wx.Button(
             self, label=self.SUBMIT_BTN, name=SourceValidationDialog.SUBMIT_BTN)
         self.cancel_button = wx.Button(
@@ -235,9 +232,13 @@ class AcceptSourceDialog(SourceValidationDialog):
             self.band = message
             self.obs_mag_err = message
         else:
-            self.obs_mag = "{:5.2f}".format(obs_mag)
-            self.obs_mag_err = "{:5.2f}".format(obs_mag_err)
-            self.band = "{}".format(band)
+            try:
+                self.obs_mag = "{:5.2f}".format(obs_mag)
+                self.obs_mag_err = "{:5.2f}".format(obs_mag_err)
+                self.band = "{}".format(band)
+            except:
+                print obs_mag, obs_mag_err, band
+                self.obs_mag = self.obs_mag_err = self.band = "failure"
 
         self.default_observatory_code = str(default_observatory_code)
 
@@ -365,9 +366,9 @@ class OffsetSourceDialog(SourceValidationDialog):
 
         self.cen_coords = cen_coords
         self.pix_coords = pix_coords
-        self.default_comment =  "DAOphot centroid differs from input value.\n\n"
-        self.default_comment += "{:8s} {:6.2f} {:6.2f}\n".format("mark", self.pix_coords[0], self.pix_coords[1])
-        self.default_comment += "{:8s} {:6.2f} {:6.2f}\n".format("daophot", self.cen_coords[0], self.cen_coords[1])
+        self.default_comment = "DAOphot centroid differs from input value.\n\n"
+        self.default_comment += "{:8s} {:6.2f} {:6.2f}\n".format("mark", self.pix_coords.ra, self.pix_coords.dec)
+        self.default_comment += "{:8s} {:6.2f} {:6.2f}\n".format("daophot", self.cen_coords.ra, self.cen_coords.dec)
         self.default_comment += "\nAccepted DAOphot centroid or Mark centroid?"
 
         super(OffsetSourceDialog, self).__init__(parent, title=self.TITLE)
