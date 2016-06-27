@@ -155,12 +155,12 @@ class Displayable(object):
         import inspect
         curframe = inspect.currentframe()
         calframe = inspect.getouterframes(curframe, 2)
-        logging.debug("{} called place_annulus".format(calframe[1][3]))
+
 
         if not self.display or self._annulus_placed or not self.mark_reticule:
             return
-        r = Region((x, y), style='annulus', colour=colour, shape=annuli)
         try:
+            r = Region((x, y), style='annulus', colour=colour, shape=annuli)
             self.display.set(*r)
         except Exception as ex:
             print ex
