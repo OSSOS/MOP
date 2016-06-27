@@ -44,20 +44,13 @@ class WxMPLFitsViewer(object):
         else:
             displayable = self._create_displayable(cutout)
             self._displayables_by_cutout[cutout] = displayable
-
         self._detach_handlers(self.current_displayable)
-
         self.current_cutout = cutout
         self.current_displayable = displayable
-
         self._attach_handlers(self.current_displayable)
-
         self._do_render(self.current_displayable)
-
         self.mark_apertures(cutout, pixel=use_pixel_coords)
-
         self.draw_uncertainty_ellipse(cutout)
-
     def clear(self):
         self.ds9.set("frame delete all")
 
@@ -113,7 +106,7 @@ class WxMPLFitsViewer(object):
 
             self.current_displayable.place_marker(measured_ra, measured_dec, radius=8, colour=colour)
         except Exception as ex:
-            print "EXCEPTION: {}".format(ex)
+            print "EXCEPTION while drawing the uncertainty ellipse, skipping.: {}".format(ex)
             logger.debug(type(ex))
             logger.debug(str(ex))
 
