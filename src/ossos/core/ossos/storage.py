@@ -571,8 +571,7 @@ def decompose_content_decomposition(content_decomposition):
     :return:
     """
     # check for '-*' in the cutout string and replace is naxis:1
-
-    content_decomposition = re.findall('(\d+)__(\d+)_(\d+)_(\d+)_(\d+)', content_decomposition)
+    content_decomposition = re.findall('(\d+)__(\d*)_(\d*)_(\d*)_(\d*)', content_decomposition)
     if len(content_decomposition) == 0:
         content_decomposition = [(0, 1, -1, 1, -1)]
     return content_decomposition
@@ -599,12 +598,12 @@ def _cutout_expnum(observation, sky_coord, radius):
                           sky_coord.ra.to('degree').value,
                           sky_coord.dec.to('degree').value,
                           radius.to('degree').value)
-
     resp = requests.get(url, auth=vospace.authentication)
     hdulist = fits.open(cStringIO.StringIO(resp.content))
 
     hdulist.verify('silentfix+ignore')
-    cutouts = decompose_content_decomposition(resp.headers.get('content-disposition', '0___'))
+    disposition = resp.headers.get('content-disposition', '0___')
+    cutouts = decompose_content_decomposition(disposition)
     logger.debug("Got cutout boundaries of: {}".format(cutouts))
     logger.debug("Initial Length of HDUList: {}".format(len(hdulist)))
 
@@ -622,19 +621,30 @@ def _cutout_expnum(observation, sky_coord, radius):
     for hdu in hdulist[1:]:
         cutout = cutouts.pop(0)
         if 'ASTLEVEL' not in hdu.header:
-            print "******* NO ASTLEVEL ****************** for {0} ********".format(observation.get_image_uri)
+            print "WARNING: ******* NO ASTLEVEL KEYWORD ********** for {0} ********".format(observation.get_image_uri)
             hdu.header['ASTLEVEL'] = 0
         hdu.header['EXTNO'] = cutout[0]
-        hdu.header['DATASEC'] = reset_datasec("[{}:{},{}:{}]".format(cutout[1],
-                                                                     cutout[2],
-                                                                     cutout[3],
-                                                                     cutout[4]),
-                                              hdu.header.get('DATASEC', None),
+        naxis1 = hdu.header['NAXIS1']
+        naxis2 = hdu.header['NAXIS2']
+        default_datasec = "[{}:{},{}:{}]".format(1, naxis1, 1, naxis2)
+        datasec = hdu.header.get('DATASEC', default_datasec)
+        datasec = datasec_to_list(datasec)
+        corners = datasec
+        for idx in range(len(corners)):
+            try:
+                corners[idx] = int(cutout[idx+1])
+            except Exception as ex:
+                pass
+
+        hdu.header['DATASEC'] = reset_datasec("[{}:{},{}:{}]".format(corners[0],
+                                                                     corners[1],
+                                                                     corners[2],
+                                                                     corners[3]),
+                                              hdu.header.get('DATASEC', default_datasec),
                                               hdu.header['NAXIS1'],
                                               hdu.header['NAXIS2'])
-        hdu.header['XOFFSET'] = int(cutout[1]) - 1
-        hdu.header['YOFFSET'] = int(cutout[3]) - 1
-
+        hdu.header['XOFFSET'] = int(corners[0]) - 1
+        hdu.header['YOFFSET'] = int(corners[2]) - 1
         hdu.converter = CoordinateConverter(hdu.header['XOFFSET'], hdu.header['YOFFSET'])
         try:
                 hdu.wcs = WCS(hdu.header)
@@ -866,7 +876,6 @@ def reset_datasec(cutout, datasec, naxis1, naxis2):
 
     if cutout is None or cutout == "[*,*]":
         return datasec
-
     try:
         datasec = datasec_to_list(datasec)
     except:
