@@ -9,6 +9,11 @@ from astropy import units
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.units import Quantity
+from astropy.time import Time
+from astropy.table import Table
+import numpy
+from ... import util
+
 
 from ...astrom import SourceReading, Observation
 from ...gui import logger
@@ -40,6 +45,7 @@ class SourceCutout(object):
         self._adjusted = False
         self._apcor = None
         self._zmag = None
+        self.init_skycoord = reading.sky_coord
 
         if self.reading.x is None or self.reading.y is None or (self.reading.x == -9999 and self.reading.y == -9999):
             # indicates that reading assocated with this SourceCutout doesn't have x/y/extension information.
@@ -48,9 +54,21 @@ class SourceCutout(object):
             self.reading.pix_coord = self.get_observation_coordinates(x, y, extno)
             self.reading.obs.ccdnum = self.get_ccdnum(extno)
 
-        self._comparison_image = None
+        self._comparison_image = []
+        self._comparison_image_index = None
+        self._comparison_image_list = None
         self._tempfile = None
         self._bad_comparison_images = [self.hdulist[-1].header.get('EXPNUM', None)]
+
+    def reset_coord(self):
+        """
+        Reset the source location based on the init_skycoord values
+        @return:
+        """
+        (x, y, idx) = self.world2pix(self.init_skycoord.ra,
+                                     self.init_skycoord.dec,
+                                     usepv=True)
+        self.update_pixel_location((x, y), idx)
 
     @property
     def pixel_coord(self):
@@ -244,6 +262,7 @@ class SourceCutout(object):
         :rtype: (float, float, int)
         @param usepv: Should the non-linear part of the WCS be using to compute the transformation? (default: True)
         """
+        x, y, idx = (0, 0, 0)
         for idx in range(1, len(self.hdulist)):
             hdu = self.hdulist[idx]
             x, y = hdu.wcs.sky2xy(ra, dec, usepv=usepv)
@@ -328,48 +347,97 @@ class SourceCutout(object):
 
     @property
     def comparison_image(self):
-        if self._comparison_image is None:
+        if self.comparison_image_list[self.comparison_image_index]["REFERENCE"] is None:
             self.retrieve_comparison_image()
-        return self._comparison_image
+        row = self.comparison_image_list[self.comparison_image_list["ID"] == self.comparison_image_index]
+        return row["REFERENCE"][0]
+
+    @property
+    def comparison_image_index(self):
+        if self._comparison_image_index is None:
+            ## Display a list of possible comparison images and ask user to select one.
+            self.comparison_image_list.pprint()
+            self.comparison_image_index = int(raw_input("SELECT ROW NUMBER OF DESIRED COMPARISON IMAGE: "))
+        return self._comparison_image_index
+
+    @comparison_image_index.setter
+    def comparison_image_index(self, comparison_image_index):
+        self._comparison_image_index = comparison_image_index
+
+    @property
+    def comparison_image_list(self):
+        """
+        returns a list of possible comparison images for the current cutout.  Will query CADC to create the list when
+        first called.
+        @rtype: Table
+        """
+
+        if self._comparison_image_list is not None:
+            return self._comparison_image_list
+
+        ref_ra = self.reading.ra * units.degree
+        ref_dec = self.reading.dec * units.degree
+        radius = self.radius is not None and self.radius or config.read('CUTOUTS.SINGLETS.RADIUS') * units.arcminute
+        print "Querying CADC for list of possible comparison images at RA: {}, DEC: {}, raidus: {}".format(ref_ra,
+                                                                                                           ref_dec,
+                                                                                                           radius)
+        query_result = storage.cone_search(ref_ra, ref_dec, radius, radius)  # returns an astropy.table.table.Table
+        print "Got {} possible images".format(len(query_result))
+        print "Building table for presentation and selection, including getting fwhm which is a bit slow."
+        comparison_image_list = []
+        if len(query_result['collectionID']) > 0:  # are there any comparison images even available on that sky?
+            index = -1
+            for row in query_result:
+                expnum = row['collectionID']
+                if expnum in self._bad_comparison_images:
+                    continue
+                date = Time(row['mjdate'], format='mjd').mpc
+                exptime = row['exptime']
+                filter_name = row['filter']
+                if filter_name in self.hdulist[-1].header['FILTER']:
+                    filter_name = "* {:8s}".format(filter_name)
+                try:
+                    fwhm = "{:5.2f}".format(float(storage.get_fwhm_tag(expnum, 22)))
+                except:
+                    fwhm = -1.00
+                index += 1
+                comparison_image_list.append([index, expnum, date, exptime, filter_name, fwhm, None])
+        self._comparison_image_list = Table(data=numpy.array(comparison_image_list),
+                                            names=["ID", "EXPNUM", "DATE-OBS", "FILTER", "EXPTIME", "FWHM", "REFERENCE"])
+        return self._comparison_image_list
+
 
     def retrieve_comparison_image(self):
         """
         Search the DB for a comparison image for this cutout.
         """
         # selecting comparator when on a comparator should load a new one.
-
+        collectionID = self.comparison_image_list[self.comparison_image_index]['EXPNUM']
         ref_ra = self.reading.ra * units.degree
         ref_dec = self.reading.dec * units.degree
         radius = self.radius is not None and self.radius or config.read('CUTOUTS.SINGLETS.RADIUS') * units.arcminute
-        query_result = storage.cone_search(ref_ra, ref_dec, radius, radius)  # returns an astropy.table.table.Table
-        comparison = None
-        if len(query_result['collectionID']) > 0:  # are there any comparison images even available on that sky?
-            for collectionID in query_result['collectionID']:
-                if collectionID not in self._bad_comparison_images:
-                    comparison = collectionID
-                    self._bad_comparison_images.append(comparison)
-                    try:
-                        hdu_list = storage.ra_dec_cutout(storage.dbimages_uri(comparison),
-                                                         SkyCoord(ref_ra, ref_dec), radius)
-                        obs = Observation(str(comparison), 'p',
-                                          ccdnum=int(hdu_list[-1].header.get('EXTVER', 0)))
-                        x = hdu_list[-1].header.get('NAXIS1', 0) // 2.0
-                        y = hdu_list[-1].header.get('NAXIS2', 0) // 2.0
-                        reading = SourceReading(x, y, self.reading.x, self.reading.y,
-                                                ref_ra, ref_dec, self.reading.x, self.reading.y, obs)
-                        self._comparison_image = SourceCutout(reading, hdu_list)
-                    except Exception as ex:
-                        logger.error("{} {}".format(type(ex), str(ex)))
-                        logger.error(traceback.format_exc())
-                        continue
-                    break
-            if comparison is None:
-                logger.critical(str(self.fits_header))
-                self._comparison_image = None
-                return
-        else:
-            query_result.pprint()
-            logger.info("No comparison images available for this piece of sky.")
-            print "No comparison images available for this piece of sky."
-            self._comparison_image = None
-            return
+        try:
+            comparison = collectionID
+            hdu_list = storage.ra_dec_cutout(storage.dbimages_uri(comparison),
+                                             SkyCoord(ref_ra, ref_dec), radius)
+            ccd = int(hdu_list[-1].header.get('EXTVER', 0))
+            obs = Observation(str(comparison), 'p',
+                              ccdnum=ccd)
+            x = hdu_list[-1].header.get('NAXIS1', 0) // 2.0
+            y = hdu_list[-1].header.get('NAXIS2', 0) // 2.0
+            ref_ra = self.reading.ra * units.degree
+            ref_dec = self.reading.dec * units.degree
+            reading = SourceReading(x, y, self.reading.x, self.reading.y,
+                                    ref_ra, ref_dec, self.reading.x, self.reading.y, obs)
+            self.comparison_image_list[self.comparison_image_index]["REFERENCE"] = SourceCutout(reading, hdu_list)
+        except Exception as ex:
+            print traceback.format_exc()
+            print ex
+            print "Failed to load comparison image;"
+            self.comparison_image_index = None
+            logger.error("{} {}".format(type(ex), str(ex)))
+            logger.error(traceback.format_exc())
+
+
+
+
