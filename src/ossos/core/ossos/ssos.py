@@ -129,24 +129,35 @@ class TracksParser(object):
         for source in tracks_data.get_sources():
             astrom_observations = tracks_data.observations
             source_readings = source.get_readings()
+            foci = []
             for idx in range(len(source_readings)):
                 source_reading = source_readings[idx]
-                assert isinstance(source_reading, SourceReading)
-                if ref_sky_coord is None or source_reading.sky_coord.separation(ref_sky_coord) > 40 * units.arcsec:
-                    ref_sky_coord = source_reading.sky_coord
-                source_reading.reference_sky_coord = ref_sky_coord
                 astrom_observation = astrom_observations[idx]
                 self.orbit.predict(Time(astrom_observation.mjd, format='mjd', scale='utc'))
-                source_reading.pa = self.orbit.pa
-                # why are these being recorded just in pixels?  Because the error ellipse is drawn in pixels.
-                # TODO: Modify error ellipse drawing routine to use WCS but be sure
-                # that this does not cause trouble with the use of dra/ddec for cutout computer
-                source_reading.dx = self.orbit.dra
-                source_reading.dy = self.orbit.ddec
-
-                frame = astrom_observation.rawname
-                if frame in tracks_data.mpc_observations:
-                    source_reading.discovery = tracks_data.mpc_observations[frame].discovery
+                assert isinstance(source_reading, SourceReading)
+                if ref_sky_coord is None or source_reading.sky_coord.separation(ref_sky_coord) > 40 * units.arcsec:
+                    foci.append([])
+                    ref_sky_coord = source_reading.sky_coord
+                foci[-1].append(source_reading)
+            for focus in foci:
+                ra = numpy.zeros(len(focus))
+                dec = numpy.zeros(len(focus))
+                for idx in range(len(focus)):
+                    source_reading = focus[idx]
+                    ra[idx] = source_reading.sky_coord.ra.to('degree').value
+                    dec[idx] = source_reading.sky_coord.dec.to('degree').value
+                ref_sky_coord = SkyCoord(ra.mean(), dec.mean(), unit='degree')
+                for source_reading in focus:
+                    source_reading.reference_sky_coord = ref_sky_coord
+                    source_reading.pa = self.orbit.pa
+                    # why are these being recorded just in pixels?  Because the error ellipse is drawn in pixels.
+                    # TODO: Modify error ellipse drawing routine to use WCS but be sure
+                    # that this does not cause trouble with the use of dra/ddec for cutout computer
+                    source_reading.dx = self.orbit.dra
+                    source_reading.dy = self.orbit.ddec
+                    frame = astrom_observation.rawname
+                    if frame in tracks_data.mpc_observations:
+                        source_reading.discovery = tracks_data.mpc_observations[frame].discovery
 
         return tracks_data  # a SSOSData with .sources and .observations only
 
