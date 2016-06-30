@@ -199,7 +199,7 @@ class ValidationModel(object):
 
         try:
             header = self.get_current_astrom_header()
-            header2 = self.get_current_astrom_header()
+            header2 = self.get_current_fits_header()
             keys = ['MJD_OBS_CENTER',
                     'MJD-OBSC',
                     'EXPNUM',
