@@ -12,9 +12,13 @@ import sys
 import six
 
 try:
-    from astropy.time import erfa_time
-except ImportError:
-    from astropy.time import sofa_time as erfa_time
+    from astropy._erfa_time import d2dtf
+except:
+    try:
+        from astropy.time.erfa_time import jd_dtf as d2dtf
+    except ImportError:
+        from astropy.time.sofa_time import jd_dtf as d2dtf
+
 from astropy.time import TimeString
 
 
@@ -274,67 +278,15 @@ class TimeMPC(TimeString):
             raise ValueError('Time {0} does not match {1} format'
                              .format(timestr, self.name))
 
-    # ## need our own 'set_jds' function as the MPC Time string is not typical
-    def old_set_jds(self, val1, val2):
-        """
-
-        Parse the time strings contained in val1 and set jd1, jd2
-
-        :param val1: array of strings to parse into JD format
-        :param val2: not used for string conversions but passed regardless
-        """
-
-        # This routine is based on atropy.time.core.TimeString class.
-
-        iterator = numpy.nditer([val1, None, None, None, None, None, None],
-                                op_dtypes=[val1.dtype] + 5 * [numpy.intc] + [numpy.double])
-        subfmts = self.subfmts
-        for val, iy, im, iday, ihr, imin, dsec in iterator:
-            time_str = val.item()
-
-            # Assume that anything following "." on the right side is a
-            # floating fraction of a day.
-            try:
-                idot = time_str.rindex('.')
-            except:
-                fracday = 0.0
-            else:
-                time_str, fracday = time_str[:idot], time_str[idot:]
-                fracday = float(fracday)
-
-            for _, strptime_fmt_or_regex, _ in subfmts:
-                try:
-                    tm = time.strptime(time_str, strptime_fmt)
-                except ValueError:
-                    pass
-                else:
-                    iy[...] = tm.tm_year
-                    im[...] = tm.tm_mon
-                    iday[...] = tm.tm_mday
-                    hrprt = tm.tm_hour + int(24 * fracday)
-                    ihr[...] = hrprt
-                    mnprt = tm.tm_min + int(60 * (24 * fracday - hrprt))
-                    imin[...] = mnprt
-                    dsec[...] = tm.tm_sec + 60 * (60 * (24 * fracday - hrprt) - mnprt)
-
-                    break
-            else:
-                raise ValueError("Time {0} does not match {1} format".format(time_str, self.name))
-
-        self.jd1, self.jd2 = erfa_time.dtf_jd(
-            self.scale.upper().encode('utf8'), *iterator.operands[1:])
-
-        return
-
     def str_kwargs(self):
         """
         Generator that yields a dict of values corresponding to the
         calendar date and time for the internal JD values.
         """
-        iys, ims, ids, ihmsfs = erfa_time.jd_dtf(self.scale.upper()
-                                                 .encode('utf8'),
-                                                 6,
-                                                 self.jd1, self.jd2)
+        iys, ims, ids, ihmsfs = d2dtf(self.scale.upper()
+                                      .encode('utf8'),
+                                      6,
+                                      self.jd1, self.jd2)
 
         # Get the str_fmt element of the first allowed output subformat
         _, _, str_fmt = self._select_subfmts(self.out_subfmt)[0]
