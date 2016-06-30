@@ -51,6 +51,7 @@ class WxMPLFitsViewer(object):
         self._do_render(self.current_displayable)
         self.mark_apertures(cutout, pixel=use_pixel_coords)
         self.draw_uncertainty_ellipse(cutout)
+
     def clear(self):
         self.ds9.set("frame delete all")
 
