@@ -53,20 +53,21 @@ class ImageViewManager(object):
 
             logger.debug("Starting DS9")
             # start ds9 if need, or connect to existing
-            cnt = 0
-            while cnt < 10:
-                cnt += 1
-                try:
-                    self._ds9 = ds9.DS9(target='validate')
-                    self.set_ds9(level="INIT")
-                    self.set_ds9(level="PREF")
-                    self._ds9.set("frame delete all")
-                    break
-                except ValueError as ve:
-                    print 'Error on attempt {0} to connect to DS9 {1}'.format(cnt, ve)
-
-        if self._ds9 is None:
-            raise IOError("Failed to connect to DS9.")
+            try:
+                self._ds9 = ds9.DS9(target='validate', start=False)
+            except ValueError as ve:
+                cnt = 0
+                while cnt < 10:
+                    cnt += 1
+                    try:
+                        self._ds9 = ds9.DS9(target='validate', start=True, wait=10, verify=True)
+                        self.set_ds9(level="INIT")
+                        self.set_ds9(level="PREF")
+                        break
+                    except ValueError as ve:
+                        pass
+            finally:
+                self._ds9.set("frame delete all")
         self._ds9.reset_preferences = self.set_ds9
         self._ds9.new_frame = self._new_frame
         return self._ds9
