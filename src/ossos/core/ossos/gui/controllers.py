@@ -243,6 +243,9 @@ class ProcessRealsController(AbstractController):
         if not auto:
             result = self.view.ds9.get('imexam key coordinate wcs fk5 degrees')
             # result = display.get("""imexam key coordinate $x $y $filename""")
+            if not isinstance(result, str):
+                print result
+                result = str(result)
             values = result.split()
             ra = Quantity(float(values[1]), unit=units.degree)
             dec = Quantity(float(values[2]), unit=units.degree)
@@ -264,7 +267,7 @@ class ProcessRealsController(AbstractController):
             # now we've reset the pixel locations, so they are no longer inverted.
             source_cutout.reading.inverted = False
 
-        init_skycoord = source_cutout.reading.sky_coord
+        marked_skycoord = source_cutout.reading.sky_coord
 
         try:
             phot = self.model.get_current_source_observed_magnitude()
@@ -291,15 +294,15 @@ class ProcessRealsController(AbstractController):
 
         obs_mag = phot_failure and None or obs_mag
         obs_mag_err = phot_failure and None or obs_mag_err
+        self.place_marker(source_cutout.ra * units.degree, source_cutout.dec*units.degree,
+                          radius=int(source_cutout.apcor.ap_in*0.185+1)*units.arcsec,
+                          colour='white',
+                          force=True)
 
         # compare the RA/DEC position of the reading now that we have measured it to the initial value.
-        if init_skycoord.separation(source_cutout.reading.sky_coord) > 1 * units.arcsec or cen_failure:
+        if marked_skycoord.separation(source_cutout.reading.sky_coord) > 1 * units.arcsec or cen_failure:
             # check if the user wants to use the selected location or the DAOPhot centroid.
-            self.place_marker(source_cutout.ra * units.degree, source_cutout.dec*units.degree,
-                              radius=int(source_cutout.apcor.ap_in*0.185+1)*units.arcsec,
-                              colour='white',
-                              force=True)
-            self.view.show_offset_source_dialog(source_cutout.reading.sky_coord, init_skycoord)
+            self.view.show_offset_source_dialog(source_cutout.reading.sky_coord, marked_skycoord)
 
         note1_default = ""
         if self.model.is_current_source_adjusted():
@@ -460,6 +463,7 @@ class ProcessRealsController(AbstractController):
             self.view.frame(1)
 
     def on_cancel_accept(self):
+        self.model.get_current_cutout().reset_coord()
         self.view.close_accept_source_dialog()
 
     def on_reject(self):
@@ -595,11 +599,13 @@ class ProcessTracksController(ProcessRealsController):
         @param research: find a new comparison image even if one already known?
         """
 
-        logger.debug(str(research))
         cutout = self.model.get_current_cutout()
-        if research or cutout.comparison_image is None:
-            cutout.retrieve_comparison_image()
-        if cutout.comparison_image is not None:  # if a comparison image was found
+        if research:
+            cutout.comparison_image_index = None
+        comparison_image = cutout.comparison_image
+        if comparison_image is None:
+            print "Failed to load comparison image: {}".format(cutout.comparison_image_list[cutout.comparison_image_index])
+        else:
             self.view.display(cutout.comparison_image, self.use_pixel_coords)
             self.view.align(self.model.get_current_cutout(),
                             self.model.get_current_reading(),

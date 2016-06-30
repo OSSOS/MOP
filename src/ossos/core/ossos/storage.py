@@ -128,13 +128,15 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2):
     """
 
     data = dict(QUERY=(" SELECT Observation.observationID as collectionID, "
-                       " Plane.time_bounds_cval1 AS mjdate "
+                       " Plane.time_bounds_cval1 AS mjdate, "
+                       " Plane.time_exposure AS exptime, "
+                       " Plane.energy_bandpassName as filter"
                        " FROM caom2.Observation AS Observation "
                        " JOIN caom2.Plane AS Plane "
                        " ON Observation.obsID = Plane.obsID "
                        " WHERE  ( Observation.collection = 'CFHT' ) "
                        " AND Plane.calibrationLevel={} "
-                       " AND Plane.energy_bandpassName LIKE 'r.%' "
+                       " AND ( Plane.energy_bandpassName LIKE 'r.%' OR Plane.energy_bandpassName LIKE 'gri.%' ) "
                        " AND ( Observation.proposal_id LIKE '%P05' or Observation.proposal_id LIKE '%P06' )"
                        " AND Observation.target_name NOT LIKE 'WP%'"),
                 REQUEST="doQuery",
