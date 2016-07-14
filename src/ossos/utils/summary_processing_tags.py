@@ -97,8 +97,10 @@ if __name__ == '__main__':
 
     block_name = opt.block[-1]
     block_semester = opt.block[:-1]
+    vos_filename = 'vos:OSSOS/triplets/{}_{}_discovery_expnums.txt'.format(block_name, block_semester)
+    print vos_filename
 
-    triplist = storage.open_vos_or_local('vos:OSSOS/triplets/{}_{}_discovery_expnums.txt'.format(block_name, block_semester),'r').read().split('\n')
+    triplist = storage.open_vos_or_local(vos_filename,'r').read().split('\n')
     
 
     ops = []
