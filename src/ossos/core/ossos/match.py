@@ -1,14 +1,14 @@
-
 from astropy.io import ascii
 from astropy.table import MaskedColumn, Table
 import logging
 import math
 import numpy
 import os
-
 import daophot
 from downloads.cutouts.downloader import ImageDownloader
 import util
+from downloads.cutouts.source import SourceCutout
+from astrom import Observation
 
 BRIGHT_LIMIT = 23.0
 OBJECT_PLANTED = "Object.planted"
@@ -33,12 +33,17 @@ def measure_mags(measures):
                 observations[reading.obs] = {'x': [],
                                              'y': [],
                                              'source': image_downloader.download(reading, needs_apcor=True)}
+            assert isinstance(reading.obs, Observation)
             observations[reading.obs]['x'].append(reading.x)
             observations[reading.obs]['y'].append(reading.y)
 
     for observation in observations:
         source = observations[observation]['source']
-        observations[observation]['mags'] = daophot.phot(source._hdulist_on_disk(),
+        assert isinstance(source, SourceCutout)
+        source.update_pixel_location(observations[observation]['x'],
+                                     observations[observation]['y'])
+        hdulist_index = source.get_hdulist_idx(observation.ccdnum)
+        observations[observation]['mags'] = daophot.phot(source._hdu_on_disk(hdulist_index),
                                                          observations[observation]['x'],
                                                          observations[observation]['y'],
                                                          aperture=source.apcor.aperture,
@@ -47,7 +52,7 @@ def measure_mags(measures):
                                                          apcor=source.apcor.apcor,
                                                          zmag=source.zmag,
                                                          maxcount=30000,
-                                                         extno=source._ext)
+                                                         extno=0)
 
     return observations
 
@@ -63,6 +68,7 @@ def match_planted(fk_candidate_observations, match_filename, bright_limit=BRIGHT
 
     :param fk_candidate_observations: name of the fk*reals.astrom file to check against Object.planted
     :param match_filename: a file that will contain a list of all planted sources and the matched found source
+    @param minimum_bright_detections: if there are too few bright detections we raise an error.
 
     """
 
@@ -125,7 +131,7 @@ def match_planted(fk_candidate_observations, match_filename, bright_limit=BRIGHT
     n_bright_planted = numpy.count_nonzero(planted_objects_table['mag'][bright])
 
     measures = []
-    idxs  = []
+    idxs = []
     for idx in range(len(match_idx)):
         # The match_idx value is False if nothing was found.
         if not match_idx.mask[idx]:
