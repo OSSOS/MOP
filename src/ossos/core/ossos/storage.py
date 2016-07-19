@@ -1101,7 +1101,7 @@ def mkdir(dirname):
     """
     dir_list = []
 
-    while not vospace.client.sdir(dirname):
+    while not vospace.client.isdir(dirname):
         dir_list.append(dirname)
         dirname = os.path.dirname(dirname)
     while len(dir_list) > 0:
