@@ -2,14 +2,14 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import sys
 
-from ..astrom import AstromParser
+from ..astrom import AstromParser, StationaryParser
 from ..downloads.async import AsynchronousDownloadManager
 from ..downloads.cutouts.downloader import ImageCutoutDownloader
 from ..gui import config, tasks, logger
 from ..gui import context
 from ..gui.controllers import (ProcessTracksController,
                                ProcessRealsController,
-                               ProcessCandidatesController)
+                               ProcessCandidatesController, ProcessVettingController, ProcessExamineController)
 from ..gui.errorhandling import DownloadErrorHandler
 from ..gui.models.imagemanager import ImageManager
 from ..gui.models.transactions import TransAckValidationModel
@@ -17,6 +17,8 @@ from ..gui.models.workload import (WorkUnitProvider,
                                    RealsWorkUnitBuilder,
                                    TracksWorkUnitBuilder,
                                    CandidatesWorkUnitBuilder,
+                                   VettingWorkUnitBuilder,
+                                   ExamineWorkUnitBuilder,
                                    PreFetchingWorkUnitProvider)
 from ..gui.sync import SynchronizationManager
 from ..gui.views.appview import ApplicationView
@@ -35,6 +37,12 @@ def create_application(task_name, working_directory, output_directory,
     elif task_name == tasks.REALS_TASK:
         ProcessRealsApplication(working_directory, output_directory,
                                 dry_run=dry_run, debug=debug, name_filter=name_filter, user_id=user_id, zoom=zoom)
+    elif task_name  == tasks.VETTING_TASK:
+        ProcessVettingApplication(working_directory, output_directory, dry_run=dry_run,
+                                     debug=debug, name_filter=name_filter, user_id=user_id, zoom=zoom)
+    elif task_name == tasks.EXAMINE_TASK:
+        ProcessExamineApplication(working_directory, output_directory, dry_run=dry_run,
+                                  debug=debug, name_filter=name_filter, user_id=user_id, zoom=zoom)
     elif task_name == tasks.TRACK_TASK:
         ProcessTracksApplication(working_directory, output_directory,
                                  dry_run=dry_run, debug=debug, name_filter=name_filter,
@@ -213,6 +221,50 @@ class ProcessRealsApplication(ValidationApplication):
         return RealsControllerFactory(model, dry_run=self.dry_run)
 
 
+class ProcessVettingApplication(ProcessCandidatesApplication):
+
+    @property
+    def input_suffix(self):
+        return tasks.suffixes[tasks.VETTING_TASK]
+
+    @property
+    def should_randomize_workunits(self):
+        return False  # now we are only going to manually measure the genuine candidates not also the planted ones
+
+    def _create_controller_factory(self, model):
+        return VettingControllerFactory(model, dry_run=self.dry_run)
+
+    def _create_workunit_builder(self,
+                                 input_context,
+                                 output_context,
+                                 progress_manager):
+        return VettingWorkUnitBuilder(StationaryParser(), input_context, output_context, progress_manager,
+                                      dry_run=self.dry_run)
+
+class ProcessExamineApplication(ProcessRealsApplication):
+
+    @property
+    def input_suffix(self):
+        return tasks.suffixes[tasks.EXAMINE_TASK]
+
+    @property
+    def should_randomize_workunits(self):
+        return False  # now we are only going to manually measure the genuine candidates not also the planted ones
+
+    def _create_controller_factory(self, model):
+        return ExamineControllerFactory(model, dry_run=self.dry_run)
+
+    def _create_workunit_builder(self,
+                                 input_context,
+                                 output_context,
+                                 progress_manager):
+        return ExamineWorkUnitBuilder(StationaryParser(discovery_only=False),
+                                      input_context, output_context,
+                                      progress_manager,
+                                      dry_run=self.dry_run)
+
+
+
 class ProcessTracksApplication(ValidationApplication):
     def __init__(self, working_directory, output_directory,
                  dry_run=False, debug=False, name_filter=None, skip_previous=False,
@@ -284,6 +336,7 @@ class ProcessTargetApplication(ProcessTracksApplication):
         return ApplicationView(self._create_controller_factory(model),
                                track_mode=True, debug=debug, zoom=zoom)
 
+
 class ControllerFactory(object):
     """
     Allows the view to create the controller without direct knowledge
@@ -301,6 +354,18 @@ class ControllerFactory(object):
 class CandidatesControllerFactory(ControllerFactory):
     def create_controller(self, view):
         return ProcessCandidatesController(self.model, view)
+
+
+class VettingControllerFactory(ControllerFactory):
+    def create_controller(self, view):
+        return ProcessVettingController(self.model, view)
+
+
+class ExamineControllerFactory(ControllerFactory):
+
+    def create_controller(self, view):
+
+        return ProcessExamineController(self.model, view, name_generator=ProvisionalNameGenerator())
 
 
 class RealsControllerFactory(ControllerFactory):

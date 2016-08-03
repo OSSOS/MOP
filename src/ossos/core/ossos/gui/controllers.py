@@ -2,6 +2,8 @@ import warnings
 
 from astropy import units
 from astropy.units import Quantity
+
+from ossos.downloads.async import DownloadRequest
 from ..downloads.cutouts.source import SourceCutout
 from ..gui.models.transactions import TransAckValidationModel
 from ..gui.models.workload import TracksWorkUnit
@@ -521,6 +523,7 @@ class ProcessRealsController(AbstractController):
 
 
 class ProcessCandidatesController(AbstractController):
+
     def on_accept(self):
         writer = self.model.get_writer()
         writer.write_source(self.model.get_current_source())
@@ -536,6 +539,24 @@ class ProcessCandidatesController(AbstractController):
 
     def on_load_comparison(self, research=False):
         pass
+
+
+class ProcessVettingController(ProcessCandidatesController):
+
+    def on_accept(self):
+        source = self.model.get_current_source()
+
+        writer = self.model.get_writer()
+        writer.write_source(self.model.get_current_source())
+
+        self.model.accept_current_item()
+        self.view.clear()
+        self.model.next_item()
+
+
+class ProcessExamineController(ProcessRealsController):
+
+    pass
 
 
 class ProcessTracksController(ProcessRealsController):

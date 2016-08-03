@@ -10,10 +10,11 @@ from .. import events
 from .. import logger
 from .. import tasks
 from ..progress import FileLockedException
-from ...astrom import StreamingAstromWriter, Source, SourceReading
+from ...astrom import StreamingAstromWriter, Source, SourceReading, StreamingVettingWriter
 from ...orbfit import Orbfit
 
 __author__ = "David Rusk <drusk@uvic.ca>"
+
 
 class WorkUnit(object):
     """
@@ -349,6 +350,20 @@ class CandidatesWorkUnit(WorkUnit):
     def _close_writers(self):
         if self._writer is not None:
             self._writer.close()
+
+
+class VettingWorkUnit(CandidatesWorkUnit):
+    """
+    A unit of work when performing the process candidates task.
+    """
+
+    def _create_writer(self):
+        filename = self.get_output_filename()
+        return StreamingVettingWriter(self.output_context.open(filename))
+
+    def get_output_filename(self):
+        return self.get_filename().replace(tasks.get_suffix(tasks.VETTING_TASK),
+                                           tasks.get_suffix(tasks.EXAMINE_TASK))
 
 
 class TracksWorkUnit(WorkUnit):
@@ -912,3 +927,53 @@ class CandidatesWorkUnitBuilder(WorkUnitBuilder):
         return CandidatesWorkUnit(
             filename, data, progress_manager, output_context,
             dry_run=dry_run)
+
+
+class VettingWorkUnitBuilder(WorkUnitBuilder):
+    """
+    Used to construct a WorkUnit with its necessary components.
+    Constructs CandidatesWorkUnits for the process candidates task.
+    """
+
+    def __init__(self, parser, input_context, output_context, progress_manager,
+                 dry_run=False):
+        super(VettingWorkUnitBuilder, self).__init__(
+            parser, input_context, output_context, progress_manager,
+            dry_run=dry_run)
+
+    def _do_build_workunit(self,
+                           filename,
+                           data,
+                           progress_manager,
+                           output_context,
+                           dry_run):
+        return VettingWorkUnit(
+            filename, data, progress_manager, output_context,
+            dry_run=dry_run)
+
+
+class ExamineWorkUnitBuilder(WorkUnitBuilder):
+    """
+    Used to construct a WorkUnit with its necessary components.
+    Constructs CandidatesWorkUnits for the process candidates task.
+    """
+
+    def __init__(self, parser, input_context, output_context, progress_manager,
+                 dry_run=False):
+        super(ExamineWorkUnitBuilder, self).__init__(
+            parser, input_context, output_context, progress_manager,
+            dry_run=dry_run)
+
+    def _do_build_workunit(self,
+                           filename,
+                           data,
+                           progress_manager,
+                           output_context,
+                           dry_run):
+        return ExamineWorkUnit(
+            filename, data, progress_manager, output_context,
+            dry_run=dry_run)
+
+
+class ExamineWorkUnit(RealsWorkUnit):
+    pass

@@ -30,6 +30,8 @@ FAKE_PREFIX = "fk"
 
 OBS_LIST_PATTERN = "#\s+(?P<rawname>(?P<fk>%s)?(?P<expnum>\d{6,7})(?P<ftype>[ops])(?P<ccdnum>\d+))" % FAKE_PREFIX
 
+STATIONARY_LIST_PATTERN = "(?P<rawname>(?P<fk>fk)?(?P<expnum>\d{6,7})(?P<ftype>[ops])).vetting"
+
 # Observation header keys
 MOPVERSION = "MOPversion"
 
@@ -122,6 +124,8 @@ class AstromParser(object):
             "##\s+X\s+Y\s+X_0\s+Y_0\s+R.A.\s+DEC\s+(.*)",
             re.DOTALL
         )
+        # Should we only load the discovery images during Candidate vetting?
+        self.discovery_only = False
 
     def _parse_observation_list(self, filestr):
         matches = self.obs_list_regex.findall(filestr)  # returns list of tuples
@@ -230,7 +234,75 @@ class AstromParser(object):
 
         sources = self._parse_source_data(filestr, observations)
 
-        return AstromData(observations, sys_header, sources)
+        return AstromData(observations, sys_header, sources, discovery_only=self.discovery_only)
+
+
+class StationaryParser(AstromParser):
+
+    def __init__(self, discovery_only=True):
+        super(StationaryParser, self).__init__()
+        self.observations = []
+        self.obs_list_regex = re.compile(STATIONARY_LIST_PATTERN)
+        self.discovery_only = discovery_only
+
+    def _parse_observation_list(self, filestr):
+        pass
+
+    def _parse_observation_headers(self, filestr, observations):
+        """
+        This should provide a list of headers that go with the given observation, as read from the input
+        file, but for stationary sources we grab those from the storage system.
+
+        @param filestr:  string to scan for observation header info.
+        @param observations:  list of observations whose headers will be augmented by the contents in filestr
+        @return:
+
+        """
+        pass
+
+    def _parse_system_header(self, filestr):
+        """
+        For stationary catalog check we don't have this information.
+        @param filestr: string to match for system header information.
+        @return: dict
+        """
+        return {'RMIN': 0.01, 'RMAX': 0.2, 'ANGLE': 0, 'AWIDTH': 90}
+
+    def _parse_source_data(self, file_str, observations):
+
+        sources = []
+        observations = {}
+        raw_source_list = file_str.split("\n")
+        for raw_source in raw_source_list:
+            readings = []
+            if not len(raw_source) > 0:
+                continue
+            parts = raw_source.split()
+            if not len(parts) > 5:
+                raise AstromFormatError("line in vetting file has too few elements in line: {}".format(raw_source))
+            object_id = parts[0]
+            ra = float(parts[1])
+            dec = float(parts[2])
+            file_ids = parts[3:]
+            count = 0
+            for file_id in file_ids:
+                count += 1
+                match_groups = re.match("(?P<expnum>\d{6,7})(?P<ftype>[ops])(?P<ccdnum>\d{2})", file_id)
+                assert match_groups is not None, "Failed to parse file_id in stationary line"
+                expnum = int(match_groups.group('expnum'))
+                ftype = match_groups.group('ftype')
+                ccd = match_groups.group('ccdnum')
+                observation = Observation(expnum, ftype=ftype, ccdnum=ccd)
+                source_reading = SourceReading(-1, -1, -1, -1,
+                                               ra, dec, -1, -1,
+                                               observation,
+                                               discovery=count < 4
+                                               )
+                source_reading.reference_sky_coord = source_reading.sky_coord
+                source_reading.object_id = object_id
+                readings.append(source_reading)
+            sources.append(readings)
+        return sources
 
 
 class BaseAstromWriter(object):
@@ -389,7 +461,7 @@ class AstromData(object):
     Encapsulates data extracted from an .astrom file.
     """
 
-    def __init__(self, observations, sys_header, sources):
+    def __init__(self, observations, sys_header, sources, discovery_only=False):
         """
         Constructs a new astronomy data set object.
 
@@ -405,11 +477,13 @@ class AstromData(object):
             of source readings, one for each observation in
             <code>observations</code>.  By convention the ordering of
             source readings must match the ordering of the observations.
+          discovery_only: bool
+            should we only use the discovery images on the first pass?
         """
         self.observations = observations
         self.mpc_observations = {}
         self.sys_header = sys_header
-        self.sources = [Source(reading_list) for reading_list in sources]
+        self.sources = [Source(reading_list, discovery_only=discovery_only) for reading_list in sources]
 
     def get_reading_count(self):
         count = 0
@@ -430,9 +504,10 @@ class Source(object):
     A collection of source readings.
     """
 
-    def __init__(self, readings, provisional_name=None):
+    def __init__(self, readings, provisional_name=None, discovery_only=False):
         self.readings = readings
         self.provisional_name = provisional_name
+        self.discovery_only = discovery_only
         if 4 > self.num_readings() > 1:
             self.set_min_cutout()
 
@@ -1034,3 +1109,47 @@ class Observation(object):
             mpc_date += TimeDelta(exptime * units.second) / 2.0
             mpc_date = mpc_date.mpc
         return mpc_date
+
+
+class VettingWriter(BaseAstromWriter):
+    """
+    Write out the 'vetting' format when looking for slow moving 'stationary' objects
+    """
+
+    def _write_headers(self, observations, sys_header):
+        pass
+
+    def _write_source(self, source):
+
+        readings = source.get_readings()
+        line = "{} {} {}".format(readings[0].object_id,
+                                 readings[0].ra,
+                                 readings[0].dec)
+        for reading in source.get_readings():
+            line += " {}".format(reading.obs.rawname)
+        self._write_line(line)
+
+
+class StreamingVettingWriter(VettingWriter):
+    """
+    Use if you want to write out sources one-by-one as they are validated.
+    See also BulkAstromWriter.
+
+    The Vetting writer doesn't have a header.
+    """
+
+    def __init__(self, filehandle, sys_header=None):
+        super(StreamingVettingWriter, self).__init__(filehandle)
+        self.sys_header = sys_header
+        self._header_written = True
+
+    def write_source(self, source):
+        """
+        Writes out data for a single source.
+        """
+        if not self._header_written:
+            observations = [reading.get_observation() for reading in source.get_readings()]
+            self.write_headers(observations, self.sys_header)
+
+        self._write_source(source)
+

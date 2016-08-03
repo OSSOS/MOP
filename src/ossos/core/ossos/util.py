@@ -12,7 +12,7 @@ import sys
 import six
 
 try:
-    from astropy._erfa_time import d2dtf
+    from astropy._erfa import d2dtf
 except:
     try:
         from astropy.time.erfa_time import jd_dtf as d2dtf
