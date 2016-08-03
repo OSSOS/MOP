@@ -26,13 +26,13 @@ class AsynchronousDownloadManager(object):
         self.downloader = downloader
         self.error_handler = error_handler
 
-        self._work_queue = Queue.Queue()
+        self._work_queue = Queue.PriorityQueue()
 
         self._workers = []
         self._maximize_workers()
 
-    def submit_request(self, request):
-        self._work_queue.put(request)
+    def submit_request(self, request, priority=100):
+        self._work_queue.put((priority, request))
         self._maximize_workers()
 
     def stop_download(self):
@@ -145,7 +145,7 @@ class DownloadThread(threading.Thread):
                 self._idle = True
 
     def do_download(self, download_request):
-        download_request.execute(self.downloader)
+        download_request[1].execute(self.downloader)
 
     def stop(self):
         self._should_stop = True

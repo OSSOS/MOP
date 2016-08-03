@@ -415,9 +415,7 @@ class SSOSData(object):
         self.mpc_observations = {}
         self.observations = observations
         self.sys_header = None
-        self.sources = [astrom.Source(
-            reading_list,
-            provisional_name) for reading_list in sources]
+        self.sources = [astrom.Source(reading_list, provisional_name) for reading_list in sources]
 
     def get_reading_count(self):
         count = 0

@@ -42,11 +42,14 @@ class ImageManager(object):
         for source in workunit.get_unprocessed_sources():
             self.download_singlets_for_source(source, needs_apcor=needs_apcor)
 
-    def download_singlets_for_source(self, source, needs_apcor=False):
+    def download_singlets_for_source(self, source, needs_apcor=False, priority=100):
         focus_calculator = SingletFocusCalculator(source)
         logger.debug("Got focus calculator {} for source {}".format(focus_calculator, source))
 
         for reading in source.get_readings():
+            # Check to see if we should only be downloading the discovery images
+            if source.discovery_only and not reading.discovery:
+                continue
             logger.debug("Getting focus location for {}".format(reading))
             focus = focus_calculator.calculate_focus(reading)
             logger.debug("Focus is {}".format(focus))
@@ -54,7 +57,8 @@ class ImageManager(object):
                 DownloadRequest(reading,
                                 needs_apcor=needs_apcor,
                                 focus=focus,
-                                callback=self.on_singlet_image_loaded)
+                                callback=self.on_singlet_image_loaded),
+                priority=priority
             )
 
     def download_singlet_for_reading(self, reading, focus, needs_apcor=False):
