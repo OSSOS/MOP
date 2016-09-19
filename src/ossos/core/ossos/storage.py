@@ -128,7 +128,7 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2):
     """
 
     data = dict(QUERY=(" SELECT Observation.observationID as collectionID, "
-                       " Plane.time_bounds_cval1 AS mjdate, "
+                       " Plane.time_bounds_lower AS mjdate, "
                        " Plane.time_exposure AS exptime, "
                        " Plane.energy_bandpassName as filter"
                        " FROM caom2.Observation AS Observation "
@@ -149,7 +149,7 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2):
                       " Plane.position_bounds ) = 1 ").format(ra.to(units.degree).value, dec.to(units.degree).value,
                                                               dra.to(units.degree).value, ddec.to(units.degree).value)
     if mjdate is not None:
-        data["QUERY"] += " AND Plane.time_bounds_cval1 < {} AND Plane.time_bounds_cval2 > {} ".format(
+        data["QUERY"] += " AND Plane.time_bounds_lower < {} AND Plane.time_bounds_cval2 > {} ".format(
             mjdate + 1.0 / 24.0,
             mjdate - 1 / 24.0)
 
