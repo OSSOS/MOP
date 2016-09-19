@@ -5,17 +5,20 @@ from ossos.__version__ import version
 from setuptools import setup, find_packages
 
 dependencies = ['pyraf >= 2.1.1',
-                    'astropy >= 0.2.5',
-                    'vos >= 2.0',
-                    'ephem',
-                    'requests >= 2.7',
-                    'pyOpenSSL',
-                    'numpy >= 1.6.1',
-                    'wxPython-common > 2.8.1',
-                    'matplotlib',
-                    'Polygon2',
-                    'd2to1 >= 0.2.10', 'scipy', 'uncertainties', 'pyds9 >= 1.8'
-                        ]
+                'requests >= 2.7',
+                'astropy >= 0.2.5',
+                'vos >= 2.0',
+                'ephem',
+                'pyOpenSSL',
+                'numpy >= 1.6.1',
+                'wxPython >= 3.0.0.0',
+                'matplotlib',
+                'Polygon2',
+                'd2to1 >= 0.2.10',
+                'scipy',
+                'uncertainties',
+                'pyds9 >= 1.8',
+                'mp_ephem']
 
 
 if sys.version_info[0] > 2:
