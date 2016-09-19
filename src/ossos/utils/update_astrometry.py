@@ -252,6 +252,9 @@ def main(mpc_file, cor_file, skip_mags=False):
     for mpc_in in observations:
         if not isinstance(mpc_in.comment, mpc.OSSOSComment):
             continue
+        if ((args.discovery and not mpc_in.discovery.is_discovery) or
+                (not args.discovery and mpc_in.discovery.is_discovery)):
+            continue
         logging.info("="*220)
         logging.info("   orig: {}".format(mpc_in.to_string()))
         mpc_obs = remeasure(mpc_in)
@@ -369,7 +372,6 @@ def compare_orbits(original_obs, modified_obs, cor_file):
                     logging.warn("Fit residual  unreasonably large.")
         dra = numpy.array(dra)
         ddec = numpy.array(ddec)
-        print mags
         merr_str = ""
         for filter in mags:
             mag = numpy.percentile(numpy.array(mags[filter]), (50))
@@ -389,6 +391,7 @@ if __name__ == '__main__':
     """
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('ast_file', help="An MPC file to update.")
+    parser.add_argument('--discovery', help="Only process the discovery images.", action='store_true', default=False)
     parser.add_argument('--result_base_name', help="base name for remeasurement results (defaults to basename of input)",
                         default=None)
     parser.add_argument('--skip-mags', action="store_false", help="Recompute magnitudes.", default=True)
@@ -402,7 +405,6 @@ if __name__ == '__main__':
 
     import coloredlogs
     logger = logging.getLogger('update_astrom')
-    print level, logging.DEBUG
     coloredlogs.install(level=level)
 
     if args.result_base_name is None:
