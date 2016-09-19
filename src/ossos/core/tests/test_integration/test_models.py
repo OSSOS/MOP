@@ -321,7 +321,7 @@ class AbstractRealsModelTest(GeneralModelTest):
 
         assert_that(self.model.get_current_ra(), equal_to(26.6816808))
         assert_that(self.model.get_current_dec(), equal_to(29.2202748))
-        assert_that(self.model.get_current_image_FWHM(), equal_to(3.30))
+        assert_that(self.model.get_current_image_fwhm(), equal_to(3.30))
         assert_that(self.model.get_current_image_maxcount(), equal_to(30000.0))
 
 
