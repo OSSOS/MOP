@@ -37,7 +37,7 @@ def query_for_observations(mjd, observable, runids):
     data = {"QUERY": ("SELECT Observation.target_name as TargetName, "
                       "COORD1(CENTROID(Plane.position_bounds)) AS RA,"
                       "COORD2(CENTROID(Plane.position_bounds)) AS DEC, "
-                      "Plane.time_bounds_cval1 AS StartDate, "
+                      "Plane.time_bounds_lower AS StartDate, "
                       "Plane.time_exposure AS ExposureTime, "
                       "Observation.instrument_name AS Instrument, "
                       "Plane.energy_bandpassName AS Filter, "
@@ -48,7 +48,7 @@ def query_for_observations(mjd, observable, runids):
                       "JOIN caom2.Plane AS Plane ON "
                       "Observation.obsID = Plane.obsID "
                       "WHERE  ( Observation.collection = 'CFHT' ) "
-                      "AND Plane.time_bounds_cval1 > %d "
+                      "AND Plane.time_bounds_lower > %d "
                       "AND Plane.calibrationLevel=%s "
                       "AND Observation.proposal_id IN %s " ) %
                      ( mjd, observable, str(runids)),
@@ -62,7 +62,11 @@ def query_for_observations(mjd, observable, runids):
     tmpFile = tempfile.NamedTemporaryFile()
     with open(tmpFile.name, 'w') as outfile:
         outfile.write(result.text)
-    vot = parse(tmpFile.name).get_first_table()
+    try:
+       vot = parse(tmpFile.name).get_first_table()
+    except:
+       print result.text
+       raise
 
     vot.array.sort(order='StartDate')
     t = vot.array
