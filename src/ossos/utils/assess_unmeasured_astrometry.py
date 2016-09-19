@@ -11,7 +11,7 @@ __author__ = 'bannisterm'
 from ossos import storage, mpc, ssos
 from ossos.gui import context, tasks
 #from ossos.planning.ObsStatus import query_for_observations
-from ossos.planning.plotting import parameters, parsers
+from ossos import parameters, parsers
 
 
 if __name__ == '__main__':
