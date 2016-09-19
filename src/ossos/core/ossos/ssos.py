@@ -48,7 +48,7 @@ class TracksParser(object):
 
         try:
             self.orbit = Orbfit(mpc_observations)
-            print self.orbit.residuals()
+            print self.orbit.residuals
             print self.orbit
         except Exception as ex:
             logger.error("{}".format(ex))
