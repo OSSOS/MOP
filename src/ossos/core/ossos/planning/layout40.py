@@ -24,7 +24,7 @@ from ossos import orbfit
 from ossos import mpc
 
 
-USER = os.getegid('HOME','/Users/michele/')
+USER = os.getenv('HOME','/Users/michele/')
 
 # USER = '/Users/jjk/'
 
@@ -38,10 +38,10 @@ MPCORB_FILE = os.path.join(USER, 'MPCORB-Distant.dat')
 # MPCORB_FILE = os.path.join(USER, 'Dropbox/Develop/code/MPCORB.DAT')
 L7MODEL = 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
 # L7MODEL = '/Users/kavelaarsj/Dropbox/Research/KuiperBelt/OSSOS/L7SyntheticModel-v09.txt'
-# REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/dbaseclone/dbaseclone/ast/'
-REAL_KBO_AST_DIR = os.path.join(USER, 'Dropbox/OSSOS/measure3/ossin/')
+REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/Research/KuiperBelt/OSSOS/dbaseclone/ast'
+#REAL_KBO_AST_DIR = os.path.join(USER, 'Dropbox/OSSOS/measure3/ossin/')
 
-PLOT_FIELD_EPOCH = 'Nov15'  # Oct14.00 ==> '0' days since the New Moon on Oct14
+PLOT_FIELD_EPOCH = 'Sep16'  # Oct14.00 ==> '0' days since the New Moon on Oct14
 #TODO the .00 is appended when this variable is used as a keyword that needs that .00 this is bad.
 DISCOVERY_NEW_MOON = 'Nov15'  # this is the date that the RA/DEC in blocks corresponds to.
 
@@ -179,8 +179,8 @@ blocks = {
 
     #    '15AP': {'RA': "13:30:00.00", "DEC": "-7:45:00.00"},  # on-plane
     # '15AM': {'RA': "15:35:00.00", "DEC": "-12:10:00.0"}  # positioned for its 2015 discovery opposition.
-    '15BS': {'RA': "00:30:00.00", "DEC": "+05:00:00.00"},  # rejected: dec "-02:45:00.00"
-    #     '15BD': {'RA': "03:15:00.00", "DEC": "+16:30:00.00"}
+    #  '15BS': {'RA': "00:30:00.00", "DEC": "+05:00:00.00"},  # rejected: dec "-02:45:00.00"
+       '15BD': {'RA': "03:15:00.00", "DEC": "+16:30:00.00"}
 }
 
 newMoons = {
@@ -213,25 +213,25 @@ newMoons = {
 #    'Apr15': '2015/04/18 10:00:00',
 #    'May15': '2015/05/17 10:00:00',
 #    'Jun15': '2015/06/16 10:00:00',
-    'Jul15': '2015/07/15 10:00:00',
-    'Aug15': '2015/08/14 10:00:00',
-    'Sep15': '2015/09/12 10:00:00',
-    'Oct15': '2015/10/12 10:00:00',
+#    'Jul15': '2015/07/15 10:00:00',
+#    'Aug15': '2015/08/14 10:00:00',
+ #   'Sep15': '2015/09/12 10:00:00',
+#    'Oct15': '2015/10/12 10:00:00',
     'Nov15': '2015/11/11 10:00:00',
-    'Dec15': '2015/12/11 10:00:00',
-    'Jan16': '2016/01/09 10:00:00',
-    'Feb16': '2016/03/08 10:00:00',
-    'Mar16': '2016/03/09 10:00:00',
-    'Apr16': '2016/04/08 10:00:00',
-    'May16': '2016/05/07 10:00:00',
-    'Jun16': '2016/06/05 10:00:00',
-    'Jul16': '2016/07/05 10:00:00',
-    'Aug16': '2016/08/03 10:00:00',
+#    'Dec15': '2015/12/11 10:00:00',
+#    'Jan16': '2016/01/09 10:00:00',
+#    'Feb16': '2016/03/08 10:00:00',
+#    'Mar16': '2016/03/09 10:00:00',
+#    'Apr16': '2016/04/08 10:00:00',
+#    'May16': '2016/05/07 10:00:00',
+#    'Jun16': '2016/06/05 10:00:00',
+#    'Jul16': '2016/07/05 10:00:00',
+#    'Aug16': '2016/08/03 10:00:00',
     'Sep16': '2016/09/01 10:00:00',
-    'Oct16': '2016/10/01 10:00:00',
-    'Nov16': '2016/11/01 10:00:00',
-    'Dec16': '2016/12/01 10:00:00',
-    'Jan17': '2017/01/01 10:00:00',
+#    'Oct16': '2016/10/01 10:00:00',
+#    'Nov16': '2016/11/01 10:00:00',
+#    'Dec16': '2016/12/01 10:00:00',
+#    'Jan17': '2017/01/01 10:00:00',
     # 'Feb17': '2017/02/01 10:00:00',
     }
 
@@ -340,7 +340,7 @@ for block in blocks.keys():
             this_decc = decc + dy * height
             width = 1.007*math.radians(camera_width / math.cos(this_decc))
             ## set to a -ve instead of +ve for the 'fall'
-            rac = ephem.hours(ra_start - dx * width)
+            rac = ephem.hours(ra_start + dx * width)
             dec = math.degrees(this_decc)
             ra = math.degrees(rac)
             print "{} {} {}".format(rac, dec, math.degrees(width))
@@ -406,8 +406,8 @@ ax = fig.add_subplot(111)
 
 # xylims = [250, 195, -17, -4]  # all of A semester
 # xylims = [27, 3, -6, 17]  # H, L and low S blocks
-xylims = [26, 3, 0, 16]  # H, L and high S blocks
-# xylims = [54, 36, 12, 21]  # D block
+# xylims = [26, 3, 0, 16]  # H, L and high S blocks
+xylims = [60, 40, 12, 21]  # D block
 ax.set_xlim(xylims[0], xylims[1])  # ra_cen + width, ra_cen - width)
 ax.set_ylim(xylims[2], xylims[3])  # dec_cen - height, dec_cen + height)
 #ax.set_ylim(-30,30)
@@ -494,6 +494,8 @@ dates = {}
 
 ## build a list of dates that we will need field locations for.
 for month in newMoons:
+    if month != PLOT_FIELD_EPOCH:
+        continue
     for night in range(-8, 9):
         epoch = "%s.%s" % (month, string.zfill(night, 2))
         dates[epoch] = ephem.date(ephem.date(newMoons[month]) + night)
@@ -588,7 +590,7 @@ if PLOT_USNO_STARS:
     print "PLOTTING LOCATIONS NEARBY BRIGHT USNO B1 STARS"
     for ra in range(int(ra_cen - width), int(ra_cen + width), 10):
         for dec in range(int(dec_cen - height), int(dec_cen + height), 10):
-	    file_name = USER + "new_usno/usno{:5.2f}{:5.2f}.xml".format(ra, dec).replace(" ", "")
+	    file_name = USER + "/new_usno/usno{:5.2f}{:5.2f}.xml".format(ra, dec).replace(" ", "")
             print file_name
             file_name = file_name.replace(" ","")
 	    if not os.access(file_name, os.R_OK):
@@ -629,10 +631,11 @@ if PLOT_MEGACAM_ARCHIVE_FIELDS:
         print qra
         for qdec in xrange(int(xylims[2]), int(xylims[3]), 10):
             print qra, qdec
-            filename = USER + "new_usno/megacam{:+6.2f}{:+6.2f}.xml".format(qra, qdec)
+            filename = USER + "/new_usno/megacam{:6.2f}{:6.2f}.xml".format(qra, qdec)
             if not os.access(filename, os.R_OK):
                 # TAP query will max out silently if return table too large. Make small units.
                 data = megacam.TAPQuery(qra, qdec, 5.0, 10.0).read()
+                print data
                 # FIXME: add a catch for 503's when TAP fails when CADC drops connection
                 fobj = open(filename, 'w')
                 fobj.write(data)
