@@ -394,7 +394,7 @@ class SourceCutout(object):
                 date = Time(row['mjdate'], format='mjd').mpc
                 exptime = row['exptime']
                 filter_name = row['filter']
-                if filter_name in self.hdulist[-1].header['FILTER']:
+                if filter_name.lower() in self.hdulist[-1].header['FILTER'].lower():
                     filter_name = "* {:8s}".format(filter_name)
                 try:
                     fwhm = "{:5.2f}".format(float(storage.get_fwhm_tag(expnum, 22)))
@@ -403,7 +403,7 @@ class SourceCutout(object):
                 index += 1
                 comparison_image_list.append([index, expnum, date, exptime, filter_name, fwhm, None])
         self._comparison_image_list = Table(data=numpy.array(comparison_image_list),
-                                            names=["ID", "EXPNUM", "DATE-OBS", "FILTER", "EXPTIME", "FWHM", "REFERENCE"])
+                                            names=["ID", "EXPNUM", "DATE-OBS", "EXPTIME", "FILTER", "FWHM", "REFERENCE"])
         return self._comparison_image_list
 
 
