@@ -357,13 +357,24 @@ class VettingWorkUnit(CandidatesWorkUnit):
     A unit of work when performing the process candidates task.
     """
 
+
     def _create_writer(self):
         filename = self.get_output_filename()
         return StreamingVettingWriter(self.output_context.open(filename))
 
     def get_output_filename(self):
-        return self.get_filename().replace(tasks.get_suffix(tasks.VETTING_TASK),
-                                           tasks.get_suffix(tasks.EXAMINE_TASK))
+
+        suffix = tasks.get_suffix(tasks.VETTING_TASK)
+        try:
+            base_name = re.search("(?P<base_name>.*?)\.\d*{}".format(suffix), self.filename).group('base_name')
+        except:
+            base_name = os.path.splitext(self.filename)[0]
+        filename_pattern = self.output_context.get_full_path(
+            "{}.?{}".format(base_name, suffix))
+        file_count = len(glob(filename_pattern))
+        filename = self.output_context.get_full_path(
+            "{}.{}{}".format(base_name, file_count, suffix))
+        return filename
 
 
 class TracksWorkUnit(WorkUnit):
