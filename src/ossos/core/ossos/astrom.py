@@ -244,6 +244,7 @@ class StationaryParser(AstromParser):
         self.observations = []
         self.obs_list_regex = re.compile(STATIONARY_LIST_PATTERN)
         self.discovery_only = discovery_only
+        self.num_of_images_to_display = None
 
     def _parse_observation_list(self, filestr):
         pass
@@ -258,7 +259,11 @@ class StationaryParser(AstromParser):
         @return:
 
         """
-        pass
+        try:
+            self.num_of_images_to_display = int(filestr.split("\n")[0])
+        except:
+            pass
+
 
     def _parse_system_header(self, filestr):
         """
@@ -277,16 +282,20 @@ class StationaryParser(AstromParser):
             readings = []
             if not len(raw_source) > 0:
                 continue
+            if raw_source.strip()[0] == "!" or raw_source.strip()[0] == "#":
+                continue
             parts = raw_source.split()
             if not len(parts) > 5:
-                raise AstromFormatError("line in vetting file has too few elements in line: {}".format(raw_source))
+                if len(readings) > 0:
+                    raise AstromFormatError("line in vetting file has too few elements in line: {}".format(raw_source))
+                else:
+                    continue
             object_id = parts[0]
             ra = float(parts[1])
             dec = float(parts[2])
             file_ids = parts[3:]
             count = 0
             for file_id in file_ids:
-                count += 1
                 match_groups = re.match("(?P<expnum>\d{6,7})(?P<ftype>[ops])(?P<ccdnum>\d{2})", file_id)
                 assert match_groups is not None, "Failed to parse file_id in stationary line"
                 expnum = int(match_groups.group('expnum'))
@@ -296,11 +305,12 @@ class StationaryParser(AstromParser):
                 source_reading = SourceReading(-1, -1, -1, -1,
                                                ra, dec, -1, -1,
                                                observation,
-                                               discovery=count < 4
+                                               discovery=self.num_of_images_to_display is None or count < self.num_of_images_to_display
                                                )
                 source_reading.reference_sky_coord = source_reading.sky_coord
                 source_reading.object_id = object_id
                 readings.append(source_reading)
+                count += 1
             sources.append(readings)
         return sources
 
@@ -1119,7 +1129,7 @@ class VettingWriter(BaseAstromWriter):
     def _write_headers(self, observations, sys_header):
         pass
 
-    def _write_source(self, source):
+    def _write_source(self, source, comment=None, reject=False):
 
         readings = source.get_readings()
         line = "{} {} {}".format(readings[0].object_id,
@@ -1127,6 +1137,10 @@ class VettingWriter(BaseAstromWriter):
                                  readings[0].dec)
         for reading in source.get_readings():
             line += " {}".format(reading.obs.rawname)
+        if comment is not None:
+            self._write_line("# {}".format(comment))
+        if reject:
+            line = "! {}".format(line)
         self._write_line(line)
 
 
@@ -1143,7 +1157,7 @@ class StreamingVettingWriter(VettingWriter):
         self.sys_header = sys_header
         self._header_written = True
 
-    def write_source(self, source):
+    def write_source(self, source, comment=None, reject=False):
         """
         Writes out data for a single source.
         """
@@ -1151,5 +1165,5 @@ class StreamingVettingWriter(VettingWriter):
             observations = [reading.get_observation() for reading in source.get_readings()]
             self.write_headers(observations, self.sys_header)
 
-        self._write_source(source)
+        self._write_source(source, comment=comment, reject=reject)
 
