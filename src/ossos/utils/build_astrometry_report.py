@@ -7,7 +7,7 @@ import re
 import sys
 
 from ossos import mpc
-
+from ossos.gui import config
 
 def load_observations((observations, regex, rename), path, filenames):
     """
@@ -163,7 +163,13 @@ auto-magical way.
     observations = []
     for name in report_observations:
         observations.extend(report_observations[name])
-    outfile.write(mpc.make_tnodb_header(observations))
+
+
+    app_config = config.AppConfig()
+    outfile.write(mpc.make_tnodb_header(observations, observers=app_config.read("OBSERVERS"),
+                                        measurers=app_config.read("MEASURERS"),
+                                        telescope=app_config.read("TELESCOPE"),
+                                        astrometric_network=app_config.read("ASTROMETRIC_NETWORK")))
     outfile.write("\n")
 
     for name in report_observations:

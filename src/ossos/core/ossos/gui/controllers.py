@@ -544,10 +544,32 @@ class ProcessCandidatesController(AbstractController):
 class ProcessVettingController(ProcessCandidatesController):
 
     def on_accept(self):
-        source = self.model.get_current_source()
+        self.view.show_reject_source_dialog()
+
+
+    def on_reject(self):
+        writer = self.model.get_writer()
+        writer.write_source(self.model.get_current_source(), reject=True)
+
+        self.model.accept_current_item()
+        self.view.clear()
+        self.model.next_item()
+
+
+    def on_do_reject(self, comment):
+        """
+        Process the rejection of a vetting candidate, includes writing a comment to file.
+        @param comment:
+        @return:
+        """
+        self.view.close_reject_source_dialog()
+
+        # Set to None if blank
+        if len(comment.strip()) == 0:
+            comment = None
 
         writer = self.model.get_writer()
-        writer.write_source(self.model.get_current_source())
+        writer.write_source(self.model.get_current_source(), comment=comment, reject=False)
 
         self.model.accept_current_item()
         self.view.clear()
