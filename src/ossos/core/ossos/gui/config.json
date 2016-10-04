@@ -113,5 +113,16 @@
       "CAPTION": "All sources processed"
     },
     "APPTITLE": "Moving Object Pipeline"
-  }
+    },
+    "OBSERVERS": ["M. T. Bannister",
+                 "J. J. Kavelaars",
+                 "B. J. Gladman",
+                 "J.-M. Petit",
+                 "T. Burdullis"
+                 ],
+    "MEASURERS": ["S. D. J. Gwyn",
+                 "Y.-T. Chen."
+                 ],
+    "TELESCOPE": "CFHT 3.6m + CCD",
+    "ASTROMETRIC_NETWORK": "UCAC4"
 }

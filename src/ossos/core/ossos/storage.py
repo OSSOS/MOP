@@ -110,7 +110,7 @@ def get_detections(release='current'):
     return ascii.read(open_vos_or_local(filenames[0]).read(), header_start=-1)
 
 
-def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2):
+def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2, use_ssos=True):
     """Do a QUERY on the TAP service for all observations that are part of OSSOS (*P05/*P016)
     where taken after mjd and have calibration 'observable'.
 
@@ -126,6 +126,23 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2):
     @param mjdate: what data must the observation be take on.
     this is a CAOM2 parameter of CADC, 2 means calibrated data.
     """
+
+    if use_ssos:
+        SSOIS_SERVER = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/fixedssos.pl"
+        params = dict(pos="{0:f},{1:f}".format(ra.to(units.degree).value, dec.to(units.degree).value))
+        result = requests.get(SSOIS_SERVER, params=params)
+        table = ascii.read(result.text, format='tab')
+        table = table[table['Telescope/Instrument']=='CFHT/MegaCam']
+        map = {'Image': 'collectionID',
+               'Filter': 'filter',
+               'Exptime': 'exptime'}
+        # rename the columns
+        for key in map:
+            table[key].name=map[key]
+        table['collectionID'] = [ x[:-1] for x in table['collectionID']]
+        # compute the mjdate from the time string.
+        table['mjdate'] = Time(table['Date/Time']).mjd
+        return table
 
     data = dict(QUERY=(" SELECT Observation.observationID as collectionID, "
                        " Plane.time_bounds_lower AS mjdate, "
@@ -154,6 +171,7 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2):
             mjdate - 1 / 24.0)
 
     result = requests.get(TAP_WEB_SERVICE, params=data, verify=False)
+
     assert isinstance(result, requests.Response)
     logger.debug("Doing TAP Query using url: %s" % (str(result.url)))
 
