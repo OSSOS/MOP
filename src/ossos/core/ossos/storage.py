@@ -23,6 +23,7 @@ import util
 from astropy.time import Time
 from .gui import logger
 from .wcs import WCS
+from .gui.errorhandling import DownloadErrorHandler
 
 # Try and turn off warnings, only works for some releases of requests.
 try:
@@ -79,6 +80,21 @@ tags = {}
 APCOR_EXT = "apcor"
 ZEROPOINT_USED_EXT = "zeropoint.used"
 PSF_EXT = "psf.fits"
+
+
+class MyRequests(object):
+
+    def __init__(self):
+
+        self.requests = requests
+
+    def get(self, *args, **kwargs):
+        resp = self.requests.get(*args, **kwargs)
+        resp.raise_for_status()
+        return resp
+
+
+requests = MyRequests()
 
 
 def get_apcor(expnum, ccd, version='p', prefix=None):
@@ -172,7 +188,6 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2, 
 
     result = requests.get(TAP_WEB_SERVICE, params=data, verify=False)
 
-    assert isinstance(result, requests.Response)
     logger.debug("Doing TAP Query using url: %s" % (str(result.url)))
 
     table_reader = ascii.get_reader(Reader=ascii.Basic)
@@ -712,8 +727,12 @@ def ra_dec_cutout(uri, sky_coord, radius):
     resp = requests.get(url, params, auth=vospace.authentication)
     fobj = cStringIO.StringIO(resp.content)
     fobj.seek(0)
-    hdulist = fits.open(fobj)
-    hdulist.verify('silentfix+ignore')
+    try:
+        hdulist = fits.open(fobj)
+        hdulist.verify('silentfix+ignore')
+    except Exception as ex:
+        raise Error
+
     cutouts = decompose_content_decomposition(resp.headers.get('content-disposition', '0___'))
     logger.debug("Got cutout boundaries of: {}".format(cutouts))
     logger.debug("Initial Length of HDUList: {}".format(len(hdulist)))
