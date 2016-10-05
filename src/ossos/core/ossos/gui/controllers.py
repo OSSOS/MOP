@@ -544,7 +544,7 @@ class ProcessCandidatesController(AbstractController):
 class ProcessVettingController(ProcessCandidatesController):
 
     def on_accept(self):
-        self.view.show_reject_source_dialog()
+        self.view.show_vetting_accept_source_dialog()
 
 
     def on_reject(self):
@@ -556,7 +556,7 @@ class ProcessVettingController(ProcessCandidatesController):
         self.model.next_item()
 
 
-    def on_do_reject(self, comment):
+    def on_do_accept(self, comment):
         """
         WARNING WARNING:  THIS IS ACUTALLY on_do_accept BUT HACKED.
 

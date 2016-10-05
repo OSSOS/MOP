@@ -409,6 +409,17 @@ class RejectSourceDialog(SourceValidationDialog):
         self.controller.on_cancel_reject()
 
 
+class VettingSourceDialog(RejectSourceDialog):
+
+    TITLE = "Vetting Source Accept"
+
+    def _on_submit(self, event):
+        self.controller.on_do_accept(self.comment_text.GetValue())
+
+    def _on_cancel(self, event):
+        self.controller.on_cancel_accept()
+
+
 class KeyboardCompleteComboBox(wx.ComboBox):
     """
     A combo-box with read-only, preset values.  When the user types a key
