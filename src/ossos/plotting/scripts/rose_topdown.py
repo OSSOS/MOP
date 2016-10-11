@@ -16,14 +16,16 @@ set2 = brewer2mpl.get_map('Set2', 'qualitative', 8).mpl_colors
 rcParams['font.size'] = 12  # good for posters/slides
 rcParams['patch.facecolor'] = set2[0]
 
+block_labels = ['E', 'O', 'L', 'H', 'P', 'M', 'S', 'D']
 
 def top_down_SolarSystem(discoveries,
                          inner_limit=8,      # truncate at 8 AU to show that we don't have sensitivity in close
                          extent=75,          # extend to 75 AU as indicative only, sensitivity is to ~300 AU
                          plot_discoveries=None,
+                         plot_colossos=False,
                          plot_blocks=None,
                          plot_galaxy=False,
-                         future_blocks=None,
+                         feature_blocks=None,
                          plot_Ijiraq=False,  # detected Ijiraq at 9.80 AU in the 13AE block
                          label_blocks=True,
                          savefilename=None):
@@ -77,8 +79,12 @@ def top_down_SolarSystem(discoveries,
     for blockname, block in parameters.BLOCKS.items():
         if plot_blocks:
             if blockname in plot_blocks:
-                colour = 'b'
-                alpha = 0.1
+                if blockname in feature_blocks:
+                    colour = 'r' #'#E47833'
+                    alpha = 0.25
+                else:
+                    colour = 'b'
+                    alpha = 0.1
                 # cmap = plt.get_cmap('Blues')
                 # if blockname.endswith('AO'):
                 #     colour = '#E47833'
@@ -91,13 +97,6 @@ def top_down_SolarSystem(discoveries,
                     ax1.annotate(blockname[3], (ephem.hours(block["RA"]) + math.radians(0.36), extent - 3.), size=15,
                                  color='b')
 
-        if future_blocks:
-            if blockname.startswith('15BS') or blockname.startswith('15BD'):
-                plt.bar(ephem.hours(block["RA"]) - math.radians(3.5), extent,
-                        width=math.radians(7), bottom=8, color='#E47833', linewidth=0.1, alpha=0.17)
-                if label_blocks:
-                    ax1.annotate(blockname[3], (ephem.hours(block["RA"]) - math.radians(1.5), extent + 0.15), size=15,
-                                 color='r')
     # No optional on these just yet
     plot_planets_plus_Pluto(ax1)
     ra, dist, hlat, Hmag = parsers.synthetic_model_kbos(kbotype='resonant', arrays=True, maglimit=24.7)
@@ -106,7 +105,7 @@ def top_down_SolarSystem(discoveries,
                 edgecolor=plot_fanciness.ALMOST_BLACK, linewidth=0.1, alpha=0.12, zorder=1)
 
     if plot_discoveries is not None:
-        plot_ossos_discoveries(ax1, discoveries, plot_discoveries)
+        plot_ossos_discoveries(ax1, discoveries, plot_discoveries, plot_colossos=plot_colossos)
 
     # special detection in 13AE: Saturn's moon Ijiraq at 2013-04-09 shows inner limit of sensitivity.
     if plot_Ijiraq:
@@ -154,64 +153,62 @@ def plot_planets_plus_Pluto(ax, date=parameters.NEWMOONS[parameters.DISCOVERY_NE
     return
 
 
-def plot_ossos_discoveries(ax, discoveries, plot_discoveries, lpmag=False, split_plutinos=False):
+def plot_ossos_discoveries(ax, discoveries, plot_discoveries,
+                           plot_colossos=False, split_plutinos=False):
     """
-    these are all being plotted at their discovery locations now,
-    which are provided by the Version Releases in decimal hours.
+    plotted at their discovery locations, provided by the Version Releases in decimal degrees.
     """
-    # need to make this row-wise
-    fc = ['b', '#E47833', 'b']
-    alph = 0.85
-    marker = ['o', 'd', 'o']
-    size = [7, 11, 7]
+    fc = ['b', '#E47833', 'k']
+    alpha = [0.85, 0.6, 1.]
+    marker = ['o', 'd']
+    size = [7, 20]
 
-    if split_plutinos:
-        pl_index = np.where((discoveries['cl'] == 'res') & (discoveries['j'] == 3) & (discoveries['k'] == 2))
-        l = []
-        for k, n in enumerate(discoveries):
-            if k not in pl_index[0]:
-                l.append(k)
-        not_plutinos = discoveries[l]
-        plutinos = discoveries[pl_index]
+    plottable = []   # Which blocks' discoveries to include?
+    for d in discoveries:
+        for n in plot_discoveries:
+            if d['object'].startswith(n):  # can for sure be better, but this hack works. Need to get where going
+                plottable.append(d)
 
-        for j, d in enumerate([not_plutinos, plutinos]):
-            ra = [ephem.hours(str(n)) for n in d['ra_dis']]
-            ax.scatter(ra, d['dist'],
-                       marker=marker[j], s=size[j], facecolor=fc[j], edgecolor='w', linewidth=0.25,
-                       alpha=alph, zorder=2)  # original size=4.5
-
+    if plot_colossos:
+        fainter = []
+        colossos = []
+        for n in plottable:
+            if n['object'] in parameters.COLOSSOS:
+                colossos.append(n)
+            else:
+                fainter.append(n)
+        plot_ossos_points(fainter, ax, marker[0], size[0], fc[0], alpha[1], 1)
+        plot_ossos_points(colossos, ax, marker[1], size[1], fc[2], alpha[2], 2)
+    elif split_plutinos:
+        plutino_index = np.where((plottable['cl'] == 'res') & (plottable['j'] == 3) & (plottable['k'] == 2))
+        raise NotImplementedError
     else:
-        j = 0
-        plottable = []
-        for d in discoveries:
-            for n in plot_discoveries:
-                if d['object'].startswith(n):  # can for sure be better, but this hack works. Need to get where going
-                    plottable.append(d)
-        ra = [ephem.hours(str(n['ra_dis'])) for n in plottable]
-        dist = [n['dist'] for n in plottable]
-        ax.scatter(ra, dist,
-                   marker=marker[j], s=size[j], facecolor=fc[j], edgecolor='w', linewidth=0.25,
-                   alpha=alph, zorder=2)  # original size=4.5
-
-
-    # for obj in discoveries:
-    # if lpmag:
-    #         if obj.mag <= lpmag:  # show up the bright ones for Gemini LP
-    #             fc = 'r'
-    #     ra = ephem.hours(str(obj.ra_discov))
-    #     if (obj.classification == 'res' and obj.n == 3 and obj.m == 2):
-    #         print obj.name
-    #         ax.scatter(ra, obj.dist,
-    #                    marker='o', s=15 - obj.H, facecolor='#E47833', edgecolor='w', linewidth=0.4,
-    #                    alpha=alph)  # original size=4.5
-    #     else:
-    #         # scaling the size of marker by the absolute magnitude of each object (so size++ with --H, as needed).
-    #         ax.scatter(ra, obj.dist,
-    #                    marker='o', s=15 - obj.H, facecolor=fc, edgecolor='w', linewidth=0.4,
-    #                    alpha=alph)  # original size=4.5
+        plot_ossos_points(plottable, ax, marker[0], size[0], fc[0], alpha[0], 2)
 
     return
 
+def plot_ossos_points(data, ax, marker, size, fc, alpha, zorder):
+    ra = [ephem.degrees(str(n['RAdeg'])) for n in data]
+    dist = [n['dist'] for n in data]
+    ax.scatter(ra, dist,
+               marker=marker, s=size, facecolor=fc, edgecolor='w', linewidth=0.25,
+               alpha=alpha, zorder=zorder)  # original size=4.5
+
+    # for k, n in enumerate(discoveries):
+    #     for n in plot_discoveries:
+    #         if n['object'].startswith(n):
+    #     if n['object'] not in parameters.COLOSSOS:
+    #         faint_index.append(k)
+    #     else:
+    #         colossos_index.append(k)
+    # too_faint = discoveries[faint_index]
+    # colossos = discoveries[colossos_index]
+    #
+    # for j, d in enumerate([too_faint, colossos]):
+    #     ra = [ephem.degrees(str(n)) for n in d['RAdeg']]
+    #     ax.scatter(ra, d['dist'],
+    #                marker=marker[j], s=size[j], facecolor=fc[j], edgecolor='w', linewidth=0.25,
+    #                alpha=alph, zorder=2)  # original size=4.5
 
 def side_elevation_SolarSystem(date="2013/04/09 08:50:00"):
     fig = plt.figure(figsize=(6, 2))
@@ -312,7 +309,6 @@ def delta_a_over_a(discoveries):
 
 
 def ossos_sequence(discoveries):
-    block_labels = ['E', 'O', 'L', 'H', 'P', 'M', 'S', 'D']
     # Sky with reference rings and plutino model
     top_down_SolarSystem(discoveries, savefilename='1_reference')
     # Add a wedge for E and O
@@ -338,15 +334,35 @@ def ossos_sequence(discoveries):
                      plot_blocks=['13AE', '13AO', '13BL', '14BH', '15AM', '15AP', '15BS', '15BD'],
                      label_blocks=block_labels, savefilename='7_EOHLPMSD')
     # 8. Add P and M detections
-    top_down_SolarSystem(discoveries, plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h', 'o5p', 'O15AM'], plot_Ijiraq=True,
+    top_down_SolarSystem(discoveries, plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h', 'o5p', 'o5m'], plot_Ijiraq=True,
                      plot_blocks=['13AE', '13AO', '13BL', '14BH', '15AM', '15AP', '15BS', '15BD'],
-                     label_blocks=block_labels, savefilename='8_EOHLPM_detections')
+                     label_blocks=block_labels, savefilename='8_EOHLPM_discoveries')
+    # 9. Add S/T detections
+    top_down_SolarSystem(discoveries, plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h', 'o5p', 'o5m', 'o5s', 'o5t'], plot_Ijiraq=True,
+                         plot_blocks=['13AE', '13AO', '13BL', '14BH', '15AM', '15AP', '15BS', '15BD'],
+                         label_blocks=block_labels, savefilename='9_EOHLPMST_discoveries')
+    # 10. Add D detections
+    # top_down_SolarSystem(discoveries, plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h', 'o5p', 'o5m', 'o5s', 'o5t', 'O15BD'],
+    #                      plot_Ijiraq=True,
+    #                      plot_blocks=['13AE', '13AO', '13BL', '14BH', '15AM', '15AP', '15BS', '15BD'],
+    #                      label_blocks=block_labels, savefilename='9_EOHLPMSTD_discoveries')
+
+def colossos(discoveries):
+    top_down_SolarSystem(discoveries,
+                         plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h'],
+                         plot_Ijiraq=True,
+                         plot_blocks=['13AE', '13AO', '13BL', '14BH', '15AM', '15AP', '15BS', '15BD'],
+                         feature_blocks=['13AE', '13AO', '13BL', '14BH'],
+                         label_blocks=block_labels,
+                         plot_colossos=True,
+                         savefilename='colossos_highlighted')
 
 
 def main():
     # parsers.output_discoveries_for_animation()
     discoveries = parsers.ossos_release_parser(table=True)
-    ossos_sequence(discoveries)
+    # ossos_sequence(discoveries)
+    colossos(discoveries)
 
 # orbit_fit_residuals(discoveries)
 # delta_a_over_a(discoveries)
