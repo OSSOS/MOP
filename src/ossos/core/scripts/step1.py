@@ -89,6 +89,9 @@ def step1(expnum,
         flat_name = parts[0]
     flat_filename = storage.get_image(flat_name, ccd, version='', ext='fits', subdir='calibrators')
 
+    if os.access('weight.fits', os.R_OK):
+        os.unlink('weight.fits')
+
     if not os.access('weight.fits', os.R_OK):
         os.symlink(flat_filename, 'weight.fits')
 
@@ -169,11 +172,6 @@ def main(task='step1'):
 
     storage.DBIMAGES = args.dbimages
 
-    if args.ccd is None:
-        ccdlist = range(0, 36)
-    else:
-        ccdlist = [args.ccd]
-
     prefix = (args.fk and 'fk') or ''
     task = util.task()
     dependency = "mkpsf"
@@ -181,8 +179,16 @@ def main(task='step1'):
 
     exit_code = 0
     for expnum in args.expnum:
+        if args.ccd is None:
+           if int(expnum) < 1785619:
+              # Last exposures with 36 CCD Megaprime
+              ccdlist = range(0,36)
+           else:
+              # First exposrues with 40 CCD Megaprime
+              ccdlist = range(0, 40)
+        else:
+            ccdlist = [args.ccd]
         for ccd in ccdlist:
-            storage.set_logger(task, prefix, expnum, ccd, args.type, args.dry_run)
             try:
                 message = storage.SUCCESS
                 if not (args.force or args.dry_run) and storage.get_status(task, prefix, expnum, version, ccd):
@@ -192,14 +198,10 @@ def main(task='step1'):
                 if not storage.get_status(dependency, prefix, expnum, version, ccd) and not args.ignore:
                     raise IOError(35, "Cannot start {} as {} not yet completed for {}{}{}{:02d}".format(
                         task, dependency, prefix, expnum, version, ccd))
+                storage.set_logger(task, prefix, expnum, ccd, args.type, args.dry_run)
                 step1(expnum, ccd, prefix=prefix, version=version, dry_run=args.dry_run)
-            except CalledProcessError as cpe:
-                message = str(cpe)
-                exit_code = message
-            except Exception as e:
-                message = str(e)
-                exit_code = str(e)
-
+            except Exception as ex:
+                message = str(ex)
             logging.error("Error running step1_p: %s " % message)
 
             if not args.dry_run:
