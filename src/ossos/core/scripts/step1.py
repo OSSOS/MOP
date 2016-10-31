@@ -66,7 +66,7 @@ def step1(expnum,
     fwhm = storage.get_fwhm(expnum, ccd, prefix=prefix, version=version)
     basename = os.path.splitext(filename)[0]
 
-    logger.info(util.exec_prog(['step1jmp',
+    logging.info(util.exec_prog(['step1jmp',
                                  '-f', basename,
                                  '-t', str(wave_thresh),
                                  '-w', str(fwhm),
@@ -95,7 +95,7 @@ def step1(expnum,
     if not os.access('weight.fits', os.R_OK):
         os.symlink(flat_filename, 'weight.fits')
 
-    logger.info(util.exec_prog(['step1matt',
+    logging.info(util.exec_prog(['step1matt',
                                  '-f', basename,
                                  '-t', str(sex_thresh),
                                  '-w', str(fwhm),
@@ -165,18 +165,8 @@ def main(task='step1'):
     cmd_line = " ".join(sys.argv)
     args = parser.parse_args()
 
-    level = logging.CRITICAL
-    log_format = "%(message)s"
-    if args.debug:
-        log_format = "%(module)s: %(levelname)s: %(message)s"
-        level = logging.DEBUG
-    elif args.verbose:
-        level = logging.INFO
-
-    logger = logging.getLogger('ossos')
-    logger.setLevel(level)
-    logger.addHandler(logging.StreamHandler())
-    logger.info("Starting {}".format(cmd_line))
+    util.set_logger(args)
+    logging.info("Starting {}".format(cmd_line))
 
     storage.DBIMAGES = args.dbimages
 
@@ -200,7 +190,7 @@ def main(task='step1'):
             try:
                 message = storage.SUCCESS
                 if not (args.force or args.dry_run) and storage.get_status(task, prefix, expnum, version, ccd):
-                    logger.critical("{} completed successfully for {}{}{}{:02d}".format(
+                    logging.critical("{} completed successfully for {}{}{}{:02d}".format(
                         task, prefix, expnum, version, ccd))
                     continue
                 if not storage.get_status(dependency, prefix, expnum, version, ccd) and not args.ignore:
@@ -210,10 +200,11 @@ def main(task='step1'):
                 step1(expnum, ccd, prefix=prefix, version=version, dry_run=args.dry_run)
             except Exception as ex:
                 message = str(ex)
-                logging.error("Error running step1_p: %s " % message)
+                logging.error(message)
 
             if not args.dry_run:
                 storage.set_status(task, prefix, expnum, version, ccd, status=message)
+            logging.info(message)
     return exit_code
 
 
