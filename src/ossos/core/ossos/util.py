@@ -25,6 +25,18 @@ from astropy.time import TimeString
 
 MATCH_TOLERANCE = 100.0
 
+def set_logger(args):
+
+    level = logging.CRITICAL
+    log_format = "%(message)s"
+    if args.debug:
+        log_format = "%(module)s: %(levelname)s: %(message)s"
+        level = logging.DEBUG
+    elif args.verbose:
+        level = logging.INFO
+    logging.basicConfig(level=level, format=log_format, stream=logging.StreamHandler())
+    
+
 
 def task():
     return os.path.splitext(os.path.basename(sys.argv[0]))[0]
@@ -66,7 +78,10 @@ class VOFileHandler(handlers.BufferingHandler):
         """
         if self._stream is None:
             self._stream = tempfile.NamedTemporaryFile(delete=False)
-            self._stream.write(self.client.open(self.filename, view='data').read())
+            try:
+               self._stream.write(self.client.open(self.filename, view='data').read())
+            except:
+               pass
         return self._stream
 
     @property

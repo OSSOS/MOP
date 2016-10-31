@@ -23,11 +23,10 @@
 """Run the OSSOS makepsf proceedure"""
 
 import argparse
-import logging
 import os
 from subprocess import CalledProcessError
 import sys
-
+import logging
 from ossos import storage
 from ossos import util
 
@@ -43,6 +42,7 @@ def mkpsf(expnum, ccd, version, dry_run=False, prefix=""):
         storage.mkdir(destdir)
 
     ## get image from the vospace storage area
+    logging.info("Getting file from VOSpace")
     filename = storage.get_image(expnum, ccd, version=version, prefix=prefix)
     logging.info("Running mkpsf on %s %d" % (expnum, ccd))
     ## launch the makepsf script
@@ -77,7 +77,6 @@ def main(task='mkpsf'):
                         dest='ccd',
                         default=None,
                         help='which ccd to process, default is all')
-    parser.add_argument('--ignore-update-headers', action='store_true', dest='ignore_update_headers')
     parser.add_argument("--dbimages",
                         action="store",
                         default="vos:OSSOS/dbimages",
@@ -103,10 +102,7 @@ def main(task='mkpsf'):
 
     args = parser.parse_args()
 
-    if args.debug:
-        logging.basicConfig(level=logging.DEBUG)
-    elif args.verbose:
-        logging.basicConfig(level=logging.INFO)
+    util.set_logger(args)
 
     prefix = (args.fk and 'fk') or ''
     task  = util.task()
@@ -126,14 +122,14 @@ def main(task='mkpsf'):
         else:
            ccdlist = [args.ccd]
         for ccd in ccdlist:
-            storage.set_logger(task,
-                               prefix, expnum, ccd, args.type, args.dry_run)
             if storage.get_status(task, prefix, expnum, version=args.type, ccd=ccd) and not args.force:
                 logging.info("{} completed successfully for {} {} {} {}".format(task, prefix, expnum, args.type, ccd))
                 continue
+            storage.set_logger(task,
+                               prefix, expnum, ccd, args.type, args.dry_run)
             message = 'success'
             try:
-                if not storage.get_status(dependency, prefix, expnum, "p", 36) and not args.ignore_update_headers:
+                if not storage.get_status(dependency, prefix, expnum, "p", ccd=ccd):
                     raise IOError("{} not yet run for {}".format(dependency, expnum))
                 mkpsf(expnum, ccd, args.type, args.dry_run, prefix=prefix)
                 if args.dry_run:
