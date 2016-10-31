@@ -9,6 +9,8 @@ from string import upper
 import tempfile
 import logging
 import warnings
+
+import time
 from astropy.coordinates import SkyCoord
 from astropy.io import ascii
 from astropy import units
@@ -23,7 +25,7 @@ import util
 from astropy.time import Time
 from .gui import logger
 from .wcs import WCS
-from .gui.errorhandling import DownloadErrorHandler
+# from .gui.errorhandling import DownloadErrorHandler
 
 # Try and turn off warnings, only works for some releases of requests.
 try:
@@ -59,9 +61,9 @@ class Wrapper(object):
         orig_attr = self.wrapped_class.__getattribute__(attr)
         if callable(orig_attr):
             def hooked(*args, **kwargs):
-                print "-->", orig_attr, args, kwargs
+                print("-->", orig_attr, args, kwargs)
                 result = orig_attr(*args, **kwargs)
-                print "<--", type(result)
+                print("<--", type(result))
                 return result
             return hooked
         else:
@@ -456,7 +458,7 @@ class Task(object):
         Get the string representation of the tag used to annotate the status in VOSpace.
         @return: str
         """
-        return "{}{}_{}{}{:02d}".format(self.target.prefix,
+        return "{}{}_{}{:02d}".format(self.target.prefix,
                                         self,
                                         self.target.version,
                                         self.target.ccd)
@@ -656,7 +658,7 @@ def _cutout_expnum(observation, sky_coord, radius):
     for hdu in hdulist[1:]:
         cutout = cutouts.pop(0)
         if 'ASTLEVEL' not in hdu.header:
-            print "WARNING: ******* NO ASTLEVEL KEYWORD ********** for {0} ********".format(observation.get_image_uri)
+            print("WARNING: ******* NO ASTLEVEL KEYWORD ********** for {0} ********".format(observation.get_image_uri))
             hdu.header['ASTLEVEL'] = 0
         hdu.header['EXTNO'] = cutout[0]
         naxis1 = hdu.header['NAXIS1']
@@ -731,7 +733,7 @@ def ra_dec_cutout(uri, sky_coord, radius):
         hdulist = fits.open(fobj)
         hdulist.verify('silentfix+ignore')
     except Exception as ex:
-        raise Error
+        raise ex
 
     cutouts = decompose_content_decomposition(resp.headers.get('content-disposition', '0___'))
     logger.debug("Got cutout boundaries of: {}".format(cutouts))
@@ -751,7 +753,7 @@ def ra_dec_cutout(uri, sky_coord, radius):
     for hdu in hdulist[1:]:
         cutout = cutouts.pop(0)
         if 'ASTLEVEL' not in hdu.header:
-            print "******* NO ASTLEVEL ****************** for {0} ********".format(uri)
+            print("******* NO ASTLEVEL ****************** for {0} ********".format(uri))
             hdu.header['ASTLEVEL'] = 0
         hdu.header['EXTNO'] = cutout[0]
         hdu.header['DATASEC'] = reset_datasec("[{}:{},{}:{}]".format(cutout[1],
@@ -889,7 +891,11 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
             logger.debug("{}".format(type(e)))
             logger.debug("Failed to open {} cutout:{}".format(uri, cutout))
             logger.debug("vos sent back error: {} code: {}".format(str(e), getattr(e, 'errno', 0)))
-    raise IOError(errno.ENOENT, "Failed to get image using {} {} {} {}.".format(expnum, version, ccd, cutout))
+
+    time.sleep(5)
+    return get_image(expnum, ccd=ccd, version=version, ext=ext,
+                     subdir=subdir, prefix=prefix, cutout=cutout, return_file=return_file, flip_image=flip_image)
+    # raise IOError(errno.ENOENT, "Failed to get image using {} {} {} {}.".format(expnum, version, ccd, cutout))
 
 
 def datasec_to_list(datasec):
@@ -1011,7 +1017,7 @@ def get_hdu(uri, cutout=None):
             except Exception as ex:
                 logger.error("Failed trying to initialize the WCS: {}".format(ex))
     except Exception as ex:
-        print ex
+        print(ex)
         raise ex
     return hdu_list
 
