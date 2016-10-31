@@ -41,7 +41,7 @@ L7MODEL = 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
 REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/Research/KuiperBelt/OSSOS/dbaseclone/ast'
 #REAL_KBO_AST_DIR = os.path.join(USER, 'Dropbox/OSSOS/measure3/ossin/')
 
-PLOT_FIELD_EPOCH = 'Sep16'  # Oct14.00 ==> '0' days since the New Moon on Oct14
+PLOT_FIELD_EPOCH = 'Oct16'  # Oct14.00 ==> '0' days since the New Moon on Oct14
 #TODO the .00 is appended when this variable is used as a keyword that needs that .00 this is bad.
 DISCOVERY_NEW_MOON = 'Nov15'  # this is the date that the RA/DEC in blocks corresponds to.
 
@@ -228,7 +228,7 @@ newMoons = {
 #    'Jul16': '2016/07/05 10:00:00',
 #    'Aug16': '2016/08/03 10:00:00',
     'Sep16': '2016/09/01 10:00:00',
-#    'Oct16': '2016/10/01 10:00:00',
+    'Oct16': '2016/10/01 10:00:00',
 #    'Nov16': '2016/11/01 10:00:00',
 #    'Dec16': '2016/12/01 10:00:00',
 #    'Jan17': '2017/01/01 10:00:00',
@@ -496,7 +496,7 @@ dates = {}
 for month in newMoons:
     if month != PLOT_FIELD_EPOCH:
         continue
-    for night in range(-8, 9):
+    for night in range(-9, 9):
         epoch = "%s.%s" % (month, string.zfill(night, 2))
         dates[epoch] = ephem.date(ephem.date(newMoons[month]) + night)
         seps[epoch] = {'dra': 0, 'ddec': 0}

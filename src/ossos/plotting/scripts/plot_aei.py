@@ -18,9 +18,9 @@ def full_aei(data_release, icut=False, aiq=False):
     fig.subplots_adjust(hspace=0.25)
 
     ymin = -0.001
-    orbit_classes = ['cen', 'cla', 'res', 'sca', 'det', 'xxx']
+    orbit_classes = ['cen', 'cla', 'res', 'sca', 'det', 'jc', 'xxx']
     colmap = palettable.wesanderson.Zissou_5.mpl_colors
-    col = [colmap[4]] + colmap[0:4] + ['m']
+    col = [colmap[4]] + colmap[0:4] + ['m'] + ['k']
 
     if parameters.RELEASE_VERSION == '4':
         # don't want uncharacterised for this plot
@@ -119,8 +119,10 @@ def full_aei(data_release, icut=False, aiq=False):
 
     handles, labels = ax[2].get_legend_handles_labels()
     # handles.append(mlines.Line2D([], [], marker='*', color=col[0], alpha=cold_alpha, linestyle=None))
-    labels = ['centaurs', 'classical', 'resonant', 'scattering', 'detached', 'unclassified']#, 'o3e45']
-    ax[0].legend(handles, labels, loc='upper right', numpoints=1, fontsize='small')
+    labels = ['centaurs', 'classical', 'resonant', 'scattering', 'detached', 'unclassified', 'Jupiter-coupled']#, 'o3e45']
+    #print len(handles)
+    #print len(labels)
+    #ax[0].legend(handles, labels, loc='upper right', numpoints=1, fontsize='small')
 
     plt.xlabel('semimajor axis (AU)')
 

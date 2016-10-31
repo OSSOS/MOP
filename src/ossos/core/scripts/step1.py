@@ -66,7 +66,7 @@ def step1(expnum,
     fwhm = storage.get_fwhm(expnum, ccd, prefix=prefix, version=version)
     basename = os.path.splitext(filename)[0]
 
-    logging.info(util.exec_prog(['step1jmp',
+    logger.info(util.exec_prog(['step1jmp',
                                  '-f', basename,
                                  '-t', str(wave_thresh),
                                  '-w', str(fwhm),
@@ -95,11 +95,14 @@ def step1(expnum,
     if not os.access('weight.fits', os.R_OK):
         os.symlink(flat_filename, 'weight.fits')
 
-    logging.info(util.exec_prog(['step1matt',
+    logger.info(util.exec_prog(['step1matt',
                                  '-f', basename,
                                  '-t', str(sex_thresh),
                                  '-w', str(fwhm),
                                  '-m', str(maxcount)]))
+
+    if os.access('weight.fits', os.R_OK):
+        os.unlink('weight.fits')
 
     obj_uri = storage.get_uri(expnum, ccd, version=version, ext='obj.matt',
                               prefix=prefix)
@@ -158,6 +161,8 @@ def main(task='step1'):
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--dry-run", action="store_true", help="Do a dry run, not changes to vospce, implies --force")
 
+
+    cmd_line = " ".join(sys.argv)
     args = parser.parse_args()
 
     level = logging.CRITICAL
@@ -168,7 +173,10 @@ def main(task='step1'):
     elif args.verbose:
         level = logging.INFO
 
-    logging.basicConfig(level=level, format=log_format)
+    logger = logging.getLogger('ossos')
+    logger.setLevel(level)
+    logger.addHandler(logging.StreamHandler())
+    logger.info("Starting {}".format(cmd_line))
 
     storage.DBIMAGES = args.dbimages
 
@@ -192,7 +200,7 @@ def main(task='step1'):
             try:
                 message = storage.SUCCESS
                 if not (args.force or args.dry_run) and storage.get_status(task, prefix, expnum, version, ccd):
-                    logging.critical("{} completed successfully for {}{}{}{:02d}".format(
+                    logger.critical("{} completed successfully for {}{}{}{:02d}".format(
                         task, prefix, expnum, version, ccd))
                     continue
                 if not storage.get_status(dependency, prefix, expnum, version, ccd) and not args.ignore:
@@ -202,7 +210,7 @@ def main(task='step1'):
                 step1(expnum, ccd, prefix=prefix, version=version, dry_run=args.dry_run)
             except Exception as ex:
                 message = str(ex)
-            logging.error("Error running step1_p: %s " % message)
+                logging.error("Error running step1_p: %s " % message)
 
             if not args.dry_run:
                 storage.set_status(task, prefix, expnum, version, ccd, status=message)
