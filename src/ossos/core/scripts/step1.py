@@ -87,7 +87,10 @@ def step1(expnum,
         flat_name = os.path.splitext(parts[0])[0]
     else:
         flat_name = parts[0]
-    flat_filename = storage.get_image(flat_name, ccd, version='', ext='fits', subdir='calibrators')
+    try:
+        flat_filename = storage.get_image(flat_name, ccd, version='', ext='fits', subdir='calibrators')
+    except:
+        flat_filename = storage.get_image(flat_name, ccd, version='', ext='fits', subdir='old_calibrators')
 
     if os.access('weight.fits', os.R_OK):
         os.unlink('weight.fits')
