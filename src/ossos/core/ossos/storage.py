@@ -876,6 +876,8 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
         locations.append((uri, cutout))
         uri = get_uri(expnum, ccd, version, ext=ext + ".fz", subdir=subdir, prefix=prefix)
         locations.append((uri, cutout))
+
+    err = errno.EFAULT
     while len(locations) > 0:
         (uri, cutout) = locations.pop(0)
         try:
@@ -887,15 +889,17 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
             else:
                 return hdu_list
         except Exception as e:
+            err = getattr(e, 'errno', errno.EAGAIN)
             logging.warning("Failed to get image using: {}{}".format(uri, cutout))
             logger.debug("{}".format(type(e)))
             logger.debug("Failed to open {} cutout:{}".format(uri, cutout))
             logger.debug("vos sent back error: {} code: {}".format(str(e), getattr(e, 'errno', 0)))
 
-    time.sleep(5)
-    return get_image(expnum, ccd=ccd, version=version, ext=ext,
+    if err == errno.EAGAIN:
+        time.sleep(5)
+        return get_image(expnum, ccd=ccd, version=version, ext=ext,
                      subdir=subdir, prefix=prefix, cutout=cutout, return_file=return_file, flip_image=flip_image)
-    # raise IOError(errno.ENOENT, "Failed to get image using {} {} {} {}.".format(expnum, version, ccd, cutout))
+    raise IOError(err, "Failed to get image using {} {} {} {}.".format(expnum, version, ccd, cutout))
 
 
 def datasec_to_list(datasec):
