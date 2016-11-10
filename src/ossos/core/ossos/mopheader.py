@@ -42,6 +42,7 @@ class MOPHeader(fits.Header):
                              'CHIPNUM',
                              'DETECTOR',
                              'MJD-OBSC']
+        self.mop_comments = {'MJD-OBSC': "MJD at observation center time"}
 
         self._DET_X_CEN = 11604.5
         self._DET_Y_CEN = 9681
@@ -52,14 +53,23 @@ class MOPHeader(fits.Header):
 
         for keyword in self.mop_keywords:
             try:
-                self[keyword] = self.__getattribute__(keyword.lower().replace("-", "_"))
+                comment = self.comments[keyword]
+            except:
+                comment = self.mop_comments.get(keyword, None)
+            try:
+  
+                self[keyword] = (self.__getattribute__(keyword.lower().replace("-", "_")), comment)
             except Exception as ex:
-                logging.debug("Failed to build mopkeyword: {} -> {} using default".format(keyword, ex))
+                
+                print("Failed to build mopkeyword: {} -> {} using default".format(keyword, ex))
                 pass
 
         for keyword in self.keys():
             if keyword not in self.mop_keywords:
-                self.__delitem__(keyword)
+                try:
+                   self.__delitem__(keyword)
+                except:
+                   pass
         self['MOP_VER'] = 1.21
 
     def writeto(self, filename, **kwargs):
@@ -210,3 +220,4 @@ if __name__ == '__main__':
     import sys
 
     main(sys.argv[1])
+    

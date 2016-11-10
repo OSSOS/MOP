@@ -544,7 +544,7 @@ class ProcessCandidatesController(AbstractController):
 class ProcessVettingController(ProcessCandidatesController):
 
     def on_accept(self):
-        self.view.show_reject_source_dialog()
+        self.view.show_vetting_accept_source_dialog()
 
 
     def on_reject(self):
@@ -556,8 +556,13 @@ class ProcessVettingController(ProcessCandidatesController):
         self.model.next_item()
 
 
-    def on_do_reject(self, comment):
+    def on_do_accept(self, comment):
         """
+        WARNING WARNING:  THIS IS ACUTALLY on_do_accept BUT HACKED.
+
+        TODO:  Make it so that we have a short 'vetting' accept dialogue.  Current accept dialogue too heavy for
+        this part of process, thus the hack.
+
         Process the rejection of a vetting candidate, includes writing a comment to file.
         @param comment:
         @return:

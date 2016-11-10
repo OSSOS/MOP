@@ -10,6 +10,7 @@ import subprocess
 import time
 import sys
 import six
+import tempfile
 
 try:
     from astropy._erfa import d2dtf
@@ -23,6 +24,18 @@ from astropy.time import TimeString
 
 
 MATCH_TOLERANCE = 100.0
+
+def set_logger(args):
+
+    level = logging.CRITICAL
+    log_format = "%(message)s"
+    if args.debug:
+        log_format = "%(module)s: %(levelname)s: %(message)s"
+        level = logging.DEBUG
+    elif args.verbose:
+        level = logging.INFO
+    logging.basicConfig(level=level, format=log_format, stream=logging.StreamHandler())
+    
 
 
 def task():
@@ -54,13 +67,29 @@ class VOFileHandler(handlers.BufferingHandler):
     def __init__(self, filename, vos_client=None):
         self.filename = filename
         self._client = vos_client
-        self.stream = None
+        self._stream = None
         super(VOFileHandler, self).__init__(1024*1024)
+
+    @property
+    def stream(self):
+        """
+        the stream to write the log content too.
+        @return:
+        """
+        if self._stream is None:
+            self._stream = tempfile.NamedTemporaryFile(delete=False)
+            try:
+               self._stream.write(self.client.open(self.filename, view='data').read())
+            except:
+               pass
+        return self._stream
 
     @property
     def client(self):
         """
         Send back the client we were sent, or construct a default one.
+
+        @rtype vospace.client
         """
         if self._client is not None:
             return self._client
@@ -74,40 +103,18 @@ class VOFileHandler(handlers.BufferingHandler):
         self.flush()
         try:
             if self.stream is not None:
+                self.stream.flush()
+                _name = self.stream.name
                 self.stream.close()
+                self.client.copy(_name, self.filename)
                 self.stream = None
         except:
             pass
 
     def flush(self):
-        if self.stream is None:
-            self.stream = self._open()
         for record in self.buffer:
             self.stream.write("{}\n".format(self.format(record)))
         self.buffer = []
-
-    def _open(self):
-        """
-        Open the current base file with the (original) mode
-        Return the resulting stream.
-        """
-        try:
-            if self.stream.closed:
-                return self.stream
-        except AttributeError:
-            pass
-
-        buff = None
-        try:
-            buff = self.client.open(self.filename, view='data').read()
-        except:
-            pass
-
-        stream = self.client.open(self.filename, os.O_WRONLY)
-        if buff is not None:
-            stream.write(buff)
-
-        return stream
 
 
 def get_pixel_bounds_from_datasec_keyword(datasec):
