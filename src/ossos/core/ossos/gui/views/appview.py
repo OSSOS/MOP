@@ -11,7 +11,7 @@ from keybinds import KeybindManager
 from loading import WaitingGaugeDialog
 from mainframe import MainFrame
 from menu import Menu
-from validation import AcceptSourceDialog, RejectSourceDialog, OffsetSourceDialog
+from validation import AcceptSourceDialog, RejectSourceDialog, OffsetSourceDialog, VettingSourceDialog
 
 
 def guithread(function):
@@ -233,6 +233,18 @@ class ApplicationView(object):
         if self.accept_source_dialog is not None:
             self.accept_source_dialog.Close()
             self.accept_source_dialog = None
+
+    @guithread
+    def show_vetting_accept_source_dialog(self):
+        self.vetting_source_dialog = VettingSourceDialog(
+            self.mainframe, self.controller)
+        self.vetting_source_dialog.ShowModal()
+
+    @guithread
+    def close_vetting_accept_source_dialog(self):
+        if self.vetting_source_dialog is not None:
+            self.vetting_source_dialog.Close()
+            self.vetting_source_dialog = None
 
     @guithread
     def show_reject_source_dialog(self):

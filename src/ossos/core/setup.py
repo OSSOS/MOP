@@ -9,7 +9,6 @@ dependencies = ['pyraf >= 2.1.1',
                 'astropy >= 0.2.5',
                 'vos >= 2.0',
                 'ephem',
-                'pyOpenSSL',
                 'numpy >= 1.6.1',
                 'wxPython >= 3.0.0.0',
                 'matplotlib',
@@ -25,13 +24,14 @@ if sys.version_info[0] > 2:
     print 'The MOP package is only compatible with Python version 2.7+, not yet with 3.x'
     sys.exit(-1)
 
-# # Build the list of scripts to be installed.
-script_dir = 'tools'
+# # Build the list of tools and scripts to be installed.
+script_dirs = ['tools', 'scripts']
 scripts = []
-for script in os.listdir(script_dir):
-    if script[-1] in ["~", "#"]:
-        continue
-    scripts.append(os.path.join(script_dir, script))
+for script_dir in script_dirs:
+    for script in os.listdir(script_dir):
+        if script[-1] in ["~", "#"]:
+           continue
+        scripts.append(os.path.join(script_dir, script))
 
 
 setup(name='ossos',
