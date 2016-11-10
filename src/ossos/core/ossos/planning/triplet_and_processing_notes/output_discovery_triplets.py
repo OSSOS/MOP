@@ -17,9 +17,9 @@ with open('planning/triplet_and_processing_notes/{}_15B_discovery_expnums.txt'.f
 
     for triplet in infile.readlines():
         with open(outfile, 'a') as ofile:  # blank line between triplets
-            ofile.write('{}'.format(triplet.split(' ')[3]))
+            ofile.write('{}'.format(triplet.split()[3]))
 
-        for expnum in triplet.split(' ')[0:3]:
+        for expnum in triplet.split()[0:3]:
             # expnum, ra, dec, obs_end, mjd_middle, exptime (seconds)
             header = storage.get_header(storage.get_uri(expnum))
             # print header
