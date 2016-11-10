@@ -13,7 +13,7 @@ import numpy
 import pandas
 from ossos import (mpc, orbfit, parameters, storage)
 from ossos.planning.plotting.utils import square_fit_discovery_mag
-from ossos.planning.plotting.deluxe_table_formatter import deluxe_table_formatter
+from ossos.planning.plotting.deluxe_table_formatter import deluxe_table_formatter, extreme_tno_table_formatter
 __author__ = 'Michele Bannister   git:@mtbannister'
 
 
@@ -23,9 +23,9 @@ def ossos_release_parser(table=False, data_release=parameters.RELEASE_VERSION):
     """
     extra fun as this is space-separated so using CSV parsers is not an option
     """
-    names = ['cl', 'p', 'j', 'k', 'sh', 'object', 'mag', 'mag_E', 'F', 'H_sur', 'dist', 'dist_E', 'nobs',
-             'time', 'av_xres', 'av_yres', 'max_x', 'max_y', 'a', 'a_E', 'e', 'e_E', 'i', 'i_E', 'node', 'node_E',
-             'argperi', 'argperi_E', 'time_peri', 'time_peri_E', 'ra_dis', 'dec_dis', 'jd_dis', 'rate']#, 'eff', 'm_lim']
+    names = ['cl', 'p', 'j', 'k', 'sh', 'object', 'mag', 'e_mag', 'Filt', 'Hsur', 'dist', 'e_dist', 'Nobs',
+             'time', 'av_xres', 'av_yres', 'max_x', 'max_y', 'a', 'e_a', 'e', 'e_e', 'i', 'e_i', 'Omega', 'e_Omega',
+             'omega', 'e_omega', 'tperi', 'e_tperi', 'RAdeg', 'DEdeg', 'JD', 'rate']#, 'eff', 'm_lim']
 
     if table:
         retval = Table.read(parameters.RELEASE_DETECTIONS[data_release], format='ascii', guess=False,
@@ -85,7 +85,7 @@ def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
     retval = []
     # working_context = context.get_context(directory)
     # files = working_context.get_listing(suffix)
-    files = [f for f in os.listdir(directory) if (f.endswith('mpc') or f.endswith('ast'))]
+    files = [f for f in os.listdir(directory) if (f.endswith('mpc') or f.endswith('ast') or f.endswith('DONE'))]
 
     if single_object is not None:
         files = filter(lambda name: name.startswith(single_object), files)
@@ -244,14 +244,17 @@ def output_discoveries_for_animation():
                     obj.name, obj.a, obj.e, obj.i, obj.node, obj.argp, obj.M, obj.T, obj.H, obj.discovery_date))
 
 
-def round_sig_error(num, uncert):
+def round_sig_error(num, uncert, pm=False):
     """
     Return a string of the number and its uncertainty to the right sig figs via uncertainty's print methods.
     The uncertainty determines the sig fig rounding of the number.
     https://pythonhosted.org/uncertainties/user_guide.html
     """
     u = ufloat(num, uncert)
-    return '{:.1uLS}'.format(u)
+    if pm:
+        return '{:.1uL}'.format(u)
+    else:
+        return '{:.1uLS}'.format(u)
 
 
 def linesep(name, distinguish=None):
@@ -279,18 +282,19 @@ def linesep(name, distinguish=None):
     return midline
 
 
-def extract_mpc_designations(initial_id='o3'):
+def extract_mpc_designations(initial_id=['o3', 'o4', 'o5']):
     # Scrape the index file for MPC designations, if they exist
     idx = {}
     with open(parameters.IDX) as infile:
         lines = infile.readlines()
         for line in lines:
             key = line.split(' ')[0].split('\t')[0]
-            if key.startswith(initial_id):
+            if key[0:2] in initial_id:
+                mpcstr = ""
                 ls = line[14:].split(' ')
                 if len(ls) == 3:
                     ls = ls[1:]
-                mpcstr = "{} {}".format(ls[0], ls[1][0:2]) + r"$_{" + "{}".format(ls[1][2:].rstrip('\r\n')) + r"}$"
+                    mpcstr = "{} {}".format(ls[0], ls[1][0:2]) + r"$_{" + "{}".format(ls[1][2:].rstrip('\r\n')) + r"}$"
                 idx[key] = mpcstr
 
     return idx
@@ -313,18 +317,23 @@ def stddev_phot(observations):
     @param observations:
     @return: float
     """
-    return -9.99
+    return None
 
 
 def create_table(tnos, outfile, initial_id='o3'):
     # sort order gives Classical, Detached, Resonant, Scattered
     # Sort by discovery mag within each classification.
     tnos.sort(['cl', 'p', 'j', 'k', 'mag'])
+
+    tnos = [r for r in tnos if r['object'][0:3] in ['o3l', 'o4h', 'o5p', 'o5m']]  # hack for the next Core paper only
+
     # FIXME: add a catch if object doesn't yet have a MPC designation
-    idx = extract_mpc_designations(initial_id=initial_id)
+    idx = extract_mpc_designations()
 
     with deluxe_table_formatter(outfile) as ofile:
         for i, r in enumerate(tnos):
+            if r['object'][0:3] not in ['o3l', 'o4h', 'o5p', 'o5m']: # hack for the next Core paper only
+                continue
             # a labelled line separator heading for each new object classification type
             if r['p'] != tnos[i - 1]['p']:
                 if r['p'] == 'x':  # 'x' doesn't give enough info to set scattered or detached: go check
@@ -334,27 +343,28 @@ def create_table(tnos, outfile, initial_id='o3'):
 
             # Mag uncertainty is over the whole light curve. Uncharacterised objects might not have enough valid points.
             sigma_mag = stddev_phot(r['object'])
-            if not numpy.isnan(sigma_mag):
-                sigma_mag = '{:2.2f}'.format(sigma_mag)
-            else:
+            if sigma_mag is None:
                 sigma_mag = r'--'
+            else:
+                sigma_mag = '{:2.2f}'.format(sigma_mag)
 
             # Individual object discovery efficiency from the function based on its mag + motion rate at discovery
-            eff_at_discovery = square_fit_discovery_mag(r['object'], r['mag'], r['rate'])
+            # eff_at_discovery = square_fit_discovery_mag(r['object'], r['mag'], r['rate'])
+            eff_at_discovery = r'--'
 
             # mag +\- dmag, std dev of all clean photometry, efficiency function at that discovery mag
             # m +\- dm sigma_m eff_discov RA Dec a +\- da e +\- de i +\- di r +\- dr H +\- dH j k MPC obj status
-            out = "{} & {} & {:2.2f} & {:3.3f} & {} & {} & {} & {} & {} & {} & {} & {} & ".format(
-                round_sig_error(r['mag'], r['mag_E']),
+            out = "{} & {} & {} & {:3.3f} & {} & {} & {} & {} & {} & {} & {} & {} & ".format(
+                round_sig_error(r['mag'], r['e_mag']),
                 sigma_mag,
                 eff_at_discovery,
-                math.degrees(ephem.degrees(ephem.hours(str(r['ra_dis'])))),
-                r['dec_dis'],
-                round_sig_error(r['a'], r['a_E']),
-                round_sig_error(r['e'], r['e_E']),
-                round_sig_error(r['i'], r['i_E']),
-                round_sig_error(r['dist'], r['dist_E']),
-                r['H_sur'],
+                math.degrees(ephem.degrees(str(r['RAdeg']))),
+                r['DEdeg'],
+                round_sig_error(r['a'], r['e_a']),
+                round_sig_error(r['e'], r['e_e']),
+                round_sig_error(r['i'], r['e_i']),
+                round_sig_error(r['dist'], r['e_dist']),
+                r['Hsur'],
                 idx[r['object']],  # MPC designation is already formatted.
                 r['object']
             )
@@ -560,10 +570,41 @@ def mpcorb_getKBOs(mpc_file, cond='a > 30'):
 
     return kbos
 
+def create_extremetno_table(outfile):
+    tnos = Table.read('/Users/bannisterm/Dropbox/Papers_in_progress/OSSOS/high_q_uo3l91/results.csv',
+                      format='csv', data_start=1)
+    with extreme_tno_table_formatter(outfile) as ofile:
+        for r in tnos[::-1]:
+            # Name q a e i Ω ω π Arc Discovery
+            om_bar = r['om']+r['w']
+            if om_bar > 360:
+                om_bar = om_bar % 360.
+            out = "{} & {} & {} & {} & {:.1f} & {:.1f} & {:.1f} & {:.1f} & {} & ".format(
+                r['full_name'],
+                round_sig_error(r['q'], r['sigma_q'], pm=True),
+                round_sig_error(r['a'], r['sigma_a'], pm=True),
+                round_sig_error(r['e'], r['sigma_e'], pm=True),
+                r['i'],
+                r['om'],
+                r['w'],
+                # round_sig_error(r['e'], r['sigma_e'], pm=False),
+                # round_sig_error(r['i'], r['sigma_i'], pm=False),
+                # round_sig_error(r['om'], r['sigma_om'], pm=False),
+                # round_sig_error(r['w'], r['sigma_w'], pm=False),
+                om_bar,
+                r['data_arc'],
+            )
+            out += "  {} \n".format(r'\\')
+            ofile.write(out)
+
 
 
 if __name__ == '__main__':
+    # create_extremetno_table('extreme_tnos.tex')
+
     # ossos_release_parser(table=True)
+
     release_to_latex('v{}'.format(parameters.RELEASE_VERSION) + '_table.tex')
+
     # parse_subaru_mags()
     # block_table_pprint()
