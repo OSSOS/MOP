@@ -48,12 +48,13 @@ def plot_aq(data, path):
     astep = [n/4. for n in astep]
     astep.append(50)
     for n, da in enumerate(astep):
-            particles = data.query('a_end <= da*a_start')
-            print(da, len(particles))
-            plt.semilogx(particles.a_end, particles.q_end,
-                         color='b', alpha=0.3,
-                         marker='.', ms=2, linestyle='None', zorder=1,
-                         label='after 4 Gyr')
+        print n, da
+        particles = data.query('a_end <= @da*a_start')
+        print(da, len(particles))
+        plt.semilogx(particles.a_end, particles.q_end,
+                     color='b', alpha=0.3,
+                     marker='.', ms=2, linestyle='None', zorder=1,
+                     label='after 4 Gyr')
 
     diff_eqn = [diffusion(q) for q in xrange(ymin, ymax)]
     plt.plot(diff_eqn, xrange(ymin, ymax))
@@ -80,7 +81,7 @@ def plot_aq(data, path):
 
 
 if __name__ == '__main__':
-    path = '/Users/bannisterm/Dropbox/Papers_in_progress/OSSOS/high_q_uo3l91/'
+    path = '/Users/bannisterm/Dropbox/Papers_in_progress/OSSOS/high_q_uo3l91/data/'
 
     start, end = parse_nate_sims(path)
     survivors_at_start = start[start.id.isin(end.id)]

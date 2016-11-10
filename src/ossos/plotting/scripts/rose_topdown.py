@@ -8,6 +8,7 @@ from matplotlib.ticker import MultipleLocator
 import numpy as np
 import ephem
 import brewer2mpl
+from astropy import units
 
 from ossos import (parsers, parameters)
 from ossos.planning.plotting import plot_fanciness
@@ -19,8 +20,8 @@ rcParams['patch.facecolor'] = set2[0]
 block_labels = ['E', 'O', 'L', 'H', 'P', 'M', 'S', 'D']
 
 def top_down_SolarSystem(discoveries,
-                         inner_limit=8,      # truncate at 8 AU to show that we don't have sensitivity in close
-                         extent=75,          # extend to 75 AU as indicative only, sensitivity is to ~300 AU
+                         inner_limit=6,      # truncate at 8 AU to show that we don't have sensitivity in close
+                         extent=83,          # extend to 83 AU as indicative only, sensitivity is to ~300 AU
                          plot_discoveries=None,
                          plot_colossos=False,
                          plot_blocks=None,
@@ -54,7 +55,7 @@ def top_down_SolarSystem(discoveries,
     ax1.set_aspect('equal')
 
     ax1.set_rlim(0, extent)
-    ax1.set_rgrids([20, 40, 60], labels=["", "", '20 AU', '40 AU', '60 AU'], angle=190, alpha=0.45)  # angle = 308
+    ax1.set_rgrids([20, 40, 60, 80], labels=["", "", '20 au', '40 au', '60 au', '80 au'], angle=190, alpha=0.45)  # angle = 308
     ax1.yaxis.set_major_locator(MultipleLocator(20))
     ax1.xaxis.set_major_locator(MultipleLocator(math.radians(15)))  # every 2 hours
     ax1.grid(axis='x', color='k', linestyle='--', alpha=0.2)
@@ -79,8 +80,8 @@ def top_down_SolarSystem(discoveries,
     for blockname, block in parameters.BLOCKS.items():
         if plot_blocks:
             if blockname in plot_blocks:
-                if blockname in feature_blocks:
-                    colour = 'r' #'#E47833'
+                if feature_blocks is not None and blockname in feature_blocks:
+                    colour = 'm' #'#E47833'
                     alpha = 0.25
                 else:
                     colour = 'b'
@@ -161,13 +162,21 @@ def plot_ossos_discoveries(ax, discoveries, plot_discoveries,
     fc = ['b', '#E47833', 'k']
     alpha = [0.85, 0.6, 1.]
     marker = ['o', 'd']
-    size = [7, 20]
+    size = [7, 25]
 
     plottable = []   # Which blocks' discoveries to include?
     for d in discoveries:
         for n in plot_discoveries:
             if d['object'].startswith(n):  # can for sure be better, but this hack works. Need to get where going
                 plottable.append(d)
+
+    # Hack to get in the O15BD objects
+    directory_name = '/Users/bannisterm/Dropbox/OSSOS/measure3/ossin/D_tmp/'
+    kbos = parsers.ossos_discoveries(directory_name, all_objects=False, data_release=None)
+    for kbo in kbos:
+        plottable_kbo = {'RAdeg': kbo.discovery.coordinate.ra.to_string(unit=units.degree, sep=':'),
+                         'dist': kbo.orbit.distance.value}
+        plottable.append(plottable_kbo)
 
     if plot_colossos:
         fainter = []
@@ -180,12 +189,13 @@ def plot_ossos_discoveries(ax, discoveries, plot_discoveries,
         plot_ossos_points(fainter, ax, marker[0], size[0], fc[0], alpha[1], 1)
         plot_ossos_points(colossos, ax, marker[1], size[1], fc[2], alpha[2], 2)
     elif split_plutinos:
-        plutino_index = np.where((plottable['cl'] == 'res') & (plottable['j'] == 3) & (plottable['k'] == 2))
+        # plutino_index = np.where((plottable['cl'] == 'res') & (plottable['j'] == 3) & (plottable['k'] == 2))
         raise NotImplementedError
     else:
         plot_ossos_points(plottable, ax, marker[0], size[0], fc[0], alpha[0], 2)
 
     return
+
 
 def plot_ossos_points(data, ax, marker, size, fc, alpha, zorder):
     ra = [ephem.degrees(str(n['RAdeg'])) for n in data]
@@ -194,21 +204,6 @@ def plot_ossos_points(data, ax, marker, size, fc, alpha, zorder):
                marker=marker, s=size, facecolor=fc, edgecolor='w', linewidth=0.25,
                alpha=alpha, zorder=zorder)  # original size=4.5
 
-    # for k, n in enumerate(discoveries):
-    #     for n in plot_discoveries:
-    #         if n['object'].startswith(n):
-    #     if n['object'] not in parameters.COLOSSOS:
-    #         faint_index.append(k)
-    #     else:
-    #         colossos_index.append(k)
-    # too_faint = discoveries[faint_index]
-    # colossos = discoveries[colossos_index]
-    #
-    # for j, d in enumerate([too_faint, colossos]):
-    #     ra = [ephem.degrees(str(n)) for n in d['RAdeg']]
-    #     ax.scatter(ra, d['dist'],
-    #                marker=marker[j], s=size[j], facecolor=fc[j], edgecolor='w', linewidth=0.25,
-    #                alpha=alph, zorder=2)  # original size=4.5
 
 def side_elevation_SolarSystem(date="2013/04/09 08:50:00"):
     fig = plt.figure(figsize=(6, 2))
@@ -301,7 +296,7 @@ def delta_a_over_a(discoveries):
                 linewidth=0.15, alpha=0.5)
     plt.xlabel('arc length of orbit (days)')
     plt.ylabel('d(a)/a (percent)')
-    src.ossos.core.ossos.planning.plotting.plot_fanciness.remove_border()
+    plot_fanciness.remove_border()
     plt.draw()
     outfile = 'delta_a_over_a_13AE_corrected'
     plt.savefig(outfile + '.pdf', transparent=True)
@@ -310,42 +305,44 @@ def delta_a_over_a(discoveries):
 
 def ossos_sequence(discoveries):
     # Sky with reference rings and plutino model
-    top_down_SolarSystem(discoveries, savefilename='1_reference')
-    # Add a wedge for E and O
-    top_down_SolarSystem(discoveries, plot_blocks=['13AE', '13AO'],
-                         label_blocks=block_labels[0:2], savefilename='2_EO')
-    # 3. Add H and L wedges
-    top_down_SolarSystem(discoveries, plot_blocks=['13AE', '13AO', '13BL', '14BH'],
-                     label_blocks=block_labels[0:4], savefilename='3_EOHL')
-    # 4. Add E and O detections
-    top_down_SolarSystem(discoveries, plot_discoveries=['o3e', 'o3o'], plot_Ijiraq=True,
-                         plot_blocks=['13AE', '13AO', '13BL', '14BH'],
-                         label_blocks=block_labels[0:4], savefilename='4_EOHL_discoveries')
-    # 5. Add H and L detections
-    top_down_SolarSystem(discoveries, plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h'], plot_Ijiraq=True,
-                         plot_blocks=['13AE', '13AO', '13BL', '14BH'],
-                         label_blocks=block_labels[0:4], savefilename='5_EOHL_discoveries')
-    # 6. Add P and M wedges
-    top_down_SolarSystem(discoveries, plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h'], plot_Ijiraq=True,
-                     plot_blocks=['13AE', '13AO', '13BL', '14BH', '15AM', '15AP'],
-                     label_blocks=block_labels[0:6], savefilename='6_EOHLPM')
-    # 7. Add S and D wedges
-    top_down_SolarSystem(discoveries, plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h'], plot_Ijiraq=True,
-                     plot_blocks=['13AE', '13AO', '13BL', '14BH', '15AM', '15AP', '15BS', '15BD'],
-                     label_blocks=block_labels, savefilename='7_EOHLPMSD')
-    # 8. Add P and M detections
-    top_down_SolarSystem(discoveries, plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h', 'o5p', 'o5m'], plot_Ijiraq=True,
-                     plot_blocks=['13AE', '13AO', '13BL', '14BH', '15AM', '15AP', '15BS', '15BD'],
-                     label_blocks=block_labels, savefilename='8_EOHLPM_discoveries')
-    # 9. Add S/T detections
-    top_down_SolarSystem(discoveries, plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h', 'o5p', 'o5m', 'o5s', 'o5t'], plot_Ijiraq=True,
-                         plot_blocks=['13AE', '13AO', '13BL', '14BH', '15AM', '15AP', '15BS', '15BD'],
-                         label_blocks=block_labels, savefilename='9_EOHLPMST_discoveries')
-    # 10. Add D detections
-    # top_down_SolarSystem(discoveries, plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h', 'o5p', 'o5m', 'o5s', 'o5t', 'O15BD'],
-    #                      plot_Ijiraq=True,
+    # top_down_SolarSystem(discoveries, savefilename='1_reference')
+    # # Add a wedge for E and O
+    # top_down_SolarSystem(discoveries, plot_blocks=['13AE', '13AO'],
+    #                      label_blocks=block_labels[0:2], savefilename='2_EO')
+    # # 3. Add H and L wedges
+    # top_down_SolarSystem(discoveries, plot_blocks=['13AE', '13AO', '13BL', '14BH'],
+    #                  label_blocks=block_labels[0:4], savefilename='3_EOHL')
+    # # 4. Add E and O detections
+    # top_down_SolarSystem(discoveries, plot_discoveries=['o3e', 'o3o'], plot_Ijiraq=True,
+    #                      plot_blocks=['13AE', '13AO', '13BL', '14BH'],
+    #                      label_blocks=block_labels[0:4], savefilename='4_EOHL_discoveries')
+    # # 5. Add H and L detections
+    # top_down_SolarSystem(discoveries, plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h'], plot_Ijiraq=True,
+    #                      plot_blocks=['13AE', '13AO', '13BL', '14BH'],
+    #                      label_blocks=block_labels[0:4], savefilename='5_EOHL_discoveries')
+    # # 6. Add P and M wedges
+    # top_down_SolarSystem(discoveries, plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h'], plot_Ijiraq=True,
+    #                  plot_blocks=['13AE', '13AO', '13BL', '14BH', '15AM', '15AP'],
+    #                  label_blocks=block_labels[0:6], savefilename='6_EOHLPM')
+    # # 7. Add S and D wedges
+    # top_down_SolarSystem(discoveries, plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h'], plot_Ijiraq=True,
+    #                  plot_blocks=['13AE', '13AO', '13BL', '14BH', '15AM', '15AP', '15BS', '15BD'],
+    #                  label_blocks=block_labels, savefilename='7_EOHLPMSD')
+    # # 8. Add P and M detections
+    # top_down_SolarSystem(discoveries, plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h', 'o5p', 'o5m'], plot_Ijiraq=True,
+    #                  plot_blocks=['13AE', '13AO', '13BL', '14BH', '15AM', '15AP', '15BS', '15BD'],
+    #                  label_blocks=block_labels, savefilename='8_EOHLPM_discoveries')
+    # # 9. Add S/T detections
+    # top_down_SolarSystem(discoveries, plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h', 'o5p', 'o5m', 'o5s', 'o5t'], plot_Ijiraq=True,
     #                      plot_blocks=['13AE', '13AO', '13BL', '14BH', '15AM', '15AP', '15BS', '15BD'],
-    #                      label_blocks=block_labels, savefilename='9_EOHLPMSTD_discoveries')
+    #                      label_blocks=block_labels, savefilename='9_EOHLPMST_discoveries')
+    # 10. Add D detections
+    top_down_SolarSystem(discoveries,
+                         plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h', 'o5p', 'o5m', 'o5s', 'o5t', 'O15BD'],
+                         plot_Ijiraq=True,
+                         plot_blocks=['13AE', '13AO', '13BL', '14BH', '15AM', '15AP', '15BS', '15BD'],
+                         label_blocks=block_labels,
+                         savefilename='10_EOHLPMSTD_discoveries')
 
 def colossos(discoveries):
     top_down_SolarSystem(discoveries,
@@ -361,8 +358,8 @@ def colossos(discoveries):
 def main():
     # parsers.output_discoveries_for_animation()
     discoveries = parsers.ossos_release_parser(table=True)
-    # ossos_sequence(discoveries)
-    colossos(discoveries)
+    ossos_sequence(discoveries)
+    # colossos(discoveries)
 
 # orbit_fit_residuals(discoveries)
 # delta_a_over_a(discoveries)
