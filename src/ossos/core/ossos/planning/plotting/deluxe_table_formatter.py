@@ -51,6 +51,41 @@ footer = r"\enddata " + "\n" + \
          r"The full heliocentric orbital elements are available in electronic form from the Minor Planet Center.} " "\n" + \
          "\end{deluxetable} \n"
 
+extreme_header = r"\begin{deluxetable*}{lDDDDDDDD}" + '\n' + \
+                 r"\tablecolumns{10}" + '\n' + \
+                 r"\tablecaption{Heliocentric osculating orbital elements of known trans-Neptunian objects " \
+                 r"with $q > 40$ and $a > 160$ au for epoch MJD 57600" + '\n' + \
+                 r"\label{tab:orbits}"+ '\n' + \
+                 r"}"+ '\n' + \
+                 r"\tablehead{" \
+                 r"\colhead{Name} & " \
+                 r"\twocolhead{$q$} & " \
+                 r"\twocolhead{$a$} & " \
+                 r"\twocolhead{$e$} & " \
+                 r"\twocolhead{$i$} & " \
+                 r"\twocolhead{$\Omega$} & " \
+                 r"\twocolhead{$\omega$} & " \
+                 r"\twocolhead{Arc} & " \
+                 r"\twocolhead{Discovery} \\ " \
+                 r"\colhead{} & " \
+                 r"\twocolhead{(au)} & " \
+                 r"\twocolhead{(au)} & " \
+                 r"\twocolhead{} & " \
+                 r"\twocolhead{($^{\circ}$)} & " \
+                 r"\twocolhead{($^{\circ}$)} & " \
+                 r"\twocolhead{($^{\circ}$)} & " \
+                 r"\twocolhead{(days)}  & " \
+                 r"\twocolhead{survey} " \
+                 r"}"+ '\n' + \
+                 r"\startdata "+ '\n'
+
+extreme_footer = r"\enddata"+ '\n' + \
+                 r"\tablecomments{Orbital elements retrieved from JPL Horizons on 6 Oct 2016."+ '\n' + \
+                 r"$\Omega$ is the longitude of ascending node, $\omega$ the argument of perihelion. " \
+                 r"The uncertainties are the $1\sigma$ estimates based on the covariance matrix at the best-fit orbit.}" \
+                 r"\end{deluxetable*} "+ '\n'
+
+
 
 @contextmanager
 def deluxe_table_formatter(outfile):
@@ -60,4 +95,14 @@ def deluxe_table_formatter(outfile):
     yield ofile
 
     ofile.write(footer)
+    ofile.close()
+
+@contextmanager
+def extreme_tno_table_formatter(outfile):
+    ofile = open(outfile, 'w')
+    ofile.write(extreme_header)
+
+    yield ofile
+
+    ofile.write(extreme_footer)
     ofile.close()

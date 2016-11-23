@@ -27,6 +27,11 @@ def load_observations((observations, regex, rename), path, filenames):
         print os.path.join(path,filename)
         obs = mpc.MPCReader().read(os.path.join(path,filename))
         for ob in obs:
+            if rename:
+                new_provisional_name = os.path.basename(filename)
+                new_provisional_name = new_provisional_name[0:new_provisional_name.find(".")]
+                ob.provisional_name = new_provisional_name
+                # ob.comment.name = new_provisional_name
             key1 = ob.date.mjd
             key2 = ob.provisional_name 
             if key1 not in observations:
@@ -85,7 +90,7 @@ auto-magical way.
     parser.add_argument("--end_date", type=mpc.get_date,
                         help="Include observation taken on or before this date in report.")
     parser.add_argument("--replacement", action='store_true', help="select replacement lines")
-    parser.add_argument("--tolerance", default=.2,
+    parser.add_argument("--tolerance", default=.001,
                         help="tolerance (in arc-seconds) for two positions to be considered the same measurement")
     parser.add_argument("--COD",
                         default=568,
