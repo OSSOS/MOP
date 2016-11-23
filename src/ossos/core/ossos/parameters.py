@@ -9,7 +9,7 @@ L7MODEL = '/Users/bannisterm/Dropbox/OSSOS/Release_summaries/L7model-3.0-9.0'  #
 L7_HOME = '/Users/bannisterm/Dropbox/OSSOS/Release_summaries/'
 REAL_KBO_AST_DIR = '/Users/bannisterm/Dropbox/OSSOS/measure3/ossin/'
 # REAL_KBO_AST_DIR = 'vos:OSSOS/dbaseclone/ast/'
-RELEASE_VERSION = '8'
+RELEASE_VERSION = '9'
 
 first_quarter = '/Users/bannisterm/Dropbox/Papers in progress/OSSOS/First_quarter/'
 RELEASE_DETECTIONS = {
@@ -18,6 +18,8 @@ RELEASE_DETECTIONS = {
     '6': L7_HOME + 'v6.prototype.detections',
     '7': L7_HOME + 'v7/OSSOSv7.detections',
     '8': L7_HOME + 'OSSOSv8.prototype.detections',
+    '9': L7_HOME + 'OSSOSvJJ_noST.detections', # 'lhpm.detections',
+    '10': L7_HOME + 'OSSOSvJJ.detections'
 }
 
 IDX = REAL_KBO_AST_DIR + 'file.idx'  # for local  # 'vos:OSSOS/dbaseclone/idx/file.idx'  # for vos
@@ -89,7 +91,7 @@ NEWMOONS = {'Feb13': "2013/02/10 10:00:00",
             'Dec16': '2016/12/01 10:00:00',
             'Jan17': '2017/01/01 10:00:00',
             'Feb17': '2017/02/01 10:00:00',
-}
+            }
 
 # ORIGINAL: DON't USE, does not match the location of the data as pointed & taken!
 # Ablocks={'13AE': {"RA": "14:32:30.29","DEC":"-13:54:01.4"},
@@ -113,12 +115,12 @@ DISCOVERY_DATES = {"13AE": "2013/04/09 08:50:00",
                    "13AO": "2013/05/08 08:50:00",
                    "15AP": "2015/04/",
                    "15AM": "2015/05/24 09:06:53",  # 05/24 and 05/25.
-                                                   # Backup M triplet was on 2014/05/29, 2014/06/01 at diff block centre
+                   # Backup M triplet was on 2014/05/29, 2014/06/01 at diff block centre
                    "13BL": "2013/09/29 08:50:00",  # HOWEVER: discovery date is split between months (earliest)
                    "14BH": "2014/10/22 09:30:00",  # Note: Col3N triplet is instead 2014/01/03.
                    "15BS": "2015/09/09 08:50:00",  # both halves within a night: 09-08 and 09-09
                    "15BD": "2015/11/"
-}
+                   }
 
 DISCOVERY_NEW_MOON = 'Apr13'  # applies to the 13A blocks
 
@@ -130,7 +132,7 @@ OPPOSITION_DATES = {"13AE": NEWMOONS['Apr13'],
                     "14BH": NEWMOONS['Oct13'],
                     "15BS": NEWMOONS['Sep15'],
                     "15BD": NEWMOONS['Nov15'],
-}
+                    }
 
 OSSOS_FILTERS = ['R.MP9601',
                  'R.MP9602',
@@ -140,32 +142,45 @@ OSSOS_FILTERS = ['R.MP9601',
                  ]
 
 COLOSSOS = [
-    # the L block in the old money - will need to translate after v5 numbering
-    'O13BL3RB',  # o3l39
-    'O13BL3S3',  # o3l46
-    'O13BL3QX',  # o3l43
-    'O13BL3TF',  # o3l76
-    'O13BL3TA',  # o3l79
-    'O13BL3SN',  # o3l32
-    'O13BL3RE',  # o3l77
-    'O13BL3SY',  # o3l15
-    'O13BL3RN',  # o3l09
-    'O13BL3SW',  # o3l13PD
-    # 'O13BL3RT', # nfrL3RT : not found in the rerun. Excluded from characterised sample!
-    'O13BL3RQ',  # o3l01
-    'O13BL3SH',  # o3l06
-    'O13BL3R1',  # o3l18
-    'O13BL3RH',  # o3l57
+    # L-block
+    'o3l01',
+    'o3l06',
+    'o3l09',
+    'o3l13PD',
+    'o3l15',
+    'o3l18',
+    'o3l32',
+    'o3l39',
+    'o3l43',
+    'o3l46',
+    'o3l50',
+    'o3l57',
+    'o3l60',
+    'o3l63',
+    'o3l76',
+    'o3l77',
+    'o3l79',
+    'nfrL3RT',
 
-    # the H block so far has some
-    'Col3N01',
-    'Col3N02',
-    'Col3N03',
-    'Col3N05',
-    'Col3N06',
-    'Col3N07',
+    'o4h01',
+    'o4h03',
+    'o4h05',
+    'o4h07',
+    'o4h09',
+    'o4h11',
+    'o4h13',
+    'o4h14',
+    'o4h18',
+    'o4h19',
+    'o4h20',
+    'o4h29',
+    'o4h31',
+    'o4h39',
+    'o4h45',
+    'o4h48',
+    'o4h50',
 
-    # the O and E blocks ColOSSOS, will only ever be in these designations
+    # the O and E blocks
     'o3e11',
     'o3e38',
     'o3e45',  # stirred object
@@ -345,7 +360,7 @@ def apmag_at_absmag(H, d, phi=1):
     """
     d_observer = 1.  # 1 AU
     # approximate object's distance d_heliocentric and d_geocentric as the same, d, because TNO
-    m_r = H + 2.5 * math.log10((d**4)/(phi * d_observer**4))
+    m_r = H + 2.5 * math.log10((d ** 4) / (phi * d_observer ** 4))
     print("m_r = {:2.2f} for a H = {} TNO at {} AU at opposition.".format(
         m_r, H, d))
     return m_r
