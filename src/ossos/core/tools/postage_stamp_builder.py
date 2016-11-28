@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 #!python
 """Retrieval of cutouts of the FITS images associated with the OSSOS detections.
 
@@ -17,13 +19,12 @@ import os
 from astropy import units
 from astropy.units import Quantity
 from astropy.io import fits
-from ossos import mpc
-from ossos import storage
-from planning.plotting import parameters
+
+from ossos import (mpc, storage, parameters)
 
 
 def cutout(obj, obj_dir, radius):
-    print len([n for n in obj.mpc_observations if not n.null_observation])
+    print(len([n for n in obj.mpc_observations if not n.null_observation]))
     for obs in obj.mpc_observations:
         print('starting analysis of {}'.format(str(obs)))
         if obs.null_observation:
@@ -37,8 +38,9 @@ def cutout(obj, obj_dir, radius):
                 print('No comment in this MPC line!')
                 continue
             if not expnum.isdigit():
-                print('expnum {} parsed from comment line invalid. Check comment parsing.\n{}'.format(expnum, str(
-                    obs.comment)))
+                print('expnum {} parsed from comment line invalid. Check comment parsing.\n{}'.format(
+                    expnum, str(obs.comment))
+                )
                 continue
             uri = storage.get_uri(expnum)
             sky_coord = obs.coordinate  # Using the WCS rather than the X/Y (X/Y can be unreliable over the whole survey)
@@ -78,8 +80,8 @@ def main():
                              "holding the .ast files of astrometry/photometry measurements.")
     parser.add_argument("--blocks", "-b",
                         action="store",
-                        default=["o4h"],
-                        choices=["o3e", "o3o", "Col3N", 'o3l', 'o4h'],
+                        default=['o5s'],
+                        choices=["o3e", "o3o", "Col3N", 'o3l', 'o4h', 'o5s', 'o5t'],
                         help="Prefixes of object designations to include.")
     parser.add_argument("--radius", '-r',
                         # FIXME: figure out how to assign this a unit.degree before storage
@@ -98,7 +100,7 @@ def main():
     elif args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    for fn in storage.listdir(args.ossin):
+    for fn in os.listdir(args.ossin): # storage.listdir(args.ossin):
         for block in args.blocks:
             if fn.startswith(block):
                 obj = mpc.MPCReader(args.ossin + fn)
