@@ -13,11 +13,11 @@ client=Client()
 RA = 'RA_J2000'
 DEC = 'DE_J2000'
 del_keyword_list = []
-for line in file('junk_key.txt').readlines():
+pathname = os.path.dirname(os.path.realpath(__file__))
+for line in file(pathname+'/junk_key.txt').readlines():
     del_keyword_list.append(line.strip())
 
-#lines = file('OSSOS.explist').readlines()
-lines = sys.argv[1:]
+lines = file(sys.argv[1]).readlines()
 
 for line in lines:
     expnum = int(line.strip())
