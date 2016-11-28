@@ -7,6 +7,8 @@ import re
 import sys
 
 from ossos import mpc
+from astropy import units
+from astropy.coordinates.angles import Angle
 from ossos.gui import config
 
 def load_observations((observations, regex, rename), path, filenames):
@@ -98,6 +100,8 @@ auto-magical way.
                         help="Names of observers, multiple allowed")
 
     args = parser.parse_args()
+    print args.tolerance
+    tolerance = Angle(float(args.tolerance) * units.arcsec)
 
     logger = logging.getLogger('reporter')
     if args.q:
@@ -122,6 +126,7 @@ auto-magical way.
     for date1 in new_observations:
         for name1 in new_observations[date1]:
             observation1 = new_observations[date1][name1]
+            logger.warning("Checking {}".format(observation1.to_string()))
             assert isinstance(observation1, mpc.Observation)
             if (args.start_date is None or args.start_date.jd < new_observations[date1][name1].date.jd) \
                     and (args.end_date is None or args.end_date.jd > new_observations[date1][name1].date.jd):
@@ -132,14 +137,14 @@ auto-magical way.
                         observation2 = existing_observations[date1][name2]
                         assert isinstance(observation2, mpc.Observation)
                         separation = observation1.coordinate.separation(observation2.coordinate)
-                        if separation.arcsec < args.tolerance:
+                        if separation < tolerance:
                             if not idx.is_same(observation2.provisional_name, observation1.provisional_name):
-                                logger.warning(
-                                    "Duplicate observations >{}< on {} matches different provisional name >{}< on "
-                                    "same date".format(
+                                logger.warning("Duplicate observations:")
+				logger.warning(">{}< and >{}< seperated by only {} on {}".format(
                                         name1,
-                                        observation1.date,
-                                        name2))
+                                        name2,
+                                        separation,
+                                        observation1.date))
                                 logger.warning(str(observation1))
                                 logger.warning(str(observation2))
                             report = False
