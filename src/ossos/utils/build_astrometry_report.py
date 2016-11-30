@@ -34,7 +34,7 @@ def load_observations((observations, regex, rename), path, filenames):
                 new_provisional_name = new_provisional_name[0:new_provisional_name.find(".")]
                 ob.provisional_name = new_provisional_name
                 # ob.comment.name = new_provisional_name
-            key1 = ob.date.mjd
+            key1 = "{:.5f}".format(ob.date.mjd)
             key2 = ob.provisional_name 
             if key1 not in observations:
                  observations[key1] = {}
