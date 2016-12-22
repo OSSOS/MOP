@@ -72,41 +72,60 @@ def main():
                     'Cutouts are defined on the WCS RA/DEC of the object position.')
 
     parser.add_argument("version",
-                        help="The OSSOS data release version these stamps should be assigned to.")
+                        help="The OSSOS data release version these stamps should be assigned to. e.g. v8")
     parser.add_argument("--ossin",
                         action="store",
-                        default="vos:OSSOS/dbaseclone/ast/",
+                        default="vos:OSSOS/0_OSSOSreleases/OSSOS",
                         help="The vospace containerNode that clones ossin dbaseclone"
                              "holding the .ast files of astrometry/photometry measurements.")
     parser.add_argument("--blocks", "-b",
                         action="store",
-                        default=['o5s'],
-                        choices=["o3e", "o3o", "Col3N", 'o3l', 'o4h', 'o5s', 'o5t'],
+                        default=['o3e', 'o3o', 'o3l', 'o4h', 'o5p', 'o5m', 'o5s', 'o5t'],
+                        choices=["o3e", "o3o", "Col3N", 'o3l', 'o4h', 'o5m', 'o5p', 'o5s', 'o5t', 'o5c', 'o5d'],
                         help="Prefixes of object designations to include.")
     parser.add_argument("--radius", '-r',
                         # FIXME: figure out how to assign this a unit.degree before storage
                         action='store',
-                        default=0.02 * units.degree,
+                        default=0.01 * units.degree,  # about 200 px square
                         help='Radius (degree) of circle of cutout postage stamp.')
     parser.add_argument("--debug", "-d",
                         action="store_true")
     parser.add_argument("--verbose", "-v",
                         action="store_true")
+    parser.add_argument("--recheck",
+                        default=None,
+                        action="store",
+                        help="A tuple of TNO IDs to rerun")
+
 
     args = parser.parse_args()
+    print args
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
     elif args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    for fn in os.listdir(args.ossin): # storage.listdir(args.ossin):
+
+    astdir = parameters.L7_HOME + 'OSSOS' + args.version + '/ast/'
+    print astdir
+    flist = os.listdir(astdir)
+    if args.recheck:
+        flist = [args.recheck + '.ast']
+        print flist
+
+    for fn in flist:
         for block in args.blocks:
             if fn.startswith(block):
-                obj = mpc.MPCReader(args.ossin + fn)
-                obj_dir = '{}/{}/{}'.format(storage.POSTAGE_STAMPS, args.version, obj.provisional_name)
-                if not storage.exists(obj_dir, force=True):
-                    storage.mkdir(obj_dir)
+                obj_dir = '{}/{}/{}'.format(storage.POSTAGE_STAMPS, args.version, fn.partition('.')[0]) # obj.provisional_name
+                print obj_dir
+                if args.recheck is None:  # otherwise if rechecking, it'll have already been started
+                    if not storage.exists(obj_dir, force=True):
+                        storage.mkdir(obj_dir)
+                    else:
+                        print(fn)
+                        continue   # good if the object has already had its stamps cut
+                obj = mpc.MPCReader(astdir + fn)
                 # assert storage.exists(obj_dir, force=True)
                 print('{} beginning...\n'.format(obj.provisional_name))
                 # if int(obj.provisional_name[3:]) == 49:
