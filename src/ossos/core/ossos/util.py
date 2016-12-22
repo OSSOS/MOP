@@ -34,8 +34,12 @@ def set_logger(args):
         level = logging.DEBUG
     elif args.verbose:
         level = logging.INFO
-    logging.basicConfig(level=level, format=log_format, stream=logging.StreamHandler())
-    
+    logger = logging.getLogger('root')
+    logger.setLevel(level)
+    sh = logging.StreamHandler()
+    sh.formatter = logging.Formatter(fmt=log_format)
+    logger.addHandler(sh)
+
 
 
 def task():

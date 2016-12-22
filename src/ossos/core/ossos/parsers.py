@@ -51,8 +51,11 @@ def ossos_objects_parser(fn):
 
 class TNO(object):
 
-    def __init__(self, observations):
-        self.orbit = orbfit.Orbfit(observations.mpc_observations)
+    def __init__(self, observations, ast_filename=None, abg_filename=None):
+        if observations is None:
+            self.orbit = orbfit.Orbfit(None, ast_filename, abg_filename)
+        else:
+            self.orbit = orbfit.Orbfit(observations.mpc_observations, ast_filename, abg_filename)
         try:
             # Previously discovered objects can have 'discovery-marked' lines that predate the OSSOS survey.
             discoveries = [n for n in observations.mpc_observations if (n.discovery.is_discovery and n.date > parameters.SURVEY_START)]
@@ -99,16 +102,14 @@ def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
 
     for filename in files:
         # keep out the not-tracked and uncharacteried.
-        print filename
-        if no_nt_and_u:
-            if not (filename.__contains__('nt') or filename.startswith('u')):
-                observations = mpc.MPCReader(directory + filename)
-                obj = TNO(observations)
-                retval.append(obj)
-        else:  # now we want those uncharacterised ones
-            observations = mpc.MPCReader(directory + filename)
-            obj = TNO(observations)
-            retval.append(obj)
+        print directory, filename
+        if no_nt_and_u and (filename.__contains__('nt') or filename.startswith('u')):
+            continue
+        #observations = mpc.MPCReader(directory + filename)
+        mpc_filename = directory + filename
+        abg_filename = os.path.abspath(directory + '/../abg/') + os.path.split(filename)[0] + ".abg"
+        obj = TNO(None, ast_filename=mpc_filename, abg_filename=abg_filename)
+        retval.append(obj)
 
     return retval
 

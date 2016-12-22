@@ -110,13 +110,17 @@ def main(task='mkpsf'):
 
     storage.DBIMAGES = args.dbimages
 
-    if args.ccd is None:
-        ccdlist = range(0, 36)
-    else:
-        ccdlist = [args.ccd]
-
     exit_code = 0
     for expnum in args.expnum:
+        if args.ccd is None:
+           if int(expnum) < 1785619:
+               # Last exposures with 36 CCD Megaprime
+               ccdlist = range(0,36)
+           else:
+               # First exposrues with 40 CCD Megaprime
+               ccdlist = range(0, 40)
+        else:
+           ccdlist = [args.ccd]
         for ccd in ccdlist:
             if storage.get_status(task, prefix, expnum, version=args.type, ccd=ccd) and not args.force:
                 logging.info("{} completed successfully for {} {} {} {}".format(task, prefix, expnum, args.type, ccd))
@@ -135,9 +139,6 @@ def main(task='mkpsf'):
                 storage.set_status('zeropoint', prefix, expnum, version=args.type, ccd=ccd,
                                    status=str(storage.get_zeropoint(
                                        expnum, ccd, version=args.type)))
-            except CalledProcessError as cpe:
-                message = str(cpe.output)
-                exit_code = message
             except Exception as e:
                 message = str(e)
 

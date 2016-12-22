@@ -66,7 +66,7 @@ def step1(expnum,
     fwhm = storage.get_fwhm(expnum, ccd, prefix=prefix, version=version)
     basename = os.path.splitext(filename)[0]
 
-    logger.info(util.exec_prog(['step1jmp',
+    logging.info(util.exec_prog(['step1jmp',
                                  '-f', basename,
                                  '-t', str(wave_thresh),
                                  '-w', str(fwhm),
@@ -87,12 +87,18 @@ def step1(expnum,
         flat_name = os.path.splitext(parts[0])[0]
     else:
         flat_name = parts[0]
-    flat_filename = storage.get_image(flat_name, ccd, version='', ext='fits', subdir='calibrators')
+    try:
+        flat_filename = storage.get_image(flat_name, ccd, version='', ext='fits', subdir='calibrators')
+    except:
+        flat_filename = storage.get_image(flat_name, ccd, version='', ext='fits', subdir='old_calibrators')
+
+    if os.access('weight.fits', os.R_OK):
+        os.unlink('weight.fits')
 
     if not os.access('weight.fits', os.R_OK):
         os.symlink(flat_filename, 'weight.fits')
 
-    logger.info(util.exec_prog(['step1matt',
+    logging.info(util.exec_prog(['step1matt',
                                  '-f', basename,
                                  '-t', str(sex_thresh),
                                  '-w', str(fwhm),
@@ -162,25 +168,10 @@ def main(task='step1'):
     cmd_line = " ".join(sys.argv)
     args = parser.parse_args()
 
-    level = logging.CRITICAL
-    log_format = "%(message)s"
-    if args.debug:
-        log_format = "%(module)s: %(levelname)s: %(message)s"
-        level = logging.DEBUG
-    elif args.verbose:
-        level = logging.INFO
-
-    logger = logging.getLogger('ossos')
-    logger.setLevel(level)
-    logger.addHandler(logging.StreamHandler())
-    logger.info("Starting {}".format(cmd_line))
+    util.set_logger(args)
+    logging.info("Starting {}".format(cmd_line))
 
     storage.DBIMAGES = args.dbimages
-
-    if args.ccd is None:
-        ccdlist = range(0, 36)
-    else:
-        ccdlist = [args.ccd]
 
     prefix = (args.fk and 'fk') or ''
     task = util.task()
@@ -189,29 +180,34 @@ def main(task='step1'):
 
     exit_code = 0
     for expnum in args.expnum:
+        if args.ccd is None:
+           if int(expnum) < 1785619:
+              # Last exposures with 36 CCD Megaprime
+              ccdlist = range(0,36)
+           else:
+              # First exposrues with 40 CCD Megaprime
+              ccdlist = range(0, 40)
+        else:
+            ccdlist = [args.ccd]
         for ccd in ccdlist:
             try:
                 message = storage.SUCCESS
                 if not (args.force or args.dry_run) and storage.get_status(task, prefix, expnum, version, ccd):
-                    logger.critical("{} completed successfully for {}{}{}{:02d}".format(
+                    logging.critical("{} completed successfully for {}{}{}{:02d}".format(
                         task, prefix, expnum, version, ccd))
                     continue
-                storage.set_logger(task, prefix, expnum, ccd, args.type, args.dry_run)
                 if not storage.get_status(dependency, prefix, expnum, version, ccd) and not args.ignore:
                     raise IOError(35, "Cannot start {} as {} not yet completed for {}{}{}{:02d}".format(
                         task, dependency, prefix, expnum, version, ccd))
+                storage.set_logger(task, prefix, expnum, ccd, args.type, args.dry_run)
                 step1(expnum, ccd, prefix=prefix, version=version, dry_run=args.dry_run)
-            except CalledProcessError as cpe:
-                message = str(cpe)
-                exit_code = message
-            except Exception as e:
-                message = str(e)
-                exit_code = str(e)
-
-            logger.error("Error running step1_p: %s " % message)
+            except Exception as ex:
+                message = str(ex)
+                logging.error(message)
 
             if not args.dry_run:
                 storage.set_status(task, prefix, expnum, version, ccd, status=message)
+            logging.info(message)
     return exit_code
 
 

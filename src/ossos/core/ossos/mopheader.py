@@ -60,8 +60,7 @@ class MOPHeader(fits.Header):
   
                 self[keyword] = (self.__getattribute__(keyword.lower().replace("-", "_")), comment)
             except Exception as ex:
-                
-                print("Failed to build mopkeyword: {} -> {} using default".format(keyword, ex))
+                logging.debug("Failed to build mopkeyword: {} -> {} using default".format(keyword, ex))
                 pass
 
         for keyword in self.keys():
@@ -220,4 +219,3 @@ if __name__ == '__main__':
     import sys
 
     main(sys.argv[1])
-    
