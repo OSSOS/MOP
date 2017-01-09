@@ -48,6 +48,51 @@ def full_aei(data_release, fov, icut=False, aiq=False):
         # data = data_release[numpy.array([name.startswith("o4h") for name in data_release['object']])]
         plot_resonances = True
 
+    if parameters.RELEASE_VERSION == '11' and fov == 'medium':
+        imax = 55
+        emax = 0.86
+        xinner = 5
+        xouter = 105
+        xstep = 5
+        ms = 4
+        cold_alpha = 0.85  # when plotting blue only  # 0.7
+        annotation = False
+        e45_annotation = False
+        # let's trim off anything with super-large error bars as well
+        data = data_release[numpy.array([name.__contains__("nt") is False for name in data_release['object']])]
+        # data = data[numpy.array([n < 4 for n in data['e_a']])]  # couple of big-uncertainty objects making things messy
+        plot_resonances = True
+
+    if parameters.RELEASE_VERSION == '11' and fov == 'classical':
+        imax = 45
+        emax = 0.53  #0.37
+        xinner = 38
+        xouter = 55
+        xstep = 5
+        ms = 3
+        cold_alpha = 0.65
+        annotation = False
+        e45_annotation = False
+        # let's trim off anything with super-large error bars as well
+        data = data_release[numpy.array([name.__contains__("nt") is False for name in data_release['object']])]
+        # data = data[numpy.array([n < .15 for n in data['e_a']])]  # couple of big-uncertainty objects making things messy
+        # data = data[numpy.array([n < .02 for n in data['e_e']])]  # couple of big-uncertainty objects making things messy
+        plot_resonances = True
+
+    if parameters.RELEASE_VERSION == '11' and fov == 'thousand_au':
+        imax = 70
+        emax = 0.99
+        xinner = 0
+        xouter = 850
+        xstep = 50
+        ms = 6
+        cold_alpha = 0.85
+        annotation = False
+        e45_annotation = False
+        # let's trim off anything with super-large error bars as well
+        data = data_release[numpy.array([name.__contains__("nt") is False for name in data_release['object']])]
+        plot_resonances = True
+
     if parameters.RELEASE_VERSION == '10' and fov == 'medium':
         imax = 55
         emax = 0.86
@@ -271,8 +316,8 @@ def a_q(ax, data, fmt, alpha, ebarcolor, capsize, ms, grid_alpha, colour, label,
 
 
 def resonances(ax, imax, emax):
-    strong_ids = ['1:1', '2:1', '3:1', '4:1', '9:1', #'5:1', #'6:1', '7:1', '8:1', '9:1', '10:1', '11:1',
-               '3:2', '5:2', '7:2',# '9:2', #'11:2',
+    strong_ids = ['1:1', '2:1', '3:1', '4:1', '9:1', '5:1', #'6:1', '7:1', '8:1', '9:1', '10:1', '11:1',
+               '3:2', '5:2', '7:2', '9:2', #'11:2',
                ]
     weak_ids = [
                '4:3', '5:3', '8:3', # '7:3', '11:3',
@@ -526,10 +571,19 @@ def argperi_a(directory):
 if __name__ == '__main__':
     tnos = parsers.ossos_release_parser(table=True)  # return as an astropy.Table.Table
 
+    mag = tnos[numpy.where(tnos['mag'] < 23.5)]
+    ossos = []
+    for t in mag:
+        if t['object'].startswith('o'):
+            ossos.append(t)
+    print len(ossos)
+
+    sys.exit()
+
     # argperi_a(parameters.REAL_KBO_AST_DIR)
 
-    fov = ['medium', 'classical', 'thousand_au']
-#    full_aei(tnos, fov[0])
+    # fov = ['medium', 'classical', 'thousand_au']
+    # full_aei(tnos, fov[0])
     # classicals_qi(tnos)
 
     classicals_aeiq(tnos)

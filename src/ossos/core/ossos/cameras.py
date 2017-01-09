@@ -1,15 +1,11 @@
-__author__ = 'Michele Bannister   git:@mtbannister'
-
 import math
-
-import ephem
-from astropy import units
+import Polygon
 from astropy.coordinates import SkyCoord
 
 
 class Camera:
     """The Field of View of a direct imager"""
-    geometry = {
+    _geometry = {
         "MP_CCD": [
             {"ra": 0., "dec": 0., "dra": 0.1052, "ddec": 0.2344}
         ],
@@ -176,48 +172,92 @@ class Camera:
         ]
     }
 
-    @property
-    def coordinate(self):
-        return SkyCoord(
-            ra=math.degrees(self.ra),
-            dec=math.degrees(self.dec),
-            unit=(units.degree, units.degree))
-
-    def __init__(self, camera="MEGACAM_40"):
-        self.ra = None
-        self.dec = None
+    def __init__(self,  ra, dec=None, camera="MEGACAM_40",):
+        if dec is None:
+            if isinstance(ra, SkyCoord):
+                self._coordinate = ra
+            else:
+                raise NotImplementedError("Can't do that.")
+        else:
+            self._coordinate = None
+            self.set_coord((ra, dec))
         if camera == '':
             camera = "MEGACAM_40"
         self.camera = camera
 
     def __str__(self):
 
-        return "%s %s" % (self.ra, self.dec)
+        return str(self.coord)
 
-    def getGeometry(self, ra=None, dec=None):
-        """Return an array of rectangles that represent the 'ra,dec' corners of the FOV"""
+    @property
+    def coordinate(self):
+        return self.coord
 
+    @property
+    def coord(self):
+        """The center of the camera pointing in sky coordinates"""
+        return self._coordinate
+
+    @property
+    def ra(self):
+        return self.coord.ra
+
+    @property
+    def dec(self):
+        return self.coord.dec
+
+    def set_coord(self, p):
+        ra = p[0]
+        dec = p[1]
+        try:
+            self._coordinate = SkyCoord(ra, dec)
+        except Exception as ex:
+            print ex
+            self._coordinate = SkyCoord(ra, dec, unit=('degree', 'degree'))
+
+    @property
+    def polygon(self):
+        ccds = self.geometry
+        p = None
+        for ccd in ccds:
+            vertices = ((ccd[0], ccd[1]),
+                        (ccd[0], ccd[3]),
+                        (ccd[2], ccd[3]),
+                        (ccd[2], ccd[1]),
+                        (ccd[0], ccd[1]))
+            if p is None:
+                p = Polygon.Polygon(vertices)
+            else:
+                p.addContour(vertices)
+        return p
+
+    @property
+    def geometry(self):
+        """Return an array of rectangles that represent the 'ra,dec' corners of the FOV
+        @rtype: list
+
+        """
+
+        if self.coord is None:
+            return None
+        ra = self.ra.degree
+        dec = self.dec.degree
         ccds = []
 
-        if ra is None:
-            ra = self.ra
-        if dec is None:
-            dec = self.dec
-        self.ra = ephem.hours(ra)
-        self.dec = ephem.degrees(dec)
-        for geo in self.geometry[self.camera]:
-            ycen = math.radians(geo["dec"]) + dec
-            xcen = math.radians(geo["ra"]) / math.cos(ycen) + ra
+        for geo in self._geometry[self.camera]:
+            ycen = geo["dec"] + dec
+            xcen = geo["ra"] / math.cos(math.radians(ycen)) + ra
             try:
-                dy = math.radians(geo["ddec"])
-                dx = math.radians(geo["dra"] / math.cos(ycen))
+                dy = geo["ddec"]
+                dx = geo["dra"] / math.cos(math.radians(ycen))
                 ccds.append([xcen - dx / 2.0, ycen - dy / 2.0, xcen + dx / 2.0, ycen + dy / 2.0])
             except:
-                rad = math.radians(geo["rad"])
+                rad = geo["rad"]
                 ccds.append([xcen, ycen, rad])
         return ccds
 
     def separation(self, ra, dec):
         """Compute the separation between self and (ra,dec)"""
-
-        return ephem.separation((self.ra, self.dec), (ra, dec))
+        if self.coord is None:
+            return None
+        return self.coord.separation(SkyCoord(ra, dec, unit=('degree',)))
