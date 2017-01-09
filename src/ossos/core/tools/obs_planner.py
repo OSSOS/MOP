@@ -11,6 +11,7 @@ import time
 import ephem
 import Polygon
 import Polygon.IO
+import numpy
 from astropy.coordinates import SkyCoord
 from astropy.time import Time, TimeDelta
 
@@ -267,7 +268,6 @@ class Plot(Canvas):
         See also c2p."""
         if p is None:
             p = [0, 0]
-
         x = (p[0] - self.x1) * self.xscale + self.cx1
         y = (p[1] - self.y1) * self.yscale + self.cy1
         # logging.debug("p2c: ({},{}) -> ({},{})".format(p[0],p[1], x, y))
@@ -684,8 +684,10 @@ class Plot(Canvas):
             except:
                 logging.warn("Failed to convert {} {} to RA/DEC".format(point[1], point[2]))
                 continue
-            this_camera = Camera(camera=self.camera.get())
-            ccds = this_camera.getGeometry(float(ra), float(dec))
+            this_camera = Camera(ra=ra*units.radian, dec=dec*units.radian, camera=self.camera.get())
+            ccds = numpy.radians(numpy.array(this_camera.geometry))
+
+            # ccds = this_camera.getGeometry(float(ra), float(dec))
             items = []
             for ccd in ccds:
                 if len(ccd) == 4:
@@ -709,11 +711,12 @@ class Plot(Canvas):
         """Plot the sky coverage of pointing at event.x,event.y on the canvas.
 
         """
+        x = self.canvasx(event.x)
+        y = self.canvasy(event.y)
+        (ra, dec) = self.c2p((x,y))
+        this_camera = Camera(ra=float(ra) * units.radian, dec=float(dec)*units.radian, camera=self.camera.get())
 
-        (ra, dec) = self.c2p((self.canvasx(event.x),
-                              self.canvasy(event.y)))
-        this_camera = Camera(camera=self.camera.get())
-        ccds = this_camera.getGeometry(ra, dec)
+        ccds = numpy.radians(numpy.array(this_camera.geometry))
         items = []
         for ccd in ccds:
             if len(ccd) == 4:
@@ -729,7 +732,7 @@ class Plot(Canvas):
         if label_text is None:
             label_text = self.plabel.get()
         label['text'] = label_text
-        label['id'] = self.label(this_camera.ra, this_camera.dec, label['text'])
+        label['id'] = self.label(this_camera.ra.radian, this_camera.dec.radian, label['text'])
         self.pointings.append({
             "label": label,
             "items": items,
@@ -749,8 +752,9 @@ class Plot(Canvas):
             i = i + 1
             label = {}
             label['text'] = pointing['label']['text']
-            for ccd in pointing["camera"].getGeometry():
+            for ccd in pointing["camera"].geometry:
                 if len(ccd) == 4:
+                    ccd = numpy.radians(numpy.array(ccd))
                     (x1, y1) = self.p2c((ccd[0], ccd[1]))
                     (x2, y2) = self.p2c((ccd[2], ccd[3]))
                     item = self.create_rectangle(x1, y1, x2, y2, stipple='gray25', fill=pointing.get('color', ''))
@@ -760,7 +764,7 @@ class Plot(Canvas):
                     item = self.create_oval(x1, y1, x2, y2)
                 items.append(item)
             if self.show_labels.get() == 1:
-                label['id'] = self.label(pointing["camera"].ra, pointing["camera"].dec, label['text'])
+                label['id'] = self.label(pointing["camera"].ra.radian, pointing["camera"].dec.radian, label['text'])
             pointing["items"] = items
             pointing["label"] = label
 
@@ -795,10 +799,10 @@ class Plot(Canvas):
         if this_pointing is None:
             return
         self.plabel.set(this_pointing['label']['text'])
-        ccds = this_pointing["camera"].getGeometry(ra, dec)
+        ccds = this_pointing["camera"].geometry(ra, dec)
         items = this_pointing["items"]
         label = this_pointing["label"]
-        (x1, y1) = self.p2c((this_pointing["camera"].ra, this_pointing["camera"].dec))
+        (x1, y1) = self.p2c((this_pointing["camera"].ra.degree, this_pointing["camera"].dec.degree))
         self.coords(label["id"], x1, y1)
         for i in range(len(ccds)):
             ccd = ccds[i]
@@ -865,8 +869,10 @@ class Plot(Canvas):
         (ra2, dec2) = self.c2p((self.canvasx(480 * 2), self.canvasy(360 * 2)))
         ra_cen = math.degrees((ra2 + ra1) / 2.0)
         dec_cen = math.degrees((dec2 + dec1) / 2.0)
-        width = math.degrees(math.fabs(ra1 - ra2))
-        height = math.degrees(math.fabs(dec2 - dec1))
+        # width = math.degrees(math.fabs(ra1 - ra2))
+        width = 180
+        # height = math.degrees(math.fabs(dec2 - dec1))
+        height = 90
         date = mpc.Time(self.date.get(), scale='utc').iso
         table = cadc.cfht_megacam_tap_query(ra_cen, dec_cen, width, height, date=date)
 
@@ -875,19 +881,21 @@ class Plot(Canvas):
             dec = row['DEJ2000']
             (x, y) = self.p2s((math.radians(ra), math.radians(dec)))
             event = MyEvent(x, y)
+
             self.create_pointing(event, label_text="")
 
     def save_pointings(self):
         """Print the currently defined FOVs"""
         i = 0
-        if self.pointing_format.get() in ['GEMINI ET', 'CFHT ET']:
+        if self.pointing_format.get() in ['GEMINI ET', 'CFHT ET', 'CFHT API']:
             logging.info('Beginning table pointing save.')
             for pointing in self.pointings:
                 name = pointing["label"]["text"]
                 camera = pointing["camera"]
-                ccds = camera.getGeometry()
+                ccds = camera.geometry
                 polygons = []
                 for ccd in ccds:
+                    ccd = numpy.radians(numpy.array(ccd))
                     polygon = Polygon.Polygon(((ccd[0], ccd[1]),
                                                (ccd[0], ccd[3]),
                                                (ccd[2], ccd[3]),
@@ -926,22 +934,23 @@ class Plot(Canvas):
                                 center_ra += ra.radian
                                 center_dec += dec.radian
 
-                logging.critical("KBOs in field {0}: {1}".format(name, ', '.join([n.name for n in field_kbos])))
+                # logging.critical("KBOs in field {0}: {1}".format(name, ', '.join([n.name for n in field_kbos])))
 
                 today = start_date
                 while today < end_date:
                     today += time_step
                     mean_motion = (0, 0)
+                    max_mag = 0.0
                     if len(field_kbos) > 0:
                         current_ra = 0
                         current_dec = 0
                         for kbo in field_kbos:
                             kbo.predict(today)
+                            max_mag = max(max_mag, kbo.observations[0].mag)
                             current_ra += kbo.coordinate.ra.radian
                             current_dec += kbo.coordinate.dec.radian
                         mean_motion = ((current_ra - center_ra) / len(field_kbos),
                                        (current_dec - center_dec) / len(field_kbos))
- 
                     ra = pointing['camera'].coordinate.ra.radian + mean_motion[0]
                     dec = pointing['camera'].coordinate.dec.radian + mean_motion[1]
                     cc = SkyCoord(ra=ra,
@@ -951,6 +960,7 @@ class Plot(Canvas):
                     dt = pointing_date - today
                     cc.dra = (mean_motion[0] * units.radian / dt.to(units.hour)).to(units.arcsec/units.hour).value*math.cos(dec)
                     cc.ddec = (mean_motion[1] * units.radian / dt.to(units.hour)).to(units.arcsec/units.hour).value
+                    cc.mag = max_mag
                     et.append(cc)
 
                 et.save()
@@ -1026,7 +1036,7 @@ NAME                |RA         |DEC        |EPOCH |POINT|
             elif self.pointing_format.get() == 'SSim':
                 ra = []
                 dec = []
-                for ccd in pointing["camera"].getGeometry():
+                for ccd in pointing["camera"].geometry:
                     ra.append(ccd[0])
                     ra.append(ccd[2])
                     dec.append(ccd[1])
@@ -1131,7 +1141,6 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                                          b,
                                          ang)
                     if w.show_labels.get() == 1:
-                        print name
                         w.label(ra, dec, name, offset=[xoffset, yoffset])
             else:
                 ra = kbos[name]['RA']
@@ -1250,6 +1259,7 @@ def start(dirname=None, pointings=None):
 
     pointFormat = Menu(pointing_menu, tearoff=0)
     pointFormat.add_checkbutton(label='CFHT PH', variable=w.pointing_format, onvalue='CFHT PH')
+    pointFormat.add_checkbutton(label='CFHT API', variable=w.pointing_format, onvalue='CFHT API')
     pointFormat.add_checkbutton(label="CFHT ET", variable=w.pointing_format, onvalue='CFHT ET')
     pointFormat.add_checkbutton(label="GEMINI ET", variable=w.pointing_format, onvalue='GEMINI ET')
     pointFormat.add_checkbutton(label='Palomar', variable=w.pointing_format, onvalue='Palomar')
@@ -1263,7 +1273,7 @@ def start(dirname=None, pointings=None):
     pointing_menu.add_command(label="Query CFHT Archive", command=w.get_pointings)
 
     cameramenu = Menu(pointing_menu, tearoff=0)
-    for name in Camera.geometry:
+    for name in Camera._geometry:
         cameramenu.add_checkbutton(label=name, variable=w.camera, onvalue=name)
 
     pointing_menu.add_cascade(label="Geometry", menu=cameramenu)

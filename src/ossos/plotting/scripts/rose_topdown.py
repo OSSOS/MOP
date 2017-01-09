@@ -86,6 +86,11 @@ def top_down_SolarSystem(discoveries,
                 else:
                     colour = 'b'
                     alpha = 0.1
+                # if blockname.startswith('13') or blockname.startswith('14'):
+                    width = math.radians(7) # the 3 x 7 field layout
+                # else:
+                #     width = math.radians(5) # the 4 x 5 field layout
+
                 # cmap = plt.get_cmap('Blues')
                 # if blockname.endswith('AO'):
                 #     colour = '#E47833'
@@ -93,7 +98,7 @@ def top_down_SolarSystem(discoveries,
                 #     cmap = plt.get_cmap('Oranges')  # colorbrewer.sequential.Oranges_3.mpl_colors
 
                 ax1.bar(ephem.hours(block["RA"]) - math.radians(3.5), extent, linewidth=0.1,
-                        width=math.radians(7), bottom=inner_limit, zorder=0, color=colour, alpha=alpha)
+                        width=width, bottom=inner_limit, zorder=0, color=colour, alpha=alpha)
                 if label_blocks:
                     ax1.annotate(blockname[3], (ephem.hours(block["RA"]) + math.radians(0.36), extent - 3.), size=15,
                                  color='b')
@@ -142,10 +147,13 @@ def plot_planets_plus_Pluto(ax, date=parameters.NEWMOONS[parameters.DISCOVERY_NE
                    facecolor=fc,
                    edgecolor=fc,
                    alpha=alpha)
-        if planet.name != 'Saturn':
-            ax.annotate(planet.name, (planet.ra - (math.radians(0.5)), planet.sun_distance + 2), size=fs)
+        if planet.name == 'Saturn':
+            ax.annotate(planet.name, (planet.ra + (math.radians(3)), planet.sun_distance - 2), size=fs)
+        elif planet.name == 'Uranus':
+            ax.annotate(planet.name, (planet.ra - (math.radians(12)), planet.sun_distance + 1), size=fs)
         else:
-            ax.annotate(planet.name, (planet.ra + (math.radians(10)), planet.sun_distance - 2), size=fs)
+            ax.annotate(planet.name, (planet.ra - (math.radians(0.5)), planet.sun_distance + 2), size=fs)
+
         # Neptune's orbit has e = 0.01, so can get away with a circle
         if planet.name == 'Neptune':
             orb = np.arange(0, 2 * np.pi, (2 * np.pi) / 360)
@@ -171,12 +179,12 @@ def plot_ossos_discoveries(ax, discoveries, plot_discoveries,
                 plottable.append(d)
 
     # Hack to get in the O15BD objects
-    directory_name = '/Users/bannisterm/Dropbox/OSSOS/measure3/ossin/D_tmp/'
-    kbos = parsers.ossos_discoveries(directory_name, all_objects=False, data_release=None)
-    for kbo in kbos:
-        plottable_kbo = {'RAdeg': kbo.discovery.coordinate.ra.to_string(unit=units.degree, sep=':'),
-                         'dist': kbo.orbit.distance.value}
-        plottable.append(plottable_kbo)
+    # directory_name = '/Users/bannisterm/Dropbox/OSSOS/measure3/ossin/D_tmp/'
+    # kbos = parsers.ossos_discoveries(directory_name, all_objects=False, data_release=None)
+    # for kbo in kbos:
+    #     plottable_kbo = {'RAdeg': kbo.discovery.coordinate.ra.to_string(unit=units.degree, sep=':'),
+    #                      'dist': kbo.orbit.distance.value}
+    #     plottable.append(plottable_kbo)
 
     if plot_colossos:
         fainter = []
@@ -338,11 +346,11 @@ def ossos_sequence(discoveries):
     #                      label_blocks=block_labels, savefilename='9_EOHLPMST_discoveries')
     # 10. Add D detections
     top_down_SolarSystem(discoveries,
-                         plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h', 'o5p', 'o5m', 'o5s', 'o5t', 'O15BD'],
+                         plot_discoveries=['o3e', 'o3o', 'o3l', 'o4h', 'o5p', 'o5m', 'o5s', 'o5t', 'o5c', 'o5d'],
                          plot_Ijiraq=True,
                          plot_blocks=['13AE', '13AO', '13BL', '14BH', '15AM', '15AP', '15BS', '15BD'],
                          label_blocks=block_labels,
-                         savefilename='10_EOHLPMSTD_discoveries')
+                         savefilename='10_EOHLPMSTCD_discoveries')
 
 def colossos(discoveries):
     top_down_SolarSystem(discoveries,
