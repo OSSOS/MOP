@@ -28,6 +28,7 @@ import os
 import sys
 
 from ossos import storage
+from ossos import util
 
 
 def run_update_header(image_hdulist, header_hdulist):
