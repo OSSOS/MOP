@@ -62,41 +62,37 @@ def remeasure(mpc_in, recentroided=False):
 
         if sep > TOLERANCE*20 and mpc_in.discovery and (int(parts.group('ccd')) < 18 or int(parts.group('ccd')) in [36, 37]):
             logging.warn("Large ({}) offset using X/Y in comment line to compute RA/DEC".format(sep))
-            logging.warn("This is a discovery line so flipping/flopping the x/y position recorded in comment as that "
+            logging.info("This is a discovery line so flipping/flopping the x/y position recorded in comment as that "
                          "may be taken from a flip/flopped image.")
             x = header['NAXIS1'] - x + 1
             y = header['NAXIS2'] - y + 1
-            sep = mpc_in.coordinate.separation(mpc_obs.coordinate)
             (ra, dec) = this_wcs.xy2sky(x, y, usepv=True)
             # print "--> x/y coordinates ({},{}) and recomputing ra/dec ({},{})".format(x, y, ra, dec)
             mpc_obs.coordinate = (ra, dec)
+            sep = mpc_in.coordinate.separation(mpc_obs.coordinate)
             if sep > TOLERANCE*20 and mpc_in.discovery:
-                logging.warn(
-                    "Large ({}) offset after flipping, so reverting.".format(sep))
+                logging.warn( "Large ({}) offset after flipping, so reverting.".format(sep))
                 # Try un-flipping.
                 x = float(mpc_in.comment.x)
                 y = float(mpc_in.comment.y)
                 (ra, dec) = this_wcs.xy2sky(x, y, usepv=True)
                 # print "--> x/y coordinates ({},{}) and recomputing ra/dec ({},{})".format(x, y, ra, dec)
                 mpc_obs.coordinate = (ra, dec)
+                sep = mpc_in.coordinate.separation(mpc_obs.coordinate)
     except:
         logging.warn("Failed to get the X Y coordinate from comment line.")
         return mpc_in
 
-    # (ra, dec) = this_wcs.xy2sky(x, y, usepv=True)
-    # mpc_obs.coordinate = (ra, dec)
-    # sep = mpc_in.coordinate.separation(mpc_obs.coordinate)
-
-
-    if sep > TOLERANCE and not recentroided:
+    if sep > TOLERANCE:
         # use the old header RA/DEC to predict the X/Y and then use that X/Y to get new RA/DEC
         logging.warn("sep: {} --> large offset when using comment line X/Y to compute RA/DEC")
-        logging.warn("Using RA/DEC and original WCS to compute X/Y and replacing X/Y in comment.".format(sep))
-        header2 = storage.get_astheader(parts.group('expnum'), int(parts.group('ccd')))
-        image_wcs = wcs.WCS(header2)
-        (x, y) = image_wcs.sky2xy(mpc_in.coordinate.ra.degree, mpc_in.coordinate.dec.degree, usepv=False)
-        (ra, dec) = this_wcs.xy2sky(x, y, usepv=True)
-        logging.warn("Coordinate changed: ({:5.2f},{:5.2f}) --> ({:5.2f},{:5.2f})".format(mpc_obs.comment.x,
+        if recentroided:
+           logging.warn("Using RA/DEC and original WCS to compute X/Y and replacing X/Y in comment.".format(sep))
+           header2 = storage.get_astheader(parts.group('expnum'), int(parts.group('ccd')))
+           image_wcs = wcs.WCS(header2)
+           (x, y) = image_wcs.sky2xy(mpc_in.coordinate.ra.degree, mpc_in.coordinate.dec.degree, usepv=False)
+           (ra, dec) = this_wcs.xy2sky(x, y, usepv=True)
+           logging.info("Coordinate changed: ({:5.2f},{:5.2f}) --> ({:5.2f},{:5.2f})".format(mpc_obs.comment.x,
                                                                                           mpc_obs.comment.y,
                                                                                           x, y))
         mpc_obs.coordinate = (ra, dec)
@@ -230,7 +226,6 @@ def recompute_mag(mpc_in):
         x, y = cutout.observed_source_point
     except Exception as ex:
         logging.error("ERROR: {}".format(str(ex)))
-        logging.warn("Failed to do photometry.")
         return mpc_obs
     if mpc_obs.comment.mag is not None and math.fabs(mpc_obs.comment.mag - mag) > 3.5 * mpc_obs.comment.mag_uncertainty:
         logging.warn("recomputed magnitude shift large: {} --> {}".format(mpc_obs.mag, mag[0]))
@@ -247,10 +242,10 @@ def recompute_mag(mpc_in):
     mpc_obs._band = filter_value
     mpc_obs.comment.mag = mag
     mpc_obs.comment.mag_uncertainty = merr
-    logging.warn("Previous mag: {} {}".format( mpc_in.mag,mpc_in.comment.photometry_note))
+    # logging.warn("Previous mag: {} {}".format( mpc_in.mag,mpc_in.comment.photometry_note))
     if mpc_obs.mag is not None or mpc_in.comment.photometry_note[0] == "Z":
         mpc_obs.mag = mag
-    logging.warn("Resulting mag: {} {}".format( mpc_obs.mag,mpc_obs.comment.photometry_note))
+    # logging.warn("Resulting mag: {} {}".format( mpc_obs.mag,mpc_obs.comment.photometry_note))
     return mpc_obs
 
 
