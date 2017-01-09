@@ -362,9 +362,10 @@ class SSOSParser(object):
                     try:
                         if mpc_observation.comment.frame.strip() == observation.rawname:
                             # only skip previous obseravtions if not discovery.
-                            previous = not mpc_observation.discovery.is_initial_discovery
+                            previous = not mpc_observation.discovery
                             break
                     except Exception as e:
+                        print e
                         logger.debug(str(e))
                         pass
                     mpc_observation = None
