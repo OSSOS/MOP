@@ -33,6 +33,7 @@ for year in range(13, 17, 1):
             OSSOS_RUNIDS.append('{}{}{}'.format(year, semester, code))
 OSSOS_RUNIDS.append('16BE85')
 
+OSSOS_RUNIDS.append('16BE85')
 SURVEY_START = '2013-01-01'
 
 PLOT_USNO_STARS = True

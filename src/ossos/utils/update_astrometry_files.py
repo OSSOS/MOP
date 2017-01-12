@@ -26,6 +26,7 @@ def load_observations((observations, regex, rename), path, filenames):
         if re.search(regex, filename) is None:
             logging.warning("Skipping {}".format(filename))
             continue
+        print os.path.join(path,filename)
         obs = mpc.MPCReader().read(os.path.join(path,filename))
         for ob in obs:
             if rename:
@@ -104,6 +105,7 @@ auto-magical way.
                         help="Names of observers, multiple allowed")
 
     args = parser.parse_args()
+    print args.tolerance
     tolerance = Angle(float(args.tolerance) * units.arcsec)
 
     logger = logging.getLogger('reporter')
@@ -131,8 +133,8 @@ auto-magical way.
             observation1 = new_observations[date1][name1]
             logger.warning("Checking {}".format(observation1.to_string()))
             assert isinstance(observation1, mpc.Observation)
-            if ((args.start_date is None or args.start_date.jd < observation1.date.jd)
-                    and (args.end_date is None or args.end_date.jd > observations1.date.jd)):
+            if (args.start_date is None or args.start_date.jd < new_observations[date1][name1].date.jd) \
+                    and (args.end_date is None or args.end_date.jd > new_observations[date1][name1].date.jd):
                 report = True
                 replacement = False
                 if date1 in existing_observations:

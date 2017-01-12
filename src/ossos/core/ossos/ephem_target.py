@@ -1,3 +1,5 @@
+import json
+
 from astropy import units
 from xml.dom import minidom
 import xml
@@ -41,6 +43,11 @@ class EphemTarget(object):
         self.doc = create_astrores_document()
         self.column_separator = column_separator
         self.coordinates = []
+
+    def _init_cfht_api_(self):
+        return {'runid': "16BE91",
+                "pi_login": "mwilson",
+                "program_configuration": {"target": []}}
 
     def _init_cfht_et_file(self):
         self.doc = create_astrores_document()
@@ -148,6 +155,20 @@ class EphemTarget(object):
         self.cdata.appendData(self._entry(sdec, fields["DEC_J2000"]["attr"]["width"], colsep=self.column_separator))
         self.cdata.appendData("\n")
 
+    def cfht_api_writer(self, f_handle):
+        ephemeris_points = []
+        for coordinate in self.coordinates:
+            epoch_millis = coordinate.obstime.mjd
+            this_coordinate = {"ra": float(coordinate.ra.degree),
+                               "dec": float(coordinate.dec.degree)}
+            ephemeris_points.append({"epoch_millis": epoch_millis,
+                                     "mag": coordinate.mag,
+                                     "coordinate": this_coordinate})
+        target = {"identifier": {"client_token": "16BP06-target-" + self.name}, "name": self.name,
+                  "moving_target": {"ephmeris_points": ephemeris_points}}
+        json.dump(target, f_handle)
+        return
+
     def gemini_writer(self, f_handle):
         """
         Write out a GEMINI formated OT ephemeris.  This is just a hack of SSD Horizons output.
@@ -182,6 +203,8 @@ class EphemTarget(object):
     def writer(self, f_handle):
             if self.format == 'CFHT ET':
                 self.cfht_writer(f_handle)
+            if self.format == "CFHT API":
+                self.cfht_api_writer(f_handle)
             elif self.format == 'GEMINI ET':
                 self.gemini_writer(f_handle)
             else:
