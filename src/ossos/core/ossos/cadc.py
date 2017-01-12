@@ -38,7 +38,7 @@ def cfht_megacam_tap_query(ra_deg=180.0, dec_deg=0.0, width=1, height=1, date=No
 
     if date is not None:
         mjd = Time(date, scale='utc').mjd
-        query += " AND Plane.time_bounds_cval1 <= {} AND {} <= Plane.time_bounds_cval2 ".format(mjd+0.5, mjd-0.5)
+        query += " AND Plane.time_bounds_lower <= {} AND {} <= Plane.time_bounds_upper ".format(mjd+0.5, mjd-0.5)
 
     data = {"QUERY": query,
             "REQUEST": "doQuery",

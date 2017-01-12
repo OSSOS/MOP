@@ -52,24 +52,23 @@ def ossos_objects_parser(fn):
 class TNO(object):
 
     def __init__(self, observations, ast_filename=None, abg_filename=None):
+
         if observations is None:
             self.orbit = orbfit.Orbfit(None, ast_filename, abg_filename)
+            self.name = os.path.basename(ast_filename).split('.')[0]
         else:
             self.orbit = orbfit.Orbfit(observations.mpc_observations, ast_filename, abg_filename)
-        try:
-            # Previously discovered objects can have 'discovery-marked' lines that predate the OSSOS survey.
-            discoveries = [n for n in observations.mpc_observations if (n.discovery.is_discovery and n.date > parameters.SURVEY_START)]
-            # Some objects were linked to independent OSSOS-observed triples; these are also multiply 'discovery-marked'
-            if len(discoveries) > 1:
-                discoveries.sort(key=lambda x: x.date)
-            # once sorted and restricted to within the survey timeframe, it's always the earliest such marked line.
-            self.discovery = discoveries[0]
-        except:
-            self.discovery = False
-        if observations.provisional_name.startswith('15AM'):  # quick hack for working with in-progress 15AM
-            self.name = observations.provisional_name.rstrip('.mpc').rstrip('.ast').rsplit('.')[-1]
-        else:
-            self.name = observations.provisional_name.rstrip('.mpc').split('.')[0]  #.rstrip('.ast').rsplit('.')[-1]
+            try:
+                # Previously discovered objects can have 'discovery-marked' lines that predate the OSSOS survey.
+                discoveries = [n for n in observations.mpc_observations if (n.discovery.is_discovery and n.date > parameters.SURVEY_START)]
+                # Some objects were linked to independent OSSOS-observed triples; these are also multiply 'discovery-marked'
+                if len(discoveries) > 1:
+                    discoveries.sort(key=lambda x: x.date)
+                # once sorted and restricted to within the survey timeframe, it's always the earliest such marked line.
+                self.discovery = discoveries[0]
+            except Exception as ex:
+                self.discovery = False
+                self.name = observations[0].provisional_name.rstrip('.ast').split('.')[0]
         return
 
 
@@ -84,7 +83,6 @@ def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
     Returns a list of objects holding orbfit.Orbfit objects with the observations in the Orbfit.observations field.
     Default is to return only the objects corresponding to the current Data Release.
     """
-    print "CALLED WITH {}".format(data_release)
     retval = []
     # working_context = context.get_context(directory)
     # files = working_context.get_listing(suffix)
@@ -92,9 +90,7 @@ def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
 
     if single_object is not None:
         files = filter(lambda name: name.startswith(single_object), files)
-        print 'loading only {}'.format(files)
     elif all_objects and data_release is not None:
-        print 'loading data release {}'.format(data_release)
         # only return the objects corresponding to a particular Data Release
         data_release = ossos_release_parser(table=True, data_release=data_release)
         objects = data_release['object']
@@ -102,12 +98,11 @@ def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
 
     for filename in files:
         # keep out the not-tracked and uncharacteried.
-        print directory, filename
         if no_nt_and_u and (filename.__contains__('nt') or filename.startswith('u')):
             continue
         #observations = mpc.MPCReader(directory + filename)
         mpc_filename = directory + filename
-        abg_filename = os.path.abspath(directory + '/../abg/') + os.path.split(filename)[0] + ".abg"
+        abg_filename = os.path.abspath(directory + '/../abg/') + "/" + os.path.splitext(filename)[0] + ".abg"
         obj = TNO(None, ast_filename=mpc_filename, abg_filename=abg_filename)
         retval.append(obj)
 
