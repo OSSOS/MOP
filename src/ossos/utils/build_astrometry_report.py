@@ -11,15 +11,17 @@ from astropy import units
 from astropy.coordinates.angles import Angle
 from ossos.gui import config
 
+
 def load_observations((observations, regex, rename), path, filenames):
     """
     Returns a provisional name based dictionary of observations of the object.
     Each observations is keyed on the date. ie. a dictionary of dictionaries.
 
-    :rtype : None
-    :param observations: dictionary to store observtions into
-    :param path: the directory where filenames are.
-    :param filenames: list of files in path.
+    @param path: the directory where filenames are.
+    @type path str
+    @param filenames: list of files in path.
+    @type filenames list
+    @rtype  None
     """
 
     for filename in filenames:
@@ -139,21 +141,13 @@ auto-magical way.
                     for name2 in existing_observations[date1]:
                         observation2 = existing_observations[date1][name2]
                         assert isinstance(observation2, mpc.Observation)
-                        separation = observation1.coordinate.separation(observation2.coordinate)
-                        if separation < tolerance:
-                            if not idx.is_same(observation2.provisional_name, observation1.provisional_name):
-                                logger.warning("Duplicate observations:")
-				logger.warning(">{}< and >{}< seperated by only {} on {}".format(
-                                        name1,
-                                        name2,
-                                        separation,
-                                        observation1.date))
-                                logger.warning(str(observation1))
-                                logger.warning(str(observation2))
-                            report = False
+                        replacement = False
+                        if idx.is_same(observation2.provisional_name, observation1.provisional_name): 
+                            if observation1 != observation2:
+                               replacement = True
+                            else:
+                               report = False 
                             break
-                        elif idx.is_same(observation2.provisional_name, observation1.provisional_name):
-                            replacement = True
                 if report and replacement == args.replacement:
                     logger.warning("Adding {} on {} to report".format(name1, observation1.date))
                     report_observations[name1] = report_observations.get(name1, [])
@@ -181,7 +175,7 @@ auto-magical way.
     outfile.write("\n")
 
     for name in report_observations:
-        #sorted("This is a test string from Andrew".split(), key=str.lower)
+        # sorted("This is a test string from Andrew".split(), key=str.lower)
         report_observations[name].sort(key=lambda x: x.date.jd)
         for observation in report_observations[name]:
             outfile.write(observation.to_tnodb() + "\n")
