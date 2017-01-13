@@ -546,7 +546,6 @@ class ProcessVettingController(ProcessCandidatesController):
     def on_accept(self):
         self.view.show_vetting_accept_source_dialog()
 
-
     def on_reject(self):
         writer = self.model.get_writer()
         writer.write_source(self.model.get_current_source(), reject=True)
@@ -554,7 +553,6 @@ class ProcessVettingController(ProcessCandidatesController):
         self.model.accept_current_item()
         self.view.clear()
         self.model.next_item()
-
 
     def on_do_accept(self, comment):
         """
@@ -567,7 +565,7 @@ class ProcessVettingController(ProcessCandidatesController):
         @param comment:
         @return:
         """
-        self.view.close_reject_source_dialog()
+        self.view.close_vetting_accept_source_dialog()
 
         # Set to None if blank
         if len(comment.strip()) == 0:
@@ -579,6 +577,9 @@ class ProcessVettingController(ProcessCandidatesController):
         self.model.accept_current_item()
         self.view.clear()
         self.model.next_item()
+
+    def on_cancel_accept(self):
+        self.view.close_vetting_accept_source_dialog()
 
 
 class ProcessExamineController(ProcessRealsController):
