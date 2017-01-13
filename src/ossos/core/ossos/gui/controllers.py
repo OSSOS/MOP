@@ -84,6 +84,8 @@ class AbstractController(object):
         try:
             self.view.update_displayed_data(self.model.get_reading_data(),
                                             self.model.get_header_data_list())
+        except ImageNotLoadedException as ile:
+            pass
         except Exception as ex:
             logger.error(type(ex))
             logger.error(str(ex))
