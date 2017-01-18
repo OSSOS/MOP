@@ -9,7 +9,7 @@ L7MODEL = '/Users/bannisterm/Dropbox/OSSOS/Release_summaries/L7model-3.0-9.0'  #
 L7_HOME = '/Users/bannisterm/Dropbox/OSSOS/Release_summaries/'
 REAL_KBO_AST_DIR = '/Users/bannisterm/Dropbox/OSSOS/measure3/ossin/'
 # REAL_KBO_AST_DIR = 'vos:OSSOS/dbaseclone/ast/'
-RELEASE_VERSION = '9'
+RELEASE_VERSION = '11'
 
 first_quarter = '/Users/bannisterm/Dropbox/Papers in progress/OSSOS/First_quarter/'
 RELEASE_DETECTIONS = {
@@ -19,7 +19,8 @@ RELEASE_DETECTIONS = {
     '7': L7_HOME + 'v7/OSSOSv7.detections',
     '8': L7_HOME + 'OSSOSv8.prototype.detections',
     '9': L7_HOME + 'OSSOSvJJ_noST.detections', # 'lhpm.detections',
-    '10': L7_HOME + 'OSSOSvJJ.detections'
+    '10': L7_HOME + 'OSSOSvJJ.detections',
+    '11': L7_HOME + 'OSSOSvfinal.detections'
 }
 
 IDX = REAL_KBO_AST_DIR + 'file.idx'  # for local  # 'vos:OSSOS/dbaseclone/idx/file.idx'  # for vos
@@ -33,7 +34,6 @@ for year in range(13, 17, 1):
             OSSOS_RUNIDS.append('{}{}{}'.format(year, semester, code))
 OSSOS_RUNIDS.append('16BE85')
 
-OSSOS_RUNIDS.append('16BE85')
 SURVEY_START = '2013-01-01'
 
 PLOT_USNO_STARS = True
@@ -110,7 +110,9 @@ BLOCKS = OrderedDict([
     ('15AP', {'RA': "13:30:00.00", "DEC": "-7:45:00.00"}),  # on-plane
     ('15AM', {'RA': "15:35:00.00", "DEC": "-12:10:00.0"}),  # positioned for its 2015 discovery opposition.
     ('15BS', {'RA': "00:30:00.00", "DEC": "+05:00:00.00"}),
-    ('15BD', {'RA': "03:15:00.00", "DEC": "+16:30:00.00"})
+    ('15BT', {'RA': "00:30:00.00", "DEC": "+05:00:00.00"}), # S and T split based on depth; subsets of same 4 x 5 grid
+    ('15BC', {'RA': "03:15:00.00", "DEC": "+16:30:00.00"}),
+    ('15BD', {'RA': "03:15:00.00", "DEC": "+16:30:00.00"})  # C and D split based on depth; subsets of same 4 x 5 grid
 ])
 
 DISCOVERY_DATES = {"13AE": "2013/04/09 08:50:00",
@@ -120,8 +122,10 @@ DISCOVERY_DATES = {"13AE": "2013/04/09 08:50:00",
                    # Backup M triplet was on 2014/05/29, 2014/06/01 at diff block centre
                    "13BL": "2013/09/29 08:50:00",  # HOWEVER: discovery date is split between months (earliest)
                    "14BH": "2014/10/22 09:30:00",  # Note: Col3N triplet is instead 2014/01/03.
-                   "15BS": "2015/09/09 08:50:00",  # both halves within a night: 09-08 and 09-09
-                   "15BD": "2015/11/"
+                   "15BS": "2015/09/09 09:21:32.15",  # DEC split line: n+0, n+1 rows. Time of S+0+0 first image: 1832037
+                   "15BT": "2015/09/08 9:22:57.73",  # DEC split line: n-1, n-2 rows. Time of T+0-2 first image: 1831814
+                   "15BC": "2015/11/06 07:26:46.56",  # the D-2, D+1, D+2 (RA) columns. Time of D+2+0 first image: 1845957
+                   "15BD": "2015/11/07 08:18:24.96",  # the D-1, D+0 (RA) columns. Time of D+0-2 first image: 1846153
                    }
 
 DISCOVERY_NEW_MOON = 'Apr13'  # applies to the 13A blocks
