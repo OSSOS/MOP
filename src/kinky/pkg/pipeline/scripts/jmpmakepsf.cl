@@ -334,7 +334,7 @@ begin
 	    }
 	    
 	    ## we must have 10 or more stars to get a good psf...
-	    if ( npsfstar < 9 ) {
+	    if ( npsfstar < 5 ) {
 	        print("Only "//npsfstar//" where used to build the image, terminating")
 	        failedflag=1
 	        goto finalproc

@@ -22,24 +22,33 @@ except:
 
 from astropy.time import TimeString
 
-
 MATCH_TOLERANCE = 100.0
+
+def config_logging(level):
+    """
+    Configure the logging given the level desired
+    """
+
+    logger = logging.getLogger('')
+    logger.setLevel(level)
+    if level < logging.DEBUG:
+        log_format = "%(asctime)s %(message)s"
+    else:
+        log_format = "%(asctime)s %(module)s : %(lineno)d  %(message)s"
+    sh = logging.StreamHandler()
+    sh.formatter = logging.Formatter(fmt=log_format)
+    logger.handlers = []
+    logger.addHandler(sh)
+    
 
 def set_logger(args):
 
     level = logging.CRITICAL
-    log_format = "%(message)s"
     if args.debug:
-        log_format = "%(module)s: %(levelname)s: %(message)s"
         level = logging.DEBUG
     elif args.verbose:
         level = logging.INFO
-    logger = logging.getLogger('root')
-    logger.setLevel(level)
-    sh = logging.StreamHandler()
-    sh.formatter = logging.Formatter(fmt=log_format)
-    logger.addHandler(sh)
-
+    config_logging(level)
 
 
 def task():
@@ -111,8 +120,8 @@ class VOFileHandler(handlers.BufferingHandler):
                 _name = self.stream.name
                 self.stream.close()
                 self.client.copy(_name, self.filename)
-                self.stream = None
-        except:
+        except Exception as ex:
+            print str(ex)
             pass
 
     def flush(self):
