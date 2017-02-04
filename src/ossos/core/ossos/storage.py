@@ -102,6 +102,14 @@ class MyRequests(object):
 
 requests = MyRequests()
 
+def get_ccdlist(expnum):
+    if int(expnum) < 1785619:
+        # Last exposures with 36 CCD Megaprime
+        ccdlist = range(0,36)
+    else:
+        # First exposrues with 40 CCD Megaprime
+        ccdlist = range(0, 40)
+    return ccdlist
 
 def get_apcor(expnum, ccd, version='p', prefix=None):
     """
@@ -349,7 +357,8 @@ def set_tags_on_uri(uri, keys, values=None):
         value = values[idx]
         tag = tag_uri(key)
         node.props[tag] = value
-    return vospace.client.add_props(node)
+    vospace.client.add_props(node)
+    return vospace.client.get_node(uri, force=True)
 
 
 def _set_tags(expnum, keys, values=None):
@@ -365,7 +374,8 @@ def _set_tags(expnum, keys, values=None):
         tag = tag_uri(key)
         value = values[idx]
         node.props[tag] = value
-    return vospace.client.add_props(node)
+    vospace.client.add_props(node)
+    return vospace.client.get_node(uri, force=True)
 
 
 def set_tags(expnum, props):
@@ -914,7 +924,6 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
                 return hdu_list
         except Exception as e:
             err = getattr(e, 'errno', errno.EAGAIN)
-            logging.warning("Failed to get image using: {}{}".format(uri, cutout))
             logger.debug("{}".format(type(e)))
             logger.debug("Failed to open {} cutout:{}".format(uri, cutout))
             logger.debug("vos sent back error: {} code: {}".format(str(e), getattr(e, 'errno', 0)))
@@ -1045,7 +1054,6 @@ def get_hdu(uri, cutout=None):
             except Exception as ex:
                 logger.error("Failed trying to initialize the WCS: {}".format(ex))
     except Exception as ex:
-        print(ex)
         raise ex
     return hdu_list
 
@@ -1588,18 +1596,31 @@ def log_filename(prefix, task, version, ccd):
 def log_location(expnum, ccd):
     return os.path.dirname(get_uri(expnum, ccd=ccd))
 
+class LoggingManager(object):
 
-def set_logger(task, prefix, expnum, ccd, version, dry_run):
-    this_logger = logging.getLogger()
-    log_format = logging.Formatter('%(asctime)s - %(module)s.%(funcName)s %(lineno)d: %(message)s')
+    def __init__(self, task, prefix, expnum, ccd, version, dry_run=False):
+        self.logger = logging.getLogger('')
+        self.log_format = logging.Formatter('%(asctime)s - %(module)s.%(funcName)s %(lineno)d: %(message)s')
+        self.filename = log_filename(prefix, task, ccd=ccd, version=version)
+        self.location = log_location(expnum, ccd)
+        self.dry_run = dry_run
 
-    filename = log_filename(prefix, task, ccd=ccd, version=version)
-    location = log_location(expnum, ccd)
-    if not dry_run:
-        vo_handler = util.VOFileHandler("/".join([location, filename]))
-        vo_handler.setFormatter(log_format)
-        this_logger.addHandler(vo_handler)
+    def __enter__(self):
+        if not self.dry_run:
+            self.vo_handler = util.VOFileHandler("/".join([self.location, self.filename]))
+            self.vo_handler.setFormatter(self.log_format)
+            self.logger.addHandler(self.vo_handler)
+        self.file_handler = logging.FileHandler(filename=self.filename)
+        self.file_handler.setFormatter(self.log_format)
+        self.logger.addHandler(self.file_handler)
+        return self
 
-    file_handler = logging.FileHandler(filename=filename)
-    file_handler.setFormatter(log_format)
-    this_logger.addHandler(file_handler)
+    def __exit__(self, *args):
+        if not self.dry_run:
+            self.logger.removeHandler(self.vo_handler)
+            self.vo_handler.close()
+            del(self.vo_handler)
+        self.logger.removeHandler(self.file_handler)
+        self.file_handler.close()
+        del(self.file_handler)
+
