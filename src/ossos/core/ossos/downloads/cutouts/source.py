@@ -295,7 +295,7 @@ class SourceCutout(object):
                 self._apcor = ApcorData.from_string("5 15 99.99 99.99")
         return self._apcor
 
-    def get_observed_magnitude(self):
+    def get_observed_magnitude(self, centroid=True):
         # NOTE: this import is only here so that we don't load up IRAF
         # unnecessarily (ex: for candidates processing).
         """
@@ -316,9 +316,10 @@ class SourceCutout(object):
                                     swidth=self.apcor.swidth,
                                     apcor=self.apcor.apcor,
                                     zmag=self.zmag,
-                                    maxcount=max_count, extno=1)
+                                    maxcount=max_count, extno=1,
+                                    centroid=centroid)
             if not self.apcor.valid:
-                phot['PIER'][0] = 1
+                raise ValueError("Invalid apcor value")
             return phot
         finally:
             self.close()

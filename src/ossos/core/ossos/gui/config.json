@@ -47,9 +47,9 @@
   },
   "CUTOUTS": {
     "SINGLETS": {
-      "SLICE_ROWS": 50,
-      "SLICE_COLS": 50,
-      "RADIUS": 30
+      "SLICE_ROWS": 25,
+      "SLICE_COLS": 25,
+      "RADIUS": 10
     },
     "TRIPLETS": {
       "SLICE_ROWS": 50,
