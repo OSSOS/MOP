@@ -260,4 +260,4 @@ class Camera:
         """Compute the separation between self and (ra,dec)"""
         if self.coord is None:
             return None
-        return self.coord.separation(SkyCoord(ra, dec, unit=('degree',)))
+        return self.coord.separation(SkyCoord(ra, dec, unit=('degree', 'degree')))

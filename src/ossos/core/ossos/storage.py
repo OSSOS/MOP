@@ -654,8 +654,8 @@ def _cutout_expnum(observation, sky_coord, radius):
                     int(cutout[4]) - int(cutout[3]))) * 2.0 / 2880.0) + 13) * 2880
 
                 fobj = cStringIO.StringIO()
-
-                for chunk in progress.bar(resp.iter_content(chunk_size=2880), expected_size=(total_length / 2880)):
+                for chunk in resp.iter_content(chunk_size=2880):
+                # for chunk in progress.bar(resp.iter_content(chunk_size=2880), expected_size=(total_length / 2880)):
                     fobj.write(chunk)
             break
         except ReadTimeout as rt:

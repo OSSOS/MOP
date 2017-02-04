@@ -31,7 +31,7 @@ class EphemTarget(object):
               "DEC_J2000": {"attr": {"datatype": "A", "width": "11", "format": "DEd:DEm:DEs", "unit": "deg"},
                             "DESCRIPTION": "Declination of target"}}
 
-    def __init__(self, name, column_separator=COLUMN_SEPARATOR, format='CFHT ET'):
+    def __init__(self, name, column_separator=COLUMN_SEPARATOR, format='CFHT ET', runid='16BP06', qrunid='16BQ17'):
         """
         create an ephmeris target, either with a 'orbfit' object or some mean rate of motion.
 
@@ -43,6 +43,8 @@ class EphemTarget(object):
         self.doc = create_astrores_document()
         self.column_separator = column_separator
         self.coordinates = []
+        self.runid = runid
+        self.qrunid = qrunid
 
     def _init_cfht_api_(self):
         return {'runid': "16BE91",
@@ -158,14 +160,15 @@ class EphemTarget(object):
     def cfht_api_writer(self, f_handle):
         ephemeris_points = []
         for coordinate in self.coordinates:
-            epoch_millis = coordinate.obstime.mjd
-            this_coordinate = {"ra": float(coordinate.ra.degree),
-                               "dec": float(coordinate.dec.degree)}
+            epoch_millis = "{:.5f}".format(coordinate.obstime.mjd)
+            this_coordinate = {"ra": "{:.4f}".format(float(coordinate.ra.degree)),
+                               "dec": "{:.4f}".format(float(coordinate.dec.degree))}
             ephemeris_points.append({"epoch_millis": epoch_millis,
                                      "mag": coordinate.mag,
                                      "coordinate": this_coordinate})
-        target = {"identifier": {"client_token": "16BP06-target-" + self.name}, "name": self.name,
-                  "moving_target": {"ephmeris_points": ephemeris_points}}
+        target = {"identifier": {"client_token": "{}-{}-{}".format(self.runid, self.qrunid, self.name)},
+                  "name": self.name,
+                  "moving_target": {"ephemeris_points": ephemeris_points}}
         json.dump(target, f_handle)
         return
 
