@@ -29,11 +29,87 @@ import sys
 import logging
 from ossos import storage
 from ossos import util
-from ossos.pipeline import mkpsf
+
+task  = 'mkpsf'
+dependency = 'mk_mopheader'
 
 
+def run(expnum, ccd, version, dry_run=False, prefix="", force=False):
+    """Run the OSSOS jmpmakepsf script.
 
-def main(task='mkpsf'):
+    """
+
+    message = storage.SUCCESS
+    if storage.get_status(task, prefix, expnum, version=version, ccd=ccd) and not force:
+        logging.info("{} completed successfully for {} {} {} {}".format(task, prefix, expnum, version, ccd))
+        return
+
+    with storage.LoggingManager(task, prefix, expnum, ccd, version, dry_run):
+        try:
+            if not storage.get_status(dependency, prefix, expnum, "p", ccd=ccd):
+                raise IOError("{} not yet run for {}".format(dependency, expnum))
+
+            # confirm destination directory exists.
+            destdir = os.path.dirname(
+                storage.dbimages_uri(expnum, ccd, prefix=prefix, version=version, ext='fits'))
+            if not dry_run:
+                storage.mkdir(destdir)
+
+            # get image from the vospace storage area
+            logging.info("Getting fits image from VOSpace")
+            filename = storage.get_image(expnum, ccd, version=version, prefix=prefix)
+
+            # get mopheader from the vospace storage area
+            logging.info("Getting mopheader from VOSpace")
+            mopheader_filename = storage.get_file(expnum, ccd, version=version, prefix=prefix, ext='mopheader')
+
+
+            # run mkpsf process
+            logging.info("Running mkpsf on %s %d" % (expnum, ccd))
+            logging.info(util.exec_prog(['jmpmakepsf.csh',
+                                         './',
+                                         filename,
+                                         'yes', 'yes']))
+            
+            if dry_run:
+                return
+
+            # place the results into VOSpace
+            basename = os.path.splitext(filename)[0]
+
+            for ext in ('mopheader', 'psf.fits',
+                        'zeropoint.used', 'apcor', 'fwhm', 'phot'):
+                dest = storage.dbimages_uri(expnum, ccd, prefix=prefix, version=version, ext=ext)
+                source = basename + "." + str(ext)
+                count = 0
+                with open(source, 'r'):
+                  while True:
+                    count += 1
+                    try:
+                        logging.info("Attempt {} to copy {} -> {}".format(count, source, dest))
+                        storage.copy(source, dest)
+                        break
+                    except Exception as ex:
+                        if count > 10:
+                            raise ex
+
+            # set some data parameters associated with the image, determined in this step.
+            storage.set_status('fwhm', prefix, expnum, version=version, ccd=ccd, status=str(storage.get_fwhm(
+                expnum, ccd=ccd, prefix=prefix, version=version)))
+            storage.set_status('zeropoint', prefix, expnum, version=version, ccd=ccd,
+                               status=str(storage.get_zeropoint(
+                                   expnum, ccd=ccd, prefix=prefix, version=version)))
+            logging.info(message)
+        except Exception as e:
+            message = str(e)
+            logging.error(message)
+            
+        storage.set_status(task, prefix, expnum, version, ccd=ccd, status=message)
+
+    return
+
+
+def main():
 
 
     parser = argparse.ArgumentParser(
@@ -71,9 +147,14 @@ def main(task='mkpsf'):
     cmd_line = " ".join(sys.argv)
     args = parser.parse_args()
 
+    util.set_logger(args)
+    logging.info("Started {}".format(cmd_line))
+
     prefix = (args.fk and 'fk') or ''
+
     storage.DBIMAGES = args.dbimages
 
+    exit_code = 0
     for expnum in args.expnum:
         if args.ccd is None:
            if int(expnum) < 1785619:
@@ -84,8 +165,9 @@ def main(task='mkpsf'):
                ccdlist = range(0, 40)
         else:
            ccdlist = [args.ccd]
-        for ccd rrin ccdlist:
-            mkpsf.run(expnum, ccd=ccd, version=version, dry_run=dry_run, prefix=prefix, force=force)
+        for ccd in ccdlist:
+            run(expnum, ccd, args.type, args.dry_run, prefix, args.force)
+    return exit_code
 
 if __name__ == '__main__':
     sys.exit(main())
