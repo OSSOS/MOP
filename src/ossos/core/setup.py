@@ -25,16 +25,16 @@ if sys.version_info[0] > 2:
     sys.exit(-1)
 
 # # Build the list of tools and scripts to be installed.
-script_dirs = ['tools', 'scripts']
-scripts = []
-for script_dir in script_dirs:
-    for script in os.listdir(script_dir):
-        if script[-1] in ["~", "#"]:
-           continue
-        scripts.append(os.path.join(script_dir, script))
+#script_dirs = ['tools', 'scripts']
+#scripts = []
+#for script_dir in script_dirs:
+#    for script in os.listdir(script_dir):
+#        if script[-1] in ["~", "#"]:
+#           continue
+#        scripts.append(os.path.join(script_dir, script))
 
 console_scripts = [ 'mkpsf = ossos.pipeline.mkpsf:main', 'step1 = ossos.pipeline.step1:main', 'mk_mopheader = ossos.pipeline.mk_mopheader:main' ]
-gui_scripts: [ 'validate = ossos.tools.validate.py:main' ]
+gui_scripts = [ 'validate = ossos.tools.validate:main' ]
 
 setup(name='ossos',
       version=version,
@@ -57,6 +57,7 @@ setup(name='ossos',
       package_data={'ossos': ['gui/*.json']},
       dependency_links=['git+https://github.com/ericmandel/pyds9.git#egg=pyds9-1.8'],
       install_requires=dependencies,
-      entry_points = { 'console_scripts': console_scripts },
+      entry_points = { 'console_scripts': console_scripts,
+                       'gui_scripts': gui_scripts },
       packages=find_packages(exclude=['tests',])
       )
