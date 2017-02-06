@@ -369,7 +369,6 @@ class SSOSParser(object):
                             previous = not mpc_observation.discovery
                             break
                     except Exception as e:
-                        print e
                         logger.debug(str(e))
                         pass
                     mpc_observation = None
