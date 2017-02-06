@@ -37,27 +37,37 @@ if __name__ == '__main__':
     working_context = context.get_context(args.ast_dir)
     files = working_context.get_listing('ast')
     files = [f for f in files if f.startswith(args.block)]
+    parser = ssos.TracksParser(skip_previous=True)
 
     with open(outfile, 'w') as ofile:
-      ofile.write('Examining {} object files.\n'.format(len(files)))
-      for fn in files:
-        print(fn)
-        ofile.write('{}\n'.format(fn))
-        obj = parsers.TNO(mpc.MPCReader(os.path.join(os.path.join(args.ast_dir, fn))))
-        discovery_frame = obj.discovery.comment.frame.split('p')[0].strip(' ')
-        parser = ssos.TracksParser(skip_previous=True)
-        tracks_data = parser.parse(os.path.join(args.ast_dir, fn), print_summary=False)
-        if len(tracks_data.observations) > 1:  # it is set to always return the discovery image
-            print('{} unmeasured observations!\n'.format(len(tracks_data.observations) - 1))
-            ofile.write('{} unmeasured observations!\n'.format(len(tracks_data.observations) - 1))
+        ofile.write('Examining {} object files.\n'.format(len(files)))
+        for fn in files:
+            print(fn)
+            ofile.write('{}\n'.format(fn))
+            obj = parsers.TNO(None, ast_filename=os.path.join(os.path.join(args.ast_dir, fn)))
+            discovery_frames = []
+            for original_observation in obj.orbit.observations:
+                if original_observation.discovery:
+                    try:
+                        discovery_frames.append(original_observation.comment.frame)
+                    except Exception as ex:
+                        print ex
+            tracks_data = parser.parse(os.path.join(args.ast_dir, fn), print_summary=False)
+            new_observation_count = 0
+            new_observation_lines = ""
             for obs in tracks_data.observations:
-                if obs.expnum != discovery_frame:  # are these new?
-                    ofile.write('{} {}\n'.format(obs.rawname, Time(obs.mjd, format='mjd', scale='utc').mpc))
+                if obs.rawname not in discovery_frames:  # are these new?
+                    new_observation_count += 1
+                    new_observation_lines += '{} {}\n'.format(obs.rawname, Time(obs.mjd, format='mjd', scale='utc').mpc)
                     # Any processing-related reason why this image hasn't been measured yet? If so we need to process.
                     # assert storage.get_status('update_header', '', obs.expnum, "p", 36)
 
                     if args.check_mkpsf and not (storage.get_status('mkpsf', '', obs.expnum, "p", obs.ccdnum) or \
-                            storage.get_status('mk_mopheader', '', obs.expnum, "p", obs.ccdnum)):
-                        ofile.write('{}\n'.format(obs.expnum))
-        ofile.flush()
-
+                                                         storage.get_status('mk_mopheader', '', obs.expnum, "p",
+                                                                            obs.ccdnum)):
+                        with open('mkpsf_inputs_{}.txt'.format(args.block), 'a') as mkpsf_input:
+                            mkpsf_input.write('{} {}\n'.format(obs.expnum, obs.ccdnum))
+            print('{} unmeasured observations!\n'.format(new_observation_count))
+            ofile.write('{} unmeasured observations!\n'.format(new_observation_count))
+            ofile.write(new_observation_lines)
+            ofile.flush()
