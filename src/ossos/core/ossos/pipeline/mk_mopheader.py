@@ -28,43 +28,76 @@ import os
 from subprocess import CalledProcessError
 import sys
 
-from ossos import storage
-from ossos import util
-from ossos import mopheader
+from .. import storage
+from .. import util
+from .. import mopheader
+
+task = "mk_mopheader"
+dependency = 'update_header'
 
 
-def mk_mopheader(expnum, ccd, version, dry_run=False, prefix=""):
+def run(expnum, ccd, version, dry_run=False, prefix="", force=False, ignore_dependency=False):
     """Run the OSSOS mopheader script.
 
     """
-    ## confirm destination directory exists.
-    destdir = os.path.dirname(
-        storage.dbimages_uri(expnum, ccd, prefix=prefix, version=version, ext='fits'))
-    if not dry_run:
-        storage.mkdir(destdir)
+    message = storage.SUCCESS
+    logging.info("Attempting to get status on header for {} {}".format(expnum, ccd))
+    if storage.get_status(task, prefix, expnum, version, ccd) and not force:
+        logging.info("{} completed successfully for {} {} {} {}".format(task, prefix, expnum, version, ccd))
+        return message
 
-    ## get image from the vospace storage area
-    filename = storage.get_image(expnum, ccd, version=version, prefix=prefix)
-    logging.info("Running mopheader on %s %d" % (expnum, ccd))
-    ## launch the mopheader script
-    ## launch the makepsf script
-    expname = os.path.basename(filename).strip('.fits')
-    logging.info(util.exec_prog(['stepZjmp',
-                                 '-f',
-                                 expname]))
+    with storage.LoggingManager(task, prefix, expnum, ccd, version, dry_run):
+        try:
+            logging.info("Building a mopheader ")
+            if not storage.get_status(dependency, prefix, expnum, "p", 36) and not ignore_dependency:
+                raise IOError("{} not yet run for {}".format(dependency, expnum))
 
-    mopheader_filename = expname+".mopheader"
+            # confirm destination directory exists.
+            destdir = os.path.dirname(storage.dbimages_uri(expnum, ccd, prefix=prefix, version=version, ext='fits'))
+            if not dry_run:
+                storage.mkdir(destdir)
 
-    # mopheader_filename = mopheader.main(filename)
+            # get image from the vospace storage area
+            logging.info("Retrieving image from VOSpace")
+            filename = storage.get_image(expnum, ccd, version=version, prefix=prefix)
 
-    if dry_run:
-        return
+            # launch the stepZjmp program         
+            logging.info("Launching stepZ on %s %d" % (expnum, ccd))
+            expname = os.path.basename(filename).strip('.fits')
+            logging.info(util.exec_prog(['stepZjmp',
+                                         '-f',
+                                         expname]))
+            # if this is a dry run then we are finished
+            if dry_run:
+                return message
 
-    destination = storage.dbimages_uri(expnum, ccd, prefix=prefix, version=version, ext='mopheader')
-    source = mopheader_filename
-    storage.copy(source, destination)
+            # push the header to the VOSpace
+            mopheader_filename = expname+".mopheader"
+            destination = storage.dbimages_uri(expnum, ccd, prefix=prefix, version=version, ext='mopheader')
+            source = mopheader_filename
+            count = 0
+            with open(source, 'r'):
+              while True:
+                try:
+                    count += 1
+                    logging.info("Attempt {} to copy {} -> {}".format(count, source, destination))
+                    storage.copy(source, destination)
+                    break
+                except Exception as ex:
+                    if count > 10:
+                        raise ex
+            logging.info(message)
+        except CalledProcessError as cpe:
+            message = str(cpe.output)
+            logging.error(message)
+        except Exception as e:
+            message = str(e)
+            logging.error(message)
 
-    return
+        if not dry_run:
+            storage.set_status(task, prefix, expnum, version=version, ccd=ccd, status=message)
+        
+    return message
 
 
 def main():
@@ -104,12 +137,9 @@ def main():
     args = parser.parse_args()
 
     util.set_logger(args)
-
     
     logging.info("started")
     prefix = (args.fk and 'fk') or ''
-    task = util.task()
-    dependency = 'update_header'
 
     storage.DBIMAGES = args.dbimages
 
@@ -121,30 +151,7 @@ def main():
     exit_code = 0
     for expnum in args.expnum:
         for ccd in ccdlist:
-            logging.info("Attempting to get status on header for {} {}".format(expnum, ccd))
-            storage.set_logger(task,
-                               prefix, expnum, ccd, args.type, args.dry_run)
-            if storage.get_status(task, prefix, expnum, version=args.type, ccd=ccd) and not args.force:
-                logging.info("{} completed successfully for {} {} {} {}".format(task, prefix, expnum, args.type, ccd))
-                continue
-            message = 'success'
-            try:
-                logging.info("Building a header ")
-                if not storage.get_status(dependency, prefix, expnum, "p", 36) and not args.ignore_update_headers:
-                    raise IOError("{} not yet run for {}".format(dependency, expnum))
-                mk_mopheader(expnum, ccd, args.type, args.dry_run, prefix=prefix)
-            except CalledProcessError as cpe:
-                message = str(cpe.output)
-                exit_code = message
-            except Exception as e:
-                message = str(e)
-            logging.info(message)
-
-            logging.error(message)
-            if not args.dry_run:
-                storage.set_status(task, prefix, expnum, version=args.type, ccd=ccd, status=message)
-    return exit_code
-
+            run(expnum, ccd, args.type, args.dry_run, prefix=prefix, force=args.force)
 
 if __name__ == '__main__':
-    sys.exit(main())
+    main()
