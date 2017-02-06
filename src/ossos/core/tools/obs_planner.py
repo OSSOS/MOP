@@ -204,7 +204,8 @@ class Plot(Canvas):
         self.plabel = StringVar()
         self.plabel.set("P0")
         sun = ephem.Sun()
-        sun.compute(self.date.get())
+        date = mpc.Time(self.date.get(), scale='utc').iso
+        sun.compute(date)
         self.sun = Coord((sun.ra, sun.dec))
         self.width = width
         self.unit = StringVar()
@@ -231,8 +232,8 @@ class Plot(Canvas):
 
             for kbo in kbos:
                 # if kbo.orbit.arc_length > 30.:  # cull the short ones for now
-                #     print(kbo.name)
                 self.kbos[kbo.name] = kbo.orbit
+                self.kbos[kbo.name].mag = kbo.mag
                 # else:
                 #     print("Arc very short, large uncertainty. Skipping {} for now.\n".format(kbo.name))
 
@@ -456,7 +457,8 @@ class Plot(Canvas):
         """Expand to the full scale"""
 
         sun = ephem.Sun()
-        sun.compute(self.date.get())
+        this_time = Time(self.date.get(), scale='utc')
+        sun.compute(this_time.iso)
         self.sun = Coord((sun.ra, sun.dec))
 
         self.doplot()
@@ -477,10 +479,9 @@ class Plot(Canvas):
         if self.kbos.has_key(name):
             kbo = self.kbos[name]
             assert isinstance(kbo, orbfit.Orbfit)
-            date = self.date.get()
-            date.replace("/", " ")
+            this_time = Time(self.date.get(), scale='utc')
             try:
-                kbo.predict(self.date.get())
+                kbo.predict(this_time)
                 self.recenter(kbo.coordinate.ra.radian, kbo.coordinate.dec.radian)
                 self.create_point(kbo.coordinate.ra.radian, kbo.coordinate.dec.radian, color='blue', size=4)
             except:
@@ -513,7 +514,7 @@ class Plot(Canvas):
     def zoom(self, event=None, scale=2.0):
         """Zoom in"""
 
-        # # compute the x,y of the center of the screen
+        # compute the x,y of the center of the screen
         sx1 = (self.cx1 + self.cx2) / 2.0
         sy1 = (self.cy1 + self.cy2) / 2.0
 
@@ -526,9 +527,8 @@ class Plot(Canvas):
         xw = (self.x2 - self.x1) / 2.0 / scale
         yw = (self.y2 - self.y1) / 2.0 / scale
 
-
-        # # reset the limits to be centered at x,y with
-        # # area of xw*2,y2*2
+        # reset the limits to be centered at x,y with
+        # area of xw*2,y2*2
         self.limits(x - xw, x + xw, y - yw, y + yw)
 
         self.delete(ALL)
@@ -616,16 +616,21 @@ class Plot(Canvas):
         elif lines[0][0:5] == 'index':
             # ## Palomar Format
             # ## OK.. ID/NAME/RA /DEC format
+            v = lines[0].split()
+            if len(v) == 2 :
+                date = v[1]
+                self.date.set(v[1])
+                self.reset()
             for line in lines:
                 if line[0] == '!' or line[0:5] == 'index':
                     # index is a header line for Palomar
                     continue
                 d = line.split()
-                if len(d) != 9:
+                if len(d) < 9:
                     sys.stderr.write("Don't understand pointing format\n%s\n" % line)
                     continue
-                ras = "%s:%s:%s" % ( d[2], d[3], d[4])
-                decs = "%s:%s:%s" % ( d[5], d[6], d[7])
+                ras = "%s:%s:%s" % (d[2], d[3], d[4])
+                decs = "%s:%s:%s" % (d[5], d[6], d[7])
                 points.append((d[1].strip(), ras, decs))
         elif lines[0][0:5] == "#SSIM":
             # ## Survey Simulator format
@@ -713,7 +718,7 @@ class Plot(Canvas):
         """
         x = self.canvasx(event.x)
         y = self.canvasy(event.y)
-        (ra, dec) = self.c2p((x,y))
+        (ra, dec) = self.c2p((x, y))
         this_camera = Camera(ra=float(ra) * units.radian, dec=float(dec)*units.radian, camera=self.camera.get())
 
         ccds = numpy.radians(numpy.array(this_camera.geometry))
@@ -752,7 +757,7 @@ class Plot(Canvas):
             i = i + 1
             label = {}
             label['text'] = pointing['label']['text']
-            for ccd in pointing["camera"].geometry:
+            for ccd in numpy.radians(pointing["camera"].geometry):
                 if len(ccd) == 4:
                     ccd = numpy.radians(numpy.array(ccd))
                     (x1, y1) = self.p2c((ccd[0], ccd[1]))
@@ -799,10 +804,11 @@ class Plot(Canvas):
         if this_pointing is None:
             return
         self.plabel.set(this_pointing['label']['text'])
-        ccds = this_pointing["camera"].geometry(ra, dec)
+        this_pointing["camera"].set_coord((ra*units.radian, dec*units.radian))
+        ccds = numpy.radians(this_pointing["camera"].geometry)
         items = this_pointing["items"]
         label = this_pointing["label"]
-        (x1, y1) = self.p2c((this_pointing["camera"].ra.degree, this_pointing["camera"].dec.degree))
+        (x1, y1) = self.p2c((this_pointing["camera"].ra.radian, this_pointing["camera"].dec.radian))
         self.coords(label["id"], x1, y1)
         for i in range(len(ccds)):
             ccd = ccds[i]
@@ -892,10 +898,9 @@ class Plot(Canvas):
             for pointing in self.pointings:
                 name = pointing["label"]["text"]
                 camera = pointing["camera"]
-                ccds = camera.geometry
+                ccds = numpy.radians(camera.geometry)
                 polygons = []
                 for ccd in ccds:
-                    ccd = numpy.radians(numpy.array(ccd))
                     polygon = Polygon.Polygon(((ccd[0], ccd[1]),
                                                (ccd[0], ccd[3]),
                                                (ccd[2], ccd[3]),
@@ -911,7 +916,7 @@ class Plot(Canvas):
                 pointing_date = mpc.Time(self.date.get(), scale='utc')
                 start_date = mpc.Time(self.date.get(), scale='utc') - TimeDelta(8.1*units.day)
                 end_date = start_date + TimeDelta(17*units.day)
-                time_step = TimeDelta(1.5*units.hour)
+                time_step = TimeDelta(3.0*units.hour)
 
                 # Compute the mean position of KBOs in the field on current date.
                 for kbo_name, kbo in self.kbos.items():
@@ -946,7 +951,7 @@ class Plot(Canvas):
                         current_dec = 0
                         for kbo in field_kbos:
                             kbo.predict(today)
-                            max_mag = max(max_mag, kbo.observations[0].mag)
+                            max_mag = max(max_mag, kbo.mag)
                             current_ra += kbo.coordinate.ra.radian
                             current_dec += kbo.coordinate.dec.radian
                         mean_motion = ((current_ra - center_ra) / len(field_kbos),
