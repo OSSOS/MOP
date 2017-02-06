@@ -34,7 +34,7 @@ for script_dir in script_dirs:
         scripts.append(os.path.join(script_dir, script))
 
 console_scripts = [ 'mkpsf = ossos.pipeline.mkpsf:main', 'step1 = ossos.pipeline.step1:main', 'mk_mopheader = ossos.pipeline.mk_mopheader:main' ]
-
+gui_scripts: [ 'validate = ossos.tools.validate.py:main' ]
 
 setup(name='ossos',
       version=version,
