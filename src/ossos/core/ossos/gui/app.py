@@ -241,6 +241,7 @@ class ProcessVettingApplication(ProcessCandidatesApplication):
         return VettingWorkUnitBuilder(StationaryParser(), input_context, output_context, progress_manager,
                                       dry_run=self.dry_run)
 
+
 class ProcessExamineApplication(ProcessRealsApplication):
 
     @property
@@ -264,18 +265,18 @@ class ProcessExamineApplication(ProcessRealsApplication):
                                       dry_run=self.dry_run)
 
 
-
 class ProcessTracksApplication(ValidationApplication):
     def __init__(self, working_directory, output_directory,
                  dry_run=False, debug=False, name_filter=None, skip_previous=False,
                  user_id=None, zoom=1):
         preload_iraf()
         self.skip_previous = skip_previous
+        self.controller.is_discovery = False
+
         super(ProcessTracksApplication, self).__init__(
             working_directory, output_directory, dry_run=dry_run, debug=debug, 
             name_filter=name_filter,
             user_id=user_id, zoom=zoom)
-        self.controller.is_discovery = False
 
     @property
     def input_suffix(self):
