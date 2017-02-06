@@ -9,13 +9,17 @@ from string import upper
 import tempfile
 import logging
 import warnings
-
+import sys
 import time
+from contextlib import closing
+import math
 from astropy.coordinates import SkyCoord
 from astropy.io import ascii
 from astropy import units
 from astropy.units import Quantity
 from astropy.utils.exceptions import AstropyUserWarning
+from requests import ReadTimeout
+
 import vospace
 from astropy.io import fits
 import requests
@@ -645,13 +649,33 @@ def _cutout_expnum(observation, sky_coord, radius):
                           sky_coord.ra.to('degree').value,
                           sky_coord.dec.to('degree').value,
                           radius.to('degree').value)
-    resp = requests.get(url, auth=vospace.authentication)
-    hdulist = fits.open(cStringIO.StringIO(resp.content))
+    from clint.textui import progress
 
+    while True:
+        try:
+            with closing(requests.get(url, auth=vospace.authentication, stream=True, timeout=(5.0, 10.0))) as resp:
+                resp.raise_for_status()
+                disposition = resp.headers.get('content-disposition', '0___')
+                cutouts = decompose_content_decomposition(disposition)
+                logger.debug("Got cutout boundaries of: {}".format(cutouts))
+                total_length = 0
+                for cutout in cutouts:
+                    total_length += (math.ceil(((int(cutout[2]) - int(cutout[1])) * (
+                    int(cutout[4]) - int(cutout[3]))) * 2.0 / 2880.0) + 13) * 2880
+
+                fobj = cStringIO.StringIO()
+                for chunk in resp.iter_content(chunk_size=2880):
+                # for chunk in progress.bar(resp.iter_content(chunk_size=2880), expected_size=(total_length / 2880)):
+                    fobj.write(chunk)
+            break
+        except ReadTimeout as rt:
+            logger.error("Read Timeout: {}".format(rt))
+
+    fobj.flush()
+    fobj.seek(0)
+    hdulist = fits.open(fobj)
     hdulist.verify('silentfix+ignore')
-    disposition = resp.headers.get('content-disposition', '0___')
-    cutouts = decompose_content_decomposition(disposition)
-    logger.debug("Got cutout boundaries of: {}".format(cutouts))
+
     logger.debug("Initial Length of HDUList: {}".format(len(hdulist)))
 
     # Make sure here is a primaryHDU

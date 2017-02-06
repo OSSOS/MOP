@@ -18,13 +18,32 @@ from ossos import mpc, storage, wcs, astrom
 from ossos import orbfit
 import argparse
 
+from requests import ConnectionError
+
 # Maximum allowed change in angle during re-measure
 TOLERANCE = 2.00 * units.arcsec
 
 
-def remeasure(mpc_in, recentroided=False):
+def _flipped_ccd(ccd):
     """
-    re-measure the astrometry and photometry of the given mpc line
+
+    @param ccd:
+    @return:
+    """
+    return ccd < 18 or ccd in [36, 37]
+
+
+def remeasure(mpc_in, reset_pixel_coordinates=False):
+    """
+    Compute the RA/DEC of the line based on the X/Y in the comment and the WCS of the associated image.
+
+    Comment of supplied astrometric line (mpc_in) must be in OSSOSComment format.
+
+    @param mpc_in: An line of astrometric measurement to recompute the RA/DEC from the X/Y in the comment.
+    @type mpc_in: mpc.Observation
+    @param reset_pixel_coordinates: try and determine correct X/Y is X/Y doesn't map to correct RA/DEC value
+    @type reset_pixel_coordinates: bool
+
     """
     if mpc_in.null_observation:
         return mpc_in
@@ -32,19 +51,19 @@ def remeasure(mpc_in, recentroided=False):
     logging.debug("rm start: {}".format(mpc_obs.to_string()))
 
     if not isinstance(mpc_obs.comment, mpc.OSSOSComment):
-        logging.error( "Failed to convert comment line")
+        logging.error("Failed to convert comment line")
         return mpc_in
 
-    parts = re.search('(?P<expnum>\d{7})(?P<type>\S)(?P<ccd>\d\d)', mpc_obs.comment.frame)
+    parts = re.search('(?P<expnum>\d{7})(?P<type>\S)(?P<ccd>\d\d)', str(mpc_obs.comment.frame))
     if not parts:
-        logging.error( "Failed to parse expnum from frame info in comment line")
+        logging.error("Failed to parse expnum from frame info in comment line")
         return mpc_in
-
-    start_coordinate = mpc_in.coordinate
-    #assert isinstance(start_coordinate, ICRSCoordinates)
+    ccd = int(parts.group('ccd'))
+    expnum = int(parts.group('expnum'))
+    exp_type = parts.group('type')
 
     try:
-        header = storage._get_sghead(parts.group('expnum'))[int(parts.group('ccd')) + 1]
+        header = _connection_error_wrapper(storage._get_sghead, expnum)[ccd+1]
     except IOError as ioerr:
         logging.error(str(ioerr))
         logging.error("Failed to get astrometric header for: {}".format(mpc_obs))
@@ -52,63 +71,49 @@ def remeasure(mpc_in, recentroided=False):
 
     this_wcs = wcs.WCS(header)
 
-    try:
-        #(x , y ) = this_wcs.sky2xy(mpc_obs.coordinate.ra.degree, mpc_obs.coordinate.dec.degree, usepv=True) 
-        x = mpc_obs.comment.x
-        y = mpc_obs.comment.y
-        (ra, dec) = this_wcs.xy2sky(x, y, usepv=True)
-        mpc_obs.coordinate = (ra, dec)
-        sep = mpc_in.coordinate.separation(mpc_obs.coordinate)
-
-        if sep > TOLERANCE*20 and mpc_in.discovery and (int(parts.group('ccd')) < 18 or int(parts.group('ccd')) in [36, 37]):
-            logging.warn("Large ({}) offset using X/Y in comment line to compute RA/DEC".format(sep))
-            logging.info("This is a discovery line so flipping/flopping the x/y position recorded in comment as that "
-                         "may be taken from a flip/flopped image.")
-            x = header['NAXIS1'] - x + 1
-            y = header['NAXIS2'] - y + 1
-            (ra, dec) = this_wcs.xy2sky(x, y, usepv=True)
-            # print "--> x/y coordinates ({},{}) and recomputing ra/dec ({},{})".format(x, y, ra, dec)
-            mpc_obs.coordinate = (ra, dec)
-            sep = mpc_in.coordinate.separation(mpc_obs.coordinate)
-            if sep > TOLERANCE*20 and mpc_in.discovery:
-                logging.warn( "Large ({}) offset after flipping, so reverting.".format(sep))
-                # Try un-flipping.
-                x = float(mpc_in.comment.x)
-                y = float(mpc_in.comment.y)
-                (ra, dec) = this_wcs.xy2sky(x, y, usepv=True)
-                # print "--> x/y coordinates ({},{}) and recomputing ra/dec ({},{})".format(x, y, ra, dec)
-                mpc_obs.coordinate = (ra, dec)
-                sep = mpc_in.coordinate.separation(mpc_obs.coordinate)
-    except:
-        logging.warn("Failed to get the X Y coordinate from comment line.")
-        return mpc_in
+    mpc_obs.coordinate = this_wcs.xy2sky(mpc_obs.comment.x, mpc_obs.comment.y, usepv=True)
+    sep = mpc_in.coordinate.separation(mpc_obs.coordinate)
+    if sep > TOLERANCE*20 and mpc_in.discovery and _flipped_ccd(ccd):
+        logging.warn("Large ({}) offset using X/Y in comment line to compute RA/DEC".format(sep))
+        if reset_pixel_coordinates:
+            logging.info("flipping/flopping the discvoery x/y position recorded.")
+            x = header['NAXIS1'] - mpc_obs.comment.x + 1
+            y = header['NAXIS2'] - mpc_obs.comment.y + 1
+            new_coordinate = this_wcs.xy2sky(x, y, usepv=True)
+            new_sep = mpc_in.coordinate.separation(new_coordinate)
+            if new_sep < TOLERANCE*2:
+                mpc_obs.coordinate = new_coordinate
+                mpc_obs.comment.x = x
+                mpc_obs.comment.y = y
+                sep = new_sep
 
     if sep > TOLERANCE:
         # use the old header RA/DEC to predict the X/Y and then use that X/Y to get new RA/DEC
         logging.warn("sep: {} --> large offset when using comment line X/Y to compute RA/DEC")
-        if recentroided:
+        if reset_pixel_coordinates:
            logging.warn("Using RA/DEC and original WCS to compute X/Y and replacing X/Y in comment.".format(sep))
-           header2 = storage.get_astheader(parts.group('expnum'), int(parts.group('ccd')))
+           header2 = _connection_error_wrapper(storage.get_astheader, expnum, ccd)
            image_wcs = wcs.WCS(header2)
            (x, y) = image_wcs.sky2xy(mpc_in.coordinate.ra.degree, mpc_in.coordinate.dec.degree, usepv=False)
-           (ra, dec) = this_wcs.xy2sky(x, y, usepv=True)
+           mpc_obs.coordinate = this_wcs.xy2sky(x, y, usepv=True)
+           mpc_obs.comment.x = x
+           mpc_obs.comment.y = y
            logging.info("Coordinate changed: ({:5.2f},{:5.2f}) --> ({:5.2f},{:5.2f})".format(mpc_obs.comment.x,
-                                                                                          mpc_obs.comment.y,
-                                                                                          x, y))
-        mpc_obs.coordinate = (ra, dec)
-        mpc_obs.comment.x = x
-        mpc_obs.comment.y = y
+                                                                                             mpc_obs.comment.y,
+                                                                                             x, y))
 
-
-    try:
-        merr = float(mpc_obs.comment.mag_uncertainty)
-        fwhm = float(storage.get_fwhm(parts.group('expnum'), int(parts.group('ccd')))) * header['PIXSCAL1']
-        centroid_err = merr * fwhm
-        logging.debug("Centroid uncertainty:  {} {} => {}".format(merr, fwhm, centroid_err))
-    except Exception as err:
-        logging.error(str(err))
-        logging.error("Failed to compute centroid_err for observation:\n"
-                      "{}\nUsing default of 0.2".format(mpc_obs.to_string()))
+    if mpc_obs.comment.mag_uncertainty is not None:
+        try:
+            merr = float(mpc_obs.comment.mag_uncertainty)
+            fwhm = float(_connection_error_wrapper(storage.get_fwhm, expnum, ccd))
+            centroid_err = merr * fwhm * header['PIXSCAL1']
+            logging.debug("Centroid uncertainty:  {} {} => {}".format(merr, fwhm, centroid_err))
+        except Exception as err:
+            logging.error(str(err))
+            logging.error("Failed to compute centroid_err for observation:\n"
+                          "{}\nUsing default of 0.2".format(mpc_obs.to_string()))
+            centroid_err = 0.2
+    else:
         centroid_err = 0.2
 
     mpc_obs.comment.astrometric_level = header.get('ASTLEVEL', "0")
@@ -119,7 +124,7 @@ def remeasure(mpc_in, recentroided=False):
         logging.debug("Residuals: {} {} => {}".format(asterr, centroid_err, residuals))
     except Exception as err:
         logging.error(str(err))
-        logging.error("Failed while trying to compute plate uncertainty for\n{}".format(mpc_obs.to_stirng()))
+        logging.error("Failed while trying to compute plate uncertainty for\n{}".format(mpc_obs.to_string()))
         logging.error('Using default of 0.25')
         residuals = 0.25
 
@@ -130,7 +135,27 @@ def remeasure(mpc_in, recentroided=False):
     return mpc_obs
 
 
-def recompute_mag(mpc_in):
+def _connection_error_wrapper(func, *args, **kwargs):
+    """
+    Wrap a call to func in a try/except that repeats on ConnectionError
+    @param func:
+    @param args:
+    @param kwargs:
+    @return:
+    """
+
+    while True:
+        result = None
+        try:
+            result = func(*args, **kwargs)
+        except ConnectionError:
+            continue
+        except Exception as ex:
+            logging.error(str(ex))
+        return result
+
+
+def recompute_mag(mpc_in, skip_centroids=False):
     """
     Get the mag of the object given the mpc.Observation
     """
@@ -141,8 +166,11 @@ def recompute_mag(mpc_in):
 
     mpc_obs = deepcopy(mpc_in)
     assert isinstance(mpc_obs, mpc.Observation)
+    assert isinstance(mpc_obs.comment, mpc.OSSOSComment)
+
     if mpc_obs.null_observation:
         return mpc_obs
+
     parts = re.search('(?P<expnum>\d{7})(?P<type>\S)(?P<ccd>\d\d)', mpc_obs.comment.frame)
     if parts is None:
         return mpc_obs
@@ -152,7 +180,9 @@ def recompute_mag(mpc_in):
 
     observation = astrom.Observation(expnum, file_type, ccd)
     assert isinstance(observation, astrom.Observation)
-    ast_header = storage._get_sghead(int(expnum))[int(ccd)+1]
+
+    ast_header = _connection_error_wrapper(storage._get_sghead, int(expnum))[int(ccd)+1]
+
     filter_value = None
     for keyword in ['FILTER', 'FILT1 NAME']:
        filter_value = ast_header.get(keyword, None)
@@ -162,62 +192,26 @@ def recompute_mag(mpc_in):
          else:
              filter_value = filter_value[0]
          break
-
     # The ZP for the current astrometric lines is the pipeline one.  The new ZP is in the astheader file.
     new_zp = ast_header.get('PHOTZP')
 
     # The .zeropoint.used value is likely the one used for the original photometry.
-    old_zp = storage.get_zeropoint(int(expnum), int(ccd))
+    old_zp = _connection_error_wrapper(storage.get_zeropoint, int(expnum), int(ccd))
 
     reading = astrom.SourceReading(float(mpc_obs.comment.x), float(mpc_obs.comment.y), float(mpc_obs.comment.x),
                                    float(mpc_obs.comment.y), mpc_obs.coordinate.ra.degree,
                                    mpc_obs.coordinate.dec.degree, float(mpc_obs.comment.x), float(mpc_obs.comment.y),
                                    observation, ssos=True, from_input_file=True, null_observation=False,
                                    discovery=mpc_obs.discovery)
-    cutout = dlm.download_cutout(reading, needs_apcor=True)
-    cutout._zmag = new_zp
 
-    # try:
-    #     if mpc_in.discovery and ccdnum < 18 or ccdnum in [36, 37]:
-    #         logging.warn("This is a discovery line so flipping/flopping the x/y position "
-    #                      "recorded in comment as that is likely taken from a flip/flopped image, and we now work"
-    #                      "in unflip/flop frame" )
-    #         # Get the full header of the image so we can flip/flop the coordinates
-    #         header = storage._get_sghead(parts.group('expnum'))[ccdnum + 1]
-    #         # Get the X/Y position of the source from the MPC line comment.
-    #         x = mpc_obs.comment.x
-    #         y = mpc_obs.comment.y
-    #         # Do the coordinate flip/flop
-    #         x = header['NAXIS1'] - x + 1
-    #         y = header['NAXIS2'] - y + 1
-    #         # Now x/y are in the full frame of the MEF image which is stored in cutout.
-    #         # so we transform to the pixel coordinates of the cutout.
-    #         (x_p, y_p, hdu_list_idx)  = cutout.get_pixel_coordinates((x, y), ccdnum)
-    #         # Now turn those in RA/DEC coordinates.
-    #         mpc_obs.coordinate = cutout.pix2world(x_p, y_p, hdu_list_idx)
-    #         if mpc_in.coordinate.separation(mpc_obs.coordinate) > TOLERANCE:
-    #             logger.warning("Flipping coordinates don't match RA/DEC. reverting to oringal values.")
-    #             # Try reverting back to the orignal X/Y pixel locations from the input astrometry line.
-    #             (x_p, y_p, hdu_list_idx)  = cutout.get_pixel_coordinates((mpc_obs.comment.x, mpc_in.comment.y), ccdnum)
-    #             mpc_obs.coordinate = cutout.pix2world(x_p, y_p, hdu_list_idx)
-    #             if mpc_in.coordinate.separation(mpc_obs.coordinate) > TOLERANCE:
-    #                 # Something is not good.
-    #                 raise ValueError("Can't determine x/y to RA/DEC mapping on discovery images.")
-    #         else:
-    #             logger.warn("Updating X/Y to use the not flipped coordinates frame.")
-    #         # OK, we have the correct pixel coordinates for the cutout we are looking, store the orignal observerd coord
-    #         cutout.update_pixel_location((x_p, y_p), hdu_list_idx)
-    # except Exception as ex:
-    #     logging.warn(ex)
-    #     logging.warn("Failed to get the X Y coordinate from comment line.")
-    #     return mpc_in
-    #
+    cutout = _connection_error_wrapper(dlm.download_cutout, reading, needs_apcor=True)
+    cutout._zmag = new_zp
 
     if math.fabs(cutout.zmag - old_zp) > 0.3:
         logging.warn("Large change in zeropoint detected: {}  -> {}".format(old_zp, cutout.zmag))
 
     try:
-        PHOT = cutout.get_observed_magnitude()
+        PHOT = cutout.get_observed_magnitude(centroid=not skip_centroids and mpc_obs.note1 != "H")
         x = PHOT['XCENTER']
         y = PHOT['YCENTER']
         mag = PHOT['MAG']
@@ -227,29 +221,35 @@ def recompute_mag(mpc_in):
     except Exception as ex:
         logging.error("ERROR: {}".format(str(ex)))
         return mpc_obs
-    if mpc_obs.comment.mag is not None and math.fabs(mpc_obs.comment.mag - mag) > 3.5 * mpc_obs.comment.mag_uncertainty:
-        logging.warn("recomputed magnitude shift large: {} --> {}".format(mpc_obs.mag, mag[0]))
-    if math.sqrt((x.value - mpc_obs.comment.x) ** 2 + (y.value - mpc_obs.comment.y) ** 2) > 1.9:
-        logging.warn("Centroid shifted ({},{}) -> ({},{})".format(mpc_obs.comment.x,
-                                                                  mpc_obs.comment.y,
-                                                                  x.value,
-                                                                  y.value))
-    # Don't use the new X/Y for Hand measured entries.
-    if str(mpc_obs.note1) != "H":
+
+    try:
+        if mpc_obs.comment.mag_uncertainty is not None and mpc_obs.comment.mag is not None and math.fabs(mpc_obs.comment.mag - mag) > 3.5 * mpc_obs.comment.mag_uncertainty:
+           logging.warn("recomputed magnitude shift large: {} --> {}".format(mpc_obs.mag, mag[0]))
+        if math.sqrt((x.value - mpc_obs.comment.x) ** 2 + (y.value - mpc_obs.comment.y) ** 2) > 1.9:
+            logging.warn("Centroid shifted ({},{}) -> ({},{})".format(mpc_obs.comment.x,
+                                                                      mpc_obs.comment.y,
+                                                                      x.value,
+                                                                      y.value))
+    except Exception as ex:
+        logging.error(str(ex))
+
+    # Don't use the new X/Y for Hand measured entries.  (although call to get_observed_magnitude should have changed)
+    if str(mpc_obs.note1) != "H" and not skip_centroids:
         mpc_obs.comment.x = x.value
         mpc_obs.comment.y = y.value
 
     mpc_obs._band = filter_value
     mpc_obs.comment.mag = mag
     mpc_obs.comment.mag_uncertainty = merr
-    # logging.warn("Previous mag: {} {}".format( mpc_in.mag,mpc_in.comment.photometry_note))
-    if mpc_obs.mag is not None or mpc_in.comment.photometry_note[0] == "Z":
+
+    # Update the mpc record magnitude if previous value existed here.
+    if (mpc_obs.mag is not None or (mpc_obs.mag is None and mpc_in.comment.photometry_note[0] == "Z")):
         mpc_obs.mag = mag
-    # logging.warn("Resulting mag: {} {}".format( mpc_obs.mag,mpc_obs.comment.photometry_note))
+
     return mpc_obs
 
 
-def main(mpc_file, cor_file, skip_mags=False):
+def main(mpc_file, cor_file, skip_mags=False, skip_centroids=False):
     """
 
     :param mpc_file: A file containing the astrometric lines to be updated.
@@ -273,9 +273,9 @@ def main(mpc_file, cor_file, skip_mags=False):
         mpc_obs = remeasure(mpc_in)
         logging.info("new wcs: {}".format(mpc_obs.to_string()))
 
-        if skip_mags:  
+        if not skip_mags:  
             # and not mpc_obs.comment.photometry_note[0] == "Z":
-            mpc_mag = remeasure(recompute_mag(mpc_obs), recentroided=True)
+            mpc_mag = remeasure(recompute_mag(mpc_obs, skip_centroids=skip_centroids), reset_pixel_coordinates=not skip_centroids)
         else:
             mpc_mag = mpc_obs
 
@@ -303,7 +303,10 @@ def main(mpc_file, cor_file, skip_mags=False):
             optr.write(out.to_string()+"\n")
     optr.close()
 
-    compare_orbits(original_obs, modified_obs, cor_file)
+    try:
+       compare_orbits(original_obs, modified_obs, cor_file)
+    except Exception as ex:
+       logging.error("Orbit comparison failed: {}".format(ex))
     logging.info("="*220)
 
     return True
@@ -393,9 +396,7 @@ def compare_orbits(original_obs, modified_obs, cor_file):
         merr_str = ""
         for filter in mags:
             mag = numpy.percentile(numpy.array(mags[filter]), (50))
-            print mag
             mags[filter] = numpy.percentile(numpy.array(mags[filter]), (5,95))
-            print mags[filter]
             merr = (mags[filter][1] - mags[filter][0])/6.0
             merr_str += " {}: {:8.2f} +/- {:8.2f}".format(filter, mag, merr)
         orbpt.write("ra_std:{:8.4} dec_std:{:8.4} mag: {}".format(dra.std(), ddec.std(), merr_str))
@@ -412,12 +413,13 @@ if __name__ == '__main__':
     parser.add_argument('--discovery', help="Only process the discovery images.", action='store_true', default=False)
     parser.add_argument('--result_base_name', help="base name for remeasurement results (defaults to basename of input)",
                         default=None)
-    parser.add_argument('--skip-mags', action="store_false", help="Recompute magnitudes.", default=True)
+    parser.add_argument('--skip-mags', action="store_true", help="Recompute magnitudes.", default=False)
+    parser.add_argument('--skip-centroids', action="store_true", help="Recompute centroids.", default=False)
     parser.add_argument('--debug', action='store_true')
 
     args = parser.parse_args()
 
-    level = logging.INFO
+    level = logging.WARN
     if args.debug:
         level = logging.DEBUG
 
@@ -429,5 +431,5 @@ if __name__ == '__main__':
         base_name = os.path.splitext(os.path.basename(args.ast_file))[0]
     else:
         base_name = args.result_base_name
-    main(args.ast_file, base_name, args.skip_mags)
+    main(args.ast_file, base_name, args.skip_mags, skip_centroids=args.skip_centroids)
 

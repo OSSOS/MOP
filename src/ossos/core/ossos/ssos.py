@@ -28,7 +28,7 @@ NEW_LINE = '\r\n'
 
 class TracksParser(object):
 
-    def __init__(self, inspect=True, skip_previous=False):
+    def __init__(self, inspect=True, skip_previous=False, lunation_count=0):
         logger.debug("Setting up TracksParser")
         self.orbit = None
         self._nights_per_darkrun = 18 * units.day
@@ -36,8 +36,9 @@ class TracksParser(object):
         self.inspect = inspect
         self.skip_previous = skip_previous
         self.ssos_parser = None
+        self.initial_lunation_count = lunation_count
 
-    def parse(self, filename):
+    def parse(self, filename, print_summary=True):
         logger.debug("Parsing SSOS Query.")
         mpc_observations = mpc.MPCReader(filename).mpc_observations
 
@@ -48,13 +49,16 @@ class TracksParser(object):
 
         try:
             self.orbit = Orbfit(mpc_observations)
-            print self.orbit.residuals
-            print self.orbit
+            if print_summary:
+               print self.orbit.residuals
+               print self.orbit
         except Exception as ex:
             logger.error("{}".format(ex))
             logger.error("Failed to compute orbit with astrometry provided")
             logger.error("{}".format(mpc_observations))
             return None
+
+        lunation_count = self.initial_lunation_count
 
         if self.orbit.arc_length < 1 * units.day:
             # data from the same dark run.
