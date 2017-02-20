@@ -20,6 +20,10 @@ from matplotlib.patches import Rectangle
 from matplotlib.backends.backend_pdf import PdfPages
 
 from ossos import (storage, parameters)
+dbimages='vos:jkavelaars/CFIS/dbimages'
+storage.DBIMAGES=dbimages
+
+parameters.OSSOS_RUNIDS = ['17AP30', '17AP31']
 
 
 def query_for_observations(mjd, observable, runids):
@@ -72,7 +76,6 @@ def query_for_observations(mjd, observable, runids):
     t = vot.array
     tmpFile.close()
 
-    print t
 
     logging.debug("Got {} lines from tap query".format(len(t)))
 
@@ -104,7 +107,7 @@ def create_ascii_table(obsTable, outfile):
     t2 = None
     fout.write(bar + stamp + bar + header)
 
-    populated = storage.list_dbimages()
+    populated = storage.list_dbimages(dbimages=dbimages)
     for i in range(len(obsTable) - 1, -1, -1):
         row = obsTable.data[i]
         if row['dataset_name'] not in populated:
@@ -251,6 +254,7 @@ if __name__ == '__main__':
         logging.error("you said date = %s" % (opt.date))
         logging.error(str(e))
         sys.exit(-1)
+
 
     obs_table = query_for_observations(mjd_yesterday, opt.cal, runids)
 
