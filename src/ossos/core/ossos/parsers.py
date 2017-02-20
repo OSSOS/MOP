@@ -1,5 +1,6 @@
 # coding=utf-8
 from __future__ import absolute_import
+import logging
 import os
 import re
 import sys
@@ -54,8 +55,12 @@ class TNO(object):
     def __init__(self, observations, ast_filename=None, abg_filename=None):
 
         if observations is None:
+          try:
             self.orbit = orbfit.Orbfit(None, ast_filename, abg_filename)
             self.name = os.path.basename(ast_filename).split('.')[0]
+          except Exception as ex:
+            logging.error("Failed to compute orbit using inputs {}".format(ast_filename))
+            raise ex
         else:
             self.orbit = orbfit.Orbfit(observations.mpc_observations, ast_filename, abg_filename)
             try:
