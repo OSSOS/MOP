@@ -1,10 +1,16 @@
 import math
 import Polygon
+import logging
+
+from astropy import units
 from astropy.coordinates import SkyCoord
 
 
 class Camera:
     """The Field of View of a direct imager"""
+    names = {'ccd38': 0, 'ccd36': 1, 'ccd37': 3, 'ccd39': 3}
+    for i in range(36):
+        names['ccd{:02d}'.format(i)] = i+4
     _geometry = {
         "MP_CCD": [
             {"ra": 0., "dec": 0., "dra": 0.1052, "ddec": 0.2344}
@@ -173,21 +179,30 @@ class Camera:
     }
 
     def __init__(self,  ra, dec=None, camera="MEGACAM_40",):
+        self._origin = None
         if dec is None:
             if isinstance(ra, SkyCoord):
-                self._coordinate = ra
+                self.origin = ra
             else:
                 raise NotImplementedError("Can't do that.")
         else:
-            self._coordinate = None
-            self.set_coord((ra, dec))
+            self.set_origin((ra, dec))
         if camera == '':
             camera = "MEGACAM_40"
         self.camera = camera
+        self._coordinate = None
 
     def __str__(self):
 
         return str(self.coord)
+
+    def offset(self, index=0):
+        """Offset the camera pointing to be centred on a particular CCD."""
+        eta = self._geometry[self.camera][index]["ra"]
+        xi = self._geometry[self.camera][index]["dec"]
+        ra = self.origin.ra - (eta/math.cos(self.dec.radian))*units.degree
+        dec = self.origin.dec - xi * units.degree + 45 * units.arcsec
+        self._coordinate = SkyCoord(ra, dec)
 
     @property
     def coordinate(self):
@@ -196,6 +211,8 @@ class Camera:
     @property
     def coord(self):
         """The center of the camera pointing in sky coordinates"""
+        if self._coordinate is None:
+            self._coordinate = SkyCoord(self.origin.ra, self.origin.dec + 45 * units.arcsec)
         return self._coordinate
 
     @property
@@ -206,14 +223,31 @@ class Camera:
     def dec(self):
         return self.coord.dec
 
-    def set_coord(self, p):
+    @property
+    def origin(self):
+        """
+        Origin of the pointing
+        @return: SkyCoord
+        """
+        return self._origin
+
+    @origin.setter
+    def origin(self, coord):
+        """
+        Set the origin of the field.
+        @param coord: SkyCoord
+        @return:
+        """
+        self._origin = coord
+
+    def set_origin(self, p):
         ra = p[0]
         dec = p[1]
         try:
-            self._coordinate = SkyCoord(ra, dec)
+            self._origin = SkyCoord(ra, dec)
         except Exception as ex:
-            print ex
-            self._coordinate = SkyCoord(ra, dec, unit=('degree', 'degree'))
+            logging.error(str(ex))
+            self._origin = SkyCoord(ra, dec, unit=('degree', 'degree'))
 
     @property
     def polygon(self):
@@ -240,8 +274,8 @@ class Camera:
 
         if self.coord is None:
             return None
-        ra = self.ra.degree
-        dec = self.dec.degree
+        ra = self.coord.ra.degree
+        dec = self.coord.dec.degree
         ccds = []
 
         for geo in self._geometry[self.camera]:
