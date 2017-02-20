@@ -244,6 +244,17 @@ def populate(dataset_name, data_web_service_url=DATA_WEB_SERVICE + "CFHT"):
         else:
             raise e
 
+    proc_source = "vos:cfis/pitcairn/{}p.fits.fz".format(dataset_name)
+    proc_dest = get_uri(dataset_name, version='p', ext='fits.fz')
+    try:
+        vospace.client.link(proc_source, proc_dest)
+    except IOError as e:
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            raise e
+    
+
     header_dest = get_uri(dataset_name, version='p', ext='head')
     header_source = "%s/%s/%sp.head" % (
         'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub', 'CFHTSG', dataset_name)
@@ -1321,8 +1332,8 @@ def listdir(directory, force=False):
     return vospace.client.listdir(directory, force=force)
 
 
-def list_dbimages():
-    return listdir(DBIMAGES)
+def list_dbimages(dbimages=DBIMAGES):
+    return listdir(dbimages)
 
 
 def exists(uri, force=False):
