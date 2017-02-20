@@ -74,7 +74,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Break the targets into OBs based on their max mag of source in pointing.
-    cuts = numpy.array([23.0, 24.0, 24.5, 25.0, 25.5, 26.0, 26.5, 30.0])
+    cuts = numpy.array([23.0, 23.5, 24.0, 24.5, 25.0, 25.5, 26.0, 30.0])
     IC_exptimes = [50,  100,  200,  300,  400,  500,  600, 700]
 
     program = Program()
@@ -121,6 +121,7 @@ if __name__ == "__main__":
                 og_itime += IC_exptimes[idx] + 40
                 if og_itime > 3000.0:
                     break
+                break
         total_itime += og_itime
         sys.stdout.write(" {}s \n".format(og_itime))
         program.add_observing_group(og.config)
