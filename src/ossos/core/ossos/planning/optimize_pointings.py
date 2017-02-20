@@ -12,9 +12,7 @@ import sys, os
 import argparse
 import logging
 import math
-
-dec_offset = 4600*0.185/3600.0 * units.degree
-ra_offset = 2048*0.185/3600.0 * units.degree
+from copy import deepcopy
 
 
 def create_ephemeris_file(name, camera, kbos, orbits, pointing_date):
@@ -28,7 +26,7 @@ def create_ephemeris_file(name, camera, kbos, orbits, pointing_date):
     @return: None
     """
 
-    et = EphemTarget(name, format="CFHT API")
+    et = EphemTarget(name, format="CFHT API", qrunid='17AQ03')
     # determine the mean motion of target KBOs in this field.
     field_kbos = []
     center_ra = 0
@@ -88,13 +86,13 @@ def optimize(orbits, required, locations, tokens):
     @return:
     """
 
-    ra_offsets =  np.array([0, 1, -1, 2, -2, 3, -3, 4, -4])*ra_offset
-    dec_offsets = np.array([0.5, -0.5, 1.5, -1.5])*dec_offset
-
     # Get the tokens that will be paged through in random order.
     token_order = np.random.permutation(required)
     optimal_pointings = {}
     covered = []  # the objects that have already been covered by a planned pointing.
+    search_order = [22+4]
+    search_order.extend(range(len(Camera.names)))
+    print search_order
 
     # For each required target find the pointing that will include the largest number of other required targets
     # and then tweak that specific pointing to include the maximum number of secondary targets.
@@ -115,33 +113,22 @@ def optimize(orbits, required, locations, tokens):
         # This object is not inside the existing coverage.
         max_sources_in_pointing = 0
         best_coverage = []
+        p = SkyCoord(obj.coordinate.ra,
+                     obj.coordinate.dec)
+        pointing = Camera(p)
         if len(possible_tokens) == 1:
-            p = SkyCoord(obj.coordinate.ra,
-                         obj.coordinate.dec + dec_offset * 0.5)
-            pointing = Camera(p)
             optimal_pointings[token] = pointing, possible_tokens
             logging.info(" {} is all alone!".format(token))
             continue
 
         logging.debug("examining possible optimizations")
-        # create two arrays that provide RA/DEC offsets from a central pointing
-        # that includes the target.  All these offset pointings will be explored to
-        # find the one that includes the largest number of targets.
-        ras = obj.coordinate.ra + ra_offsets / np.cos(obj.coordinate.dec.radian)
-        decs = obj.coordinate.dec + dec_offsets
-        p=[]
-        for ra in ras:
-            for dec in decs:
-                p.append([ra, dec])
-        coords = SkyCoord(p)
 
         if len(this_required) == 1:
             best_coverage = [token]
         else:
             logging.debug("Maximizing inclusion of required targets")
-            for coord in coords:
-                pointing = Camera(coord)
-
+            for idx in search_order:
+                pointing.offset(index=idx)
                 this_coverage = []
                 for this_token in this_required:
                     if this_token in covered:
@@ -162,12 +149,14 @@ def optimize(orbits, required, locations, tokens):
         max_sources_in_pointing = 0
         optimal_coverage = []
         optimal_pointing = None
-        for coord in coords:
-            pointing = Camera(coord)
-            exclude = True  # exclude this offset because it doesn't overlap one or more of the required sources.
+        for idx in search_order:
+            pointing.offset(index=idx)
+            exclude = False  # exclude this offset because it doesn't overlap one or more of the required sources.
             for this_token in best_coverage:
                 this_obj = orbits[this_token]
-                exclude = not pointing.polygon.isInside(this_obj.coordinate.ra.degree, this_obj.coordinate.dec.degree)
+                if not pointing.polygon.isInside(this_obj.coordinate.ra.degree, this_obj.coordinate.dec.degree):
+                    exclude = True
+                    break
 
             if exclude:
                 continue
@@ -184,7 +173,7 @@ def optimize(orbits, required, locations, tokens):
             if len(this_coverage) > max_sources_in_pointing:
                 max_sources_in_pointing = len(this_coverage)
                 optimal_coverage = this_coverage
-                optimal_pointing = pointing
+                optimal_pointing = idx
 
         #  remove all sources covered by optimal_pointing from further consideration.
         optimal_unique_count = 0
@@ -196,7 +185,8 @@ def optimize(orbits, required, locations, tokens):
                 sys.stdout.write(" {} ".format(this_token))
                 covered.append(this_token)
         sys.stdout.write("\n")
-        optimal_pointings[token] = optimal_pointing, unique_coverage_list
+        pointing.offset(index=optimal_pointing)
+        optimal_pointings[token] = pointing, unique_coverage_list
         n = 0
         new_required = []
         for this_token in token_order:
@@ -208,8 +198,7 @@ def optimize(orbits, required, locations, tokens):
     return optimal_pointings
 
 
-if __name__ == '__main__':
-
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('date',
                         type=str,
@@ -220,7 +209,7 @@ if __name__ == '__main__':
     parser.add_argument('required_objects',
                         type=str,
                         help="name of file that contains a list of required objects")
-    parser.add_argument('--nattempts',
+    parser.add_argument('--nattempts', type=int,
                         help="Number of random variations of pointings to try",
                         default=2)
 
@@ -248,7 +237,6 @@ if __name__ == '__main__':
     filenames = open(args.pointing_objects).readlines()
 
     orbits = {}
-    locations = []
     tokens = []
 
     # load the orbits of all objects of interest.
@@ -257,34 +245,40 @@ if __name__ == '__main__':
         token = os.path.splitext(os.path.basename(filename))[0]
         abg_filename = os.path.splitext(filename)[0]+".abg"
         orbits[token] = mp_ephem.BKOrbit(None, ast_filename=filename, abg_file=abg_filename)
-        obj = orbits[token]
-        obj.predict(pointing_date)
         tokens.append(token)
-        locations.append([obj.coordinate.ra.degree, obj.coordinate.dec.degree])
-        print token, obj.r_mag
+        print token, orbits[token].r_mag
 
     # Turn the object locations at the time of interest into a SkyCoord numpy array.
-    locations = SkyCoord(locations, unit='degree')
     tokens = np.array(tokens)
     minimum_number_of_pointings = len(required_objects)
-    best_order = None
 
     for attempt in range(args.nattempts):
+        locations = []
+        for token in tokens:
+            orbits[token].predict(pointing_date)
+            locations.append([orbits[token].coordinate.ra.degree, orbits[token].coordinate.dec.degree])
+        locations = SkyCoord(locations, unit='degree')
         logging.info("Attempt : {} \n".format(attempt))
         pointings = optimize(orbits, required_objects, locations, tokens)
         if minimum_number_of_pointings >= len(pointings):
             minimum_number_of_pointings = len(pointings)
-            with open(pointings_filename, 'w') as pobj:
-                pobj.write("index {}\n".format(pointing_date))
-                pointing_number = 0
-                for token in pointings:
-                    pobj.write("{} {} {} {} # {}\n".format(pointing_number+1,
-                                                      "{}".format(token),
-                                                      pointings[token][0].coord.to_string("hmsdms", sep=" "),
-                                                      2000,
-                                                      len(pointings[token][1])))
-                    pointing_number += 1
-                    create_ephemeris_file(token, pointings[token][0], pointings[token][1], orbits, pointing_date)
+            best_pointing_list = deepcopy(pointings)
+
+    with open(pointings_filename, 'w') as pobj:
+        pobj.write("index {}\n".format(pointing_date))
+        pointing_number = 0
+        for token in best_pointing_list:
+            pobj.write("{} {} {} {} # {}\n".format(pointing_number+1,
+                                              "{}".format(token),
+                                              best_pointing_list[token][0].coord.to_string("hmsdms", sep=" "),
+                                              2000,
+                                              len(best_pointing_list[token][1])))
+            pointing_number += 1
+            create_ephemeris_file(token, best_pointing_list[token][0], best_pointing_list[token][1], orbits, pointing_date)
+
+
+if __name__ == '__main__':
+    sys.exit(main())
 
 
 
