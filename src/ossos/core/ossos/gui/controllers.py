@@ -288,12 +288,12 @@ class ProcessRealsController(AbstractController):
             if key != 'h':
                 source_cutout.update_pixel_location((cen_x, cen_y), hdulist_index)
         except Exception as er:
-            print "DAOPhot failure: {}".format(er)
+            print("DAOPhot failure: {}".format(er))
             logger.critical("PHOT ERROR: {}".format(er))
             phot_failure = sky_failure = cen_failure = True
             obs_mag = None
             obs_mag_err = None
-            band = None
+            band = ''
             default_comment = str(er)
 
         obs_mag = phot_failure and None or obs_mag
@@ -352,7 +352,7 @@ class ProcessRealsController(AbstractController):
                     previous_observations.append(this_observation)
                 print Orbfit(previous_observations).summarize()
             except Exception as ex:
-                logger.error(type(ex), str(ex))
+                logger.error(str(type(ex))+" "+str(ex))
                 print "Failed to compute preliminary orbit."
 
         if obs_mag < 24 and auto is not False:
