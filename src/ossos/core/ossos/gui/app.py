@@ -271,7 +271,6 @@ class ProcessTracksApplication(ValidationApplication):
                  user_id=None, zoom=1):
         preload_iraf()
         self.skip_previous = skip_previous
-        self.controller.is_discovery = False
 
         super(ProcessTracksApplication, self).__init__(
             working_directory, output_directory, dry_run=dry_run, debug=debug, 
