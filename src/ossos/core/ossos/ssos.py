@@ -14,7 +14,7 @@ from astropy.time import Time
 
 from . import astrom, mpc, parameters
 from .astrom import SourceReading
-from .gui import logger
+from .gui import logger, config
 from .orbfit import Orbfit
 
 requests.packages.urllib3.disable_warnings()
@@ -130,16 +130,23 @@ class TracksParser(object):
                     logger.error(mpc_observation)
 
         ref_sky_coord = None
+
+        min_radius = config.read('CUTOUTS.SINGLETS.RADIUS')
+        if not isinstance(min_radius, units.Quantity):
+            min_radius = min_radius * units.arcsec
+
         for source in tracks_data.get_sources():
             astrom_observations = tracks_data.observations
             source_readings = source.get_readings()
             foci = []
+            # Loop over all the sources to determine which ones go which which focus location.
+            # this is helpful to for blinking.
             for idx in range(len(source_readings)):
                 source_reading = source_readings[idx]
                 astrom_observation = astrom_observations[idx]
                 self.orbit.predict(Time(astrom_observation.mjd, format='mjd', scale='utc'))
                 assert isinstance(source_reading, SourceReading)
-                if ref_sky_coord is None or source_reading.sky_coord.separation(ref_sky_coord) > 40 * units.arcsec:
+                if ref_sky_coord is None or source_reading.sky_coord.separation(ref_sky_coord) > min_radius * 0.8:
                     foci.append([])
                     ref_sky_coord = source_reading.sky_coord
                 foci[-1].append(source_reading)
