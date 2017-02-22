@@ -422,7 +422,7 @@ class TracksWorkUnit(WorkUnit):
         @return: mpc_filename of the resulting save.
         """
         self.get_writer().flush()
-        mpc_filename = self.output_context.get_full_path(self.get_writer().get_filename())
+        mpc_filename = self.get_writer().get_filename()
         self.get_writer().close()
         self._writer = None
         return mpc_filename
