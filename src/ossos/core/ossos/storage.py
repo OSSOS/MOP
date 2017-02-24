@@ -13,6 +13,7 @@ import sys
 import time
 from contextlib import closing
 import math
+
 from astropy.coordinates import SkyCoord
 from astropy.io import ascii
 from astropy import units
@@ -140,7 +141,8 @@ def get_detections(release='current'):
     return ascii.read(open_vos_or_local(filenames[0]).read(), header_start=-1)
 
 
-def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2, use_ssos=True):
+def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2, use_ssos=True,
+                collection='CFHTMEGAPIPE'):
     """Do a QUERY on the TAP service for all observations that are part of OSSOS (*P05/*P016)
     where taken after mjd and have calibration 'observable'.
 
@@ -181,8 +183,8 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2, 
                        " FROM caom2.Observation AS Observation "
                        " JOIN caom2.Plane AS Plane "
                        " ON Observation.obsID = Plane.obsID "
-                       " WHERE  ( Observation.collection = 'CFHT' ) "
-                       " AND Plane.calibrationLevel={} "
+                       " WHERE  ( Observation.collection = '{}' ) "
+                       " AND Plane.calibrationLevel > {} "
                        " AND ( Plane.energy_bandpassName LIKE 'r.%' OR Plane.energy_bandpassName LIKE 'gri.%' ) "
                        " AND ( Observation.proposal_id LIKE '%P05' or Observation.proposal_id LIKE '%P06' )"
                        " AND Observation.target_name NOT LIKE 'WP%'"),
@@ -190,7 +192,7 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2, 
                 LANG="ADQL",
                 FORMAT="tsv")
 
-    data["QUERY"] = data["QUERY"].format(calibration_level)
+    data["QUERY"] = data["QUERY"].format(calibration_level, collection)
     data["QUERY"] += (" AND  "
                       " CONTAINS( BOX('ICRS', {}, {}, {}, {}), "
                       " Plane.position_bounds ) = 1 ").format(ra.to(units.degree).value, dec.to(units.degree).value,
@@ -209,8 +211,11 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2, 
     table_reader.data.splitter.delimiter = '\t'
     table = table_reader.read(result.text)
 
+
     logger.debug(str(table))
     return table
+
+
 
 
 def populate(dataset_name, data_web_service_url=DATA_WEB_SERVICE + "CFHT"):
@@ -245,6 +250,8 @@ def populate(dataset_name, data_web_service_url=DATA_WEB_SERVICE + "CFHT"):
             raise e
 
     proc_source = "vos:cfis/pitcairn/{}p.fits.fz".format(dataset_name)
+    if not vospace.client.isfile(proc_source):
+        proc_source = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHT/{}p.fits".format(dataset_name)
     proc_dest = get_uri(dataset_name, version='p', ext='fits.fz')
     try:
         vospace.client.link(proc_source, proc_dest)
@@ -1544,6 +1551,7 @@ def _get_sghead(expnum):
     for header_str in header_str_list:
         headers.append(fits.Header.fromstring(header_str, sep='\n'))
     sgheaders[key] = headers
+
     return sgheaders[key]
 
 
@@ -1570,17 +1578,17 @@ def get_astheader(expnum, ccd, version='p', prefix=None):
     """
     logger.debug("Getting ast header for {}".format(expnum))
     if version == 'p':
-        # Get the SG header if possible.
-        sg_key = "{}{}".format(expnum, version)
-        if sg_key not in sgheaders:
-            _get_sghead(expnum)
-        if sg_key in sgheaders:
-            for header in sgheaders[sg_key]:
-                try:
-                    if header.get('EXTVER', -1) == int(ccd):
-                        return header
-                except:
-                    pass
+        try:
+            # Get the SG header if possible.
+            sg_key = "{}{}".format(expnum, version)
+            if sg_key not in sgheaders:
+                _get_sghead(expnum)
+            if sg_key in sgheaders:
+                for header in sgheaders[sg_key]:
+                        if header.get('EXTVER', -1) == int(ccd):
+                            return header
+        except:
+            pass
 
     ast_uri = dbimages_uri(expnum, ccd, version=version, ext='.fits')
     if ast_uri not in astheaders:
