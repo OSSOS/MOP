@@ -15,7 +15,7 @@ import math
 from copy import deepcopy
 
 
-def create_ephemeris_file(name, camera, kbos, orbits, pointing_date):
+def create_ephemeris_file(name, camera, kbos, orbits, pointing_date, qrunid):
     """
 
     @param name: name of the pointing
@@ -26,7 +26,7 @@ def create_ephemeris_file(name, camera, kbos, orbits, pointing_date):
     @return: None
     """
 
-    et = EphemTarget(name, format="CFHT API", qrunid='17AQ03')
+    et = EphemTarget(name, format="CFHT API", qrunid=qrunid)
     # determine the mean motion of target KBOs in this field.
     field_kbos = []
     center_ra = 0
@@ -212,6 +212,9 @@ def main():
     parser.add_argument('--nattempts', type=int,
                         help="Number of random variations of pointings to try",
                         default=2)
+    parser.add_argument('--qrunid', 
+                        help="CFHT ID for this QUEUE Run',
+                        default='16BQ17')
 
     args = parser.parse_args()
 
@@ -274,7 +277,7 @@ def main():
                                               2000,
                                               len(best_pointing_list[token][1])))
             pointing_number += 1
-            create_ephemeris_file(token, best_pointing_list[token][0], best_pointing_list[token][1], orbits, pointing_date)
+            create_ephemeris_file(token, best_pointing_list[token][0], best_pointing_list[token][1], orbits, pointing_date, args.qrunid)
 
 
 if __name__ == '__main__':
