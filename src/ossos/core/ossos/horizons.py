@@ -318,7 +318,9 @@ class Body(object):
         Start time of the ephemeris that was retrieved from Horizons.
         @rtype:  Time
         """
-        return min(self.ephemeris['Time'])
+        if self._start_time is None:
+            self._start_time = min(self.ephemeris['Time'])
+        return self._start_time
 
     @property
     def stop_time(self):
@@ -326,7 +328,9 @@ class Body(object):
         Stop time of the ephemeris that was retrieved from Horizons.
         @rtype: Time
         """
-        return max(self.ephemeris['Time'])
+        if self._stop_time is None:
+            self._stop_time =  max(self.ephemeris['Time'])
+        return self._stop_time
 
     def _parse_ephemeris(self):
         """Parse the ephemeris out of the responses from Horizons and place in self._ephemeris."""
@@ -349,7 +353,7 @@ class Body(object):
                     fail_idx = idx
                     break
             msg = fail_idx is None and self.data or self.data[fail_idx-2]
-            print msg
+            logger.error(msg)
             raise ValueError(msg, "failed to build ephemeris")
 
         # the header of the CSV structure is 2 lines before the start_of_ephmeris
@@ -464,6 +468,7 @@ class Body(object):
     def current_time(self, current_time):
         self._current_time = Time(current_time, scale='utc')
         if not (self.stop_time >= self.current_time >= self.start_time):
+            logger.info("Resetting the ephemeris time boundaries")
             self._start_time = Time(self.current_time - 10.0*units.minute)
             self._stop_time = Time(self.current_time + 10.0*units.minute)
             self.step_size = 5*units.minute
@@ -548,15 +553,16 @@ class Body(object):
                             self.ephemeris['Time'].jd,
                             self.ephemeris['Theta']) * units.degree
 
-    def predict(self, time):
+    def predict(self, current_time):
         """
         The time for which coordinate and other attributes will be computed.
 
         This function exists so that a horizons.Ephemeris object can be used where a orbfit.Orbfit object is used.
-        @type time: Time
-        @param time: Time
+        @type current_time: Time
+        @param current_time: Time
         """
-        self.current_time = time
+        self.current_time = current_time
+
 
     @property
     def a(self):
