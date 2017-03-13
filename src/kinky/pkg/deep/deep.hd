@@ -1,7 +1,0 @@
-# Help directory for FKBO package
-
-$doc	= "./doc/"
-
-detect	hlp=doc$detect.hlp,
-	src=fkbo$detect/t_detect.x
-

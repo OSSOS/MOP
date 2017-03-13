@@ -1,6 +1,0 @@
-Revision history for Perl extension Bucket::Table.
-
-0.01  Mon Jan 26 08:12:37 2004
-	- original version; created by h2xs 1.22 with options
-		-X -n Bucket::Table
-

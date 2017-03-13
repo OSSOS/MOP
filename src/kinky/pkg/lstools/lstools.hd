@@ -1,7 +1,0 @@
-# Help directory for FKBO package
-
-$doc	= "./doc/"
-
-lstools	hlp=doc$lstools.hlp,
-	src=lstools$lstools.cl
-

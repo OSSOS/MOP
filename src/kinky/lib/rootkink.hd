@@ -1,8 +1,0 @@
-# Root task entry for the KINKY package help tree.  Defines `kinky' as both a
-# task and a package in the kinky help database.
-
-kinky		men  = kinky$kinky.men,
-		hlp  = kinky$kinky.men,
-		sys  = kinky$kinky.hlp,
-		pkg  = kinky$kinky.hd,
-		src  = kinky$kinky.cl

@@ -1,8 +1,0 @@
-#! /bin/sh
-
-make install
-make clean
-
-cp scripts/* ${BINDIR}/
-
-exit

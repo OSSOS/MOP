@@ -1,5 +1,0 @@
-# JJ's KINKY package parameter file.
-version,s,h,"Dec97"
-motd,b,h,yes,,,type the welcome banner?
-debug,b,h,no,,,Print code debuging messages?
-mode,s,h,"al"

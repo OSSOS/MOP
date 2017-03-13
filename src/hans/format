@@ -1,4 +1,0 @@
-## MJD-OBS-CENTER  EXPTIME THRES FWHM  MAXCOUNT CRVAL1     CRVAL2     EXPNUM
- 104  format ('# ', f16.7, f8.2, 2f6.2, f9.1, 2f11.5, i9)
-## SCALE CH# CRPIX1    CRPIX2    NAX1  NAX2   DETECTOR           PHADU RDNOIS
- 105  format ('# ', f6.3, i4, 2f10.2, 2i6, ' ', a19, 2f6.2)

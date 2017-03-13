@@ -1,5 +1,0 @@
-# Root help directory for the kINKY packages.  This dummy package is necessary
-# in order to have `kinky' appear as a module in some package, so that the user
-# can type "help kinky" (with the `kinky' given as a task).
-
-_kinky		pkg = kinky$lib/rootkinky.hd
