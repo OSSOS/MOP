@@ -9,11 +9,12 @@ from string import upper
 import tempfile
 import logging
 import warnings
-import sys
 import time
 from contextlib import closing
 import math
 
+import Polygon
+import numpy
 from astropy.coordinates import SkyCoord
 from astropy.io import ascii
 from astropy import units
@@ -24,6 +25,8 @@ from requests import ReadTimeout
 import vospace
 from astropy.io import fits
 import requests
+
+from ossos import wcs
 from .downloads.cutouts.calculator import CoordinateConverter
 import coding
 import util
@@ -216,6 +219,75 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2, 
     return table
 
 
+def footprint_search(expnum, ccd, minimum_time=2.0/24.0):
+    """Do a QUERY on the TAP service for all observations that are part of OSSOS (*P05/*P016)
+    where taken after mjd and have calibration 'observable'.
+
+    @param expnum: Number of the exposure to do a footprint search around
+    @type expnum: int
+    @param ccd: ccd of exposure to do a footprint search around
+    @type ccd: int
+    @param minimum_time: minimum time separation (in days) required for a search match
+    @type minimum_time: float
+
+    @return Table
+    """
+    a = get_astheader(expnum, ccd)
+    a['NAXIS1'] = 2112
+    a['NAXIS2'] = 4644
+    footprint = wcs.WCS(get_astheader(expnum, ccd)).calc_footprint()
+    footprint = numpy.concatenate((footprint, numpy.array([footprint[0]])), axis=0)
+    this_polygon = Polygon.Polygon(footprint)
+    polygon_str = "POLYGON('ICRS GEOCENTER', " + ", ".join([str(x) for x in footprint.ravel()]) + ")"
+
+    data = dict(QUERY=(" SELECT Observation.observationID as collectionID "
+                       " FROM caom2.Observation AS Observation "
+                       " JOIN caom2.Plane AS Plane "
+                       " ON Observation.obsID = Plane.obsID "
+                       " WHERE Observation.collection = 'CFHT'  "
+                       " AND Plane.calibrationLevel > 0 "
+                       " AND Plane.energy_bandpassName LIKE 'r.%'  "
+                       " AND (Observation.proposal_id LIKE '%P30' or Observation.proposal_id LIKE '%P31' )"),
+                REQUEST="doQuery",
+                LANG="ADQL",
+                FORMAT="tsv")
+
+
+    data["QUERY"] += " AND INTERSECTS( {}, Plane.position_bounds ) = 1 ".format(polygon_str)
+    mjdate = get_astheader(expnum, ccd).get('MJDATE', None)
+    if mjdate is not None:
+        data["QUERY"] += " AND ( Plane.time_bounds_lower < {} ".format(mjdate - minimum_time)
+        data["QUERY"] += " OR  Plane.time_bounds_upper > {} ) ".format(mjdate + minimum_time)
+
+    result = requests.get(TAP_WEB_SERVICE, params=data, verify=False)
+    logger.debug("Doing TAP Query using url: %s" % (str(result.url)))
+
+    table_reader = ascii.get_reader(Reader=ascii.Basic)
+    table_reader.header.splitter.delimiter = '\t'
+    table_reader.data.splitter.delimiter = '\t'
+    table = table_reader.read(result.text)
+    logger.debug("Found these temporally seperate but spatially overlapping images: \n"+str(table))
+
+    overlaps = []
+    for collectionID in table['collectionID']:
+        if collectionID not in sgheaders:
+            try:
+                _get_sghead(collectionID)
+            except Exception as ex:
+                logger.debug(str(ex))
+                continue
+        sgkey = "{}{}".format(collectionID, 'p')
+        for header in sgheaders[sgkey]:
+            if header is None:
+                continue
+            footprint = wcs.WCS(header).calc_footprint()
+            footprint = numpy.concatenate((footprint, numpy.array([footprint[0]])), axis=0)
+            p = Polygon.Polygon(footprint)
+            if p.overlaps(this_polygon):
+                overlaps.append([collectionID, header.get('EXTVER', -1)])
+
+    logger.debug("Found these overlapping CCDs\n"+str(overlaps))
+    return overlaps
 
 
 def populate(dataset_name, data_web_service_url=DATA_WEB_SERVICE + "CFHT"):
@@ -826,6 +898,28 @@ def ra_dec_cutout(uri, sky_coord, radius):
             raise ex
     logger.debug("Sending back {}".format(hdulist))
     return hdulist
+
+
+def get_flatfield(expnum, ccd):
+    """
+    Get the input flat field used to process an image.
+    @param expnum:
+    @param ccd:
+    @return:
+    """
+
+    flat_name = get_astheader(expnum, ccd).get('FLAT', 'weight.fits')
+    parts = os.path.splitext(flat_name)
+    if parts[1] == '.fz':
+        basename = os.path.splitext(parts[0])[0]
+    else:
+        basename = parts[0]
+
+    filename = "{}_{:02d}.fits".format(basename, ccd)
+    if not os.access(filename, os.F_OK):
+        vospace.client.copy("vos:sgwyn/flats/{}[{}]".format(flat_name, ccd+1),
+                            filename)
+    return filename
 
 
 def get_image(expnum, ccd=None, version='p', ext='fits',
@@ -1551,7 +1645,6 @@ def _get_sghead(expnum):
     for header_str in header_str_list:
         headers.append(fits.Header.fromstring(header_str, sep='\n'))
     sgheaders[key] = headers
-
     return sgheaders[key]
 
 
@@ -1585,9 +1678,12 @@ def get_astheader(expnum, ccd, version='p', prefix=None):
                 _get_sghead(expnum)
             if sg_key in sgheaders:
                 for header in sgheaders[sg_key]:
+                        if header is None:
+                            continue
                         if header.get('EXTVER', -1) == int(ccd):
                             return header
-        except:
+        except Exception as ex:
+            print ex
             pass
 
     ast_uri = dbimages_uri(expnum, ccd, version=version, ext='.fits')
