@@ -25,6 +25,7 @@ from ossos import (mpc, storage, parameters)
 
 def cutout(obj, obj_dir, radius):
     print(len([n for n in obj.mpc_observations if not n.null_observation]))
+    cutout_listing = storage.listdir(obj_dir)
     for obs in obj.mpc_observations:
         print('starting analysis of {}'.format(str(obs)))
         if obs.null_observation:
@@ -46,15 +47,16 @@ def cutout(obj, obj_dir, radius):
             sky_coord = obs.coordinate  # Using the WCS rather than the X/Y (X/Y can be unreliable over the whole survey)
             print('Trying {} on {} on {}...'.format(obj.provisional_name, obs.date, expnum))
             try:
-                hdulist = storage.ra_dec_cutout(uri, sky_coord, radius)
-                # if not 'ASTLEVEL' in hdulist[1].header:   # FIXME: activate once all headers are retro-fitted with ASTLEVEL
-                #     logging.info('Cutout invalid for use. Skipping inclusion.\n')
-                #     continue
                 postage_stamp_filename = "{}_{:11.5f}_{:09.5f}_{:+09.5f}.fits".format(obj.provisional_name,
                                                                                       obs.date.mjd,
                                                                                       obs.coordinate.ra.degree,
                                                                                       obs.coordinate.dec.degree)
+                if postage_stamp_filename in cutout_listing:
+                    # skipping existing cutouts
+                    continue 
                 print("{}".format(postage_stamp_filename))
+
+                hdulist = storage.ra_dec_cutout(uri, sky_coord, radius)
 
                 with open(postage_stamp_filename, 'w') as tmp_file:
                     hdulist.writeto(tmp_file, clobber=True)
@@ -73,6 +75,7 @@ def main():
 
     parser.add_argument("version",
                         help="The OSSOS data release version these stamps should be assigned to. e.g. v8")
+    parser.add_argument("astdir", help="Directory containing the input .ast files", action="store", default="ast/")
     parser.add_argument("--ossin",
                         action="store",
                         default="vos:OSSOS/0_OSSOSreleases/OSSOS",
@@ -80,14 +83,14 @@ def main():
                              "holding the .ast files of astrometry/photometry measurements.")
     parser.add_argument("--blocks", "-b",
                         action="store",
-                        default=['o3e', 'o3o', 'o3l', 'o4h', 'o5p', 'o5m', 'o5s', 'o5t'],
+                        default=['o3e', 'o3o', 'o3l', 'o4h', 'o5p', 'o5m', 'o5s', 'o5t', 'o5c', 'o5d'],
                         choices=["o3e", "o3o", "Col3N", 'o3l', 'o4h', 'o5m', 'o5p', 'o5s', 'o5t', 'o5c', 'o5d'],
                         help="Prefixes of object designations to include.")
     parser.add_argument("--radius", '-r',
                         # FIXME: figure out how to assign this a unit.degree before storage
                         action='store',
-                        default=0.01 * units.degree,  # about 200 px square
-                        help='Radius (degree) of circle of cutout postage stamp.')
+                        default=36 * units.arcsec,  # about 200 px square
+                        help='Radius (arcsec) of circle of cutout postage stamp.')
     parser.add_argument("--debug", "-d",
                         action="store_true")
     parser.add_argument("--verbose", "-v",
@@ -107,8 +110,7 @@ def main():
         logging.basicConfig(level=logging.INFO)
 
 
-    astdir = parameters.L7_HOME + 'OSSOS' + args.version + '/ast/'
-    print astdir
+    astdir = args.astdir
     flist = os.listdir(astdir)
     if args.recheck:
         flist = [args.recheck + '.ast']
