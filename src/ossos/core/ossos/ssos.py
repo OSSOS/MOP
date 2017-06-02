@@ -1,18 +1,14 @@
 from __future__ import absolute_import
-
 import datetime
 import os
 import pprint
 import warnings
-import requests
 import numpy
-import sys
-
-from astropy.io import ascii
+import requests
 from astropy import units
 from astropy.coordinates import SkyCoord
+from astropy.io import ascii
 from astropy.time import Time
-
 from . import astrom, mpc, parameters
 from .astrom import SourceReading
 from .gui import logger, config
@@ -199,7 +195,7 @@ class TrackTarget(TracksParser):
         # but we don't know when in the dark run the discovery happened
         # so be generous with the search boundaries, add extra 2 weeks
         # current date just has to be the night of the triplet,
-        from . import horizons
+        from mp_ephem import horizons
         search_start_date = Time('1999-01-01', scale='utc')
         search_end_date = Time(datetime.datetime.now().strftime('%Y-%m-%d'), scale='utc')
         logger.info("Sending query to SSOS start_date: {} end_data: {}\n".format(search_start_date, search_end_date))
@@ -316,7 +312,7 @@ class SSOSParser(object):
         if mpc_observations is not None and isinstance(mpc_observations[0], mpc.Observation):
             orbit = Orbfit(mpc_observations)
         else:
-            from . import horizons
+            from mp_ephem import horizons
             start_time = Time(min(ssos_table['MJD']), format='mjd')
             stop_time = Time(max(ssos_table['MJD']), format='mjd')
             step_size = 5.0 * units.hour
