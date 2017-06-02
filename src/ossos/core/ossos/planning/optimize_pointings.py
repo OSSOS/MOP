@@ -66,7 +66,7 @@ def create_ephemeris_file(name, camera, kbos, orbits, pointing_date, runid):
     @return: None
     """
 
-    et = EphemTarget(name, format="CFHT API", runid=runid)
+    et = EphemTarget(name, ephem_format="CFHT API", runid=runid)
     # determine the mean motion of target KBOs in this field.
     field_kbos = []
     center_ra = 0
