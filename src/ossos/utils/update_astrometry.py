@@ -71,7 +71,8 @@ def remeasure(mpc_in, reset_pixel_coordinates=False):
 
     this_wcs = wcs.WCS(header)
 
-    mpc_obs.coordinate = this_wcs.xy2sky(mpc_obs.comment.x, mpc_obs.comment.y, usepv=True)
+    coordinate = this_wcs.xy2sky(mpc_obs.comment.x, mpc_obs.comment.y, usepv=True)
+    mpc_obs.coordinate = coordinate[0].to('degree').value, coordinate[1].to('degree').value
     sep = mpc_in.coordinate.separation(mpc_obs.coordinate)
     if sep > TOLERANCE*20 and mpc_in.discovery and _flipped_ccd(ccd):
         logging.warn("Large ({}) offset using X/Y in comment line to compute RA/DEC".format(sep))
