@@ -249,19 +249,6 @@ def populate(dataset_name, data_web_service_url=DATA_WEB_SERVICE + "CFHT"):
         else:
             raise e
 
-    proc_source = "vos:cfis/pitcairn/{}p.fits.fz".format(dataset_name)
-    if not vospace.client.isfile(proc_source):
-        proc_source = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHT/{}p.fits".format(dataset_name)
-    proc_dest = get_uri(dataset_name, version='p', ext='fits.fz')
-    try:
-        vospace.client.link(proc_source, proc_dest)
-    except IOError as e:
-        if e.errno == errno.EEXIST:
-            pass
-        else:
-            raise e
-    
-
     header_dest = get_uri(dataset_name, version='p', ext='head')
     header_source = "%s/%s/%sp.head" % (
         'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub', 'CFHTSG', dataset_name)
@@ -1049,7 +1036,7 @@ def get_hdu(uri, cutout=None):
             logger.debug("Pulling: {}{} from VOSpace".format(uri, cutout))
             fpt = tempfile.NamedTemporaryFile(suffix='.fits')
             cutout = cutout is not None and cutout or ""
-            vospace.client.copy(uri+cutout, fpt.name)
+            copy(uri+cutout, fpt.name)
             fpt.seek(0, 2)
             fpt.seek(0)
             logger.debug("Read from vospace completed. Building fits object.")
