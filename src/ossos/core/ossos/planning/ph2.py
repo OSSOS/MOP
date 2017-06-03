@@ -69,7 +69,9 @@ class ObservingGroup(object):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('ogname')
+    parser.add_argument('pi_login')
+    parser.add_argument('qrunid')
+    parser.add_argument('runid')
     parser.add_argument('targets', nargs='+')
     args = parser.parse_args()
 
@@ -77,7 +79,7 @@ if __name__ == "__main__":
     cuts = numpy.array([23.0, 23.5, 24.0, 24.5, 25.0, 25.5, 26.0, 30.0])
     IC_exptimes = [50,  100,  200,  300,  400,  500,  600, 700]
 
-    program = Program()
+    program = Program(runid=args.runid, pi_login=args.pi_login)
     ob_tokens = []
     mags = {}
     ob_coordinate = {}
@@ -87,6 +89,7 @@ if __name__ == "__main__":
         ob_token = "OB-{}-{}".format(target.token, target.mag)
         ob = ObservingBlock(ob_token, target.token)
         idx = (target.mag > cuts).sum() + 4
+        idx = 1
         ob.config["instrument_config_identifiers"] = [{"server_token": "I{}".format(idx)}]
         program.add_observing_block(ob.config)
         ob_tokens.append(ob_token)
@@ -101,7 +104,7 @@ if __name__ == "__main__":
     og_idx = 0
     while len(scheduled) < len(ob_tokens):
         og_idx += 1
-        og_token = "OG_{}_{}_{}".format(args.ogname, og_idx, 0)
+        og_token = "OG_{}_{}_{}_{}".format(args.runid, args.qrunid, og_idx, 0)
         sys.stdout.write("{}: ".format(og_token))
         og = ObservingGroup(og_token)
         og_coord = None
@@ -117,6 +120,7 @@ if __name__ == "__main__":
                 sys.stdout.write("{} ".format(ob_token))
                 sys.stdout.flush()
                 idx = (mags[ob_token] > cuts).sum()
+                idx = 1
                 print ob_token, mags[ob_token], idx + 4
                 og_itime += IC_exptimes[idx] + 40
                 if og_itime > 3000.0:
@@ -128,7 +132,7 @@ if __name__ == "__main__":
         nrepeats = 0
         for repeat in range(nrepeats):
             total_itime += og_itime
-            og_token = "OG_{}_{}_{}".format(args.ogname, og_idx, repeat + 1)
+            og_token = "OG_{}_{}_{}_{}".format(args.runid, args.qrunid, og_idx, repeat + 1)
             og = copy.deepcopy(og)
             og.config["identifier"]["client_token"] = og_token
             program.add_observing_group(og.config)

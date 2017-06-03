@@ -907,7 +907,7 @@ class Plot(Canvas):
                                                (ccd[2], ccd[1]),
                                                (ccd[0], ccd[1])))
                     polygons.append(polygon)
-                et = EphemTarget(name, format=self.pointing_format.get())
+                et = EphemTarget(name, ephem_format=self.pointing_format.get())
                 # determine the mean motion of target KBOs in this field.
                 field_kbos = []
                 center_ra = 0
