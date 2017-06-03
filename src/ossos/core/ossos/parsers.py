@@ -1,5 +1,6 @@
 # coding=utf-8
 from __future__ import absolute_import
+import logging
 import os
 import re
 import sys
@@ -54,8 +55,12 @@ class TNO(object):
     def __init__(self, observations, ast_filename=None, abg_filename=None):
 
         if observations is None:
+          try:
             self.orbit = orbfit.Orbfit(None, ast_filename, abg_filename)
             self.name = os.path.basename(ast_filename).split('.')[0]
+          except Exception as ex:
+            logging.error("Failed to compute orbit using inputs {}".format(ast_filename))
+            raise ex
         else:
             self.orbit = orbfit.Orbfit(observations.mpc_observations, ast_filename, abg_filename)
             try:
@@ -69,7 +74,10 @@ class TNO(object):
             except Exception as ex:
                 self.discovery = False
                 self.name = observations[0].provisional_name.rstrip('.ast').split('.')[0]
-        return
+        self.mag = None
+        for observation in self.orbit.observations:
+            if observation.mag is not None:
+                self.mag = (self.mag is None or self.mag < observation.mag) and observation.mag or self.mag
 
 
 def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
@@ -100,7 +108,7 @@ def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
         # keep out the not-tracked and uncharacteried.
         if no_nt_and_u and (filename.__contains__('nt') or filename.startswith('u')):
             continue
-        #observations = mpc.MPCReader(directory + filename)
+        # observations = mpc.MPCReader(directory + filename)
         mpc_filename = directory + filename
         abg_filename = os.path.abspath(directory + '/../abg/') + "/" + os.path.splitext(filename)[0] + ".abg"
         obj = TNO(None, ast_filename=mpc_filename, abg_filename=abg_filename)

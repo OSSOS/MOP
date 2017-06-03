@@ -295,7 +295,7 @@ class SourceCutout(object):
                 self._apcor = ApcorData.from_string("5 15 99.99 99.99")
         return self._apcor
 
-    def get_observed_magnitude(self):
+    def get_observed_magnitude(self, centroid=True):
         # NOTE: this import is only here so that we don't load up IRAF
         # unnecessarily (ex: for candidates processing).
         """
@@ -316,10 +316,14 @@ class SourceCutout(object):
                                     swidth=self.apcor.swidth,
                                     apcor=self.apcor.apcor,
                                     zmag=self.zmag,
-                                    maxcount=max_count, extno=1)
+                                    maxcount=max_count, extno=1,
+                                    centroid=centroid)
             if not self.apcor.valid:
                 phot['PIER'][0] = 1
             return phot
+        except Exception as ex:
+            print ex
+            raise ex
         finally:
             self.close()
 
@@ -378,12 +382,15 @@ class SourceCutout(object):
         ref_ra = self.reading.ra * units.degree
         ref_dec = self.reading.dec * units.degree
         radius = self.radius is not None and self.radius or config.read('CUTOUTS.SINGLETS.RADIUS') * units.arcminute
-        print "Querying CADC for list of possible comparison images at RA: {}, DEC: {}, raidus: {}".format(ref_ra,
+        print("Querying CADC for list of possible comparison images at RA: {}, DEC: {}, raidus: {}".format(ref_ra,
                                                                                                            ref_dec,
-                                                                                                           radius)
+                                                                                                           radius))
         query_result = storage.cone_search(ref_ra, ref_dec, radius, radius)  # returns an astropy.table.table.Table
-        print "Got {} possible images".format(len(query_result))
-        print "Building table for presentation and selection, including getting fwhm which is a bit slow."
+        print("Got {} possible images".format(len(query_result)))
+        ans = raw_input("Do you want to lookup IQ? (y/n)")
+        print("Building table for presentation and selection")
+        if ans == "y":
+            print("Including getting fwhm which is a bit slow.")
         comparison_image_list = []
         if len(query_result['collectionID']) > 0:  # are there any comparison images even available on that sky?
             index = -1
@@ -392,14 +399,22 @@ class SourceCutout(object):
                 if expnum in self._bad_comparison_images:
                     continue
                 date = Time(row['mjdate'], format='mjd').mpc
+                if Time(row['mjdate'], format='mjd') < Time('2013-01-01 00:00:00', format='iso'):
+                    continue
                 exptime = row['exptime']
+                if float(exptime) < 250:
+                    continue
                 filter_name = row['filter']
+                if 'U' in filter_name:
+                    continue
                 if filter_name.lower() in self.hdulist[-1].header['FILTER'].lower():
                     filter_name = "* {:8s}".format(filter_name)
-                try:
-                    fwhm = "{:5.2f}".format(float(storage.get_fwhm_tag(expnum, 22)))
-                except:
-                    fwhm = -1.00
+                fwhm = -1.0
+                if ans == 'y':
+                    try:
+                        fwhm = "{:5.2f}".format(float(storage.get_fwhm_tag(expnum, 22)))
+                    except:
+                        pass
                 index += 1
                 comparison_image_list.append([index, expnum, date, exptime, filter_name, fwhm, None])
         self._comparison_image_list = Table(data=numpy.array(comparison_image_list),

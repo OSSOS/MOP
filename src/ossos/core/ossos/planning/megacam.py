@@ -26,7 +26,6 @@ def TAPQuery(RAdeg=180.0, DECdeg=0.0, width=1, height=1):
           "FORMAT": "votable"}
     
     url="http://www.cadc.hia.nrc.gc.ca/tap/sync"
-a    
 
     print url, data
 

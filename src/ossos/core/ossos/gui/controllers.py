@@ -84,6 +84,8 @@ class AbstractController(object):
         try:
             self.view.update_displayed_data(self.model.get_reading_data(),
                                             self.model.get_header_data_list())
+        except ImageNotLoadedException as ile:
+            pass
         except Exception as ex:
             logger.error(type(ex))
             logger.error(str(ex))
@@ -286,12 +288,12 @@ class ProcessRealsController(AbstractController):
             if key != 'h':
                 source_cutout.update_pixel_location((cen_x, cen_y), hdulist_index)
         except Exception as er:
-            print "DAOPhot failure: {}".format(er)
+            print("DAOPhot failure: {}".format(er))
             logger.critical("PHOT ERROR: {}".format(er))
             phot_failure = sky_failure = cen_failure = True
             obs_mag = None
             obs_mag_err = None
-            band = None
+            band = ''
             default_comment = str(er)
 
         obs_mag = phot_failure and None or obs_mag
@@ -350,7 +352,7 @@ class ProcessRealsController(AbstractController):
                     previous_observations.append(this_observation)
                 print Orbfit(previous_observations).summarize()
             except Exception as ex:
-                logger.error(type(ex), str(ex))
+                logger.error(str(type(ex))+" "+str(ex))
                 print "Failed to compute preliminary orbit."
 
         if obs_mag < 24 and auto is not False:
@@ -546,7 +548,6 @@ class ProcessVettingController(ProcessCandidatesController):
     def on_accept(self):
         self.view.show_vetting_accept_source_dialog()
 
-
     def on_reject(self):
         writer = self.model.get_writer()
         writer.write_source(self.model.get_current_source(), reject=True)
@@ -554,7 +555,6 @@ class ProcessVettingController(ProcessCandidatesController):
         self.model.accept_current_item()
         self.view.clear()
         self.model.next_item()
-
 
     def on_do_accept(self, comment):
         """
@@ -567,7 +567,7 @@ class ProcessVettingController(ProcessCandidatesController):
         @param comment:
         @return:
         """
-        self.view.close_reject_source_dialog()
+        self.view.close_vetting_accept_source_dialog()
 
         # Set to None if blank
         if len(comment.strip()) == 0:
@@ -579,6 +579,9 @@ class ProcessVettingController(ProcessCandidatesController):
         self.model.accept_current_item()
         self.view.clear()
         self.model.next_item()
+
+    def on_cancel_accept(self):
+        self.view.close_vetting_accept_source_dialog()
 
 
 class ProcessExamineController(ProcessRealsController):

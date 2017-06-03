@@ -1,20 +1,17 @@
 from __future__ import absolute_import
-
 import datetime
 import os
 import pprint
 import warnings
-import requests
 import numpy
-
-from astropy.io import ascii
+import requests
 from astropy import units
 from astropy.coordinates import SkyCoord
+from astropy.io import ascii
 from astropy.time import Time
-
 from . import astrom, mpc, parameters
 from .astrom import SourceReading
-from .gui import logger
+from .gui import logger, config
 from .orbfit import Orbfit
 
 requests.packages.urllib3.disable_warnings()
@@ -28,7 +25,7 @@ NEW_LINE = '\r\n'
 
 class TracksParser(object):
 
-    def __init__(self, inspect=True, skip_previous=False):
+    def __init__(self, inspect=True, skip_previous=False, lunation_count=0):
         logger.debug("Setting up TracksParser")
         self.orbit = None
         self._nights_per_darkrun = 18 * units.day
@@ -36,8 +33,9 @@ class TracksParser(object):
         self.inspect = inspect
         self.skip_previous = skip_previous
         self.ssos_parser = None
+        self.initial_lunation_count = lunation_count
 
-    def parse(self, filename):
+    def parse(self, filename, print_summary=True):
         logger.debug("Parsing SSOS Query.")
         mpc_observations = mpc.MPCReader(filename).mpc_observations
 
@@ -48,13 +46,16 @@ class TracksParser(object):
 
         try:
             self.orbit = Orbfit(mpc_observations)
-            print self.orbit.residuals
-            print self.orbit
+            if print_summary:
+               print self.orbit.residuals
+               print self.orbit
         except Exception as ex:
             logger.error("{}".format(ex))
             logger.error("Failed to compute orbit with astrometry provided")
             logger.error("{}".format(mpc_observations))
             return None
+
+        lunation_count = self.initial_lunation_count
 
         if self.orbit.arc_length < 1 * units.day:
             # data from the same dark run.
@@ -126,16 +127,23 @@ class TracksParser(object):
                     logger.error(mpc_observation)
 
         ref_sky_coord = None
+
+        min_radius = config.read('CUTOUTS.SINGLETS.RADIUS')
+        if not isinstance(min_radius, units.Quantity):
+            min_radius = min_radius * units.arcsec
+
         for source in tracks_data.get_sources():
             astrom_observations = tracks_data.observations
             source_readings = source.get_readings()
             foci = []
+            # Loop over all the sources to determine which ones go which which focus location.
+            # this is helpful to for blinking.
             for idx in range(len(source_readings)):
                 source_reading = source_readings[idx]
                 astrom_observation = astrom_observations[idx]
                 self.orbit.predict(Time(astrom_observation.mjd, format='mjd', scale='utc'))
                 assert isinstance(source_reading, SourceReading)
-                if ref_sky_coord is None or source_reading.sky_coord.separation(ref_sky_coord) > 40 * units.arcsec:
+                if ref_sky_coord is None or source_reading.sky_coord.separation(ref_sky_coord) > min_radius * 0.8:
                     foci.append([])
                     ref_sky_coord = source_reading.sky_coord
                 foci[-1].append(source_reading)
@@ -165,13 +173,15 @@ class TracksParser(object):
 class TrackTarget(TracksParser):
 
     def parse(self, target_name):
-        self.target_name = os.path.splitext(os.path.basename(target_name))[0]
+        with open(target_name) as f:
+            self.target_name = f.read().strip()
+
         # pass down the provisional name so the table lines are linked to this TNO
-        self.ssos_parser = SSOSParser(target_name,
+        self.ssos_parser = SSOSParser(self.target_name,
                                       input_observations=None,
                                       skip_previous=False)
 
-        return self.query_ssos(target_name=target_name)
+        return self.query_ssos(target_name=self.target_name)
 
     def query_ssos(self, target_name, lunation_count=None):
         """Send a query to the SSOS web service, looking for available observations using the given track.
@@ -185,8 +195,8 @@ class TrackTarget(TracksParser):
         # but we don't know when in the dark run the discovery happened
         # so be generous with the search boundaries, add extra 2 weeks
         # current date just has to be the night of the triplet,
-        from . import horizons
-        search_start_date = Time('2013-02-08', scale='utc')
+        from mp_ephem import horizons
+        search_start_date = Time('1999-01-01', scale='utc')
         search_end_date = Time(datetime.datetime.now().strftime('%Y-%m-%d'), scale='utc')
         logger.info("Sending query to SSOS start_date: {} end_data: {}\n".format(search_start_date, search_end_date))
         query = Query(target_name,
@@ -204,6 +214,7 @@ class TrackTarget(TracksParser):
         self.orbit = horizons.Body(target_name, start_time, stop_time, step_size)
 
         ref_sky_coord = None
+
         for source in tracks_data.get_sources():
             astrom_observations = tracks_data.observations
             source_readings = source.get_readings()
@@ -221,7 +232,6 @@ class TrackTarget(TracksParser):
                 # that this does not cause trouble with the use of dra/ddec for cutout computer
                 source_reading.dx = self.orbit.dra
                 source_reading.dy = self.orbit.ddec
-
         logger.debug("Sending back set of observations that might contain the target: {}".format(tracks_data))
         return tracks_data  # a SSOSData with .sources and .observations only
 
@@ -302,7 +312,7 @@ class SSOSParser(object):
         if mpc_observations is not None and isinstance(mpc_observations[0], mpc.Observation):
             orbit = Orbfit(mpc_observations)
         else:
-            from . import horizons
+            from mp_ephem import horizons
             start_time = Time(min(ssos_table['MJD']), format='mjd')
             stop_time = Time(max(ssos_table['MJD']), format='mjd')
             step_size = 5.0 * units.hour
@@ -313,6 +323,7 @@ class SSOSParser(object):
         expnums_examined = []
         for row in ssos_table:
             # Trim down to OSSOS-specific images
+
             if (row['Filter'] not in parameters.OSSOS_FILTERS) or row['Image_target'].startswith('WP'):
                 continue
 
@@ -323,7 +334,7 @@ class SSOSParser(object):
 
             # The file extension is the ccd number + 1 , or the first extension.
             ccd = int(row['Ext'])-1
-            if 39 < ccd < 0:
+            if 39 < ccd < 0 or ccd < 0:
                 ccd = None
             x = row['X'] * units.pix
             y = row['Y'] * units.pix
@@ -332,11 +343,13 @@ class SSOSParser(object):
             ssois_coordinate = SkyCoord(ra, dec)
             mjd = row['MJD'] * units.day
 
-            if not 0 < x.value < 2060 or not 0 < y.value < 4700:
-                continue
+            # if not 0 < x.value < 2060 or not 0 < y.value < 4700:
+            #    continue
 
             obs_date = Time(mjd, format='mjd', scale='utc')
+            logger.info("Calling predict")
             orbit.predict(obs_date)
+            logger.info("Done calling predict")
             if orbit.dra > 4 * units.arcminute or orbit.ddec > 4.0 * units.arcminute:
                 print "Skipping entry as orbit uncertainty at date {} is large.".format(obs_date)
                 continue
@@ -350,7 +363,7 @@ class SSOSParser(object):
             logger.debug(("Orbfit Prediction: "
                           "ra:{} dec:{} ").format(orbit.coordinate.ra.to(units.degree),
                                                   orbit.coordinate.dec.to(units.degree)))
-
+            logger.info("Building Observation")
             observation = SSOSParser.build_source_reading(expnum, ccd, ftype=ftype)
             observation.mjd = mjd
             from_input_file = observation.rawname in self.input_rawnames
@@ -365,7 +378,6 @@ class SSOSParser(object):
                             previous = not mpc_observation.discovery
                             break
                     except Exception as e:
-                        print e
                         logger.debug(str(e))
                         pass
                     mpc_observation = None
@@ -374,7 +386,7 @@ class SSOSParser(object):
             if self.skip_previous and ( previous or observation.rawname in self.null_observations):
                 continue
 
-            logger.debug('built observation {}'.format(observation))
+            logger.info('built observation {}'.format(observation))
             observations.append(observation)
             null_observation = observation.rawname in self.null_observations
 
@@ -391,6 +403,7 @@ class SSOSParser(object):
                                                   null_observation=null_observation)
             source_reading.mpc_observation = mpc_observation
             source_readings.append(source_reading)
+            logger.info("Source Reading Built")
 
         # build our array of SourceReading objects
         sources.append(source_readings)

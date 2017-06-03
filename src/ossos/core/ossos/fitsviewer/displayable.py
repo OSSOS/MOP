@@ -18,11 +18,12 @@ class Region(object):
 
     given a 'point' creates a circle region at that point.
 
-    style can be one of 'cirlce', 'ellipse', 'annulus'
+    style can be one of 'cirlce', 'ellipse', 'annulus', 'point'
 
     if 'circle' then the radius of the circle is passed as the shape.
     if 'ellipse' then an ellipse object should be passed as the 'shape'
     if 'annulus' then a set of annulus sizes should be passed as the 'shape'
+    if 'point' then the radius is ignored. point(1:37:02.476,+12:35:42.12) # point=x
 
     """
 
@@ -46,6 +47,12 @@ class Region(object):
         return s
 
     def __iter__(self):
+        if self.style == 'point':
+            return iter(('regions', '{}; {}({},{}) # color={} point=x '.format(self.coosys,
+                                                                               self.style,
+                                                                               self.point[0],
+                                                                               self.point[1],
+                                                                               self.colour)))
         try:
             if isinstance(self.shape, Ellipse):
                 shape = self.shape
@@ -154,16 +161,16 @@ class Displayable(object):
 
         import inspect
         curframe = inspect.currentframe()
-        calframe = inspect.getouterframes(curframe, 2)
-
 
         if not self.display or self._annulus_placed or not self.mark_reticule:
             return
         try:
             r = Region((x, y), style='annulus', colour=colour, shape=annuli)
             self.display.set(*r)
+            r = Region((x, y), style='point', colour=colour)
+            self.display.set(*r)
         except Exception as ex:
-            print ex
+            print(ex)
 
         self._annulus_placed = True
 

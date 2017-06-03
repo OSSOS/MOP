@@ -1,3 +1,5 @@
+from __future__ import division, absolute_import, print_function, unicode_literals
+import six
 import json
 
 from astropy import units
@@ -21,7 +23,6 @@ def create_astrores_document():
 
 
 class EphemTarget(object):
-
     nodes = {"NAME": "Ephemeris",
              "TITLE": "Ephemeris for CFHT QSO"}
     fields = {"DATE_UTC": {"attr": {"datatype": "A", "width": "19", "format": "YYYY-MM-DD hh:mm:ss"},
@@ -31,21 +32,22 @@ class EphemTarget(object):
               "DEC_J2000": {"attr": {"datatype": "A", "width": "11", "format": "DEd:DEm:DEs", "unit": "deg"},
                             "DESCRIPTION": "Declination of target"}}
 
-    def __init__(self, name, column_separator=COLUMN_SEPARATOR, format='CFHT ET'):
+    def __init__(self, name, column_separator=COLUMN_SEPARATOR, ephem_format='CFHT ET', runid='16BP06'):
         """
         create an ephmeris target, either with a 'orbfit' object or some mean rate of motion.
 
         :param name: a string containing the name of the target.
         """
 
-        self.name = str(name)
-        self.format = format
+        self.name = str(name).replace(" ", "_")
+        self.format = ephem_format
         self.doc = create_astrores_document()
         self.column_separator = column_separator
         self.coordinates = []
+        self.runid = runid
 
     def _init_cfht_api_(self):
-        return {'runid': "16BE91",
+        return {'runid': self.runid,
                 "pi_login": "mwilson",
                 "program_configuration": {"target": []}}
 
@@ -53,7 +55,7 @@ class EphemTarget(object):
         self.doc = create_astrores_document()
         table = self.doc.createElement("TABLE")
         table.setAttribute("ID", "Table")
-        self.doc.lastChild.appendChild(table)
+        self.doc.appendChild(table)
 
         self.nodes = EphemTarget.nodes
         self.fields = EphemTarget.fields
@@ -61,7 +63,7 @@ class EphemTarget(object):
         fields = self.fields
         self.field_names = ["DATE_UTC", "RA_J2000", "DEC_J2000"]
 
-        for (key, value) in nodes.iteritems():
+        for (key, value) in six.iteritems(nodes):
             element = self.doc.createElement(key)
             element.appendChild(self.doc.createTextNode(value))
             table.appendChild(element)
@@ -73,7 +75,7 @@ class EphemTarget(object):
         for fieldName in self.field_names:
             field = self.doc.createElement("FIELD")
             field.setAttribute("name", fieldName)
-            for (key, value) in fields[fieldName]['attr'].iteritems():
+            for (key, value) in six.iteritems(fields[fieldName]['attr']):
                 field.setAttribute(key, value)
             description = self.doc.createElement("DESCRIPTION")
             description.appendChild(self.doc.createTextNode(fields[fieldName]['DESCRIPTION']))
@@ -91,7 +93,7 @@ class EphemTarget(object):
         csv.setAttribute("headlines", str(len(header_lines)))
         csv.setAttribute("colsep", self.column_separator)
         data.appendChild(csv)
-        self.cdata = self.doc.createCDATASection("\n"+"\n".join(header_lines)+"\n")
+        self.cdata = self.doc.createCDATASection("\n" + "\n".join(header_lines) + "\n")
         csv.appendChild(self.cdata)
 
     @staticmethod
@@ -146,7 +148,7 @@ class EphemTarget(object):
         fields = self.fields
         sra = coordinate.ra.to_string(units.hour, sep=':', precision=2, pad=True)
         sdec = coordinate.dec.to_string(units.degree, sep=':', precision=1, alwayssign=True)
-        coord = SkyCoord(sra+" "+sdec, unit=(units.hour, units.degree))
+        coord = SkyCoord(sra + " " + sdec, unit=(units.hour, units.degree))
         sra = coord.ra.to_string(units.hour, sep=":", precision=2, pad=True)
         sdec = coord.dec.to_string(units.degree, sep=":", precision=1, pad=True, alwayssign=True)
         sdate = str(coordinate.obstime.replicate(format('iso')))
@@ -158,14 +160,15 @@ class EphemTarget(object):
     def cfht_api_writer(self, f_handle):
         ephemeris_points = []
         for coordinate in self.coordinates:
-            epoch_millis = coordinate.obstime.mjd
-            this_coordinate = {"ra": float(coordinate.ra.degree),
-                               "dec": float(coordinate.dec.degree)}
+            epoch_millis = "{:.5f}".format(coordinate.obstime.mjd)
+            this_coordinate = {"ra": "{:.4f}".format(float(coordinate.ra.degree)),
+                               "dec": "{:.4f}".format(float(coordinate.dec.degree))}
             ephemeris_points.append({"epoch_millis": epoch_millis,
                                      "mag": coordinate.mag,
                                      "coordinate": this_coordinate})
-        target = {"identifier": {"client_token": "16BP06-target-" + self.name}, "name": self.name,
-                  "moving_target": {"ephmeris_points": ephemeris_points}}
+        target = {"identifier": {"client_token": "{}-{}".format(self.runid, self.name)},
+                  "name": self.name,
+                  "moving_target": {"ephemeris_points": ephemeris_points}}
         json.dump(target, f_handle)
         return
 
@@ -174,55 +177,54 @@ class EphemTarget(object):
         Write out a GEMINI formated OT ephemeris.  This is just a hack of SSD Horizons output.
         """
         f_handle.write(GEMINI_HEADER)
-        #Date__(UT)__HR:MN Date_________JDUT     R.A.___(ICRF/J2000.0)___DEC dRA*cosD d(DEC)/dt
-        #         1         2         3         4         5         6         7         8         9
-        #123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-        #' 2019-Jan-30 00:00     01 46 56.46 +10 28 54.9 01 47 56.17 +10 34 27.6    3.520
+        # Date__(UT)__HR:MN Date_________JDUT     R.A.___(ICRF/J2000.0)___DEC dRA*cosD d(DEC)/dt
+        #          1         2         3         4         5         6         7         8         9
+        # 123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+        # ' 2019-Jan-30 00:00     01 46 56.46 +10 28 54.9 01 47 56.17 +10 34 27.6    3.520
 
         for coordinate in self.coordinates:
             date = coordinate.obstime.datetime.strftime('%Y-%b-%d %H:%M')[:17]
             f_handle.write(" {:16} {:17.9f}    {:27} {:+8.5f} {:+8.5f}\n".format(date,
-                                                     coordinate.obstime.jd,
-                                                     coordinate.to_string('hmsdms',
-                                                                          sep=' ',
-                                                                          precision=4,
-                                                                          pad=True)[:27],
-                                                     float(coordinate.dra),
-                                                     float(coordinate.ddec)),
+                                                                                 coordinate.obstime.jd,
+                                                                                 coordinate.to_string('hmsdms',
+                                                                                                      sep=' ',
+                                                                                                      precision=4,
+                                                                                                      pad=True)[:27],
+                                                                                 float(coordinate.dra),
+                                                                                 float(coordinate.ddec)),
                            )
         f_handle.write(GEMINI_FOOTER)
         return
 
     def cfht_writer(self, f_handle):
         self._init_cfht_et_file()
-        print len(self.coordinates)
         for coordinate in self.coordinates:
             self._append_cdata(coordinate)
         self.doc.writexml(f_handle, indent="  ", addindent="  ", newl='\n')
 
     def writer(self, f_handle):
-            if self.format == 'CFHT ET':
-                self.cfht_writer(f_handle)
-            if self.format == "CFHT API":
-                self.cfht_api_writer(f_handle)
-            elif self.format == 'GEMINI ET':
-                self.gemini_writer(f_handle)
-            else:
-                raise ValueError("unkown ET Format")
+        if self.format == 'CFHT ET':
+            self.cfht_writer(f_handle)
+        if self.format == "CFHT API":
+            self.cfht_api_writer(f_handle)
+        elif self.format == 'GEMINI ET':
+            self.gemini_writer(f_handle)
+        else:
+            raise ValueError("unknown ET Format")
 
     def save(self, filename=None):
         if filename is None:
             if self.format == 'CFHT ET':
-               filename = "ET_"+self.name+".xml"
+                filename = "ET_" + self.name + ".xml"
             elif self.format == 'GEMINI ET':
-               filename = self.name+".eph"
+                filename = self.name + ".eph"
             else:
-               filename = self.name+".txt"
-        with file(filename, 'w') as f_handle:
+                filename = self.name + ".txt"
+        with open(filename, 'w') as f_handle:
             self.writer(f_handle)
 
 
-GEMINI_HEADER="""*******************************************************************************
+GEMINI_HEADER = """*******************************************************************************
  Revised:  Jan 2, 2013                         Titan                       000
                          http://ssd.jpl.nasa.gov/?sat_phys_par
                            http://ssd.jpl.nasa.gov/?sat_elem
@@ -271,7 +273,7 @@ Table cut-offs 2: Solar Elongation (  0.0,180.0=NO )
 ***************************************************************************************
 $$SOE
 """
-GEMINI_FOOTER="""$$EOE
+GEMINI_FOOTER = """$$EOE
 *******************************************************************************
 Column meaning:
  

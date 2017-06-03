@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import math
 import sys
 import argparse
@@ -8,25 +9,19 @@ import ephem
 from astropy.io import votable
 from astropy.time import Time, TimeDelta
 import Polygon
-from matplotlib.patches import Rectangle
+import matplotlib.patches
+# from matplotlib.patches import Rectangle
+from matplotlib.collections import PatchCollection
 from matplotlib.font_manager import FontProperties
-
 import matplotlib.pyplot as plt
-from planning import megacam
-from planning import invariable
 
-import parsers
-from src.ossos.core.ossos import parameters
-import src.ossos.core.ossos.planning.plotting.plot_fanciness
+from ossos.planning import (megacam, invariable)
+from ossos import (parsers, parameters)
+# import ossos.core.ossos.planning.plotting.plot_fanciness
 import plot_objects
 
 
-
-
-
-
-
-# from ossos import cameras  # bit over the top to show all the ccds?
+from ossos import cameras  # bit over the top to show all the ccds?
 
 plot_extents = {"13AE": [209.8, 218.2, -15.5, -9.5],
                 "13AO": [235.4, 243.8, -15.5, -9.5],
@@ -36,8 +31,10 @@ plot_extents = {"13AE": [209.8, 218.2, -15.5, -9.5],
                 "13B": [30, 5, -2, 18],  # for both 13B blocks together
                 "13BL": [9, 18, 1, 7],
                 "14BH": [18, 27, 10, 16],
-                "15BD": [44, 54, 13, 20],
-                "15BS": [7, 16, -4, 4]
+                "15BS": [4, 11, 1.5, 8.5],
+                "15BT": [4, 11, 1.5, 8.5],
+                "15BC": [44, 54, 13, 20],
+                "15BD": [44, 54, 13, 20]
 }
 
 xgrid = {'2013': [-3, -2, -1, 0, 1, 2, 3],
@@ -77,6 +74,30 @@ years = {"2014": {"ra_off": ephem.hours("00:00:00"),
                   'facecolor': 'k',
                   "color": 'none'}
 }
+
+## camera_dimen is the size of the field.
+## this is the 40 CD Layout.  The width is set to exlcude one of the
+## Ears.  dimen is really the height
+pixscale = 0.184
+detsec_ccd09 = ((4161, 2114), (14318, 9707))
+detsec_ccd10 = ((6279, 4232), (14317, 9706))
+detsec_ccd36 = ((2048, 1), (14318, 9707))
+detsec_ccd37 = ((23219, 21172), (14309, 9698))
+detsec_ccd00 = ((4160, 2113), (19351, 14740))
+detsec_ccd17 = ((21097, 19050), (14309, 9698))
+detsec_ccd35 = ((16934, 18981), (11, 4622))
+
+print detsec_ccd09[0][0] - detsec_ccd10[0][1], detsec_ccd09[0][1] - detsec_ccd36[0][0]
+
+camera_width = (max(detsec_ccd37[0]) - min(detsec_ccd09[0]) + 1) * pixscale / 3600.0
+camera_height = (max(detsec_ccd00[1]) - min(detsec_ccd35[1]) + 1) * pixscale / 3600.0
+camera_width_40 = (max(detsec_ccd37[0]) - min(detsec_ccd36[0]) + 1) * pixscale / 3600.0
+camera_width_36 = (max(detsec_ccd17[0]) - min(detsec_ccd09[0]) + 1) * pixscale / 3600.0
+
+# I can't remember why this multiplication is here
+camera_width = 0.983 * camera_width
+camera_height = 0.983 * camera_height
+
 
 # FIXME: redo this to have brewermpl colours?
 def colsym():
@@ -156,7 +177,7 @@ def plot_invariable_plane(handles, labels, from_plane=ephem.degrees('0')):
     handles.append(plt.plot([math.degrees(coord.ra) for coord in eq],
                             [math.degrees(coord.dec) for coord in eq],
                             ls='--',
-                            color=src.ossos.core.ossos.planning.plotting.plot_fanciness.ALMOST_BLACK,
+                            color='#262626',
                             lw=1,
                             alpha=0.7))
     labels.append('invariable')
@@ -165,24 +186,7 @@ def plot_invariable_plane(handles, labels, from_plane=ephem.degrees('0')):
 
 
 def build_ossos_footprint(ax, block_name, block, field_offset, plot=True, plot_col='b'):
-    ## camera_dimen is the size of the field.
-    ## this is the 40 CD Layout.  The width is set to exlcude one of the
-    ## Ears.  dimen is really the height
-    pixscale = 0.184
-    detsec_ccd09 = ((4161, 2114), (14318, 9707))
-    detsec_ccd10 = ((6279, 4232), (14317, 9706))
-    detsec_ccd36 = ((2048, 1), (14318, 9707))
-    detsec_ccd37 = ((23219, 21172), (14309, 9698))
-    detsec_ccd00 = ((4160, 2113), (19351, 14740))
-    detsec_ccd17 = ((21097, 19050), (14309, 9698))
-    detsec_ccd35 = ((16934, 18981), (11, 4622))
-
-    print detsec_ccd09[0][0] - detsec_ccd10[0][1], detsec_ccd09[0][1] - detsec_ccd36[0][0]
-
-    camera_width =  (max(detsec_ccd37[0]) - min(detsec_ccd09[0]) + 1 )* pixscale / 3600.0
-    camera_height = (max(detsec_ccd00[1]) - min(detsec_ccd35[1]) + 1 )* pixscale / 3600.0
-    camera_width_40 =  (max(detsec_ccd37[0]) - min(detsec_ccd36[0]) + 1 )* pixscale / 3600.0
-    camera_width_36 = (max(detsec_ccd17[0]) - min(detsec_ccd09[0]) + 1 ) * pixscale / 3600.0
+    print 'starting footprint'
 
     # build the pointings that will be used for the discovery fields
     x = []
@@ -192,9 +196,6 @@ def build_ossos_footprint(ax, block_name, block, field_offset, plot=True, plot_c
     year = '2014'
     if year == 'astr':
         field_offset = field_offset * 0.75
-
-    camera_width=0.983*camera_width
-    camera_height=0.983*camera_height
 
     sign = -1
     # if 'f' in block:  # unsure what this was ever meant to do
@@ -226,6 +227,7 @@ def build_ossos_footprint(ax, block_name, block, field_offset, plot=True, plot_c
                 (xcen - dimen / 2.0, ycen - dimen / 2.0))))
 
             if plot:
+                print 'plotting footprint'
                 fill = True
                 # ax.add_artist(Rectangle(xy=(ra - dimen / 2.0, dec - dimen / 2.0),
                 #                         height=dimen,
@@ -233,6 +235,7 @@ def build_ossos_footprint(ax, block_name, block, field_offset, plot=True, plot_c
                 #                         edgecolor='k',
                 #                         facecolor=plot_col,
                 #                         lw=0.5, fill=True, alpha=0.15, zorder=0))
+                print ra, dec
                 ax.add_artist(Rectangle(xy=(math.degrees(ra) - camera_width_40/2.0, math.degrees(dec) - camera_height / 4.0 ),
                                         width= camera_width_40,
                                         height= camera_height/2.0,
@@ -259,6 +262,43 @@ def build_ossos_footprint(ax, block_name, block, field_offset, plot=True, plot_c
     decs = np.radians(y)
 
     return ras, decs, coverage, names, ax
+
+def true_footprint(ax, blockname):
+    # with open('/Users/bannisterm/Dropbox/OSSOS/ossos-pipeline/src/ossos/core/ossos/planning/triplet_and_processing_notes/T_15B_discovery_expnums.txt') as infile:
+    #     for line in infile.readlines():
+
+    # Trying a test field on T block only
+    ra = 7.55171
+    dec = 4.52681
+
+    print 'plotting footprint'
+    fill = False
+    print ra, dec
+    patches = []
+    patches.append(matplotlib.patches.Rectangle(xy=(math.degrees(ra) - camera_width_40 / 2.0, math.degrees(dec) - camera_height / 4.0),
+                            width=camera_width_40,
+                            height=camera_height / 2.0,
+                            color='b',
+                            zorder=0,
+                            lw=0.5, fill=fill, alpha=0.3))
+    ax.add_artist(matplotlib.patches.Rectangle(xy=(math.degrees(ra) - camera_width_36 / 2.0, math.degrees(dec) - camera_height / 2.0),
+                            height=camera_height / 4.0,
+                            width=camera_width_36,
+                            color='b',
+                            zorder=0,
+                            lw=0.5, fill=fill, alpha=0.3))
+    ax.add_artist(matplotlib.patches.Rectangle(xy=(math.degrees(ra) - camera_width_36 / 2.0, math.degrees(dec) + camera_height / 4.0),
+                            height=camera_height / 4.0,
+                            width=camera_width_36,
+                            color='b',
+                            zorder=0,
+                            lw=0.5, fill=fill, alpha=0.3))
+
+    # WHERE IS MY FIELD whyyyyy
+    collection = PatchCollection(patches)
+    ax.add_collection(collection)
+
+    return ax
 
 
 def synthetic_model_kbos(coverage, input_date=parameters.DISCOVERY_NEW_MOON):
@@ -449,7 +489,7 @@ if __name__ == '__main__':
     else:  # do them all!
         blocks = parameters.BLOCKS
 
-    discoveries = parsers.ossos_objects_parser(parameters.L7_HOME+'Mtmp.objects') #parsers.ossos_release_parser()  # ossos_release_parser()
+    discoveries = parsers.ossos_release_parser(table=True)
 
     # extent = plot_extents['13A'] # hardwired for doing both at once
 
@@ -487,17 +527,20 @@ if __name__ == '__main__':
                                                                    plot_col='#E47833')
         else:
             handles, labels, ax, fontP = basic_skysurvey_plot_setup()
-            ras, decs, coverage, names, ax = build_ossos_footprint(ax, blockname, block, field_offset, plot=True)
-        ax, kbos = plot_objects.plot_known_tnos_singly(ax, extent, date)
+            # ras, decs, coverage, names, ax = build_ossos_footprint(ax, blockname, block, field_offset, plot=True)
+            ax = true_footprint(ax, blockname)
+
+            ax, kbos = plot_objects.plot_known_tnos_singly(ax, extent, date)
+
         if args.synthetic:  # defaults to discovery new moon: FIXME: set date appropriately
             ra, dec, kbos = synthetic_model_kbos(coverage)
             ax = keplerian_sheared_field_locations(ax, kbos, date, ras, decs, names,
                                                    elongation=args.elongation, plot=True)
             ax = plot_objects.plot_synthetic_kbos(ax, coverage)
 
-        # block_discoveries = discoveries[
-        #     np.array([name.startswith('o3' + blockname[-1].lower()) for name in discoveries['object']])]
-        ax = plot_objects.plot_ossos_discoveries(ax, discoveries, blockname,
+        block_discoveries = discoveries[
+            np.array([name.startswith('o5' + blockname[-1].lower()) for name in discoveries['object']])]
+        ax = plot_objects.plot_ossos_discoveries(ax, block_discoveries, blockname,
                                                  prediction_date=date)  # will predict for dates other than discovery
 
         # ax = plot_objects.plot_planets(ax, extent, date)

@@ -74,8 +74,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Break the targets into OBs based on their max mag of source in pointing.
-    cuts = numpy.array([23.0, 24.0, 24.5, 25.0, 27.0])
-    IC_exptimes = [50, 100, 200, 300, 400]
+    cuts = numpy.array([23.0, 23.5, 24.0, 24.5, 25.0, 25.5, 26.0, 30.0])
+    IC_exptimes = [50,  100,  200,  300,  400,  500,  600, 700]
 
     program = Program()
     ob_tokens = []
@@ -86,8 +86,8 @@ if __name__ == "__main__":
         program.add_target(target.config)
         ob_token = "OB-{}-{}".format(target.token, target.mag)
         ob = ObservingBlock(ob_token, target.token)
-        idx = (target.mag > cuts).sum()
-        ob.config["instrument_config_identifiers"] = [{"server_token": "I{}".format(idx + 5)}]
+        idx = (target.mag > cuts).sum() + 4
+        ob.config["instrument_config_identifiers"] = [{"server_token": "I{}".format(idx)}]
         program.add_observing_block(ob.config)
         ob_tokens.append(ob_token)
         mags[ob_token] = target.mag
@@ -117,9 +117,11 @@ if __name__ == "__main__":
                 sys.stdout.write("{} ".format(ob_token))
                 sys.stdout.flush()
                 idx = (mags[ob_token] > cuts).sum()
+                print ob_token, mags[ob_token], idx + 4
                 og_itime += IC_exptimes[idx] + 40
                 if og_itime > 3000.0:
                     break
+                break
         total_itime += og_itime
         sys.stdout.write(" {}s \n".format(og_itime))
         program.add_observing_group(og.config)
