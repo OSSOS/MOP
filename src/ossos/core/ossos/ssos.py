@@ -47,8 +47,8 @@ class TracksParser(object):
         try:
             self.orbit = Orbfit(mpc_observations)
             if print_summary:
-               print self.orbit.residuals
-               print self.orbit
+               print(self.orbit.residuals)
+               print(self.orbit)
         except Exception as ex:
             logger.error("{}".format(ex))
             logger.error("Failed to compute orbit with astrometry provided")
