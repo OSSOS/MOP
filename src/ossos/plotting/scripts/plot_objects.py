@@ -1,4 +1,4 @@
-from __future__ import relative_import
+from __future__ import absolute_import
 __author__ = 'Michele Bannister   git:@mtbannister'
 
 import math
@@ -9,7 +9,7 @@ import numpy as np
 import ephem
 import matplotlib.pyplot as plt
 
-from ossos import (parameters, mpcread, parsers, horizons)
+from ossos import (parameters, parsers, horizons)
 
 
 
@@ -63,7 +63,8 @@ def plot_ossos_discoveries(ax, discoveries, blockname, prediction_date=False):
     fc = ['b', '#E47833']
     alpha = [0.6, 1]
     marker = ['o', 'd']
-    size = [25, 30]
+    # size = [25, 30]
+    size = [5, 5]
     pl_index = np.where((discoveries['cl'] == 'res') & (discoveries['j'] == 3) & (discoveries['k'] == 2))
     l = []
     for k, n in enumerate(discoveries):
@@ -73,26 +74,28 @@ def plot_ossos_discoveries(ax, discoveries, blockname, prediction_date=False):
     plutinos = discoveries[pl_index]
     for j, d in enumerate([not_plutinos, plutinos]):
         print len(d)
-        ra = [math.degrees(ephem.degrees(ephem.hours(str(n)))) for n in d['ra_dis']]
-        dec = [float(q) for q in d['dec_dis']]
+        ra = [math.degrees(ephem.degrees(str(n))) for n in d['RAdeg']]
+        dec = [float(q) for q in d['DEdeg']]
         ax.scatter(ra, dec,
                    marker=marker[j], s=size[j], facecolor=fc[j], edgecolor='k', linewidth=0.4,
                    alpha=alpha[j])  # original size=4.5
         for kbo in d:
-            ra = math.degrees(ephem.degrees(ephem.hours(str(kbo['ra_dis']))))
-            dec = kbo['dec_dis']
-            name = kbo['object'].rpartition('o3' + blockname[-1].lower())[2]
+            ra =  math.degrees(ephem.degrees(str(kbo['RAdeg'])))
+            dec = kbo['DEdeg']
+            name = kbo['object'].rpartition('o5' + blockname[-1].lower())[2]
+            if name.startswith('0'):
+                name = name.lstrip('0')
             if j == 1:
-                sep = 0.20
+                sep = 0.1 #0.20
             else:
-                sep = 0.18
+                sep = 0.1 # 0.18
             if name.endswith('PD'):
                 latsep = .2
             else:
                 latsep = .07
             ax.annotate(name,
                         (ra - latsep, dec - sep),
-                        size=9,
+                        size=5,#  9,
                         color='k')
 
     return ax
@@ -131,9 +134,9 @@ def plot_ossos_discoveries(ax, discoveries, blockname, prediction_date=False):
 
 
 def plot_known_tnos_singly(ax, extent, date):
-    rate_cut = 'a > 15'
+    rate_cut = 'a > 7'
     print "PLOTTING LOCATIONS OF KNOWN KBOs (using {})".format(parameters.MPCORB_FILE)
-    kbos = mpcread.getKBOs(parameters.MPCORB_FILE)
+    kbos = parsers.mpcorb_getKBOs(parameters.MPCORB_FILE)
     print('Known KBOs: {}'.format(len(kbos)))
     retkbos = []
     for kbo in kbos:
@@ -146,21 +149,22 @@ def plot_known_tnos_singly(ax, extent, date):
         ax.scatter(pos[0],
                    pos[1],
                    marker='x',
-                   facecolor='r')
+                   facecolor='r',
+                   s=10)
         if len(kbo.name) >= 10:  # sorted out for Sofia Pro Light
             ra_shift = -0.45
         else:
             ra_shift = -0.22
-        ax.annotate(kbo.name, (pos[0] + ra_shift, pos[1] + 0.06), size=7, color='r')
+        ax.annotate(kbo.name, (pos[0] + ra_shift, pos[1] + 0.06), size=6, color='r')
         retkbos.append(kbo)
     print('Retained KBOs: {}'.format(len(retkbos)))
     return ax, retkbos
 
 
 def plot_known_tnos_batch(handles, labels, date):
-    rate_cut = 'a > 15'
+    rate_cut = 'a > 7'
     if os.access(MPCORB, os.F_OK):
-        kbos = mpcread.getKBOs(MPCORB, cond=rate_cut)
+        kbos = parsers.mpcorb_getKBOs(MPCORB, cond=rate_cut)
         kbo_ra = []
         kbo_dec = []
         for kbo in kbos:

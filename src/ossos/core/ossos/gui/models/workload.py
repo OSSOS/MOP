@@ -422,7 +422,7 @@ class TracksWorkUnit(WorkUnit):
         @return: mpc_filename of the resulting save.
         """
         self.get_writer().flush()
-        mpc_filename = self.output_context.get_full_path(self.get_writer().get_filename())
+        mpc_filename = self.get_writer().get_filename()
         self.get_writer().close()
         self._writer = None
         return mpc_filename
@@ -480,8 +480,7 @@ class TracksWorkUnit(WorkUnit):
             mpc_filename_pattern = self.output_context.get_full_path(
                 "{}.?{}".format(base_name, suffix))
             mpc_file_count = len(glob(mpc_filename_pattern))
-            mpc_filename = self.output_context.get_full_path(
-                "{}.{}{}".format(base_name, mpc_file_count, suffix))
+            mpc_filename = "{}.{}{}".format(base_name, mpc_file_count, suffix)
             self._writer = self._create_writer(mpc_filename)
 
         return self._writer

@@ -74,4 +74,5 @@ if __name__ == "__main__":
     from astropy.io.fits.verify import VerifyWarning
     warnings.filterwarnings('ignore', category=AstropyUserWarning)
     warnings.filterwarnings('ignore', category=VerifyWarning)
-    main()
+    import sys
+    sys.exit(main())
