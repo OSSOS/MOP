@@ -47,7 +47,15 @@ def mk_mopheader(expnum, ccd, version, dry_run=False, prefix=""):
     filename = storage.get_image(expnum, ccd, version=version, prefix=prefix)
     logging.info("Running mopheader on %s %d" % (expnum, ccd))
     ## launch the mopheader script
-    mopheader_filename = mopheader.main(filename)
+    ## launch the makepsf script
+    expname = os.path.basename(filename).strip('.fits')
+    logging.info(util.exec_prog(['stepZjmp',
+                                 '-f',
+                                 expname]))
+
+    mopheader_filename = expname+".mopheader"
+
+    # mopheader_filename = mopheader.main(filename)
 
     if dry_run:
         return
@@ -95,11 +103,10 @@ def main():
 
     args = parser.parse_args()
 
-    if args.debug:
-        logging.basicConfig(level=logging.DEBUG)
-    elif args.verbose:
-        logging.basicConfig(level=logging.INFO)
+    util.set_logger(args)
 
+    
+    logging.info("started")
     prefix = (args.fk and 'fk') or ''
     task = util.task()
     dependency = 'update_header'
@@ -114,6 +121,7 @@ def main():
     exit_code = 0
     for expnum in args.expnum:
         for ccd in ccdlist:
+            logging.info("Attempting to get status on header for {} {}".format(expnum, ccd))
             storage.set_logger(task,
                                prefix, expnum, ccd, args.type, args.dry_run)
             if storage.get_status(task, prefix, expnum, version=args.type, ccd=ccd) and not args.force:
@@ -121,6 +129,7 @@ def main():
                 continue
             message = 'success'
             try:
+                logging.info("Building a header ")
                 if not storage.get_status(dependency, prefix, expnum, "p", 36) and not args.ignore_update_headers:
                     raise IOError("{} not yet run for {}".format(dependency, expnum))
                 mk_mopheader(expnum, ccd, args.type, args.dry_run, prefix=prefix)
@@ -129,6 +138,7 @@ def main():
                 exit_code = message
             except Exception as e:
                 message = str(e)
+            logging.info(message)
 
             logging.error(message)
             if not args.dry_run:

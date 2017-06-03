@@ -29,44 +29,12 @@ import sys
 import logging
 from ossos import storage
 from ossos import util
+from ossos.pipeline import mkpsf
 
-
-def mkpsf(expnum, ccd, version, dry_run=False, prefix=""):
-    """Run the OSSOS jmpmakepsf script.
-
-    """
-    ## confirm destination directory exists.
-    destdir = os.path.dirname(
-        storage.dbimages_uri(expnum, ccd, prefix=prefix, version=version, ext='fits'))
-    if not dry_run:
-        storage.mkdir(destdir)
-
-    ## get image from the vospace storage area
-    logging.info("Getting file from VOSpace")
-    filename = storage.get_image(expnum, ccd, version=version, prefix=prefix)
-    logging.info("Running mkpsf on %s %d" % (expnum, ccd))
-    ## launch the makepsf script
-    logging.info(util.exec_prog(['jmpmakepsf.csh',
-                                 './',
-                                 filename,
-                                 'yes', 'yes']))
-
-    if dry_run:
-        return
-
-    ## place the results into VOSpace
-    basename = os.path.splitext(filename)[0]
-
-    for ext in ('mopheader', 'psf.fits',
-                'zeropoint.used', 'apcor', 'fwhm', 'phot'):
-        dest = storage.dbimages_uri(expnum, ccd, prefix=prefix, version=version, ext=ext)
-        source = basename + "." + str(ext)
-        storage.copy(source, dest)
-
-    return
 
 
 def main(task='mkpsf'):
+
 
     parser = argparse.ArgumentParser(
         description='Run makepsf chunk of the OSSOS pipeline')
@@ -100,17 +68,12 @@ def main(task='mkpsf'):
     parser.add_argument("--debug", "-d",
                         action="store_true")
 
+    cmd_line = " ".join(sys.argv)
     args = parser.parse_args()
 
-    util.set_logger(args)
-
     prefix = (args.fk and 'fk') or ''
-    task  = util.task()
-    dependency = 'mk_mopheader'
-
     storage.DBIMAGES = args.dbimages
 
-    exit_code = 0
     for expnum in args.expnum:
         if args.ccd is None:
            if int(expnum) < 1785619:
@@ -121,31 +84,8 @@ def main(task='mkpsf'):
                ccdlist = range(0, 40)
         else:
            ccdlist = [args.ccd]
-        for ccd in ccdlist:
-            if storage.get_status(task, prefix, expnum, version=args.type, ccd=ccd) and not args.force:
-                logging.info("{} completed successfully for {} {} {} {}".format(task, prefix, expnum, args.type, ccd))
-                continue
-            storage.set_logger(task,
-                               prefix, expnum, ccd, args.type, args.dry_run)
-            message = 'success'
-            try:
-                if not storage.get_status(dependency, prefix, expnum, "p", ccd=ccd):
-                    raise IOError("{} not yet run for {}".format(dependency, expnum))
-                mkpsf(expnum, ccd, args.type, args.dry_run, prefix=prefix)
-                if args.dry_run:
-                    continue
-                storage.set_status('fwhm', prefix, expnum, version=args.type, ccd=ccd, status=str(storage.get_fwhm(
-                    expnum, ccd, version=args.type)))
-                storage.set_status('zeropoint', prefix, expnum, version=args.type, ccd=ccd,
-                                   status=str(storage.get_zeropoint(
-                                       expnum, ccd, version=args.type)))
-            except Exception as e:
-                message = str(e)
-
-            logging.error(message)
-            if not args.dry_run:
-                storage.set_status(task, prefix, expnum, version=args.type, ccd=ccd, status=message)
-    return exit_code
+        for ccd rrin ccdlist:
+            mkpsf.run(expnum, ccd=ccd, version=version, dry_run=dry_run, prefix=prefix, force=force)
 
 if __name__ == '__main__':
     sys.exit(main())
