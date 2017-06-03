@@ -45,26 +45,29 @@ def cutout(obj, obj_dir, radius):
                 continue
             uri = storage.get_uri(expnum)
             sky_coord = obs.coordinate  # Using the WCS rather than the X/Y (X/Y can be unreliable over the whole survey)
-            print('Trying {} on {} on {}...'.format(obj.provisional_name, obs.date, expnum))
-            try:
-                postage_stamp_filename = "{}_{:11.5f}_{:09.5f}_{:+09.5f}.fits".format(obj.provisional_name,
-                                                                                      obs.date.mjd,
-                                                                                      obs.coordinate.ra.degree,
-                                                                                      obs.coordinate.dec.degree)
-                if postage_stamp_filename in cutout_listing:
-                    # skipping existing cutouts
-                    continue 
-                print("{}".format(postage_stamp_filename))
+            postage_stamp_filename = "{}_{:11.5f}_{:09.5f}_{:+09.5f}.fits".format(obj.provisional_name,
+                                                                                  obs.date.mjd,
+                                                                                  obs.coordinate.ra.degree,
+                                                                                  obs.coordinate.dec.degree)
+            if postage_stamp_filename in cutout_listing:
+               # skipping existing cutouts
+               continue 
+            while True:
+              print('Trying {} on {} on {}...'.format(obj.provisional_name, obs.date, expnum))
+              try:
 
                 hdulist = storage.ra_dec_cutout(uri, sky_coord, radius)
 
                 with open(postage_stamp_filename, 'w') as tmp_file:
-                    hdulist.writeto(tmp_file, clobber=True)
+                    hdulist.writeto(tmp_file, clobber=True, output_verify='fix+ignore')
                     storage.copy(postage_stamp_filename, obj_dir + "/" + postage_stamp_filename)
                 os.unlink(postage_stamp_filename)  # easier not to have them hanging around
-            except OSError, e:  # occasionally the node is not found: report and move on for later cleanup
-                print e
+              except OSError as e:  # occasionally the node is not found: report and move on for later cleanup
+                print "OSError: ->"+str(e)
+              except Exception as e:
+                print "Exception: ->"+str(e)
                 continue
+              break
 
 
 def main():
