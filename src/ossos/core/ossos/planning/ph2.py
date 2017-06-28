@@ -51,7 +51,7 @@ class ObservingBlock(object):
         self.config = {"identifier": {"client_token": client_token},
                        "target_identifier": {"client_token": target_token},
                        "constraint_identifiers": [{"server_token": "C1"}],
-                       "instrument_config_identifiers": [{"server_token": "I1"}]}
+                       "instrument_config_identifiers": [{"server_token": "I2"}]}
 
     @property
     def token(self):
