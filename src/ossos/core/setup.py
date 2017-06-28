@@ -33,7 +33,7 @@ if sys.version_info[0] > 2:
 #           continue
 #        scripts.append(os.path.join(script_dir, script))
 
-console_scripts = [ 'mkpsf = ossos.pipeline.mkpsf:main', 'step1 = ossos.pipeline.step1:main', 'mk_mopheader = ossos.pipeline.mk_mopheader:main' , 'optimize_pointings = ossos.planning.optimize_pointings:main']
+console_scripts = [ 'mkpsf = ossos.pipeline.mkpsf:main', 'step1 = ossos.pipeline.step1:main', 'mk_mopheader = ossos.pipeline.mk_mopheader:main' , 'optimize_pointings = ossos.planning.optimize_pointings:main', 'build_astrometry_report = ossos.pipeline.build_astrometry_report:main', 'update_astrometry = ossos.pipeline.update_astrometry:main']
 gui_scripts = [ 'validate = ossos.tools.validate:main' ]
 
 setup(name='ossos',
