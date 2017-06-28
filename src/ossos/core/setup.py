@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 dependencies = ['pyraf >= 2.1.1',
                 'requests >= 2.7',
                 'astropy >= 0.2.5',
-                'vos >= 2.0',
+                'vos >= 3.0',
                 'ephem',
                 'numpy >= 1.6.1',
                 'wxPython >= 3.0.0.0',
