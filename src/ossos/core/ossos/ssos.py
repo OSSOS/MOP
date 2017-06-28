@@ -13,6 +13,8 @@ from . import astrom, mpc, parameters
 from .astrom import SourceReading
 from .gui import logger, config
 from .orbfit import Orbfit
+from . import storage
+
 
 requests.packages.urllib3.disable_warnings()
 
@@ -305,6 +307,8 @@ class SSOSParser(object):
         table_reader.data.splitter.delimiter = '\t'
         ssos_table = table_reader.read(ssos_result_filename_or_lines)
 
+        dbimage_list = storage.list_dbimages()
+
         sources = []
         observations = []
         source_readings = []
@@ -331,7 +335,8 @@ class SSOSParser(object):
             # For CFHT/MegaCam strip off the trailing character to get the exposure number.
             ftype = row['Image'][-1]
             expnum = row['Image'][:-1]
-
+            if str(expnum) not in dbimage_list:
+                continue
             # The file extension is the ccd number + 1 , or the first extension.
             ccd = int(row['Ext'])-1
             if 39 < ccd < 0 or ccd < 0:
