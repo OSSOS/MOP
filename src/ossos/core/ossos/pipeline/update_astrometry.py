@@ -271,8 +271,8 @@ def run(mpc_file, cor_file,
             logging.info(type(mpc_in.comment))
             logging.info("Skipping: {}".format(mpc_in.to_string()))
             continue
-        if ((skip_discovery and mpc_in.discovery.is_discovery) or
-                (not skip_discovery and not mpc_in.discovery.is_discovery)):
+        if ((skip_discovery and mpc_in.discovery) or
+                (not skip_discovery and not mpc_in.discovery)):
             logging.info("Discovery mis-match")
             logging.info("Skipping: {}".format(mpc_in.to_string()))
             continue
