@@ -240,12 +240,21 @@ def recompute_mag(mpc_in, skip_centroids=False):
         mpc_obs.comment.x = x.value
         mpc_obs.comment.y = y.value
 
-    mpc_obs._band = filter_value
-    mpc_obs.comment.mag = mag
-    mpc_obs.comment.mag_uncertainty = merr
+    try:
+        mag = float(mag)
+    except:
+        return mpc_obs
+
+    if math.isnan(mag):
+        return mpc_obs
+
+    if mag > 10:
+        mpc_obs._band = filter_value
+        mpc_obs.comment.mag = mag
+        mpc_obs.comment.mag_uncertainty = merr
 
     # Update the mpc record magnitude if previous value existed here.
-    if (mpc_obs.mag is not None or (mpc_obs.mag is None and mpc_in.comment.photometry_note[0] == "Z")):
+    if (mpc_obs.mag is not None or (mpc_obs.mag is None and mpc_in.comment.photometry_note[0] == "Z")) and mag > 10:
         mpc_obs.mag = mag
 
     return mpc_obs
