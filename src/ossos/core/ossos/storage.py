@@ -76,6 +76,8 @@ tags = {}
 APCOR_EXT = "apcor"
 ZEROPOINT_USED_EXT = "zeropoint.used"
 PSF_EXT = "psf.fits"
+FITS_EXT = ".fits"
+FITS_EXT = ".fits.fz"
 
 
 class MyRequests(object):
@@ -214,11 +216,11 @@ def populate(dataset_name, data_web_service_url=DATA_WEB_SERVICE + "CFHT"):
     """Given a dataset_name created the desired dbimages directories
     and links to the raw data files stored at CADC.
     @param dataset_name: the name of the CFHT dataset to make a link to.
-    @param data_web_service_url: the URL of the data web service run by CADC.
+    @param data_web_servica_url: the URL of the data web service run by CADC.
     """
 
-    data_dest = get_uri(dataset_name, version='o', ext='fits.fz')
-    data_source = "%s/%so.fits.fz" % (data_web_service_url, dataset_name)
+    data_dest = get_uri(dataset_name, version='o', ext=FITS_EXT)
+    data_source = "%s/%so.{}" % (data_web_service_url, dataset_name, FITS_EXT)
 
     mkdir(os.path.dirname(data_dest))
 
@@ -289,7 +291,7 @@ def get_cands_uri(field, ccd, version='p', ext='measure3.cands.astrom', prefix=N
 
 
 def get_uri(expnum, ccd=None,
-            version='p', ext='fits',
+            version='p', ext=FITS_EXT,
             subdir=None, prefix=None):
     """
     Build the uri for an OSSOS image stored in the dbimages
@@ -602,7 +604,7 @@ def set_status(task, prefix, expnum, version, ccd, status):
     return set_tag(expnum, get_process_tag(prefix+task, ccd, version), status)
 
 
-def get_file(expnum, ccd=None, version='p', ext='fits', subdir=None, prefix=None):
+def get_file(expnum, ccd=None, version='p', ext=FITS_EXT, subdir=None, prefix=None):
     uri = get_uri(expnum=expnum, ccd=ccd, version=version, ext=ext, subdir=subdir, prefix=prefix)
     filename = os.path.basename(uri)
 
@@ -779,7 +781,7 @@ def ra_dec_cutout(uri, sky_coord, radius):
     return hdulist
 
 
-def get_image(expnum, ccd=None, version='p', ext='fits',
+def get_image(expnum, ccd=None, version='p', ext=FITS_EXT,
               subdir=None, prefix=None, cutout=None, return_file=True, flip_image=True):
     """Get a FITS file for this expnum/ccd  from VOSpace.
 
@@ -901,7 +903,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
         time.sleep(5)
         return get_image(expnum, ccd=ccd, version=version, ext=ext,
                          subdir=subdir, prefix=prefix, cutout=cutout, return_file=return_file, flip_image=flip_image)
-    raise IOError(err, "Failed to get image using {} {} {} {}.".format(expnum, version, ccd, cutout))
+    raise IOError(err, "Failed to get image at uri: {} using {} {} {} {}.".format(uri, expnum, version, ccd, cutout))
 
 
 def datasec_to_list(datasec):
@@ -1535,12 +1537,20 @@ def get_astheader(expnum, ccd, version='p', prefix=None):
         except:
             pass
 
-    ast_uri = dbimages_uri(expnum, ccd, version=version, ext='.fits')
-    if ast_uri not in astheaders:
-        hdulist = get_image(expnum, ccd=ccd, version=version, prefix=prefix,
-                            cutout="[1:1,1:1]", return_file=False)
-        assert isinstance(hdulist, fits.HDUList)
-        astheaders[ast_uri] = hdulist[0].header
+    try:
+       ast_uri = dbimages_uri(expnum, ccd, version=version, ext='.fits')
+       if ast_uri not in astheaders:
+           hdulist = get_image(expnum, ccd=ccd, version=version, prefix=prefix,
+                               cutout="[1:1,1:1]", return_file=False, ext='.fits')
+           assert isinstance(hdulist, fits.HDUList)
+           astheaders[ast_uri] = hdulist[0].header
+    except:
+       ast_uri = dbimages_uri(expnum, ccd, version=version, ext='.fits.fz')
+       if ast_uri not in astheaders:
+           hdulist = get_image(expnum, ccd=ccd, version=version, prefix=prefix,
+                               cutout="[1:1,1:1]", return_file=False, ext='.fits.fz')
+           assert isinstance(hdulist, fits.HDUList)
+           astheaders[ast_uri] = hdulist[0].header
     return astheaders[ast_uri]
 
 
