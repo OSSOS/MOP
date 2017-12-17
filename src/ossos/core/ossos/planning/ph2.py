@@ -51,7 +51,7 @@ class ObservingBlock(object):
         self.config = {"identifier": {"client_token": client_token},
                        "target_identifier": {"client_token": target_token},
                        "constraint_identifiers": [{"server_token": "C1"}],
-                       "instrument_config_identifiers": [{"server_token": "I2"}]}
+                       "instrument_config_identifiers": [{"server_token": "I1"}]}
 
     @property
     def token(self):
@@ -73,6 +73,7 @@ if __name__ == "__main__":
     parser.add_argument('qrunid')
     parser.add_argument('runid')
     parser.add_argument('targets', nargs='+')
+    parser.add_argument('--og-idx-start', default=0) 
     args = parser.parse_args()
 
     # Break the targets into OBs based on their max mag of source in pointing.
@@ -89,7 +90,7 @@ if __name__ == "__main__":
         ob_token = "OB-{}-{}".format(target.token, target.mag)
         ob = ObservingBlock(ob_token, target.token)
         idx = (target.mag > cuts).sum() + 4
-        idx = 1
+        idx = 2
         ob.config["instrument_config_identifiers"] = [{"server_token": "I{}".format(idx)}]
         program.add_observing_block(ob.config)
         ob_tokens.append(ob_token)
@@ -101,8 +102,9 @@ if __name__ == "__main__":
     total_itime = 0
     ogs = {}
     scheduled = {}
-    og_idx = 0
-    while len(scheduled) < len(ob_tokens):
+    og_idx = int(args.og_idx_start)
+    if False:
+    # while len(scheduled) < len(ob_tokens):
         og_idx += 1
         og_token = "OG_{}_{}_{}_{}".format(args.runid, args.qrunid, og_idx, 0)
         sys.stdout.write("{}: ".format(og_token))
@@ -136,5 +138,5 @@ if __name__ == "__main__":
             og = copy.deepcopy(og)
             og.config["identifier"]["client_token"] = og_token
             program.add_observing_group(og.config)
-    print "Total I-Time: {} hrs".format(total_itime/3600.)
+    # print "Total I-Time: {} hrs".format(total_itime/3600.)
     json.dump(program.config, open('program.json', 'w'), indent=4, sort_keys=True)
