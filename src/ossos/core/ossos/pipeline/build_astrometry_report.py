@@ -159,7 +159,10 @@ auto-magical way.
                                     (observation1.mag != observation2.mag or
                                         observation1.ra != observation2.ra or
                                         observation1.dec != observation2.dec)):
-                                replacement = True
+                                if not observation2.discovery:
+                                    replacement = True
+                                else:
+                                    print "discovery"
                             else:
                                 report = False
                             break
