@@ -245,6 +245,8 @@ def main():
     parser.add_argument('date',
                         type=str,
                         help="ISO date string to optimize the pointings too")
+    parser.add_argument('runid',
+                        help="CFHT RUN ID")
     parser.add_argument('pointing_objects',
                         type=str,
                         help="Name of file that contains list of objects to try and observe.")
@@ -254,9 +256,6 @@ def main():
     parser.add_argument('--nattempts', type=int,
                         help="Number of random variations of pointings to try",
                         default=2)
-    parser.add_argument('--runid',
-                        help="CFHT RUN ID",
-                        default='16BQ17')
 
     args = parser.parse_args()
 
