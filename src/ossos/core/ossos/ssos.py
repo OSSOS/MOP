@@ -307,8 +307,8 @@ class SSOSParser(object):
         table_reader.data.splitter.delimiter = '\t'
         ssos_table = table_reader.read(ssos_result_filename_or_lines)
 
-        dbimage_list = storage.list_dbimages()
-
+        dbimage_list = storage.list_dbimages(dbimages=storage.DBIMAGES)
+        logger.debug("Comparing to {} observations in dbimages: {}".format(len(dbimage_list), storage.DBIMAGES))
         sources = []
         observations = []
         source_readings = []
@@ -328,7 +328,9 @@ class SSOSParser(object):
         for row in ssos_table:
             # Trim down to OSSOS-specific images
 
+            logger.debug("Checking row: {}".format(row))
             if (row['Filter'] not in parameters.OSSOS_FILTERS) or row['Image_target'].startswith('WP'):
+                logger.debug("Failed filter / target name check")
                 continue
 
             # check if a dbimages object exists
@@ -336,7 +338,9 @@ class SSOSParser(object):
             ftype = row['Image'][-1]
             expnum = row['Image'][:-1]
             if str(expnum) not in dbimage_list:
+                logger.debug("Expnum: {} Failed dbimage list check".format(expnum))
                 continue
+            logger.debug("Expnum: {} Passed dbimage list check".format(expnum))
             # The file extension is the ccd number + 1 , or the first extension.
             ccd = int(row['Ext'])-1
             if 39 < ccd < 0 or ccd < 0:
@@ -359,6 +363,7 @@ class SSOSParser(object):
                 print "Skipping entry as orbit uncertainty at date {} is large.".format(obs_date)
                 continue
             if expnum in expnums_examined:
+                logger.debug("Already checked this exposure.")
                 continue
             expnums_examined.append(expnum)
 
