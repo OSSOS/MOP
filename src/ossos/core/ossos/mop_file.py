@@ -1,77 +1,145 @@
-
 import logging
-import util
-from astropy.table import Table, Column
-import numpy
-import wcs
-import storage
+# noinspection PyUnresolvedReferences
+from mp_ephem import time_mpc
+from astropy.time import Time
+from astropy.table import Table
+from ossos import storage
 
 
-
-VOS_SCHEME = 'vos'
-FILE_SCHEME = 'file'
-MJD_OFFSET = 2400000.5
-
-class Parser(object):
+class MOPFile(object):
     """Read in a MOP formatted file"""
 
-    def __init__(self, expnum, ccd, extension, type='p', prefix=None):
+    def __init__(self, basename=None, ccd=None, extension=None, type='p', prefix=None, filename=None, subfmt='jmp'):
         """does nothing"""
 
-        self.expnum = expnum
+        self.basename = basename
         self.ccd = ccd
         self.extension = extension
         self.type = type
         self.prefix = prefix
-        self.fobj = None
-        self.keywords  = []
-        self.values = []
-        self.formats = {}
-        self.header = {}
-        self.cdata ={}
-        
+        self._filename = filename
+        self.subfmt = subfmt
 
-    def parse(self):
+        self.header = None
+        self.data = None
+        self._parse()
+
+    @property
+    def filename(self):
+        """
+        Name if the MOP formatted file to parse.
+        @rtype: basestring
+        @return: filename
+        """
+        if self._filename is None:
+            self._filename = storage.get_file(self.basename,
+                                              self.ccd,
+                                              ext=self.extension,
+                                              version=self.type,
+                                              prefix=self.prefix)
+        return self._filename
+
+    @property
+    def usecols(self):
+        """
+        The column indexies to read from the file.
+
+        This is only needed for the 'matt' format files as they have a long standing format error.
+
+        @rtype list
+        @return: list of column indexies
+        """
+        if 'matt' in self.filename:
+            return range(5)
+        return None
+
+    def _parse(self):
         """read in a file and return a MOPFile object."""
-        self.filename =  storage.get_file(self.expnum,
-                                       self.ccd,
-                                       ext=self.extension,
-                                       version=self.type,
-                                       prefix=self.prefix)
-        self.fobj = open(self.filename,'r')
-        lines = self.fobj.read().split('\n')
-        self.header = HeaderParser(self.extension).parser(lines)
-        if 'matt' in self.extension:
-            usecols=[0,1,2,3,4]
-            data = numpy.genfromtxt(self.filename, usecols=usecols)
-        else:
-            data = numpy.genfromtxt(self.filename)
-        self.data = Table(data, names=self.header.column_names[0:data.shape[1]])
-        ast_header = storage.get_astheader(self.expnum, self.ccd)
-        self.wcs = wcs.WCS(ast_header)
-        flip_these_extensions = range(1,19)
-        flip_these_extensions.append(37)
-        flip_these_extensions.append(38)
-        if self.ccd + 1 in flip_these_extensions:
-            self.data['X'] = float(self.header.keywords['NAX1'][0])-self.data['X'] + 1
-            self.data['Y'] = float(self.header.keywords['NAX2'][0])-self.data['Y'] + 1
-        ra, dec = self.wcs.xy2sky(self.data['X'], self.data['Y'], usepv=True)
+        with open(self.filename, 'r') as fobj:
+            lines = fobj.read().split('\n')
 
-        self.data.add_columns([Column(ra, name='RA_J2000'), Column(dec, name='DE_J2000')])
-        return self
+        # Create a header object with content at start of file
+        self.header = MOPHeader(self.subfmt).parser(lines)
+
+        # Create a data attribute to hold an astropy.table.Table object
+        self.data = MOPDataParser(self.header).parse(lines)
 
 
+class MOPDataParser(object):
+    """ A MOPFile Data object"""
 
-        
-class HeaderParser(object):
+    def __init__(self, header):
+        """
+
+        @param header: MOPHeader
+        """
+        self.header = header
+        self._table = None
+
+    @property
+    def table(self):
+        """
+        The astropy.table.Table object that will contain the data result
+        @rtype: Table
+        @return: data table
+        """
+        if self._table is None:
+            column_names = []
+            for fileid in self.header.file_ids:
+                for column_name in self.header.column_names:
+                    column_names.append("{}_{}".format(column_name, fileid))
+                column_names.append("ZP_{}".format(fileid))
+            if len(column_names) > 0:
+                self._table = Table(names=column_names)
+            else:
+                self._table = Table()
+        return self._table
+
+    def parse(self, lines):
+
+        record = []
+        while len(lines) > 0:
+            line = lines.pop(0)
+            if line.strip().startswith("#"):
+                continue
+            if len(line.strip()) != 0:
+                record.append(line)
+                continue
+            if len(record) == 0:
+                continue
+            if len(record) != len(self.header.file_ids):
+                logging.debug("record: {}".format(record))
+                logging.debug("file_ids: {}".format(self.header.file_ids))
+                raise ValueError("Wrong number of entries in record.")
+            values = []
+            record_number = 0
+            for line in record:
+                if len(line.split()) != len(self.header.column_names):
+                    logging.debug("line: {}".format(line))
+                    logging.debug("Wrong number of columns compared to: {}".format(self.header.column_names))
+                    raise ValueError("column length mismatch")
+                values.extend([ float(x) for x in line.split() ])
+                try:
+                    zp = float(open("{}.zeropoint.used".format(self.header.file_ids[record_number]), 'r').readline())
+                except:
+                    zp = 0
+                values.append(zp)
+                record_number += 1
+            self.table.add_row(values)
+            record = []
+        return self.table
+
+
+class MOPHeader(object):
     """A MOPFile Header object"""
 
-    def __init__(self, extension):
+    def __init__(self, subfmt):
 
         self.keywords = {}
-        self.extension = extension
+        self.subfmt = subfmt
         self.file_ids = []
         self.column_names = []
+        self._file_id_idx = 0
 
     def __str__(self):
         return str(self.keywords)+'\n'+str(self.column_names)
@@ -80,14 +148,16 @@ class HeaderParser(object):
         """Given a set of lines parse the into a MOP Header"""
         while len(lines) > 0:
             if lines[0].startswith('##') and lines[1].startswith('# '):
-                ## A keyword line/value pair starts here
-                self._header_append(lines.pop(0),lines.pop(0))
+                # A two-line keyword/value line starts here.
+                self._header_append(lines.pop(0), lines.pop(0))
             elif lines[0].startswith('# '):
-                ## Filenames start here
+                # Lines with single comments are exposure numbers unless preceeded by double comment line
                 self._append_file_id(lines.pop(0))
             elif lines[0].startswith('##'):
-                self._set_column_names(lines.pop(0)[2:], ext= self.extension)
+                # Double comment lines without a single comment following are column headers for dataset.
+                self._set_column_names(lines.pop(0)[2:])
             else:
+                # Last line of the header reached.
                 return self
         raise IOError("Failed trying to read header")
 
@@ -106,7 +176,7 @@ class HeaderParser(object):
             return
         if len(val) - 2 != len(kw):
             raise ValueError("convert: keyword/value lengths don't match: {}/{}".format(kw, val))
-        val.insert(idx, util.Time("{} {} {}".format(val.pop(idx), val.pop(idx), val.pop(idx)),
+        val.insert(idx, Time("{} {} {}".format(val.pop(idx), val.pop(idx), val.pop(idx)),
                              format='mpc',
                              scale='utc').mjd)
         logging.debug("Computed MJD: {}".format(val[idx]))
@@ -119,16 +189,11 @@ class HeaderParser(object):
         self._append_keywords(keywords, values)
         return
 
-    def _depreicated_compute_mjd(self, year, month, day):
-        """Look through the dictionary and create a new keyword list
-        by replacing mjd-obs-center keyword value with actual mjd"""
-        mjd = util.Time("{} {} {}".format(year, month, day), format='mpc', scale='utc').mjd
-        return mjd
-
     def _append_keywords(self, keywords, values):
 
         if len(keywords) != len(values):
             raise ValueError("keyword/value lengths don't match: {}/{}".format(keywords, values))
+        file_id = self.file_ids[self._file_id_idx]
         while len(keywords) > 0:
             keyword = keywords.pop()
             value = values.pop()
@@ -140,10 +205,8 @@ class HeaderParser(object):
     def _append_file_id(self, line):
         self.file_ids.append(line.split()[1].strip())
 
-
-    def _set_column_names(self, line, ext='obj.jmp'):
-        if 'matt' in ext:
+    def _set_column_names(self, line):
+        if self.subfmt=='matt':
             self.column_names = line[1:].split()[0:5]
         else:
             self.column_names = line[1:].split()
-        print ext, len(self.column_names), line
