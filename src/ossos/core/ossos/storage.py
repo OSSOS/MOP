@@ -76,8 +76,8 @@ tags = {}
 APCOR_EXT = "apcor"
 ZEROPOINT_USED_EXT = "zeropoint.used"
 PSF_EXT = "psf.fits"
-FITS_EXT = ".fits"
 FITS_EXT = ".fits.fz"
+FITS_EXT = ".fits"
 
 
 class MyRequests(object):
@@ -286,7 +286,6 @@ def get_cands_uri(field, ccd, version='p', ext='measure3.cands.astrom', prefix=N
     measure3_dir = MEASURE3
     if block is not None:
         measure3_dir + "/{}".format(block)
-    mkdir(measure3_dir)
     return "{}/{}{}{}{}{}".format(measure3_dir, prefix, field, version, ccd, ext)
 
 
@@ -702,7 +701,7 @@ def _cutout_expnum(observation, sky_coord, radius):
     return hdulist
 
 
-def ra_dec_cutout(uri, sky_coord, radius):
+def ra_dec_cutout(uri, sky_coord, radius, update_wcs=False):
     """
 
     :param uri: The vospace location of the image to make a cutout from
@@ -756,7 +755,31 @@ def ra_dec_cutout(uri, sky_coord, radius):
         raise ValueError("Wrong number of cutout structures found in Content-Disposition response.")
 
     for hdu in hdulist[1:]:
+
         cutout = cutouts.pop(0)
+        if update_wcs:
+            # Pull the SG header from VOSpace and reset the CRPIX values based on cutout info from disposition matrix
+            try:
+                sg_key = "{}{}".format(hdu.header['expnum'], 'p')
+                if sg_key not in sgheaders:
+                    _get_sghead(hdu.header['expnum'])
+                if sg_key in sgheaders:
+                    for astheader in sgheaders[sg_key]:
+                        if astheader is None:
+                            continue
+                        if astheader.get('EXTVER', -1) == hdu.header['EXTVER']:
+                            break
+                astheader['CRPIX1'] = astheader.get('CRPIX1', 1) - int(cutout[1]) + 1
+                astheader['CRPIX2'] = astheader.get('CRPIX2', 1) - int(cutout[3]) + 1
+                # pull some data structure keywords out of the astrometric headers
+                for key in ['NAXIS', 'XTENSION', 'PCOUNT', 'GCOUNT',
+                            'NAXIS1', 'NAXIS2', 'BITPIX', 'BZERO', 'BSCALE']:
+                    if astheader.get(key, None) is not None:
+                        del (astheader[key])
+                hdu.header.update(astheader)
+            except Exception as ex:
+                logging.error("Got error while updating WCS: {}".format(ex))
+                logging.error("Using existing WCS in image header")
         if 'ASTLEVEL' not in hdu.header:
             print("******* NO ASTLEVEL ****************** for {0} ********".format(uri))
             hdu.header['ASTLEVEL'] = 0
@@ -779,6 +802,20 @@ def ra_dec_cutout(uri, sky_coord, radius):
             raise ex
     logger.debug("Sending back {}".format(hdulist))
     return hdulist
+
+def frame2expnum(frameid):
+    """Given a standard OSSOS frameid return the expnum, version and ccdnum as a dictionary."""
+    result = {}
+    parts = re.search('(?P<expnum>\d{7})(?P<type>\S)(?P<ccd>\d\d)', frameid)
+    assert parts is not None
+    result['expnum'] = parts.group('expnum')
+    result['ccd'] = parts.group('ccd')
+    result['version'] = parts.group('type')
+    return result
+
+def get_frame(frameid, cutout=None):
+    """Given a frameid, which consists of expnum version and ccd retrieve a cutout."""
+    return get_image(cutout=cutout, **frame2expnum(frameid))
 
 
 def get_image(expnum, ccd=None, version='p', ext=FITS_EXT,
@@ -1189,6 +1226,9 @@ def open_vos_or_local(path, mode="rb"):
     @param mode:
     @return:
     """
+    filename = os.path.basename(path)
+    if os.access(filename, os.F_OK):
+        return open(filename, mode)
     if path.startswith("vos:"):
         primary_mode = mode[0]
         if primary_mode == "r":
@@ -1487,6 +1527,7 @@ def _get_sghead(expnum):
 
     url = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHTSG/{}{}.head".format(expnum, version)
     logging.getLogger("requests").setLevel(logging.ERROR)
+    logging.debug("Attempting to retrieve {}".format(url))
     resp = requests.get(url)
     if resp.status_code != 200:
         raise IOError(errno.ENOENT, "Could not get {}".format(url))
@@ -1497,8 +1538,8 @@ def _get_sghead(expnum):
     headers = [None]
     for header_str in header_str_list:
         headers.append(fits.Header.fromstring(header_str, sep='\n'))
+        logging.debug(headers[-1].get('EXTVER', -1))
     sgheaders[key] = headers
-
     return sgheaders[key]
 
 
