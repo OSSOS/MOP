@@ -52,7 +52,10 @@ if __name__ == '__main__':
                         discovery_frames.append(original_observation.comment.frame)
                     except Exception as ex:
                         print ex
-            tracks_data = parser.parse(os.path.join(args.ast_dir, fn), print_summary=False)
+            try:
+               tracks_data = parser.parse(os.path.join(args.ast_dir, fn), print_summary=False)
+            except:
+               continue
             new_observation_count = 0
             new_observation_lines = ""
             for obs in tracks_data.observations:
