@@ -54,7 +54,7 @@ def is_up(coordinate, current_time):
     return True
 
 
-def create_ephemeris_file(name, camera, kbos, orbits, pointing_date, runid):
+def create_ephemeris_file(name, camera, kbos, orbits, pointing_date, runid, ephem_format="CFHT API"):
     """
 
     @param name: name of the pointing
@@ -66,7 +66,7 @@ def create_ephemeris_file(name, camera, kbos, orbits, pointing_date, runid):
     @return: None
     """
 
-    et = EphemTarget(name, ephem_format="CFHT API", runid=runid)
+    et = EphemTarget(name, ephem_format=ephem_format, runid=runid)
     # determine the mean motion of target KBOs in this field.
     field_kbos = []
     center_ra = 0
@@ -134,9 +134,9 @@ def optimize(orbits, required, locations, tokens, camera_name="MEGACAM_40"):
     token_order = np.random.permutation(required)
     optimal_pointings = {}
     covered = []  # the objects that have already been covered by a planned pointing.
-
-    search_order = [22 + 4]
-    search_order.extend(range(len(Camera.names)))
+    search_order = [0, ]
+    # search_order = [22 + 4]
+    # search_order.extend(range(len(Camera.names)))
 
     # For each required target find the pointing that will include the largest number of other required targets
     # and then tweak that specific pointing to include the maximum number of secondary targets.
@@ -260,6 +260,8 @@ def main():
     parser.add_argument('--camera', default="MEGACAM_40",
                         choices=Camera._geometry.keys(),
                         help="Name of camera")
+    parser.add_argument('--ephem-format', default='CFHT_API',
+                        choices=['CFHT_API', 'CFHT_ET', 'GEMINI_ET'])
 
     args = parser.parse_args()
 
@@ -321,7 +323,7 @@ def main():
                                                    len(best_pointing_list[token][1])))
             pointing_number += 1
             create_ephemeris_file(token, best_pointing_list[token][0], best_pointing_list[token][1], orbits,
-                                  pointing_date, args.runid)
+                                  pointing_date, args.runid, ephem_format=args.ephem_format.replace("_", " "))
 
 
 if __name__ == '__main__':
