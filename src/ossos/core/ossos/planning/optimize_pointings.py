@@ -120,7 +120,7 @@ def create_ephemeris_file(name, camera, kbos, orbits, pointing_date, runid):
     return
 
 
-def optimize(orbits, required, locations, tokens):
+def optimize(orbits, required, locations, tokens, camera_name="MEGACAM_40"):
     """
 
     @param orbits: a dictionary of orbits to optimize the point of.
@@ -134,6 +134,7 @@ def optimize(orbits, required, locations, tokens):
     token_order = np.random.permutation(required)
     optimal_pointings = {}
     covered = []  # the objects that have already been covered by a planned pointing.
+
     search_order = [22 + 4]
     search_order.extend(range(len(Camera.names)))
 
@@ -158,7 +159,7 @@ def optimize(orbits, required, locations, tokens):
         best_coverage = []
         p = SkyCoord(obj.coordinate.ra,
                      obj.coordinate.dec)
-        pointing = Camera(p)
+        pointing = Camera(p, camera=camera_name)
         if len(possible_tokens) == 1:
             optimal_pointings[token] = pointing, possible_tokens
             logging.info(" {} is all alone!".format(token))
@@ -256,6 +257,9 @@ def main():
     parser.add_argument('--nattempts', type=int,
                         help="Number of random variations of pointings to try",
                         default=2)
+    parser.add_argument('--camera', default="MEGACAM_40",
+                        choices=Camera._geometry.keys(),
+                        help="Name of camera")
 
     args = parser.parse_args()
 
