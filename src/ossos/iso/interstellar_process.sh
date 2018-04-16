@@ -64,8 +64,8 @@ do
     cd ${basedir}
 
     # Build some variables to hold some directory names and file extension bits.
-    ccd_dir_name=`echo $ccd | awk ' { printf("ccd%02d",$0) }'`
-    p_ccd=`echo $ccd | awk ' { printf("p%02d",$0) }'`
+    ccd_dir_name=`echo ${ccd} | awk ' { printf("ccd%02d",$0) }'`
+    p_ccd=`echo ${ccd} | awk ' { printf("p%02d",$0) }'`
     mkdir -p ${ccd}
     cd ${ccd}
 
@@ -86,14 +86,14 @@ do
     # done
 
     # Populate a local processing area with the input files (unid and trans.jmp) needed for interstellar.
-    for expnum in $exp1 $exp2 $exp3;
+    for expnum in ${exp1} ${exp2} ${exp3};
     do
-      [ -f ${expnum}${p_ccd}.unid.matt ] || vcp -v vos:OSSOS/dbimages/${expnum}/$ccd_dir_name/${expnum}${p_ccd}.unid.matt ./
-      [ -f ${expnum}${p_ccd}.unid.jmp ] || vcp -v vos:OSSOS/dbimages/${expnum}/$ccd_dir_name/${expnum}${p_ccd}.unid.jmp ./
+      [ -f ${expnum}${p_ccd}.unid.matt ] || vcp -v vos:OSSOS/dbimages/${expnum}/${ccd_dir_name}/${expnum}${p_ccd}.unid.matt ./
+      [ -f ${expnum}${p_ccd}.unid.jmp ] || vcp -v vos:OSSOS/dbimages/${expnum}/${ccd_dir_name}/${expnum}${p_ccd}.unid.jmp ./
     done
 
 
-    [ -f ${exp1}${p_ccd}.trans.jmp ] || vcp -v vos:OSSOS/dbimages/${exp1}/$ccd_dir_name/${exp1}${p_ccd}.trans.jmp ./
+    [ -f ${exp1}${p_ccd}.trans.jmp ] || vcp -v vos:OSSOS/dbimages/${exp1}/${ccd_dir_name}/${exp1}${p_ccd}.trans.jmp ./
 
 
     ## First do the search images
