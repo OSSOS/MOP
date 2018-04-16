@@ -41,6 +41,8 @@ cd $basedir
 
 CC="gcc"
 export CC
+FC="gfortran"
+export FC
 
 case "$syst"
 in
