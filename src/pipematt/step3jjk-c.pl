@@ -13,10 +13,8 @@ print FAILED "step3jjk @ARGV\n";
 close(FAILED);
 print STDERR "step3jjk @ARGV\n";
 
-use strict;
-use warnings;
 use Getopt::Long;
-GetOptions('f1|file1:s','f2|file2:s','f3|file3:s','rn:f','rx:f','a:f','w:f', 'fr:f', 'mf:f', 'ma:f', h|help');
+GetOptions('f1|file1:s','f2|file2:s','f3|file3:s','rn:f','rx:f','a:f','w:f', 'fr:f', 'mf:f', 'ma:f', 'h|help');
 
 # -f1 image_file1 (w/o .fits extension) -f2 image_file2  -f3 image_file3 -rn min rate -rm max rate -a angle -w width -fr max_flux_ratio -mf max_median_flux -ma minimum_area -h/? help line
 

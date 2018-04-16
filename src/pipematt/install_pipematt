@@ -98,6 +98,7 @@ echo "Installing Matt's files."
 \mv non_stationary $BINDIRA
 \mv satur $BINDIRA
 \mv search $BINDIRA
+\mv search_jjk $BINDIRA
 \mv select_trans_stars $BINDIRA
 \mv select_trans_stars_fwhm $BINDIRA
 \mv trans $BINDIRA
