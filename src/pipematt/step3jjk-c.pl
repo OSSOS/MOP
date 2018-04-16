@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# This is Holman's version of prog3 for the CFHT tno search pipeline.
+# This is Holman's version of prog3 for the CFHT tno search pipeline modified by JJ to change some thresholds.
 # It writes the names of the three files at the top of the output
 # file.  Then it propagates the two header lines from the other files.
 # 
