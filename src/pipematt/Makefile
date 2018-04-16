@@ -46,6 +46,9 @@ satur: satur.c
 search: search.c 
 	$(CC) search.c -o search $(LIBS) $(COPTS)
 
+search_jjk: search_jjk.c 
+	$(CC) search_jjk.c -o search_jjk $(LIBS) $(COPTS)
+
 select_trans_stars: select_trans_stars.c 
 	$(CC) select_trans_stars.c -o select_trans_stars $(LIBS) $(COPTS)
 
