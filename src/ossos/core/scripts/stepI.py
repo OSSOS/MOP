@@ -1,4 +1,4 @@
-#!/home/cadc/kavelaar/MOP/bin/python
+#!/home/eashton/anaconda2/bin/python
 ################################################################################
 ##                                                                            ##
 ## Copyright 2013 by its authors                                              ##
@@ -37,7 +37,7 @@ _ANGLE_WIDTH = 30.0
 
 def step3(expnums, ccd, version, rate_min,
           rate_max, angle, width, field=None, prefix=None, dry_run=False,
-          maximum_flux_ration=3, minimum_area=5, maximum_median_flux=1000.0):
+          maximum_flux_ratio=3, minimum_area=5, minimum_median_flux=1000.0):
     """run the actual step3  on the given exp/ccd combo"""
 
     jmp_args = ['step3jmp']
@@ -60,9 +60,9 @@ def step3(expnums, ccd, version, rate_min,
     jmp_args.extend(cmd_args)
 
     # Add some extra arguemnents for the ISO search.
-    cmd_args.extend(['-fr', str(maximum_flux_ration),
+    cmd_args.extend(['-fr', str(maximum_flux_ratio),
                      '-ma', str(minimum_area),
-                     '-mf', srt(maximum_median_flux)])
+                     '-mf', str(minimum_median_flux)])
     matt_args.extend(cmd_args)
 
     logging.info(util.exec_prog(jmp_args))
@@ -142,8 +142,8 @@ def main():
                         help='opening angle of search cone',
                         type=float)
     parser.add_argument('--minimum-area', default=5, help='Minimum size of source allowed')
-    parser.add_argument('--maximum-median-flux', default=1000, help='Maximum value of the median flux from MATT.')
-    parser.add_argument('--maximum-flux-radio', default=3, help="Maximum radio between minimum and maximum flux.")
+    parser.add_argument('--minimum-median-flux', default=1000, help='Maximum value of the median flux from MATT.')
+    parser.add_argument('--maximum-flux-ratio', default=3, help="Maximum radio between minimum and maximum flux.")
     parser.add_argument("--dry-run", action="store_true", help="do not copy to VOSpace, implies --force")
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--ignore", action="store_true")
@@ -169,17 +169,17 @@ def main():
 
     exit_status = 0
     for ccd in ccdlist:
-        storage.set_logger(os.path.splitext(os.path.basename(sys.argv[0]))[0], prefix,
-                           args.expnums[0], ccd, args.type, args.dry_run)
+        # util.set_logger(os.path.splitext(os.path.basename(sys.argv[0]))[0], prefix,
+        #                    args.expnums[0], ccd, args.type, args.dry_run)
         message = storage.SUCCESS
         try:
-            if not args.ignore and not storage.get_status(args.expnums[0], ccd, prefix + 'step2', version=args.type):
-                raise IOError(35, "did step2 run on %s" % str(args.expnums))
+            # if not args.ignore and not storage.get_status(args.expnums[0], ccd, prefix + 'step2', version=args.type):
+            #     raise IOError(35, "did step2 run on %s" % str(args.expnums))
             # sys.stderr.write("Checking status\n")
             # sys.stderr.write("stepI for expnum: {} ccd: {} status: {}\n".format(args.expnums[0], ccd, storage.get_status(args.expnums[0], ccd, prefix + 'step3', version=args.type)))
-            if storage.get_status(args.expnums[0], ccd, prefix + 'step3', version=args.type) and not args.force:
-                logging.critical("Status: stepI.py already run on {} [{}{:02d}]".format(args.expnums, args.type, ccd))
-                continue
+            # if storage.get_status(args.expnums[0], ccd, prefix + 'step3', version=args.type) and not args.force:
+            #     logging.critical("Status: stepI.py already run on {} [{}{:02d}]".format(args.expnums, args.type, ccd))
+            #     continue
             step3(args.expnums, ccd, version=args.type,
                   rate_min=args.rate_min,
                   rate_max=args.rate_max,
@@ -188,20 +188,20 @@ def main():
                   field=args.field,
                   prefix=prefix,
                   dry_run=args.dry_run,
-                  maximum_minimum=args.minimum_area,
+                  minimum_area=args.minimum_area,
                   maximum_flux_ratio=args.maximum_flux_ratio,
-                  maximum_median_flux=args.maximum_median_flux)
+                  minimum_median_flux=args.minimum_median_flux)
         except Exception as e:
             message = str(e)
             exit_status = message
 
         logging.error(message)
-        if not args.dry_run:
-            storage.set_status(args.expnums[0],
-                               ccd,
-                               prefix + 'step3',
-                               version=args.type,
-                               status=message)
+        # if not args.dry_run:
+        #     storage.set_status(args.expnums[0],
+        #                        ccd,
+        #                        prefix + 'step3',
+        #                        version=args.type,
+        #                        status=message)
 
     return exit_status
 
