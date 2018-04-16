@@ -13,10 +13,12 @@ print FAILED "step3jjk @ARGV\n";
 close(FAILED);
 print STDERR "step3jjk @ARGV\n";
 
+use strict;
+use warnings;
 use Getopt::Long;
-GetOptions('f1|file1:s','f2|file2:s','f3|file3:s','rn:f','rx:f','a:f','w:f','h|help');
+GetOptions('f1|file1:s','f2|file2:s','f3|file3:s','rn:f','rx:f','a:f','w:f', 'fr:f', 'mf:f', 'ma:f', h|help');
 
-# -f1 image_file1 (w/o .fits extension) -f2 image_file2  -f3 image_file3 -rn min rate -rm max rate -a angle -w width -h/? help line
+# -f1 image_file1 (w/o .fits extension) -f2 image_file2  -f3 image_file3 -rn min rate -rm max rate -a angle -w width -fr max_flux_ratio -mf max_median_flux -ma minimum_area -h/? help line
 
 $im1 = $opt_f1;
 $im2 = $opt_f2;
@@ -25,7 +27,9 @@ $rn  = $opt_rn;
 $rx  = $opt_rx;
 $angle = $opt_a;
 $width = $opt_w;
-
+$max_flux_ratio = $opt_fr;
+$min_area = $opt_ma;
+$minimum_median_flux = $opt_mf;
 
 $convertdate="convert_mjd";
 
@@ -153,6 +157,11 @@ close(OUTFILE);
 $search    ="search_jjk";
 $linearity = 3.0;
 
-`$search $linearity $rn $rx $angle $width $platescale $unidfile1 $time1 $fwhm1 $unidfile2 $time2 $fwhm2 $unidfile3 $time3 $fwhm3 >> $result`;
+$max_flux_ratio = $opt_fr;
+$min_area = $opt_ma;
+$minimum_median_flux = $opt_mf;
+
+
+`$search $linearity $rn $rx $angle $width $platescale ${max_flux_ratio} ${minimum_median_flux} ${min_area}  $unidfile1 $time1 $fwhm1 $unidfile2 $time2 $fwhm2 $unidfile3 $time3 $fwhm3 >> $result`;
 
 `touch "step3jjk.OK"`;

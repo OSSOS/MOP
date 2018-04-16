@@ -36,7 +36,8 @@ _ANGLE_WIDTH = 30.0
 
 
 def step3(expnums, ccd, version, rate_min,
-          rate_max, angle, width, field=None, prefix=None, dry_run=False):
+          rate_max, angle, width, field=None, prefix=None, dry_run=False,
+          maximum_flux_ration=3, minimum_area=5, maximum_median_flux=1000.0):
     """run the actual step3  on the given exp/ccd combo"""
 
     jmp_args = ['step3jmp']
@@ -57,7 +58,13 @@ def step3(expnums, ccd, version, rate_min,
                      '-a', str(angle),
                      '-w', str(width)])
     jmp_args.extend(cmd_args)
+
+    # Add some extra arguemnents for the ISO search.
+    cmd_args.extend(['-fr', str(maximum_flux_ration),
+                     '-ma', str(minimum_area),
+                     '-mf', srt(maximum_median_flux)])
     matt_args.extend(cmd_args)
+
     logging.info(util.exec_prog(jmp_args))
     logging.info(util.exec_prog(matt_args))
 
@@ -134,6 +141,9 @@ def main():
     parser.add_argument('--width', default=_ANGLE_WIDTH,
                         help='opening angle of search cone',
                         type=float)
+    parser.add_argument('--minimum-area', default=5, help='Minimum size of source allowed')
+    parser.add_argument('--maximum-median-flux', default=1000, help='Maximum value of the median flux from MATT.')
+    parser.add_argument('--maximum-flux-radio', default=3, help="Maximum radio between minimum and maximum flux.")
     parser.add_argument("--dry-run", action="store_true", help="do not copy to VOSpace, implies --force")
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--ignore", action="store_true")
@@ -177,7 +187,10 @@ def main():
                   width=args.width,
                   field=args.field,
                   prefix=prefix,
-                  dry_run=args.dry_run)
+                  dry_run=args.dry_run,
+                  maximum_minimum=args.minimum_area,
+                  maximum_flux_ratio=args.maximum_flux_ratio,
+                  maximum_median_flux=args.maximum_median_flux)
         except Exception as e:
             message = str(e)
             exit_status = message
