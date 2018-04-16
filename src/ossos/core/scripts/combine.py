@@ -26,7 +26,6 @@ from subprocess import CalledProcessError
 import sys
 from ossos import storage
 from ossos import util
-from ossos import mop_file
 import argparse
 import logging
 
@@ -92,11 +91,12 @@ def combine(expnum, ccd, prefix=None, file_type='p', field=None, measure3=MEASUR
         return storage.SUCCESS
 
     # get the images we need to compute x/y ra/dec transforms
-    cands_file = mop_file.Parser().parse(cands_file)
-    for file_id in cands_file.header.file_ids:
-        rec_no = cands_file.header.file_ids.index(file_id)
-        storage.get_image(expnum=cands_file.header.keywords['EXPNUM'][rec_no], ccd=ccd, version=file_type, ext='fits',
-                          prefix=prefix)
+    # cands_file = mop_file.Parser().parse(cands_file)
+    # print cands_file
+    # for file_id in cands_file.header.file_ids:
+    #     rec_no = cands_file.header.file_ids.index(file_id)
+    #     storage.get_image(expnum=cands_file.header.keywords['EXPNUM'][rec_no], ccd=ccd, version=file_type, ext='fits',
+    #                       prefix=prefix)
 
     cmd_args = ['measure3', prefix + str(expnum) + file_type + str(ccd).zfill(2)]
     logging.info("Running measure3")
@@ -166,14 +166,14 @@ def main():
 
     exit_code = 0
     for ccd in ccd_list:
-        storage.set_logger(task, prefix, args.expnum, ccd, args.type, args.dry_run)
+        # storage.set_logger(task, prefix, args.expnum, ccd, args.type, args.dry_run)
         try:
-            if not storage.get_status(dependency, prefix, args.expnum, version=args.type, ccd=ccd) and not args.dry_run:
-               message = storage.get_status(dependency, prefix, args.expnum, "p", ccd, return_message=True)
-               raise IOError(35, message)
+        #    if not storage.get_status(dependency, prefix, args.expnum, version=args.type, ccd=ccd) and not args.dry_run:
+        #       message = storage.get_status(dependency, prefix, args.expnum, "p", ccd, return_message=True)
+        #       raise IOError(35, message)
 
-            if storage.get_status(task, prefix, args.expnum, version=args.type, ccd=ccd) and not args.force:
-               continue
+        #    if storage.get_status(task, prefix, args.expnum, version=args.type, ccd=ccd) and not args.force:
+        #       continue
             message = combine(args.expnum,
                               ccd,
                               prefix=prefix,
@@ -187,9 +187,10 @@ def main():
         except Exception as e:
             message = str(e)
             exit_code = message
+        print message
         logging.info(message)
-        if not args.dry_run:
-            storage.set_status(task, prefix, args.expnum, version=args.type, ccd=ccd, status=message)
+        #if not args.dry_run:
+        #    storage.set_status(task, prefix, args.expnum, version=args.type, ccd=ccd, status=message)
         return exit_code
 
 
