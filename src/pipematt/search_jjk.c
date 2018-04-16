@@ -232,7 +232,7 @@ main(argc, argv)
 
 	    /* The size of the candidate for each image should be greater than the pi/4*s^2, where s is FWHM of the the CCD it's on. */
 
-	    if ( area[i][l] < 0.25*PI*fwhm[i]*fwhm[i] || area[k][n] < 0.25*PI*fwhm[k]*fwhm[k] || area[j][m] < 0.25*PI*fwhm[j]*fwhm[j] ) {
+	    if ( area[i][l] < max_area_ratio*PI*fwhm[i]*fwhm[i] || area[k][n] < max_area_ratio*PI*fwhm[k]*fwhm[k] || area[j][m] < max_area_ratio*PI*fwhm[j]*fwhm[j] ) {
 	      comment = 0;
 	    }
 	    if ( comment != 1 ) { 
