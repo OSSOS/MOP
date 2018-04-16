@@ -132,7 +132,7 @@ def main():
                         help='angle of x/y motion, West is 0, North 90',
                         type=float)
     parser.add_argument('--width', default=_ANGLE_WIDTH,
-                        help='openning angle of search cone',
+                        help='opening angle of search cone',
                         type=float)
     parser.add_argument("--dry-run", action="store_true", help="do not copy to VOSpace, implies --force")
     parser.add_argument("--force", action="store_true")
