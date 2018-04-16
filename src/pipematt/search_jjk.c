@@ -32,7 +32,7 @@ double median3(double a, double b, double c)
 char   *help[] = {
     "search_idx: searches for linearly moving objects files that contain ",
     "         x,y,mag groups of sources.                                  ",
-    "args: thresh rate_min rate_max angle_center width plate_scale max_flux_ratio max_median_flux max_area_ratio file_0 t_file_0 fwhm_file_0 file_1 t_file_1 fwhm_file_1 ...                ",
+    "args: thresh rate_min rate_max angle_center width plate_scale max_flux_ratio minimum_median_flux max_area_ratio file_0 t_file_0 fwhm_file_0 file_1 t_file_1 fwhm_file_1 ...                ",
     0
 };
 
@@ -72,7 +72,7 @@ main(argc, argv)
   double d_ij_2, d_ik_2, d_jk_2, d3p_2;
   double t0, delta_t;
   double principal_value();
-  double max_flux_ratio, max_median_flux, max_area_ratio;
+  double max_flux_ratio, minimum_median_flux, min_area;
 
   if(argc == 1) {
     print_help();
@@ -86,8 +86,8 @@ main(argc, argv)
   sscanf(argv[5], "%lf", &width);
   sscanf(argv[6], "%lf", &plate_scale);
   sscanf(argv[7], "%lf", &max_flux_ratio);
-  sscanf(argv[8], "%lf", &max_median_flux);
-  sccanf(argv[9], "%lf", &max_area_ratio);
+  sscanf(argv[8], "%lf", &minimum_median_flux);
+  sccanf(argv[9], "%lf", &min_area);
 
   /* Will compute maximum distance based on time and rate,
      assuming the rate is in arcsec/hour, the times are 
@@ -220,7 +220,7 @@ main(argc, argv)
 
 	    /* median flux value > 1000 */
 
-	    if ( median3(flux[i][l], flux[k][n], flux[j][m] ) < max_median_flux ) {
+	    if ( median3(flux[i][l], flux[k][n], flux[j][m] ) < minimum_median_flux ) {
 	      comment = 0;
 	    }
 
@@ -232,7 +232,7 @@ main(argc, argv)
 
 	    /* The size of the candidate for each image should be greater than the pi/4*s^2, where s is FWHM of the the CCD it's on. */
 
-	    if ( area[i][l] < max_area_ratio*PI*fwhm[i]*fwhm[i] || area[k][n] < max_area_ratio*PI*fwhm[k]*fwhm[k] || area[j][m] < max_area_ratio*PI*fwhm[j]*fwhm[j] ) {
+	    if ( area[i][l] < min_area || area[k][n] < min_area || area[j][m] < min_area ) {
 	      comment = 0;
 	    }
 	    if ( comment != 1 ) { 
