@@ -26,10 +26,8 @@ storage.FITS_EXT = ".fits"
 
 def cutout(obj, obj_dir, radius):
 
-    print("Processing {} observations".format(len([n for n in obj.mpc_observations if not n.null_observation])))
-    cutout_listing = storage.listdir(obj_dir)
+    cutout_listing = storage.listdir(obj_dir, force=True)
     for obs in obj.mpc_observations:
-        print('starting analysis of {}'.format(str(obs)))
         if obs.null_observation:
             logging.debug('skipping: {}'.format(obs))
             continue
@@ -49,24 +47,21 @@ def cutout(obj, obj_dir, radius):
 
             if postage_stamp_filename in cutout_listing:
                # skipping existing cutouts
-               continue 
+                continue 
 
             # ast_header = storage._get_sghead(parts['expnum'])
             while True:
-              print('Trying {} on {} on {}...'.format(obj.provisional_name, obs.date, parts['expnum']))
               try:
-                print("Getting the cutout")
                 hdulist = storage.ra_dec_cutout(uri, sky_coord, radius, update_wcs=True)
-                print("Cutout Retrieved")
 
                 with open(postage_stamp_filename, 'w') as tmp_file:
                     hdulist.writeto(tmp_file, overwrite=True, output_verify='fix+ignore')
                     storage.copy(postage_stamp_filename, obj_dir + "/" + postage_stamp_filename)
                 os.unlink(postage_stamp_filename)  # easier not to have them hanging around
               except OSError as e:  # occasionally the node is not found: report and move on for later cleanup
-                print("OSError: ->"+str(e))
+                logging.error("OSError: ->"+str(e))
               except Exception as e:
-                print("Exception: ->"+str(e))
+                logging.error("Exception: ->"+str(e))
                 continue
               break
 
@@ -126,16 +121,15 @@ def main():
         for block in args.blocks:
             if fn.startswith(block):
                 obj_dir = '{}/{}/{}'.format(storage.POSTAGE_STAMPS, args.version, fn.partition('.')[0]) # obj.provisional_name
-                print("Processing astrometric files in {}\n".format(obj_dir))
                 logging.info("Processing astrometric files in {}".format(obj_dir))
                 storage.mkdir(obj_dir)
                 obj = mpc.MPCReader(astdir + fn)
                 # assert storage.exists(obj_dir, force=True)
-                print('{} beginning...\n'.format(obj.provisional_name))
+                sys.stderr.write('{} beginning...'.format(obj.provisional_name))
                 # if int(obj.provisional_name[3:]) == 49:
                 assert isinstance(args.radius, Quantity)
                 cutout(obj, obj_dir, args.radius)
-                print('{} complete.\n'.format(obj.provisional_name))
+                sys.stderr.write('{} complete.\n\n'.format(obj.provisional_name))
 
 
 if __name__ == '__main__':
