@@ -12,5 +12,7 @@ task jmpscale = "deep$scripts/jmpscale.cl"
 task jmpgrid = "deep$scripts/jmpgrid.cl"
 task jmpgrev = "deep$scripts/jmpgrev.cl"
 task gettimenew = "deep$scripts/gettimenew.cl"
+task sky = "deep$scripts/sky.cl"
+task findstars = "deep$scripts/findstars.cl"
 
 clbye()
