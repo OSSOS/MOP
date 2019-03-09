@@ -203,7 +203,7 @@ class Camera:
     def names(self):
         names = {'one': 0}
         if self.camera == "MEGACAM_40":
-            names = {'ccd38': 0, 'ccd36': 1, 'ccd37': 3, 'ccd39': 3}
+            names = {'ccd38': 0, 'ccd36': 1, 'ccd37': 2, 'ccd39': 3}
             for i in range(36):
                 names['ccd{:02d}'.format(i)] = i+4
         elif self.camera == "LBT":
