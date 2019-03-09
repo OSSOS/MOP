@@ -87,7 +87,7 @@ main(argc, argv)
   sscanf(argv[6], "%lf", &plate_scale);
   sscanf(argv[7], "%lf", &max_flux_ratio);
   sscanf(argv[8], "%lf", &minimum_median_flux);
-  sccanf(argv[9], "%lf", &min_area);
+  sscanf(argv[9], "%lf", &min_area);
 
   /* Will compute maximum distance based on time and rate,
      assuming the rate is in arcsec/hour, the times are 
