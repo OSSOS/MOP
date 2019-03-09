@@ -20,7 +20,8 @@ requests.packages.urllib3.disable_warnings()
 
 __author__ = 'Michele Bannister, JJ Kavelaars'
 
-SSOS_URL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssos.pl"
+# SSOS_URL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssos.pl"
+SSOS_URL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssosclf.pl"
 RESPONSE_FORMAT = 'tsv'
 NEW_LINE = '\r\n'
 
@@ -469,7 +470,7 @@ class ParamDictBuilder(object):
     http://www4.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssosclf.pl?
     lang=en
     object=2
-    search=bynameCADC
+    search=bynameHorizons
     epoch1=1990+01+01
     epoch2=2016+3+27
     eellipse=
@@ -529,7 +530,7 @@ class ParamDictBuilder(object):
         orbit_method_set = None
         for observation in observations:
             use_bern = isinstance(observation, mpc.Observation)
-            self.orbit_method = use_bern and 'bern' or 'bynameCADC'
+            self.orbit_method = use_bern and 'bern' or 'bynameHorizons'
             orbit_method_set = orbit_method_set is None and self.orbit_method or orbit_method_set
             if orbit_method_set != self.orbit_method:
                 raise ValueError("All members of observations list must be same type.")
@@ -597,9 +598,9 @@ class ParamDictBuilder(object):
 
     @orbit_method.setter
     def orbit_method(self, orbit_method):
-        assert orbit_method in ['bern', 'mpc', 'bynameCADC']
+        assert orbit_method in ['bern', 'mpc', 'bynameHorizons']
         self._orbit_method = orbit_method
-        if self._orbit_method == 'bynameCADC':
+        if self._orbit_method == 'bynameHorizons':
             self.error_units = 'arcseconds'
 
     @property
@@ -689,7 +690,7 @@ class ParamDictBuilder(object):
                       xyres=self.resolve_position,
                       telinst=self.telescope_instrument)
 
-        if self.orbit_method == 'bynameCADC':
+        if self.orbit_method == 'bynameHorizons':
             params['object'] = NEW_LINE.join((str(target_name) for target_name in self.observations))
         else:
             params['obs'] = NEW_LINE.join((str(observation) for observation in self.observations))
