@@ -120,9 +120,8 @@
                  "J.-M. Petit",
                  "T. Burdullis"
                  ],
-    "MEASURERS": ["S. D. J. Gwyn",
-                 "Y.-T. Chen."
+    "MEASURERS": ["S. D. J. Gwyn"
                  ],
     "TELESCOPE": "CFHT 3.6m + CCD",
-    "ASTROMETRIC_NETWORK": "UCAC4"
+    "ASTROMETRIC_NETWORK": "GAIA"
 }
