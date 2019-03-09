@@ -44,7 +44,7 @@ begin
 
 	sclist = rootword
 	while ( fscan(sclist,infile) != EOF ) { 
-	    pstfiles = infile//".pst.2"
+	    pstfiles = t_oldpref//infile//".pst.2"
 	    print(pstfiles)
             tfile=mktemp("tmp$pt")
             pdump(pstfiles,"MAG,MSKY","yes", >> tfile)
@@ -62,6 +62,7 @@ begin
 	    finfile = t_prefix//infile
             imarith (outfile,"*",scale,finfile)
 	    imdel(outfile, verify-)
+            imarith (t_refimg, '-', finfile, 'sub_'//finfile)
 	    print ( "multiplied ", outfile, " by ", scale,"--> ",finfile)
 #
 	}
