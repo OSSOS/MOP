@@ -148,12 +148,14 @@ def _connection_error_wrapper(func, *args, **kwargs):
     @return:
     """
 
-    while True:
+    counter = 0
+    while counter < 5:
         try:
             result = func(*args, **kwargs)
             return result
         except Exception as ex:
             time.sleep(5)
+            counter += 1
             logging.warning(str(ex))
 
 
@@ -276,6 +278,7 @@ def run(mpc_file, cor_file,
     modified_obs = []
     logging.info("ASTROMETRY FILE: {} --> {}.tlf".format(mpc_file, cor_file))
     for mpc_in in observations:
+      try:
         if not isinstance(mpc_in.comment, mp_ephem.ephem.OSSOSComment):
             logging.info(type(mpc_in.comment))
             logging.info("Skipping: {}".format(mpc_in.to_string()))
@@ -315,6 +318,8 @@ def run(mpc_file, cor_file,
         original_obs.append(mpc_in)
         modified_obs.append(mpc_mag)
         logging.info("="*220)
+      except:
+        logging.error("Skipping: {}".format(mpc_in))
 
     optr = open(cor_file + ".tlf", 'w')
     for idx in range(len(modified_obs)):
