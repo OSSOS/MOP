@@ -78,6 +78,7 @@ with the expectations of the OSSOS reporting structure.  The script should build
 auto-magical way.
 """
 
+    app_config = config.AppConfig()
     parser = argparse.ArgumentParser(description=description, epilog=epilog)
     parser.add_argument("existing_astrometry_directory",
                         help=("Directory containing previously reported astrometry."
@@ -107,15 +108,21 @@ auto-magical way.
     parser.add_argument("--tolerance", default=1,
                         help="""tolerance is a flag, if 1 then only report lines that have different
                         positions and/flux, if -1 then any change cuases a report line""")
-    parser.add_argument("--COD",
-                        default=568,
+    parser.add_argument("--COD", default=None,
                         help="Observatory code for report file.")
     parser.add_argument("-q",
                         action="store_true", help="Run quiet")
-    parser.add_argument("--OBS",
+    parser.add_argument("--OBS", 
                         action="append",
-                        default=['M. T. Bannister', 'J. J. Kavelaars'],
                         help="Names of observers, multiple allowed")
+    parser.add_argument("--MEA", 
+                        action="append",
+                        help="Names of measures, multiple allowed")
+    parser.add_argument("--TEL", default=app_config.read("TELESCOPE"),
+                        action="store")
+    parser.add_argument("--NET", default=app_config.read("ASTROMETRIC_NETWORK"),
+                        action="store")
+
 
     args = parser.parse_args()
     tolerance = Angle(float(args.tolerance) * units.arcsec)
@@ -184,11 +191,16 @@ auto-magical way.
     for name in report_observations:
         full_observation_list.extend(report_observations[name])
 
-    app_config = config.AppConfig()
-    outfile.write(mpc.make_tnodb_header(full_observation_list, observers=app_config.read("OBSERVERS"),
-                                        measurers=app_config.read("MEASURERS"),
-                                        telescope=app_config.read("TELESCOPE"),
-                                        astrometric_network=app_config.read("ASTROMETRIC_NETWORK")))
+    observers = args.OBS is not None and len(args.OBS) > 0 and args.OBS or None
+    measurers = args.MEA is not None and len(args.MEA) > 0 and args.MEA or None
+    network = len(args.NET) > 0 and args.NET or None
+    telescope = len(args.TEL) > 0 and args.TEL or None
+
+    outfile.write(mpc.make_tnodb_header(full_observation_list, 
+                                        observers=observers,
+                                        measurers=measurers,
+                                        telescope=telescope,
+                                        astrometric_network=network))
     outfile.write("\n")
 
     for name in report_observations:
@@ -203,4 +215,4 @@ auto-magical way.
 
 
 if __name__ == '__main__':
-    sys.exit(run())
+    sys.exit(main())
