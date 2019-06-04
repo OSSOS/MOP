@@ -114,7 +114,7 @@ begin
 	imgets(inimg,'DEC')
         stringdec = imgets.value
 #	if(telesc=='NOT'||telesc=='ESO2'||telesc=='UT-1'){
-	if(telesc=='NOT'||telesc=='ESO2'||telesc=='GEMN'){
+	if(telesc=='NOT'||telesc=='ESO2'||telesc=='GEMN'||telesc=='UT-1'){
             racent = real(stringra) 
         } else {
             racent = real(stringra) * 15.0
@@ -133,8 +133,8 @@ begin
         if (telesc == 'ESO2') command = "w"
         if (telesc == 'ESO3') command = "3"
         if (telesc == 'Pal5') command = "p"
-        if (telesc == 'UT-1') command = "v"
-        if (telesc == 'UT-2') command = "v"
+        if (telesc == 'UT-1') command = "g"
+        if (telesc == 'UT-2') command = "g"
         if (telesc == 'KP4m') command = "k"
         if (telesc == 'FLW1') command = "f"
 	if (telesc == 'GEMN') command = "g"
@@ -491,6 +491,7 @@ begin
 	list=intable
         while(fscan(list,thisra,thisdec,thismag,thisid) != EOF)
 	{
+           print thisra, thisdec, thismag
 	   i = i+1 ;
 	   ra[i] = thisra ;
 	   dec[i] = thisdec ;

@@ -138,19 +138,6 @@ begin
 	datapars.datamin=-1000
 	datapars.fwhmpsf=t_fwhm
 
-	# Setup mopheader for 'OSSOS' pipeline. 
-	stepZjmp("-f",t_image)	
-	if ( access("stepZjmp.OK") ) {
-	    # stepZ was succesful
-	    kdelete ("stepZjmp.FAILED")
-	    kdelete ("stepZjmp.OK")
-	} else {
-	   failedflag = 1
-	   print ("stepZjmp FAILED")
-	   print ("stepZjmp FAILED", >> t_image//".jmpmakepsf.FAILED")
-	   goto finalproc
-	}
-
 	# find a set of bright stars for making a psf with.
 	step0jmp("-f",t_image,"-w",t_fwhm,"-t",t_threshold,"-m",t_maxlin)
 	if ( access("step0jmp.OK") ) {
@@ -347,7 +334,7 @@ begin
 	    }
 	    
 	    ## we must have 10 or more stars to get a good psf...
-	    if ( npsfstar < 9 ) {
+	    if ( npsfstar < 5 ) {
 	        print("Only "//npsfstar//" where used to build the image, terminating")
 	        failedflag=1
 	        goto finalproc
