@@ -1,0 +1,127 @@
+{
+  "DS9": {
+    "INIT": {
+      "view_layout": "vertical",
+      "bg": "black",
+      "view_info": "no",
+      "view_magnifier": "no",
+      "view_buttons": "no",
+      "view_panner": "no",
+      "view_filename": "no",
+      "view_frame": "no",
+      "view_physical": "no",
+      "view_object": "no",
+      "view_colorbar": "no",
+      "width": 256,
+      "height": 256 
+    },
+    "PREF": {
+      "frame_lock": "wcs",
+      "scale": "linear",
+      "scale_mode": "zscale",
+      "cmap_lock": "yes",
+      "cmap_invert": "yes",
+      "smooth": "no"
+    }
+  },
+  "MARKER": {
+    "PREVIOUS": "green",
+    "NEW": "blue",
+    "NULL": "cyan",
+    "ANNULUS": "red"
+  },
+  "KEYBINDS": {
+    "ACCEPT_SRC": "a",
+    "AUTO_ACCEPT_SRC": "o",
+    "REJECT_SRC": "r",
+    "RESET_CMAP": "s",
+    "RESET_SOURCE_LOCATION": "c",
+    "AUTOPLAY": "d",
+    "TOGGLE_RETICULE": "t",
+    "TOGGLE_ALIGN": "z",
+    "LOAD_COMPARISON": "b",
+    "LOAD_DIFF_COMPARISON": "n"
+  },
+  "PREFETCH": {
+    "NUMBER": 30
+  },
+  "CUTOUTS": {
+    "SINGLETS": {
+      "SLICE_ROWS": 25,
+      "SLICE_COLS": 25,
+      "RADIUS": 10
+    },
+    "TRIPLETS": {
+      "SLICE_ROWS": 50,
+      "SLICE_COLS": 50,
+      "RADIUS": 30
+    }
+  },
+  "DISPLAY": {
+    "AUTOPLAY_INTERVAL": 0.50
+  },
+  "MPC": {
+    "DATE_PRECISION": 5,
+    "DEFAULT_OBSERVATORY_CODE": "568",
+    "NOTE1_HAND_ADJUSTED": "H  hand measurement of CCD image",
+    "NOTE1OPTIONS": [
+      "",
+      "A  earlier approximate position inferior",
+      "b  bad seeing",
+      "c  crowded star field",
+      "d  diffuse image",
+      "E  at or near edge of plate",
+      "f  involved with emulsion or plate flaw",
+      "G  poor guiding",
+      "H  hand measurement of CCD image",
+      "I  involved with star",
+      "K  stacked image",
+      "O  image out of focus",
+      "S  poor sky",
+      "t  trailed image",
+      "V  very faint image"
+    ],
+    "NOTE2DEFAULT": "C   CCD",
+    "NOTE2OPTIONS": [
+      "",
+      "P   Photographic",
+      "e   Encoder",
+      "C   CCD",
+      "T   Meridian or transit circle",
+      "M   Micrometer",
+      "V   'Roving Observer' observation",
+      "R   Radar observation",
+      "S   Satellite observation",
+      "c   Corrected-without-republication CCD observation",
+      "E   Occultation-derived observations",
+      "O   Offset observations (used only for observations of natural satellites)",
+      "H   Hipparcos geocentric observations",
+      "N   Normal place",
+      "n   Mini-normal place derived from averaging observations from video frames"
+    ]
+  },
+  "APP": {
+    "MAX_THREADS": 10
+  },
+  "UI": {
+    "DIMENSIONS": {
+      "WIDTH": 320,
+      "HEIGHT": 620
+    },
+    "ALLPROC": {
+      "MSG": "Congratulations, you have processed the last source.\n\nWould you like to exit the program?",
+      "CAPTION": "All sources processed"
+    },
+    "APPTITLE": "Moving Object Pipeline"
+    },
+    "OBSERVERS": ["M. T. Bannister",
+                 "J. J. Kavelaars",
+                 "B. J. Gladman",
+                 "J.-M. Petit",
+                 "T. Burdullis"
+                 ],
+    "MEASURERS": ["S. D. J. Gwyn"
+                 ],
+    "TELESCOPE": "CFHT 3.6m + CCD",
+    "ASTROMETRIC_NETWORK": "GAIA"
+}

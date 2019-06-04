@@ -80,6 +80,8 @@ cat step2matt_jmp-c | sed "s|AA-PERLDIR|$PERLDIR|" | sed "s|AA-MOPversion|$MOPve
 \mv step2matt_jmp.edited step2matt_jmp
 cat step3matt-c | sed "s|AA-PERLDIR|$PERLDIR|" | sed "s|AA-MOPversion|$MOPversion|" > step3matt.edited
 \mv step3matt.edited step3matt
+cat step3jjk-c.pl | sed "s|AA-PERLDIR|$PERLDIR|" | sed "s|AA-MOPversion|$MOPversion|" > step3jjk.edited
+\mv step3jjk.edited step3jjk
 
 # Install files compiled from c source code in the right place.
 
@@ -96,16 +98,18 @@ echo "Installing Matt's files."
 \mv non_stationary $BINDIRA
 \mv satur $BINDIRA
 \mv search $BINDIRA
+\mv search_jjk $BINDIRA
 \mv select_trans_stars $BINDIRA
 \mv select_trans_stars_fwhm $BINDIRA
 \mv trans $BINDIRA
 
 # Install perl files in the right place.
 
-chmod 755 match_matt step1matt step3matt step2matt_jmp
+chmod 755 match_matt step1matt step3matt step2matt_jmp step3jjk
 \mv match_matt $BINDIR
 \mv step1matt $BINDIR
 \mv step2matt_jmp $BINDIR
 \mv step3matt $BINDIR
+\mv step3jjk $BINDIR
 
 exit

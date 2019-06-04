@@ -95,6 +95,7 @@ begin
         delete(outfile, verify-)
         imgets(imgname,utkey)
 	ut = real(imgets.value)
+        ut = ut / 3600.0 
 #	print(utkey,"  ",ut)
         imgets(imgname,expkey)
  	exp = real(imgets.value)
@@ -135,7 +136,6 @@ getname:
 	if (dd <9.999999999999) outstring = outstring//"0"
 #	print(outstring)
         ustring = str(uttime)
-#        print("ustring ",ustring
 	len = stridx(".",ustring)
 	outstring = outstring//substr(ustring,1,len-1)
 #	print(outstring)
@@ -159,7 +159,7 @@ getname:
 	j = stridx(".",stra)
 	smm = substr(stra,1,j-1)
 	mm = real(smm)
-# 	print(outstring)
+#	print(outstring)
 #	print("smm,mm ",smm,"  ",mm)
 	if (mm < 9.99999999999) outstring = outstring//"0"
 	outstring = outstring//smm
