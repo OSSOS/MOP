@@ -90,7 +90,7 @@ if __name__ == '__main__':
 
     ccds = [args.ccd]
     if args.ccd is None:
-        ccds = range(0, 36)
+        ccds = list(range(0, 36))
 
     for ccd in ccds:
         message = storage.SUCCESS

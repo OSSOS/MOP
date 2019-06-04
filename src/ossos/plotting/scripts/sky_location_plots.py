@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 import math
 import sys
 import argparse
@@ -87,7 +87,7 @@ detsec_ccd00 = ((4160, 2113), (19351, 14740))
 detsec_ccd17 = ((21097, 19050), (14309, 9698))
 detsec_ccd35 = ((16934, 18981), (11, 4622))
 
-print detsec_ccd09[0][0] - detsec_ccd10[0][1], detsec_ccd09[0][1] - detsec_ccd36[0][0]
+print(detsec_ccd09[0][0] - detsec_ccd10[0][1], detsec_ccd09[0][1] - detsec_ccd36[0][0])
 
 camera_width = (max(detsec_ccd37[0]) - min(detsec_ccd09[0]) + 1) * pixscale / 3600.0
 camera_height = (max(detsec_ccd00[1]) - min(detsec_ccd35[1]) + 1) * pixscale / 3600.0
@@ -186,7 +186,7 @@ def plot_invariable_plane(handles, labels, from_plane=ephem.degrees('0')):
 
 
 def build_ossos_footprint(ax, block_name, block, field_offset, plot=True, plot_col='b'):
-    print 'starting footprint'
+    print('starting footprint')
 
     # build the pointings that will be used for the discovery fields
     x = []
@@ -227,7 +227,7 @@ def build_ossos_footprint(ax, block_name, block, field_offset, plot=True, plot_c
                 (xcen - dimen / 2.0, ycen - dimen / 2.0))))
 
             if plot:
-                print 'plotting footprint'
+                print('plotting footprint')
                 fill = True
                 # ax.add_artist(Rectangle(xy=(ra - dimen / 2.0, dec - dimen / 2.0),
                 #                         height=dimen,
@@ -235,7 +235,7 @@ def build_ossos_footprint(ax, block_name, block, field_offset, plot=True, plot_c
                 #                         edgecolor='k',
                 #                         facecolor=plot_col,
                 #                         lw=0.5, fill=True, alpha=0.15, zorder=0))
-                print ra, dec
+                print(ra, dec)
                 ax.add_artist(Rectangle(xy=(math.degrees(ra) - camera_width_40/2.0, math.degrees(dec) - camera_height / 4.0 ),
                                         width= camera_width_40,
                                         height= camera_height/2.0,
@@ -271,9 +271,9 @@ def true_footprint(ax, blockname):
     ra = 7.55171
     dec = 4.52681
 
-    print 'plotting footprint'
+    print('plotting footprint')
     fill = False
-    print ra, dec
+    print(ra, dec)
     patches = []
     patches.append(matplotlib.patches.Rectangle(xy=(math.degrees(ra) - camera_width_40 / 2.0, math.degrees(dec) - camera_height / 4.0),
                             width=camera_width_40,
@@ -342,7 +342,7 @@ def keplerian_sheared_field_locations(ax, kbos, date, ras, decs, names, elongati
     seps['dra'] /= float(len(kbos))
     seps['ddec'] /= float(len(kbos))
 
-    print date, seps, len(kbos)
+    print(date, seps, len(kbos))
 
     for idx in range(len(ras)):
         name = names[idx]
@@ -387,7 +387,7 @@ def plot_USNO_B1_stars(ax):
     min = max(Rmag.min(), 11)
     max = Rmag.max()
     scale = 0.5 * 10 ** ((min - Rmag) / 2.5)
-    print scale.min(), scale.max()
+    print(scale.min(), scale.max())
     ax.scatter(t.array['RAJ2000'], t.array['DEJ2000'], s=scale, marker='o', facecolor='y', alpha=0.8, edgecolor='',
                zorder=-10)
 
@@ -411,13 +411,13 @@ def plot_existing_CFHT_Megacam_observations_in_area(ax, qra, qdec, discovery=Non
     camera_dimen = 0.98
 
     # More sophisticated date ID on plot. Let's identify first-year, discovery, second-year followup
-    for idx in xrange(ra.size):
+    for idx in range(ra.size):
         alpha = 0.1
         # print abs(Time(mjdate[idx], format='mjd') - discovery) < TimeDelta(1, format='jd')
         if Time(mjdate[idx], format='mjd') < Time('2014-01-01'):
             ec = 'b'
         elif (discovery is not None and abs(Time(mjdate[idx], format='mjd') - discovery) < TimeDelta(1, format='jd')):
-            print Time(mjdate[idx], format='mjd').iso
+            print(Time(mjdate[idx], format='mjd').iso)
             ec = 'r'
             alpha = 1
         else:
@@ -450,7 +450,7 @@ def saving_closeout(blockname, date, extents, file_id):
     plt.draw()
     outfile = blockname + file_id + date.split(' ')[0].replace('/', '-') + '.pdf'
     # Always use axes.set_rasterized(True) if you are saving as an EPS file.
-    print 'Saving file.', outfile
+    print('Saving file.', outfile)
     plt.savefig(outfile, transparent=True)
     plt.close()
 
@@ -493,7 +493,7 @@ if __name__ == '__main__':
 
     # extent = plot_extents['13A'] # hardwired for doing both at once
 
-    for blockname, block in blocks.items():
+    for blockname, block in list(blocks.items()):
         extent = plot_extents[blockname]
 
         if args.opposition:
@@ -519,7 +519,7 @@ if __name__ == '__main__':
             file_id += '-bg-imaging-'
 
         assert date
-        print blockname, date
+        print(blockname, date)
 
         if blockname == '13AO':
             handles, labels, ax, fontP = basic_skysurvey_plot_setup(from_plane=ephem.degrees('6.0'))

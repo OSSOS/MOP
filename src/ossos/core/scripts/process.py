@@ -30,15 +30,15 @@ for line in lines:
                 os.mkdir(str(ccd))
             os.chdir(str(ccd))
             try:
-                print os.getcwd()
+                print(os.getcwd())
                 mk_mopheader.run(expnum, ccd=ccd, version=version, dry_run=dry_run, prefix='', force=force, ignore_dependency=False)
                 mkpsf.run(expnum, ccd=ccd, version=version, dry_run=dry_run, prefix=prefix, force=force)
                 step1.run(expnum, ccd=ccd, version=version, dry_run=dry_run, prefix=prefix, force=force)
                 slow.run(expnum, ccd, version=version, dry_run=dry_run, prefix=prefix, force=force)
             except Exception as ex:
-                print ex
+                print(ex)
         except Exception as ex:
-            print ex
+            print(ex)
         finally:
             os.chdir(basedir)
             shutil.rmtree("{}/{}".format(expnum, ccd), ignore_errors=True)

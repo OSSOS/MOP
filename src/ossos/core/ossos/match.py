@@ -4,10 +4,10 @@ import logging
 import math
 import numpy
 import os
-from downloads.cutouts.downloader import ImageDownloader
-import util
-from downloads.cutouts.source import SourceCutout
-from astrom import Observation
+from .downloads.cutouts.downloader import ImageDownloader
+from . import util
+from .downloads.cutouts.source import SourceCutout
+from .astrom import Observation
 
 BRIGHT_LIMIT = 23.0
 OBJECT_PLANTED = "Object.planted"
@@ -52,7 +52,7 @@ def measure_mags(measures):
     @param measures: list of readings
     @return: None
     """
-    import daophot
+    from . import daophot
 
     image_downloader = ImageDownloader()
 

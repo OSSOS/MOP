@@ -1,4 +1,4 @@
-import cPickle
+import pickle
 
 import sqlalchemy as sa
 import ephem
@@ -65,14 +65,14 @@ class ImagesQuery(object):
                 # Go and get it anew (this also adds it to the db for next time)
                 retval = self.check_VOSpace_for_proc_status(image_id)
             else:
-                retval = cPickle.loads(str(row[1]))
+                retval = pickle.loads(str(row[1]))
 
         return retval
 
 
     def add_err_to_db(self, image_id, ordered_errors):
         # Turn the list/dict object of errors into a linear string, save that in the db
-        strerr = cPickle.dumps(ordered_errors)
+        strerr = pickle.dumps(ordered_errors)
         ss = self.images.update(self.images.c.image_id == image_id)
         params = {'proc_status': strerr}
         self.conn.execute(ss, params)  # , self.images.c.proc_status=strerr)
@@ -111,7 +111,7 @@ class ImagesQuery(object):
         node = storage.get_tags(image_id, force=True)
         unwanted = ['creator', 'date', 'groupread', 'groupwrite', 'ispublic', 'length']
         proc_keys = []
-        for vtag, value in node.items():
+        for vtag, value in list(node.items()):
             if (vtag not in unwanted) and not vtag.__contains__('fwhm') and not vtag.__contains__('zeropoint'):
                 try:
                     clean_key = vtag.split("#")[1]
@@ -148,9 +148,9 @@ class ImagesQuery(object):
     def sort_ccds(self, errors):
         # sort the ccds into order for each error
         retval = {}
-        for root, errs in errors.items():
+        for root, errs in list(errors.items()):
             rr = retval.get(root, {})
-            for error_type, ccds in errs.items():
+            for error_type, ccds in list(errs.items()):
                 temp = ccds
                 temp.sort()
                 rr[error_type] = temp
@@ -163,11 +163,11 @@ class ImagesQuery(object):
         # display the steps existing and their errors, if any.
         order = []
         # there's now a fwhm_p and a fwhm_s. And the same for zeropoint. FIXME: check if needed with JJ.
-        errkeys = errors.keys()
+        errkeys = list(errors.keys())
         # print errkeys
         # Now accounts for all codes that have been used over time, with them in order, both old and new styles.
         for step in self.steps:
-            if step in errors.keys():
+            if step in list(errors.keys()):
                 if len(errors[step]) == 0:  # step was completed successfully for all ccds
                     order.append(step)
                 else:
@@ -285,7 +285,7 @@ class ImagesQuery(object):
     def parse_for_best_triple(self, threeplus_night_images):
         # input is a dict of {date: [rows of images]} where [rows] > 2
         good_triples = []
-        for date, ims in threeplus_night_images.items():
+        for date, ims in list(threeplus_night_images.items()):
             # for each night, create the best possible triple that meets constraints.
             # is their temporal span sufficiently wide for a triplet to exist?
             if (ims[-1][4] - ims[0][4]) > datetime.timedelta(minutes=90):
@@ -307,7 +307,7 @@ class ImagesQuery(object):
     def suitable_triples(self, ims):
         triple_sets = []
         # construct all possible sets of three
-        times = range(0, len(ims))
+        times = list(range(0, len(ims)))
         twenty = datetime.timedelta(minutes=20)
         ninety = datetime.timedelta(minutes=90)
         for ii in times:
@@ -345,7 +345,7 @@ class ImagesQuery(object):
         # how many of the images in self.observations occur
         # before the first image of the discovery triplet?
         retval = 'no discovery triplet'
-        if field in self.field_triplets.keys() and self.field_triplets[field] is not None:
+        if field in list(self.field_triplets.keys()) and self.field_triplets[field] is not None:
             triplet = self.field_triplets[field]
             images = self.field_images(field)
             precoveries = [im for im in images if (im[0] < triplet[1][0][4])]
@@ -357,7 +357,7 @@ class ImagesQuery(object):
     def num_nailings(self, field):
         # nailings: single images, at least one night after the night of the discovery triplet
         retval = 'no discovery triplet'
-        if field in self.field_triplets.keys() and self.field_triplets[field] is not None:
+        if field in list(self.field_triplets.keys()) and self.field_triplets[field] is not None:
             triplet = self.field_triplets[field]
             images = self.field_images(field)
             after = [im for im in images if
@@ -375,7 +375,7 @@ class ImagesQuery(object):
         # there are no precovery doubles
 
         retval = 'no discovery triplet'
-        if field in self.field_triplets.keys() and self.field_triplets[field] is not None:
+        if field in list(self.field_triplets.keys()) and self.field_triplets[field] is not None:
             triplet = self.field_triplets[field]
             images = self.field_images(field)
             double_nights = self.do_doubles_exist(field, triplet[1][2][4])
@@ -426,7 +426,7 @@ class ImagesQuery(object):
             if storage.vospace.access(blockuri):  # Does this work this way?
                 # vospace.create(blockuri)
                 storage.vospace.copy(blockuri, './' + tmpfile)
-                print tmpfile, '<-', blockuri
+                print(tmpfile, '<-', blockuri)
                 # the field is already present
                 with open(tmpfile, 'r+') as scratch:
                     lines = scratch.readlines()
@@ -440,7 +440,7 @@ class ImagesQuery(object):
                     scratch.write('%s %s %s %s\n' % (triplet[0][0], triplet[0][1], triplet[0][2], field))
 
             storage.vospace.copy(tmpfile, blockuri)
-            print tmpfile, '->', blockuri
+            print(tmpfile, '->', blockuri)
 
             # return
 

@@ -33,7 +33,7 @@ class CutoutGrid(object):
         return self.get_cutout(frame_index, time_index).hdulist
 
     def get_hdulists(self, frame_index):
-        return map(lambda cutout: cutout.hdulist, self._grid[frame_index])
+        return [cutout.hdulist for cutout in self._grid[frame_index]]
 
     def is_filled(self):
         return all(element is not None

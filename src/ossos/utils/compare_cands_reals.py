@@ -7,7 +7,7 @@ Takes a .cands.astrom file as argument.
 from ossos import astrom
 import sys
 from astropy.io import ascii
-import match
+from . import match
 import os
 import numpy
 

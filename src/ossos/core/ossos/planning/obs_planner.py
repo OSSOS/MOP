@@ -1,8 +1,8 @@
-from __future__ import absolute_import
+
 #!python
-from Tkinter import *  #FIXME
+from tkinter import *  #FIXME
 import logging
-import tkFileDialog
+import tkinter.filedialog
 import math
 import optparse
 import re
@@ -233,7 +233,8 @@ class Plot(Canvas):
             for kbo in kbos:
                 # if kbo.orbit.arc_length > 30.:  # cull the short ones for now
                 self.kbos[kbo.name] = kbo.orbit
-                self.kbos[kbo.name].mag = kbo.mag
+                print(self.kbos)
+                # self.kbos[kbo.name].mag = kbo.mag
                 # else:
                 #     print("Arc very short, large uncertainty. Skipping {} for now.\n".format(kbo.name))
 
@@ -243,7 +244,7 @@ class Plot(Canvas):
         """Print the canvas to a postscript file"""
 
         # filename = tkFileDialog.asksaveasfile()
-        filename = tkFileDialog.asksaveasfilename(message="save postscript to file")
+        filename = tkinter.filedialog.asksaveasfilename(message="save postscript to file")
         if filename is None:
             return
 
@@ -476,7 +477,7 @@ class Plot(Canvas):
         """Move to the position of self.SearchVar"""
 
         name = self.SearchVar.get()
-        if self.kbos.has_key(name):
+        if name in self.kbos:
             kbo = self.kbos[name]
             assert isinstance(kbo, orbfit.Orbfit)
             this_time = Time(self.date.get(), scale='utc')
@@ -593,7 +594,7 @@ class Plot(Canvas):
     def load_pointings(self, filename=None):
         """Load some pointings"""
 
-        filename = ( filename is None and tkFileDialog.askopenfilename() or filename)
+        filename = ( filename is None and tkinter.filedialog.askopenfilename() or filename)
 
         if filename is None:
             return
@@ -848,7 +849,7 @@ class Plot(Canvas):
             header = storage.get_astheader(expnum, ccd=ccd)
         except:
             if header is None:
-                print "Didn't get a header... "
+                print("Didn't get a header... ")
                 return
 
         ossos_wcs = wcs.WCS(header)
@@ -919,22 +920,22 @@ class Plot(Canvas):
                 time_step = TimeDelta(3.0*units.hour)
 
                 # Compute the mean position of KBOs in the field on current date.
-                for kbo_name, kbo in self.kbos.items():
+                for kbo_name, kbo in list(self.kbos.items()):
                     if kbo_name in Neptune or kbo_name in tracking_termination:
-                        print 'skipping', kbo_name
+                        print('skipping', kbo_name)
                         continue
                     kbo.predict(pointing_date)
                     ra = kbo.coordinate.ra
                     dec = kbo.coordinate.dec
                     if kbo_name in name:
-                        print "{} matches pointing {} by name, adding to field.".format(kbo_name, name)
+                        print("{} matches pointing {} by name, adding to field.".format(kbo_name, name))
                         field_kbos.append(kbo)
                         center_ra += ra.radian
                         center_dec += dec.radian
                     else:
                         for polygon in polygons:
                             if polygon.isInside(ra.radian, dec.radian):
-                                print "{} inside pointing {} polygon, adding to field.".format(kbo_name, name)
+                                print("{} inside pointing {} polygon, adding to field.".format(kbo_name, name))
                                 field_kbos.append(kbo)
                                 center_ra += ra.radian
                                 center_dec += dec.radian
@@ -971,7 +972,7 @@ class Plot(Canvas):
                 et.save()
             return
 
-        f = tkFileDialog.asksaveasfile()
+        f = tkinter.filedialog.asksaveasfile()
         if self.pointing_format.get() == 'Subaru':
             for pointing in self.pointings:
                 (sra, sdec) = str(pointing["camera"]).split()
@@ -1085,19 +1086,19 @@ NAME                |RA         |DEC        |EPOCH |POINT|
             for cname in parameters.COLOSSOS:
                 if cname in name:
                     is_colossos_target = True
-                    print "ColOSSOS: ", cname
+                    print("ColOSSOS: ", cname)
                     break
             is_terminated = False
             for cname in tracking_termination:
                 if cname in name:
                     is_terminated = True
-                    print "Terminated", cname
+                    print("Terminated", cname)
                     break
             is_double = False
             for cname in doubles:
                 if cname in name:
                     is_double = True
-                    print 'Needs double:', cname
+                    print('Needs double:', cname)
                     break
             if type(kbos[name]) == type(ephem.EllipticalBody()):
                 try:
@@ -1318,7 +1319,7 @@ if __name__ == '__main__':
     parser.add_option('--debug', action="store_true")
 
     for key in color_key:
-        print "{} ==> {}\n".format(key, color_key[key])
+        print("{} ==> {}\n".format(key, color_key[key]))
 
     (opt, files) = parser.parse_args()
 

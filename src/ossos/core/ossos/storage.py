@@ -17,8 +17,8 @@ from astropy.utils.exceptions import AstropyUserWarning
 from astropy.io import fits
 import requests as requests_module
 from .downloads.cutouts.calculator import CoordinateConverter
-import coding
-import util
+from . import coding
+from . import util
 from astropy.time import Time
 from .gui import logger
 from .wcs import WCS
@@ -55,9 +55,9 @@ class Wrapper(object):
         orig_attr = self.wrapped_class.__getattribute__(attr)
         if callable(orig_attr):
             def hooked(*args, **kwargs):
-                print("-->", orig_attr, args, kwargs)
+                print(("-->", orig_attr, args, kwargs))
                 result = orig_attr(*args, **kwargs)
-                print("<--", type(result))
+                print(("<--", type(result)))
                 return result
             return hooked
         else:
@@ -98,10 +98,10 @@ requests = MyRequests()
 def get_ccdlist(expnum):
     if int(expnum) < 1785619:
         # Last exposures with 36 CCD Megaprime
-        ccdlist = range(0, 36)
+        ccdlist = list(range(0, 36))
     else:
         # First exposrues with 40 CCD Megaprime
-        ccdlist = range(0, 40)
+        ccdlist = list(range(0, 40))
     return ccdlist
 
 
@@ -384,7 +384,7 @@ def set_tags(expnum, props):
     @return: success
     """
     # now set all the props
-    return _set_tags(expnum, props.keys(), props.values())
+    return _set_tags(expnum, list(props.keys()), list(props.values()))
 
 
 def set_tag(expnum, key, value):
@@ -667,7 +667,7 @@ def _cutout_expnum(observation, sky_coord, radius):
     for hdu in hdulist[1:]:
         cutout = cutouts.pop(0)
         if 'ASTLEVEL' not in hdu.header:
-            print("WARNING: ******* NO ASTLEVEL KEYWORD ********** for {0} ********".format(observation.get_image_uri))
+            print(("WARNING: ******* NO ASTLEVEL KEYWORD ********** for {0} ********".format(observation.get_image_uri)))
             hdu.header['ASTLEVEL'] = 0
         hdu.header['EXTNO'] = cutout[0]
         naxis1 = hdu.header['NAXIS1']
@@ -721,7 +721,7 @@ def ra_dec_cutout(uri, sky_coord, radius, update_wcs=False):
         import http.client as http_client
     except ImportError:
         # Python 2
-        import httplib as http_client
+        import http.client as http_client
 
     # Get the 'uncut' images CRPIX1/CRPIX2 values
 
@@ -781,7 +781,7 @@ def ra_dec_cutout(uri, sky_coord, radius, update_wcs=False):
                 logging.error("Got error while updating WCS: {}".format(ex))
                 logging.error("Using existing WCS in image header")
         if 'ASTLEVEL' not in hdu.header:
-            print("******* NO ASTLEVEL ****************** for {0} ********".format(uri))
+            print(("******* NO ASTLEVEL ****************** for {0} ********".format(uri)))
             hdu.header['ASTLEVEL'] = 0
         hdu.header['EXTNO'] = cutout[0]
         hdu.header['DATASEC'] = reset_datasec("[{}:{},{}:{}]".format(cutout[1],
@@ -903,7 +903,7 @@ def get_image(expnum, ccd=None, version='p', ext=FITS_EXT,
             for this_ext in [ext]:
                 ext_no = int(ccd) + 1
                 # extension 1 -> 18 +  37,36 should be flipped.
-                flip_these_extensions = range(1, 19)
+                flip_these_extensions = list(range(1, 19))
                 flip_these_extensions.append(37)
                 flip_these_extensions.append(38)
                 flip = (cutout is None and "fits" in ext and (

@@ -50,7 +50,7 @@ class MOPFile(object):
         @return: list of column indexies
         """
         if 'matt' in self.filename:
-            return range(5)
+            return list(range(5))
         return None
 
     def _parse(self):
@@ -197,7 +197,7 @@ class MOPHeader(object):
         while len(keywords) > 0:
             keyword = keywords.pop()
             value = values.pop()
-            if not self.keywords.has_key(keyword) :
+            if keyword not in self.keywords :
                 self.keywords[keyword] = []
             self.keywords[keyword].append(value)
         return

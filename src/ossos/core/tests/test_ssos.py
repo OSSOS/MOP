@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 __author__ = 'jjk'
 from unittest import TestCase
@@ -37,7 +37,7 @@ class MPCParserTest(TestCase):
         mpc_line = " XXHL7j2      C2013 04 03.62926 17 12 01.161+04 13 33.3          24.1 R      568"
 
         o = mpc.Observation.from_string(mpc_line)
-        print str(o.ra)
+        print(str(o.ra))
         self.assertEqual(str(o.ra), "17 12 01.161")
 
     def __test_ossos_format_mpc_line(self):
@@ -59,7 +59,7 @@ class MPCParserTest(TestCase):
 
         ssos_data = ssos.SSOSParser(name).parse(ssos_result)
 
-        print ssos_data.get_reading_count()
+        print(ssos_data.get_reading_count())
 
 
 

@@ -162,7 +162,7 @@ def main():
     task = util.task()
     dependency = 'step3'
 
-    ccd_list = (args.ccd is None and range(0, 36)) or [args.ccd]
+    ccd_list = (args.ccd is None and list(range(0, 36))) or [args.ccd]
 
     exit_code = 0
     for ccd in ccd_list:
@@ -187,7 +187,7 @@ def main():
         except Exception as e:
             message = str(e)
             exit_code = message
-        print message
+        print(message)
         logging.info(message)
         #if not args.dry_run:
         #    storage.set_status(task, prefix, args.expnum, version=args.type, ccd=ccd, status=message)

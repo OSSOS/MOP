@@ -104,7 +104,7 @@ with open(putative, 'w+') as pobj:
             mags = mags/len(mpc_observations)
             orbit = orbfit.Orbfit(mpc_observations)
             residuals = orbit.residuals(overall=True)
-            print orbit.summarize()
+            print(orbit.summarize())
             if orbit.a > 5*units.AU and mags < 23.6 and orbit.distance < 100 * units.AU:
                 file('keepers.txt', 'a').write("{}\n".format(mpc_observations[0].provisional_name))
                 writer.write_source(source)

@@ -2,7 +2,7 @@ from unittest import TestCase
 from astropy import coordinates
 from astropy.time import Time
 from astropy import units
-import cStringIO
+import io
 
 __author__ = 'jjk'
 
@@ -74,8 +74,8 @@ class TestEphemTarget(TestCase):
         #                                   unit=(units.hour, units.degree),
         #                                   obstime=Time("2014-12-29 09:59:59", scale='utc'))
         # et.append(coordinate)
-        print et.coordinates
-        f_handle = cStringIO.StringIO()
+        print(et.coordinates)
+        f_handle = io.StringIO()
         et.writer(f_handle)
         f_handle.seek(0)
         self.assertEqual(f_handle.read(), example_file)

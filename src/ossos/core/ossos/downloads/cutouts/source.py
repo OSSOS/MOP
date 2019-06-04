@@ -19,7 +19,7 @@ from ...astrom import SourceReading, Observation
 from ...gui import logger
 from ... import storage
 from ossos.gui import config
-from downloader import Downloader, ApcorData
+from .downloader import Downloader, ApcorData
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -322,7 +322,7 @@ class SourceCutout(object):
                 phot['PIER'][0] = 1
             return phot
         except Exception as ex:
-            print ex
+            print(ex)
             raise ex
         finally:
             self.close()
@@ -361,7 +361,7 @@ class SourceCutout(object):
         if self._comparison_image_index is None:
             ## Display a list of possible comparison images and ask user to select one.
             self.comparison_image_list.pprint()
-            self.comparison_image_index = int(raw_input("SELECT ROW NUMBER OF DESIRED COMPARISON IMAGE: "))
+            self.comparison_image_index = int(input("SELECT ROW NUMBER OF DESIRED COMPARISON IMAGE: "))
         return self._comparison_image_index
 
     @comparison_image_index.setter
@@ -382,12 +382,12 @@ class SourceCutout(object):
         ref_ra = self.reading.ra * units.degree
         ref_dec = self.reading.dec * units.degree
         radius = self.radius is not None and self.radius or config.read('CUTOUTS.SINGLETS.RADIUS') * units.arcminute
-        print("Querying CADC for list of possible comparison images at RA: {}, DEC: {}, raidus: {}".format(ref_ra,
+        print(("Querying CADC for list of possible comparison images at RA: {}, DEC: {}, raidus: {}".format(ref_ra,
                                                                                                            ref_dec,
-                                                                                                           radius))
+                                                                                                           radius)))
         query_result = storage.cone_search(ref_ra, ref_dec, radius, radius)  # returns an astropy.table.table.Table
-        print("Got {} possible images".format(len(query_result)))
-        ans = raw_input("Do you want to lookup IQ? (y/n)")
+        print(("Got {} possible images".format(len(query_result))))
+        ans = input("Do you want to lookup IQ? (y/n)")
         print("Building table for presentation and selection")
         if ans == "y":
             print("Including getting fwhm which is a bit slow.")
@@ -446,9 +446,9 @@ class SourceCutout(object):
                                     ref_ra, ref_dec, self.reading.x, self.reading.y, obs)
             self.comparison_image_list[self.comparison_image_index]["REFERENCE"] = SourceCutout(reading, hdu_list)
         except Exception as ex:
-            print traceback.format_exc()
-            print ex
-            print "Failed to load comparison image;"
+            print(traceback.format_exc())
+            print(ex)
+            print("Failed to load comparison image;")
             self.comparison_image_index = None
             logger.error("{} {}".format(type(ex), str(ex)))
             logger.error(traceback.format_exc())

@@ -11,7 +11,7 @@ from astropy import units
 from astropy.coordinates.angles import Angle
 from ossos.gui import config
 
-def load_observations((observations, regex, rename), path, filenames):
+def load_observations(xxx_todo_changeme, path, filenames):
     """
     Returns a provisional name based dictionary of observations of the object.
     Each observations is keyed on the date. ie. a dictionary of dictionaries.
@@ -21,12 +21,12 @@ def load_observations((observations, regex, rename), path, filenames):
     :param path: the directory where filenames are.
     :param filenames: list of files in path.
     """
-
+    (observations, regex, rename) = xxx_todo_changeme
     for filename in filenames:
         if re.search(regex, filename) is None:
             logging.warning("Skipping {}".format(filename))
             continue
-        print os.path.join(path,filename)
+        print(os.path.join(path,filename))
         obs = mpc.MPCReader().read(os.path.join(path,filename))
         for ob in obs:
             if rename:
@@ -105,7 +105,7 @@ auto-magical way.
                         help="Names of observers, multiple allowed")
 
     args = parser.parse_args()
-    print args.tolerance
+    print(args.tolerance)
     tolerance = Angle(float(args.tolerance) * units.arcsec)
 
     logger = logging.getLogger('reporter')

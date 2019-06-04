@@ -63,7 +63,7 @@ class MOPHeader(fits.Header):
                 logging.debug("Failed to build mopkeyword: {} -> {} using default".format(keyword, ex))
                 pass
 
-        for keyword in self.keys():
+        for keyword in list(self.keys()):
             if keyword not in self.mop_keywords:
                 try:
                    self.__delitem__(keyword)

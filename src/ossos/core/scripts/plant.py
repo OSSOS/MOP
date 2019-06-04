@@ -263,7 +263,7 @@ def main(argv):
 
     ccds = [args.ccd]
     if args.ccd is None:
-        ccds = range(0, 36)
+        ccds = list(range(0, 36))
 
     exit_code = 0
     for ccd in ccds:

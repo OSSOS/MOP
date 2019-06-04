@@ -12,4 +12,4 @@ class TestObservation(TestCase):
         mpc.comment = None
         ted = Observation.from_ted(ted_string)
         ted.comment = None
-        self.assertEquals(ted, mpc)
+        self.assertEqual(ted, mpc)

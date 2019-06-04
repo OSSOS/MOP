@@ -484,7 +484,7 @@ class StatefulCollectionTest(unittest.TestCase):
         assert_that(undertest.get_index(), equal_to(0))
         assert_that(undertest.get_current_item(), equal_to(items[0]))
 
-        undertest.next()
+        next(undertest)
         assert_that(undertest.get_index(), equal_to(1))
         assert_that(undertest.get_current_item(), equal_to(items[1]))
 
@@ -509,7 +509,7 @@ class StatefulCollectionTest(unittest.TestCase):
         item2 = 2
         undertest.append(item2)
 
-        undertest.next()
+        next(undertest)
         assert_that(undertest.get_index(), equal_to(1))
         assert_that(undertest.get_current_item(), equal_to(item2))
 
@@ -534,7 +534,7 @@ class WorkloadManagementTest(unittest.TestCase):
             self.progress_manager.lock(workunit.get_filename())
             return workunit
 
-        self.workunit_provider.get_workunit.side_effect = (get_workunit(index) for index in xrange(2))
+        self.workunit_provider.get_workunit.side_effect = (get_workunit(index) for index in range(2))
         image_manager = Mock(spec=ImageManager)
 
         self.undertest = ValidationModel(self.workunit_provider, image_manager, None)

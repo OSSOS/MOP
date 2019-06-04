@@ -22,7 +22,7 @@ dependencies = ['pyraf >= 2.1.1',
 
 
 if sys.version_info[0] > 2:
-    print 'The MOP package is only compatible with Python version 2.7+, not yet with 3.x'
+    print('The MOP package is only compatible with Python version 2.7+, not yet with 3.x')
     sys.exit(-1)
 
 # # Build the list of scripts to be installed.

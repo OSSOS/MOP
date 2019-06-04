@@ -4,7 +4,7 @@ import os
 import tempfile
 import warnings
 
-from gui import logger
+from .gui import logger
 
 warnings.simplefilter("ignore")
 from pyraf import iraf

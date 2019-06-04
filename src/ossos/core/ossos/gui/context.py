@@ -32,7 +32,7 @@ class WorkingContext(object):
             name_match = lambda x: x.endswith(suffix)
         else:
             name_match = lambda x: x.endswith(suffix) and not x.startswith(exclude_prefix)
-        return filter(name_match, self.listdir())
+        return list(filter(name_match, self.listdir()))
 
     def get_file_size(self, filename):
         raise NotImplementedError()

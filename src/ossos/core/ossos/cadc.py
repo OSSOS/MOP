@@ -4,7 +4,7 @@ from astropy.io import votable
 import warnings
 from astropy.table import Table
 import requests
-from cStringIO import StringIO
+from io import StringIO
 from astropy.time import Time
 
 
@@ -56,7 +56,7 @@ def cfht_megacam_tap_query(ra_deg=180.0, dec_deg=0.0, width=1, height=1, date=No
 
 
 def main(ra_deg, dec_deg, width, height):
-    print cfht_megacam_tap_query(ra_deg, dec_deg, width, height)
+    print(cfht_megacam_tap_query(ra_deg, dec_deg, width, height))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

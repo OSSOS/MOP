@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 __author__ = 'bannisterm'
 
@@ -106,7 +106,7 @@ def plot_aq(data, path, plot_ossos):
     # astep = [n/4. for n in astep]
     # astep.append(50)
     print(astep)
-    print len(data)
+    print(len(data))
     p = palettable.cubehelix.cubehelix1_16.mpl_colors[-7::-2]
 
     data['da'] = abs((data['a_end']-data['a_start']))/data['a_start']
@@ -114,20 +114,20 @@ def plot_aq(data, path, plot_ossos):
     for n, da in enumerate(astep):
         # plot where objects are within 2*a of their initial a to map out the boundary
         if n == 0:
-            print(n, da)
+            print((n, da))
             particles = data[data['da'] <= da]
             # particles = data.query('(a_end/a_start < @da)')  # improved from a_end <= @da*a_start
-            print(len(particles), particles['da'])
+            print((len(particles), particles['da']))
             label = '$\delta a/a \leq {}$'.format(da)
         elif n > 0 and n < len(astep)-1:
-            print(n, da)
+            print((n, da))
             particles = data[(astep[n-1] < data['da']) & (data['da'] <= da)]   #data.query('(@astep[@n-1] < a_end/a_start <= @da)')
-            print(len(particles), particles['da'])
+            print((len(particles), particles['da']))
             label = '${} < \delta a/a \leq {}$'.format(astep[n-1], da)
         else:
-            print(n, da)
+            print((n, da))
             particles = data[data['da'] > da]   #data.query('(a_end/a_start > @da)')
-            print(len(particles), particles['da'])
+            print((len(particles), particles['da']))
             label = '$\delta a/a > {}$'.format(da)
 
         plt.semilogx(particles.a_end, particles.q_end,
@@ -136,8 +136,8 @@ def plot_aq(data, path, plot_ossos):
                      label=label
                      )
 
-    diff_eqn = [diffusion(q) for q in xrange(ymin, ymax)]
-    plt.plot(diff_eqn, xrange(ymin, ymax), linewidth=2, alpha=0.4, color=palette[0], zorder=0)
+    diff_eqn = [diffusion(q) for q in range(ymin, ymax)]
+    plt.plot(diff_eqn, range(ymin, ymax), linewidth=2, alpha=0.4, color=palette[0], zorder=0)
 
     plot_tnos(plt.gca(), ossos=plot_ossos)
 
@@ -195,18 +195,18 @@ if __name__ == '__main__':
     result = pandas.merge(survivors_at_start, end, on='id', suffixes=['_start', '_end'])
     # print len(two_a): 7656 particles.
 
-    print 'i_start 1<6', len([ math.degrees(n) for n in result[result['inc_start'] < math.radians(6.)]['inc_start'] ])
+    print('i_start 1<6', len([ math.degrees(n) for n in result[result['inc_start'] < math.radians(6.)]['inc_start'] ]))
 
     # print 'i_end range', math.degrees(min(result['inc_end'])), math.degrees(max(result['inc_end']))
 
     k = [ math.degrees(n) for n in result[(result['a_end'] < 810.) & (result['q_end'] > 45.) & (result['q_end'] < 55.)]['inc_end'] ]
     k.sort()
-    print('a_end < 810. and its inclinations',
+    print(('a_end < 810. and its inclinations',
         len(result[(result['a_end'] < 810.) & (result['q_end'] > 45.)  & (result['q_end'] < 55.)]),
           k
-          )
+          ))
     # print [math.degrees(n) for n in result[result['a_end'] < 800.]['inc_end']]
-    print 'a_end < 810 and i < 26', len(result[(result['a_end'] < 810.) & (result['inc_end'] > math.radians(154.))])
+    print('a_end < 810 and i < 26', len(result[(result['a_end'] < 810.) & (result['inc_end'] > math.radians(154.))]))
     # print [math.degrees(n) for n in result[(result['a_end'] < 810.) & (result['inc_end'] > math.radians(154.))]['inc_end']]
 
 

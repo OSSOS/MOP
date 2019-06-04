@@ -1,6 +1,6 @@
 # !python
 # Copyright 2012, 2013 JJ Kavelaars
-from __future__ import absolute_import
+
 import argparse
 import ephem
 import logging

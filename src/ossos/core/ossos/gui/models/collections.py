@@ -52,7 +52,7 @@ class StatefulCollection(object):
         else:
             return None
 
-    def next(self):
+    def __next__(self):
         """
         Make the next item in the collection the current item.  Wraps around
         to the beginning after reaching the end.
