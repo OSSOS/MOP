@@ -4,7 +4,7 @@ from zope.cachedescriptors.property import Lazy
 from pyramid.view import view_config
 import ephem
 
-from queries import ImagesQuery
+from .queries import ImagesQuery
 
 
 class SimpleStatus(object):
@@ -12,7 +12,7 @@ class SimpleStatus(object):
         self.componentName = componentName
 
     def render(self):
-        retval = u'{0}&nbsp;&#10003;'.format(self.componentName)
+        retval = '{0}&nbsp;&#10003;'.format(self.componentName)
         return retval
 
 
@@ -23,18 +23,18 @@ class ErrorStatus(object):
 
     def render(self):
         retval = ''
-        for component, errors in self.error.items():
-            retval += u'<span class="text-error">{0}&nbsp;&#x2718; </span>'.format(component)
+        for component, errors in list(self.error.items()):
+            retval += '<span class="text-error">{0}&nbsp;&#x2718; </span>'.format(component)
             assert isinstance(errors, dict)
-            for errtype, ccds in errors.items():
+            for errtype, ccds in list(errors.items()):
                 assert isinstance(ccds, list)
                 if len(ccds) > 30:  # how many errors ARE there?
-                    retval += u'{0}/36: BAD!'.format(len(ccds))
+                    retval += '{0}/36: BAD!'.format(len(ccds))
                 # FIXME: Add a link to at least one of the bad ones
                 else:
                     for ccd in ccds:
                         ccd_url = self.joblog_url(component, ccd)
-                        retval += u'<a href="' + ccd_url + '">' + str(ccd) + '</a> '
+                        retval += '<a href="' + ccd_url + '">' + str(ccd) + '</a> '
 
         return retval
 
@@ -76,7 +76,7 @@ class Field(object):
         else:
             self.fieldId = fi
 
-        print self.fieldId
+        print(self.fieldId)
 
     @Lazy
     def discovery_triplet(self):

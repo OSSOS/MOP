@@ -257,7 +257,7 @@ class ImageSinglet(object):
             try:
                 display.set('mosaicimage {}'.format(f.name))
                 while display.get('frame has fits') != 'yes':
-                    print "Waiting for image to load."
+                    print("Waiting for image to load.")
                     pass
             except ValueError as ex:
                 logging.error("Failed while trying to display: {}".format(hdulist))
@@ -300,7 +300,7 @@ class ImageSinglet(object):
         pass
 
     def apply_event_handlers(self, canvas):
-        for eventname, handler in self._mpl_event_handlers.itervalues():
+        for eventname, handler in self._mpl_event_handlers.values():
             canvas.mpl_connect(eventname, handler)
 
     def _refresh_displayed_colormap(self):
@@ -369,7 +369,7 @@ class DisplayableImageSinglet(Displayable):
             else:
                 self._focus = SkyCoord(focus[0], focus[1])
         except Exception as ex:
-            print "Focus setting failed to convert focus tuple {} to SkyCoord: {}".format(focus, ex)
+            print("Focus setting failed to convert focus tuple {} to SkyCoord: {}".format(focus, ex))
             self._focus = focus
 
     def _do_move_focus(self):

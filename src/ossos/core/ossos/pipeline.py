@@ -8,8 +8,8 @@ from astropy.io import ascii
 from astropy.io import fits
 import numpy
 
-import storage
-import util
+from . import storage
+from . import util
 
 
 def get_wcs(shifts):
@@ -55,10 +55,10 @@ def align(expnums, ccd, version='s', dry_run=False):
         # load the .trans.jmp values into a 'wcs' like dictionary.
         # .trans.jmp maps current frame to reference frame in pixel coordinates.
         # the reference frame of all the frames supplied must be the same.
-        shifts = dict(zip(keys, [float(x) for x in open(storage.get_file(expnum,
+        shifts = dict(list(zip(keys, [float(x) for x in open(storage.get_file(expnum,
                                                                          ccd=ccd,
                                                                          version=version,
-                                                                         ext='trans.jmp')).read().split()]))
+                                                                         ext='trans.jmp')).read().split()])))
         shifts['crpix1'] = 0.0
         shifts['crpix2'] = 0.0
         # now create a wcs object based on those transforms, this wcs links the current frame's
@@ -70,7 +70,7 @@ def align(expnums, ccd, version='s', dry_run=False):
         phot = ascii.read(storage.get_file(expnum, ccd=ccd, version=version, ext='phot'), format='daophot')
 
         # compute the small-aperture magnitudes of the stars used in the PSF
-        import daophot
+        from . import daophot
         logging.debug("Running phot on {}".format(filename))
         mags[expnum] = daophot.phot(filename,
                                     phot['XCENTER'],

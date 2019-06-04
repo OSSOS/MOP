@@ -50,7 +50,7 @@ def all_clean_phot(obj):
         mag_err = [n.comment.mag_uncertainty for n in tnoobs]
         return tno_mags, mag_err, mag_dates
     else:
-        print 'no unflagged photometry exists for {}'.format(obj)
+        print('no unflagged photometry exists for {}'.format(obj))
         return [], [], []
 
 
@@ -94,7 +94,7 @@ if __name__ == '__main__':
             # '<tr><th>Peri</th><td>{:.2f}</td></tr>
             labels.append(tno.name)
         else:
-            print("{} has no clean observations.\n".format(tno.name))
+            print(("{} has no clean observations.\n".format(tno.name)))
 
     # points = ax.errorbar(range(0, len(labels)), variation, fmt='.', ecolor='b')
     points = ax.boxplot(variation, labels=labels, showbox=False, showcaps=False, whiskerprops={'linestyle': '-'})

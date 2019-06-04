@@ -252,7 +252,7 @@ if __name__ == '__main__':
                         help="Distribution the output by header/chip?")
     parser.add_argument("--ccds",
                         action="store",
-                        default=range(36),
+                        default=list(range(36)),
                         type=int,
                         nargs='+',
                         help="CCDs to process [do all be default]")

@@ -25,10 +25,10 @@ for line in lines:
     expnum = int(line.strip())
     if expnum < 1785619:
         # Last exposures with 36 CCD Megaprime
-        ccdlist = range(0, 36)
+        ccdlist = list(range(0, 36))
     else:
         # First exposrues with 40 CCD Megaprime
-        ccdlist = range(0, 40)
+        ccdlist = list(range(0, 40))
     for ccd in ccdlist:
         try:
             try:
@@ -58,7 +58,7 @@ for line in lines:
                     os.unlink(name+".fits")
                 except:
                     pass
-                print("Doing {}".format(name))
+                print(("Doing {}".format(name)))
                 try:
                     obj_file = mop_file.Parser(expnum, ccd, extension)
                     obj_file.parse()
@@ -67,7 +67,7 @@ for line in lines:
                     continue
                 t = numpy.all([datasec[0] < obj_file.data['X'], obj_file.data['X'] < datasec[1],
                                datasec[2] < obj_file.data['Y'], obj_file.data['Y'] < datasec[3]], axis=0)
-                print("Source remaining after datasec cut: {} of {}".format(len(obj_file.data[t]['X']), len(t)))
+                print(("Source remaining after datasec cut: {} of {}".format(len(obj_file.data[t]['X']), len(t))))
                 table_hdu = fits.table_to_hdu(obj_file.data[t])
                 table_hdu.header['CATALOG'] = name
                 table_hdu.header['EXTNAME'] = ext
@@ -81,10 +81,10 @@ for line in lines:
                 os.unlink(name)
             hdu_list.writeto(name)
             uri = storage.dbimages_uri(expnum, ccd, 'p', ext=".obj.fits")
-            print(name+" -> "+uri)
+            print((name+" -> "+uri))
             count = 0
             while count < 10:
-                print("Copy attempt {}".format(count))
+                print(("Copy attempt {}".format(count)))
                 try:
                     storage.copy(name, uri)
                     os.unlink(name)

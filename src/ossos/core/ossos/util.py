@@ -121,7 +121,7 @@ class VOFileHandler(handlers.BufferingHandler):
                 self.stream.close()
                 self.client.copy(_name, self.filename)
         except Exception as ex:
-            print str(ex)
+            print(str(ex))
             pass
 
     def flush(self):
@@ -283,7 +283,7 @@ class TimeMPC(TimeString):
                     tm.tm_min += int(60 * (24 * fracday - tm.tm_hour))
                     tm.tm_sec += 60 * (60 * (24 * fracday - tm.tm_hour) - tm.tm_min)
                 except ValueError as ex:
-                    print ex
+                    print(ex)
                     continue
                 else:
                     vals = [getattr(tm, 'tm_' + component)

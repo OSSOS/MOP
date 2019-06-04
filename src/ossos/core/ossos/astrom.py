@@ -11,7 +11,7 @@ from astropy import units
 from astropy.coordinates import SkyCoord
 from astropy.units import Quantity
 from astropy.time import TimeDelta, Time
-import util
+from . import util
 
 from .gui import logger
 from . import storage
@@ -20,7 +20,7 @@ DATASET_ROOT = storage.DBIMAGES
 
 # Images from CCDs < 18 have their coordinates flipped
 MAX_INVERTED_CCD = 17
-INVERTED_CCDS = range(0, 18)
+INVERTED_CCDS = list(range(0, 18))
 INVERTED_CCDS.append(36)
 INVERTED_CCDS.append(37)
 
@@ -135,7 +135,7 @@ class AstromParser(object):
         obsnum = 0
         for match in self.obs_header_regex.finditer(filestr):
             obs = observations[obsnum]
-            for header_key, header_val in match.groupdict().iteritems():
+            for header_key, header_val in match.groupdict().items():
                 obs.header[header_key] = header_val
             obsnum += 1
 
@@ -1106,7 +1106,7 @@ class Observation(object):
         header = self.header
         if isinstance(header, list):
             extno = self.ccdnum - 1
-            print "Reading extension {} looking for header of CCD {}".format(extno, self.ccdnum)
+            print("Reading extension {} looking for header of CCD {}".format(extno, self.ccdnum))
             header = header[extno]
         mpc_date = header.get('MJD_OBS_CENTER', None)
         if mpc_date is None and 'MJD-OBS' in header:

@@ -1,18 +1,15 @@
 import os
 import sys
-from ossos.__version__ import version
 
 from setuptools import setup, find_packages
 
-dependencies = ['pyraf >= 2.1.1',
-                'requests >= 2.7',
+dependencies = [ 'requests >= 2.7',
                 'astropy >= 0.2.5',
                 'vos >= 3.0',
                 'ephem',
                 'numpy >= 1.6.1',
-                'wxPython >= 3.0.0.0, < 4.0.0',
                 'matplotlib',
-                'Polygon2',
+                'Polygon3',
                 'd2to1 >= 0.2.10',
                 'scipy',
                 'uncertainties',
@@ -20,9 +17,9 @@ dependencies = ['pyraf >= 2.1.1',
                 'mp_ephem']
 
 
-if sys.version_info[0] > 2:
-    print 'The MOP package is only compatible with Python version 2.7+, not yet with 3.x'
-    sys.exit(-1)
+#if sys.version_info[0] > 2:
+#    print('The MOP package is only compatible with Python version 2.7+, not yet with 3.x')
+#    sys.exit(-1)
 
 # # Build the list of tools and scripts to be installed.
 script_dirs = ['scripts']
@@ -37,7 +34,7 @@ console_scripts = [ 'mkpsf = ossos.pipeline.mkpsf:main', 'step1 = ossos.pipeline
 gui_scripts = [ 'validate = ossos.tools.validate:main' ]
 
 setup(name='ossos',
-      version=version,
+      version='2.0.dev1',
       url='http://github.com/OSSOS/MOP',
       author='''JJ Kavelaars (jjk@uvic.ca),
               Michele Bannister (micheleb@uvic.ca),

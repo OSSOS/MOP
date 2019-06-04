@@ -27,13 +27,13 @@ def print_progress_stats(task, directory):
     total_processed = sum(user_progress.values())
     total_todo = len([l for l in listing])# if l.__contains__('p')])
 
-    print datetime.datetime.now()
-    print "%s: %s: %d of %d processed (%2.1f%%)." % (
-        directory, task, total_processed, total_todo, (float(total_processed) / float(total_todo)) * 100.)
-    print "---"
+    print(datetime.datetime.now())
+    print("%s: %s: %d of %d processed (%2.1f%%)." % (
+        directory, task, total_processed, total_todo, (float(total_processed) / float(total_todo)) * 100.))
+    print("---")
 
-    for user, num_processed in user_progress.iteritems():
-        print "  %s: %d" % (user, num_processed)
+    for user, num_processed in user_progress.items():
+        print("  %s: %d" % (user, num_processed))
 
 
 def main():

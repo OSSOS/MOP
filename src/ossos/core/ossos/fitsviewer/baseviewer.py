@@ -36,7 +36,7 @@ class WxMPLFitsViewer(object):
         :param cutout: source cutout object to be display
         :type cutout: source.SourceCutout
         """
-        logging.debug("Current display list contains: {}".format(self._displayables_by_cutout.keys()))
+        logging.debug("Current display list contains: {}".format(list(self._displayables_by_cutout.keys())))
         logging.debug("Looking for {}".format(cutout))
         assert isinstance(cutout, SourceCutout)
         if cutout in self._displayables_by_cutout:
@@ -86,13 +86,13 @@ class WxMPLFitsViewer(object):
                 measured_ra = cutout.reading.mpc_observation.coordinate.ra.to(units.degree)
                 measured_dec = cutout.reading.mpc_observation.coordinate.dec.to(units.degree)
                 try:
-                    print "{:5.2f} {:5.2f} || {:5.2f} {:5.2f} # {}".format((predict_ra - measured_ra).to('arcsec'),
+                    print("{:5.2f} {:5.2f} || {:5.2f} {:5.2f} # {}".format((predict_ra - measured_ra).to('arcsec'),
                                                         (predict_dec - measured_dec).to('arcsec'),
                                                         cutout.reading.uncertainty_ellipse.a,
                                                         cutout.reading.uncertainty_ellipse.b,
-                                                        cutout.reading.mpc_observation.to_string())
+                                                        cutout.reading.mpc_observation.to_string()))
                 except Exception as ex:
-                    print "Failed trying to write out the prevoiusly recorded measurement: {}".format(ex)
+                    print("Failed trying to write out the prevoiusly recorded measurement: {}".format(ex))
                     pass
                 # x, y, extno = cutout.world2pix(measured_ra, measured_dec, usepv=True)
                 # ra, dec = cutout.pix2world(x, y, extno, usepv=False)
@@ -107,7 +107,7 @@ class WxMPLFitsViewer(object):
 
             self.current_displayable.place_marker(measured_ra, measured_dec, radius=8, colour=colour)
         except Exception as ex:
-            print "EXCEPTION while drawing the uncertainty ellipse, skipping.: {}".format(ex)
+            print("EXCEPTION while drawing the uncertainty ellipse, skipping.: {}".format(ex))
             logger.debug(type(ex))
             logger.debug(str(ex))
 

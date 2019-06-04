@@ -4,14 +4,14 @@ import wx
 import wx.lib.inspection
 
 from .. import logger
-import dialogs
-from errorhandling import CertificateDialog, RetryDownloadDialog
-from imageview import ImageViewManager
-from keybinds import KeybindManager
-from loading import WaitingGaugeDialog
-from mainframe import MainFrame
-from menu import Menu
-from validation import AcceptSourceDialog, RejectSourceDialog, OffsetSourceDialog, VettingSourceDialog
+from . import dialogs
+from .errorhandling import CertificateDialog, RetryDownloadDialog
+from .imageview import ImageViewManager
+from .keybinds import KeybindManager
+from .loading import WaitingGaugeDialog
+from .mainframe import MainFrame
+from .menu import Menu
+from .validation import AcceptSourceDialog, RejectSourceDialog, OffsetSourceDialog, VettingSourceDialog
 
 
 def guithread(function):

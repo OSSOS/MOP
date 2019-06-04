@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 __author__ = 'Michele Bannister   git:@mtbannister'
 
 import sys
@@ -25,7 +25,7 @@ def full_aei(data_release, fov, icut=False, aiq=False):
 
     data = data_release[numpy.where(data_release['data_arc'] > 365.)]
     data = data[numpy.where(data['sigma_a'] < 100.)]
-    print len(data)
+    print(len(data))
 
     if fov == 'medium':
         imax = 55
@@ -89,13 +89,13 @@ def full_aei(data_release, fov, icut=False, aiq=False):
 
         # constant q line
         e = [(1-(40./a)) for a in range(xinner+1, xouter, 3)]
-        ax[1].plot(range(xinner+1, xouter, 3), e, '-')
+        ax[1].plot(list(range(xinner+1, xouter, 3)), e, '-')
 
         ax[1].set_ylim([ymin, emax])
 
     plt.xlim([xinner, xouter])
-    ax[0].set_xticks(range(xinner, xouter, xstep))
-    ax[1].set_xticks(range(xinner, xouter, xstep))
+    ax[0].set_xticks(list(range(xinner, xouter, xstep)))
+    ax[1].set_xticks(list(range(xinner, xouter, xstep)))
 
     plot_fanciness.remove_border(ax[0])
     plot_fanciness.remove_border(ax[1])
@@ -242,7 +242,7 @@ def argperi_a(directory):
 
     for obj in tnos:
         if obj.orbit.arc_length < 60.*units.day:
-            print 'Skipping', obj.name, obj.orbit.arc_length
+            print('Skipping', obj.name, obj.orbit.arc_length)
             continue
 
         alpha = 0.4
@@ -301,9 +301,9 @@ def argperi_a(directory):
     plt.xlim([xinner, xouter])
 
 
-    ax[0].set_xticks(range(xinner, xouter, xticker))
-    ax[1].set_xticks(range(xinner, xouter, xticker))
-    ax[2].set_xticks(range(xinner, xouter, xticker))
+    ax[0].set_xticks(list(range(xinner, xouter, xticker)))
+    ax[1].set_xticks(list(range(xinner, xouter, xticker)))
+    ax[2].set_xticks(list(range(xinner, xouter, xticker)))
 
     plot_fanciness.remove_border(ax[0])
     plot_fanciness.remove_border(ax[1])

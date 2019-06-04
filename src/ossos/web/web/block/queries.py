@@ -20,7 +20,7 @@ class BlockQuery(object):
 
     def all_blocks(self):
 
-        status = OrderedDict.fromkeys(parameters.BLOCKS.keys())
+        status = OrderedDict.fromkeys(list(parameters.BLOCKS.keys()))
         status['13AE'] = ['discovery complete', '50', '24.05']
         status['13AO'] = ['discovery complete', '36', '24.40']
         status['13BL'] = ['discovery complete', '79', '24.48']
@@ -32,7 +32,7 @@ class BlockQuery(object):
         ID   observations   processing status   discoveries  m_r 40%
         '''
         bks = []
-        for block in status.iterkeys():
+        for block in status.keys():
             bk = [block, self.num_block_images(block)]  # if set in the .fromkeys(), doesn't give a unique list
             if status[block] is not None:
                 bk = bk + status[block]
@@ -227,7 +227,7 @@ class BlockQuery(object):
         try:
             self.bk.get_processing_status(self.block_discovery_triples(blockID))
         except:
-            print 'bother'
+            print('bother')
 
         return None
 

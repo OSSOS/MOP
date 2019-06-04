@@ -20,7 +20,7 @@ from ossos import storage
 PROGRAMS = {'BASE': ((('',), ('mkpsf', 'step1'), ('p',)), )}
 
 
-ALL_CCDS = range(40)
+ALL_CCDS = list(range(40))
 
 logging.basicConfig(level=logging.INFO)
 
@@ -73,9 +73,9 @@ if __name__ == '__main__':
 
     opt = parser.parse_args()
     if opt.big:
-	ALL_CCDS = range(40)
+	ALL_CCDS = list(range(40))
     else:
-	ALL_CCDS = range(36)
+	ALL_CCDS = list(range(36))
 
     ccds = opt.ccd is not None and opt.ccd or ALL_CCDS
 
@@ -98,8 +98,8 @@ if __name__ == '__main__':
                 num_of_ccds = 36
             else:
                 num_of_ccds = 40
-                ccds = opt.ccd is not None and opt.ccd or range(num_of_ccds)
+                ccds = opt.ccd is not None and opt.ccd or list(range(num_of_ccds))
         sys.stderr.write("{}".format(expnum))
         result = check_tags(expnum, ops, ccds, dry_run=opt.dry_run)
         for ccd in result:
-           print expnum, ccd
+           print(expnum, ccd)

@@ -15,28 +15,28 @@ class TestReset_datasec(TestCase):
         cutout = "[101:200, 101:200]"
         naxis1 = 2048
         naxis2 = 4600
-        self.assertEquals(storage.reset_datasec(cutout, datasec, naxis1, naxis2), "[1:1900,1:4350]")
+        self.assertEqual(storage.reset_datasec(cutout, datasec, naxis1, naxis2), "[1:1900,1:4350]")
 
     def test_reset_datasec_flipped(self):
         datasec = "[100:2000,100:4450]"
         cutout = "[200:101, 200:101]"
         naxis1 = 2048
         naxis2 = 4600
-        self.assertEquals(storage.reset_datasec(cutout, datasec, naxis1, naxis2), "[1:101,1:101]")
+        self.assertEqual(storage.reset_datasec(cutout, datasec, naxis1, naxis2), "[1:101,1:101]")
 
     def test_reset_datasec_flipped_stars(self):
         datasec = "[100:2000,100:4450]"
         cutout = "[-*, -*]"
         naxis1 = 2048
         naxis2 = 4600
-        self.assertEquals(storage.reset_datasec(cutout, datasec, naxis1, naxis2), "[49:1949,151:4501]")
+        self.assertEqual(storage.reset_datasec(cutout, datasec, naxis1, naxis2), "[49:1949,151:4501]")
 
     def test_reset_datasec_stars(self):
         datasec = "[100:2000,100:4450]"
         cutout = "[*, *]"
         naxis1 = 2048
         naxis2 = 4600
-        self.assertEquals(storage.reset_datasec(cutout, datasec, naxis1, naxis2), "[100:2000,100:4450]")
+        self.assertEqual(storage.reset_datasec(cutout, datasec, naxis1, naxis2), "[100:2000,100:4450]")
 
     def test_get_flipped_image(self):
         """

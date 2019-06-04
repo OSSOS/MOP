@@ -97,7 +97,7 @@ class TimeMPC(TimeString):
         yday = None
         has_yday = '{yday:' in str_fmt or False
 
-        for iy, im, iday, ihmsf in itertools.izip(iys, ims, ids, ihmsfs):
+        for iy, im, iday, ihmsf in zip(iys, ims, ids, ihmsfs):
             ihr, imin, isec, ifracsec = ihmsf
             if has_yday:
                 yday = datetime(iy, im, iday).timetuple().tm_yday

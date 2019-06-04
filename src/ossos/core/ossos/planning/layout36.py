@@ -15,9 +15,9 @@ import ephem
 import Polygon
 import Polygon.IO
 
-import mpcread
-import usnoB1
-import megacam
+from . import mpcread
+from . import usnoB1
+from . import megacam
 from ossos import storage
 from ossos import orbfit
 from ossos import mpc
@@ -278,7 +278,7 @@ fix.write(header)
 field_names = []
 field_polygon = None
 
-for block in blocks.keys():
+for block in list(blocks.keys()):
     rac = ephem.hours(blocks[block]["RA"]) + years[year]["ra_off"]
     decc = ephem.degrees(blocks[block]["DEC"]) + years[year]["dec_off"]
     width = field_offset / math.cos(decc)
@@ -322,8 +322,8 @@ fix.write("""]]</CSV></DATA>
 fix.close()
 
 field_polygon.simplify()
-print "Field Area: {} degrees squared".format(field_polygon.area())
-print "Field Centre: {} ".format(field_polygon.center())
+print("Field Area: {} degrees squared".format(field_polygon.area()))
+print("Field Centre: {} ".format(field_polygon.center()))
 
 (ra_min, ra_max, dec_min, dec_max) = field_polygon.boundingBox()
 
@@ -384,7 +384,7 @@ ax.plot([math.degrees(eq.ra) for eq in invar], [math.degrees(eq.dec) for eq in i
 
 
 ## build a list of Synthetic KBOs that will be in the discovery fields.
-print "LOADING SYNTHETIC MODEL KBOS FROM: {}".format(L7MODEL)
+print("LOADING SYNTHETIC MODEL KBOS FROM: {}".format(L7MODEL))
 ra = []
 dec = []
 kbos = []
@@ -423,7 +423,7 @@ for line in lines:
                 kbo.compute(plot_date)
                 ax.scatter(math.degrees(float(kbo.ra)), math.degrees(float(kbo.dec)), c='k', marker='o', s=2, alpha=0.8)
 
-print "{} KBOs found in coverage on {}".format(len(kbos), discovery_date)
+print("{} KBOs found in coverage on {}".format(len(kbos), discovery_date))
 ## Now we work out how far to move the fields at different lunations
 seps = {}
 dates = {}
@@ -435,7 +435,7 @@ for month in newMoons:
         dates[epoch] = ephem.date(ephem.date(newMoons[month]) + night)
         seps[epoch] = {'dra': 0, 'ddec': 0}
 
-print "COMPUTING NOMINAL MOTIONS USING SYNTHETIC MODEL KBOS FROM: {}".format(L7MODEL)
+print("COMPUTING NOMINAL MOTIONS USING SYNTHETIC MODEL KBOS FROM: {}".format(L7MODEL))
 
 ## Compute the typical motion of KBOs that were in the discovery field.
 for kbo in kbos:
@@ -451,7 +451,7 @@ for kbo in kbos:
 ## plot source locations at the start
 ## middle and end of semester
 if PLOT_SYNTHETIC_KBO_TRAILS:
-    print "PLOTTING TRAILS USING SYNTHETIC MODEL KBOS FROM: {}".format(L7MODEL)
+    print("PLOTTING TRAILS USING SYNTHETIC MODEL KBOS FROM: {}".format(L7MODEL))
     colours = {'Sep14': 'g', 'Oct14': 'b', 'Nov14': 'r'}
     alpha = {'Sep14': 0.3, 'Oct14': 0.7, 'Nov14': 0.3}
     zorder = {'Sep14': 1, 'Oct14': 5, 'Nov14': 2}
@@ -471,9 +471,9 @@ for month in seps:
     seps[month]['ddec'] /= float(len(kbos))
 
 
-sorted_epochs = sorted(dates.iteritems(), key=operator.itemgetter(1))
+sorted_epochs = sorted(iter(dates.items()), key=operator.itemgetter(1))
 
-print "CREATING ET XML FILES USING BASE POINTING AND NOMINAL MOTION RATES"
+print("CREATING ET XML FILES USING BASE POINTING AND NOMINAL MOTION RATES")
 for idx in range(len(ras)):
     name = field_names[idx]
     f = file('%s.xml' % name, 'w')
@@ -508,11 +508,11 @@ for idx in range(len(ras)):
 
 
 if PLOT_USNO_STARS:
-    print "PLOTTING LOCATIONS NEARBY BRIGHT USNO B1 STARS"
+    print("PLOTTING LOCATIONS NEARBY BRIGHT USNO B1 STARS")
     for ra in range(int(ra_cen - width/2.0),int(ra_cen + width/2.), 10):
         for dec in range(int(dec_cen - height/2.0),int(dec_cen + height/2.), 10):
             file_name = USER + "new_usno/usno{:5.2f}{:5.2f}.xml".format(ra, dec).replace(" ", "")
-            print file_name
+            print(file_name)
             file_name = file_name.replace(" ","")
 	    if not os.access(file_name, os.R_OK):
                 usno = usnoB1.TAPQuery(ra, dec, 10.0, 10.0)
@@ -522,7 +522,7 @@ if PLOT_USNO_STARS:
             try:
                t = votable.parse(open(file_name,'r')).get_first_table()
             except:
-               print "No USNO stars found for: {} {}\n".format(ra,dec)
+               print("No USNO stars found for: {} {}\n".format(ra,dec))
                continue
 	    select = t.array['Bmag'] < 9.3
             Rmag = t.array['Bmag'][select]
@@ -546,7 +546,7 @@ if PLOT_USNO_STARS:
                           'color': 'darkred'})
 
 if PLOT_MEGACAM_ARCHIVE_FIELDS:
-    print "PLOTTING FOOTPRINTS NEARBY ARCHIVAL MEGAPRIME IMAGES."
+    print("PLOTTING FOOTPRINTS NEARBY ARCHIVAL MEGAPRIME IMAGES.")
 
     for qra in range(int(ra_cen - width/2.0),int(ra_cen + width/2.), 60):
         for qdec in range(int(dec_cen - height/2.0),int(dec_cen + height/2.), 30):
@@ -568,12 +568,12 @@ if PLOT_MEGACAM_ARCHIVE_FIELDS:
                                edgecolor='m',
                                alpha=0.1,
                                lw=0.1, zorder=-100,
-                               fill=False) for idx in xrange(ra.size)]
+                               fill=False) for idx in range(ra.size)]
             for r in rects:
                 ax.add_artist(r)
 
 if PLOT_MPCORB:
-    print "PLOTTING LOCATIONS OF KNOWN KBOs (using {})".format(MPCORB_FILE)
+    print("PLOTTING LOCATIONS OF KNOWN KBOs (using {})".format(MPCORB_FILE))
     kbos = mpcread.getKBOs(MPCORB_FILE)
     for kbo in kbos:
         kbo.compute(plot_date)
@@ -590,7 +590,7 @@ if PLOT_MPCORB:
 
 if PLOT_REAL_KBOS:
     reader = mpc.MPCReader()
-    print "PLOTTING LOCATIONS OF OSSOS KBOs (using directory {})".format(REAL_KBO_AST_DIR)
+    print("PLOTTING LOCATIONS OF OSSOS KBOs (using directory {})".format(REAL_KBO_AST_DIR))
     for ast in os.listdir(REAL_KBO_AST_DIR):
         obs = reader.read(REAL_KBO_AST_DIR+ast)
         try:
@@ -635,12 +635,12 @@ if PLOT_REAL_KBOS:
                    alpha=0.5)
 
 
-new_tick_locations = np.array(range(360,0,-30))
+new_tick_locations = np.array(list(range(360,0,-30)))
 def tick_function(X):
     import calendar
     month = ( X/30.0 + 8 ) % 12 + 1
     return [ calendar.month_abbr[int(z)] for z in month ]
-print new_tick_locations
+print(new_tick_locations)
 if False:
     ax.set_xlim(360,0)
     ax2 = ax.twiny()
@@ -650,7 +650,7 @@ if False:
     ax2.set_xlim(360,0)
 
 
-print "SAVING FILE"
+print("SAVING FILE")
 savefig('layout.pdf')
 
 sys.stderr.write("FINISHED\n")

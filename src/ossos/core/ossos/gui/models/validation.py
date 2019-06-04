@@ -90,7 +90,7 @@ class ValidationModel(object):
         #        self.workunit_provider.trigger_prefetching()
         #    except:
         #        pass
-        self.work_units.next()
+        next(self.work_units)
 
     def expect_source_transition(self):
         self.expect_image_transition()
@@ -206,15 +206,15 @@ class ValidationModel(object):
                     'CHIPNUM', 'FWHM', 'FILTER']
             return [(key, header.get(key, header2.get(key, None))) for key in keys]
         except Exception as ex:
-            print ex
-            print "Failed to load mopheader, reverting to cutout header."
+            print(ex)
+            print("Failed to load mopheader, reverting to cutout header.")
             pass
 
         try:
             header = self.get_current_cutout().hdulist[-1].header
-            return [(key, value) for key, value in header.iteritems()]
+            return [(key, value) for key, value in header.items()]
         except Exception as ex:
-            print ex
+            print(ex)
             pass
 
         return [('Header_Get', 'FAILED')]

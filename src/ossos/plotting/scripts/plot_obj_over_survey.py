@@ -13,7 +13,7 @@ from astropy.time import Time, TimeDelta
 
 from ossos import mpc
 from ossos import orbfit
-import sky_location_plots
+from . import sky_location_plots
 from src.ossos.core.ossos import parameters
 # import parsers
 from planning.ObsStatus import query_for_observations
@@ -80,7 +80,7 @@ def megacam_corresponding_to_observations(ax):
     for i in range(len(obs_table) - 1, -1, -1):
         t = obs_table.data[i]
         if str(t.dataset_name) in obs_frames:
-            print str(t.dataset_name)
+            print(str(t.dataset_name))
             alpha = 0.4
             lw = 0.95
             if Time(t.StartDate, format='mjd') < Time('2014-01-01'):
@@ -124,7 +124,7 @@ if __name__ == '__main__':
                min([obs.coordinate.dec.degree for obs in obj.mpc_observations]),
                max([obs.coordinate.dec.degree for obs in obj.mpc_observations])]
     midpoint = (extents[0] + ((extents[1] - extents[0]) / 2.), extents[2] + ((extents[3] - extents[2]) / 2.))
-    print(extents, midpoint)
+    print((extents, midpoint))
 
     handles, labels, ax, fontP = sky_location_plots.basic_skysurvey_plot_setup()
     plt.axis('equal')

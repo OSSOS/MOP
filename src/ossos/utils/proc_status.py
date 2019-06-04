@@ -17,7 +17,7 @@ def mkpsf_failures():
             if not storage.get_status(MKPSF, "", expnum, "p", ccd):
                 # get_status returns FALSE if process didn't succeed,
                 # with return_message=True it returns the error message.
-                print expnum, ccd, storage.get_status(MKPSF, "", expnum, "p", ccd, return_message=True)
+                print(expnum, ccd, storage.get_status(MKPSF, "", expnum, "p", ccd, return_message=True))
 
 
 if __name__=='__main__':

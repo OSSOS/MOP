@@ -25,7 +25,7 @@ PROGRAMS = {'CALIBRATION': ((('', 'fk'), ('mkpsf', 'zeropoint', 'fwhm', 'snr_13'
             }
 PROGRAMS['FAKES'] = (PROGRAMS['FAKES'], (('',), ('astrom_mag_check',),('',)))
 PREP = ((('',), ('update_header',), ('o', 'p')),)
-ALL_CCDS = range(40)
+ALL_CCDS = list(range(40))
 
 logging.basicConfig(level=logging.INFO)
 
@@ -81,9 +81,9 @@ if __name__ == '__main__':
 
     opt = parser.parse_args()
     if opt.big:
-	ALL_CCDS = range(40)
+	ALL_CCDS = list(range(40))
     else:
-	ALL_CCDS = range(36)
+	ALL_CCDS = list(range(36))
 
     ccds = opt.ccd is not None and opt.ccd or ALL_CCDS
 
@@ -98,7 +98,7 @@ if __name__ == '__main__':
     block_name = opt.block[-1]
     block_semester = opt.block[:-1]
     vos_filename = 'vos:OSSOS/triplets/{}_{}_discovery_expnums.txt'.format(block_name, block_semester)
-    print vos_filename
+    print(vos_filename)
 
     triplist = storage.open_vos_or_local(vos_filename,'r').read().split('\n')
     
@@ -116,4 +116,4 @@ if __name__ == '__main__':
             continue
         result = check_tags(v[0], ops, ccds, dry_run=opt.dry_run)
         for ccd in result:
-           print line, ccd, ccd
+           print(line, ccd, ccd)

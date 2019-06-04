@@ -37,12 +37,12 @@ def main():
         img_ax.set_cmap(cmap)
 
     def update_contrast(contrast):
-        print "Setting contrast to %f" % contrast
+        print("Setting contrast to %f" % contrast)
         colormap.set_contrast(contrast)
         update_colormap()
 
     def update_bias(bias):
-        print "Setting bias to %f" % bias
+        print("Setting bias to %f" % bias)
         colormap.set_bias(bias)
         update_colormap()
 

@@ -1,5 +1,5 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
-import Queue
+import queue
 import threading
 from ..gui import logger
 from ..gui import config
@@ -26,7 +26,7 @@ class AsynchronousDownloadManager(object):
         self.downloader = downloader
         self.error_handler = error_handler
 
-        self._work_queue = Queue.PriorityQueue()
+        self._work_queue = queue.PriorityQueue()
 
         self._workers = []
         self._maximize_workers()
@@ -60,7 +60,7 @@ class AsynchronousDownloadManager(object):
                          len(self._workers))
 
     def _prune_dead_workers(self):
-        self._workers = filter(lambda thread: thread.is_alive(), self._workers)
+        self._workers = [thread for thread in self._workers if thread.is_alive()]
 
     def _all_workers_stopped(self):
         for worker in self._workers:

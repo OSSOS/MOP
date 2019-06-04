@@ -32,11 +32,11 @@ class Coord:
 
     """
 
-    def __init__(self, (l, b), system='ICRS'):
+    def __init__(self, xxx_todo_changeme, system='ICRS'):
         """Assign the RA/DEC of the coordinate (initialization).
 
         """
-
+        (l, b) = xxx_todo_changeme
         self.system = system
         if system == 'ecliptic':
             self.el = l
@@ -191,4 +191,4 @@ if __name__ == '__main__':
             c = c + 1
 
     if c == 0:
-        print "Passed"
+        print("Passed")

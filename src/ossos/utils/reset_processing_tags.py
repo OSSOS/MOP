@@ -25,7 +25,7 @@ PROGRAMS = {'CALIBRATION': (('', 'fk'), ('mkpsf', 'zeropoint', 'fwhm', 'snr_13')
             'FAKES': (('fk',), ('step1', 'step2', 'step3', 'combine', 'astrom_mag_check'), ('s',)),
             }
 PREP = ((('',), ('update_header',), ('o', 'p')),)
-ALL_CCDS = range(37)
+ALL_CCDS = list(range(37))
 
 logging.basicConfig(level=logging.INFO)
 
@@ -89,10 +89,10 @@ if __name__ == '__main__':
 
     triplist = storage.open_vos_or_local('vos:OSSOS/triplets/{}_{}_discovery_expnums.txt'.format(block_name, block_semester),'r').read().split('\n')
     
-    print opt.field, opt.ccd
+    print(opt.field, opt.ccd)
     for tripline in triplist:
         triplets = tripline.split()
         if opt.field in triplets:
            for expnum in triplets[0:3]:
-              print expnum
+              print(expnum)
               clear_tags(expnum, opt.programs, ccds, dry_run=opt.dry_run)

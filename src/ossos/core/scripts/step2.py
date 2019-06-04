@@ -202,7 +202,7 @@ def main():
     storage.DBIMAGES = args.dbimages
 
     if args.ccd is None:
-        ccd_list = range(0, 36)
+        ccd_list = list(range(0, 36))
     else:
         ccd_list = [args.ccd]
 
