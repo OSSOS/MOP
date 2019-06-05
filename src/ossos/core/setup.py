@@ -29,7 +29,7 @@ for script_dir in script_dirs:
            continue
         scripts.append(os.path.join(script_dir, script))
 
-console_scripts = [ 'mkpsf = ossos.pipeline.mkpsf:main', 'step2 = ossos.pipeline.step2:main', 'step1 = ossos.pipeline.step1:main', 'mk_mopheader = ossos.pipeline.mk_mopheader:main' , 'optimize_pointings = ossos.planning.optimize_pointings:main', 'build_astrometry_report = ossos.pipeline.build_astrometry_report:main', 'update_astrometry = ossos.pipeline.update_astrometry:main']
+console_scripts = [ 'mkpsf = ossos.pipeline.mkpsf:main', 'step3 = ossos.pipeline.step3:main', 'step2 = ossos.pipeline.step2:main', 'step1 = ossos.pipeline.step1:main', 'mk_mopheader = ossos.pipeline.mk_mopheader:main' , 'optimize_pointings = ossos.planning.optimize_pointings:main', 'build_astrometry_report = ossos.pipeline.build_astrometry_report:main', 'update_astrometry = ossos.pipeline.update_astrometry:main']
 gui_scripts = [ 'validate = ossos.tools.validate:main' ]
 
 setup(name='ossos',
