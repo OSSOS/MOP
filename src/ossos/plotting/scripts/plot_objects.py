@@ -3,7 +3,6 @@ __author__ = 'Michele Bannister   git:@mtbannister'
 
 import math
 import os
-import datetime
 
 import numpy as np
 import ephem

@@ -1,28 +1,27 @@
 from __future__ import absolute_import
-
 import datetime
 import os
 import pprint
 import warnings
-import requests
 import numpy
-import sys
-
-from astropy.io import ascii
+import requests
 from astropy import units
 from astropy.coordinates import SkyCoord
+from astropy.io import ascii
 from astropy.time import Time
-
 from . import astrom, mpc, parameters
 from .astrom import SourceReading
 from .gui import logger, config
 from .orbfit import Orbfit
+from . import storage
+
 
 requests.packages.urllib3.disable_warnings()
 
 __author__ = 'Michele Bannister, JJ Kavelaars'
 
-SSOS_URL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssos.pl"
+# SSOS_URL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssos.pl"
+SSOS_URL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssosclf.pl"
 RESPONSE_FORMAT = 'tsv'
 NEW_LINE = '\r\n'
 
@@ -51,8 +50,8 @@ class TracksParser(object):
         try:
             self.orbit = Orbfit(mpc_observations)
             if print_summary:
-               print self.orbit.residuals
-               print self.orbit
+               print(self.orbit.residuals)
+               print(self.orbit)
         except Exception as ex:
             logger.error("{}".format(ex))
             logger.error("Failed to compute orbit with astrometry provided")
@@ -199,7 +198,7 @@ class TrackTarget(TracksParser):
         # but we don't know when in the dark run the discovery happened
         # so be generous with the search boundaries, add extra 2 weeks
         # current date just has to be the night of the triplet,
-        from . import horizons
+        from mp_ephem import horizons
         search_start_date = Time('1999-01-01', scale='utc')
         search_end_date = Time(datetime.datetime.now().strftime('%Y-%m-%d'), scale='utc')
         logger.info("Sending query to SSOS start_date: {} end_data: {}\n".format(search_start_date, search_end_date))
@@ -309,6 +308,8 @@ class SSOSParser(object):
         table_reader.data.splitter.delimiter = '\t'
         ssos_table = table_reader.read(ssos_result_filename_or_lines)
 
+        dbimage_list = storage.list_dbimages(dbimages=storage.DBIMAGES)
+        logger.debug("Comparing to {} observations in dbimages: {}".format(len(dbimage_list), storage.DBIMAGES))
         sources = []
         observations = []
         source_readings = []
@@ -316,7 +317,7 @@ class SSOSParser(object):
         if mpc_observations is not None and isinstance(mpc_observations[0], mpc.Observation):
             orbit = Orbfit(mpc_observations)
         else:
-            from . import horizons
+            from mp_ephem import horizons
             start_time = Time(min(ssos_table['MJD']), format='mjd')
             stop_time = Time(max(ssos_table['MJD']), format='mjd')
             step_size = 5.0 * units.hour
@@ -328,14 +329,19 @@ class SSOSParser(object):
         for row in ssos_table:
             # Trim down to OSSOS-specific images
 
+            logger.debug("Checking row: {}".format(row))
             if (row['Filter'] not in parameters.OSSOS_FILTERS) or row['Image_target'].startswith('WP'):
+                logger.debug("Failed filter / target name check")
                 continue
 
             # check if a dbimages object exists
             # For CFHT/MegaCam strip off the trailing character to get the exposure number.
             ftype = row['Image'][-1]
             expnum = row['Image'][:-1]
-
+            if str(expnum) not in dbimage_list:
+                logger.debug("Expnum: {} Failed dbimage list check".format(expnum))
+                continue
+            logger.debug("Expnum: {} Passed dbimage list check".format(expnum))
             # The file extension is the ccd number + 1 , or the first extension.
             ccd = int(row['Ext'])-1
             if 39 < ccd < 0 or ccd < 0:
@@ -358,6 +364,7 @@ class SSOSParser(object):
                 print "Skipping entry as orbit uncertainty at date {} is large.".format(obs_date)
                 continue
             if expnum in expnums_examined:
+                logger.debug("Already checked this exposure.")
                 continue
             expnums_examined.append(expnum)
 
@@ -463,7 +470,7 @@ class ParamDictBuilder(object):
     http://www4.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssosclf.pl?
     lang=en
     object=2
-    search=bynameCADC
+    search=bynameHorizons
     epoch1=1990+01+01
     epoch2=2016+3+27
     eellipse=
@@ -523,7 +530,7 @@ class ParamDictBuilder(object):
         orbit_method_set = None
         for observation in observations:
             use_bern = isinstance(observation, mpc.Observation)
-            self.orbit_method = use_bern and 'bern' or 'bynameCADC'
+            self.orbit_method = use_bern and 'bern' or 'bynameHorizons'
             orbit_method_set = orbit_method_set is None and self.orbit_method or orbit_method_set
             if orbit_method_set != self.orbit_method:
                 raise ValueError("All members of observations list must be same type.")
@@ -591,9 +598,9 @@ class ParamDictBuilder(object):
 
     @orbit_method.setter
     def orbit_method(self, orbit_method):
-        assert orbit_method in ['bern', 'mpc', 'bynameCADC']
+        assert orbit_method in ['bern', 'mpc', 'bynameHorizons']
         self._orbit_method = orbit_method
-        if self._orbit_method == 'bynameCADC':
+        if self._orbit_method == 'bynameHorizons':
             self.error_units = 'arcseconds'
 
     @property
@@ -683,7 +690,7 @@ class ParamDictBuilder(object):
                       xyres=self.resolve_position,
                       telinst=self.telescope_instrument)
 
-        if self.orbit_method == 'bynameCADC':
+        if self.orbit_method == 'bynameHorizons':
             params['object'] = NEW_LINE.join((str(target_name) for target_name in self.observations))
         else:
             params['obs'] = NEW_LINE.join((str(observation) for observation in self.observations))

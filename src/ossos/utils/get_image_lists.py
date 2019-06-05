@@ -1,18 +1,17 @@
+import argparse
 import os
+import time
+from astropy import units
 from astropy.io import ascii
 from astropy.time import Time
-from astropy import units
-import argparse
-import time
-# import find_family
-from ossos.ssos import Query
-from ossos import horizons
-# import config
+from mp_ephem import horizons
 from ossos import storage
+from ossos.ssos import Query
 
-# _DIR_PATH_BASE = config._DIR_PATH_BASE
-# _FAMILY_LISTS = config._FAMILY_LISTS
-# _OUTPUT_DIR = config._OUTPUT_DIR
+
+_DIR_PATH_BASE = config._DIR_PATH_BASE
+_FAMILY_LISTS = config._FAMILY_LISTS
+_OUTPUT_DIR = config._OUTPUT_DIR
 
 
 def main():
@@ -85,7 +84,7 @@ def get_member_info(object_name, filtertype='r', imagetype='p'):
     search_start_date = Time('2013-01-01', scale='utc')  # epoch1=2013+01+01
     search_end_date = Time('2017-01-01', scale='utc')  # epoch2=2017+1+1
 
-    print "----- Searching for images of object {}".format(object_name)
+    print("----- Searching for images of object {}".format(object_name))
 
     image_list = []
     expnum_list = []
@@ -94,15 +93,15 @@ def get_member_info(object_name, filtertype='r', imagetype='p'):
 
     query = Query(object_name, search_start_date=search_start_date, search_end_date=search_end_date)
     result = query.get()
-    print result
+    print(result)
     try:
         objects = parse_ssois_return(query.get(), object_name, imagetype, camera_filter=filtertype)
     except IOError:
-        print "Sleeping 30 seconds"
+        print("Sleeping 30 seconds")
         time.sleep(30)
         objects = parse_ssois_return(query.get(), object_name, imagetype, camera_filter=filtertype)
 
-    print objects
+    print(objects)
     # Setup output, label columns
     if len(objects)>0:
         output = '{}/{}_object_images.txt'.format(_OUTPUT_DIR, object_name)
@@ -123,13 +122,13 @@ def get_member_info(object_name, filtertype='r', imagetype='p'):
                 p_ra = hq.table[1]['R.A._(ICRF/J2000.0']
                 p_dec = hq.table[1]['DEC_(ICRF/J2000.0']
                 ra_dot = hq.table[1]['dRA*cosD']
-                dec_doc = hq.table[1]['dDEC/dt']
+                dec_dot = hq.table[1]['dDEC/dt']
                 try:
                     outfile.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
                         object_name, line['Image'], line['Exptime'], p_ra, p_dec,
                         Time(line['MJD'], format='mjd', scale='utc'), line['Filter'], ra_dot, dec_dot))
-                except Exception, e:
-                    print "Error writing to outfile: {}".format(e)
+                except Exception as e:
+                    print("Error writing to outfile: {}".format(e))
 
     return image_list, expnum_list, ra_list, dec_list
 
@@ -156,14 +155,15 @@ def parse_ssois_return(ssois_return, object_name, imagetype, camera_filter='r.MP
         # note: 'Telescope_Insturment' is a typo in SSOIS's return format
         if not 'MegaCam' in row['Telescope_Insturment']:
             continue
-        if not storage.exists(storage.get_uri(row['Image'][:-1])):  #Check if image of object exists in OSSOS observations
+        # Check if image of object exists in OSSOS observations
+        if not storage.exists(storage.get_uri(row['Image'][:-1])):
             continue
         if not str(row['Image_target']).startswith('WP'):
            good_table += 1
            ret_table.append(row)
 
     if good_table > 0:
-        print " %d images found" % good_table
+        print(" %d images found" % good_table)
 
     return ret_table
 

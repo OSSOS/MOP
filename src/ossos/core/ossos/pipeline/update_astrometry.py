@@ -4,21 +4,19 @@ Update the astrometric and photometric measurements of an mpc observation based 
 observation.
 """
 from copy import deepcopy
+import time
 from astropy import units
 import os
 import math
 import numpy
-
-__author__ = 'jjk'
-
 import logging
 import re
-
-from ossos import mpc, storage, wcs, astrom
+import mp_ephem
+from ossos import storage, wcs, astrom
 from ossos import orbfit
 import argparse
 
-from requests import ConnectionError
+__author__ = 'jjk'
 
 # Maximum allowed change in angle during re-measure
 TOLERANCE = 2.00 * units.arcsec
@@ -26,23 +24,27 @@ TOLERANCE = 2.00 * units.arcsec
 
 def _flipped_ccd(ccd):
     """
-
+    Is this CCD likely flipped?
+    
+    The MegaCam imager on CFHT has E/N flipped for some of their CCDs.
+    
     @param ccd:
     @return:
     """
     return ccd < 18 or ccd in [36, 37]
 
 
-def remeasure(mpc_in, reset_pixel_coordinates=False):
+def remeasure(mpc_in, reset_pixel_coordinates=True):
     """
     Compute the RA/DEC of the line based on the X/Y in the comment and the WCS of the associated image.
 
     Comment of supplied astrometric line (mpc_in) must be in OSSOSComment format.
 
     @param mpc_in: An line of astrometric measurement to recompute the RA/DEC from the X/Y in the comment.
-    @type mpc_in: mpc.Observation
+    @type mpc_in: mp_ephem.Observation
     @param reset_pixel_coordinates: try and determine correct X/Y is X/Y doesn't map to correct RA/DEC value
     @type reset_pixel_coordinates: bool
+    @type reset_pixecl_coordinates: bool
 
     """
     if mpc_in.null_observation:
@@ -50,7 +52,7 @@ def remeasure(mpc_in, reset_pixel_coordinates=False):
     mpc_obs = deepcopy(mpc_in)
     logging.debug("rm start: {}".format(mpc_obs.to_string()))
 
-    if not isinstance(mpc_obs.comment, mpc.OSSOSComment):
+    if not isinstance(mpc_obs.comment, mp_ephem.ephem.OSSOSComment):
         logging.error("Failed to convert comment line")
         return mpc_in
 
@@ -71,8 +73,10 @@ def remeasure(mpc_in, reset_pixel_coordinates=False):
 
     this_wcs = wcs.WCS(header)
 
-    mpc_obs.coordinate = this_wcs.xy2sky(mpc_obs.comment.x, mpc_obs.comment.y, usepv=True)
+    coordinate = this_wcs.xy2sky(mpc_obs.comment.x, mpc_obs.comment.y, usepv=True)
+    mpc_obs.coordinate = coordinate[0].to('degree').value, coordinate[1].to('degree').value
     sep = mpc_in.coordinate.separation(mpc_obs.coordinate)
+
     if sep > TOLERANCE*20 and mpc_in.discovery and _flipped_ccd(ccd):
         logging.warn("Large ({}) offset using X/Y in comment line to compute RA/DEC".format(sep))
         if reset_pixel_coordinates:
@@ -144,20 +148,20 @@ def _connection_error_wrapper(func, *args, **kwargs):
     @return:
     """
 
-    while True:
-        result = None
+    counter = 0
+    while counter < 5:
         try:
             result = func(*args, **kwargs)
-        except ConnectionError:
-            continue
+            return result
         except Exception as ex:
-            logging.error(str(ex))
-        return result
+            time.sleep(5)
+            counter += 1
+            logging.warning(str(ex))
 
 
 def recompute_mag(mpc_in, skip_centroids=False):
     """
-    Get the mag of the object given the mpc.Observation
+    Get the mag of the object given the mp_ephem.ephem.Observation
     """
     # TODO this really shouldn't need to build a 'reading' to get the cutout...
 
@@ -165,8 +169,8 @@ def recompute_mag(mpc_in, skip_centroids=False):
     dlm = downloader.ImageCutoutDownloader()
 
     mpc_obs = deepcopy(mpc_in)
-    assert isinstance(mpc_obs, mpc.Observation)
-    assert isinstance(mpc_obs.comment, mpc.OSSOSComment)
+    assert isinstance(mpc_obs, mp_ephem.ephem.Observation)
+    assert isinstance(mpc_obs.comment, mp_ephem.ephem.OSSOSComment)
 
     if mpc_obs.null_observation:
         return mpc_obs
@@ -238,18 +242,29 @@ def recompute_mag(mpc_in, skip_centroids=False):
         mpc_obs.comment.x = x.value
         mpc_obs.comment.y = y.value
 
-    mpc_obs._band = filter_value
-    mpc_obs.comment.mag = mag
-    mpc_obs.comment.mag_uncertainty = merr
+    try:
+        mag = float(mag)
+    except:
+        return mpc_obs
+
+    if math.isnan(mag):
+        return mpc_obs
+
+    if mag > 10:
+        mpc_obs._band = filter_value
+        mpc_obs.comment.mag = mag
+        mpc_obs.comment.mag_uncertainty = merr
 
     # Update the mpc record magnitude if previous value existed here.
-    if (mpc_obs.mag is not None or (mpc_obs.mag is None and mpc_in.comment.photometry_note[0] == "Z")):
+    if (mpc_obs.mag is not None or (mpc_obs.mag is None and mpc_in.comment.photometry_note[0] == "Z")) and mag > 10:
         mpc_obs.mag = mag
 
     return mpc_obs
 
 
-def main(mpc_file, cor_file, skip_mags=False, skip_centroids=False):
+def run(mpc_file, cor_file, 
+        skip_discovery=True, skip_mags=False, 
+        skip_centroids=False, compare_orbits=False):
     """
 
     :param mpc_file: A file containing the astrometric lines to be updated.
@@ -257,25 +272,38 @@ def main(mpc_file, cor_file, skip_mags=False, skip_centroids=False):
     :param skip_mags: Should we skip recomputing the magnitude of sources?
     :return: :raise ValueError: If actions on the mpc_obs indicate this is not a valid OSSOS observations
     """
-    observations = mpc.MPCReader(mpc_file).mpc_observations
-
+    observations = mp_ephem.EphemerisReader().read(mpc_file)
+    logging.debug("Read in Observations: {}".format(observations))
     original_obs = []
     modified_obs = []
-    logging.info("ASTROMETRY FILE: {} --> {}".format(mpc_file, cor_file))
+    logging.info("ASTROMETRY FILE: {} --> {}.tlf".format(mpc_file, cor_file))
     for mpc_in in observations:
-        if not isinstance(mpc_in.comment, mpc.OSSOSComment):
+      try:
+        if not isinstance(mpc_in.comment, mp_ephem.ephem.OSSOSComment):
+            logging.info(type(mpc_in.comment))
+            logging.info("Skipping: {}".format(mpc_in.to_string()))
             continue
-        if ((args.discovery and not mpc_in.discovery.is_discovery) or
-                (not args.discovery and mpc_in.discovery.is_discovery)):
+        if ((skip_discovery and mpc_in.discovery) or
+                (not skip_discovery and not mpc_in.discovery)):
+            logging.info("Discovery mis-match")
+            logging.info("Skipping: {}".format(mpc_in.to_string()))
             continue
         logging.info("="*220)
         logging.info("   orig: {}".format(mpc_in.to_string()))
+        if mpc_in.comment.astrometric_level == 4:
+            logging.info("Already at maximum AstLevel, skipping.")
+            continue
+        if mpc_in.null_observation:
+            logging.info("Skipping NULL observation.")
+            continue
         mpc_obs = remeasure(mpc_in)
         logging.info("new wcs: {}".format(mpc_obs.to_string()))
 
         if not skip_mags:  
             # and not mpc_obs.comment.photometry_note[0] == "Z":
-            mpc_mag = remeasure(recompute_mag(mpc_obs, skip_centroids=skip_centroids), reset_pixel_coordinates=not skip_centroids)
+            mpc_mag = remeasure(recompute_mag(mpc_obs,
+                                              skip_centroids=skip_centroids),
+                                reset_pixel_coordinates=not skip_centroids)
         else:
             mpc_mag = mpc_obs
 
@@ -290,19 +318,19 @@ def main(mpc_file, cor_file, skip_mags=False, skip_centroids=False):
         original_obs.append(mpc_in)
         modified_obs.append(mpc_mag)
         logging.info("="*220)
+      except:
+        logging.error("Skipping: {}".format(mpc_in))
 
     optr = open(cor_file + ".tlf", 'w')
     for idx in range(len(modified_obs)):
         inp = original_obs[idx]
         out = modified_obs[idx]
-        try:
-            dmag = (inp.mag - out.mag) != 0
-        except:
-           dmag = True
-        if inp != out or dmag or True:
-            optr.write(out.to_string()+"\n")
+        if inp != out:
+            optr.write(out.to_tnodb()+"\n")
     optr.close()
 
+    if not compare_orbits:
+        return True
     try:
        compare_orbits(original_obs, modified_obs, cor_file)
     except Exception as ex:
@@ -404,7 +432,7 @@ def compare_orbits(original_obs, modified_obs, cor_file):
     orbpt.close()
 
 
-if __name__ == '__main__':
+def main():
     description = """This program takes as input a set of OSSOS measurements and adjusts the astrometric and photometric
     entries to be consistent with the current best estimate for the astrometric and photometric calibrations.
     """
@@ -415,11 +443,12 @@ if __name__ == '__main__':
                         default=None)
     parser.add_argument('--skip-mags', action="store_true", help="Recompute magnitudes.", default=False)
     parser.add_argument('--skip-centroids', action="store_true", help="Recompute centroids.", default=False)
+    parser.add_argument('--compare-orbits', action='store_true', help="Compute/Compare pre and post remeasure orbits?", default=False)
     parser.add_argument('--debug', action='store_true')
 
     args = parser.parse_args()
 
-    level = logging.WARN
+    level = logging.INFO
     if args.debug:
         level = logging.DEBUG
 
@@ -431,5 +460,12 @@ if __name__ == '__main__':
         base_name = os.path.splitext(os.path.basename(args.ast_file))[0]
     else:
         base_name = args.result_base_name
-    main(args.ast_file, base_name, args.skip_mags, skip_centroids=args.skip_centroids)
+    run(args.ast_file, base_name, 
+        skip_discovery=not args.discovery, 
+        skip_mags=args.skip_mags, 
+        skip_centroids=args.skip_centroids, 
+        compare_orbits=args.compare_orbits)
 
+
+if __name__ == '__main__':
+    sys.exit(main())

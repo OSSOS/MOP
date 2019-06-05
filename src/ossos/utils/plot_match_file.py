@@ -59,10 +59,15 @@ for match_file in sys.argv[1:]:
       (nadd, bins) = numpy.histogram(T['mag'][mask1], bins=numpy.arange(21,26,0.25))
       (nfnd, bins) = numpy.histogram(T['mag'][mask2], bins=numpy.arange(21,26,0.25))
       f = nfnd[nadd>0]/(1.0*nadd[nadd>0])
-      m = bins[nadd>0]
+      m = bins[0:-1][nadd>0]
       ax_frac.plot(m, f, 'o-', label="{:3.1f}:{:3.1f}".format(rates[idx], rates[idx+1]))
    
-   for idx in range(len(rates)-1):
+   ax_frac.set_xlabel('mag')
+   ax_frac.set_ylabel('f')
+  
+   # skip for proposal plot
+   if False:
+    for idx in range(len(rates)-1):
       mask1 = numpy.all([rates[idx] < T['sky_rate'], 
                          T['sky_rate']  < rates[idx+1], 
                          T['x'] < 1500, 
@@ -73,12 +78,13 @@ for match_file in sys.argv[1:]:
       (nadd, bins) = numpy.histogram(T['mag'][mask1], bins=numpy.arange(21,26,0.25))
       (nfnd, bins) = numpy.histogram(T['mag'][mask2], bins=numpy.arange(21,26,0.25))
       f = nfnd[nadd>0]/(1.0*nadd[nadd>0])
-      m = bins[nadd>0]
-      ax_frac.plot(m, f, 's--', label="{:3.1f}:{:3.1f}".format(rates[idx], rates[idx+1]))
+      m = bins[0:1][nadd>0]
+      # ax_frac.plot(m, f, 's--', label="{:3.1f}:{:3.1f}".format(rates[idx], rates[idx+1]))
 
-   ax_frac.set_xlabel('mag')
-   ax_frac.set_ylabel('f')
    ax_frac.legend(loc=3)
+   pp.savefig()
+   pp.close()
+   sys.exit()
 
    ax_xy.hexbin(T['x'],T['y'], cmap=plt.cm.Blues, mincnt=1, gridsize=80)
    ax_xy.hexbin(T['x'][T['measure_mag1'].mask==False],T['y'][T['measure_mag1'].mask==False], cmap=plt.cm.Reds, alpha=1, mincnt=1, gridsize=80)

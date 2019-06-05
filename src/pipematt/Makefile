@@ -8,7 +8,7 @@ CC    = gcc				# the C compiler
 COPTS = -O				# options for the C compiler
 LIBS  = -lm
 
-all: add_mag add_mag_fwhm bright convert_mjd cr_elim cr_elim_fwhm fwhm_medav gettime-exp kbo_gen non_stationary satur search select_trans_stars select_trans_stars_fwhm trans
+all: add_mag add_mag_fwhm bright convert_mjd cr_elim cr_elim_fwhm fwhm_medav gettime-exp kbo_gen non_stationary satur search search_jjk select_trans_stars select_trans_stars_fwhm trans
 
 add_mag: add_mag.c 
 	$(CC) add_mag.c -o add_mag $(LIBS) $(COPTS)
@@ -46,6 +46,9 @@ satur: satur.c
 search: search.c 
 	$(CC) search.c -o search $(LIBS) $(COPTS)
 
+search_jjk: search_jjk.c 
+	$(CC) search_jjk.c -o search_jjk $(LIBS) $(COPTS)
+
 select_trans_stars: select_trans_stars.c 
 	$(CC) select_trans_stars.c -o select_trans_stars $(LIBS) $(COPTS)
 
@@ -56,4 +59,4 @@ trans: $(ALL) trans.c
 	$(CC) trans.c -o trans $(LIBS) $(COPTS)
 
 clean:
-	/bin/rm -f add_mag add_mag_fwhm bright convert_mjd convert_radec gettime-exp kbo_gen non_stationary satur search select_trans_stars select_trans_stars_fwhm trans cr_elim cr_elim_fwhm fwhm_medav
+	/bin/rm -f add_mag add_mag_fwhm bright convert_mjd convert_radec gettime-exp kbo_gen non_stationary satur search search_jjk select_trans_stars select_trans_stars_fwhm trans cr_elim cr_elim_fwhm fwhm_medav
