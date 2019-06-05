@@ -100,6 +100,7 @@ def run(expnums, ccd, version, prefix=None, dry_run=False, default="WCS", force=
     if storage.get_status(task, prefix, expnums[0], version, ccd) and not force:
         logging.info("{} completed successfully for {}{}{}{:02d}".format(
             task, prefix, expnums[0], version, ccd))
+        return
 
     with storage.LoggingManager(task, prefix, expnums[0], ccd, version, dry_run):
         try:
