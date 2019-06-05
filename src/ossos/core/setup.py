@@ -7,10 +7,10 @@ from setuptools import setup, find_packages
 dependencies = ['pyraf >= 2.1.1',
                 'requests >= 2.7',
                 'astropy >= 0.2.5',
-                'vos >= 2.0',
+                'vos >= 3.0',
                 'ephem',
                 'numpy >= 1.6.1',
-                'wxPython >= 3.0.0.0',
+                'wxPython >= 3.0.0.0, < 4.0.0',
                 'matplotlib',
                 'Polygon2',
                 'd2to1 >= 0.2.10',
@@ -25,15 +25,15 @@ if sys.version_info[0] > 2:
     sys.exit(-1)
 
 # # Build the list of tools and scripts to be installed.
-#script_dirs = ['tools', 'scripts']
-#scripts = []
-#for script_dir in script_dirs:
-#    for script in os.listdir(script_dir):
-#        if script[-1] in ["~", "#"]:
-#           continue
-#        scripts.append(os.path.join(script_dir, script))
+script_dirs = ['scripts']
+scripts = []
+for script_dir in script_dirs:
+    for script in os.listdir(script_dir):
+        if script[-1] in ["~", "#"]:
+           continue
+        scripts.append(os.path.join(script_dir, script))
 
-console_scripts = [ 'mkpsf = ossos.pipeline.mkpsf:main', 'step1 = ossos.pipeline.step1:main', 'mk_mopheader = ossos.pipeline.mk_mopheader:main' , 'optimize_pointings = ossos.planning.optimize_pointings:main']
+console_scripts = [ 'mkpsf = ossos.pipeline.mkpsf:main', 'step1 = ossos.pipeline.step1:main', 'mk_mopheader = ossos.pipeline.mk_mopheader:main' , 'optimize_pointings = ossos.planning.optimize_pointings:main', 'build_astrometry_report = ossos.pipeline.build_astrometry_report:main', 'update_astrometry = ossos.pipeline.update_astrometry:main']
 gui_scripts = [ 'validate = ossos.tools.validate:main' ]
 
 setup(name='ossos',
@@ -55,6 +55,7 @@ setup(name='ossos',
                    'License :: OSI Approved :: GNU General Public License (GPL)',
                    ],
       package_data={'ossos': ['gui/*.json']},
+      scripts=scripts,
       dependency_links=['git+https://github.com/ericmandel/pyds9.git#egg=pyds9-1.8'],
       install_requires=dependencies,
       entry_points = { 'console_scripts': console_scripts,

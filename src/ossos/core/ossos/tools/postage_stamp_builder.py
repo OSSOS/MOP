@@ -15,56 +15,55 @@ ivo://ivoa.net/vospace/core%23httpget&view=cutout&cutout=CIRCLE+ICRS+242.1318+-1
 import argparse
 import logging
 import os
+import sys
 
 from astropy import units
 from astropy.units import Quantity
 from astropy.io import fits
 
 from ossos import (mpc, storage, parameters)
-
+storage.FITS_EXT = ".fits"
 
 def cutout(obj, obj_dir, radius):
-    print(len([n for n in obj.mpc_observations if not n.null_observation]))
-    cutout_listing = storage.listdir(obj_dir)
+
+    cutout_listing = storage.listdir(obj_dir, force=True)
     for obs in obj.mpc_observations:
-        print('starting analysis of {}'.format(str(obs)))
         if obs.null_observation:
-            print('skipping')
+            logging.debug('skipping: {}'.format(obs))
             continue
         if obs.date > parameters.SURVEY_START:  # can't make postage stamps of earlier linkages
             # can't parse for an obs.comment's exposure number if no obs.comment exists
             try:
-                expnum = obs.comment.frame.split('p')[0].strip(' ')  # only want calibrated images
-            except AttributeError, e:
-                print('No comment in this MPC line!')
+                parts = storage.frame2expnum(obs.comment.frame)
+            except Exception as ex:
+                logging.error("Skipping: {}\nFailed to map comment.frame to expnum: {}".format(obs, ex))
                 continue
-            if not expnum.isdigit():
-                print('expnum {} parsed from comment line invalid. Check comment parsing.\n{}'.format(
-                    expnum, str(obs.comment))
-                )
-                continue
-            uri = storage.get_uri(expnum)
+            uri = storage.get_uri(parts['expnum'], version=parts['version'])
             sky_coord = obs.coordinate  # Using the WCS rather than the X/Y (X/Y can be unreliable over the whole survey)
-            print('Trying {} on {} on {}...'.format(obj.provisional_name, obs.date, expnum))
-            try:
-                postage_stamp_filename = "{}_{:11.5f}_{:09.5f}_{:+09.5f}.fits".format(obj.provisional_name,
-                                                                                      obs.date.mjd,
-                                                                                      obs.coordinate.ra.degree,
-                                                                                      obs.coordinate.dec.degree)
-                if postage_stamp_filename in cutout_listing:
-                    # skipping existing cutouts
-                    continue 
-                print("{}".format(postage_stamp_filename))
+            postage_stamp_filename = "{}_{:11.5f}_{:09.5f}_{:+09.5f}.fits".format(obj.provisional_name,
+                                                                                  obs.date.mjd,
+                                                                                  obs.coordinate.ra.degree,
+                                                                                  obs.coordinate.dec.degree)
 
-                hdulist = storage.ra_dec_cutout(uri, sky_coord, radius)
+            if postage_stamp_filename in cutout_listing:
+               # skipping existing cutouts
+                continue 
+
+            # ast_header = storage._get_sghead(parts['expnum'])
+            while True:
+              try:
+                hdulist = storage.ra_dec_cutout(uri, sky_coord, radius, update_wcs=True)
 
                 with open(postage_stamp_filename, 'w') as tmp_file:
-                    hdulist.writeto(tmp_file, clobber=True)
+                    hdulist.writeto(tmp_file, overwrite=True, output_verify='fix+ignore')
                     storage.copy(postage_stamp_filename, obj_dir + "/" + postage_stamp_filename)
                 os.unlink(postage_stamp_filename)  # easier not to have them hanging around
-            except OSError, e:  # occasionally the node is not found: report and move on for later cleanup
-                print e
+              except OSError as e:  # occasionally the node is not found: report and move on for later cleanup
+                logging.error("OSError: ->"+str(e))
+              except Exception as e:
+                logging.error("Exception: ->"+str(e))
                 continue
+              break
 
 
 def main():
@@ -102,38 +101,35 @@ def main():
 
 
     args = parser.parse_args()
-    print args
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
     elif args.verbose:
         logging.basicConfig(level=logging.INFO)
+    else:
+        logging.basicConfig(level=logging.ERROR)
 
 
     astdir = args.astdir
     flist = os.listdir(astdir)
     if args.recheck:
         flist = [args.recheck + '.ast']
-        print flist
 
     for fn in flist:
+        if not fn.endswith('.ast'):
+            continue
         for block in args.blocks:
             if fn.startswith(block):
                 obj_dir = '{}/{}/{}'.format(storage.POSTAGE_STAMPS, args.version, fn.partition('.')[0]) # obj.provisional_name
-                print obj_dir
-                if args.recheck is None:  # otherwise if rechecking, it'll have already been started
-                    if not storage.exists(obj_dir, force=True):
-                        storage.mkdir(obj_dir)
-                    else:
-                        print(fn)
-                        continue   # good if the object has already had its stamps cut
+                logging.info("Processing astrometric files in {}".format(obj_dir))
+                storage.mkdir(obj_dir)
                 obj = mpc.MPCReader(astdir + fn)
                 # assert storage.exists(obj_dir, force=True)
-                print('{} beginning...\n'.format(obj.provisional_name))
+                sys.stderr.write('{} beginning...'.format(obj.provisional_name))
                 # if int(obj.provisional_name[3:]) == 49:
                 assert isinstance(args.radius, Quantity)
                 cutout(obj, obj_dir, args.radius)
-                print('{} complete.\n'.format(obj.provisional_name))
+                sys.stderr.write('{} complete.\n\n'.format(obj.provisional_name))
 
 
 if __name__ == '__main__':

@@ -166,10 +166,16 @@ def match_lists(pos1, pos2, tolerance=MATCH_TOLERANCE, spherical=False):
     assert isinstance(pos1, numpy.ndarray)
     assert isinstance(pos2, numpy.ndarray)
 
+
     # build some arrays to hold the index of things that matched between lists.
-    npts1 = len(pos1[:, 0])
+    npts2 = npts1 = 0
+
+    if len(pos1) > 0:
+        npts1 = len(pos1[:, 0])
     pos1_idx_array = numpy.arange(npts1, dtype=numpy.int16)
-    npts2 = len(pos2[:, 0])
+
+    if len(pos2) > 0:
+        npts2 = len(pos2[:, 0])
     pos2_idx_array = numpy.arange(npts2, dtype=numpy.int16)
 
     # this is the array of final matched index, -1 indicates no match found.
@@ -179,6 +185,10 @@ def match_lists(pos1, pos2, tolerance=MATCH_TOLERANCE, spherical=False):
     # this is the array of matches in pos2, -1 indicates no match found.
     match2 = numpy.ma.zeros(npts2, dtype=numpy.int16)
     match2.mask = True
+
+    # if one of the two input arrays are zero length then there is no matching to do.
+    if npts1 * npts2 == 0:
+        return match1, match2
 
     for idx1 in range(npts1):
 

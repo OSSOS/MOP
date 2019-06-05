@@ -1,10 +1,9 @@
 from astropy.io import ascii
-from astropy.table import MaskedColumn, Table
+from astropy.table import MaskedColumn, Table, Column
 import logging
 import math
 import numpy
 import os
-import daophot
 from downloads.cutouts.downloader import ImageDownloader
 import util
 from downloads.cutouts.source import SourceCutout
@@ -16,6 +15,36 @@ MINIMUM_BRIGHT_DETECTIONS = 5
 MINIMUM_BRIGHT_FRACTION = 0.5
 
 
+def match_mopfiles(mopfile1, mopfile2):
+    """
+    Given an input list of 'real' detections and candidate detections provide a result file that contains
+    the measured values from candidate detections with a flag indicating if they are real or false.
+
+    @rtype MOPFile
+    @return mopfile2 with a new column containing index of matching entry in mopfile1
+    """
+    pos1 = pos2 = numpy.array([])
+    if len(mopfile1.data) > 0:
+        X_COL = "X_{}".format(mopfile1.header.file_ids[0])
+        Y_COL = "Y_{}".format(mopfile1.header.file_ids[0])
+        pos1 = numpy.array([mopfile1.data[X_COL].data, mopfile1.data[Y_COL].data]).transpose()
+
+    if len(mopfile2.data) > 0:
+        X_COL = "X_{}".format(mopfile2.header.file_ids[0])
+        Y_COL = "Y_{}".format(mopfile2.header.file_ids[0])
+        pos2 = numpy.array([mopfile2.data[X_COL].data, mopfile2.data[Y_COL].data]).transpose()
+
+    # match_idx is an order list.  The list is in the order of the first list of positions and each entry
+    # is the index of the matching position from the second list.
+    match_idx1, match_idx2 =  util.match_lists(pos1, pos2)
+    mopfile1.data.add_column(Column(data=match_idx1.filled(-1), name="real", length=len(mopfile1.data)))
+    idx = 0
+    for file_id in mopfile1.header.file_ids:
+        idx += 1
+        mopfile1.data.add_column(Column(data=[file_id]*len(mopfile1.data), name="ID_{}".format(idx)))
+    return mopfile1
+
+
 def measure_mags(measures):
     """
     Given a list of readings compute the magnitudes for all sources in each reading.
@@ -23,6 +52,7 @@ def measure_mags(measures):
     @param measures: list of readings
     @return: None
     """
+    import daophot
 
     image_downloader = ImageDownloader()
 

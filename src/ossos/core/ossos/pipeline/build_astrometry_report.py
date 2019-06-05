@@ -8,8 +8,11 @@ import sys
 
 from ossos import mpc
 from astropy import units
+from astropy.time import Time
 from astropy.coordinates.angles import Angle
 from ossos.gui import config
+
+rename_map = {}
 
 
 def load_observations((observations, regex, rename), path, filenames):
@@ -26,31 +29,39 @@ def load_observations((observations, regex, rename), path, filenames):
 
     for filename in filenames:
         if re.search(regex, filename) is None:
-            logging.warning("Skipping {}".format(filename))
+            logging.error("Skipping {}".format(filename))
             continue
-        obs = mpc.MPCReader().read(os.path.join(path,filename))
+        obs = mpc.MPCReader().read(os.path.join(path, filename))
         for ob in obs:
+            if "568" not in ob.observatory_code:
+                continue
+            if not isinstance(ob.comment, mpc.OSSOSComment):
+                continue
+            if ob.date < Time("2013-01-01 00:00:00"):
+                continue
             if rename:
                 new_provisional_name = os.path.basename(filename)
                 new_provisional_name = new_provisional_name[0:new_provisional_name.find(".")]
-                ob.provisional_name = new_provisional_name
-                # ob.comment.name = new_provisional_name
-            key1 = "{:.5f}".format(ob.date.mjd)
-            key2 = ob.provisional_name 
+                rename_map[ob.provisional_name] = new_provisional_name
+            try:
+                key1 = ob.comment.frame.split('p')[0]
+            except Exception as ex:
+                logger.warning(str(ex))
+                logger.warning(ob.to_string())
+                continue
+            key2 = ob.provisional_name
             if key1 not in observations:
-                 observations[key1] = {}
+                observations[key1] = {}
             if key2 in observations[key1]:
-               if observations[key1][key2]:
-                   continue
-               if not observation.null_observation:
-                   logger.error(filename)
-                   logger.error(line)
-                   logger.error(str(observations[key1][key2]))
-                   raise ValueError("conflicting observations for {} in {}".format(key2, key1))
+                if observations[key1][key2]:
+                    continue
+                if not observation.null_observation:
+                    logger.error(filename)
+                    logger.error(str(observations[key1][key2]))
+                    raise ValueError("conflicting observations for {} in {}".format(key2, key1))
             observations[key1][key2] = ob
 
-
-if __name__ == '__main__':
+def main():
 
     description = ("Given two directories containing astrometric observations build"
                    "file that reports the newly measured astrometry.")
@@ -67,6 +78,7 @@ with the expectations of the OSSOS reporting structure.  The script should build
 auto-magical way.
 """
 
+    app_config = config.AppConfig()
     parser = argparse.ArgumentParser(description=description, epilog=epilog)
     parser.add_argument("existing_astrometry_directory",
                         help=("Directory containing previously reported astrometry."
@@ -93,17 +105,24 @@ auto-magical way.
     parser.add_argument("--end_date", type=mpc.get_date,
                         help="Include observation taken on or before this date in report.")
     parser.add_argument("--replacement", action='store_true', help="select replacement lines")
-    parser.add_argument("--tolerance", default=.001,
-                        help="tolerance (in arc-seconds) for two positions to be considered the same measurement")
-    parser.add_argument("--COD",
-                        default=568,
+    parser.add_argument("--tolerance", default=1,
+                        help="""tolerance is a flag, if 1 then only report lines that have different
+                        positions and/flux, if -1 then any change cuases a report line""")
+    parser.add_argument("--COD", default=None,
                         help="Observatory code for report file.")
     parser.add_argument("-q",
                         action="store_true", help="Run quiet")
-    parser.add_argument("--OBS",
+    parser.add_argument("--OBS", 
                         action="append",
-                        default=['M. T. Bannister', 'J. J. Kavelaars'],
                         help="Names of observers, multiple allowed")
+    parser.add_argument("--MEA", 
+                        action="append",
+                        help="Names of measures, multiple allowed")
+    parser.add_argument("--TEL", default=app_config.read("TELESCOPE"),
+                        action="store")
+    parser.add_argument("--NET", default=app_config.read("ASTROMETRIC_NETWORK"),
+                        action="store")
+
 
     args = parser.parse_args()
     tolerance = Angle(float(args.tolerance) * units.arcsec)
@@ -128,25 +147,31 @@ auto-magical way.
     logger.info("Loaded new observations for {} objects.\n".format(len(new_observations)))
 
     report_observations = {}
-    for date1 in new_observations:
-        for name1 in new_observations[date1]:
-            observation1 = new_observations[date1][name1]
+    for frame1 in new_observations:
+        for name1 in new_observations[frame1]:
+            observation1 = new_observations[frame1][name1]
             logger.warning("Checking {}".format(observation1.to_string()))
             assert isinstance(observation1, mpc.Observation)
             if ((args.start_date is None or args.start_date.jd < observation1.date.jd)
-                    and (args.end_date is None or args.end_date.jd > observations1.date.jd)):
+                    and (args.end_date is None or args.end_date.jd > observation1.date.jd)):
                 report = True
                 replacement = False
-                if date1 in existing_observations:
-                    for name2 in existing_observations[date1]:
-                        observation2 = existing_observations[date1][name2]
+                if frame1 in existing_observations:
+                    for name2 in existing_observations[frame1]:
+                        observation2 = existing_observations[frame1][name2]
                         assert isinstance(observation2, mpc.Observation)
                         replacement = False
-                        if idx.is_same(observation2.provisional_name, observation1.provisional_name): 
-                            if observation1 != observation2:
-                               replacement = True
+                        if idx.is_same(observation2.provisional_name, observation1.provisional_name):
+                            if ((tolerance < 0 and observation1 != observation2) or
+                                    (observation1.mag != observation2.mag or
+                                        observation1.ra != observation2.ra or
+                                        observation1.dec != observation2.dec)):
+                                if not observation2.discovery:
+                                    replacement = True
+                                else:
+                                    print "discovery"
                             else:
-                               report = False 
+                                report = False
                             break
                 if report and replacement == args.replacement:
                     logger.warning("Adding {} on {} to report".format(name1, observation1.date))
@@ -162,23 +187,32 @@ auto-magical way.
     else:
         outfile = open(args.report_file, 'w')
 
-    observations = []
+    full_observation_list = []
     for name in report_observations:
-        observations.extend(report_observations[name])
+        full_observation_list.extend(report_observations[name])
 
+    observers = args.OBS is not None and len(args.OBS) > 0 and args.OBS or None
+    measurers = args.MEA is not None and len(args.MEA) > 0 and args.MEA or None
+    network = len(args.NET) > 0 and args.NET or None
+    telescope = len(args.TEL) > 0 and args.TEL or None
 
-    app_config = config.AppConfig()
-    outfile.write(mpc.make_tnodb_header(observations, observers=app_config.read("OBSERVERS"),
-                                        measurers=app_config.read("MEASURERS"),
-                                        telescope=app_config.read("TELESCOPE"),
-                                        astrometric_network=app_config.read("ASTROMETRIC_NETWORK")))
+    outfile.write(mpc.make_tnodb_header(full_observation_list, 
+                                        observers=observers,
+                                        measurers=measurers,
+                                        telescope=telescope,
+                                        astrometric_network=network))
     outfile.write("\n")
 
     for name in report_observations:
         # sorted("This is a test string from Andrew".split(), key=str.lower)
         report_observations[name].sort(key=lambda x: x.date.jd)
         for observation in report_observations[name]:
+            if name in rename_map:
+                observation.provisional_name = rename_map[name]
             outfile.write(observation.to_tnodb() + "\n")
         outfile.write("\n")
     outfile.close()
 
+
+if __name__ == '__main__':
+    sys.exit(main())

@@ -56,7 +56,8 @@ class NavPanel(wx.Panel):
         self.controller.on_previous_obs()
 
     def set_status(self, current_obs, total_obs):
-        assert 0 <= current_obs <= total_obs
+        if not 0 <= current_obs <= total_obs:
+		raise ValueError("No observations available")
         self.status_text.SetLabel("%s of %s" % (current_obs, total_obs))
 
         # Re-center text

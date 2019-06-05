@@ -1,44 +1,33 @@
 """OSSOS VOSpace storage convenience package"""
-import cStringIO
+from six import StringIO
 import errno
 import fnmatch
 from glob import glob
 import os
 import re
-from string import upper
 import tempfile
 import logging
 import warnings
-import sys
 import time
-from contextlib import closing
-import math
-
 from astropy.coordinates import SkyCoord
 from astropy.io import ascii
 from astropy import units
 from astropy.units import Quantity
 from astropy.utils.exceptions import AstropyUserWarning
-from requests import ReadTimeout
-
-import vospace
 from astropy.io import fits
-import requests
+import requests as requests_module
 from .downloads.cutouts.calculator import CoordinateConverter
 import coding
 import util
 from astropy.time import Time
 from .gui import logger
 from .wcs import WCS
+import vos
+
+client = vos.Client()
 # from .gui.errorhandling import DownloadErrorHandler
 
 # Try and turn off warnings, only works for some releases of requests.
-try:
-    requests.packages.urllib3.disable_warnings()
-    requests_log = logging.getLogger("requests.packages.urllib3")
-    requests_log.setLevel(logging.ERROR)
-except:
-    pass
 
 MAXCOUNT = 30000
 _TARGET = "TARGET"
@@ -87,13 +76,15 @@ tags = {}
 APCOR_EXT = "apcor"
 ZEROPOINT_USED_EXT = "zeropoint.used"
 PSF_EXT = "psf.fits"
+FITS_EXT = ".fits.fz"
+FITS_EXT = ".fits"
 
 
 class MyRequests(object):
 
     def __init__(self):
 
-        self.requests = requests
+        self.requests = requests_module
 
     def get(self, *args, **kwargs):
         resp = self.requests.get(*args, **kwargs)
@@ -103,14 +94,16 @@ class MyRequests(object):
 
 requests = MyRequests()
 
+
 def get_ccdlist(expnum):
     if int(expnum) < 1785619:
         # Last exposures with 36 CCD Megaprime
-        ccdlist = range(0,36)
+        ccdlist = range(0, 36)
     else:
         # First exposrues with 40 CCD Megaprime
         ccdlist = range(0, 40)
     return ccdlist
+
 
 def get_apcor(expnum, ccd, version='p', prefix=None):
     """
@@ -122,10 +115,11 @@ def get_apcor(expnum, ccd, version='p', prefix=None):
     @return:
     """
     uri = get_uri(expnum, ccd, ext=APCOR_EXT, version=version, prefix=prefix)
-    url = "http://{}/vospace/auth/nodes/{}".format(vospace.VOSPACE_SERVER,
-                                                    uri[4:])
-    resp = requests.get(url, params={'view': 'data'}, auth=vospace.authentication)
-    return [float (x) for x in resp.content.split()]
+    apcor_file_name = tempfile.NamedTemporaryFile()
+    client.copy(uri, apcor_file_name.name)
+    apcor_file_name.seek(0)
+    return [float(x) for x in apcor_file_name.readline().split()]
+
 
 def get_detections(release='current'):
     """
@@ -134,7 +128,7 @@ def get_detections(release='current'):
     @return: astropy.table.Table
     """
     detection_path = "{}/{}/OSSOS*.detections".format(ASTROM_RELEASES, release)
-    filenames = vospace.client.glob(detection_path)
+    filenames = client.glob(detection_path)
     if not len(filenames) > 0:
         raise IOError("No detection file found using: {}".format(detection_path))
 
@@ -155,23 +149,26 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2, 
     @param ddec: float degrees
     @type ddec: Quantity
     @param calibration_level: What calibration level must the found image have,
-    @param mjdate: what data must the observation be take on.
+    @param mjdate: what data must the observation be to
+    @param collection: name of the data collection to be searched.
+    @param use_ssos: USE the SSOIS server to find comparison?  False -> Use CAOM2 TAP query.
+    ke on.
     this is a CAOM2 parameter of CADC, 2 means calibrated data.
     """
 
     if use_ssos:
-        SSOIS_SERVER = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/fixedssos.pl"
+        ssois_server = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/fixedssos.pl"
         params = dict(pos="{0:f},{1:f}".format(ra.to(units.degree).value, dec.to(units.degree).value))
-        result = requests.get(SSOIS_SERVER, params=params)
+        result = requests.get(ssois_server, params=params)
         table = ascii.read(result.text, format='tab')
-        table = table[table['Telescope/Instrument']=='CFHT/MegaCam']
-        map = {'Image': 'collectionID',
-               'Filter': 'filter',
-               'Exptime': 'exptime'}
+        table = table[table['Telescope/Instrument'] == 'CFHT/MegaCam']
+        column_name_mapping = {'Image': 'collectionID',
+                               'Filter': 'filter',
+                               'Exptime': 'exptime'}
         # rename the columns
-        for key in map:
-            table[key].name=map[key]
-        table['collectionID'] = [ x[:-1] for x in table['collectionID']]
+        for key in column_name_mapping:
+            table[key].name = column_name_mapping[key]
+        table['collectionID'] = [x[:-1] for x in table['collectionID']]
         # compute the mjdate from the time string.
         table['mjdate'] = Time(table['Date/Time']).mjd
         return table
@@ -211,27 +208,24 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2, 
     table_reader.data.splitter.delimiter = '\t'
     table = table_reader.read(result.text)
 
-
     logger.debug(str(table))
     return table
-
-
 
 
 def populate(dataset_name, data_web_service_url=DATA_WEB_SERVICE + "CFHT"):
     """Given a dataset_name created the desired dbimages directories
     and links to the raw data files stored at CADC.
     @param dataset_name: the name of the CFHT dataset to make a link to.
-    @param data_web_service_url: the URL of the data web service run by CADC.
+    @param data_web_servica_url: the URL of the data web service run by CADC.
     """
 
-    data_dest = get_uri(dataset_name, version='o', ext='fits.fz')
-    data_source = "%s/%so.fits.fz" % (data_web_service_url, dataset_name)
+    data_dest = get_uri(dataset_name, version='o', ext=FITS_EXT)
+    data_source = "%s/%so.{}" % (data_web_service_url, dataset_name, FITS_EXT)
 
     mkdir(os.path.dirname(data_dest))
 
     try:
-        vospace.client.link(data_source, data_dest)
+        client.link(data_source, data_dest)
     except IOError as e:
         if e.errno == errno.EEXIST:
             pass
@@ -242,31 +236,18 @@ def populate(dataset_name, data_web_service_url=DATA_WEB_SERVICE + "CFHT"):
     header_source = "%s/%so.fits.fz?cutout=[0]" % (
         data_web_service_url, dataset_name)
     try:
-        vospace.client.link(header_source, header_dest)
+        client.link(header_source, header_dest)
     except IOError as e:
         if e.errno == errno.EEXIST:
             pass
         else:
             raise e
-
-    proc_source = "vos:cfis/pitcairn/{}p.fits.fz".format(dataset_name)
-    if not vospace.client.isfile(proc_source):
-        proc_source = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHT/{}p.fits".format(dataset_name)
-    proc_dest = get_uri(dataset_name, version='p', ext='fits.fz')
-    try:
-        vospace.client.link(proc_source, proc_dest)
-    except IOError as e:
-        if e.errno == errno.EEXIST:
-            pass
-        else:
-            raise e
-    
 
     header_dest = get_uri(dataset_name, version='p', ext='head')
     header_source = "%s/%s/%sp.head" % (
         'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub', 'CFHTSG', dataset_name)
     try:
-        vospace.client.link(header_source, header_dest)
+        client.link(header_source, header_dest)
     except IOError as e:
         if e.errno == errno.EEXIST:
             pass
@@ -305,12 +286,11 @@ def get_cands_uri(field, ccd, version='p', ext='measure3.cands.astrom', prefix=N
     measure3_dir = MEASURE3
     if block is not None:
         measure3_dir + "/{}".format(block)
-    mkdir(measure3_dir)
     return "{}/{}{}{}{}{}".format(measure3_dir, prefix, field, version, ccd, ext)
 
 
 def get_uri(expnum, ccd=None,
-            version='p', ext='fits',
+            version='p', ext=FITS_EXT,
             subdir=None, prefix=None):
     """
     Build the uri for an OSSOS image stored in the dbimages
@@ -364,7 +344,7 @@ dbimages_uri = get_uri
 
 
 def set_tags_on_uri(uri, keys, values=None):
-    node = vospace.client.get_node(uri)
+    node = client.get_node(uri)
     if values is None:
         values = []
         for idx in range(len(keys)):
@@ -375,13 +355,13 @@ def set_tags_on_uri(uri, keys, values=None):
         value = values[idx]
         tag = tag_uri(key)
         node.props[tag] = value
-    vospace.client.add_props(node)
-    return vospace.client.get_node(uri, force=True)
+    client.add_props(node)
+    return client.get_node(uri, force=True)
 
 
 def _set_tags(expnum, keys, values=None):
     uri = os.path.join(DBIMAGES, str(expnum))
-    node = vospace.client.get_node(uri, force=True)
+    node = client.get_node(uri, force=True)
     if values is None:
         values = []
         for idx in range(len(keys)):
@@ -392,8 +372,8 @@ def _set_tags(expnum, keys, values=None):
         tag = tag_uri(key)
         value = values[idx]
         node.props[tag] = value
-    vospace.client.add_props(node)
-    return vospace.client.get_node(uri, force=True)
+    client.add_props(node)
+    return client.get_node(uri, force=True)
 
 
 def set_tags(expnum, props):
@@ -465,7 +445,7 @@ def get_tags(expnum, force=False):
     @rtype: dict
     """
     uri = os.path.join(DBIMAGES, str(expnum))
-    return vospace.client.get_node(uri, force=force).props
+    return client.get_node(uri, force=force).props
 
 
 class Task(object):
@@ -491,9 +471,9 @@ class Task(object):
         @return: str
         """
         return "{}{}_{}{:02d}".format(self.target.prefix,
-                                        self,
-                                        self.target.version,
-                                        self.target.ccd)
+                                      self,
+                                      self.target.version,
+                                      self.target.ccd)
 
     @property
     def target(self):
@@ -623,7 +603,7 @@ def set_status(task, prefix, expnum, version, ccd, status):
     return set_tag(expnum, get_process_tag(prefix+task, ccd, version), status)
 
 
-def get_file(expnum, ccd=None, version='p', ext='fits', subdir=None, prefix=None):
+def get_file(expnum, ccd=None, version='p', ext=FITS_EXT, subdir=None, prefix=None):
     uri = get_uri(expnum=expnum, ccd=ccd, version=version, ext=ext, subdir=subdir, prefix=prefix)
     filename = os.path.basename(uri)
 
@@ -660,40 +640,17 @@ def _cutout_expnum(observation, sky_coord, radius):
     """
 
     uri = observation.get_image_uri()
-    base_url = ("http://{}/vospace/auth/nodes/{}?view=cutout&"
-                "cutout=CIRCLE+ICRS+{}+{}+{}")
-    url = base_url.format(vospace.VOSPACE_SERVER,
-                          uri[4:],
-                          sky_coord.ra.to('degree').value,
-                          sky_coord.dec.to('degree').value,
-                          radius.to('degree').value)
-    from clint.textui import progress
+    cutout_filehandle = tempfile.NamedTemporaryFile()
+    disposition_filename = client.copy(uri + "({},{},{})".format(sky_coord.ra.to('degree').value,
+                                                                 sky_coord.dec.to('degree').value,
+                                                                 radius.to('degree').value),
+                                       cutout_filehandle.name,
+                                       disposition=True)
+    cutouts = decompose_content_decomposition(disposition_filename)
 
-    while True:
-        try:
-            with closing(requests.get(url, auth=vospace.authentication, stream=True, timeout=(5.0, 10.0))) as resp:
-                resp.raise_for_status()
-                disposition = resp.headers.get('content-disposition', '0___')
-                cutouts = decompose_content_decomposition(disposition)
-                logger.debug("Got cutout boundaries of: {}".format(cutouts))
-                total_length = 0
-                for cutout in cutouts:
-                    total_length += (math.ceil(((int(cutout[2]) - int(cutout[1])) * (
-                    int(cutout[4]) - int(cutout[3]))) * 2.0 / 2880.0) + 13) * 2880
-
-                fobj = cStringIO.StringIO()
-                for chunk in resp.iter_content(chunk_size=2880):
-                # for chunk in progress.bar(resp.iter_content(chunk_size=2880), expected_size=(total_length / 2880)):
-                    fobj.write(chunk)
-            break
-        except ReadTimeout as rt:
-            logger.error("Read Timeout: {}".format(rt))
-
-    fobj.flush()
-    fobj.seek(0)
-    hdulist = fits.open(fobj)
+    cutout_filehandle.seek(0)
+    hdulist = fits.open(cutout_filehandle)
     hdulist.verify('silentfix+ignore')
-
     logger.debug("Initial Length of HDUList: {}".format(len(hdulist)))
 
     # Make sure here is a primaryHDU
@@ -722,7 +679,7 @@ def _cutout_expnum(observation, sky_coord, radius):
         for idx in range(len(corners)):
             try:
                 corners[idx] = int(cutout[idx+1])
-            except Exception as ex:
+            except Exception:
                 pass
 
         hdu.header['DATASEC'] = reset_datasec("[{}:{},{}:{}]".format(corners[0],
@@ -744,7 +701,7 @@ def _cutout_expnum(observation, sky_coord, radius):
     return hdulist
 
 
-def ra_dec_cutout(uri, sky_coord, radius):
+def ra_dec_cutout(uri, sky_coord, radius, update_wcs=False):
     """
 
     :param uri: The vospace location of the image to make a cutout from
@@ -768,26 +725,21 @@ def ra_dec_cutout(uri, sky_coord, radius):
 
     # Get the 'uncut' images CRPIX1/CRPIX2 values
 
-    coo_sys = upper(sky_coord.frame.name)
-    this_cutout = "CIRCLE {} {} {} {}".format(coo_sys, sky_coord.ra.to(units.degree).value,
-                                              sky_coord.dec.to(units.degree).value,
-                                              radius.to(units.degree).value)
+    cutout_filehandle = tempfile.NamedTemporaryFile()
+    disposition_filename = client.copy(uri + "({},{},{})".format(sky_coord.ra.to('degree').value,
+                                                                 sky_coord.dec.to('degree').value,
+                                                                 radius.to('degree').value),
+                                       cutout_filehandle.name,
+                                       disposition=True)
+    cutouts = decompose_content_decomposition(disposition_filename)
 
-    view = "cutout"
-    url = "http://{}/vospace/auth/nodes/{}".format(vospace.VOSPACE_SERVER,
-                                                   uri[4:])
-    params = {"view": view,
-              "cutout": this_cutout}
-    resp = requests.get(url, params, auth=vospace.authentication)
-    fobj = cStringIO.StringIO(resp.content)
-    fobj.seek(0)
+    cutout_filehandle.seek(0)
     try:
-        hdulist = fits.open(fobj)
+        hdulist = fits.open(cutout_filehandle)
         hdulist.verify('silentfix+ignore')
     except Exception as ex:
         raise ex
 
-    cutouts = decompose_content_decomposition(resp.headers.get('content-disposition', '0___'))
     logger.debug("Got cutout boundaries of: {}".format(cutouts))
     logger.debug("Initial Length of HDUList: {}".format(len(hdulist)))
 
@@ -803,7 +755,31 @@ def ra_dec_cutout(uri, sky_coord, radius):
         raise ValueError("Wrong number of cutout structures found in Content-Disposition response.")
 
     for hdu in hdulist[1:]:
+
         cutout = cutouts.pop(0)
+        if update_wcs:
+            # Pull the SG header from VOSpace and reset the CRPIX values based on cutout info from disposition matrix
+            try:
+                sg_key = "{}{}".format(hdu.header['expnum'], 'p')
+                if sg_key not in sgheaders:
+                    _get_sghead(hdu.header['expnum'])
+                if sg_key in sgheaders:
+                    for astheader in sgheaders[sg_key]:
+                        if astheader is None:
+                            continue
+                        if astheader.get('EXTVER', -1) == hdu.header['EXTVER']:
+                            break
+                astheader['CRPIX1'] = astheader.get('CRPIX1', 1) - int(cutout[1]) + 1
+                astheader['CRPIX2'] = astheader.get('CRPIX2', 1) - int(cutout[3]) + 1
+                # pull some data structure keywords out of the astrometric headers
+                for key in ['NAXIS', 'XTENSION', 'PCOUNT', 'GCOUNT',
+                            'NAXIS1', 'NAXIS2', 'BITPIX', 'BZERO', 'BSCALE']:
+                    if astheader.get(key, None) is not None:
+                        del (astheader[key])
+                hdu.header.update(astheader)
+            except Exception as ex:
+                logging.error("Got error while updating WCS: {}".format(ex))
+                logging.error("Using existing WCS in image header")
         if 'ASTLEVEL' not in hdu.header:
             print("******* NO ASTLEVEL ****************** for {0} ********".format(uri))
             hdu.header['ASTLEVEL'] = 0
@@ -827,8 +803,22 @@ def ra_dec_cutout(uri, sky_coord, radius):
     logger.debug("Sending back {}".format(hdulist))
     return hdulist
 
+def frame2expnum(frameid):
+    """Given a standard OSSOS frameid return the expnum, version and ccdnum as a dictionary."""
+    result = {}
+    parts = re.search('(?P<expnum>\d{7})(?P<type>\S)(?P<ccd>\d\d)', frameid)
+    assert parts is not None
+    result['expnum'] = parts.group('expnum')
+    result['ccd'] = parts.group('ccd')
+    result['version'] = parts.group('type')
+    return result
 
-def get_image(expnum, ccd=None, version='p', ext='fits',
+def get_frame(frameid, cutout=None):
+    """Given a frameid, which consists of expnum version and ccd retrieve a cutout."""
+    return get_image(cutout=cutout, **frame2expnum(frameid))
+
+
+def get_image(expnum, ccd=None, version='p', ext=FITS_EXT,
               subdir=None, prefix=None, cutout=None, return_file=True, flip_image=True):
     """Get a FITS file for this expnum/ccd  from VOSpace.
 
@@ -910,7 +900,7 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     logger.debug(str(locations))
     if ccd is not None:
         try:
-            for this_ext in [ext, ext + ".fz"]:
+            for this_ext in [ext]:
                 ext_no = int(ccd) + 1
                 # extension 1 -> 18 +  37,36 should be flipped.
                 flip_these_extensions = range(1, 19)
@@ -926,8 +916,8 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     else:
         uri = get_uri(expnum, ccd, version, ext=ext, subdir=subdir, prefix=prefix)
         locations.append((uri, cutout))
-        uri = get_uri(expnum, ccd, version, ext=ext + ".fz", subdir=subdir, prefix=prefix)
-        locations.append((uri, cutout))
+        # uri = get_uri(expnum, ccd, version, ext=ext + ".fz", subdir=subdir, prefix=prefix)
+        # locations.append((uri, cutout))
 
     err = errno.EFAULT
     while len(locations) > 0:
@@ -949,8 +939,8 @@ def get_image(expnum, ccd=None, version='p', ext='fits',
     if err == errno.EAGAIN:
         time.sleep(5)
         return get_image(expnum, ccd=ccd, version=version, ext=ext,
-                     subdir=subdir, prefix=prefix, cutout=cutout, return_file=return_file, flip_image=flip_image)
-    raise IOError(err, "Failed to get image using {} {} {} {}.".format(expnum, version, ccd, cutout))
+                         subdir=subdir, prefix=prefix, cutout=cutout, return_file=return_file, flip_image=flip_image)
+    raise IOError(err, "Failed to get image at uri: {} using {} {} {} {}.".format(uri, expnum, version, ccd, cutout))
 
 
 def datasec_to_list(datasec):
@@ -960,7 +950,7 @@ def datasec_to_list(datasec):
     @return: list
     """
 
-    return [int(x) for x in re.findall(r"([-+]?[\*\d]+?)[:,\]]+", datasec)]
+    return [int(x) for x in re.findall(r"([-+]?[*\d]+?)[:,\]]+", datasec)]
 
 
 def reset_datasec(cutout, datasec, naxis1, naxis2):
@@ -989,7 +979,7 @@ def reset_datasec(cutout, datasec, naxis1, naxis2):
     cutout = cutout.replace(",*]", ",1:{}]".format(naxis1))
 
     try:
-        cutout = [int(x) for x in re.findall(r"([-+]?[\*\d]+?)[:,\]]+", cutout)]
+        cutout = [int(x) for x in re.findall(r"([-+]?[*\d]+?)[:,\]]+", cutout)]
     except:
         logger.debug("Failed to processes the cutout pattern: {}".format(cutout))
         return datasec
@@ -1049,7 +1039,7 @@ def get_hdu(uri, cutout=None):
             logger.debug("Pulling: {}{} from VOSpace".format(uri, cutout))
             fpt = tempfile.NamedTemporaryFile(suffix='.fits')
             cutout = cutout is not None and cutout or ""
-            vospace.client.copy(uri+cutout, fpt.name)
+            copy(uri+cutout, fpt.name)
             fpt.seek(0, 2)
             fpt.seek(0)
             logger.debug("Read from vospace completed. Building fits object.")
@@ -1099,6 +1089,7 @@ def get_trans(expnum, ccd, prefix=None, version='p'):
              'cd22': float(vs[5])}
     return trans
 
+
 def get_fwhm_tag(expnum, ccd, prefix=None, version='p'):
     """
     Get the FWHM from the VOSpace annotation.
@@ -1114,6 +1105,7 @@ def get_fwhm_tag(expnum, ccd, prefix=None, version='p'):
         key = "fwhm_{:1s}{:02d}".format(version, int(ccd))
         fwhm[uri] = get_tag(expnum, key)
     return fwhm[uri]
+
 
 def get_fwhm(expnum, ccd, prefix=None, version='p'):
     """Get the FWHM computed for the given expnum/ccd combo.
@@ -1198,13 +1190,13 @@ def mkdir(dirname):
     """
     dir_list = []
 
-    while not vospace.client.isdir(dirname):
+    while not client.isdir(dirname):
         dir_list.append(dirname)
         dirname = os.path.dirname(dirname)
     while len(dir_list) > 0:
         logging.info("Creating directory: %s" % (dir_list[-1]))
         try:
-            vospace.client.mkdir(dir_list.pop())
+            client.mkdir(dir_list.pop())
         except IOError as e:
             if e.errno == errno.EEXIST:
                 pass
@@ -1223,15 +1215,7 @@ def vofile(filename, **kwargs):
     if os.access(basename, os.R_OK):
         return open(basename, 'r')
     kwargs['view'] = kwargs.get('view', 'data')
-    try:
-        url = "http://{}/data/auth/vospace/{}".format(vospace.VOSPACE_SERVER,
-                                                      filename[4:])
-        return cStringIO.StringIO(requests.get(url,
-                                               params=kwargs,
-                                               auth=vospace.authentication).content)
-    except Exception as ex:
-        logging.info("Error using quick vofile access: {}".format(ex))
-        return vospace.client.open(filename, **kwargs)
+    return client.open(filename, **kwargs)
 
 
 def open_vos_or_local(path, mode="rb"):
@@ -1242,6 +1226,9 @@ def open_vos_or_local(path, mode="rb"):
     @param mode:
     @return:
     """
+    filename = os.path.basename(path)
+    if os.access(filename, os.F_OK):
+        return open(filename, mode)
     if path.startswith("vos:"):
         primary_mode = mode[0]
         if primary_mode == "r":
@@ -1268,7 +1255,7 @@ def copy(source, dest):
     """
     logger.info("copying {} -> {}".format(source, dest))
 
-    return vospace.client.copy(source, dest)
+    return client.copy(source, dest)
 
 
 def vlink(s_expnum, s_ccd, s_version, s_ext,
@@ -1290,12 +1277,12 @@ def vlink(s_expnum, s_ccd, s_version, s_ext,
     source_uri = get_uri(s_expnum, ccd=s_ccd, version=s_version, ext=s_ext, prefix=s_prefix)
     link_uri = get_uri(l_expnum, ccd=l_ccd, version=l_version, ext=l_ext, prefix=l_prefix)
 
-    return vospace.client.link(source_uri, link_uri)
+    return client.link(source_uri, link_uri)
 
 
 def remove(uri):
     try:
-        vospace.client.delete(uri)
+        client.delete(uri)
     except Exception as e:
         logger.debug(str(e))
 
@@ -1336,7 +1323,7 @@ def my_glob(pattern):
 
 
 def listdir(directory, force=False):
-    return vospace.client.listdir(directory, force=force)
+    return client.listdir(directory, force=force)
 
 
 def list_dbimages(dbimages=DBIMAGES):
@@ -1345,7 +1332,7 @@ def list_dbimages(dbimages=DBIMAGES):
 
 def exists(uri, force=False):
     try:
-        return vospace.client.get_node(uri, force=force) is not None
+        return client.get_node(uri, force=force) is not None
     except EnvironmentError as e:
         logger.error(str(e))  # not critical enough to raise
         # Sometimes the error code returned is the OS version, sometimes the HTTP version
@@ -1354,11 +1341,11 @@ def exists(uri, force=False):
 
 
 def move(old_uri, new_uri):
-    vospace.client.move(old_uri, new_uri)
+    client.move(old_uri, new_uri)
 
 
 def delete_uri(uri):
-    vospace.client.delete(uri)
+    client.delete(uri)
 
 
 def has_property(node_uri, property_name, ossos_base=True):
@@ -1387,7 +1374,7 @@ def get_property(node_uri, property_name, ossos_base=True):
     """
     # Must use force or we could have a cached copy of the node from before
     # properties of interest were set/updated.
-    node = vospace.client.get_node(node_uri, force=True)
+    node = client.get_node(node_uri, force=True)
     property_uri = tag_uri(property_name) if ossos_base else property_name
 
     if property_uri not in node.props:
@@ -1407,16 +1394,16 @@ def set_property(node_uri, property_name, property_value, ossos_base=True):
     @param ossos_base:
     @return:
     """
-    node = vospace.client.get_node(node_uri)
+    node = client.get_node(node_uri)
     property_uri = tag_uri(property_name) if ossos_base else property_name
 
     # If there is an existing value, clear it first
     if property_uri in node.props:
         node.props[property_uri] = None
-        vospace.client.add_props(node)
+        client.add_props(node)
 
     node.props[property_uri] = property_value
-    vospace.client.add_props(node)
+    client.add_props(node)
 
 
 def build_counter_tag(epoch_field, dry_run=False):
@@ -1498,9 +1485,9 @@ def get_mopheader(expnum, ccd, version='p', prefix=None):
 
     if os.access(filename, os.F_OK):
         logger.debug("File already on disk: {}".format(filename))
-        mopheader_fpt = cStringIO.StringIO(open(filename, 'r').read())
+        mopheader_fpt = StringIO(open(filename, 'r').read())
     else:
-        mopheader_fpt = cStringIO.StringIO(open_vos_or_local(mopheader_uri).read())
+        mopheader_fpt = StringIO(open_vos_or_local(mopheader_uri).read())
 
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', AstropyUserWarning)
@@ -1540,6 +1527,7 @@ def _get_sghead(expnum):
 
     url = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHTSG/{}{}.head".format(expnum, version)
     logging.getLogger("requests").setLevel(logging.ERROR)
+    logging.debug("Attempting to retrieve {}".format(url))
     resp = requests.get(url)
     if resp.status_code != 200:
         raise IOError(errno.ENOENT, "Could not get {}".format(url))
@@ -1550,8 +1538,8 @@ def _get_sghead(expnum):
     headers = [None]
     for header_str in header_str_list:
         headers.append(fits.Header.fromstring(header_str, sep='\n'))
+        logging.debug(headers[-1].get('EXTVER', -1))
     sgheaders[key] = headers
-
     return sgheaders[key]
 
 
@@ -1590,21 +1578,20 @@ def get_astheader(expnum, ccd, version='p', prefix=None):
         except:
             pass
 
-    ast_uri = dbimages_uri(expnum, ccd, version=version, ext='.fits')
-    if ast_uri not in astheaders:
-        try:
-            url = 'http://{}/data/auth/vospace/{}'.format(
-                vospace.VOSPACE_SERVER,
-                ast_uri[4:])
-            resp = requests.get(url, params={'view': 'cutout', 'cutout': '[1:1,1:1]'},
-                                auth=vospace.authentication)
-            hdulist = fits.open(cStringIO.StringIO(resp.content))
-        except Exception as ex:
-            logging.info("Failed: {}".format(ex))
-            hdulist = get_image(expnum, ccd=ccd, version=version, prefix=prefix,
-                                cutout="[1:1,1:1]", return_file=False)
-        assert isinstance(hdulist, fits.HDUList)
-        astheaders[ast_uri] = hdulist[0].header
+    try:
+       ast_uri = dbimages_uri(expnum, ccd, version=version, ext='.fits')
+       if ast_uri not in astheaders:
+           hdulist = get_image(expnum, ccd=ccd, version=version, prefix=prefix,
+                               cutout="[1:1,1:1]", return_file=False, ext='.fits')
+           assert isinstance(hdulist, fits.HDUList)
+           astheaders[ast_uri] = hdulist[0].header
+    except:
+       ast_uri = dbimages_uri(expnum, ccd, version=version, ext='.fits.fz')
+       if ast_uri not in astheaders:
+           hdulist = get_image(expnum, ccd=ccd, version=version, prefix=prefix,
+                               cutout="[1:1,1:1]", return_file=False, ext='.fits.fz')
+           assert isinstance(hdulist, fits.HDUList)
+           astheaders[ast_uri] = hdulist[0].header
     return astheaders[ast_uri]
 
 
@@ -1614,6 +1601,7 @@ def log_filename(prefix, task, version, ccd):
 
 def log_location(expnum, ccd):
     return os.path.dirname(get_uri(expnum, ccd=ccd))
+
 
 class LoggingManager(object):
 
@@ -1638,8 +1626,7 @@ class LoggingManager(object):
         if not self.dry_run:
             self.logger.removeHandler(self.vo_handler)
             self.vo_handler.close()
-            del(self.vo_handler)
+            del self.vo_handler
         self.logger.removeHandler(self.file_handler)
         self.file_handler.close()
-        del(self.file_handler)
-
+        del self.file_handler

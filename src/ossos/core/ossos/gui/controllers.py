@@ -92,9 +92,13 @@ class AbstractController(object):
             logger.error("Failed to get header for {}".format(self.model.get_current_reading()))
             pass
 
-        self.view.set_observation_status(
-            self.model.get_current_obs_number() + 1,
-            self.model.get_obs_count())
+        try:
+            self.view.set_observation_status(
+                self.model.get_current_obs_number() + 1,
+                self.model.get_obs_count())
+        except:
+            self.view.set_observation_status(0, 0)
+            return False
 
         self.model.acknowledge_image_displayed()
 

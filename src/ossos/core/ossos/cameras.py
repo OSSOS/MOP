@@ -8,9 +8,7 @@ from astropy.coordinates import SkyCoord
 
 class Camera:
     """The Field of View of a direct imager"""
-    names = {'ccd38': 0, 'ccd36': 1, 'ccd37': 3, 'ccd39': 3}
-    for i in range(36):
-        names['ccd{:02d}'.format(i)] = i+4
+
     _geometry = {
         "MP_CCD": [
             {"ra": 0., "dec": 0., "dra": 0.1052, "ddec": 0.2344}
@@ -24,6 +22,11 @@ class Camera:
         "MEGACAM_00": [
             {"ra": 0, "dec": 0, "dra": 2112 * 0.185 / 3600.0, "ddec": 4640 * 0.185 / 3600.0}
         ],
+        "LBT": [{'dra': 1.3000992865659029, 'ddec': 0.42162904764019515, 'dec': 0.00019679877439671145,
+                 'ra': 0.0042193345733494425, 'name': 'LBC_BLUE'},
+#                {'dra': 1.3092201073853289, 'ddec': 0.42897343292189305, 'dec': -0.00019679877439671145,
+#                 'ra': -0.0042193345733494425, 'name': 'LBC-RED'}
+                ],
         "MEGACAM_40": [
             {"ra": +0.440 + 0.111, "dec": -0.105, "ddec": 0.241, "dra": 0.111},
             {"ra": +0.438 + 0.111, "dec": +0.128, "ddec": 0.241, "dra": 0.111},
@@ -195,6 +198,17 @@ class Camera:
     def __str__(self):
 
         return str(self.coord)
+
+    @property
+    def names(self):
+        names = {'one': 0}
+        if self.camera == "MEGACAM_40":
+            names = {'ccd38': 0, 'ccd36': 1, 'ccd37': 2, 'ccd39': 3}
+            for i in range(36):
+                names['ccd{:02d}'.format(i)] = i+4
+        elif self.camera == "LBT":
+            names = {'red': 0, 'blue': 1}
+        return names
 
     def offset(self, index=0):
         """Offset the camera pointing to be centred on a particular CCD."""
