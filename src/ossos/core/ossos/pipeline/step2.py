@@ -67,12 +67,16 @@ def compute_trans(expnums, ccd, version, prefix=None, default="WCS"):
     (ra0, dec0) = wcs_dict[expnums[0]].xy2sky(x0, y0)
     result = ""
     for expnum in expnums:
-        filename = storage.get_file(expnum, ccd, version, ext='.trans.jmp', prefix=prefix)
-        jmp_trans = open(filename, 'r').readline().split()
         (x, y) = wcs_dict[expnum].sky2xy(ra0, dec0)
-        x1 = float(jmp_trans[0]) + float(jmp_trans[1]) * x + float(jmp_trans[2]) * y
-        y1 = float(jmp_trans[3]) + float(jmp_trans[4]) * x + float(jmp_trans[5]) * y
-        dr = math.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2)
+        dr = 1000
+        try:
+            filename = storage.get_file(expnum, ccd, version, ext='.trans.jmp', prefix=prefix)
+            jmp_trans = open(filename, 'r').readline().split()
+            x1 = float(jmp_trans[0]) + float(jmp_trans[1]) * x + float(jmp_trans[2]) * y
+            y1 = float(jmp_trans[3]) + float(jmp_trans[4]) * x + float(jmp_trans[5]) * y
+            dr = math.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2)
+        except Exception:
+            pass
         if dr > 0.5:
             result += "WARNING: WCS-JMP transforms mis-matched {} reverting to using {}.\n".format(expnum, default)
             if default == "WCS":
@@ -121,11 +125,14 @@ def run(expnums, ccd, version, prefix=None, dry_run=False, default="WCS", force=
                 )
 
             logging.info("Computing the catalog alignment using sources in catalogs.")
-            logging.info(util.exec_prog(jmp_trans))
-
-            logging.info("Comparing computed transform to WCS values")
-            if default == "WCS":
-                logging.info(compute_trans(expnums, ccd, version, prefix, default=default))
+            try:
+                logging.info(util.exec_prog(jmp_trans))
+                if default == "WCS":
+                    logging.info("Comparing computed transform to WCS values")
+                    logging.info(compute_trans(expnums, ccd, version, prefix, default=default))
+            except Exception as ex:
+                logging.info("JMP Trans failed: {}".format(ex))
+                logging.info(compute_trans(expnums, ccd, version, prefix, default="WCS"))
 
             logging.info("Using transform to match catalogs for three images.")
             logging.info(util.exec_prog(jmp_args))
