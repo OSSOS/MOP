@@ -45,7 +45,7 @@ def run(expnums, ccd, version, rate_min,
     jmp_args = ['step3jmp']
     matt_args = ['step3matt']
 
-    if storage.get_status(dependency, prefix, expnums[0], version=version, ccd=ccd) and not force:
+    if storage.get_status(task, prefix, expnums[0], version=version, ccd=ccd) and not force:
         logging.info("{} completed successfully for {}{}{}{:02d}".format(
             task, prefix, expnums[0], version, ccd))
         return
