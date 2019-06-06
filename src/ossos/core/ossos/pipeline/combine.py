@@ -41,7 +41,7 @@ def run(expnum, ccd, prefix=None, version='p', field=None,
         logging.info("{} completed successfully for {} {} {} {}".format(task, prefix, expnum, version, ccd))
         return
 
-    with storage.LoggingManager(task, prefix, expnum, version, ccd):
+    with storage.LoggingManager(task, prefix, expnum, ccd, version, dry_run):
         try:
             if not storage.get_status(dependency, prefix, expnum, version, ccd):
                 raise IOError(35, "Cannot start {} as {} not yet completed for {}{}{}{:02d}".format(
