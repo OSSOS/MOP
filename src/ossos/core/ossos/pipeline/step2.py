@@ -250,7 +250,7 @@ def main():
         args.expnums.sort()
 
     for ccd in ccdlist:
-        run(args.expnums, ccd, version=version, prefix=prefix, dry_run=args.dry_run, default=args.default)
+        run(args.expnums, ccd, version=version, prefix=prefix, dry_run=args.dry_run, default=args.default, force=args.force)
 
 
 if __name__ == '__main__':
