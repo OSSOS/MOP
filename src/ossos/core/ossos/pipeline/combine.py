@@ -37,7 +37,7 @@ def run(expnum, ccd, prefix=None, version='p', field=None,
 
     message = storage.SUCCESS
 
-    if not storage.get_status(task, prefix, expnum, version, ccd) and not force:
+    if storage.get_status(task, prefix, expnum, version, ccd) and not force:
         logging.info("{} completed successfully for {} {} {} {}".format(task, prefix, expnum, version, ccd))
         return
 
@@ -110,7 +110,7 @@ def run(expnum, ccd, prefix=None, version='p', field=None,
                 return storage.SUCCESS
 
             cmd_args = ['measure3', prefix + str(expnum) + version + str(ccd).zfill(2)]
-            logging.info("Running measure3")
+            logging.info("Running measure3: {}".format(str(cmd_args)))
             logging.info(util.exec_prog(cmd_args))
 
             if not dry_run:
