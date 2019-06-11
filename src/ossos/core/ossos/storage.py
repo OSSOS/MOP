@@ -1,5 +1,7 @@
 """OSSOS VOSpace storage convenience package"""
+import sys, traceback
 from six import StringIO
+import math
 import errno
 import fnmatch
 from glob import glob
@@ -10,6 +12,7 @@ import logging
 import warnings
 import time
 from astropy.coordinates import SkyCoord
+from astropy.nddata import Cutout2D
 from astropy.io import ascii
 from astropy import units
 from astropy.units import Quantity
@@ -626,6 +629,28 @@ def decompose_content_decomposition(content_decomposition):
     return content_decomposition
 
 
+def _reset_datasec(header, cutout):
+
+    default_datasec = "[{}:{},{}:{}]".format(1, header['NAXIS1'], 1, header['NAXIS2'])
+    datasec = header.get('DATASEC', default_datasec)
+    datasec = datasec_to_list(datasec)
+    corners = datasec
+    for idx in range(len(corners)):
+        try:
+            corners[idx] = int(cutout[idx+1])
+        except Exception:
+            pass
+
+    header['DATASEC'] = reset_datasec("[{}:{},{}:{}]".format(corners[0],
+                                                             corners[1],
+                                                             corners[2],
+                                                             corners[3]),
+                                       header.get('DATASEC', default_datasec),
+                                       header['NAXIS1'],
+                                       header['NAXIS2'])
+   
+
+
 def _cutout_expnum(observation, sky_coord, radius):
     """
     Get a cutout from an exposure based on the RA/DEC location.
@@ -638,20 +663,57 @@ def _cutout_expnum(observation, sky_coord, radius):
     @return: HDUList containing the cutout image.
     @rtype: list(HDUList)
     """
+    filename = "{}.fits".format(observation.rawname)
+    if os.access(filename, os.R_OK):
+      try:
+        hdulist = fits.open(filename)
+        phdu = fits.PrimaryHDU()
+        phdu.header['ORIGIN'] = "OSSOS"
+        hdulist_out = fits.HDUList(phdu)
+        for hdu in hdulist:
+            if hdu.data is None:
+                continue
+            w = WCS(hdu.header)
+            x, y  = w.sky2xy(sky_coord.ra.degree, sky_coord.dec.degree)
+            radius = math.fabs(radius.to('degree').value / w.cd[0][0]) * 2.0
+            result = Cutout2D(hdu.data, (x, y), (radius, radius))
+            p1, p2 = result.to_cutout_position((hdu.header['CRPIX1'], hdu.header['CRPIX2']))
+            hdu = fits.ImageHDU(data=result.data, header=hdu.header)
+            hdu.header['CRPIX1'] = p1
+            hdu.header['CRPIX2'] = p2
+            hdu.header['XOFFSET'] = result.origin_cutout[0] - 1
+            hdu.header['YOFFSET'] = result.origin_cutout[1] - 1
+            hdu.converter = CoordinateConverter(hdu.header['XOFFSET'], hdu.header['YOFFSET'])
+            hdu.wcs = WCS(hdu.header)
+            bbox = result.bbox_original
+            # package the Cutout2D Bounding box to match cutout format from CADC
+            cutout = [0,bbox[1][0], bbox[1][1], bbox[0][0], bbox[0][1]]
+            _reset_datasec(hdu.header, cutout)
+            # hdu.header.update(result.wcs.to_header())
+            hdulist_out.append(hdu)
+        return hdulist_out
+      except Exception as ex:
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        traceback.print_tb(exc_traceback, limit=100, file=sys.stdout)
+        print(ex)
+        raise(ex)
+    
 
-    uri = observation.get_image_uri()
-    cutout_filehandle = tempfile.NamedTemporaryFile()
-    disposition_filename = client.copy(uri + "({},{},{})".format(sky_coord.ra.to('degree').value,
-                                                                 sky_coord.dec.to('degree').value,
-                                                                 radius.to('degree').value),
-                                       cutout_filehandle.name,
-                                       disposition=True)
-    cutouts = decompose_content_decomposition(disposition_filename)
+    else: 
+      uri = observation.get_image_uri()
+      cutout_filehandle = tempfile.NamedTemporaryFile()
+      disposition_filename = client.copy(uri + "({},{},{})".format(sky_coord.ra.to('degree').value,
+                                                                   sky_coord.dec.to('degree').value,
+                                                                   radius.to('degree').value),
+                                         cutout_filehandle.name,
+                                         disposition=True)
+      cutouts = decompose_content_decomposition(disposition_filename)
 
-    cutout_filehandle.seek(0)
-    hdulist = fits.open(cutout_filehandle)
-    hdulist.verify('silentfix+ignore')
-    logger.debug("Initial Length of HDUList: {}".format(len(hdulist)))
+      cutout_filehandle.seek(0)
+      hdulist = fits.open(cutout_filehandle)
+      hdulist.verify('silentfix+ignore')
+      logger.debug("Initial Length of HDUList: {}".format(len(hdulist)))
+    
 
     # Make sure here is a primaryHDU
     if len(hdulist) == 1:
@@ -840,6 +902,7 @@ def get_image(expnum, ccd=None, version='p', ext=FITS_EXT,
         return filename
 
     cutout_string = cutout
+    print(filename, cutout_string)
     try:
         if os.access(filename, os.F_OK) and cutout:
             cutout = datasec_to_list(cutout)
@@ -1135,7 +1198,7 @@ def get_fwhm(expnum, ccd, prefix=None, version='p'):
         fwhm[uri] = float(open_vos_or_local(uri).read())
         return fwhm[uri]
     except Exception as ex:
-        logger.error(str(ex))
+        logger.warning(str(ex))
         fwhm[uri] = 4.0
         return fwhm[uri]
 
@@ -1557,7 +1620,6 @@ def get_header(uri):
 def get_astheader(expnum, ccd, version='p', prefix=None):
     """
     Retrieve the header for a given dbimages file.
-
     @param expnum:  CFHT odometer number
     @param ccd: which ccd based extension (0..35)
     @param version: 'o','p', or 's'
