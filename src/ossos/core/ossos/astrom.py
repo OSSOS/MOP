@@ -11,7 +11,8 @@ from astropy import units
 from astropy.coordinates import SkyCoord
 from astropy.units import Quantity
 from astropy.time import TimeDelta, Time
-import util
+import time
+from . import util
 
 from .gui import logger
 from . import storage
@@ -219,10 +220,16 @@ class AstromParser(object):
             The file contents extracted into a data structure for programmatic
             access.
         """
-        filehandle = storage.open_vos_or_local(filename, "rb")
-        assert filehandle is not None, "Failed to open file {} ".format(filename)
-        filestr = filehandle.read()
-        filehandle.close()
+        while True:
+           try:
+              filehandle = storage.open_vos_or_local(filename, "rb")
+              assert filehandle is not None, "Failed to open file {} ".format(filename)
+              filestr = filehandle.read()
+              filehandle.close()
+              break
+           except Exception as ex:
+              print(str(ex))
+              time.sleep(3)
 
         assert filestr is not None, "File contents are None"
 
