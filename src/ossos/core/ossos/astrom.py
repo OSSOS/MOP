@@ -219,7 +219,7 @@ class AstromParser(object):
             The file contents extracted into a data structure for programmatic
             access.
         """
-        filehandle = storage.open_vos_or_local(filename, "rb")
+        filehandle = storage.open_vos_or_local(filename, "r")
         assert filehandle is not None, "Failed to open file {} ".format(filename)
         filestr = filehandle.read()
         filehandle.close()

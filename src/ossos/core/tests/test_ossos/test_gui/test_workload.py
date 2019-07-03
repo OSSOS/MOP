@@ -324,7 +324,7 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         self.workunit.accept_current_item()
 
         self.progress_manager.unlock.assert_called_once_with(
-            self.testfile, async=True)
+            self.testfile, do_async=True)
 
     def test_flush_only_after_source_finished(self):
         assert_that(self.writer.flush.called, equal_to(False))
@@ -467,7 +467,7 @@ class CandidatesWorkUnitTest(AbstractWorkUnitTest):
         self.workunit.accept_current_item()
 
         self.progress_manager.unlock.assert_called_once_with(
-            self.testfile, async=True)
+            self.testfile, do_async=True)
 
 
 class StatefulCollectionTest(unittest.TestCase):

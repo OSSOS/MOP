@@ -9,7 +9,7 @@ from hamcrest import (assert_that, equal_to, has_length, contains,
 from mock import patch, Mock
 
 from tests.base_tests import FileReadingTestCase, DirectoryCleaningTestCase
-from ossos.downloads.async import AsynchronousDownloadManager
+from ossos.downloads.async_download import AsynchronousDownloadManager
 from ossos.downloads.core import ApcorData
 from ossos.downloads.cutouts.calculator import CoordinateConverter
 from ossos.downloads.cutouts.source import SourceCutout

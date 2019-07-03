@@ -3,20 +3,18 @@ import warnings
 from astropy import units
 from astropy.units import Quantity
 
-from ossos.downloads.async import DownloadRequest
+from .. import mpc
+from ..downloads.core import Downloader
 from ..downloads.cutouts.source import SourceCutout
+from ..gui import config, logger
+from ..gui import events
+from ..gui.autoplay import AutoplayManager
+from ..gui.models.exceptions import (ImageNotLoadedException,
+                                     NoWorkUnitException)
 from ..gui.models.transactions import TransAckValidationModel
 from ..gui.models.workload import TracksWorkUnit
 from ..gui.views.appview import ApplicationView
-from ..downloads.core import Downloader
-from ..gui.autoplay import AutoplayManager
-from ..gui import config, logger
-from ..gui import events
-from ..gui.models.exceptions import (ImageNotLoadedException,
-                                     NoWorkUnitException)
-from .. import mpc
 from ..orbfit import OrbfitError, Orbfit
-
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -25,6 +23,7 @@ class AbstractController(object):
     """
     The class that handles interactions between the data model and the users view of that data.
     """
+
     def __init__(self, model, view):
         """
 
@@ -262,13 +261,13 @@ class ProcessRealsController(AbstractController):
             source_cutout.update_pixel_location((float(x), float(y)), hdulist_index)
             source_cutout.reading.inverted = False
             (ra, dec) = source_cutout.pix2world(x, y, hdulist_index, usepv=True)
-            self.place_marker(ra, dec, radius=int(source_cutout.apcor.ap_in*0.185+1)*units.arcsec,
+            self.place_marker(ra, dec, radius=int(source_cutout.apcor.ap_in * 0.185 + 1) * units.arcsec,
                               colour='green', force=True)
         else:
             key = isinstance(auto, bool) and " " or auto
             ra = source_cutout.reading.ra * units.degree
             dec = source_cutout.reading.dec * units.degree
-            self.place_marker(ra, dec, radius=int(source_cutout.apcor.ap_in*0.185+1)*units.arcsec,
+            self.place_marker(ra, dec, radius=int(source_cutout.apcor.ap_in * 0.185 + 1) * units.arcsec,
                               colour='cyan', force=True)
             (x, y, hdulist_index) = source_cutout.world2pix(ra, dec, usepv=False)
             source_cutout.update_pixel_location((float(x), float(y)), hdulist_index)
@@ -302,8 +301,8 @@ class ProcessRealsController(AbstractController):
 
         obs_mag = phot_failure and None or obs_mag
         obs_mag_err = phot_failure and None or obs_mag_err
-        self.place_marker(source_cutout.ra * units.degree, source_cutout.dec*units.degree,
-                          radius=int(source_cutout.apcor.ap_in*0.185+1)*units.arcsec,
+        self.place_marker(source_cutout.ra * units.degree, source_cutout.dec * units.degree,
+                          radius=int(source_cutout.apcor.ap_in * 0.185 + 1) * units.arcsec,
                           colour='white',
                           force=True)
 
@@ -356,7 +355,7 @@ class ProcessRealsController(AbstractController):
                     previous_observations.append(this_observation)
                 print(Orbfit(previous_observations).summarize())
             except Exception as ex:
-                logger.error(str(type(ex))+" "+str(ex))
+                logger.error(str(type(ex)) + " " + str(ex))
                 print("Failed to compute preliminary orbit.")
 
         if obs_mag < 24 and auto is not False:
@@ -589,7 +588,6 @@ class ProcessVettingController(ProcessCandidatesController):
 
 
 class ProcessExamineController(ProcessRealsController):
-
     pass
 
 
@@ -659,7 +657,8 @@ class ProcessTracksController(ProcessRealsController):
             cutout.comparison_image_index = None
         comparison_image = cutout.comparison_image
         if comparison_image is None:
-            print("Failed to load comparison image: {}".format(cutout.comparison_image_list[cutout.comparison_image_index]))
+            print("Failed to load comparison image: {}".format(
+                cutout.comparison_image_list[cutout.comparison_image_index]))
         else:
             self.view.display(cutout.comparison_image, self.use_pixel_coords)
             self.view.align(self.model.get_current_cutout(),

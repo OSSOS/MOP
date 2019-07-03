@@ -1525,14 +1525,20 @@ def _get_sghead(expnum):
     if key in sgheaders:
         return sgheaders[key]
 
-    url = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHTSG/{}{}.head".format(expnum, version)
-    logging.getLogger("requests").setLevel(logging.ERROR)
-    logging.debug("Attempting to retrieve {}".format(url))
-    resp = requests.get(url)
-    if resp.status_code != 200:
-        raise IOError(errno.ENOENT, "Could not get {}".format(url))
+    header_filename = "{}{}.head".format(expnum, version)
 
-    header_str_list = re.split('END      \n', resp.content)
+    if not os.access(header_filename, os.R_OK):
+        url = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHTSG/{}".format(header_filename)
+        logging.getLogger("requests").setLevel(logging.ERROR)
+        logging.debug("Attempting to retrieve {}".format(url))
+        resp = requests.get(url)
+        if resp.status_code != 200:
+            raise IOError(errno.ENOENT, "Could not get {}".format(url))
+        with open(header_filename,'w') as hobj:
+            hobj.write(resp.content)
+
+    with open(header_filename,'w') as hobj:
+        header_str_list = re.split('END      \n', hobj.read())
 
     # # make the first entry in the list a Null
     headers = [None]
@@ -1575,7 +1581,8 @@ def get_astheader(expnum, ccd, version='p', prefix=None):
                 for header in sgheaders[sg_key]:
                         if header.get('EXTVER', -1) == int(ccd):
                             return header
-        except:
+        except Exception as ex:
+            print(ex)
             pass
 
     try:
