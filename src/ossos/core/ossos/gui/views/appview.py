@@ -3,7 +3,6 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import wx
 import wx.lib.inspection
 
-from .. import logger
 from . import dialogs
 from .errorhandling import CertificateDialog, RetryDownloadDialog
 from .imageview import ImageViewManager
@@ -12,6 +11,7 @@ from .loading import WaitingGaugeDialog
 from .mainframe import MainFrame
 from .menu import Menu
 from .validation import AcceptSourceDialog, RejectSourceDialog, OffsetSourceDialog, VettingSourceDialog
+from .. import logger
 
 
 def guithread(function):
@@ -207,7 +207,7 @@ class ApplicationView(object):
                                   phot_failure=False,
                                   pixel_x=None,
                                   pixel_y=None
-    ):
+                                  ):
         self.accept_source_dialog = AcceptSourceDialog(
             self.mainframe, self.controller,
             provisional_name,

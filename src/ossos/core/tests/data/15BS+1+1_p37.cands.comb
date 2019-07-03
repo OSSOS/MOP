@@ -1,0 +1,32 @@
+# 1832036p37                                                                    
+# 1832046p37                                                                    
+# 1832056p37                                                                    
+## MOPversion                                                                   
+#  1.20                                                                         
+## MJD-OBS-CENTER  EXPTIME THRES FWHM  MAXCOUNT CRVAL1     CRVAL2     EXPNUM    
+# 2015 09 09.38474  300.09  2.70  2.44  30000.0    6.44258    6.00267  1832036  
+## SCALE CHIP CRPIX1    CRPIX2    NAX1  NAX2   DETECTOR           PHADU RDNOIS  
+#  0.185  38  -9746.66   -104.41  2112  4644 MegaCam              1.58  4.00    
+## MOPversion                                                                   
+#  1.20                                                                         
+## MJD-OBS-CENTER  EXPTIME THRES FWHM  MAXCOUNT CRVAL1     CRVAL2     EXPNUM    
+# 2015 09 09.42910  300.09  2.70  2.07  30000.0    6.44258    6.00267  1832046  
+## SCALE CHIP CRPIX1    CRPIX2    NAX1  NAX2   DETECTOR           PHADU RDNOIS  
+#  0.185  38  -9750.06   -104.40  2112  4644 MegaCam              1.58  4.00    
+## MOPversion                                                                   
+#  1.20                                                                         
+## MJD-OBS-CENTER  EXPTIME THRES FWHM  MAXCOUNT CRVAL1     CRVAL2     EXPNUM    
+# 2015 09 09.47005  300.08  2.70  2.27  30000.0    6.44258    6.00267  1832056  
+## SCALE CHIP CRPIX1    CRPIX2    NAX1  NAX2   DETECTOR           PHADU RDNOIS  
+#  0.185  38  -9753.73   -104.68  2112  4644 MegaCam              1.58  4.00    
+##     RMIN    RMAX   ANGLE   AWIDTH                                            
+#      0.3    15.0   -23.0    22.0                                              
+##   X       Y     X_0     Y_0        FLUX       SIZE   MAX_INT  ELON           
+
+ 1353.83   99.21 1353.83   99.21      1628.23     16.0    122.18  1.33
+ 1394.35   84.49 1396.77   86.53      1355.03     19.0    163.84  1.51
+ 1430.94   71.67 1436.77   74.94      1352.55     14.0    142.40  1.43
+
+ 1539.88 3902.09 1539.88 3902.09       832.11      8.0     81.68  1.71
+ 1573.10 3875.65 1574.66 3877.62      1434.86     15.0    104.02  1.52
+ 1603.96 3848.97 1608.37 3852.21       531.86      5.0     72.71  1.73

@@ -166,7 +166,7 @@ class WorkUnit(object):
 
     def unlock(self):
         if not self._unlocked:
-            self.progress_manager.unlock(self.get_filename(), async=True)
+            self.progress_manager.unlock(self.get_filename(), do_async=True)
             self._unlocked = True
 
     def _get_item_set(self):
