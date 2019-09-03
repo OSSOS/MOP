@@ -930,7 +930,11 @@ class SourceReading(object):
           ccdnum: int
             The number of the CCD that the image is on.
         """
-        return int(self.obs.ccdnum)
+        try:
+           i = int(self.obs.ccdnum)
+        except:
+           i = None
+        return i
 
     def get_extension(self):
         """
