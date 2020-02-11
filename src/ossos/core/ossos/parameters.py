@@ -144,6 +144,8 @@ OPPOSITION_DATES = {"13AE": NEWMOONS['Apr13'],
 OSSOS_FILTERS = ['R.MP9601',
                  'R.MP9602',
                  'GRI.MP9605',
+                 'W-S-R+',
+                 'W-J-VR',
                  ]
 
 COLOSSOS = [

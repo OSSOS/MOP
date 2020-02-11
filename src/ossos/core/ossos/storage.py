@@ -12,7 +12,7 @@ import logging
 import warnings
 import time
 from astropy.coordinates import SkyCoord
-from astropy.nddata import Cutout2D
+from astropy.nddata import Cutout2D, NoOverlapError
 from astropy.io import ascii
 from astropy import units
 from astropy.units import Quantity
@@ -675,14 +675,18 @@ def _cutout_expnum(observation, sky_coord, radius):
                 continue
             w = WCS(hdu.header)
             x, y  = w.sky2xy(sky_coord.ra.degree, sky_coord.dec.degree)
-            radius = math.fabs(radius.to('degree').value / w.cd[0][0]) * 2.0
-            result = Cutout2D(hdu.data, (x, y), (radius, radius))
+            deg_radius = math.fabs(radius.to('degree').value / w.cd[0][0]) * 2.0
+            try:
+               result = Cutout2D(hdu.data, (x, y), (deg_radius, deg_radius))
+            except NoOverlapError:
+               continue
+            observation.ccdnum = hdu.header['DET-ID']
             p1, p2 = result.to_cutout_position((hdu.header['CRPIX1'], hdu.header['CRPIX2']))
             hdu = fits.ImageHDU(data=result.data, header=hdu.header)
             hdu.header['CRPIX1'] = p1
             hdu.header['CRPIX2'] = p2
-            hdu.header['XOFFSET'] = result.origin_cutout[0] - 1
-            hdu.header['YOFFSET'] = result.origin_cutout[1] - 1
+            hdu.header['XOFFSET'] = result.origin_cutout[0] 
+            hdu.header['YOFFSET'] = result.origin_cutout[1] 
             hdu.converter = CoordinateConverter(hdu.header['XOFFSET'], hdu.header['YOFFSET'])
             hdu.wcs = WCS(hdu.header)
             bbox = result.bbox_original
@@ -702,11 +706,15 @@ def _cutout_expnum(observation, sky_coord, radius):
     else: 
       uri = observation.get_image_uri()
       cutout_filehandle = tempfile.NamedTemporaryFile()
-      disposition_filename = client.copy(uri + "({},{},{})".format(sky_coord.ra.to('degree').value,
-                                                                   sky_coord.dec.to('degree').value,
-                                                                   radius.to('degree').value),
-                                         cutout_filehandle.name,
-                                         disposition=True)
+      try:
+          cutout_uri = uri + "({},{},{})".format(sky_coord.ra.to('degree').value, sky_coord.dec.to('degree').value, radius.to('degree').value)
+          disposition_filename = client.copy(cutout_uri, 
+                                             cutout_filehandle.name,
+                                             disposition=True)
+      except Exception as ex:
+          print(cutout_uri)
+          print(ex)
+          raise(ex)
       cutouts = decompose_content_decomposition(disposition_filename)
 
       cutout_filehandle.seek(0)

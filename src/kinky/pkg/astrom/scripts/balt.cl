@@ -46,6 +46,7 @@ begin
         if (command == "Q") bye
         tvfile=mktemp("tmp$tvfile")
 	print(x1,y1, > tvfile)
+        print("Marked star at "//x1//","//y1//" recorded in "//tvfile)
 
         centerfile = t_ref//".baltcen"
         imcntr(t_ref,x1,y1,cboxsize=t_sbox, >> centerfile)

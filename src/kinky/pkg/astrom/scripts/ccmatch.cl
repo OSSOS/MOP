@@ -71,6 +71,7 @@ begin
 	imgets(inimg,'TELESCOP')
         stringtel = imgets.value
         telesc = 'UNKN'
+	if(stringtel == 'Gemini-South') telesc = 'GEMN'
 	if(stringtel == 'Gemini-North') telesc = 'GEMN'
 	if(stringtel == 'MPG/ESO-2.2') telesc = 'ESO2'
 	if(stringtel == 'ESO-3P6')     telesc = 'ESO3'
@@ -487,11 +488,11 @@ begin
         #sort('usno.nosort',column=3,numer+, > 'usno.ccmap')
 #
 	i = 0
-	intable='usno.ccmap'
+	intable='gaia.cat'
 	list=intable
-        while(fscan(list,thisra,thisdec,thismag,thisid) != EOF)
+        while(fscan(list,thisra,thisdec,thismag) != EOF)
 	{
-           print thisra, thisdec, thismag
+           # print thisra, thisdec, thismag
 	   i = i+1 ;
 	   ra[i] = thisra ;
 	   dec[i] = thisdec ;
