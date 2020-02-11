@@ -230,7 +230,7 @@ class ValidationModel(object):
         # All HDU elements have the same date and time so just use
         # last one, sometimes the first one is missing the header, in MEF
         header = self.get_current_cutout().hdulist[-1].header
-        mjd_obs = float(header.get('MJD-OBS'))
+        mjd_obs = float(header.get('MJD-OBS', header.get('MJD')))
         exptime = float(header.get('EXPTIME'))
         mpc_date = Time(mjd_obs,
                         format='mjd',
@@ -267,11 +267,13 @@ class ValidationModel(object):
     def get_current_band(self):
         header = self.get_current_fits_header()
         filter_value = None
-        for keyword in ['FILTER', 'FILT1 NAME']:
+        for keyword in ['FILTER', 'FILT1 NAME', 'FILTER01' ]:
             filter_value = header.get(keyword, None)
             if filter_value is not None:
                 break
         if filter_value is not None and filter_value.startswith('gri'):
+            filter_value = 'w'
+        if filter_value is not None and filter_value.startswith('W-J-VR'):
             filter_value = 'w'
         return filter_value
 

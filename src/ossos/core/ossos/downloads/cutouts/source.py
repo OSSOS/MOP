@@ -113,7 +113,7 @@ class SourceCutout(object):
         @param hdulist_index:  the index of the HDUList entry that the CCDNUM is needed for.
         @return: ccdnum
         """
-        return self.hdulist[hdulist_index].header.get('EXTVER')
+        return self.hdulist[hdulist_index].header.get('EXTVER', self.hdulist[hdulist_index].header.get('DET-ID', -9999))
 
     def get_hdulist_idx(self, ccdnum):
         """
@@ -123,7 +123,7 @@ class SourceCutout(object):
         @return: the index of in self.hdulist that corresponds to the given CCD number.
         """
         for (extno, hdu) in enumerate(self.hdulist):
-            if ccdnum == int(hdu.header.get('EXTVER', -1)) or str(ccdnum) in hdu.header.get('AMPNAME', ''):
+            if ccdnum == int(hdu.header.get('EXTVER', -1)) or str(ccdnum) in hdu.header.get('AMPNAME', '') or ccdnum == int(hdu.header.get('DET-ID',-9999)):
                 return extno
         raise ValueError("Failed to find requested CCD Number {} in cutout {}".format(ccdnum,
                                                                                       self))
