@@ -151,7 +151,7 @@ def main():
     exit_code = 0
     for expnum in args.expnum:
         for ccd in ccdlist:
-            run(expnum, ccd, args.type, args.dry_run, prefix=prefix, force=args.force)
+            run(expnum, ccd, args.type, args.dry_run, prefix=prefix, force=args.force, ignore_dependency=args.ignore_update_headers)
 
 if __name__ == '__main__':
     main()
