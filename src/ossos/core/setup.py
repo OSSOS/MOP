@@ -1,4 +1,4 @@
-import os
+
 
 from setuptools import setup, find_packages
 
@@ -20,11 +20,13 @@ console_scripts = ['mkpsf = ossos.pipeline.mkpsf:main', 'step3 = ossos.pipeline.
                    'mk_mopheader = ossos.pipeline.mk_mopheader:main',
                    'optimize_pointings = ossos.planning.optimize_pointings:main',
                    'build_astrometry_report = ossos.pipeline.build_astrometry_report:main',
-                   'update_astrometry = ossos.pipeline.update_astrometry:main']
+                   'update_astrometry = ossos.pipeline.update_astrometry:main',
+                   'scramble = ossos.pipeline.scramble:main']
+
 gui_scripts = ['validate = ossos.tools.validate:main']
 
 setup(name='ossos',
-      version='2.0.dev2',
+      version='2.0.2',
       url='http://github.com/OSSOS/MOP',
       author='''JJ Kavelaars (jjk@uvic.ca),
               Michele Bannister (micheleb@uvic.ca),
