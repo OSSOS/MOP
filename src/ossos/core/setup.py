@@ -21,6 +21,7 @@ console_scripts = ['mkpsf = ossos.pipeline.mkpsf:main', 'step3 = ossos.pipeline.
                    'optimize_pointings = ossos.planning.optimize_pointings:main',
                    'build_astrometry_report = ossos.pipeline.build_astrometry_report:main',
                    'update_astrometry = ossos.pipeline.update_astrometry:main',
+                   'measure3 = ossos.pipeline.mesaure3:main',
                    'scramble = ossos.pipeline.scramble:main']
 
 gui_scripts = ['validate = ossos.tools.validate:main']
