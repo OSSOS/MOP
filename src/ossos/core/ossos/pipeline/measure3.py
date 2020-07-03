@@ -2,28 +2,33 @@
 # use the xy2skypv code to generate the astrometric values
 # that measure3 would normally produce.
 import os
-from optparse import OptionParser
+import argparse
 import logging
+from pathlib import Path
+
+
+SUCCESS_FILE = "measure3.OK"
+FAILED_EXT = "measure3.FAILED"
+CANDS_COMB_EXT = 'cands.comb'
+CANDS_ASTROM_EXT = 'measure3.cands.astrom'
 
 
 def main():
-    parser = OptionParser()
-    (opt, args) = parser.parse_args()
-    if len(args) != 1:
-        parser.error("You must provide the base .cands.comb image on the command line\n")
-    base_image = args[0]
-    ok_ext = "measure3.OK"
-    failed_ext = base_image + ".measure3.FAILED"
+    parser = argparse.ArgumentParser(description="Run xy2skypv on cands.comb files to produce cands.astrom")
+    parser.add_argument('base_image', help="The base image referencing the .cands.comb file")
 
-    os.system("touch %s" % failed_ext)
+    args = parser.parse_args()
+    base_image = args.base_image
 
-    cands_filename = "%s.cands.comb" % base_image
+    Path(f'{base_image}.{FAILED_EXT}').touch()
+
+    cands_filename = "%s.%s" % (base_image, CANDS_ASTROM_EXT)
     if not os.access(cands_filename, os.R_OK):
-        parser.error("Failed to open input candidate file %s\n" % cands_filename)
+        FileNotFoundError("Failed to open input candidate file %s\n" % cands_filename)
 
     astrom_header = """##   X        Y        X_0     Y_0          R.A.          DEC                   \n"""
 
-    astrom_filename = "%s.measure3.cands.astrom" % base_image
+    astrom_filename = "%s.%s" % (base_image, CANDS_ASTROM_EXT)
     coords = []
     base_names = []
     line_counter = 0
@@ -90,8 +95,8 @@ def main():
                                                                                 float(rd[0]),
                                                                                 float(rd[1])))
 
-    os.system("touch %s" % ok_ext)
-    os.unlink(failed_ext)
+    Path(f'{SUCCESS_FILE}').touch()
+    os.unlink(f'{base_image}.{FAILED_EXT}')
 
 
 if __name__ == '__main__':
