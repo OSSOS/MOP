@@ -22,7 +22,7 @@ def main():
 
     Path(f'{base_image}.{FAILED_EXT}').touch()
 
-    cands_filename = "%s.%s" % (base_image, CANDS_ASTROM_EXT)
+    cands_filename = "%s.%s" % (base_image, CANDS_COMB_EXT)
     if not os.access(cands_filename, os.R_OK):
         FileNotFoundError("Failed to open input candidate file %s\n" % cands_filename)
 
