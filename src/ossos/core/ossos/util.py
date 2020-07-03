@@ -126,7 +126,7 @@ class VOFileHandler(handlers.BufferingHandler):
 
     def flush(self):
         for record in self.buffer:
-            self.stream.write("{}\n".format(self.format(record)))
+            self.stream.write(bytes("{}\n".format(self.format(record)),'utf-8'))
         self.buffer = []
 
 
