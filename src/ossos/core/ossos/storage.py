@@ -1043,7 +1043,7 @@ def get_hdu(uri, cutout=None):
             fpt.seek(0, 2)
             fpt.seek(0)
             logger.debug("Read from vospace completed. Building fits object.")
-            hdu_list = fits.open(fpt, scale_back=False)
+            hdu_list = fits.open(fpt, scale_back=False, mode='update')
             hdu_list.verify('silentfix+ignore')
 
             logger.debug("Got image from vospace")
