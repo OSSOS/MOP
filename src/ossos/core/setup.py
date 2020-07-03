@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 dependencies = ['requests >= 2.7',
-                'astropy >= 0.2.5',
+                'astropy >= 4.0',
                 'vos >= 3.0',
                 'ephem',
                 'numpy >= 1.6.1',
