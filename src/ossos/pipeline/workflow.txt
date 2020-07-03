@@ -1,0 +1,22 @@
+
+OSSOS pipeline workflow.
+
+run_pipeline.py  # overall pipeline management script. 
+		 # update of src/jjk/preproc/scrample.py to OSSOS (now redistributed to smaller files)
+
+sunrise:
+	# chronjob runs at sunrise each Hawaiian morning after observing has finished. 
+	# retrieve image info from CADC via TAP: incorporate src/jjk/preproc/ObsStatus.py
+	# examine for contiguous image sets, images missing from ends of each field's observing
+	# populate OSSOS metadata db, ossuary, with info
+	# process info to see if any fields in that batch of observation had three images in the night
+	# report via email on result of night's observing
+	# \copy postgres_db to stdout with csv header  (this'll be a daily dump of the db to disk) # aha: pg_dump 
+	# if fields > 0, initiate next step of processing, preproc.
+
+preproc:
+	# given fields with > 3 images in the night:
+	# flatfield and biases if there is a flat available (check when/why no flat available)
+	# run Stephan's wcs astrometry module to replace the headers
+	# flip the images to have north up, east left
+	# makepsf
