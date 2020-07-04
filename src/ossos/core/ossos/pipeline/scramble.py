@@ -62,7 +62,7 @@ def scramble(expnums, ccd, version='p', dry_run=False, force=False, prefix=''):
                                                                     expnums, ccd))
         return
 
-    with storage.LoggingManager(task, prefix, expnums[0], version, ccd):
+    with storage.LoggingManager(task, prefix, expnums[0], ccd, version):
         try:
             for expnum in expnums:
                 filename = storage.get_image(expnum, ccd=ccd, version=version)
