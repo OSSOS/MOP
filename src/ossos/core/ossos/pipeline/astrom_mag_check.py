@@ -69,6 +69,10 @@ def main():
                         help="required number of detections with mag brighter than bright-limit.")
     parser.add_argument('--minimum-bright-fraction', default=MINIMUM_BRIGHT_FRACTION,
                         help="minimum fraction of objects above bright limit that should be found.")
+    parser.add_argument("--debug",
+                        action="store_true")
+    parser.add_argument("--verbose", "-v",
+                        action="store_true")
 
     cmd_line = " ".join(sys.argv)
     args = parser.parse_args()
