@@ -37,6 +37,18 @@ task = 'align'
 dependency = 'step2'
 
 
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, numpy.integer):
+            return int(obj)
+        elif isinstance(obj, numpy.floating):
+            return float(obj)
+        elif isinstance(obj, numpy.ndarray):
+            return obj.tolist()
+        else:
+            return super(NpEncoder, self).default(obj)
+
+
 def get_wcs(shifts):
     # store the shifts as a WCS transform where the 'world' coordinates are really the pixel coordinates
     # in the reference frame.
@@ -174,7 +186,8 @@ def align(expnums, ccd, version='s', prefix='', dry_run=False, force=True):
 
                 try:
                     fh = open(shift_file, 'w')
-                    fh.write(json.dumps(shifts, sort_keys=True, indent=4, separators=(',', ': ')))
+                    fh.write(json.dumps(shifts, sort_keys=True, indent=4, separators=(',', ': '),
+                                        cls=NpEncoder))
                     fh.write('\n')
                     fh.close()
                 except Exception as e:
