@@ -59,7 +59,7 @@ def main():
     parser.add_argument('--dbimages', default=None)
     parser.add_argument('--dry-run', action='store_true', default=False)
     parser.add_argument('--force', action='store_true', default=False)
-
+    parser.add_argument("--fk", action="store_true", default=False, help="Do fakes?")
     parser.add_argument('--object-planted', default=OBJECT_PLANTED,
                         help="Name of file contains list of planted objects.")
     parser.add_argument('--bright-limit', default=BRIGHT_LIMIT,
