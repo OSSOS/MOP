@@ -24,13 +24,12 @@
 
 import argparse
 import os
-from subprocess import CalledProcessError
 import sys
 import logging
 from ossos import storage
 from ossos import util
 
-task  = 'mkpsf'
+task = 'mkpsf'
 dependency = 'mk_mopheader'
 
 
@@ -46,7 +45,7 @@ def run(expnum, ccd, version, dry_run=False, prefix="", force=False):
 
     with storage.LoggingManager(task, prefix, expnum, ccd, version, dry_run):
         try:
-            if not storage.get_status(dependency, prefix, expnum, "p", ccd=ccd):
+            if not storage.get_status(dependency, prefix, expnum, version, ccd=ccd):
                 raise IOError("{} not yet run for {}".format(dependency, expnum))
 
             # confirm destination directory exists.
@@ -62,7 +61,6 @@ def run(expnum, ccd, version, dry_run=False, prefix="", force=False):
             # get mopheader from the vospace storage area
             logging.info("Getting mopheader from VOSpace")
             mopheader_filename = storage.get_file(expnum, ccd, version=version, prefix=prefix, ext='mopheader')
-
 
             # run mkpsf process
             logging.info("Running mkpsf on %s %d" % (expnum, ccd))
