@@ -5,7 +5,6 @@ from setuptools import setup, find_packages
 dependencies = ['requests >= 2.7',
                 'astropy >= 4.0',
                 'vos >= 3.0',
-                'ephem',
                 'numpy >= 1.6.1',
                 'matplotlib',
                 'd2to1 >= 0.2.10',
