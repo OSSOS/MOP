@@ -18,6 +18,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with OSSOS-MOP.  If not, see <http://www.gnu.org/licenses/>.
 #
+import traceback
 import argparse
 import json
 import logging
@@ -144,7 +145,7 @@ def align(expnums, ccd, version='s', prefix='', dry_run=False, force=True):
                                        (mags[expnum]["MAG"][idx1] - apcor[expnum][2]),
                                        mask=idx1.mask)
                 dmags.sort()
-                logging.debug("Computed dmags between input and reference: {}".format(dmags))
+                # logging.debug("Computed dmags between input and reference: {}".format(dmags))
                 error_count = 0
 
                 error_count += 1
