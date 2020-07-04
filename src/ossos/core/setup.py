@@ -23,6 +23,7 @@ console_scripts = ['mkpsf = ossos.pipeline.mkpsf:main', 'step3 = ossos.pipeline.
                    'update_astrometry = ossos.pipeline.update_astrometry:main',
                    'measure3 = ossos.pipeline.measure3:main',
                    'align = ossos.pipeline.align:main',
+                   'plant = ossos.pipeline.plant:main',
                    'scramble = ossos.pipeline.scramble:main']
 
 gui_scripts = ['validate = ossos.tools.validate:main']
