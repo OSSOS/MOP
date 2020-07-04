@@ -148,7 +148,7 @@ class KBOGenerator(object):
         if filename is not None:
             fd = open(filename, 'w')
             fd.write("#K {:10s} {:10s} {:10s} {:10s} {:10s}\n".format("rate", "angle", "mag", "x_range", "y_range"))
-            fd.write("#V {:10s} {:10s} {:10s} {:10s} {:10s}\n".format(rate, angle, mag, x, y))
+            fd.write("#V {} {} {} {} {}\n".format(rate, angle, mag, x, y))
             fd.write("# ")
             kbos.write(fd, format='ascii.fixed_width', delimiter=None)
             fd.close()
