@@ -23,15 +23,15 @@
 """
 Compare the measured fluxes of planted sources against those returned for by digiphot.
 """
-
 __author__ = 'jjk'
 
-import sys
-import os
-from ossos import astrom
-from ossos import storage
 import argparse
 import logging
+import os
+import sys
+
+from ossos import astrom
+from ossos import storage
 from ossos import util
 from ossos.match import match_planted
 
@@ -43,6 +43,8 @@ BRIGHT_LIMIT = 23.0
 OBJECT_PLANTED = "Object.planted"
 MINIMUM_BRIGHT_DETECTIONS = 5
 MINIMUM_BRIGHT_FRACTION = 0.5
+task = 'astrom_mag_check'
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -67,15 +69,32 @@ def main():
                         help="required number of detections with mag brighter than bright-limit.")
     parser.add_argument('--minimum-bright-fraction', default=MINIMUM_BRIGHT_FRACTION,
                         help="minimum fraction of objects above bright limit that should be found.")
+
+    cmd_line = " ".join(sys.argv)
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.CRITICAL)
+    util.set_logger(args)
+    logging.info("Starting {}".format(cmd_line))
+    prefix = (args.fk and "fk") or ""
+    expnums = args.expnums
+    version = args.type
+    ext = 'cands'
+    if args.reals:
+        ext = 'reals'
 
-    prefix = 'fk'
-    ext = args.reals and 'reals' or 'cands'
-    task = util.task()
+    if args.ccd is None:
+        expnum = min(expnums)
+        if int(expnum) < 1785619:
+            # Last exposures with 36 CCD Megaprime
+            ccdlist = list(range(0, 36))
+        else:
+            # First exposrues with 40 CCD Megaprime
+            ccdlist = list(range(0, 40))
+    else:
+        ccdlist = [args.ccd]
 
-    storage.MEASURE3 = args.measure3
+    if not args.no_sort:
+        args.expnums.sort()
 
     if args.dbimages is not None:
         storage.DBIMAGES = args.dbimages
@@ -102,21 +121,19 @@ def main():
     else:
         expnum = args.expnum
 
-    storage.set_logger(os.path.splitext(os.path.basename(sys.argv[0]))[0], prefix, expnum, "", ext, args.dry_run)
     match_filename = os.path.splitext(os.path.basename(astrom_filename))[0] + '.match'
 
-    exit_status = 0
-    status = storage.SUCCESS
-    try:
-        if (not storage.get_status(task, prefix, expnum=expnum, version='', ccd=args.ccd)) or args.force:
+    message = storage.SUCCESS
+    with storage.LoggingManager(task, prefix, expnums[0], ccd, version, dry_run):
+        try:
             logging.info(("Comparing planted and measured magnitudes "
                           "for sources in {} and {}\n".format(args.object_planted, astrom_filename)))
-            message = match_planted(fk_candidate_observations,
-                                    match_filename=match_filename,
-                                    object_planted=args.object_planted,
-                                    bright_limit=args.bright_limit,
-                                    minimum_bright_detections=args.minimum_bright_detections,
-                                    bright_fraction=args.minimum_bright_fraction)
+            result = match_planted(fk_candidate_observations,
+                                   match_filename=match_filename,
+                                   object_planted=args.object_planted,
+                                   bright_limit=args.bright_limit,
+                                   minimum_bright_detections=args.minimum_bright_detections,
+                                   bright_fraction=args.minimum_bright_fraction)
             match_uri = storage.get_cands_uri(args.field,
                                               ccd=args.ccd,
                                               version=args.type,
@@ -126,21 +143,18 @@ def main():
                 storage.copy(match_filename, match_uri)
                 uri = os.path.dirname(astrom_uri)
                 keys = [storage.tag_uri(os.path.basename(astrom_uri))]
-                values = [message]
+                values = [result]
                 storage.set_tags_on_uri(uri, keys, values)
-    except Exception as err:
-        sys.stderr.write(str(err))
-        status = str(err)
-        exit_status = err.message
+            logger.info(message)
+        except Exception as err:
+            message = str(err)
+            logging.error(message)
 
-    if not args.dry_run:
-        storage.set_status(task, prefix, expnum, version='', ccd=args.ccd, status=status)
+        if not args.dry_run:
+            storage.set_status(task, prefix, expnum, version='', ccd=args.ccd, status=message)
 
-    return exit_status
+    return
 
 
 if __name__ == '__main__':
-    logger.critical("STARTING")
-    code = main()
-    logger.critical("FINISHED")
-    sys.exit(code)
+    main()
