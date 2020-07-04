@@ -63,7 +63,7 @@ def run(expnum, ccd, version, dry_run=False, prefix="", force=False, ignore_depe
 
             # launch the stepZjmp program         
             logging.info("Launching stepZ on %s %d" % (expnum, ccd))
-            expname = os.path.basename(filename).strip('.fits')
+            expname = os.path.basename(filename).split('.')[0]
             logging.info(util.exec_prog(['stepZjmp',
                                          '-f',
                                          expname]))
@@ -152,6 +152,7 @@ def main():
     for expnum in args.expnum:
         for ccd in ccdlist:
             run(expnum, ccd, args.type, args.dry_run, prefix=prefix, force=args.force, ignore_dependency=args.ignore_update_headers)
+
 
 if __name__ == '__main__':
     main()
