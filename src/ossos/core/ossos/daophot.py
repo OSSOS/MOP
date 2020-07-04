@@ -120,14 +120,14 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
     iraf.phot.interactive = 'no'
 
     # Used for passing the input coordinates
-    coofile = tempfile.NamedTemporaryFile(suffix=".coo", delete=False)
+    coofile = tempfile.NamedTemporaryFile(suffix=".coo", delete=False, mode='w')
 
     for i in range(len(x_in)):
         coofile.write("%f %f \n" % (x_in[i], y_in[i]))
     coofile.flush()
     # Used for receiving the results of the task
     # mag_fd, mag_path = tempfile.mkstemp(suffix=".mag")
-    magfile = tempfile.NamedTemporaryFile(suffix=".mag", delete=False)
+    magfile = tempfile.NamedTemporaryFile(suffix=".mag", delete=False, mode='w')
 
     # Close the temp files before sending to IRAF due to docstring:
     # "Whether the name can be used to open the file a second time, while
