@@ -16,7 +16,7 @@ C -*-compile-command: "cf77 -O6 -o ../bin/LINUX/comb-list comb-list.f -L../lib/L
      $  fx(3), fy(3), mag, fra, fangle, d(3), ca, sa, dd
 
       real*8
-     $  t(3), dt(3)
+     $  t(3), dt(3), pix_scale(3)
 
       character
      $  arg*80, basename*80, filename*80, header(24)*80, outname*80,
@@ -91,6 +91,7 @@ c Create a file for later error handling
 
       do i = 1, 3
          read (header(i*6+1)(3:), *) yy, mm, dd, tmp, tmp, fwhm(i)
+         read(header(i*6+3)(3:), *)  pix_scale(i)
          fwhm(i) = fwhm(i)**2
          id = int(dd)
          dd = dd - id
@@ -98,6 +99,7 @@ c Create a file for later error handling
          t(i) = jul + dble(dd)
          dt(i) = (t(i) - t(1))*24.0
       end do
+
 
       n1 = 0
  100  continue
@@ -164,8 +166,8 @@ c Create a file for later error handling
          sa = sin(fangle/180.0*3.1415926539)
          ca = cos(fangle/180.0*3.1415926539)
          do i = 2, 3
-            fx(i) = fx(1) + dt(i)*fra*ca
-            fy(i) = fy(1) + dt(i)*fra*sa
+            fx(i) = fx(1) + dt(i)*fra*ca/pix_scale(i)
+            fy(i) = fy(1) + dt(i)*fra*sa/pix_scale(i)
          end do
          found1 = .false.
          found2 = .false.
