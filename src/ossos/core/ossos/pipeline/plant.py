@@ -130,6 +130,8 @@ def plant_kbos(filename, psf, kbos, shifts, prefix):
             raise
 
     # add the sources to the image.
+    if os.access(f'{fk_image}.art', os.R_OK):
+        os.unlink(f'{fk_image}.art')
     iraf.daophot.addstar(filename, addstar.name, psf, fk_image,
                          simple=True, verify=False, verbose=False)
     # convert the image to short integers.
