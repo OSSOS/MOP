@@ -12,7 +12,6 @@ from astropy.units import Quantity
 from astropy.time import Time
 from astropy.table import Table
 import numpy
-from ... import util
 
 
 from ...astrom import SourceReading, Observation
