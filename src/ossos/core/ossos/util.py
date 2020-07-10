@@ -166,7 +166,6 @@ def match_lists(pos1, pos2, tolerance=MATCH_TOLERANCE, spherical=False):
     assert isinstance(pos1, numpy.ndarray)
     assert isinstance(pos2, numpy.ndarray)
 
-
     # build some arrays to hold the index of things that matched between lists.
     npts2 = npts1 = 0
 
@@ -324,10 +323,10 @@ class TimeMPC(TimeString):
         yday = None
         has_yday = '{yday:' in str_fmt or False
 
-        ihrs = ihmsfs[..., 0]
-        imins = ihmsfs[..., 1]
-        isecs = ihmsfs[..., 2]
-        ifracs = ihmsfs[..., 3]
+        ihrs = ihmsfs['h']
+        imins = ihmsfs['m']
+        isecs = ihmsfs['s']
+        ifracs = ihmsfs['f']
         for iy, im, iday, ihr, imin, isec, ifracsec in numpy.nditer(
                 [iys, ims, ids, ihrs, imins, isecs, ifracs]):
             if has_yday:
