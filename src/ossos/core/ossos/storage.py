@@ -1537,7 +1537,7 @@ def _get_sghead(expnum):
         with open(header_filename,'w') as hobj:
             hobj.write(resp.content)
 
-    with open(header_filename,'w') as hobj:
+    with open(header_filename, 'w') as hobj:
         header_str_list = re.split('END      \n', hobj.read())
 
     # # make the first entry in the list a Null
