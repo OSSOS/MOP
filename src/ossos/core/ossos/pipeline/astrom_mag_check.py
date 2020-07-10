@@ -128,7 +128,7 @@ def main():
     match_filename = os.path.splitext(os.path.basename(astrom_filename))[0] + '.match'
 
     message = storage.SUCCESS
-    with storage.LoggingManager(task, prefix, expnums[0], ccd, version, dry_run):
+    with storage.LoggingManager(task, prefix, expnums[0], args.ccd, version, args.dry_run):
         try:
             logging.info(("Comparing planted and measured magnitudes "
                           "for sources in {} and {}\n".format(args.object_planted, astrom_filename)))
