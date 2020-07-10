@@ -166,7 +166,6 @@ def match_lists(pos1, pos2, tolerance=MATCH_TOLERANCE, spherical=False):
     assert isinstance(pos1, numpy.ndarray)
     assert isinstance(pos2, numpy.ndarray)
 
-
     # build some arrays to hold the index of things that matched between lists.
     npts2 = npts1 = 0
 

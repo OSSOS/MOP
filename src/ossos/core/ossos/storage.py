@@ -1,5 +1,5 @@
 """OSSOS VOSpace storage convenience package"""
-from six import StringIO
+from six import StringIO, BytesIO
 import errno
 import fnmatch
 from glob import glob
@@ -1032,7 +1032,7 @@ def get_hdu(uri, cutout=None):
         filename = os.path.basename(uri)
         if os.access(filename, os.F_OK) and cutout is None:
             logger.debug("File already on disk: {}".format(filename))
-            hdu_list = fits.open(filename, scale_back=True)
+            hdu_list = fits.open(filename) # , scale_back=True)
             hdu_list.verify('silentfix+ignore')
 
         else:
@@ -1485,9 +1485,9 @@ def get_mopheader(expnum, ccd, version='p', prefix=None):
 
     if os.access(filename, os.F_OK):
         logger.debug("File already on disk: {}".format(filename))
-        mopheader_fpt = StringIO(open(filename, 'r').read())
+        mopheader_fpt = BytesIO(open(filename, 'rb').read())
     else:
-        mopheader_fpt = StringIO(open_vos_or_local(mopheader_uri).read())
+        mopheader_fpt = BytesIO(open_vos_or_local(mopheader_uri).read())
 
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', AstropyUserWarning)
