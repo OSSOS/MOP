@@ -65,7 +65,7 @@ def main():
     parser.add_argument('--bright-limit', default=BRIGHT_LIMIT,
                         help="Sources brighter than this limit {} are used to diagnose planting issues.".format(
                             BRIGHT_LIMIT))
-    parser.add_argument('--minimum-bright-detections', default=MINIMUM_BRIGHT_DETECTIONS,
+    parser.add_argument('--minimum-bright-detections', default=MINIMUM_BRIGHT_DETECTIONS, type=int,
                         help="required number of detections with mag brighter than bright-limit.")
     parser.add_argument('--minimum-bright-fraction', default=MINIMUM_BRIGHT_FRACTION,
                         help="minimum fraction of objects above bright limit that should be found.")
@@ -80,30 +80,16 @@ def main():
     util.set_logger(args)
     logging.info("Starting {}".format(cmd_line))
     prefix = (args.fk and "fk") or ""
-    expnums = args.expnums
+    expnum = args.expnum
     version = args.type
     ext = 'cands'
     if args.reals:
         ext = 'reals'
 
-    if args.ccd is None:
-        expnum = min(expnums)
-        if int(expnum) < 1785619:
-            # Last exposures with 36 CCD Megaprime
-            ccdlist = list(range(0, 36))
-        else:
-            # First exposrues with 40 CCD Megaprime
-            ccdlist = list(range(0, 40))
-    else:
-        ccdlist = [args.ccd]
-
-    if not args.no_sort:
-        args.expnums.sort()
-
     if args.dbimages is not None:
         storage.DBIMAGES = args.dbimages
         astrom.DATASET_ROOT = args.dbimages
-
+    storage.MEASURE3 = args.measure3
     astrom_uri = storage.get_cands_uri(args.field,
                                        ccd=args.ccd,
                                        version=args.type,
@@ -128,7 +114,7 @@ def main():
     match_filename = os.path.splitext(os.path.basename(astrom_filename))[0] + '.match'
 
     message = storage.SUCCESS
-    with storage.LoggingManager(task, prefix, expnums[0], args.ccd, version, args.dry_run):
+    with storage.LoggingManager(task, prefix, expnum, args.ccd, version, args.dry_run):
         try:
             logging.info(("Comparing planted and measured magnitudes "
                           "for sources in {} and {}\n".format(args.object_planted, astrom_filename)))

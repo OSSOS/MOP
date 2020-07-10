@@ -219,14 +219,14 @@ class AstromParser(object):
             The file contents extracted into a data structure for programmatic
             access.
         """
-        filehandle = storage.open_vos_or_local(filename, "r")
+        filehandle = storage.open_vos_or_local(filename, "rb")
         assert filehandle is not None, "Failed to open file {} ".format(filename)
-        filestr = filehandle.read()
+        filestr = filehandle.read().decode('utf-8')
         filehandle.close()
 
         assert filestr is not None, "File contents are None"
 
-        observations = self._parse_observation_list(filestr)
+        observations = self._parse_observation_list(str(filestr))
 
         self._parse_observation_headers(filestr, observations)
 
@@ -1098,6 +1098,9 @@ class Observation(object):
             try:
                 self._header = storage.get_mopheader(self.expnum, self.ccdnum, self.ftype, self.fk)
             except Exception as ex:
+                etype, value, tb = mih.exception
+                import traceback
+                traceback.print_tb(tb, file=sys.stdout)
                 logger.error(str(ex))
                 self._header = self.astheader
         return self._header
