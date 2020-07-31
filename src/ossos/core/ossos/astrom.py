@@ -6,6 +6,7 @@ import math
 __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 import re
+import sys
 
 from astropy import units
 from astropy.coordinates import SkyCoord
@@ -1098,9 +1099,8 @@ class Observation(object):
             try:
                 self._header = storage.get_mopheader(self.expnum, self.ccdnum, self.ftype, self.fk)
             except Exception as ex:
-                etype, value, tb = mih.exception
                 import traceback
-                traceback.print_tb(tb, file=sys.stdout)
+                traceback.print_exc(file=sys.stdout)
                 logger.error(str(ex))
                 self._header = self.astheader
         return self._header
