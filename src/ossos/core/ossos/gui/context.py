@@ -70,7 +70,7 @@ class LocalDirectoryWorkingContext(WorkingContext):
         return os.path.exists(self.get_full_path(filename))
 
     def open(self, filename):
-        filehandle = open(self.get_full_path(filename), 'a+b')
+        filehandle = open(self.get_full_path(filename), 'a+t')
 
         # Note: Linux starts the file position at 0, but on MacOSX it
         # starts at the end of the file, so this makes things consistent

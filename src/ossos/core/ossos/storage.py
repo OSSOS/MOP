@@ -649,7 +649,7 @@ def _cutout_expnum(observation, sky_coord, radius):
     cutouts = decompose_content_decomposition(disposition_filename)
 
     cutout_filehandle.seek(0)
-    hdulist = fits.open(cutout_filehandle)
+    hdulist = fits.open(cutout_filehandle, mode='update')
     hdulist.verify('silentfix+ignore')
     logger.debug("Initial Length of HDUList: {}".format(len(hdulist)))
 
@@ -735,7 +735,7 @@ def ra_dec_cutout(uri, sky_coord, radius, update_wcs=False):
 
     cutout_filehandle.seek(0)
     try:
-        hdulist = fits.open(cutout_filehandle)
+        hdulist = fits.open(cutout_filehandle, mode='update')
         hdulist.verify('silentfix+ignore')
     except Exception as ex:
         raise ex
@@ -843,7 +843,7 @@ def get_image(expnum, ccd=None, version='p', ext=FITS_EXT,
     try:
         if os.access(filename, os.F_OK) and cutout:
             cutout = datasec_to_list(cutout)
-            hdulist = fits.open(filename)
+            hdulist = fits.open(filename, mode='update')
             if len(hdulist) > 1:
                 raise ValueError("Local cutout access not designed to work on MEFs yet.")
             header = hdulist[0].header
@@ -1032,12 +1032,12 @@ def get_hdu(uri, cutout=None):
         filename = os.path.basename(uri)
         if os.access(filename, os.F_OK) and cutout is None:
             logger.debug("File already on disk: {}".format(filename))
-            hdu_list = fits.open(filename) # , scale_back=True)
+            hdu_list = fits.open(filename, model='update') # , scale_back=True)
             hdu_list.verify('silentfix+ignore')
 
         else:
             logger.debug("Pulling: {}{} from VOSpace".format(uri, cutout))
-            fpt = tempfile.NamedTemporaryFile(suffix='.fits')
+            fpt = tempfile.NamedTemporaryFile(suffix='.fits', mode='w+b')
             cutout = cutout is not None and cutout or ""
             copy(uri+cutout, fpt.name)
             fpt.seek(0, 2)
