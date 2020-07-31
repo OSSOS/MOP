@@ -11,6 +11,7 @@ dependencies = ['requests >= 2.7',
                 'scipy',
                 'uncertainties',
                 'pyds9 >= 1.8',
+                'wxPython > 4.0',
                 'mp_ephem']
 
 console_scripts = ['mkpsf = ossos.pipeline.mkpsf:main', 'step3 = ossos.pipeline.step3:main',
