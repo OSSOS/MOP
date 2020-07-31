@@ -109,6 +109,9 @@ class DownloadRequest(object):
         else:
             self.focus = focus
 
+    def __lt__(self, other):
+        self.reading.get_exposure_number() < other.reading.get_exposure_number()
+
     def execute(self, downloader):
         cutout = downloader.download_cutout(self.reading,
                                             focus=self.focus,
