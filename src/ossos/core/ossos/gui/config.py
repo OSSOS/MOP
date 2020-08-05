@@ -38,17 +38,39 @@ class AppConfig(object):
     """
 
     def __init__(self, configfile=None):
-        if configfile is None:
-            configfile = self._get_default_config_file_path()
+        if configfile is None or not os.access(configfile, os.R_OK):
+            configfile = self._get_default_config_file_path(configfile=configfile)
 
         with open(configfile, "rb") as filehandle:
             self._data = json.loads(filehandle.read())
 
-    def _get_default_config_file_path(self):
-        return os.path.join(os.path.dirname(__file__), DEFAULT_CONFIG_FILE)
+    def _get_default_config_file_path(self, configfile=None):
+        if configfile is None:
+            configfile = DEFAULT_CONFIG_FILE
+        return os.path.join(os.path.dirname(__file__), configfile)
 
     def read(self, keypath):
         curr_data = self._data
         for key in keypath.split("."):
             curr_data = curr_data[key]
-        return curr_data
+        # Possibly overide the value with an OS variable.
+        # print(f'{keypath} - '+str(os.getenv(f'{keypath}', None)))
+        return os.getenv(f'MOP.{keypath}', curr_data)
+
+    def unravel(self, d):
+        list_of_keys = []
+        for key in d:
+            if isinstance(d[key], dict):
+                for sub_key in self.unravel(d[key]):
+                    list_of_keys.append(f'{key}.{sub_key}')
+            else:
+                list_of_keys.append(f'{key}')
+        return list_of_keys
+
+    def __str__(self):
+        env_vars = self.unravel(self._data)
+        _result = ""
+        for key in env_vars:
+            _result += f'MOP.{key}: {self.read(key)}\n'
+        return _result
+
