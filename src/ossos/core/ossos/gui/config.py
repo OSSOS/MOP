@@ -55,7 +55,7 @@ class AppConfig(object):
             curr_data = curr_data[key]
         # Possibly overide the value with an OS variable.
         # print(f'{keypath} - '+str(os.getenv(f'{keypath}', None)))
-        return os.getenv(f'MOP.{keypath}', curr_data)
+        return os.getenv(f'MOP_{keypath.replace(".","_")}', curr_data)
 
     def unravel(self, d):
         list_of_keys = []
@@ -71,6 +71,5 @@ class AppConfig(object):
         env_vars = self.unravel(self._data)
         _result = ""
         for key in env_vars:
-            _result += f'MOP.{key}: {self.read(key)}\n'
+            _result += f'MOP_{key.replace(".", "_")}: {self.read(key)}\n'
         return _result
-
