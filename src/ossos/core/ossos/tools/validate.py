@@ -4,10 +4,12 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 
 import argparse
 import tempfile
+import textwrap
 
 from ossos.gui import logger
 from ossos.gui import tasks
 from ossos import storage
+from ossos.gui import config
 
 
 def launch_app(task, working_directory, output_directory, dry_run, debug, name_filter=None,
@@ -23,7 +25,17 @@ def launch_app(task, working_directory, output_directory, dry_run, debug, name_f
 
 
 def main():
-    parser = argparse.ArgumentParser()
+
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
+                                     epilog=textwrap.dedent('''
+Below is a list of environment variables that can be set at the shell level 
+to override default behaviour (e.g. export MOP.PREFETCH.NUMBER=5 
+would set validate to only pre-fetch 5 observation sets, lowering the number
+of simultaneously open files):
+
+
+'''+str(config.AppConfig('env.json'))))
+
     parser.add_argument("task", choices=tasks.task_list,
                         help="The task to perform.")
     parser.add_argument("input",

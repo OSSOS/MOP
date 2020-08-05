@@ -23,20 +23,26 @@ from astropy.time import Time
 from .gui import logger
 from .wcs import WCS
 import vos
+from .gui import config
 
 client = vos.Client()
 # from .gui.errorhandling import DownloadErrorHandler
 
 # Try and turn off warnings, only works for some releases of requests.
 
-MAXCOUNT = 30000
+MAXCOUNT = int(config.read("STEP1.MAXCOUNT"))
 _TARGET = "TARGET"
-
-DBIMAGES = 'vos:OSSOS/dbimages'
-MEASURE3 = 'vos:OSSOS/measure3'
-POSTAGE_STAMPS = 'vos:OSSOS/postage_stamps'
-TRIPLETS = 'vos:OSSOS/triplets'
-ASTROM_RELEASES = 'vos:OSSOS/0_OSSOSreleases'
+BASE_VOS = config.read("STORAGE.BASE_VOSPACE")
+DBIMAGES = os.path.join(BASE_VOS,
+                        config.read("STORAGE.DBIMAGES"))
+MEASURE3 = os.path.join(BASE_VOS,
+                        config.read("STORAGE.MEASURE3"))
+POSTAGE_STAMPS = os.path.join(BASE_VOS,
+                        config.read('STORAGE.POSTAGE_STAMPS'))
+TRIPLETS = os.path.join(BASE_VOS,
+                        config.read('STORAGE.TRIPLETS'))
+ASTROM_RELEASES = os.path.join(BASE_VOS,
+                        config.read('STORAGE.RELEASES'))
 
 DATA_WEB_SERVICE = 'https://www.canfar.phys.uvic.ca/data/pub/'
 VOSPACE_WEB_SERVICE = 'https://www.canfar.phys.uvic.ca/vospace/nodes/'

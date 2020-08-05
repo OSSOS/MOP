@@ -92,7 +92,8 @@ class ImageCutoutDownloader(Downloader):
         except Exception as ex:
             if needs_apcor:
                 import sys, traceback
-                sys.stderr.write("Failed to retrieve apcor but apcor required.  Raising error, see logs for more details")
+                sys.stderr.write("Failed to retrieve apcor but apcor required.  "
+                                 "Raising error, see logs for more details")
                 sys.stderr.write(traceback.print_exc())
             pass
         logger.debug("Sending back the source reading.")
