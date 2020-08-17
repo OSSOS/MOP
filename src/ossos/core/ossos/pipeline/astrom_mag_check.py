@@ -29,6 +29,8 @@ import logging
 import os
 import sys
 
+from cadcutils.exceptions import NotFoundException
+
 from ossos import astrom
 from ossos import storage
 from ossos import util
@@ -129,7 +131,16 @@ def main():
                                               prefix=prefix,
                                               ext="measure3.{}.match".format(ext), block=args.field)
             if not args.dry_run:
-                storage.copy(match_filename, match_uri)
+                temp_match_file = os.path.basename(match_uri)
+                try:
+                    storage.copy(match_uri, temp_match_file)
+                except NotFoundException as ex:
+                    logging.warning(f'No match file found at {match_uri}, creating one.')
+                    logging.debug(f'{ex}')
+                    pass
+                with open(temp_match_file, 'a') as fout:
+                    fout.write(open(match_filename, 'r').read())
+                storage.copy(temp_match_file, match_uri)
                 uri = os.path.dirname(astrom_uri)
                 keys = [storage.tag_uri(os.path.basename(astrom_uri))]
                 values = [result]
