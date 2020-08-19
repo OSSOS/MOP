@@ -1,4 +1,0 @@
-#!/bin/csh
-
-curl http://www.cadc.hia.nrc.gc.ca/authProxy/getData?file_id=$1&extno=$2"#!/bin/csh
-
