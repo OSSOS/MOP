@@ -69,7 +69,6 @@ class WxMPLFitsViewer(object):
             dash = cutout.reading.null_observation and 1 or 0
             sky_coord = cutout.reading.sky_coord
 
-
             # RA/DEC value of observation / prediction goes to X/Y  using PV keywords
             predict_ra = sky_coord.ra.to(units.degree)
             predict_dec = sky_coord.dec.to(units.degree)
