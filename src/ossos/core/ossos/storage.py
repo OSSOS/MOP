@@ -1,4 +1,5 @@
 """OSSOS VOSpace storage convenience package"""
+from cadcutils import exceptions
 from six import StringIO, BytesIO
 import errno
 import fnmatch
@@ -655,7 +656,9 @@ def _cutout_expnum(observation, sky_coord, radius):
     cutouts = decompose_content_decomposition(disposition_filename)
 
     cutout_filehandle.seek(0)
-    hdulist = fits.open(cutout_filehandle, mode='update')
+    hdulist = fits.open(cutout_filehandle, mode='update', lazy_load_hdus=False,
+                        memmap=False)
+
     hdulist.verify('silentfix+ignore')
     logger.debug("Initial Length of HDUList: {}".format(len(hdulist)))
 
@@ -673,7 +676,7 @@ def _cutout_expnum(observation, sky_coord, radius):
     for hdu in hdulist[1:]:
         cutout = cutouts.pop(0)
         if 'ASTLEVEL' not in hdu.header:
-            print(("WARNING: ******* NO ASTLEVEL KEYWORD ********** for {0} ********".format(observation.get_image_uri)))
+            logger.info(f"NO ASTLEVEL KEYWORD in {observation.get_image_uri}, setting to 0")
             hdu.header['ASTLEVEL'] = 0
         hdu.header['EXTNO'] = cutout[0]
         naxis1 = hdu.header['NAXIS1']
@@ -850,14 +853,15 @@ def get_image(expnum, ccd=None, version='p', ext=FITS_EXT,
         if os.access(filename, os.F_OK) and cutout:
             cutout = datasec_to_list(cutout)
             hdulist = fits.open(filename, mode='update')
-            if len(hdulist) > 1:
-                raise ValueError("Local cutout access not designed to work on MEFs yet.")
-            header = hdulist[0].header
+            for use_this_ext, hdu in enumerate(hdulist):
+                if hdu.header.get('NAXIS', 0) > 0:
+                    break
+            header = hdulist[use_this_ext].header
             cutout[0] = cutout[0] < 0 and header['NAXIS1'] - cutout[0] + 1 or cutout[0]
             cutout[1] = cutout[1] < 0 and header['NAXIS1'] - cutout[1] + 1 or cutout[1]
             cutout[2] = cutout[2] < 0 and header['NAXIS2'] - cutout[2] + 1 or cutout[2]
             cutout[3] = cutout[3] < 0 and header['NAXIS2'] - cutout[3] + 1 or cutout[3]
-            logger.debug("DATA array shape: {}".format(hdulist[0].data.shape))
+            logger.debug("DATA array shape: {}".format(hdulist[use_this_ext].data.shape))
             logger.debug("CUTOUT array: {} {} {} {}".format(cutout[0],
                                                             cutout[1],
                                                             cutout[2],
@@ -871,8 +875,8 @@ def get_image(expnum, ccd=None, version='p', ext=FITS_EXT,
             header['CD2_2'] = header.get("CD2_2", 1) * flop
             header['CD1_2'] = header.get("CD1_2", 1) * flop
 
-            data = hdulist[0].data[cutout[2]-1:cutout[3], cutout[0]-1:cutout[1]]
-            hdulist[0].data = data
+            data = hdulist[use_this_ext].data[cutout[2]-1:cutout[3], cutout[0]-1:cutout[1]]
+            hdulist[use_this_ext].data = data
             header['DATASEC'] = reset_datasec(cutout_string,
                                               header['DATASEC'],
                                               header['NAXIS1'],
@@ -1040,6 +1044,10 @@ def get_hdu(uri, cutout=None):
             logger.debug("File already on disk: {}".format(filename))
             hdu_list = fits.open(filename, model='update') # , scale_back=True)
             hdu_list.verify('silentfix+ignore')
+            use_this_ext = 0
+            for use_this_ext, hdu in enumerate(hdu_list):
+                if hdu.header.get('NAXIS',0) > 0:
+                    break
 
         else:
             logger.debug("Pulling: {}{} from VOSpace".format(uri, cutout))
@@ -1051,12 +1059,16 @@ def get_hdu(uri, cutout=None):
             logger.debug("Read from vospace completed. Building fits object.")
             hdu_list = fits.open(fpt, scale_back=False, mode='update')
             hdu_list.verify('silentfix+ignore')
+            use_this_ext = 0
+            for use_this_ext, hdu in enumerate(hdu_list):
+                if hdu.header.get('NAXIS',0) > 0:
+                    break
 
             logger.debug("Got image from vospace")
             try:
-                hdu_list[0].header['DATASEC'] = reset_datasec(cutout, hdu_list[0].header['DATASEC'],
-                                                              hdu_list[0].header['NAXIS1'],
-                                                              hdu_list[0].header['NAXIS2'])
+                hdu_list[use_this_ext].header['DATASEC'] = reset_datasec(cutout, hdu_list[use_this_ext].header['DATASEC'],
+                                                              hdu_list[use_this_ext].header['NAXIS1'],
+                                                              hdu_list[use_this_ext].header['NAXIS2'])
             except Exception as e:
                 logging.debug("error converting datasec: {}".format(str(e)))
 
@@ -1142,7 +1154,7 @@ def get_fwhm(expnum, ccd, prefix=None, version='p'):
         return fwhm[uri]
     except Exception as ex:
         logger.error(str(ex))
-        fwhm[uri] = 4.0
+        fwhm[uri] = 5.0
         return fwhm[uri]
 
 
@@ -1380,8 +1392,12 @@ def get_property(node_uri, property_name, ossos_base=True):
     """
     # Must use force or we could have a cached copy of the node from before
     # properties of interest were set/updated.
-    node = client.get_node(node_uri, force=True)
-    property_uri = tag_uri(property_name) if ossos_base else property_name
+    try:
+        node = client.get_node(node_uri, force=True)
+        property_uri = tag_uri(property_name) if ossos_base else property_name
+    except exceptions.HttpException as ex:
+        logger.error(f'{ex}')
+        return None
 
     if property_uri not in node.props:
         return None
@@ -1400,16 +1416,39 @@ def set_property(node_uri, property_name, property_value, ossos_base=True):
     @param ossos_base:
     @return:
     """
-    node = client.get_node(node_uri)
-    property_uri = tag_uri(property_name) if ossos_base else property_name
+    while True:
+        try:
+            logger.info(f"Getting Node Property")
+            node = client.get_node(node_uri)
+            logger.info(f"{node}")
+            property_uri = tag_uri(property_name) if ossos_base else property_name
+            logger.info(f"{property_uri}")
+            break
+        except exceptions.HttpException:
+            print(f'Waiting to retry VOSpace')
+            time.sleep(3)
 
     # If there is an existing value, clear it first
     if property_uri in node.props:
-        node.props[property_uri] = None
-        client.add_props(node)
+        while True:
+            try:
+                    node.props[property_uri] = None
+                    logger.info(f"Clearing Node Property")
+                    client.add_props(node)
+                    break
+            except exceptions.HttpException:
+                print(f'Waiting to retry VOSpace')
+                time.sleep(3)
 
-    node.props[property_uri] = property_value
-    client.add_props(node)
+    while True:
+        try:
+            node.props[property_uri] = property_value
+            logger.info(f"Adding Node Property {property_uri}: {property_value}")
+            client.add_props(node)
+            break
+        except exceptions.HttpException:
+            print(f'Waiting to retry VOSpace')
+            time.sleep(3)
 
 
 def build_counter_tag(epoch_field, dry_run=False):
@@ -1506,8 +1545,8 @@ def get_mopheader(expnum, ccd, version='p', prefix=None):
         except IOError:
             header['FWHM'] = 10
         header['SCALE'] = mopheader[0].header['PIXSCALE']
-        header['NAX1'] = header['NAXIS1']
-        header['NAX2'] = header['NAXIS2']
+        header['NAX1'] = header.get('NAXIS1',header['ONAXIS1'])
+        header['NAX2'] = header.get('NAXIS2',header['ONAXIS2'])
         header['MOPversion'] = header['MOP_VER']
         header['MJD_OBS_CENTER'] = str(Time(header['MJD-OBSC'],
                                             format='mjd',
@@ -1598,7 +1637,8 @@ def get_astheader(expnum, ccd, version='p', prefix=None):
                                cutout="[1:1,1:1]", return_file=False, ext='.fits')
            assert isinstance(hdulist, fits.HDUList)
            astheaders[ast_uri] = hdulist[0].header
-    except:
+    except Exception as ex:
+       logging.error(f'{ast_uri}: {ex}')
        ast_uri = dbimages_uri(expnum, ccd, version=version, ext='.fits.fz')
        if ast_uri not in astheaders:
            hdulist = get_image(expnum, ccd=ccd, version=version, prefix=prefix,
