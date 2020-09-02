@@ -5,8 +5,7 @@ import threading
 
 from .. import storage
 from .. import auth
-from . import tasks
-
+from . import tasks, logger
 
 CANDS = "CANDS"
 REALS = "REALS"
@@ -47,7 +46,7 @@ class FileLockedException(Exception):
     def __init__(self, filename, locker):
         self.filename = filename
         self.locker = locker
-
+        print(f"file {filename} already locked.")
         super(FileLockedException, self).__init__(
             "%s is locked by %s" % (filename, locker))
 
@@ -231,15 +230,18 @@ class VOSpaceProgressManager(AbstractProgressManager):
 
     def lock(self, filename):
         uri = self._get_uri(filename)
-
+        logger.debug(f"Locking {uri}")
         lock_holder = storage.get_property(uri, LOCK_PROPERTY)
+        logger.debug(f"Lock holder {lock_holder}")
         if lock_holder is None:
             storage.set_property(uri, LOCK_PROPERTY, self.userid)
+            logger.debug(f"Lock holder {lock_holder}")
         elif lock_holder == self.userid:
             # We already had the lock
             pass
         else:
             raise FileLockedException(filename, lock_holder)
+
 
     def unlock(self, filename, do_async=False):
         if do_async:
