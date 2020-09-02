@@ -54,6 +54,7 @@ of simultaneously open files):
     parser.add_argument("--debug",
                         action="store_true",
                         help="wx inspection tool will be launched.")
+    parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--name-filter",
                         dest="name_filter",
                         help="A filter to apply to object names when loading from a directory.")
@@ -73,6 +74,8 @@ of simultaneously open files):
 
     if args.debug:
         logger.set_debug()
+    if args.verbose:
+        logger.set_verbose()
 
     storage.DBIMAGES = args.dbimages
 
