@@ -36,7 +36,7 @@ class ValidationModel(object):
         return self.workunit_provider.directory
 
     def start_work(self):
-        logger.debug("Model starting work.")
+        logger.info("Model starting work.")
         self.next_workunit()
 
     def next_source(self):
@@ -111,6 +111,7 @@ class ValidationModel(object):
         self.download_workunit_images(new_workunit)
 
     def _get_new_workunit(self):
+        logger.info(f"Getting next work unit from {self.workunit_provider}")
         self.add_workunit(self.workunit_provider.get_workunit())
 
     def is_current_source_discovered(self):
@@ -229,16 +230,21 @@ class ValidationModel(object):
         """
         # All HDU elements have the same date and time so just use
         # last one, sometimes the first one is missing the header, in MEF
-        header = self.get_current_cutout().hdulist[-1].header
-        mjd_obs = float(header.get('MJD-OBS'))
-        exptime = float(header.get('EXPTIME'))
-        mpc_date = Time(mjd_obs,
-                        format='mjd',
-                        scale='utc',
-                        precision=config.read('MPC.DATE_PRECISION'))
-        mpc_date += TimeDelta(exptime * units.second) / 2.0
-        mpc_date = mpc_date.mpc
-        return mpc_date
+        for hdu in self.get_current_cutout().hdulist:
+            header = hdu.header
+            try:
+                mjd_obs = float(header.get('MJD-OBS',
+                                           header.get('MJD-STR', None)))
+                exptime = float(header.get('EXPTIME'))
+                mpc_date = Time(mjd_obs,
+                                format='mjd',
+                                scale='utc',
+                                precision=config.read('MPC.DATE_PRECISION'))
+                mpc_date += TimeDelta(exptime * units.second) / 2.0
+                mpc_date = mpc_date.mpc
+            except:
+                logger.warning(f'Looping over HDUList to find date')
+            return mpc_date
 
     def get_current_ra(self):
         try:
