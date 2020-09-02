@@ -7,6 +7,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 import re
 import sys
+import traceback
 
 from astropy import units
 from astropy.coordinates import SkyCoord
@@ -1035,16 +1036,25 @@ class Observation(object):
         return observation
 
     def __init__(self, expnum, ftype, ccdnum, fk=None, image_uri=None):
+        self._ccdnum = None
         self.expnum = expnum
         self.fk = fk is not None and fk or ""
         self._header = None
-        self.ccdnum = ccdnum is not None and str(ccdnum) or None
+        self.ccdnum = ccdnum
         self.ftype = ftype is not None and str(ftype) or None
         self.rawname = "{}{}{}{}".format(self.fk, self.expnum, ftype is not None and ftype or "",
                                          ccdnum is not None and str(ccdnum).zfill(2) or "")
         logger.debug(self.rawname)
         if image_uri is None:
             self.image_uri = self.get_image_uri()
+
+    @property
+    def ccdnum(self):
+        return self._ccdnum
+
+    @ccdnum.setter
+    def ccdnum(self, value):
+        self._ccdnum = value is not None and str(value) or None
 
     def __repr__(self):
         return "<Observation rawname=%s>" % self.rawname
@@ -1054,7 +1064,7 @@ class Observation(object):
 
     # TODO Remove get_image_uri from here, use the storage methods.
     def get_image_uri(self):
-        if self.ftype == 'p' and (self.fk is None or self.fk == ''):
+        if self.ftype == 'p' and len(f'{self.expnum}') < 8 and (self.fk is None or self.fk == ''):
             return storage.dbimages_uri(self.expnum)
 
         return storage.dbimages_uri(self.expnum,
@@ -1109,7 +1119,6 @@ class Observation(object):
         header = self.header
         if isinstance(header, list):
             extno = self.ccdnum - 1
-            print("Reading extension {} looking for header of CCD {}".format(extno, self.ccdnum))
             header = header[extno]
         mpc_date = header.get('MJD_OBS_CENTER', None)
         if mpc_date is None and 'MJD-OBS' in header:
