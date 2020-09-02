@@ -43,7 +43,7 @@
     "LOAD_DIFF_COMPARISON": "n"
   },
   "PREFETCH": {
-    "NUMBER": 30
+    "NUMBER": 15
   },
   "CUTOUTS": {
     "SINGLETS": {
