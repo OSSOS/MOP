@@ -3,22 +3,22 @@ The cutouts.source module contains SourceCutout class that provides access to th
 the source.  The SourceCutout provides RA/DEC -> X/Y and X/Y -> RA/DEC mapping as well as cutout X/Y -> full image X/Y
 """
 
-import traceback
 import tempfile
+import traceback
+
+import numpy
 from astropy import units
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
-from astropy.units import Quantity
-from astropy.time import Time
 from astropy.table import Table
-import numpy
+from astropy.time import Time
+from astropy.units import Quantity
 
-
-from ...astrom import SourceReading, Observation
-from ...gui import logger
-from ... import storage
 from ossos.gui import config
 from .downloader import Downloader, ApcorData
+from ... import storage
+from ...astrom import SourceReading, Observation
+from ...gui import logger
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -112,7 +112,12 @@ class SourceCutout(object):
         @param hdulist_index:  the index of the HDUList entry that the CCDNUM is needed for.
         @return: ccdnum
         """
-        return self.hdulist[hdulist_index].header.get('EXTVER')
+        ccdnum = self.hdulist[hdulist_index].header.get('EXTVER',
+                                                        self.hdulist[hdulist_index].header.get('DETSER',
+                                                                                               self.hdulist[
+                                                                                                   0].header.get(
+                                                                                                   'CCDNUM', None)))
+        return ccdnum
 
     def get_hdulist_idx(self, ccdnum):
         """
@@ -122,8 +127,12 @@ class SourceCutout(object):
         @return: the index of in self.hdulist that corresponds to the given CCD number.
         """
         for (extno, hdu) in enumerate(self.hdulist):
-            if ccdnum == int(hdu.header.get('EXTVER', -1)) or str(ccdnum) in hdu.header.get('AMPNAME', ''):
-                return extno
+            if (ccdnum == int(hdu.header.get('EXTVER', -1))
+                    or str(ccdnum) in hdu.header.get('AMPNAME', '')):
+                return ccdnum
+            if ccdnum == int(hdu.header.get('DETSER', -1)):
+                # This is HSC image with DETSER in primary, image is in extno+1
+                return extno+1
         raise ValueError("Failed to find requested CCD Number {} in cutout {}".format(ccdnum,
                                                                                       self))
 
@@ -189,6 +198,8 @@ class SourceCutout(object):
         self.reading.sky_coord = self.pix2world(new_pixel_location[0],
                                                 new_pixel_location[1],
                                                 hdu_index)
+        return
+
 
     @property
     def ra(self):
@@ -226,7 +237,6 @@ class SourceCutout(object):
             pix_point = point
         if self.reading.inverted:
             pix_point = self.reading.obs.naxis1 - pix_point[0] +1 , self.reading.obs.naxis2 - pix_point[1] + 1
-
         (x, y) = self.hdulist[hdulist_index].converter.convert(pix_point)
         return x, y, hdulist_index
 
@@ -266,9 +276,8 @@ class SourceCutout(object):
             hdu = self.hdulist[idx]
             x, y = hdu.wcs.sky2xy(ra, dec, usepv=usepv)
             if 0 < x < hdu.header['NAXIS1'] and 0 < y < hdu.header['NAXIS2']:
-                # print "Inside the frame."
                 return x, y, idx
-        return x, y, idx
+        raise ValueError(f'FAILED TO GET X,Y from RA,DEC ({ra},{dec})')
 
     @property
     def zmag(self,):
@@ -278,20 +287,20 @@ class SourceCutout(object):
         """
         if self._zmag is None:
             hdulist_index = self.get_hdulist_idx(self.reading.get_ccd_num())
-            self._zmag = self.hdulist[hdulist_index].header.get('PHOTZP', 0.0)
+            self._zmag = self.hdulist[hdulist_index].header.get('PHOTZP', 30.0)
         return self._zmag
 
     @property
     def apcor(self):
         """
-        return the aperture correction of for the CCD assocated with the reading.
+        return the aperture correction of for the CCD associated with the reading.
         @return: Apcor
         """
         if self._apcor is None:
             try:
                 self._apcor = Downloader().download_apcor(self.reading.get_apcor_uri())
             except:
-                self._apcor = ApcorData.from_string("5 15 99.99 99.99")
+                self._apcor = ApcorData.from_string("5 25 0.3 0.3")
         return self._apcor
 
     def get_observed_magnitude(self, centroid=True):
@@ -318,6 +327,7 @@ class SourceCutout(object):
                                     maxcount=max_count, extno=1,
                                     centroid=centroid)
             if not self.apcor.valid:
+                logger.error(f'No valid apcor, invalidating phot {phot}')
                 phot['PIER'][0] = 1
             return phot
         except Exception as ex:
