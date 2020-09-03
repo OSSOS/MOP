@@ -129,7 +129,7 @@ class SourceCutout(object):
         for (extno, hdu) in enumerate(self.hdulist):
             if (ccdnum == int(hdu.header.get('EXTVER', -1))
                     or str(ccdnum) in hdu.header.get('AMPNAME', '')):
-                return ccdnum
+                return extno
             if ccdnum == int(hdu.header.get('DETSER', -1)):
                 # This is HSC image with DETSER in primary, image is in extno+1
                 return extno+1
