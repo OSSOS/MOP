@@ -1,7 +1,9 @@
 import logging
 import tempfile
 import inspect
+import time
 
+import pyds9
 from astropy import units
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
@@ -174,16 +176,18 @@ class Displayable(object):
 
         self._annulus_placed = True
 
-    def place_marker(self, x, y, radius=10, colour='b', force=False):
+    def place_marker(self, x, y, radius=10, colour='blue', force=False):
 
         import inspect
         curframe = inspect.currentframe()
         calframe = inspect.getouterframes(curframe, 2)
         logging.debug("{} called place_maker".format(calframe[1][3]))
-
         if not force and (not self.display or self._marker_placed or not self.mark_reticule):
             return
-        self.display.set(*Region((x, y), style='circle', colour=colour, shape=radius))
+        if colour == 'm':
+            colour='magenta'
+        r = Region((x, y), style='circle', colour=colour, shape=radius)
+        self.display.set(*r)
         self._marker_placed = True
 
     def clear_markers(self):
