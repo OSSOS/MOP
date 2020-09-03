@@ -1,6 +1,14 @@
-
-
+import re
 from setuptools import setup, find_packages
+
+VERSION_FILENAME = "ossos/version.py"
+line = open(VERSION_FILENAME, "rt").read()
+VERSION_RE = r"^__version__ = ['\"]([^'\"]*)['\"]"
+mo = re.search(VERSION_RE, line, re.M)
+if mo:
+    version_string = mo.group(1)
+else:
+    raise RuntimeError("Unable to find version string in %s." % (VERSION_FILENAME,))
 
 dependencies = ['requests >= 2.7',
                 'astropy >= 4.0',
@@ -30,7 +38,7 @@ console_scripts = ['mkpsf = ossos.pipeline.mkpsf:main', 'step3 = ossos.pipeline.
 gui_scripts = ['validate = ossos.tools.validate:main']
 
 setup(name='ossos',
-      version='3.1.0',
+      version=version_string,
       url='http://github.com/OSSOS/MOP',
       author='''JJ Kavelaars (jjk@uvic.ca),
               Michele Bannister (micheleb@uvic.ca),
