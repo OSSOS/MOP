@@ -1,11 +1,9 @@
 import logging
+import time
 
-import math
 from astropy import units
-from astropy.coordinates import SkyCoord
 
 from ..astrom import SourceReading
-from ..downloads.cutouts.focus import SingletFocusCalculator
 from ..downloads.cutouts.source import SourceCutout
 from ..gui import logger
 
@@ -86,10 +84,10 @@ class WxMPLFitsViewer(object):
                 measured_dec = cutout.reading.mpc_observation.coordinate.dec.to(units.degree)
                 try:
                     print("{:5.2f} {:5.2f} || {:5.2f} {:5.2f} # {}".format((predict_ra - measured_ra).to('arcsec'),
-                                                        (predict_dec - measured_dec).to('arcsec'),
-                                                        cutout.reading.uncertainty_ellipse.a,
-                                                        cutout.reading.uncertainty_ellipse.b,
-                                                        cutout.reading.mpc_observation.to_string()))
+                                                                           (predict_dec - measured_dec).to('arcsec'),
+                                                                           cutout.reading.uncertainty_ellipse.a,
+                                                                           cutout.reading.uncertainty_ellipse.b,
+                                                                           cutout.reading.mpc_observation.to_string()))
                 except Exception as ex:
                     print("Failed trying to write out the prevoiusly recorded measurement: {}".format(ex))
                     pass
@@ -102,11 +100,10 @@ class WxMPLFitsViewer(object):
                 logging.debug("Failed to get x/y from previous observation, using prediction.")
                 hdulist_index = cutout.get_hdulist_idx(cutout.reading.get_ccd_num())
                 measured_ra, measured_dec = cutout.pix2world(cutout.pixel_x, cutout.pixel_y, hdulist_index, usepv=True)
-                colour = 'm'
-
+                colour = 'magenta'
             self.current_displayable.place_marker(measured_ra, measured_dec, radius=8, colour=colour)
         except Exception as ex:
-            print("EXCEPTION while drawing the uncertainty ellipse, skipping.: {}".format(ex))
+            logger.error("EXCEPTION while drawing the uncertainty ellipse, skipping.: {}".format(ex))
             logger.debug(type(ex))
             logger.debug(str(ex))
 
