@@ -2,6 +2,6 @@
 OS=$(uname)
 python=$(which python)
 # Check if we are using Anaconda and running on Darwin
-${python} -V 2>&1 | grep -q -i conda && [ ${OS} == "Darwin" ] && python=$(which pythonw)
+[ ${OS} == "Darwin" ] && python=$(which pythonw)
 validate=$(which validate.py) || (echo "ossos validate.py is not installed?" && exit 255 )
 ${python} ${validate} $@
