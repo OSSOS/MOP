@@ -1,5 +1,6 @@
 #!python
 # A script to do validation
+from ..version import __version__
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import argparse
@@ -63,6 +64,7 @@ of simultaneously open files):
                         help="Don't show me observation that are already in the input files, TRACKS only")
     parser.add_argument("--username", dest="username", help="Your CADC username")
     parser.add_argument('--zoom', dest='zoom', default=1)
+    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
 
     args = parser.parse_args()
 
