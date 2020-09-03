@@ -742,7 +742,7 @@ class Query(object):
         assert isinstance(response, requests.Response)
         assert (response.status_code == requests.codes.ok)
 
-        lines = response.content
+        lines = str(response.content, encoding='utf-8')
         # note: spelling 'occured' is in SSOIS
         if len(lines) < 2 or "An error occured getting the ephemeris" in lines:
             print(lines)
