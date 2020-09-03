@@ -30,7 +30,7 @@ console_scripts = ['mkpsf = ossos.pipeline.mkpsf:main', 'step3 = ossos.pipeline.
 gui_scripts = ['validate = ossos.tools.validate:main']
 
 setup(name='ossos',
-      version='3.0.2',
+      version='3.1.0',
       url='http://github.com/OSSOS/MOP',
       author='''JJ Kavelaars (jjk@uvic.ca),
               Michele Bannister (micheleb@uvic.ca),
