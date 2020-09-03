@@ -35,7 +35,7 @@ OBS_LIST_PATTERN = "#\s+(?P<rawname>(?P<fk>%s)?(?P<expnum>\d{6,7})(?P<ftype>[ops
 STATIONARY_LIST_PATTERN = "(?P<rawname>(?P<fk>fk)?(?P<expnum>\d{6,7})(?P<ftype>[ops])).vetting"
 
 # Observation header keys
-MOPVERSION = "MOPversion"
+MOPVERSION = "MOP_VER"
 
 # NOTE: MJD_OBS_CENTER is actually MJD-OBS-CENTER in the .astrom files, but
 # dashes aren't valid as regex names so I use underscores
@@ -366,7 +366,7 @@ class BaseAstromWriter(object):
                 return tuple(header_vals)
 
             self._write_line("## MOPversion")
-            self._write_line("#  %s" % header[MOPVERSION])
+            self._write_line("#  %s" % header.get(MOPVERSION, 1.20))
             self._write_line("## MJD-OBS-CENTER  EXPTIME THRES FWHM  MAXCOUNT CRVAL1     CRVAL2     EXPNUM")
             self._write_line("# %s%8.2f%6.2f%6.2f%9.1f%11.5f%11.5f%9d" % get_header_vals(
                 [MJD_OBS_CENTER, EXPTIME, THRES, FWHM, MAXCOUNT, CRVAL1, CRVAL2, EXPNUM]))
