@@ -107,7 +107,8 @@ class AbstractController(object):
         warnings.warn("Source Repositioning no-longer supported", RuntimeWarning)
 
     def on_image_loaded(self, event):
-        displayable_item = event.data
+        displayable_item = event
+        # displayable_item = event.data
         self.image_loading_dialog_manager.set_item_done(displayable_item)
 
         if displayable_item == self.model.get_current_displayable_item():
