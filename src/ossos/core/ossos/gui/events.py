@@ -9,9 +9,9 @@ try:
     from pubsub import pub
 #    from wx.lib.pubsub import Publisher as pub
 except ImportError as ierr:
-    print(f"Import error in Event: {ierr}.  Ignore deprecation for now.")
-    from wx.lib.pubsub import setuparg1
-    from wx.lib.pubsub import pub
+    print(f"{ierr}")
+    print(f"This package now requires PyPubSub to be installed, Hint: pip install pypubsub")
+    exit()
 
 # Event ids
 ROOT = ("rootid", )
