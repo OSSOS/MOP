@@ -242,8 +242,9 @@ class ValidationModel(object):
                                 precision=config.read('MPC.DATE_PRECISION'))
                 mpc_date += TimeDelta(exptime * units.second) / 2.0
                 mpc_date = mpc_date.mpc
-            except:
-                logger.warning(f'Looping over HDUList to find date')
+            except Exception as ex:
+                logger.warning(f'{ex}: Looping over HDUList to find date')
+                continue
             return mpc_date
 
     def get_current_ra(self):
