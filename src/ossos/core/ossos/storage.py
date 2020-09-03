@@ -1,30 +1,34 @@
 """OSSOS VOSpace storage convenience package"""
-from cadcutils import exceptions
-from six import StringIO, BytesIO
 import errno
 import fnmatch
-from glob import glob
+import logging
 import os
 import re
 import tempfile
-import logging
-import warnings
 import time
+import warnings
+from glob import glob
+
+import requests as requests_module
+import vos
+from astropy import units
 from astropy.coordinates import SkyCoord
 from astropy.io import ascii
-from astropy import units
+from astropy.io import fits
+from astropy.io.fits.verify import VerifyWarning
+from astropy.time import Time
 from astropy.units import Quantity
 from astropy.utils.exceptions import AstropyUserWarning
-from astropy.io import fits
-import requests as requests_module
-from .downloads.cutouts.calculator import CoordinateConverter
+from astropy.wcs import FITSFixedWarning
+from cadcutils import exceptions
+from six import BytesIO
+
 from . import coding
 from . import util
-from astropy.time import Time
+from .downloads.cutouts.calculator import CoordinateConverter
+from .gui import config
 from .gui import logger
 from .wcs import WCS
-import vos
-from .gui import config
 
 client = vos.Client()
 # from .gui.errorhandling import DownloadErrorHandler
@@ -88,7 +92,6 @@ FITS_EXT = ".fits"
 
 
 class MyRequests(object):
-
     def __init__(self):
 
         self.requests = requests_module
@@ -206,7 +209,7 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2, 
             mjdate + 1.0 / 24.0,
             mjdate - 1 / 24.0)
 
-    result = requests.get(TAP_WEB_SERVICE, params=data, verify=False)
+    result = requests.get(TAP_WEB_SERVICE, params=data)
 
     logger.debug("Doing TAP Query using url: %s" % (str(result.url)))
 
@@ -656,10 +659,12 @@ def _cutout_expnum(observation, sky_coord, radius):
     cutouts = decompose_content_decomposition(disposition_filename)
 
     cutout_filehandle.seek(0)
-    hdulist = fits.open(cutout_filehandle, mode='update', lazy_load_hdus=False,
-                        memmap=False)
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', FITSFixedWarning)
+        hdulist = fits.open(cutout_filehandle, mode='update', lazy_load_hdus=False,
+                            memmap=False)
 
-    hdulist.verify('silentfix+ignore')
+        hdulist.verify('silentfix+ignore')
     logger.debug("Initial Length of HDUList: {}".format(len(hdulist)))
 
     # Make sure here is a primaryHDU
@@ -744,8 +749,10 @@ def ra_dec_cutout(uri, sky_coord, radius, update_wcs=False):
 
     cutout_filehandle.seek(0)
     try:
-        hdulist = fits.open(cutout_filehandle, mode='update')
-        hdulist.verify('silentfix+ignore')
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', FITSFixedWarning)
+            hdulist = fits.open(cutout_filehandle, mode='update')
+            hdulist.verify('silentfix+ignore')
     except Exception as ex:
         raise ex
 
@@ -852,7 +859,10 @@ def get_image(expnum, ccd=None, version='p', ext=FITS_EXT,
     try:
         if os.access(filename, os.F_OK) and cutout:
             cutout = datasec_to_list(cutout)
-            hdulist = fits.open(filename, mode='update')
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore', FITSFixedWarning)
+                hdulist = fits.open(filename, mode='update')
+                hdulist.verify('silentfix+ignore')
             for use_this_ext, hdu in enumerate(hdulist):
                 if hdu.header.get('NAXIS', 0) > 0:
                     break
@@ -1042,8 +1052,10 @@ def get_hdu(uri, cutout=None):
         filename = os.path.basename(uri)
         if os.access(filename, os.F_OK) and cutout is None:
             logger.debug("File already on disk: {}".format(filename))
-            hdu_list = fits.open(filename, model='update') # , scale_back=True)
-            hdu_list.verify('silentfix+ignore')
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore', FITSFixedWarning)
+                hdu_list = fits.open(filename, model='update') # , scale_back=True)
+                hdu_list.verify('silentfix+ignore')
             use_this_ext = 0
             for use_this_ext, hdu in enumerate(hdu_list):
                 if hdu.header.get('NAXIS',0) > 0:
@@ -1057,8 +1069,10 @@ def get_hdu(uri, cutout=None):
             fpt.seek(0, 2)
             fpt.seek(0)
             logger.debug("Read from vospace completed. Building fits object.")
-            hdu_list = fits.open(fpt, scale_back=False, mode='update')
-            hdu_list.verify('silentfix+ignore')
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore', FITSFixedWarning)
+                hdu_list = fits.open(fpt, scale_back=False, mode='update')
+                hdu_list.verify('silentfix+ignore')
             use_this_ext = 0
             for use_this_ext, hdu in enumerate(hdu_list):
                 if hdu.header.get('NAXIS',0) > 0:
@@ -1530,13 +1544,16 @@ def get_mopheader(expnum, ccd, version='p', prefix=None):
 
     if os.access(filename, os.F_OK):
         logger.debug("File already on disk: {}".format(filename))
-        mopheader_fpt = BytesIO(open(filename, 'rb').read())
+        with open(filename, 'rb') as fobj:
+            mopheader_fpt = BytesIO(fobj.read())
     else:
         mopheader_fpt = BytesIO(open_vos_or_local(mopheader_uri).read())
 
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', AstropyUserWarning)
+        warnings.simplefilter('ignore', VerifyWarning)
         mopheader = fits.open(mopheader_fpt)
+        mopheader.verify('silentfix+ignore')
 
         # add some values to the mopheader so it can be an astrom header too.
         header = mopheader[0].header
@@ -1545,12 +1562,12 @@ def get_mopheader(expnum, ccd, version='p', prefix=None):
         except IOError:
             header['FWHM'] = 10
         header['SCALE'] = mopheader[0].header['PIXSCALE']
-        header['NAX1'] = header.get('NAXIS1',header['ONAXIS1'])
-        header['NAX2'] = header.get('NAXIS2',header['ONAXIS2'])
-        header['MOPversion'] = header['MOP_VER']
-        header['MJD_OBS_CENTER'] = str(Time(header['MJD-OBSC'],
-                                            format='mjd',
-                                            scale='utc', precision=5).replicate(format='mpc'))
+        header['NAX1'] = header.get('NAXIS1', header.get('ONAXIS1', None))
+        header['NAX2'] = header.get('NAXIS2', header.get('ONAXIS2', None))
+        header['MOP_VER'] = header['MOP_VER']
+        header['MJD_OBSC'] = str(Time(header['MJD-OBSC'],
+                                      format='mjd',
+                                      scale='utc', precision=5).replicate(format='mpc'))
         header['MAXCOUNT'] = MAXCOUNT
         mopheaders[mopheader_uri] = header
         mopheader.close()
