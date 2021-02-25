@@ -36,7 +36,7 @@ class ValidationModel(object):
         return self.workunit_provider.directory
 
     def start_work(self):
-        logger.debug("Model starting work.")
+        logger.info("Model starting work.")
         self.next_workunit()
 
     def next_source(self):
@@ -90,7 +90,7 @@ class ValidationModel(object):
         #        self.workunit_provider.trigger_prefetching()
         #    except:
         #        pass
-        self.work_units.next()
+        next(self.work_units)
 
     def expect_source_transition(self):
         self.expect_image_transition()
@@ -111,6 +111,7 @@ class ValidationModel(object):
         self.download_workunit_images(new_workunit)
 
     def _get_new_workunit(self):
+        logger.info(f"Getting next work unit from {self.workunit_provider}")
         self.add_workunit(self.workunit_provider.get_workunit())
 
     def is_current_source_discovered(self):
@@ -206,15 +207,15 @@ class ValidationModel(object):
                     'CHIPNUM', 'FWHM', 'FILTER']
             return [(key, header.get(key, header2.get(key, None))) for key in keys]
         except Exception as ex:
-            print ex
-            print "Failed to load mopheader, reverting to cutout header."
+            print(ex)
+            print("Failed to load mopheader, reverting to cutout header.")
             pass
 
         try:
             header = self.get_current_cutout().hdulist[-1].header
-            return [(key, value) for key, value in header.iteritems()]
+            return [(key, value) for key, value in header.items()]
         except Exception as ex:
-            print ex
+            print(ex)
             pass
 
         return [('Header_Get', 'FAILED')]
@@ -229,16 +230,22 @@ class ValidationModel(object):
         """
         # All HDU elements have the same date and time so just use
         # last one, sometimes the first one is missing the header, in MEF
-        header = self.get_current_cutout().hdulist[-1].header
-        mjd_obs = float(header.get('MJD-OBS', header.get('MJD')))
-        exptime = float(header.get('EXPTIME'))
-        mpc_date = Time(mjd_obs,
-                        format='mjd',
-                        scale='utc',
-                        precision=config.read('MPC.DATE_PRECISION'))
-        mpc_date += TimeDelta(exptime * units.second) / 2.0
-        mpc_date = mpc_date.mpc
-        return mpc_date
+        for hdu in self.get_current_cutout().hdulist:
+            header = hdu.header
+            try:
+                mjd_obs = float(header.get('MJD-OBS',
+                                           header.get('MJD-STR', None)))
+                exptime = float(header.get('EXPTIME'))
+                mpc_date = Time(mjd_obs,
+                                format='mjd',
+                                scale='utc',
+                                precision=config.read('MPC.DATE_PRECISION'))
+                mpc_date += TimeDelta(exptime * units.second) / 2.0
+                mpc_date = mpc_date.mpc
+            except Exception as ex:
+                logger.warning(f'{ex}: Looping over HDUList to find date')
+                continue
+            return mpc_date
 
     def get_current_ra(self):
         try:
@@ -267,13 +274,11 @@ class ValidationModel(object):
     def get_current_band(self):
         header = self.get_current_fits_header()
         filter_value = None
-        for keyword in ['FILTER', 'FILT1 NAME', 'FILTER01' ]:
+        for keyword in ['FILTER', 'FILT1 NAME']:
             filter_value = header.get(keyword, None)
             if filter_value is not None:
                 break
         if filter_value is not None and filter_value.startswith('gri'):
-            filter_value = 'w'
-        if filter_value is not None and filter_value.startswith('W-J-VR'):
             filter_value = 'w'
         return filter_value
 

@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 __author__ = 'jjk'
 
@@ -18,7 +18,7 @@ def square_fit_discovery_mag(obj, discov_mag, discov_rate):
     pwd = path + 'efficiency_motion_rates'
     blocks = {'o3e': "13AE", 'o3o': "13AO"}
     block = blocks[obj.lstrip('u')[0:3]]
-    smooth_parameter_files = filter(lambda name: name.startswith('smooth'), os.listdir('{}/{}/'.format(pwd, block)))
+    smooth_parameter_files = [name for name in os.listdir('{}/{}/'.format(pwd, block)) if name.startswith('smooth')]
     smooth_parameter_files.sort(key=lambda x: float(x.split('-')[1]))
     rates = array([float(x.split('-')[2]) for x in smooth_parameter_files])
     rate, = where(discov_rate < rates)

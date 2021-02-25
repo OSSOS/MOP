@@ -7,7 +7,7 @@ import ephem
 #Number_Mil={'B': 110000, 'C': 120000, 'D': 130000, 'E': 140000, 'F': 150000}
 #Number_Cent={'J': 1900, 'K': 2000}
 def date_unpack(pdate):
-    (yyyy, mm, dd) = (2000, 01, 01)
+    (yyyy, mm, dd) = (2000, 0o1, 0o1)
     try:
         YY={'I': 1800, 'J': 1900, 'K': 2000}
         Ncode='0123456789ABCDEFGHIJKLMNOPQRSTUV'
@@ -67,7 +67,7 @@ def getKBOs(mpc_file, cond='a > 30'):
                 kbo._H = 20
                 kbo._G = 0
         except:
-            print line
+            print(line)
             kbo._H = 20
             kbo._G = 0
         arc = line[127:136]

@@ -9,7 +9,8 @@ import math
 from astropy import wcs as astropy_wcs
 from astropy import units
 import numpy
-from gui import logger
+from .gui import logger
+import traceback
 
 
 PI180 = 57.2957795130823208767981548141052
@@ -41,8 +42,8 @@ class WCS(astropy_wcs.WCS):
         """
         CD Rotation matrix INVERTED i.e.  []^-1
         """
-
-        return numpy.array(numpy.mat(self.cd).I)
+        return numpy.linalg.inv(self.cd)
+        # return numpy.array(numpy.mat(self.cd).I)
 
     @property
     def pv(self):
@@ -100,7 +101,6 @@ class WCS(astropy_wcs.WCS):
             except Exception as ex:
                 logger.warning("Error {} {}".format(type(ex), ex))
                 logger.warning("Reverted to CD-Matrix WCS.")
-                print ex
         xy = numpy.array([x, y]).transpose()
         pos = self.wcs_pix2world(xy, 1).transpose()
         return pos[0] * units.degree, pos[1] * units.degree
@@ -124,7 +124,6 @@ class WCS(astropy_wcs.WCS):
         except Exception as ex:
             logger.warning("sky2xy raised exception: {0}".format(ex))
             logger.warning("Reverted to CD-Matrix WCS to convert: {0} {1} ".format(ra, dec))
-            print ex
         pos = self.wcs_world2pix([[ra, dec], ], 1)
         return pos[0][0], pos[0][1]
 
@@ -222,30 +221,30 @@ def sky2xypv(ra, dec, crpix1, crpix2, crval1, crval2, dc, pv, nord, maxiter=300)
                 gx += pv[1][2] + pv[1][3] * x / r
                 gy += pv[1][1] + pv[1][3] * y / r
 
-            if nord >= 2:
-                x2 = x ** 2
-                xy = x * y
-                y2 = y ** 2
+                if nord >= 2:
+                    x2 = x ** 2
+                    xy = x * y
+                    y2 = y ** 2
 
-                f += pv[0][4] * x2 + pv[0][5] * xy + pv[0][6] * y2
-                g += pv[1][4] * y2 + pv[1][5] * xy + pv[1][6] * x2
-                fx += pv[0][4] * 2 * x + pv[0][5] * y
-                fy += pv[0][5] * x + pv[0][6] * 2 * y
-                gx += pv[1][5] * y + pv[1][6] * 2 * x
-                gy += pv[1][4] * 2 * y + pv[1][5] * x
+                    f += pv[0][4] * x2 + pv[0][5] * xy + pv[0][6] * y2
+                    g += pv[1][4] * y2 + pv[1][5] * xy + pv[1][6] * x2
+                    fx += pv[0][4] * 2 * x + pv[0][5] * y
+                    fy += pv[0][5] * x + pv[0][6] * 2 * y
+                    gx += pv[1][5] * y + pv[1][6] * 2 * x
+                    gy += pv[1][4] * 2 * y + pv[1][5] * x
 
-            if nord >= 3:
-                x3 = x ** 3
-                x2y = x2 * y
-                xy2 = x * y2
-                y3 = y ** 3
+                    if nord >= 3:
+                        x3 = x ** 3
+                        x2y = x2 * y
+                        xy2 = x * y2
+                        y3 = y ** 3
 
-                f += pv[0][7] * x3 + pv[0][8] * x2y + pv[0][9] * xy2 + pv[0][10] * y3
-                g += pv[1][7] * y3 + pv[1][8] * xy2 + pv[1][9] * x2y + pv[1][10] * x3
-                fx += pv[0][7] * 3 * x2 + pv[0][8] * 2 * xy + pv[0][9] * y2
-                fy += pv[0][8] * x2 + pv[0][9] * 2 * xy + pv[0][10] * 3 * y2
-                gx += pv[0][8] * y2 + pv[1][9] * 2 * xy + pv[1][10] * 3 * x2
-                gy += pv[1][7] * 3 * y2 + pv[0][8] * 2 * xy + pv[1][9] * x2
+                        f += pv[0][7] * x3 + pv[0][8] * x2y + pv[0][9] * xy2 + pv[0][10] * y3
+                        g += pv[1][7] * y3 + pv[1][8] * xy2 + pv[1][9] * x2y + pv[1][10] * x3
+                        fx += pv[0][7] * 3 * x2 + pv[0][8] * 2 * xy + pv[0][9] * y2
+                        fy += pv[0][8] * x2 + pv[0][9] * 2 * xy + pv[0][10] * 3 * y2
+                        gx += pv[0][8] * y2 + pv[1][9] * 2 * xy + pv[1][10] * 3 * x2
+                        gy += pv[1][7] * 3 * y2 + pv[0][8] * 2 * xy + pv[1][9] * x2
 
             f -= xi
             g -= eta

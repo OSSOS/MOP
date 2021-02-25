@@ -89,11 +89,11 @@ if __name__ == '__main__':
         if ddec.degrees > 180:
             dra = ddec - coordinates.Angle(360, unit=units.degree)
 
-        print "Input  : {} {} {} [ {:+4.2f} {:+4.2f} ]".format(observation.date,
+        print("Input  : {} {} {} [ {:+4.2f} {:+4.2f} ]".format(observation.date,
                                                observation.ra,
                                                observation.dec,
                                                dra.degrees*3600.0,
-                                               ddec.degrees*3600.0)
+                                               ddec.degrees*3600.0))
         #print "Predict: {} {} {}".format(HL7j2.date,
         #                                 HL7j2.coordinate.ra.format(unit=units.hour,
         #                                                           precision=3,

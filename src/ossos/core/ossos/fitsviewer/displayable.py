@@ -1,7 +1,9 @@
 import logging
 import tempfile
 import inspect
+import time
 
+import pyds9
 from astropy import units
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
@@ -174,16 +176,18 @@ class Displayable(object):
 
         self._annulus_placed = True
 
-    def place_marker(self, x, y, radius=10, colour='b', force=False):
+    def place_marker(self, x, y, radius=10, colour='blue', force=False):
 
         import inspect
         curframe = inspect.currentframe()
         calframe = inspect.getouterframes(curframe, 2)
         logging.debug("{} called place_maker".format(calframe[1][3]))
-
         if not force and (not self.display or self._marker_placed or not self.mark_reticule):
             return
-        self.display.set(*Region((x, y), style='circle', colour=colour, shape=radius))
+        if colour == 'm':
+            colour='magenta'
+        r = Region((x, y), style='circle', colour=colour, shape=radius)
+        self.display.set(*r)
         self._marker_placed = True
 
     def clear_markers(self):
@@ -257,7 +261,7 @@ class ImageSinglet(object):
             try:
                 display.set('mosaicimage {}'.format(f.name))
                 while display.get('frame has fits') != 'yes':
-                    print "Waiting for image to load."
+                    print("Waiting for image to load.")
                     pass
             except ValueError as ex:
                 logging.error("Failed while trying to display: {}".format(hdulist))
@@ -300,7 +304,7 @@ class ImageSinglet(object):
         pass
 
     def apply_event_handlers(self, canvas):
-        for eventname, handler in self._mpl_event_handlers.itervalues():
+        for eventname, handler in self._mpl_event_handlers.values():
             canvas.mpl_connect(eventname, handler)
 
     def _refresh_displayed_colormap(self):
@@ -369,7 +373,7 @@ class DisplayableImageSinglet(Displayable):
             else:
                 self._focus = SkyCoord(focus[0], focus[1])
         except Exception as ex:
-            print "Focus setting failed to convert focus tuple {} to SkyCoord: {}".format(focus, ex)
+            print("Focus setting failed to convert focus tuple {} to SkyCoord: {}".format(focus, ex))
             self._focus = focus
 
     def _do_move_focus(self):

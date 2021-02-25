@@ -13,7 +13,7 @@
       "view_object": "no",
       "view_colorbar": "no",
       "width": 256,
-      "height": 256 
+      "height": 256
     },
     "PREF": {
       "frame_lock": "wcs",
@@ -43,7 +43,7 @@
     "LOAD_DIFF_COMPARISON": "n"
   },
   "PREFETCH": {
-    "NUMBER": 3
+    "NUMBER": 15
   },
   "CUTOUTS": {
     "SINGLETS": {
@@ -101,7 +101,7 @@
     ]
   },
   "APP": {
-    "MAX_THREADS": 4
+    "MAX_THREADS": 10
   },
   "UI": {
     "DIMENSIONS": {
@@ -113,15 +113,28 @@
       "CAPTION": "All sources processed"
     },
     "APPTITLE": "Moving Object Pipeline"
-    },
-    "OBSERVERS": ["M. T. Bannister",
-                 "J. J. Kavelaars",
-                 "B. J. Gladman",
-                 "J.-M. Petit",
-                 "T. Burdullis"
-                 ],
-    "MEASURERS": ["S. D. J. Gwyn"
-                 ],
-    "TELESCOPE": "CFHT 3.6m + CCD",
-    "ASTROMETRIC_NETWORK": "GAIA"
+  },
+  "OBSERVERS": [
+    "M. T. Bannister",
+    "J. J. Kavelaars",
+    "B. J. Gladman",
+    "J.-M. Petit",
+    "T. Burdullis"
+  ],
+  "MEASURERS": [
+    "S. D. J. Gwyn"
+  ],
+  "TELESCOPE": "CFHT 3.6m + CCD",
+  "ASTROMETRIC_NETWORK": "GAIA",
+  "STEP1": {
+    "MAXCOUNT": 30000
+  },
+  "STORAGE": {
+    "BASE_VOSPACE": "vos:OSSOS",
+    "DBIMAGES": "dbimages",
+    "MEASURE3": "measure3",
+    "POSTAGE_STAMPS": "postage_stamps",
+    "TRIPLETS": "triplets",
+    "RELEASES": "releases"
+  }
 }

@@ -3,23 +3,22 @@ The cutouts.source module contains SourceCutout class that provides access to th
 the source.  The SourceCutout provides RA/DEC -> X/Y and X/Y -> RA/DEC mapping as well as cutout X/Y -> full image X/Y
 """
 
-import traceback
 import tempfile
+import traceback
+
+import numpy
 from astropy import units
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
-from astropy.units import Quantity
-from astropy.time import Time
 from astropy.table import Table
-import numpy
-from ... import util
+from astropy.time import Time
+from astropy.units import Quantity
 
-
+from ossos.gui import config
+from .downloader import Downloader, ApcorData
+from ... import storage
 from ...astrom import SourceReading, Observation
 from ...gui import logger
-from ... import storage
-from ossos.gui import config
-from downloader import Downloader, ApcorData
 
 __author__ = "David Rusk <drusk@uvic.ca>"
 
@@ -113,7 +112,12 @@ class SourceCutout(object):
         @param hdulist_index:  the index of the HDUList entry that the CCDNUM is needed for.
         @return: ccdnum
         """
-        return self.hdulist[hdulist_index].header.get('EXTVER', self.hdulist[hdulist_index].header.get('DET-ID', -9999))
+        ccdnum = self.hdulist[hdulist_index].header.get('EXTVER',
+                                                        self.hdulist[hdulist_index].header.get('DETSER',
+                                                                                               self.hdulist[
+                                                                                                   0].header.get(
+                                                                                                   'CCDNUM', None)))
+        return ccdnum
 
     def get_hdulist_idx(self, ccdnum):
         """
@@ -123,8 +127,12 @@ class SourceCutout(object):
         @return: the index of in self.hdulist that corresponds to the given CCD number.
         """
         for (extno, hdu) in enumerate(self.hdulist):
-            if ccdnum == int(hdu.header.get('EXTVER', -1)) or str(ccdnum) in hdu.header.get('AMPNAME', '') or ccdnum == int(hdu.header.get('DET-ID',-9999)):
+            if (ccdnum == int(hdu.header.get('EXTVER', -1))
+                    or str(ccdnum) in hdu.header.get('AMPNAME', '')):
                 return extno
+            if ccdnum == int(hdu.header.get('DETSER', -1)):
+                # This is HSC image with DETSER in primary, image is in extno+1
+                return extno+1
         raise ValueError("Failed to find requested CCD Number {} in cutout {}".format(ccdnum,
                                                                                       self))
 
@@ -190,6 +198,8 @@ class SourceCutout(object):
         self.reading.sky_coord = self.pix2world(new_pixel_location[0],
                                                 new_pixel_location[1],
                                                 hdu_index)
+        return
+
 
     @property
     def ra(self):
@@ -227,7 +237,6 @@ class SourceCutout(object):
             pix_point = point
         if self.reading.inverted:
             pix_point = self.reading.obs.naxis1 - pix_point[0] +1 , self.reading.obs.naxis2 - pix_point[1] + 1
-
         (x, y) = self.hdulist[hdulist_index].converter.convert(pix_point)
         return x, y, hdulist_index
 
@@ -267,9 +276,8 @@ class SourceCutout(object):
             hdu = self.hdulist[idx]
             x, y = hdu.wcs.sky2xy(ra, dec, usepv=usepv)
             if 0 < x < hdu.header['NAXIS1'] and 0 < y < hdu.header['NAXIS2']:
-                # print "Inside the frame."
                 return x, y, idx
-        return x, y, idx
+        raise ValueError(f'FAILED TO GET X,Y from RA,DEC ({ra},{dec})')
 
     @property
     def zmag(self,):
@@ -279,20 +287,20 @@ class SourceCutout(object):
         """
         if self._zmag is None:
             hdulist_index = self.get_hdulist_idx(self.reading.get_ccd_num())
-            self._zmag = self.hdulist[hdulist_index].header.get('PHOTZP', 0.0)
+            self._zmag = self.hdulist[hdulist_index].header.get('PHOTZP', 30.0)
         return self._zmag
 
     @property
     def apcor(self):
         """
-        return the aperture correction of for the CCD assocated with the reading.
+        return the aperture correction of for the CCD associated with the reading.
         @return: Apcor
         """
         if self._apcor is None:
             try:
                 self._apcor = Downloader().download_apcor(self.reading.get_apcor_uri())
             except:
-                self._apcor = ApcorData.from_string("5 15 99.99 99.99")
+                self._apcor = ApcorData.from_string("5 25 0.3 0.3")
         return self._apcor
 
     def get_observed_magnitude(self, centroid=True):
@@ -319,10 +327,11 @@ class SourceCutout(object):
                                     maxcount=max_count, extno=1,
                                     centroid=centroid)
             if not self.apcor.valid:
+                logger.error(f'No valid apcor, invalidating phot {phot}')
                 phot['PIER'][0] = 1
             return phot
         except Exception as ex:
-            print ex
+            print(ex)
             raise ex
         finally:
             self.close()
@@ -361,7 +370,7 @@ class SourceCutout(object):
         if self._comparison_image_index is None:
             ## Display a list of possible comparison images and ask user to select one.
             self.comparison_image_list.pprint()
-            self.comparison_image_index = int(raw_input("SELECT ROW NUMBER OF DESIRED COMPARISON IMAGE: "))
+            self.comparison_image_index = int(input("SELECT ROW NUMBER OF DESIRED COMPARISON IMAGE: "))
         return self._comparison_image_index
 
     @comparison_image_index.setter
@@ -382,12 +391,12 @@ class SourceCutout(object):
         ref_ra = self.reading.ra * units.degree
         ref_dec = self.reading.dec * units.degree
         radius = self.radius is not None and self.radius or config.read('CUTOUTS.SINGLETS.RADIUS') * units.arcminute
-        print("Querying CADC for list of possible comparison images at RA: {}, DEC: {}, raidus: {}".format(ref_ra,
+        print(("Querying CADC for list of possible comparison images at RA: {}, DEC: {}, raidus: {}".format(ref_ra,
                                                                                                            ref_dec,
-                                                                                                           radius))
+                                                                                                           radius)))
         query_result = storage.cone_search(ref_ra, ref_dec, radius, radius)  # returns an astropy.table.table.Table
-        print("Got {} possible images".format(len(query_result)))
-        ans = raw_input("Do you want to lookup IQ? (y/n)")
+        print(("Got {} possible images".format(len(query_result))))
+        ans = input("Do you want to lookup IQ? (y/n)")
         print("Building table for presentation and selection")
         if ans == "y":
             print("Including getting fwhm which is a bit slow.")
@@ -446,9 +455,9 @@ class SourceCutout(object):
                                     ref_ra, ref_dec, self.reading.x, self.reading.y, obs)
             self.comparison_image_list[self.comparison_image_index]["REFERENCE"] = SourceCutout(reading, hdu_list)
         except Exception as ex:
-            print traceback.format_exc()
-            print ex
-            print "Failed to load comparison image;"
+            print(traceback.format_exc())
+            print(ex)
+            print("Failed to load comparison image;")
             self.comparison_image_index = None
             logger.error("{} {}".format(type(ex), str(ex)))
             logger.error(traceback.format_exc())

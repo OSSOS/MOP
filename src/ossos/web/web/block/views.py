@@ -1,7 +1,7 @@
 from pyramid.view import view_config
 from zope.cachedescriptors import property
 
-from queries import BlockQuery
+from .queries import BlockQuery
 
 
 class Block(object):

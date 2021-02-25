@@ -25,7 +25,7 @@ def wanted_keys(header):
     # strip header into consistency with desired format for ossuary 'images' table
     retdir = {}
 
-    for key, val in header.items():
+    for key, val in list(header.items()):
         if key in ['FILENAME', 'EXPTIME', 'QRUNID', 'AIRMASS']:
             retdir[key.lower()] = val
 
@@ -168,7 +168,7 @@ def retrieve_processed_images(ims):
     retval = []
     retval2 = []
     for s in query:
-        if isinstance(s[0], long):
+        if isinstance(s[0], int):
             retval.append(s[0])
             retval2.append(s[1])
             # retval = [s[0] for s in query if isinstance(s[0], long)]
@@ -181,7 +181,7 @@ def iq_unmeasured_images(ims):
     ss = sa.select([ims.images.c.image_id, ims.images.c.iq_ossos, ims.images.c.snr], order_by=ims.images.c.image_id)
     ss.append_whereclause(ims.images.c.iq_ossos == None)
     query = ims.conn.execute(ss)
-    retval = [s[0] for s in query if isinstance(s[0], long)]
+    retval = [s[0] for s in query if isinstance(s[0], int)]
 
     return retval
 
@@ -190,14 +190,14 @@ def snr_unmeasured_images(ims):
     ss = sa.select([ims.images.c.image_id, ims.images.c.snr], order_by=ims.images.c.image_id)
     ss.append_whereclause(ims.images.c.snr == None)  # RERUN THIS AGAIN WITH SNR==0.74 TO CATCH THE FAILURES
     query = ims.conn.execute(ss)
-    retval = [s[0] for s in query if isinstance(s[0], long)]
+    retval = [s[0] for s in query if isinstance(s[0], int)]
 
     return retval
 
 
 def parse_unprocessed_images(dbimages, processed_images):
     # Ensure the unprocessed list doesn't include the calibrators/moving folders
-    retval = [im for im in dbimages if (im.isdigit() and long(im) not in processed_images)]
+    retval = [im for im in dbimages if (im.isdigit() and int(im) not in processed_images)]
     retval.sort()
 
     return retval
@@ -340,7 +340,7 @@ def main():
     if args.comment:
         sys.stdout.write('%d images in ossuary; updating with new comment information.\n' %
                          len(processed_images))
-        for image in commdict.keys():
+        for image in list(commdict.keys()):
             if int(image) in processed_images:
                 update_values(images, image, iq_zeropt=False, comment=True, commdict=commdict)
                 sys.stdout.write('%s has comment...\n' % image)
@@ -358,7 +358,7 @@ def main():
                 verify_ossos_image(fullheader)
                 header = get_iq_and_zeropoint(image, subheader)
                 header = get_snr(image, header)
-                if image in commdict.keys():
+                if image in list(commdict.keys()):
                     header['comment'] = commdict[image]
                 put_image_in_database(header, images)
                 sys.stdout.write('...added to ossuary...\n')
@@ -366,7 +366,7 @@ def main():
                 # sys.stdout.write(' .gif preview saved.\n')
             else:
                 sys.stdout.write('Header is not available: skipping.\n')
-        except Exception, e:
+        except Exception as e:
             sys.stdout.write('... %s\n' % e)
 
 

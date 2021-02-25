@@ -4,10 +4,11 @@ import logging
 import math
 import numpy
 import os
-from downloads.cutouts.downloader import ImageDownloader
-import util
-from downloads.cutouts.source import SourceCutout
-from astrom import Observation
+from .downloads.cutouts.downloader import ImageDownloader
+from . import util
+from .downloads.cutouts.source import SourceCutout
+from astropy.time import Time
+from .astrom import Observation
 
 BRIGHT_LIMIT = 23.0
 OBJECT_PLANTED = "Object.planted"
@@ -52,7 +53,7 @@ def measure_mags(measures):
     @param measures: list of readings
     @return: None
     """
-    import daophot
+    from . import daophot
 
     image_downloader = ImageDownloader()
 
@@ -70,9 +71,9 @@ def measure_mags(measures):
     for observation in observations:
         source = observations[observation]['source']
         assert isinstance(source, SourceCutout)
-        source.update_pixel_location(observations[observation]['x'],
-                                     observations[observation]['y'])
         hdulist_index = source.get_hdulist_idx(observation.ccdnum)
+        #source.update_pixel_location((observations[observation]['x'],
+        #                              observations[observation]['y']), hdulist_index)
         observations[observation]['mags'] = daophot.phot(source._hdu_on_disk(hdulist_index),
                                                          observations[observation]['x'],
                                                          observations[observation]['y'],
@@ -174,8 +175,8 @@ def match_planted(fk_candidate_observations, match_filename, bright_limit=BRIGHT
     for oidx in range(len(measures)):
         idx = idxs[oidx]
         readings = measures[oidx]
-        start_jd = util.Time(readings[0].obs.header['MJD_OBS_CENTER'], format='mpc', scale='utc').jd
-        end_jd = util.Time(readings[-1].obs.header['MJD_OBS_CENTER'], format='mpc', scale='utc').jd
+        start_jd = Time(readings[0].obs.header['MJD_OBS_CENTER'], format='mpc', scale='utc').jd
+        end_jd = Time(readings[-1].obs.header['MJD_OBS_CENTER'], format='mpc', scale='utc').jd
         rate = math.sqrt((readings[-1].x - readings[0].x) ** 2 + (readings[-1].y - readings[0].y) ** 2) / (
             24 * (end_jd - start_jd))
         rate = int(rate * 100) / 100.0
@@ -243,7 +244,7 @@ def match_planted(fk_candidate_observations, match_filename, bright_limit=BRIGHT
     try:
         writer = ascii.FixedWidth
         # add a hash to the start of line that will have header columns: for JMP
-        fout.write("#")
+        fout.write("# ")
         fout.flush()
         ascii.write(planted_objects_table, output=fout, Writer=writer, delimiter=None)
         if len(false_positives_table) > 0:

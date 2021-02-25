@@ -11,8 +11,8 @@ class TestCamera(TestCase):
 
     def test_offset(self):
         self.camera.offset(index=22)
-        self.assertEquals(self.camera.ra, 0*units.degree)
-        self.assertEquals(self.camera.dec, 0*units.degree)
+        self.assertEqual(self.camera.ra, 0*units.degree)
+        self.assertEqual(self.camera.dec, 0*units.degree)
         self.fail()
 
     def test_coordinate(self):

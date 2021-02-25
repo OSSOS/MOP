@@ -2,7 +2,7 @@ import getpass
 import netrc
 import os
 import sys
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
 import vos
 
@@ -29,7 +29,7 @@ def getCert(certHost=vos.vos.SERVER, certfile=None,
     
     # Example taken from voidspace.org.uk
     # create a password manager
-    password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
+    password_mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
 
     (username, passwd) = getUserPassword(host=certHost)
 
@@ -38,17 +38,17 @@ def getCert(certHost=vos.vos.SERVER, certfile=None,
     top_level_url = "http://"+certHost
     password_mgr.add_password(None, top_level_url, username, passwd)
     
-    handler = urllib2.HTTPBasicAuthHandler(password_mgr)
+    handler = urllib.request.HTTPBasicAuthHandler(password_mgr)
     
     # create "opener" (OpenerDirector instance)
-    opener = urllib2.build_opener(handler)
+    opener = urllib.request.build_opener(handler)
     
     # Install the opener.   
-    urllib2.install_opener(opener)
+    urllib.request.install_opener(opener)
 
     # Now all calls to urllib2.urlopen use our opener.
     url="http://"+certHost+certQuery+str(daysValid)
-    r= urllib2.urlopen(url)
+    r= urllib.request.urlopen(url)
     w= file(certfile,'w')
     while True:
         buf=r.read()

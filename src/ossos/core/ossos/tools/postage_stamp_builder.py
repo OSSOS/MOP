@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 #!python
 """Retrieval of cutouts of the FITS images associated with the OSSOS detections.

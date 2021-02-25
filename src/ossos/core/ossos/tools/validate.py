@@ -1,18 +1,20 @@
 #!python
 # A script to do validation
+from ..version import __version__
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import argparse
 import tempfile
+import textwrap
 
 from ossos.gui import logger
 from ossos.gui import tasks
 from ossos import storage
-from ossos import ssos
+from ossos.gui import config
 
 
 def launch_app(task, working_directory, output_directory, dry_run, debug, name_filter=None,
-               user_name=None, skip_previous=False, zoom=1, telescope='Subaru/SuprimeCam'):
+               user_name=None, skip_previous=False, zoom=1):
     # Put import here to avoid the delay loading them.  This allows quick
     # feedback when argparse can tell the arguments are invalid, and makes
     # getting help with the -h flag faster.
@@ -20,11 +22,21 @@ def launch_app(task, working_directory, output_directory, dry_run, debug, name_f
 
     create_application(task, working_directory, output_directory,
                        dry_run=dry_run, debug=debug, name_filter=name_filter,
-                       user_id=user_name, skip_previous=skip_previous, zoom=zoom, telescope=telescope)
+                       user_id=user_name, skip_previous=skip_previous, zoom=zoom)
 
 
 def main():
-    parser = argparse.ArgumentParser()
+
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
+                                     epilog=textwrap.dedent('''
+Below is a list of environment variables that can be set at the shell level 
+to override default behaviour (e.g. export MOP.PREFETCH.NUMBER=5 
+would set validate to only pre-fetch 5 observation sets, lowering the number
+of simultaneously open files):
+
+
+'''+str(config.AppConfig('env.json'))))
+
     parser.add_argument("task", choices=tasks.task_list,
                         help="The task to perform.")
     parser.add_argument("input",
@@ -43,6 +55,7 @@ def main():
     parser.add_argument("--debug",
                         action="store_true",
                         help="wx inspection tool will be launched.")
+    parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--name-filter",
                         dest="name_filter",
                         help="A filter to apply to object names when loading from a directory.")
@@ -51,7 +64,7 @@ def main():
                         help="Don't show me observation that are already in the input files, TRACKS only")
     parser.add_argument("--username", dest="username", help="Your CADC username")
     parser.add_argument('--zoom', dest='zoom', default=1)
-    parser.add_argument('--telescope', dest='telescope', default='Subaru/SuprimeCam', choices=ssos.TELINST)
+    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
 
     args = parser.parse_args()
 
@@ -63,11 +76,13 @@ def main():
 
     if args.debug:
         logger.set_debug()
+    if args.verbose:
+        logger.set_verbose()
 
     storage.DBIMAGES = args.dbimages
 
     launch_app(args.task, args.input, output, args.dry_run, args.debug, args.name_filter,
-               args.username, args.skip_previous, args.zoom, args.telescope)
+               args.username, args.skip_previous, args.zoom)
 
 
 if __name__ == "__main__":

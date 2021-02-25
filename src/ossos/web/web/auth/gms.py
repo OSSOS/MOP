@@ -3,11 +3,11 @@
 """
 
 import cgi
-import httplib
+import http.client
 import sys
 import tempfile
-import urllib2
-import urllib
+import urllib.request, urllib.error, urllib.parse
+import urllib.request, urllib.parse, urllib.error
 import logging
 
 from OpenSSL import crypto
@@ -59,17 +59,17 @@ def getCert(username, password,
 
     # Add the username and password.
     # If we knew the realm, we could use it instead of ``None``.
-    password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
+    password_mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
     top_level_url = "http://" + certHost
     logging.debug(top_level_url)
     password_mgr.add_password(None, top_level_url, username, password)
-    handler = urllib2.HTTPBasicAuthHandler(password_mgr)
+    handler = urllib.request.HTTPBasicAuthHandler(password_mgr)
     logging.debug(str(handler))
     # create "opener" (OpenerDirector instance)
-    opener = urllib2.build_opener(handler)
+    opener = urllib.request.build_opener(handler)
 
     # Install the opener.   
-    urllib2.install_opener(opener)
+    urllib.request.install_opener(opener)
 
     # buuld the url that with 'GET' a certificat using user_id/password info
     url = "http://" + certHost + certQuery
@@ -78,7 +78,7 @@ def getCert(username, password,
     r = None
     try:
         r = opener.open(url)
-    except urllib2.HTTPError as e:
+    except urllib.error.HTTPError as e:
         logging.debug(url)
         logging.debug(str(e))
         return False
@@ -117,7 +117,7 @@ def getGroupsURL(certfile, group):
         dn = i[0] + "=" + i[1] + sep + dn
         sep = ","
 
-    return GMS + "/" + group + "/" + urllib.quote(dn)
+    return GMS + "/" + group + "/" + urllib.parse.quote(dn)
 
 
 def isMember(userid, password, group):
@@ -134,7 +134,7 @@ def isMember(userid, password, group):
         group_url = getGroupsURL(certfile, group)
         logging.debug("group url: %s" % ( group_url))
 
-        con = httplib.HTTPSConnection(_SERVER,
+        con = http.client.HTTPSConnection(_SERVER,
                                       443,
                                       key_file=certfile.name,
                                       cert_file=certfile.name,
@@ -168,5 +168,5 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     logging.debug("userid: %s" % ( userid))
     logging.debug("passwd: %s" % ( password))
-    print isMember(userid, password, group)
+    print(isMember(userid, password, group))
 

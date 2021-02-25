@@ -258,7 +258,7 @@ def main():
                         help="Number of random variations of pointings to try",
                         default=2)
     parser.add_argument('--camera', default="MEGACAM_40",
-                        choices=Camera._geometry.keys(),
+                        choices=list(Camera._geometry.keys()),
                         help="Name of camera")
     parser.add_argument('--ephem-format', default='CFHT_API',
                         choices=['CFHT_API', 'CFHT_ET', 'GEMINI_ET'])

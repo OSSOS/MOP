@@ -1,7 +1,7 @@
 from astropy import units
 from .baseviewer import WxMPLFitsViewer
 from .displayable import DisplayableImageSinglet
-from interaction import Signal
+from .interaction import Signal
 from ..gui import logger
 from ..downloads.cutouts.source import SourceCutout
 import sys

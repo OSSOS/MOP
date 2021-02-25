@@ -24,22 +24,22 @@ def getList(name = None):
 
 def summarize(orbit):
     for observation in orbit.observations:
-            print observation.to_string()
+            print(observation.to_string())
 
     orbit = Orbfit(orbit.observations)
 
-    print ""
-    print orbit
+    print("")
+    print(orbit)
 
     orbit.predict(orbit.observations[0].date)
     coord1 = orbit.coordinate
     orbit.predict(orbit.observations[-1].date)
     coord2 = orbit.coordinate
     motion_rate = coord1.separation(coord2).arcsecs/(orbit.arc_length*24)  # how best to get arcsec moved between first/last?
-    print "{:>10s} {:8.2f}".format('rate ("/hr)', motion_rate)
+    print("{:>10s} {:8.2f}".format('rate ("/hr)', motion_rate))
 
     orbit.predict('2014-04-04')  # hardwiring next year's prediction date for the moment
-    print "{:>10s} {:8.2f} {:8.2f}\n".format("Expected accuracy on 4 April 2014 (arcsec)", orbit.dra, orbit.ddec)
+    print("{:>10s} {:8.2f} {:8.2f}\n".format("Expected accuracy on 4 April 2014 (arcsec)", orbit.dra, orbit.ddec))
 
     return
 
@@ -66,9 +66,9 @@ def build(filename):
     orbit = Orbfit(mpc_observations)
 
     mag = numpy.array(mag)
-    print orbit.residuals
+    print(orbit.residuals)
 
-    print "{:10s} {:7.2f} {:7.2f} {:7.3f} {:7.3f} {:7.3f} {:7.3f} {:7.3f} {:7.3f} {:7.3f}".format(orbit.name, orbit.a, orbit.da, orbit.e, orbit.de, orbit.inc, orbit.dinc, orbit.distance, mag.mean(), mag.std())
+    print("{:10s} {:7.2f} {:7.2f} {:7.3f} {:7.3f} {:7.3f} {:7.3f} {:7.3f} {:7.3f} {:7.3f}".format(orbit.name, orbit.a, orbit.da, orbit.e, orbit.de, orbit.inc, orbit.dinc, orbit.distance, mag.mean(), mag.std()))
 
 
 
@@ -77,5 +77,5 @@ if __name__ == '__main__':
     name = None
     if len(sys.argv) > 1:
 	name = sys.argv[1]
-    print "{:10s} {:7s} {:7s} {:7s} {:7s} {:7s} {:7s} {:7s} {:7s} {:7s}".format("NAME","a(AU)","da(AU)","e","de","Inc(d)","dInc","D(AU)","mag_r","merr")
+    print("{:10s} {:7s} {:7s} {:7s} {:7s} {:7s} {:7s} {:7s} {:7s} {:7s}".format("NAME","a(AU)","da(AU)","e","de","Inc(d)","dInc","D(AU)","mag_r","merr"))
     getList(name)

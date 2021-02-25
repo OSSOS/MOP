@@ -41,7 +41,7 @@ class Dummy(object):
                 return attr
 
         def dummy_function(*args, **kwargs):
-            print "Called %s on %s" % (name, self._dummyname)
+            print("Called %s on %s" % (name, self._dummyname))
 
         return dummy_function
 

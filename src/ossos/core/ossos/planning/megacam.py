@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 def TAPQuery(RAdeg=180.0, DECdeg=0.0, width=1, height=1):
     """Do a query of the CADC Megacam table.  Get all observations insize the box.  Returns a file-like object"""
@@ -27,9 +27,9 @@ def TAPQuery(RAdeg=180.0, DECdeg=0.0, width=1, height=1):
     
     url="http://www.cadc.hia.nrc.gc.ca/tap/sync"
 
-    print url, data
+    print(url, data)
 
-    return urllib.urlopen(url,urllib.urlencode(data))
+    return urllib.request.urlopen(url,urllib.parse.urlencode(data))
 
 
 def TAPQuery(RAdeg=180.0, DECdeg=0.0, width=1, height=1):
@@ -58,9 +58,9 @@ def TAPQuery(RAdeg=180.0, DECdeg=0.0, width=1, height=1):
     url="http://www.cadc.hia.nrc.gc.ca/tap/sync"
     
 
-    print url, data
+    print(url, data)
 
-    return urllib.urlopen(url,urllib.urlencode(data))
+    return urllib.request.urlopen(url,urllib.parse.urlencode(data))
 
 
 
@@ -69,4 +69,4 @@ if __name__ == '__main__':
     dec_cen = (20+0)/2.0
     width = 20-0
     height = 37-7
-    print TAPQuery(ra_cen, dec_cen, width, height).read()
+    print(TAPQuery(ra_cen, dec_cen, width, height).read())

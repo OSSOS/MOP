@@ -3,7 +3,7 @@ import os
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 from astropy.io import fits
-import cStringIO
+import io
 from ossos.gui import logger
 from .. import storage
 import sys
@@ -36,7 +36,7 @@ class Downloader(object):
         try:
             vobj = storage.vofile(uri, **kwargs)
             try:
-                fobj = cStringIO.StringIO(vobj.read())
+                fobj = io.StringIO(vobj.read())
                 fobj.seek(0)
                 hdulist = fits.open(fobj)
             except Exception as e:
@@ -100,7 +100,7 @@ class ApcorData(object):
         ap_in ap_out   ap_cor  apcor_err
         """
         try:
-            args = map(float, rawstr.split())
+            args = list(map(float, rawstr.split()))
         except Exception as ex:
             import sys
             logger.error("Failed to convert aperture correction: {}".format(ex))

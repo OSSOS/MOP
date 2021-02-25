@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import sys
 
 from ..astrom import AstromParser, StationaryParser
-from ..downloads.async import AsynchronousDownloadManager
+from ..downloads.async_download import AsynchronousDownloadManager
 from ..downloads.cutouts.downloader import ImageCutoutDownloader
 from ..gui import config, tasks, logger
 from ..gui import context
@@ -37,9 +37,9 @@ def create_application(task_name, working_directory, output_directory,
     elif task_name == tasks.REALS_TASK:
         ProcessRealsApplication(working_directory, output_directory,
                                 dry_run=dry_run, debug=debug, name_filter=name_filter, user_id=user_id, zoom=zoom)
-    elif task_name  == tasks.VETTING_TASK:
+    elif task_name == tasks.VETTING_TASK:
         ProcessVettingApplication(working_directory, output_directory, dry_run=dry_run,
-                                     debug=debug, name_filter=name_filter, user_id=user_id, zoom=zoom)
+                                  debug=debug, name_filter=name_filter, user_id=user_id, zoom=zoom)
     elif task_name == tasks.EXAMINE_TASK:
         ProcessExamineApplication(working_directory, output_directory, dry_run=dry_run,
                                   debug=debug, name_filter=name_filter, user_id=user_id, zoom=zoom)
@@ -112,7 +112,6 @@ class ValidationApplication(object):
         self.model = model
         self.view = view
         self.controller = view.controller
-
         self.controller.display_current_image()
 
         if not synchronization_manager:
