@@ -29,16 +29,16 @@ def cfeps_residuals(version='L7', regenerate=False):
             data_path = '/Users/bannisterm/Dropbox/mpc/'
             for filename in os.listdir(data_path):
                 observations = mpc.MPCReader(data_path + filename)
-                print observations.provisional_name
+                print(observations.provisional_name)
                 orbit = orbfit.Orbfit(observations.mpc_observations)
                 try:
                     residuals = orbit.residuals(overall=True)
                     all_resids += residuals
-                except Exception, e:
-                    print observations.provisional_name
-                    print e
+                except Exception as e:
+                    print(observations.provisional_name)
+                    print(e)
                     continue
-            print all_resids
+            print(all_resids)
 
             with open('cfeps_resids_{}.dat'.format(version), 'w') as outfile:
                 for r in all_resids:
@@ -50,11 +50,11 @@ def cfeps_residuals(version='L7', regenerate=False):
                 lines = infile.readlines()
                 for line in lines:
                     all_resids.append(float(line))
-            print len(all_resids)
+            print(len(all_resids))
 
     cfeps_mas = np.array(all_resids)
-    print cfeps_mas
-    print 'cfeps', np.median(cfeps_mas)
+    print(cfeps_mas)
+    print('cfeps', np.median(cfeps_mas))
 
     return cfeps_mas
 
@@ -66,10 +66,10 @@ def ossos_residuals(version=RELEASE_VERSION, regenerate=False):
         # takes a few minutes to compute all these
         discoveries = ossos_discoveries(data_release=version)  # gets the full MPC lines for the current release
         for obj in discoveries:
-            print obj.name
+            print(obj.name)
             residuals = obj.orbit.residuals(overall=True)
             all_resids += residuals
-        print all_resids
+        print(all_resids)
 
         with open('ossos_resids_v{}.dat'.format(RELEASE_VERSION), 'w') as outfile:
             for r in all_resids:
@@ -81,11 +81,11 @@ def ossos_residuals(version=RELEASE_VERSION, regenerate=False):
             lines = infile.readlines()
             for line in lines:
                 all_resids.append(float(line))
-        print len(all_resids)
+        print(len(all_resids))
 
     ossos_mas = np.array(all_resids)
-    print ossos_mas
-    print 'ossos', np.median(ossos_mas)
+    print(ossos_mas)
+    print('ossos', np.median(ossos_mas))
 
     return ossos_mas
 

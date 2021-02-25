@@ -94,7 +94,7 @@ if True:
             mags = mags/len(source_obs)
             orbit = orbfit.Orbfit(source_obs)
             residuals = orbit.residuals(overall=True)
-            print orbit.summarize()
+            print(orbit.summarize())
             if orbit.a > 5*units.AU and mags < 24.7:
                 file('keepers.txt', 'a').write("{}\n".format(source_obs[0].provisional_name))
 

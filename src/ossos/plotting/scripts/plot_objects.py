@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 __author__ = 'Michele Bannister   git:@mtbannister'
 
 import math
@@ -39,11 +39,11 @@ def plot_planets(ax, plot, date, hill_sphere=False):
         ax.annotate(planet.name, (pos[0] - .4, pos[1] + 0.1))  # (pos[0]+.9, pos[1]+0.5))  # offset to make it readable
 
         if hill_sphere:
-            print planet.name, planet.sun_distance, mass[planet.name],
+            print(planet.name, planet.sun_distance, mass[planet.name], end=' ')
             hs_radius = (planet.sun_distance * ephem.meters_per_au) * (
                 (mass[planet.name] / 3 * mass['Sun']) ** (1 / 3.))
             angular_size = planet.earth_distance * hs_radius  # FIXME
-            print 'Hill sphere', hs_radius, hs_radius / ephem.meters_per_au, angular_size
+            print('Hill sphere', hs_radius, hs_radius / ephem.meters_per_au, angular_size)
             ax.add_patch(plt.Circle(pos, radius=angular_size, fill=False))
 
     return ax
@@ -72,7 +72,7 @@ def plot_ossos_discoveries(ax, discoveries, blockname, prediction_date=False):
     not_plutinos = discoveries[l]
     plutinos = discoveries[pl_index]
     for j, d in enumerate([not_plutinos, plutinos]):
-        print len(d)
+        print(len(d))
         ra = [math.degrees(ephem.degrees(str(n))) for n in d['RAdeg']]
         dec = [float(q) for q in d['DEdeg']]
         ax.scatter(ra, dec,
@@ -134,9 +134,9 @@ def plot_ossos_discoveries(ax, discoveries, blockname, prediction_date=False):
 
 def plot_known_tnos_singly(ax, extent, date):
     rate_cut = 'a > 7'
-    print "PLOTTING LOCATIONS OF KNOWN KBOs (using {})".format(parameters.MPCORB_FILE)
+    print("PLOTTING LOCATIONS OF KNOWN KBOs (using {})".format(parameters.MPCORB_FILE))
     kbos = parsers.mpcorb_getKBOs(parameters.MPCORB_FILE)
-    print('Known KBOs: {}'.format(len(kbos)))
+    print(('Known KBOs: {}'.format(len(kbos))))
     retkbos = []
     for kbo in kbos:
         kbo.compute(date)
@@ -156,7 +156,7 @@ def plot_known_tnos_singly(ax, extent, date):
             ra_shift = -0.22
         ax.annotate(kbo.name, (pos[0] + ra_shift, pos[1] + 0.06), size=6, color='r')
         retkbos.append(kbo)
-    print('Retained KBOs: {}'.format(len(retkbos)))
+    print(('Retained KBOs: {}'.format(len(retkbos))))
     return ax, retkbos
 
 

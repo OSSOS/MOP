@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 import datetime
 import os
 import pprint
@@ -28,7 +28,7 @@ NEW_LINE = '\r\n'
 
 class TracksParser(object):
 
-    def __init__(self, inspect=True, skip_previous=False, lunation_count=0, telescope='Subaru/SuprimeCam'):
+    def __init__(self, inspect=True, skip_previous=False, lunation_count=0):
         logger.debug("Setting up TracksParser")
         self.orbit = None
         self._nights_per_darkrun = 18 * units.day
@@ -36,7 +36,6 @@ class TracksParser(object):
         self.inspect = inspect
         self.skip_previous = skip_previous
         self.ssos_parser = None
-        self.telescope = telescope
         self.initial_lunation_count = lunation_count
 
     def parse(self, filename, print_summary=True):
@@ -51,8 +50,8 @@ class TracksParser(object):
         try:
             self.orbit = Orbfit(mpc_observations)
             if print_summary:
-               print(self.orbit.residuals)
-               print(self.orbit)
+               print((self.orbit.residuals))
+               print((self.orbit))
         except Exception as ex:
             logger.error("{}".format(ex))
             logger.error("Failed to compute orbit with astrometry provided")
@@ -102,7 +101,7 @@ class TracksParser(object):
 
         if lunation_count is None:
             # Only using SSOS to find data acquired during the survey period, for now.
-            search_start_date = Time('2001-02-08', scale='utc')
+            search_start_date = Time('2013-02-08', scale='utc')
             search_end_date = Time(datetime.datetime.now().strftime('%Y-%m-%d'), scale='utc')
         else:
             search_start_date = Time((mpc_observations[0].date.jd * units.day - (
@@ -115,7 +114,7 @@ class TracksParser(object):
         logger.info("Sending query to SSOS start_date: {} end_data: {}\n".format(search_start_date, search_end_date))
         query = Query(mpc_observations,
                       search_start_date=search_start_date,
-                      search_end_date=search_end_date, telescope=self.telescope)
+                      search_end_date=search_end_date)
         logger.debug("Parsing query results...")
         tracks_data = self.ssos_parser.parse(query.get(), mpc_observations=mpc_observations)
 
@@ -205,7 +204,7 @@ class TrackTarget(TracksParser):
         logger.info("Sending query to SSOS start_date: {} end_data: {}\n".format(search_start_date, search_end_date))
         query = Query(target_name,
                       search_start_date=search_start_date,
-                      search_end_date=search_end_date, telescope=self.telescope)
+                      search_end_date=search_end_date)
 
         logger.debug("Parsing query results...")
         tracks_data = self.ssos_parser.parse(query.get())
@@ -338,8 +337,7 @@ class SSOSParser(object):
             # check if a dbimages object exists
             # For CFHT/MegaCam strip off the trailing character to get the exposure number.
             ftype = row['Image'][-1]
-            ftype = ftype == "0" and "p" or ftype
-            expnum = row['Image'][:-1].replace("SUPE", "SUPA")
+            expnum = row['Image'][:-1]
             if str(expnum) not in dbimage_list:
                 logger.debug("Expnum: {} Failed dbimage list check".format(expnum))
                 continue
@@ -362,8 +360,8 @@ class SSOSParser(object):
             logger.info("Calling predict")
             orbit.predict(obs_date)
             logger.info("Done calling predict")
-            if orbit.dra > 15 * units.arcminute or orbit.ddec > 15.0 * units.arcminute:
-                print "Skipping entry as orbit uncertainty at date {} is large.".format(obs_date)
+            if orbit.dra > 4 * units.arcminute or orbit.ddec > 4.0 * units.arcminute:
+                print("Skipping entry as orbit uncertainty at date {} is large.".format(obs_date))
                 continue
             if expnum in expnums_examined:
                 logger.debug("Already checked this exposure.")
@@ -486,7 +484,7 @@ class ParamDictBuilder(object):
     def __init__(self,
                  observations=None,
                  verbose=False,
-                 search_start_date=Time('2001-01-01', scale='utc'),
+                 search_start_date=Time('2013-01-01', scale='utc'),
                  search_end_date=Time('2017-01-01', scale='utc'),
                  orbit_method='bern',
                  error_ellipse='bern',
@@ -720,15 +718,13 @@ class Query(object):
                  observations=None,
                  search_start_date=Time(parameters.SURVEY_START, scale='utc'),
                  search_end_date=Time('2017-01-01', scale='utc'),
-                 telescope='Subaru/SuprimeCam',
                  error_ellipse='bern'):
 
         self.param_dict_builder = ParamDictBuilder(
             observations=observations,
             search_start_date=search_start_date,
             search_end_date=search_end_date,
-            error_ellipse=error_ellipse, 
-            telescope_instrument=telescope)
+            error_ellipse=error_ellipse)
         self.headers = {'User-Agent': 'OSSOS'}
 
     def get(self):
@@ -746,11 +742,11 @@ class Query(object):
         assert isinstance(response, requests.Response)
         assert (response.status_code == requests.codes.ok)
 
-        lines = response.content
+        lines = str(response.content, encoding='utf-8')
         # note: spelling 'occured' is in SSOIS
         if len(lines) < 2 or "An error occured getting the ephemeris" in lines:
-            print lines
-            print response.url
+            print(lines)
+            print(response.url)
             raise IOError(os.errno.EACCES,
                           "call to SSOIS failed on format error")
 

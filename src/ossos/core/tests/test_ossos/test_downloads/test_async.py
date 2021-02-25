@@ -5,8 +5,8 @@ import unittest
 from mock import Mock
 
 from ossos.astrom import SourceReading
-from ossos.downloads.async import DownloadRequest
-from ossos.downloads.async import DownloadThread
+from ossos.downloads.async_download import DownloadRequest
+from ossos.downloads.async_download import DownloadThread
 from ossos.downloads.cutouts import ImageCutoutDownloader
 from ossos.downloads.cutouts.source import SourceCutout
 

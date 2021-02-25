@@ -11,7 +11,7 @@ import argparse
 import smtplib
 from email.mime.text import MIMEText
 import requests
-from cStringIO import StringIO
+from io import StringIO
 from astropy.table import Table
 from astropy.io import ascii
 import tempfile
@@ -24,7 +24,7 @@ args = parser.parse_args()
 
 current_list = vos.Client().listdir('vos:OSSOS/dbimages')
 recon_exposures = Table.read(StringIO(requests.get(url, params=params).content), format='ascii.csv')
-print recon_exposures
+print(recon_exposures)
 
 if args.output:
     with open('list.txt', 'w') as fout:

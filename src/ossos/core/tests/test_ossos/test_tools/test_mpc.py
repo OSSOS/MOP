@@ -19,11 +19,11 @@ class ObservationTest(unittest.TestCase):
         frame = "1651194p29"
 
         parsed = mpc.Observation.from_string(ast_line)
-        self.assertEquals(frame, parsed.comment.frame)
+        self.assertEqual(frame, parsed.comment.frame)
 
     def test_create_from_line(self):
         expected = '     NONE     C2009 02 23.62578512 32 05.249+07 08 55.70         30.0 g      568'
-        self.assertEquals(expected, str(mpc.Observation.from_string(expected)))
+        self.assertEqual(expected, str(mpc.Observation.from_string(expected)))
 
     def test_default_line(self):
         expected = "     K04K18V**C2004 05 24.36017 15 06 36.120-18 56 49.50         23.5 g      568"
@@ -37,15 +37,15 @@ class ObservationTest(unittest.TestCase):
                                      mag=23.5,
                                      band='g',
                                      observatory_code=568))
-        self.assertEquals(expected, actual)
+        self.assertEqual(expected, actual)
 
     def test_mpcdatabase_line(self):
         mpc_line = "08611K01QT7T  C2004 05 29.32355 22 01 19.57 -11 03 12.4                ok8659304"
         obs = mpc.Observation.from_string(mpc_line)
-        self.assertEquals(str(obs.ra), "22 01 19.570")
-        self.assertEquals(obs.provisional_name, "K01QT7T")
-        self.assertEquals(obs.minor_planet_number, 8611)
-        self.assertEquals(obs.minor_planet_number, "08611")
+        self.assertEqual(str(obs.ra), "22 01 19.570")
+        self.assertEqual(obs.provisional_name, "K01QT7T")
+        self.assertEqual(obs.minor_planet_number, 8611)
+        self.assertEqual(obs.minor_planet_number, "08611")
 
     def test_format_line(self):
         actual = str(mpc.Observation(None, None, "A234567", "*", "H", "N", "2012 10 21.405160",
@@ -58,7 +58,7 @@ class ObservationTest(unittest.TestCase):
         expected = "     A234567*HN2012 10 21.40516001 46 44.001+29 13 13.27         12.4 A      523"
 
         self.assertEqual(len(actual), 80)
-        self.assertEquals(actual, expected)
+        self.assertEqual(actual, expected)
 
     def test_MPCFormatException_message(self):
         ex = mpc.MPCFieldFormatError("Note1", "must be 1 character", "AB")
@@ -143,9 +143,9 @@ class TimeMPCTest(unittest.TestCase):
         t2 = Time(iso_time, format='iso', scale='utc', precision=6)
         t3 = t2.replicate(format='mpc')
         t3.precision = 6
-        self.assertEquals(mpc_time, str(t1))
-        self.assertEquals(t2.jd, t1.jd)
-        self.assertEquals(mpc_time, str(t3))
+        self.assertEqual(mpc_time, str(t1))
+        self.assertEqual(t2.jd, t1.jd)
+        self.assertEqual(mpc_time, str(t3))
 
 
 class MPCNoteTest(unittest.TestCase):
@@ -158,10 +158,10 @@ class MPCNoteTest(unittest.TestCase):
                           mpc.MPCNote, code='1', note_type="Note2")
 
     def test_note1_get_long_description(self):
-        self.assertEquals(mpc.MPCNote(code="H", note_type="Note1").long, mpc.MPCNOTES["Note1"]["H"])
+        self.assertEqual(mpc.MPCNote(code="H", note_type="Note1").long, mpc.MPCNOTES["Note1"]["H"])
 
     def test_note2_set_correctly(self):
-        self.assertEquals(str(mpc.MPCNote(code="C", note_type="Note2")), "C")
+        self.assertEqual(str(mpc.MPCNote(code="C", note_type="Note2")), "C")
 
 
 class MPCWriterTest(unittest.TestCase):

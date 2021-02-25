@@ -2,7 +2,7 @@
 
 
 
-import urllib
+import urllib.request, urllib.parse, urllib.error
 from astropy.io import votable
 
 def TAPQuery(RAdeg, DECdeg, width, height):
@@ -31,7 +31,7 @@ def TAPQuery(RAdeg, DECdeg, width, height):
     
     url="http://tapvizier.u-strasbg.fr/TAPVizieR/tap/sync"
     
-    return urllib.urlopen(url, urllib.urlencode(data))
+    return urllib.request.urlopen(url, urllib.parse.urlencode(data))
 
 
 
@@ -41,5 +41,5 @@ if __name__ == '__main__':
     dec_cen = (20+0)/2.0
     width = 20-0
     height = 37-7
-    print votable.parse(TAPQuery(ra_cen, dec_cen, width, height).read()).get_first_table()
+    print(votable.parse(TAPQuery(ra_cen, dec_cen, width, height).read()).get_first_table())
     

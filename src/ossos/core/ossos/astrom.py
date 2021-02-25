@@ -6,12 +6,13 @@ import math
 __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 import re
+import sys
+import traceback
 
 from astropy import units
 from astropy.coordinates import SkyCoord
 from astropy.units import Quantity
 from astropy.time import TimeDelta, Time
-import time
 from . import util
 
 from .gui import logger
@@ -21,7 +22,7 @@ DATASET_ROOT = storage.DBIMAGES
 
 # Images from CCDs < 18 have their coordinates flipped
 MAX_INVERTED_CCD = 17
-INVERTED_CCDS = range(0, 18)
+INVERTED_CCDS = list(range(0, 18))
 INVERTED_CCDS.append(36)
 INVERTED_CCDS.append(37)
 
@@ -34,7 +35,7 @@ OBS_LIST_PATTERN = "#\s+(?P<rawname>(?P<fk>%s)?(?P<expnum>\d{6,7})(?P<ftype>[ops
 STATIONARY_LIST_PATTERN = "(?P<rawname>(?P<fk>fk)?(?P<expnum>\d{6,7})(?P<ftype>[ops])).vetting"
 
 # Observation header keys
-MOPVERSION = "MOPversion"
+MOPVERSION = "MOP_VER"
 
 # NOTE: MJD_OBS_CENTER is actually MJD-OBS-CENTER in the .astrom files, but
 # dashes aren't valid as regex names so I use underscores
@@ -136,7 +137,7 @@ class AstromParser(object):
         obsnum = 0
         for match in self.obs_header_regex.finditer(filestr):
             obs = observations[obsnum]
-            for header_key, header_val in match.groupdict().iteritems():
+            for header_key, header_val in match.groupdict().items():
                 obs.header[header_key] = header_val
             obsnum += 1
 
@@ -220,20 +221,14 @@ class AstromParser(object):
             The file contents extracted into a data structure for programmatic
             access.
         """
-        while True:
-           try:
-              filehandle = storage.open_vos_or_local(filename, "rb")
-              assert filehandle is not None, "Failed to open file {} ".format(filename)
-              filestr = filehandle.read()
-              filehandle.close()
-              break
-           except Exception as ex:
-              print(str(ex))
-              time.sleep(3)
+        filehandle = storage.open_vos_or_local(filename, "rb")
+        assert filehandle is not None, "Failed to open file {} ".format(filename)
+        filestr = filehandle.read().decode('utf-8')
+        filehandle.close()
 
         assert filestr is not None, "File contents are None"
 
-        observations = self._parse_observation_list(filestr)
+        observations = self._parse_observation_list(str(filestr))
 
         self._parse_observation_headers(filestr, observations)
 
@@ -371,7 +366,7 @@ class BaseAstromWriter(object):
                 return tuple(header_vals)
 
             self._write_line("## MOPversion")
-            self._write_line("#  %s" % header[MOPVERSION])
+            self._write_line("#  %s" % header.get(MOPVERSION, 1.20))
             self._write_line("## MJD-OBS-CENTER  EXPTIME THRES FWHM  MAXCOUNT CRVAL1     CRVAL2     EXPNUM")
             self._write_line("# %s%8.2f%6.2f%6.2f%9.1f%11.5f%11.5f%9d" % get_header_vals(
                 [MJD_OBS_CENTER, EXPTIME, THRES, FWHM, MAXCOUNT, CRVAL1, CRVAL2, EXPNUM]))
@@ -930,11 +925,7 @@ class SourceReading(object):
           ccdnum: int
             The number of the CCD that the image is on.
         """
-        try:
-           i = int(self.obs.ccdnum)
-        except:
-           i = None
-        return i
+        return int(self.obs.ccdnum)
 
     def get_extension(self):
         """
@@ -1045,16 +1036,25 @@ class Observation(object):
         return observation
 
     def __init__(self, expnum, ftype, ccdnum, fk=None, image_uri=None):
+        self._ccdnum = None
         self.expnum = expnum
         self.fk = fk is not None and fk or ""
         self._header = None
-        self.ccdnum = ccdnum is not None and str(ccdnum) or None
+        self.ccdnum = ccdnum
         self.ftype = ftype is not None and str(ftype) or None
         self.rawname = "{}{}{}{}".format(self.fk, self.expnum, ftype is not None and ftype or "",
                                          ccdnum is not None and str(ccdnum).zfill(2) or "")
         logger.debug(self.rawname)
         if image_uri is None:
             self.image_uri = self.get_image_uri()
+
+    @property
+    def ccdnum(self):
+        return self._ccdnum
+
+    @ccdnum.setter
+    def ccdnum(self, value):
+        self._ccdnum = value is not None and str(value) or None
 
     def __repr__(self):
         return "<Observation rawname=%s>" % self.rawname
@@ -1064,7 +1064,7 @@ class Observation(object):
 
     # TODO Remove get_image_uri from here, use the storage methods.
     def get_image_uri(self):
-        if self.ftype == 'p' and (self.fk is None or self.fk == ''):
+        if self.ftype == 'p' and len(f'{self.expnum}') < 8 and (self.fk is None or self.fk == ''):
             return storage.dbimages_uri(self.expnum)
 
         return storage.dbimages_uri(self.expnum,
@@ -1109,6 +1109,8 @@ class Observation(object):
             try:
                 self._header = storage.get_mopheader(self.expnum, self.ccdnum, self.ftype, self.fk)
             except Exception as ex:
+                import traceback
+                traceback.print_exc(file=sys.stdout)
                 logger.error(str(ex))
                 self._header = self.astheader
         return self._header
@@ -1117,7 +1119,6 @@ class Observation(object):
         header = self.header
         if isinstance(header, list):
             extno = self.ccdnum - 1
-            print "Reading extension {} looking for header of CCD {}".format(extno, self.ccdnum)
             header = header[extno]
         mpc_date = header.get('MJD_OBS_CENTER', None)
         if mpc_date is None and 'MJD-OBS' in header:

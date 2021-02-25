@@ -1,0 +1,12 @@
+matplotlib
+d2to1
+requests
+numpy
+scipy
+astropy
+uncertainties
+pyds9
+wxPython
+pubsub
+vos
+mp_ephem

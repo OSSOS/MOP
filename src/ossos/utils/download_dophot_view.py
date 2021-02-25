@@ -13,8 +13,8 @@ reading = sources[0].get_reading(0)
 downloader = ImageCutoutDownloader(slice_rows=50, slice_cols=50)
 cutout = downloader.download_cutout(reading, needs_apcor=True)
 
-print "RA: %f" % cutout.ra
-print "DEC: %f" % cutout.dec
-print "Observed magnitude: %f" % cutout.get_observed_magnitude()[0]
+print("RA: %f" % cutout.ra)
+print("DEC: %f" % cutout.dec)
+print("Observed magnitude: %f" % cutout.get_observed_magnitude()[0])
 
 fitsviewer.display_hdulist(cutout.hdulist)

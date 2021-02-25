@@ -1,10 +1,10 @@
 # coding=utf-8
-from __future__ import absolute_import
+
 import logging
 import os
 import re
 import sys
-import cPickle
+import pickle
 from collections import OrderedDict
 import math
 import ephem
@@ -97,12 +97,12 @@ def ossos_discoveries(directory=parameters.REAL_KBO_AST_DIR,
     files = [f for f in os.listdir(directory) if (f.endswith('mpc') or f.endswith('ast') or f.endswith('DONE'))]
 
     if single_object is not None:
-        files = filter(lambda name: name.startswith(single_object), files)
+        files = [name for name in files if name.startswith(single_object)]
     elif all_objects and data_release is not None:
         # only return the objects corresponding to a particular Data Release
         data_release = ossos_release_parser(table=True, data_release=data_release)
         objects = data_release['object']
-        files = filter(lambda name: name.partition(suffix)[0].rstrip('.') in objects, files)
+        files = [name for name in files if name.partition(suffix)[0].rstrip('.') in objects]
 
     for filename in files:
         # keep out the not-tracked and uncharacteried.
@@ -194,7 +194,7 @@ def synthetic_model_kbos(at_date=parameters.NEWMOONS[parameters.DISCOVERY_NEW_MO
                          arrays=False):
     # # build a list of Synthetic KBOs
     kbos = []
-    print "LOADING SYNTHETIC MODEL KBOS FROM: {}".format(parameters.L7MODEL)
+    print("LOADING SYNTHETIC MODEL KBOS FROM: {}".format(parameters.L7MODEL))
     pastpath = parameters.L7_HOME + str(at_date).split()[0].replace('/', '-') + '_' + str(maglimit) + (
         kbotype or '') + '.dat'
     print(pastpath)
@@ -202,8 +202,8 @@ def synthetic_model_kbos(at_date=parameters.NEWMOONS[parameters.DISCOVERY_NEW_MO
     # Load the previously cached orbits, quick.
     if os.path.exists(pastpath) and arrays:
         with open(pastpath) as infile:
-            ra, dist, hlat, Hmag = cPickle.load(infile)
-        print('{} synthetic model kbos brighter than {} at {} in L7 model'.format(len(ra), maglimit, at_date))
+            ra, dist, hlat, Hmag = pickle.load(infile)
+        print(('{} synthetic model kbos brighter than {} at {} in L7 model'.format(len(ra), maglimit, at_date)))
         return ra, dist, hlat, Hmag
 
     model_kbos = _kbos_from_survey_sym_model_input_file(parameters.L7MODEL)
@@ -227,13 +227,13 @@ def synthetic_model_kbos(at_date=parameters.NEWMOONS[parameters.DISCOVERY_NEW_MO
                 hlat.append(float(kbo.hlat))
                 Hmag.append(float(kbo._H))
 
-    print '{} synthetic model kbos brighter than {} at {} retained from {} in L7 model'.format(len(kbos), maglimit,
-                                                                                               at_date, counter)
+    print('{} synthetic model kbos brighter than {} at {} retained from {} in L7 model'.format(len(kbos), maglimit,
+                                                                                               at_date, counter))
     if not arrays:
         return kbos
     else:
         with open(pastpath, 'w') as outfile:
-            cPickle.dump((ra, dist, hlat, Hmag), outfile)
+            pickle.dump((ra, dist, hlat, Hmag), outfile)
         return ra, dist, hlat, Hmag
 
 
@@ -425,7 +425,7 @@ def parse_subaru_mags():
                 if len([t for t in parameters.COLOSSOS if t.endswith(obj)]) == 0:
                     regular.append(obj)
             index[pointing] = (ra, dec, mags, regular)
-            print pointing, index[pointing]
+            print(pointing, index[pointing])
 
     with open('/Users/michele/Desktop/Col3N_201509121000.txt', 'w') as outfile:
         outfile.write('{: <25} {: <15} {: <15} {: <30} {: <10}\n'.format('Pointing',
@@ -433,7 +433,7 @@ def parse_subaru_mags():
                                                                          'Dec (dd:mm:ss)',
                                                                          'magnitudes at discovery (m_r)',
                                                                          'regular OSSOS'))
-        for key, val in index.items():
+        for key, val in list(index.items()):
             outfile.write('{: <25} {: <15} {: <15} {: <30} {: <10}\n'.format(key,
                                                                              val[0],
                                                                              val[1],
@@ -448,8 +448,8 @@ def block_table_pprint():
     :return:
     """
     with open('block_table.tex', 'w') as outfile:
-        for name, coords in parameters.BLOCKS.items():
-            print name, coords
+        for name, coords in list(parameters.BLOCKS.items()):
+            print(name, coords)
             ra = ephem.hours(coords['RA'])
             dec = ephem.degrees(coords['DEC'])
             eq = ephem.Equatorial(ra, dec)
@@ -476,9 +476,9 @@ def read_smooth_fit(fichier):
         for line in lines:
             if line[0] != "#":
                 if line.startswith("double_param="):
-                    pd = map(float, line[13:-1].split())
+                    pd = list(map(float, line[13:-1].split()))
                 if line.startswith("square_param="):
-                    ps = map(float, line[13:-1].split())
+                    ps = list(map(float, line[13:-1].split()))
                 if line.startswith("mag_lim="):
                     mag_limit = float(line.split()[1])
 
@@ -488,7 +488,7 @@ def read_smooth_fit(fichier):
 # Number_Mil={'B': 110000, 'C': 120000, 'D': 130000, 'E': 140000, 'F': 150000}
 #Number_Cent={'J': 1900, 'K': 2000}
 def date_unpack(pdate):
-    (yyyy, mm, dd) = (2000, 01, 01)
+    (yyyy, mm, dd) = (2000, 0o1, 0o1)
     try:
         YY = {'I': 1800, 'J': 1900, 'K': 2000}
         Ncode = '0123456789ABCDEFGHIJKLMNOPQRSTUV'

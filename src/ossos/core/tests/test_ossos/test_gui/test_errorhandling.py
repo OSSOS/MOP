@@ -5,7 +5,7 @@ import unittest
 
 from mock import Mock
 
-from ossos.downloads.async import DownloadRequest
+from ossos.downloads.async_download import DownloadRequest
 from ossos.gui.app import ValidationApplication
 from ossos.gui.errorhandling import DownloadErrorHandler
 from ossos.gui.views.appview import ApplicationView

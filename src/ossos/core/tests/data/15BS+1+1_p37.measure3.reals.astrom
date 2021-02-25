@@ -1,0 +1,28 @@
+# 1832036p37                                                                    
+# 1832046p37                                                                    
+# 1832056p37                                                                    
+## MOPversion                                                                   
+#  1.20                                                                         
+## MJD-OBS-CENTER  EXPTIME THRES FWHM  MAXCOUNT CRVAL1     CRVAL2     EXPNUM    
+# 2015 09 09.38474  300.09  2.70  2.44  30000.0    6.44258    6.00267  1832036  
+## SCALE CHIP CRPIX1    CRPIX2    NAX1  NAX2   DETECTOR           PHADU RDNOIS  
+#  0.185  38  -9746.66   -104.41  2112  4644 MegaCam              1.58  4.00    
+## MOPversion                                                                   
+#  1.20                                                                         
+## MJD-OBS-CENTER  EXPTIME THRES FWHM  MAXCOUNT CRVAL1     CRVAL2     EXPNUM    
+# 2015 09 09.42910  300.09  2.70  2.07  30000.0    6.44258    6.00267  1832046  
+## SCALE CHIP CRPIX1    CRPIX2    NAX1  NAX2   DETECTOR           PHADU RDNOIS  
+#  0.185  38  -9750.06   -104.40  2112  4644 MegaCam              1.58  4.00    
+## MOPversion                                                                   
+#  1.20                                                                         
+## MJD-OBS-CENTER  EXPTIME THRES FWHM  MAXCOUNT CRVAL1     CRVAL2     EXPNUM    
+# 2015 09 09.47005  300.08  2.70  2.27  30000.0    6.44258    6.00267  1832056  
+## SCALE CHIP CRPIX1    CRPIX2    NAX1  NAX2   DETECTOR           PHADU RDNOIS  
+#  0.185  38  -9753.73   -104.68  2112  4644 MegaCam              1.58  4.00    
+##     RMIN    RMAX   ANGLE   AWIDTH                                            
+#      0.3    15.0   -23.0    22.0                                              
+##   X        Y        X_0     Y_0          R.A.          DEC                   
+
+  1353.83    99.21  1353.83    99.21    5.8749529    6.0070337
+  1394.35    84.49  1396.77    86.53    5.8727630    6.0063633
+  1430.94    71.67  1436.77    74.94    5.8707301    6.0057473

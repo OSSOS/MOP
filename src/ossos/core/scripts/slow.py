@@ -66,7 +66,7 @@ def main(expnum, ccd):
     logging.info(name+" -> "+uri)
     count = 0
     while True:
-        print("Copy attempt {}".format(count))
+        print(("Copy attempt {}".format(count)))
         try:
             storage.copy(name, uri)
             os.unlink(name)
@@ -127,10 +127,10 @@ if __name__ == '__main__':
         if args.ccd is None:
            if int(expnum) < 1785619:
                # Last exposures with 36 CCD Megaprime                                                                                                                                     
-               ccdlist = range(0,36)
+               ccdlist = list(range(0,36))
            else:
                # First exposrues with 40 CCD Megaprime                                                                                                                                    
-               ccdlist = range(0, 40)
+               ccdlist = list(range(0, 40))
         else:
            ccdlist = [args.ccd]
 

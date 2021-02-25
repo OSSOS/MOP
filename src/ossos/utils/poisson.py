@@ -40,4 +40,4 @@ for measured in range(max(0,int(expected-5.0*math.sqrt(expected))),max(10,int(ex
 t=0
 for l in range(len(p)):
    t+= p[l][1]
-   print "%5.1f %5.3f %5.3f" % (p[l][0],p[l][1],t)
+   print("%5.1f %5.3f %5.3f" % (p[l][0],p[l][1],t))

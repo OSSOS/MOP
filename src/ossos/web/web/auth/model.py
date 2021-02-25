@@ -6,7 +6,7 @@ from pyramid.security import remember
 from pyramid.view import forbidden_view_config
 from pyramid.view import view_config
 
-import gms
+from . import gms
 
 
 USERS = {}

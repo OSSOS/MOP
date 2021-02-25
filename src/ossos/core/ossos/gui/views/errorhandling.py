@@ -51,7 +51,7 @@ class CertificateDialog(wx.Dialog):
         vsizer.Add(self.error_text, flag=flag, border=border)
 
         line = wx.StaticLine(self, -1, size=(20, -1), style=wx.LI_HORIZONTAL)
-        vsizer.Add(line, flag=wx.GROW | wx.ALIGN_CENTER_VERTICAL | wx.RIGHT | wx.TOP, border=5)
+        vsizer.Add(line, flag=wx.GROW | wx.RIGHT | wx.TOP, border=5)
 
         vsizer.Add(self.prompt_text, flag=flag, border=border)
 
@@ -122,7 +122,7 @@ class RetryDownloadDialog(wx.Dialog):
         vsizer.Add(self.error_text, flag=flag, border=border)
 
         line = wx.StaticLine(self, -1, size=(20, -1), style=wx.LI_HORIZONTAL)
-        vsizer.Add(line, flag=wx.GROW | wx.ALIGN_CENTER_VERTICAL | wx.RIGHT | wx.TOP, border=5)
+        vsizer.Add(line, flag=wx.GROW | wx.RIGHT | wx.TOP, border=5)
 
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
         button_sizer.Add(self.retry_button, flag=wx.RIGHT, border=5)

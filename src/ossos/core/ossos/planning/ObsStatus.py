@@ -1,6 +1,6 @@
 # !python
 # Copyright 2012, 2013 JJ Kavelaars
-from __future__ import absolute_import
+
 import argparse
 import ephem
 import logging
@@ -52,7 +52,7 @@ def query_for_observations(mjd, observable, runid_list):
             "LANG": "ADQL",
             "FORMAT": "votable"}
 
-    result = requests.get(storage.TAP_WEB_SERVICE, params=data, verify=False)
+    result = requests.get(storage.TAP_WEB_SERVICE, params=data, verify=True)
     assert isinstance(result, requests.Response)
     logging.debug("Doing TAP Query using url: %s" % (str(result.url)))
     temp_file = tempfile.NamedTemporaryFile()

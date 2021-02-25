@@ -121,12 +121,12 @@ class VOFileHandler(handlers.BufferingHandler):
                 self.stream.close()
                 self.client.copy(_name, self.filename)
         except Exception as ex:
-            print str(ex)
+            print(str(ex))
             pass
 
     def flush(self):
         for record in self.buffer:
-            self.stream.write("{}\n".format(self.format(record)))
+            self.stream.write(bytes("{}\n".format(self.format(record)),'utf-8'))
         self.buffer = []
 
 
@@ -166,7 +166,6 @@ def match_lists(pos1, pos2, tolerance=MATCH_TOLERANCE, spherical=False):
     assert isinstance(pos1, numpy.ndarray)
     assert isinstance(pos2, numpy.ndarray)
 
-
     # build some arrays to hold the index of things that matched between lists.
     npts2 = npts1 = 0
 
@@ -197,7 +196,6 @@ def match_lists(pos1, pos2, tolerance=MATCH_TOLERANCE, spherical=False):
            sep = numpy.sqrt((pos2[:, 0] - pos1[idx1, 0]) ** 2 + (pos2[:, 1] - pos1[idx1, 1]) ** 2)
         else:
            sep = numpy.sqrt((numpy.cos(numpy.radians(pos1[idx1,1]))*(pos2[:, 0] - pos1[idx1, 0])) ** 2 + (pos2[:, 1] - pos1[idx1, 1]) ** 2)
-        
 
         # considered a match if sep is below tolerance and is the closest match available.
         match_condition = numpy.all((sep <= tolerance, sep == sep.min()), axis=0)
@@ -283,7 +281,7 @@ class TimeMPC(TimeString):
                     tm.tm_min += int(60 * (24 * fracday - tm.tm_hour))
                     tm.tm_sec += 60 * (60 * (24 * fracday - tm.tm_hour) - tm.tm_min)
                 except ValueError as ex:
-                    print ex
+                    print(ex)
                     continue
                 else:
                     vals = [getattr(tm, 'tm_' + component)
@@ -324,10 +322,10 @@ class TimeMPC(TimeString):
         yday = None
         has_yday = '{yday:' in str_fmt or False
 
-        ihrs = ihmsfs[..., 0]
-        imins = ihmsfs[..., 1]
-        isecs = ihmsfs[..., 2]
-        ifracs = ihmsfs[..., 3]
+        ihrs = ihmsfs['h']
+        imins = ihmsfs['m']
+        isecs = ihmsfs['s']
+        ifracs = ihmsfs['f']
         for iy, im, iday, ihr, imin, isec, ifracsec in numpy.nditer(
                 [iys, ims, ids, ihrs, imins, isecs, ifracs]):
             if has_yday:

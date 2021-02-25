@@ -53,12 +53,12 @@ def caom2(mpc_filename, search_date="2014 07 24.0"):
     for expnum in expnums:
         header = storage.get_astheader(expnum, 22)
         o.predict(header['MJDATE']+2400000.5)
-        print o.time.iso, o.coordinate.ra.degrees, o.coordinate.dec.degrees
+        print(o.time.iso, o.coordinate.ra.degrees, o.coordinate.dec.degrees)
         for ccd in range(36):
             header = storage.get_astheader(expnum, ccd)
             w = wcs.WCS(header)
             (x, y) = w.sky2xy(o.coordinate.ra.degrees, o.coordinate.dec.degrees)
-            print ccd, x, y
+            print(ccd, x, y)
             if 0 < x < header['NAXIS1'] and 0 < y < header['NAXIS2']:
                 ephem_table.add_row([expnum, ccd+1, x, y,
                                      header['MJDATE'], header['FILTER'], header['EXPTIME'],

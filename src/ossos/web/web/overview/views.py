@@ -1,7 +1,7 @@
 from pyramid.view import view_config
 from zope.cachedescriptors import property
 
-from queries import SurveyQuery
+from .queries import SurveyQuery
 
 
 class Overview(object):

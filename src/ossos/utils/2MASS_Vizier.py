@@ -1,7 +1,7 @@
 #!python
 from astropy.io import votable
 import requests
-from cStringIO import StringIO
+from io import StringIO
 
 def query(ra ,dec, rad=0.1, query=None):
     """Query the CADC TAP service to determine the list of images for the

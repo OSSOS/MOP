@@ -31,7 +31,7 @@ def opposition(coordinate):
             opp_angle = opp
             opp_date = ephem.date(start_date + day)
     sun.compute(opp_date)
-    print sun.ra, coordinate.ra, opp_date   
+    print(sun.ra, coordinate.ra, opp_date)   
     return ephem.julian_date(opp_date)
 
 

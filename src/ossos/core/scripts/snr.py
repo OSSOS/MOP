@@ -24,7 +24,7 @@
 
 from ossos import storage
 from astropy.io import ascii
-from cStringIO import StringIO
+from io import StringIO
 import math
 import sys
 
@@ -75,5 +75,5 @@ flux_sky = math.pi * apcor.ap_in**2 * sky
 snr = flux_24 / math.sqrt(flux_24 + flux_sky)
 storage.set_tag(expnum, "snr_{:02d}".format(int(ccd)), "{:5.2f}".format(snr))
 
-print expnum, ccd, sky, zp, fwhm, flux_sky, flux_24, snr
+print(expnum, ccd, sky, zp, fwhm, flux_sky, flux_24, snr)
 
