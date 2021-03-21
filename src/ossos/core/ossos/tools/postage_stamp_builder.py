@@ -1,6 +1,5 @@
 
-
-#!python
+# !python
 """Retrieval of cutouts of the FITS images associated with the OSSOS detections.
 
 Takes a directory of .ast file (in dbase format) as input
@@ -19,9 +18,9 @@ import sys
 
 from astropy import units
 from astropy.units import Quantity
-from astropy.io import fits
 
 from ossos import (mpc, storage, parameters)
+
 storage.FITS_EXT = ".fits"
 
 def cutout(obj, obj_dir, radius):
@@ -31,22 +30,27 @@ def cutout(obj, obj_dir, radius):
         if obs.null_observation:
             logging.debug('skipping: {}'.format(obs))
             continue
-        if obs.date > parameters.SURVEY_START:  # can't make postage stamps of earlier linkages
-            # can't parse for an obs.comment's exposure number if no obs.comment exists
+        if obs.date > parameters.SURVEY_START:
+            # can't make postage stamps of earlier linkages
+            # can't parse for an obs.comment's exposure number if no
+            # obs.comment exists
             try:
                 parts = storage.frame2expnum(obs.comment.frame)
             except Exception as ex:
-                logging.error("Skipping: {}\nFailed to map comment.frame to expnum: {}".format(obs, ex))
+                logging.warning(f"Skipping: {obs}")
+                logging.debug(f"Failed to map comment.frame to expnum: {ex}")
                 continue
             uri = storage.get_uri(parts['expnum'], version=parts['version'])
-            sky_coord = obs.coordinate  # Using the WCS rather than the X/Y (X/Y can be unreliable over the whole survey)
-            postage_stamp_filename = "{}_{:11.5f}_{:09.5f}_{:+09.5f}.fits".format(obj.provisional_name,
-                                                                                  obs.date.mjd,
-                                                                                  obs.coordinate.ra.degree,
-                                                                                  obs.coordinate.dec.degree)
+            sky_coord = obs.coordinate
+            # Using the WCS rather than the X/Y
+            # (X/Y can be unreliable over the whole survey)
+            postage_stamp_filename = f"{obj.provisional_name}_" \
+                                     f"{obs.date.mjd:11.5f}_" \
+                                     f"{obs.coordinate.ra.degree:09.5f}_" \
+                                     f"{obs.coordinate.dec.degeee:09.5f}.fits"
 
             if postage_stamp_filename in cutout_listing:
-               # skipping existing cutouts
+                # skipping existing cutouts
                 continue 
 
             # ast_header = storage._get_sghead(parts['expnum'])
@@ -57,11 +61,12 @@ def cutout(obj, obj_dir, radius):
                 with open(postage_stamp_filename, 'w') as tmp_file:
                     hdulist.writeto(tmp_file, overwrite=True, output_verify='fix+ignore')
                     storage.copy(postage_stamp_filename, obj_dir + "/" + postage_stamp_filename)
-                os.unlink(postage_stamp_filename)  # easier not to have them hanging around
+                os.unlink \
+                        (postage_stamp_filename)  # easier not to have them hanging around
               except OSError as e:  # occasionally the node is not found: report and move on for later cleanup
-                logging.error("OSError: ->"+str(e))
+                logging.error("OSError: -> " +str(e))
               except Exception as e:
-                logging.error("Exception: ->"+str(e))
+                logging.error("Exception: -> " +str(e))
                 continue
               break
 
@@ -120,8 +125,10 @@ def main():
             continue
         for block in args.blocks:
             if fn.startswith(block):
-                obj_dir = '{}/{}/{}'.format(storage.POSTAGE_STAMPS, args.version, fn.partition('.')[0]) # obj.provisional_name
-                logging.info("Processing astrometric files in {}".format(obj_dir))
+                obj_dir = '{}/{}/{}'.format(storage.POSTAGE_STAMPS, args.version, fn.partition('.')
+                                                [0]) # obj.provisional_name
+                logging.info \
+                    ("Processing astrometric files in {}".format(obj_dir))
                 storage.mkdir(obj_dir)
                 obj = mpc.MPCReader(astdir + fn)
                 # assert storage.exists(obj_dir, force=True)
@@ -129,7 +136,8 @@ def main():
                 # if int(obj.provisional_name[3:]) == 49:
                 assert isinstance(args.radius, Quantity)
                 cutout(obj, obj_dir, args.radius)
-                sys.stderr.write('{} complete.\n\n'.format(obj.provisional_name))
+                sys.stderr.write \
+                    ('{} complete.\n\n'.format(obj.provisional_name))
 
 
 if __name__ == '__main__':

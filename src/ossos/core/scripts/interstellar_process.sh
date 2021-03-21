@@ -15,7 +15,7 @@ export field=$5
 export ccd_start=$6
 export ccd_end=$7
 
-# Configure the names of the result directories in VOSpace so we can run validate later.
+# Configure the names of the result directories in VOSpace so we can run gui later.
 export DBIMAGES=vos:OSSOS/interstellar/dbimages/
 export MEASURE3=vos:OSSOS/interstellar/${block}/${field}
 
