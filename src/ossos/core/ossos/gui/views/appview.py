@@ -3,15 +3,15 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import wx
 import wx.lib.inspection
 
+from . import dialogs
+from .errorhandling import CertificateDialog, RetryDownloadDialog
+from .imageview import ImageViewManager
+from .keybinds import KeybindManager
+from .loading import WaitingGaugeDialog
+from .mainframe import MainFrame
+from .menu import Menu
+from .validation import AcceptSourceDialog, RejectSourceDialog, OffsetSourceDialog, VettingSourceDialog
 from .. import logger
-import dialogs
-from errorhandling import CertificateDialog, RetryDownloadDialog
-from imageview import ImageViewManager
-from keybinds import KeybindManager
-from loading import WaitingGaugeDialog
-from mainframe import MainFrame
-from menu import Menu
-from validation import AcceptSourceDialog, RejectSourceDialog, OffsetSourceDialog, VettingSourceDialog
 
 
 def guithread(function):
@@ -26,7 +26,8 @@ def guithread(function):
     """
 
     def new_guithread_function(*args, **kwargs):
-        if wx.Thread_IsMain():
+        # noinspection PyArgumentList
+        if wx.IsMainThread():
             return function(*args, **kwargs)
         else:
             wx.CallAfter(function, *args, **kwargs)
@@ -63,12 +64,16 @@ class ApplicationView(object):
         self.reject_source_dialog = None
         self.certificate_dialog = None
         self.retry_downloads_dialog = None
+        self.vetting_source_dialog = None
+        self.offset_source_dialog = None
 
         # TODO refactor
         self.register_xy_changed_event_handler(self.controller.on_reposition_source)
         logger.debug("Done.")
 
     def _on_close_window(self, event):
+        if event is not None:
+            logger.debug(f'Window close event: {event}')
         self.close()
 
     @property
@@ -207,7 +212,7 @@ class ApplicationView(object):
                                   phot_failure=False,
                                   pixel_x=None,
                                   pixel_y=None
-    ):
+                                  ):
         self.accept_source_dialog = AcceptSourceDialog(
             self.mainframe, self.controller,
             provisional_name,

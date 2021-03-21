@@ -124,7 +124,7 @@ def main():
     ccds = [args.ccd]
     exit_status = 0
     if args.ccd is None:
-        ccds = range(0, 36)
+        ccds = list(range(0, 36))
     for ccd in ccds:
         storage.set_logger(task, prefix, args.expnums[0], ccd, args.type, args.dry_run)
         expnums = args.expnums

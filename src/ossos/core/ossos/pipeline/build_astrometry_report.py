@@ -15,7 +15,7 @@ from ossos.gui import config
 rename_map = {}
 
 
-def load_observations((observations, regex, rename), path, filenames):
+def load_observations(xxx_todo_changeme, path, filenames):
     """
     Returns a provisional name based dictionary of observations of the object.
     Each observations is keyed on the date. ie. a dictionary of dictionaries.
@@ -26,7 +26,7 @@ def load_observations((observations, regex, rename), path, filenames):
     @type filenames list
     @rtype  None
     """
-
+    (observations, regex, rename) = xxx_todo_changeme
     for filename in filenames:
         if re.search(regex, filename) is None:
             logging.error("Skipping {}".format(filename))
@@ -169,7 +169,7 @@ auto-magical way.
                                 if not observation2.discovery:
                                     replacement = True
                                 else:
-                                    print "discovery"
+                                    print("discovery")
                             else:
                                 report = False
                             break

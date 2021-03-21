@@ -23,9 +23,9 @@ def scan_for_miscreant_files(directory, quarantine_directory, file_of_miscreants
         try:
             if con.exists(reals_file):  # this isn't catching the error message, no obvious reason why
                 # anything interesting about this file?
-                print 'Removing:', reals_file, con.get_file_size(reals_file), \
+                print('Removing:', reals_file, con.get_file_size(reals_file), \
                     'done: %s' % storage.get_property(con.get_full_path(reals_file), DONE_PROPERTY), \
-                    'locked: %s' % storage.get_property(con.get_full_path(reals_file), LOCK_PROPERTY)
+                    'locked: %s' % storage.get_property(con.get_full_path(reals_file), LOCK_PROPERTY))
                 # con.remove(reals_file)
         except:
             continue
@@ -33,11 +33,11 @@ def scan_for_miscreant_files(directory, quarantine_directory, file_of_miscreants
         # obtain all files remaining in the directory listing that contain this chip, just not the removed reals.astrom
         fileID_files = [n for n in listing if
                         n.split('.')[0] == fileID and not n.__contains__('.measure3.reals.astrom')]
-        print fileID
-        print fileID_files
+        print(fileID)
+        print(fileID_files)
         # move all remaining matching files to quarantine
         for fn in fileID_files:
-            print directory + fn, '>', quarantine_directory + fn
+            print(directory + fn, '>', quarantine_directory + fn)
             con.rename(directory + fn, quarantine_directory + fn)
 
 

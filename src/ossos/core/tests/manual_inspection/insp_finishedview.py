@@ -17,7 +17,7 @@ def main():
 
         def onclick(self, event):
             user_choice = should_exit_prompt(self)
-            print "Should exit: %s" % user_choice
+            print("Should exit: %s" % user_choice)
 
     app = wx.App()
     frame = TestFrame(None)

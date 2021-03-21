@@ -7,7 +7,7 @@ Takes a .cands.astrom file as argument.
 from ossos import astrom
 import sys
 import os
-import match
+from . import match
 
 parser = astrom.AstromParser()
 
@@ -17,8 +17,8 @@ planted_objects = match.PlantedObject(fake_candidates)
 
 (fk_index, planted_index) = match.planted(fake_candidates, planted_objects, tolerance=10.0)
 
-print fk_index
-print planted_index
+print(fk_index)
+print(planted_index)
 
 detections = fake_candidates.get_sources()
 

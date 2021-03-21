@@ -45,7 +45,7 @@ class ListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         for record in data:
             self.list.InsertStringItem(index, str(index))
             for colindex, item in enumerate(record):
-                self.list.SetStringItem(index, colindex, str(item))
+                self.list.SetItem(index, colindex, str(item))
 
             # For ColumnSorterMixin
             self.list.SetItemData(index, index)

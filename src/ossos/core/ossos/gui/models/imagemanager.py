@@ -1,7 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 from ...gui import events, logger
-from ...downloads.async import DownloadRequest
+from ...downloads.async_download import DownloadRequest
 from ...downloads.cutouts.focus import (SingletFocusCalculator,
                                         TripletFocusCalculator)
 from ...downloads.cutouts.grid import CutoutGrid

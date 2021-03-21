@@ -130,7 +130,7 @@ for line in lines:
       else:  
         dt = -eval(arc)
     except:
-      print arc
+      print(arc)
       continue
     kbo._epoch_M=date_unpack(line[20:25].strip())
     kbo._M=float(line[26:35].strip())
@@ -177,6 +177,6 @@ startdate = ephem.date(OBSERVATION_DATE)
 for rate in range(len(min_rate)):
     try:
     	today = ephem.date(startdate+rate)
-    	print rate, today, numpy.min(min_rate[rate]), numpy.max(max_rate[rate]), numpy.min(max_rate[rate]), numpy.min(kbo_angle[rate]), numpy.max(kbo_angle[rate])
+    	print(rate, today, numpy.min(min_rate[rate]), numpy.max(max_rate[rate]), numpy.min(max_rate[rate]), numpy.min(kbo_angle[rate]), numpy.max(kbo_angle[rate]))
     except:
         pass

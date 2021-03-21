@@ -6,6 +6,7 @@ import math
 __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 import re
+import sys
 
 from astropy import units
 from astropy.coordinates import SkyCoord
@@ -21,7 +22,7 @@ DATASET_ROOT = storage.DBIMAGES
 
 # Images from CCDs < 18 have their coordinates flipped
 MAX_INVERTED_CCD = 17
-INVERTED_CCDS = range(0, 18)
+INVERTED_CCDS = list(range(0, 18))
 INVERTED_CCDS.append(36)
 INVERTED_CCDS.append(37)
 
@@ -136,7 +137,7 @@ class AstromParser(object):
         obsnum = 0
         for match in self.obs_header_regex.finditer(filestr):
             obs = observations[obsnum]
-            for header_key, header_val in match.groupdict().iteritems():
+            for header_key, header_val in match.groupdict().items():
                 obs.header[header_key] = header_val
             obsnum += 1
 
@@ -224,7 +225,7 @@ class AstromParser(object):
            try:
               filehandle = storage.open_vos_or_local(filename, "rb")
               assert filehandle is not None, "Failed to open file {} ".format(filename)
-              filestr = filehandle.read()
+              filestr = filehandle.read().decode('utf-8')
               filehandle.close()
               break
            except Exception as ex:
@@ -233,7 +234,7 @@ class AstromParser(object):
 
         assert filestr is not None, "File contents are None"
 
-        observations = self._parse_observation_list(filestr)
+        observations = self._parse_observation_list(str(filestr))
 
         self._parse_observation_headers(filestr, observations)
 
@@ -1109,6 +1110,8 @@ class Observation(object):
             try:
                 self._header = storage.get_mopheader(self.expnum, self.ccdnum, self.ftype, self.fk)
             except Exception as ex:
+                import traceback
+                traceback.print_exc(file=sys.stdout)
                 logger.error(str(ex))
                 self._header = self.astheader
         return self._header
@@ -1117,7 +1120,7 @@ class Observation(object):
         header = self.header
         if isinstance(header, list):
             extno = self.ccdnum - 1
-            print "Reading extension {} looking for header of CCD {}".format(extno, self.ccdnum)
+            print("Reading extension {} looking for header of CCD {}".format(extno, self.ccdnum))
             header = header[extno]
         mpc_date = header.get('MJD_OBS_CENTER', None)
         if mpc_date is None and 'MJD-OBS' in header:

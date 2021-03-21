@@ -35,7 +35,7 @@ with open('/Users/michele/Desktop/13Adiscoveries.txt', 'w') as outfile:
         # get older designations, which would have been assigned as the original discovery name
         former_names = designations[discovery]
         # cf. ossos.naming.ProvisionalNameGenerator()
-        provisional_name = filter(lambda name: (name.startswith('O1') and name.isupper()), former_names)[0]
+        provisional_name = [name for name in former_names if (name.startswith('O1') and name.isupper())][0]
         outfile.write('{:<12} {:<12}'.format(discovery, provisional_name))
 
         # build the path that the .cands.astrom files would be in.
@@ -49,8 +49,8 @@ with open('/Users/michele/Desktop/13Adiscoveries.txt', 'w') as outfile:
                 with open('/Users/michele/Desktop/{}_mpclist.txt'.format(block), 'r') as infile:
                     block_files = infile.readlines()
             else:
-                print 'starting VOSpace read'  # getting file listings from big listings on VOSpace is slooooowwww...
-                block_files = filter(lambda name: not name.startswith('fk'), storage.listdir(path))
+                print('starting VOSpace read')  # getting file listings from big listings on VOSpace is slooooowwww...
+                block_files = [name for name in storage.listdir(path) if not name.startswith('fk')]
 
             files[block] = block_files
         else:

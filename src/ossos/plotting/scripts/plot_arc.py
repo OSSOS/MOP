@@ -1,6 +1,6 @@
 import math
 import os
-import cPickle
+import pickle
 
 import numpy as np
 from matplotlib import pyplot
@@ -42,13 +42,13 @@ for tno in tnos['object']:
     if tno.startswith('u'):
         continue
     cl = tnos['cl'][tnos['object'] == tno]
-    print tno, cl[0]
+    print(tno, cl[0])
 
     # Check if the orbfit has already been run. Saves time as this takes a minute or so total
     pfilename = '{}_da'.format(tno)
     if os.access(pfilename, os.R_OK):
         with open(pfilename, 'r') as pf:
-            (t, da) = cPickle.load(pf)
+            (t, da) = pickle.load(pf)
     else:
         obs = mpc.MPCReader(parameters.REAL_KBO_AST_DIR + tno + '.ast')
         mpc_obs = list(obs.mpc_observations)
@@ -71,7 +71,7 @@ for tno in tnos['object']:
             t.append(arclen / 365.25)
             da.append(orb.da / orb.a)
         with open(pfilename, 'w') as pf:
-            cPickle.dump((t, da), pf)
+            pickle.dump((t, da), pf)
 
     # change colour at the two-year point if classification has shifted from insecure to secure
     fullarc_sec = tnos['sh'][tnos['object'] == tno][0]
@@ -146,4 +146,4 @@ rect.set_linewidth(0.0)
 pyplot.draw()
 outfile = 'OSSOS_{}_da_improvement.pdf'.format(parameters.RELEASE_VERSION)
 pyplot.savefig(outfile, transparent=True, bbox_inches='tight')
-print outfile
+print(outfile)

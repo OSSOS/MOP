@@ -23,14 +23,14 @@ for filename in [n for n in os.listdir(path) if n.endswith('.mpc')]:
         if field in field_ids:
             obj = mpc.MPCReader(filename)
             name = obj.mpc_observations[0].provisional_name
-            print(filename, name, field, field_ids[field], len(name.lstrip('D')))
+            print((filename, name, field, field_ids[field], len(name.lstrip('D'))))
             # now we deal with the ones that need to be renamed because of the namespace collision
             if len(name.lstrip('D')) == 2: # let's make this column all have nice consistently 3-alphanumeric IDs
                 unique_name = 'O15BD' + field_ids[field] + name.lstrip('D')
             else:
                 unique_name = 'O15B' + name
 
-            print name, unique_name
+            print(name, unique_name)
 
             # now to amend the names
             for obs in obj.mpc_observations:

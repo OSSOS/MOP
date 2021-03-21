@@ -15,10 +15,10 @@ import ephem
 import Polygon
 import Polygon.IO
 
-import invariable
-import mpcread
-import usnoB1
-import megacam
+from . import invariable
+from . import mpcread
+from . import usnoB1
+from . import megacam
 from ossos import storage
 from ossos import orbfit
 from ossos import mpc
@@ -275,14 +275,14 @@ detsec_ccd00 = ((4160, 2113), (19351, 14740))
 detsec_ccd17 = ((21097, 19050), (14309, 9698))
 detsec_ccd35 = ((16934, 18981), (11, 4622))
 
-print detsec_ccd09[0][0] - detsec_ccd10[0][1], detsec_ccd09[0][1] - detsec_ccd36[0][0]
+print(detsec_ccd09[0][0] - detsec_ccd10[0][1], detsec_ccd09[0][1] - detsec_ccd36[0][0])
 
 camera_width =  (max(detsec_ccd37[0]) - min(detsec_ccd09[0]) + 1 )* pixscale / 3600.0
 camera_height = (max(detsec_ccd00[1]) - min(detsec_ccd35[1]) + 1 )* pixscale / 3600.0
 camera_width_40 =  (max(detsec_ccd37[0]) - min(detsec_ccd36[0]) + 1 )* pixscale / 3600.0
 camera_width_36 = (max(detsec_ccd17[0]) - min(detsec_ccd09[0]) + 1 ) * pixscale / 3600.0 
 
-print camera_width, camera_width_40, camera_width_36, camera_height
+print(camera_width, camera_width_40, camera_width_36, camera_height)
 
 years = {"2014": {"ra_off": ephem.hours("00:00:00"),
                   "dec_off": ephem.hours("00:00:00"),
@@ -327,7 +327,7 @@ fix.write(header)
 field_names = []
 field_polygon = None
 
-for block in blocks.keys():
+for block in list(blocks.keys()):
     ra_start = ephem.hours(blocks[block]["RA"]) + years[year]["ra_off"]
     dec_start = ephem.degrees(blocks[block]["DEC"]) + years[year]["dec_off"]
     height = math.radians(camera_height)
@@ -343,7 +343,7 @@ for block in blocks.keys():
             rac = ephem.hours(ra_start + dx * width)
             dec = math.degrees(this_decc)
             ra = math.degrees(rac)
-            print "{} {} {}".format(rac, dec, math.degrees(width))
+            print("{} {} {}".format(rac, dec, math.degrees(width)))
             field_name = "%s%+d%+d" % (block, idx, idy)
             field_names.append(field_name)
             decs.append(np.radians(dec))
@@ -371,8 +371,8 @@ fix.write("""]]</CSV></DATA>
 fix.close()
 
 field_polygon.simplify()
-print "Field Area: {} degrees squared".format(field_polygon.area())
-print "Field Centre: {} ".format(field_polygon.center())
+print("Field Area: {} degrees squared".format(field_polygon.area()))
+print("Field Centre: {} ".format(field_polygon.center()))
 
 (ra_min, ra_max, dec_min, dec_max) = field_polygon.boundingBox()
 
@@ -448,7 +448,7 @@ ax.text(25, 6, 'Chiang_Choi', fontdict={'color': 'r'})
 
 
 ## build a list of Synthetic KBOs that will be in the discovery fields.
-print "LOADING SYNTHETIC MODEL KBOS FROM: {}".format(L7MODEL)
+print("LOADING SYNTHETIC MODEL KBOS FROM: {}".format(L7MODEL))
 ra = []
 dec = []
 kbos = []
@@ -487,7 +487,7 @@ for line in lines:
                 kbo.compute(plot_date)
                 ax.scatter(math.degrees(float(kbo.ra)), math.degrees(float(kbo.dec)), c='k', marker='o', s=2, alpha=0.8)
 
-print "{} KBOs found in coverage on {}".format(len(kbos), discovery_date)
+print("{} KBOs found in coverage on {}".format(len(kbos), discovery_date))
 ## Now we work out how far to move the fields at different lunations
 seps = {}
 dates = {}
@@ -501,7 +501,7 @@ for month in newMoons:
         dates[epoch] = ephem.date(ephem.date(newMoons[month]) + night)
         seps[epoch] = {'dra': 0, 'ddec': 0}
 
-print "COMPUTING NOMINAL MOTIONS USING SYNTHETIC MODEL KBOS FROM: {}".format(L7MODEL)
+print("COMPUTING NOMINAL MOTIONS USING SYNTHETIC MODEL KBOS FROM: {}".format(L7MODEL))
 
 ## Compute the typical motion of KBOs that were in the discovery field.
 for kbo in kbos:
@@ -517,7 +517,7 @@ for kbo in kbos:
 ## plot source locations at the start
 ## middle and end of semester
 if PLOT_SYNTHETIC_KBO_TRAILS:
-    print "PLOTTING TRAILS USING SYNTHETIC MODEL KBOS FROM: {}".format(L7MODEL)
+    print("PLOTTING TRAILS USING SYNTHETIC MODEL KBOS FROM: {}".format(L7MODEL))
     colours = {'Sep14': 'g', 'Oct14': 'b', 'Nov14': 'r'}
     alpha = {'Sep14': 0.3, 'Oct14': 0.7, 'Nov14': 0.3}
     zorder = {'Sep14': 1, 'Oct14': 5, 'Nov14': 2}
@@ -537,12 +537,12 @@ for month in seps:
     seps[month]['ddec'] /= float(len(kbos))
 
 
-sorted_epochs = sorted(dates.iteritems(), key=operator.itemgetter(1))
+sorted_epochs = sorted(iter(dates.items()), key=operator.itemgetter(1))
 
 camera_width=0.983*camera_width
 camera_height=0.983*camera_height
 
-print "CREATING ET XML FILES USING BASE POINTING AND NOMINAL MOTION RATES"
+print("CREATING ET XML FILES USING BASE POINTING AND NOMINAL MOTION RATES")
 for idx in range(len(ras)):
     name = field_names[idx]
     f = file('%s.xml' % name, 'w')
@@ -587,11 +587,11 @@ for idx in range(len(ras)):
 
 
 if PLOT_USNO_STARS:
-    print "PLOTTING LOCATIONS NEARBY BRIGHT USNO B1 STARS"
+    print("PLOTTING LOCATIONS NEARBY BRIGHT USNO B1 STARS")
     for ra in range(int(ra_cen - width), int(ra_cen + width), 10):
         for dec in range(int(dec_cen - height), int(dec_cen + height), 10):
 	    file_name = USER + "/new_usno/usno{:5.2f}{:5.2f}.xml".format(ra, dec).replace(" ", "")
-            print file_name
+            print(file_name)
             file_name = file_name.replace(" ","")
 	    if not os.access(file_name, os.R_OK):
                 usno = usnoB1.TAPQuery(ra, dec, 10.0, 10.0)
@@ -601,7 +601,7 @@ if PLOT_USNO_STARS:
             try:
                t = votable.parse(open(file_name,'r')).get_first_table()
             except:
-               print "No USNO stars found for: {} {}\n".format(ra,dec)
+               print("No USNO stars found for: {} {}\n".format(ra,dec))
                continue
 	    select = t.array['Bmag'] < 9.3
             Rmag = t.array['Bmag'][select]
@@ -625,17 +625,17 @@ if PLOT_USNO_STARS:
                           'color': 'darkred'})
 
 if PLOT_MEGACAM_ARCHIVE_FIELDS:
-    print "PLOTTING FOOTPRINTS NEARBY ARCHIVAL MEGAPRIME IMAGES."
+    print("PLOTTING FOOTPRINTS NEARBY ARCHIVAL MEGAPRIME IMAGES.")
 
-    for qra in xrange(int(xylims[1]), int(xylims[0]), 5):
-        print qra
-        for qdec in xrange(int(xylims[2]), int(xylims[3]), 10):
-            print qra, qdec
+    for qra in range(int(xylims[1]), int(xylims[0]), 5):
+        print(qra)
+        for qdec in range(int(xylims[2]), int(xylims[3]), 10):
+            print(qra, qdec)
             filename = USER + "/new_usno/megacam{:6.2f}{:6.2f}.xml".format(qra, qdec)
             if not os.access(filename, os.R_OK):
                 # TAP query will max out silently if return table too large. Make small units.
                 data = megacam.TAPQuery(qra, qdec, 5.0, 10.0).read()
-                print data
+                print(data)
                 # FIXME: add a catch for 503's when TAP fails when CADC drops connection
                 fobj = open(filename, 'w')
                 fobj.write(data)
@@ -652,13 +652,13 @@ if PLOT_MEGACAM_ARCHIVE_FIELDS:
                                edgecolor='m',
                                alpha=0.1,
                                lw=0.1, zorder=-100,
-                               fill=False) for idx in xrange(ra.size)]
+                               fill=False) for idx in range(ra.size)]
             for r in rects:
                 ax.add_artist(r)
                 
 
 if PLOT_MPCORB:
-    print "PLOTTING LOCATIONS OF KNOWN KBOs (using {})".format(MPCORB_FILE)
+    print("PLOTTING LOCATIONS OF KNOWN KBOs (using {})".format(MPCORB_FILE))
     kbos = mpcread.getKBOs(MPCORB_FILE)
     for kbo in kbos:
         kbo.compute(plot_date)
@@ -672,7 +672,7 @@ if PLOT_MPCORB:
 
 if PLOT_REAL_KBOS:
     reader = mpc.MPCReader()
-    print "PLOTTING LOCATIONS OF OSSOS KBOs (using directory {})".format(REAL_KBO_AST_DIR)
+    print("PLOTTING LOCATIONS OF OSSOS KBOs (using directory {})".format(REAL_KBO_AST_DIR))
     for ast in os.listdir(REAL_KBO_AST_DIR):
         if not ast.startswith('u'):
             obs = reader.read(REAL_KBO_AST_DIR + ast)
@@ -718,12 +718,12 @@ if PLOT_REAL_KBOS:
                        edgecolor=c,
                        alpha=0.5)
 
-new_tick_locations = np.array(range(360,0,-30))
+new_tick_locations = np.array(list(range(360,0,-30)))
 def tick_function(X):
     import calendar
     month = ( X/30.0 + 8 ) % 12 + 1
     return [ calendar.month_abbr[int(z)] for z in month ]
-print new_tick_locations
+print(new_tick_locations)
 if False:
     ax.set_xlim(360,0)
     ax2 = ax.twiny()
@@ -733,7 +733,7 @@ if False:
     ax2.set_xlim(360,0)
 
 
-print "SAVING FILE"
+print("SAVING FILE")
 savefig('layout40-at' + PLOT_FIELD_EPOCH + '-discov_on-' + DISCOVERY_NEW_MOON + '.pdf')
 
 sys.stderr.write("FINISHED\n")

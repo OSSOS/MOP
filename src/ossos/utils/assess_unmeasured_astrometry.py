@@ -51,7 +51,7 @@ if __name__ == '__main__':
                     try:
                         discovery_frames.append(original_observation.comment.frame)
                     except Exception as ex:
-                        print ex
+                        print(ex)
             try:
                tracks_data = parser.parse(os.path.join(args.ast_dir, fn), print_summary=False)
             except:
@@ -70,7 +70,7 @@ if __name__ == '__main__':
                                                                             obs.ccdnum)):
                         with open('mkpsf_inputs_{}.txt'.format(args.block), 'a') as mkpsf_input:
                             mkpsf_input.write('{} {}\n'.format(obs.expnum, obs.ccdnum))
-            print('{} unmeasured observations!\n'.format(new_observation_count))
+            print(('{} unmeasured observations!\n'.format(new_observation_count)))
             ofile.write('{} unmeasured observations!\n'.format(new_observation_count))
             ofile.write(new_observation_lines)
             ofile.flush()

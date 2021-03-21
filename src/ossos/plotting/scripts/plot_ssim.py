@@ -22,7 +22,7 @@ for i, fn in enumerate(['EO-a-i.detections',
                          header_start=0)['a']
         # create a cumulative fraction
         raw.sort()
-        bins = range(400, 470, 1)
+        bins = list(range(400, 470, 1))
         bins = [n / 10. for n in bins]
         hist, bin_edges = numpy.histogram(raw, bins=bins)
         cumulative = []

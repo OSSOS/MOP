@@ -1,4 +1,4 @@
-from __future__ import division, absolute_import, print_function, unicode_literals
+
 import six
 import json
 
@@ -124,8 +124,8 @@ class EphemTarget(object):
             (l, m) = divmod(width, 10)
             guide = ""
             for i in range(l):
-                guide += "".join(map(str, range(10)))
-            guide += "".join(map(str, range(m)))
+                guide += "".join(map(str, list(range(10))))
+            guide += "".join(map(str, list(range(m))))
             line += self._entry(guide, width=width, colsep=colsep)
         header_lines.append(line)
 

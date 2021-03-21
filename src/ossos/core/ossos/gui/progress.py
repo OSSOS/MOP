@@ -161,14 +161,14 @@ class AbstractProgressManager(object):
     def lock(self, filename):
         raise NotImplementedError()
 
-    def unlock(self, filename, async=False):
+    def unlock(self, filename, do_async=False):
         """
         Unlocks the file.
 
         Args:
           filename: str
             The file to be unlocked.
-          async: bool
+          do_async: bool
             If set to True, tries to unlock the file asynchronously, if
             possible.  This allows processing to continue if it is not
             critical that the lock be released before continuing.
@@ -211,7 +211,7 @@ class VOSpaceProgressManager(AbstractProgressManager):
             return []
 
         raw_property = storage.get_property(uri, PROCESSED_INDICES_PROPERTY)
-        return map(int, raw_property.split(VO_INDEX_SEP))
+        return list(map(int, raw_property.split(VO_INDEX_SEP)))
 
     def _record_done(self, filename):
         storage.set_property(self._get_uri(filename), DONE_PROPERTY,
@@ -223,7 +223,7 @@ class VOSpaceProgressManager(AbstractProgressManager):
 
         processed_indices = self.get_processed_indices(filename)
         processed_indices.append(index)
-        processed_indices = map(str, processed_indices)
+        processed_indices = list(map(str, processed_indices))
 
         storage.set_property(self._get_uri(filename),
                              PROCESSED_INDICES_PROPERTY,
@@ -241,8 +241,8 @@ class VOSpaceProgressManager(AbstractProgressManager):
         else:
             raise FileLockedException(filename, lock_holder)
 
-    def unlock(self, filename, async=False):
-        if async:
+    def unlock(self, filename, do_async=False):
+        if do_async:
             threading.Thread(target=self._do_unlock, args=(filename, )).start()
         else:
             self._do_unlock(filename)
@@ -305,7 +305,7 @@ class LocalProgressManager(AbstractProgressManager):
         indices = filehandle.read().rstrip(INDEX_SEP).split(INDEX_SEP)
         filehandle.close()
 
-        return map(int, indices)
+        return list(map(int, indices))
 
     def _record_done(self, filename):
         partfile = filename + PART_SUFFIX
@@ -337,7 +337,7 @@ class LocalProgressManager(AbstractProgressManager):
             filehandle.write(self.userid)
             filehandle.close()
 
-    def unlock(self, filename, async=False):
+    def unlock(self, filename, do_async=False):
         # NOTE: locally this is fast so we don't both doing it asynchronously
         lockfile = filename + LOCK_SUFFIX
 
@@ -431,7 +431,7 @@ class InMemoryProgressManager(AbstractProgressManager):
 
         self.owned_locks.add(filename)
 
-    def unlock(self, filename, async=False):
+    def unlock(self, filename, do_async=False):
         if filename in self.external_locks:
             raise FileLockedException(filename, "x")
 
