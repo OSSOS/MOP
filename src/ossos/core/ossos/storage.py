@@ -1,6 +1,6 @@
 """OSSOS VOSpace storage convenience package"""
 import sys, traceback
-from six import StringIO
+from six import StringIO, BytesIO
 import math
 import errno
 import fnmatch
@@ -20,26 +20,32 @@ from astropy.utils.exceptions import AstropyUserWarning
 from astropy.io import fits
 import requests as requests_module
 from .downloads.cutouts.calculator import CoordinateConverter
-import coding
-import util
+from . import coding
+from . import util
 from astropy.time import Time
 from .gui import logger
 from .wcs import WCS
 import vos
+from .gui import config
 
 client = vos.Client()
 # from .gui.errorhandling import DownloadErrorHandler
 
 # Try and turn off warnings, only works for some releases of requests.
 
-MAXCOUNT = 30000
+MAXCOUNT = int(config.read("STEP1.MAXCOUNT"))
 _TARGET = "TARGET"
-
-DBIMAGES = 'vos:OSSOS/dbimages'
-MEASURE3 = 'vos:OSSOS/measure3'
-POSTAGE_STAMPS = 'vos:OSSOS/postage_stamps'
-TRIPLETS = 'vos:OSSOS/triplets'
-ASTROM_RELEASES = 'vos:OSSOS/0_OSSOSreleases'
+BASE_VOS = config.read("STORAGE.BASE_VOSPACE")
+DBIMAGES = os.path.join(BASE_VOS,
+                        config.read("STORAGE.DBIMAGES"))
+MEASURE3 = os.path.join(BASE_VOS,
+                        config.read("STORAGE.MEASURE3"))
+POSTAGE_STAMPS = os.path.join(BASE_VOS,
+                        config.read('STORAGE.POSTAGE_STAMPS'))
+TRIPLETS = os.path.join(BASE_VOS,
+                        config.read('STORAGE.TRIPLETS'))
+ASTROM_RELEASES = os.path.join(BASE_VOS,
+                        config.read('STORAGE.RELEASES'))
 
 DATA_WEB_SERVICE = 'https://www.canfar.phys.uvic.ca/data/pub/'
 VOSPACE_WEB_SERVICE = 'https://www.canfar.phys.uvic.ca/vospace/nodes/'
@@ -58,9 +64,9 @@ class Wrapper(object):
         orig_attr = self.wrapped_class.__getattribute__(attr)
         if callable(orig_attr):
             def hooked(*args, **kwargs):
-                print("-->", orig_attr, args, kwargs)
+                print(("-->", orig_attr, args, kwargs))
                 result = orig_attr(*args, **kwargs)
-                print("<--", type(result))
+                print(("<--", type(result)))
                 return result
             return hooked
         else:
@@ -101,10 +107,10 @@ requests = MyRequests()
 def get_ccdlist(expnum):
     if int(expnum) < 1785619:
         # Last exposures with 36 CCD Megaprime
-        ccdlist = range(0, 36)
+        ccdlist = list(range(0, 36))
     else:
         # First exposrues with 40 CCD Megaprime
-        ccdlist = range(0, 40)
+        ccdlist = list(range(0, 40))
     return ccdlist
 
 
@@ -387,7 +393,7 @@ def set_tags(expnum, props):
     @return: success
     """
     # now set all the props
-    return _set_tags(expnum, props.keys(), props.values())
+    return _set_tags(expnum, list(props.keys()), list(props.values()))
 
 
 def set_tag(expnum, key, value):
@@ -663,6 +669,7 @@ def _cutout_expnum(observation, sky_coord, radius):
     @return: HDUList containing the cutout image.
     @rtype: list(HDUList)
     """
+<<<<<<< HEAD
     filename = "{}.fits".format(observation.rawname)
     if os.access(filename, os.R_OK):
       try:
@@ -737,7 +744,7 @@ def _cutout_expnum(observation, sky_coord, radius):
     for hdu in hdulist[1:]:
         cutout = cutouts.pop(0)
         if 'ASTLEVEL' not in hdu.header:
-            print("WARNING: ******* NO ASTLEVEL KEYWORD ********** for {0} ********".format(observation.get_image_uri))
+            print(("WARNING: ******* NO ASTLEVEL KEYWORD ********** for {0} ********".format(observation.get_image_uri)))
             hdu.header['ASTLEVEL'] = 0
         hdu.header['EXTNO'] = cutout[0]
         naxis1 = hdu.header['NAXIS1']
@@ -791,7 +798,7 @@ def ra_dec_cutout(uri, sky_coord, radius, update_wcs=False):
         import http.client as http_client
     except ImportError:
         # Python 2
-        import httplib as http_client
+        import http.client as http_client
 
     # Get the 'uncut' images CRPIX1/CRPIX2 values
 
@@ -805,7 +812,7 @@ def ra_dec_cutout(uri, sky_coord, radius, update_wcs=False):
 
     cutout_filehandle.seek(0)
     try:
-        hdulist = fits.open(cutout_filehandle)
+        hdulist = fits.open(cutout_filehandle, mode='update')
         hdulist.verify('silentfix+ignore')
     except Exception as ex:
         raise ex
@@ -851,7 +858,7 @@ def ra_dec_cutout(uri, sky_coord, radius, update_wcs=False):
                 logging.error("Got error while updating WCS: {}".format(ex))
                 logging.error("Using existing WCS in image header")
         if 'ASTLEVEL' not in hdu.header:
-            print("******* NO ASTLEVEL ****************** for {0} ********".format(uri))
+            print(("******* NO ASTLEVEL ****************** for {0} ********".format(uri)))
             hdu.header['ASTLEVEL'] = 0
         hdu.header['EXTNO'] = cutout[0]
         hdu.header['DATASEC'] = reset_datasec("[{}:{},{}:{}]".format(cutout[1],
@@ -914,7 +921,7 @@ def get_image(expnum, ccd=None, version='p', ext=FITS_EXT,
     try:
         if os.access(filename, os.F_OK) and cutout:
             cutout = datasec_to_list(cutout)
-            hdulist = fits.open(filename)
+            hdulist = fits.open(filename, mode='update')
             if len(hdulist) > 1:
                 raise ValueError("Local cutout access not designed to work on MEFs yet.")
             header = hdulist[0].header
@@ -974,7 +981,7 @@ def get_image(expnum, ccd=None, version='p', ext=FITS_EXT,
             for this_ext in [ext]:
                 ext_no = int(ccd) + 1
                 # extension 1 -> 18 +  37,36 should be flipped.
-                flip_these_extensions = range(1, 19)
+                flip_these_extensions = list(range(1, 19))
                 flip_these_extensions.append(37)
                 flip_these_extensions.append(38)
                 flip = (cutout is None and "fits" in ext and (
@@ -1103,18 +1110,18 @@ def get_hdu(uri, cutout=None):
         filename = os.path.basename(uri)
         if os.access(filename, os.F_OK) and cutout is None:
             logger.debug("File already on disk: {}".format(filename))
-            hdu_list = fits.open(filename, scale_back=True)
+            hdu_list = fits.open(filename, model='update') # , scale_back=True)
             hdu_list.verify('silentfix+ignore')
 
         else:
             logger.debug("Pulling: {}{} from VOSpace".format(uri, cutout))
-            fpt = tempfile.NamedTemporaryFile(suffix='.fits')
+            fpt = tempfile.NamedTemporaryFile(suffix='.fits', mode='w+b')
             cutout = cutout is not None and cutout or ""
             copy(uri+cutout, fpt.name)
             fpt.seek(0, 2)
             fpt.seek(0)
             logger.debug("Read from vospace completed. Building fits object.")
-            hdu_list = fits.open(fpt, scale_back=False)
+            hdu_list = fits.open(fpt, scale_back=False, mode='update')
             hdu_list.verify('silentfix+ignore')
 
             logger.debug("Got image from vospace")
@@ -1556,9 +1563,9 @@ def get_mopheader(expnum, ccd, version='p', prefix=None):
 
     if os.access(filename, os.F_OK):
         logger.debug("File already on disk: {}".format(filename))
-        mopheader_fpt = StringIO(open(filename, 'r').read())
+        mopheader_fpt = BytesIO(open(filename, 'rb').read())
     else:
-        mopheader_fpt = StringIO(open_vos_or_local(mopheader_uri).read())
+        mopheader_fpt = BytesIO(open_vos_or_local(mopheader_uri).read())
 
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', AstropyUserWarning)
@@ -1596,14 +1603,20 @@ def _get_sghead(expnum):
     if key in sgheaders:
         return sgheaders[key]
 
-    url = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHTSG/{}{}.head".format(expnum, version)
-    logging.getLogger("requests").setLevel(logging.ERROR)
-    logging.debug("Attempting to retrieve {}".format(url))
-    resp = requests.get(url)
-    if resp.status_code != 200:
-        raise IOError(errno.ENOENT, "Could not get {}".format(url))
+    header_filename = "{}{}.head".format(expnum, version)
 
-    header_str_list = re.split('END      \n', resp.content)
+    if not os.access(header_filename, os.R_OK):
+        url = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHTSG/{}".format(header_filename)
+        logging.getLogger("requests").setLevel(logging.ERROR)
+        logging.debug("Attempting to retrieve {}".format(url))
+        resp = requests.get(url)
+        if resp.status_code != 200:
+            raise IOError(errno.ENOENT, "Could not get {}".format(url))
+        with open(header_filename,'w') as hobj:
+            hobj.write(resp.content)
+
+    with open(header_filename, 'w') as hobj:
+        header_str_list = re.split('END      \n', hobj.read())
 
     # # make the first entry in the list a Null
     headers = [None]
@@ -1645,7 +1658,8 @@ def get_astheader(expnum, ccd, version='p', prefix=None):
                 for header in sgheaders[sg_key]:
                         if header.get('EXTVER', -1) == int(ccd):
                             return header
-        except:
+        except Exception as ex:
+            print(ex)
             pass
 
     try:

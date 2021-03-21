@@ -279,7 +279,7 @@ class tno(object):
         if version == 4:
             params = summaryLine.split()
             if len(params) != 25:
-                print params
+                print(params)
                 raise TypeError('Expected 25 columns, {0} given'.format(len(params)))
             input_params = params[0:1] + params[3:23]
             if not existing_object:
@@ -309,7 +309,7 @@ class tno(object):
         if version == 4:
             params = classLine.split()
             if len(params) != 31:
-                print params
+                print(params)
                 raise TypeError('Expected 31 columns, {0} given'.format(len(params)))
             input_params = [params[5]] + params[10:30]  # the elements that are in common
             if not existing_object:
@@ -350,8 +350,8 @@ def mag_at_radius(r, d, p=0.10, phi=1):
     m_sun = -27.1
 
     m_r = m_sun - 2.5 * math.log10((p * phi * r ** 2) / (2.25 * 10 ** 16 * (d ** 2) * (d - 1) ** 2))
-    print("m_r = {:2.2f} for a {} km radius TNO at {} AU at opposition, assuming {} albedo.".format(
-        m_r, r, d, p))
+    print(("m_r = {:2.2f} for a {} km radius TNO at {} AU at opposition, assuming {} albedo.".format(
+        m_r, r, d, p)))
 
     return m_r
 
@@ -368,8 +368,8 @@ def apmag_at_absmag(H, d, phi=1):
     d_observer = 1.  # 1 AU
     # approximate object's distance d_heliocentric and d_geocentric as the same, d, because TNO
     m_r = H + 2.5 * math.log10((d ** 4) / (phi * d_observer ** 4))
-    print("m_r = {:2.2f} for a H = {} TNO at {} AU at opposition.".format(
-        m_r, H, d))
+    print(("m_r = {:2.2f} for a H = {} TNO at {} AU at opposition.".format(
+        m_r, H, d)))
     return m_r
 
 

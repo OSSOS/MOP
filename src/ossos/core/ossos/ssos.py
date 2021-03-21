@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 import datetime
 import os
 import pprint
@@ -51,8 +51,8 @@ class TracksParser(object):
         try:
             self.orbit = Orbfit(mpc_observations)
             if print_summary:
-               print(self.orbit.residuals)
-               print(self.orbit)
+               print((self.orbit.residuals))
+               print((self.orbit))
         except Exception as ex:
             logger.error("{}".format(ex))
             logger.error("Failed to compute orbit with astrometry provided")
@@ -749,8 +749,8 @@ class Query(object):
         lines = response.content
         # note: spelling 'occured' is in SSOIS
         if len(lines) < 2 or "An error occured getting the ephemeris" in lines:
-            print lines
-            print response.url
+            print(lines)
+            print(response.url)
             raise IOError(os.errno.EACCES,
                           "call to SSOIS failed on format error")
 

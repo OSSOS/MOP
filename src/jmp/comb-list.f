@@ -2,11 +2,11 @@ C -*-compile-command: "cf77 -O6 -o ../bin/LINUX/comb-list comb-list.f -L../lib/L
 
       include 'match-mov.h'
 
-      integer*4
+      integer(kind=4)
      $  i, j, k, narg, iargc, i1, i2, n1, n2, nc, corresp(n_o_max_cat),
      $  nf, yy, mm, id, jul, corresp1(n_o_max_cat)
 
-      real*4
+      real(kind=4)
      $  x1(3,n_o_max_cat), y1(3,n_o_max_cat), x01(3,n_o_max_cat),
      $  y01(3,n_o_max_cat), flux1(3,n_o_max_cat), size1(3,n_o_max_cat),
      $  intens1(3,n_o_max_cat), elong1(3,n_o_max_cat),
@@ -15,8 +15,8 @@ C -*-compile-command: "cf77 -O6 -o ../bin/LINUX/comb-list comb-list.f -L../lib/L
      $  intens2(3,n_o_max_cat), elong2(3,n_o_max_cat), dist(3), fwhm(3),
      $  fx(3), fy(3), mag, fra, fangle, d(3), ca, sa, dd
 
-      real*8
-     $  t(3), dt(3)
+      real(kind=8)
+     $  t(3), dt(3), pix_scale(3)
 
       character
      $  arg*80, basename*80, filename*80, header(24)*80, outname*80,
@@ -35,16 +35,20 @@ c Create a file for later error handling
 
       keep_all = .false.
       narg = iargc()
-      help = (narg .lt. 1)
+      help = .false.
+      if ( narg < 1 ) then
+        help = .true.
+      end if
+
       i = 1
  90   continue
-      if (i .le. narg) then
+      if (i <= narg) then
          call getarg (i, arg)
-         if ((arg(1:2) .eq. '-h') .or. (arg(1:2) .eq. '-?')) then
+         if ((arg(1:2) == '-h') .or. (arg(1:2) == '-?')) then
             i = narg + 1
             help = .true.
          end if
-         if (arg(1:2) .eq. '-a') then
+         if (arg(1:2) == '-a') then
             i = narg +1
             keep_all = .true.
          end if
@@ -91,6 +95,7 @@ c Create a file for later error handling
 
       do i = 1, 3
          read (header(i*6+1)(3:), *) yy, mm, dd, tmp, tmp, fwhm(i)
+         read(header(i*6+3)(3:), *)  pix_scale(i)
          fwhm(i) = fwhm(i)**2
          id = int(dd)
          dd = dd - id
@@ -98,6 +103,7 @@ c Create a file for later error handling
          t(i) = jul + dble(dd)
          dt(i) = (t(i) - t(1))*24.0
       end do
+
 
       n1 = 0
  100  continue
@@ -124,12 +130,12 @@ c Create a file for later error handling
          fake2(n2) = .false.
          j = 1
  202     continue
-         if (j .le. n1) then
+         if (j <= n1) then
             keep = .true.
             do i = 1, 3
                dist(i) = (x01(i,j) - x02(i,n2))**2
      $           + (y01(i,j) - y02(i,n2))**2
-               keep = keep .and. (dist(i) .lt. fwhm(i))
+               keep = keep .and. (dist(i) < fwhm(i))
             end do
             if (keep) then
                corresp(n2) = j
@@ -164,8 +170,8 @@ c Create a file for later error handling
          sa = sin(fangle/180.0*3.1415926539)
          ca = cos(fangle/180.0*3.1415926539)
          do i = 2, 3
-            fx(i) = fx(1) + dt(i)*fra*ca
-            fy(i) = fy(1) + dt(i)*fra*sa
+            fx(i) = fx(1) + dt(i)*fra*ca/pix_scale(i)
+            fy(i) = fy(1) + dt(i)*fra*sa/pix_scale(i)
          end do
          found1 = .false.
          found2 = .false.
@@ -174,7 +180,7 @@ c Create a file for later error handling
             ready = .true.
             do i = 1, 3
                d(i) = (x01(i,i1) - fx(i))**2 + (y01(i,i1) - fy(i))**2
-               ready = ready .and. (d(i) .lt. 4*fwhm(i))
+               ready = ready .and. (d(i) < 4*fwhm(i))
             end do
             if (ready) then
                found1 = .true.
@@ -187,12 +193,12 @@ c Create a file for later error handling
             ready = .true.
             do i = 1, 3
                d(i) = (x02(i,i2) - fx(i))**2 + (y02(i,i2) - fy(i))**2
-               ready = ready .and. (d(i) .lt. 4*fwhm(i))
+               ready = ready .and. (d(i) < 4*fwhm(i))
             end do
             if (ready) then
                fake2(i2) = .true.
                found2 = .true.
-               if (corresp(i2) .gt. 0) keep = .true.
+               if (corresp(i2) > 0) keep = .true.
             end if
          end do
          if (found2) then
@@ -218,8 +224,8 @@ c Create a file for later error handling
 c        don't skip putting the fakes into the candidate file
 c        if ((.not. fake2(j)) .and. (corresp(j) .ne. 0)) then
          k = j
-         if ( corresp(j) .eq. 0 .and. .not. keep_all ) cycle
-         if (corresp(j) .ne. 0) then
+         if ( corresp(j) == 0 .and. .not. keep_all ) cycle
+         if (corresp(j) /= 0) then
             corresp1(k)=j
          end if
          if (.not. ready) then
@@ -235,12 +241,11 @@ c        if ((.not. fake2(j)) .and. (corresp(j) .ne. 0)) then
      $           y02(i,k), flux2(i,j), size2(i,j),
      $           intens2(i,j), elong2(i,j)
          end do
- 410     continue
       end do
       if ( keep_all ) then 
          do j = 1, n1
 c     Now print stuff that was only found in 1
-            if (corresp1(j) .eq. 0) then
+            if (corresp1(j) == 0) then
                if (.not. ready) then
                   open (unit=3, file=outname, status='unknown')
                   do i = 1, 24

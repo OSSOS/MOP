@@ -63,7 +63,7 @@ class MOPHeader(fits.Header):
                 logging.debug("Failed to build mopkeyword: {} -> {} using default".format(keyword, ex))
                 pass
 
-        for keyword in self.keys():
+        for keyword in list(self.keys()):
             if keyword not in self.mop_keywords:
                 try:
                    self.__delitem__(keyword)
@@ -211,7 +211,7 @@ class MOPHeader(fits.Header):
 
 def main(filename):
     mop_header = MOPHeader(fits.open(filename)[0].header)
-    output_filename = filename.rstrip('.fits') + ".mopheader"
+    output_filename = filename.split('.')[0] + ".mopheader"
     mop_header.writeto(output_filename, clobber=True)
     return output_filename
 

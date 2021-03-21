@@ -123,7 +123,7 @@ if __name__ == "__main__":
                 sys.stdout.flush()
                 idx = (mags[ob_token] > cuts).sum()
                 idx = 1
-                print ob_token, mags[ob_token], idx + 4
+                print(ob_token, mags[ob_token], idx + 4)
                 og_itime += IC_exptimes[idx] + 40
                 if og_itime > 3000.0:
                     break

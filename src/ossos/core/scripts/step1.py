@@ -183,10 +183,10 @@ def main(task='step1'):
         if args.ccd is None:
            if int(expnum) < 1785619:
               # Last exposures with 36 CCD Megaprime
-              ccdlist = range(0,36)
+              ccdlist = list(range(0,36))
            else:
               # First exposrues with 40 CCD Megaprime
-              ccdlist = range(0, 40)
+              ccdlist = list(range(0, 40))
         else:
             ccdlist = [args.ccd]
         for ccd in ccdlist:

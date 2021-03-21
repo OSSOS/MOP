@@ -34,7 +34,7 @@ for filename in sys.argv[1:]:
   pyplot.plot(x, f/p, alpha=0.3, label="rate > {} pix/hr; width < 20".format(fast_cut))
 
 
-print cands[2].min()-1, cands[2].max()+1
+print(cands[2].min()-1, cands[2].max()+1)
 angles = [31, 25, 20, 0]
 for idx in range(len(angles)-1):
   pcond = np.all((angles[idx] > cands[2], cands[2] > angles[idx+1], cands[3] < slow_cut, cands[3] > fast_cut), axis=0)

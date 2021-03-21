@@ -6,11 +6,12 @@ from hamcrest import assert_that, equal_to, contains, has_length
 
 from tests.base_tests import FileReadingTestCase
 from ossos.gui import config
+import importlib
 
 
 class AppConfigTest(FileReadingTestCase):
     def setUp(self):
-        reload(config)
+        importlib.reload(config)
 
     def conffile(self):
         return self.get_abs_path("data/testconf.json")

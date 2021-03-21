@@ -18,7 +18,7 @@ def plot_smooth_fit(i, block, ax, colours, pwd, offset=0, single=False):
     characterisation = {'13AE': 24.09, '13AO': 24.40}
     ls = ['-', '--', ':']
 
-    smooth_parameter_files = filter(lambda name: name.startswith('smooth'), os.listdir('{}/{}/'.format(pwd, block)))
+    smooth_parameter_files = [name for name in os.listdir('{}/{}/'.format(pwd, block)) if name.startswith('smooth')]
     smooth_parameter_files.sort(key=lambda x: float(x.split('-')[1]))
     x = np.arange(20.5, 25.1, 0.01)
     if single:  # just do the first one, the motion rate targeted by the main survey objectives
@@ -27,7 +27,7 @@ def plot_smooth_fit(i, block, ax, colours, pwd, offset=0, single=False):
         pd, ps, mag_limit = read_smooth_fit('{}/{}/{}'.format(pwd, block, fn))
         ys = square_fit(x, ps)
 
-        print block, fn, mag_limit, square_fit(mag_limit, ps)
+        print(block, fn, mag_limit, square_fit(mag_limit, ps))
 
         if single:  # only want to add label to the legend if there is only one given
             ax[i].plot(x + (offset * j), ys * 100.,
@@ -48,7 +48,7 @@ def plot_smooth_fit(i, block, ax, colours, pwd, offset=0, single=False):
 
 def plot_eff_data(i, block, ax, colours, pwd, offset):
     fmt = ['^', 'x', 'o']
-    filenames = filter(lambda name: name.endswith('mag-rate.eff'), os.listdir('{}/{}/'.format(pwd, block)))
+    filenames = [name for name in os.listdir('{}/{}/'.format(pwd, block)) if name.endswith('mag-rate.eff')]
     filenames.sort(key=lambda x: float(x.split('-')[0]))
     for j, fn in enumerate(filenames):
         fn_pwd = '{}/{}/{}'.format(pwd, block, fn)
@@ -102,7 +102,7 @@ def plot_eff_by_user(ax, blocks):
     markers = {'jjk': '^', 'jkavelaars': 'd', 'mtb55': '*', 'bgladman': 'o', 'montys': '.', 'ptsws': 'x'}
 
     for i, block in enumerate(blocks):
-        user_eff_files = filter(lambda x: x.__contains__(block), os.listdir(pwd))
+        user_eff_files = [x for x in os.listdir(pwd) if x.__contains__(block)]
         # user_eff_files.sort(key=lambda x: examined[block][x.split('.')[2]], reverse=True)  # biggest to smallest
         user_eff_files.sort(key=lambda x: user_blindness[x.split('.')[2]])
         for j, fn in enumerate(user_eff_files):

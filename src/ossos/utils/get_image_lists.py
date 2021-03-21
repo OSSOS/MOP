@@ -43,7 +43,7 @@ def main():
     elif args.family == None and args.member != None:
         get_member_info(str(args.member), args.filter)
     else:
-        print "Please input either a family or single member name"
+        print("Please input either a family or single member name")
 
 
 def get_family_info(familyname, filtertype='r', imagetype='p'):
@@ -84,7 +84,7 @@ def get_member_info(object_name, filtertype='r', imagetype='p'):
     search_start_date = Time('2013-01-01', scale='utc')  # epoch1=2013+01+01
     search_end_date = Time('2017-01-01', scale='utc')  # epoch2=2017+1+1
 
-    print("----- Searching for images of object {}".format(object_name))
+    print(("----- Searching for images of object {}".format(object_name)))
 
     image_list = []
     expnum_list = []
@@ -128,7 +128,7 @@ def get_member_info(object_name, filtertype='r', imagetype='p'):
                         object_name, line['Image'], line['Exptime'], p_ra, p_dec,
                         Time(line['MJD'], format='mjd', scale='utc'), line['Filter'], ra_dot, dec_dot))
                 except Exception as e:
-                    print("Error writing to outfile: {}".format(e))
+                    print(("Error writing to outfile: {}".format(e)))
 
     return image_list, expnum_list, ra_list, dec_list
 
@@ -163,7 +163,7 @@ def parse_ssois_return(ssois_return, object_name, imagetype, camera_filter='r.MP
            ret_table.append(row)
 
     if good_table > 0:
-        print(" %d images found" % good_table)
+        print((" %d images found" % good_table))
 
     return ret_table
 

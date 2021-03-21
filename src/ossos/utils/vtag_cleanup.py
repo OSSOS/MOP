@@ -39,11 +39,11 @@ def what_locks_remain(directory):
         user = storage.get_property(con.get_full_path(filename), LOCK_PROPERTY)
         if user is not None:
             user_progress[user] += 1
-            print filename, 'lock_holder=', user
+            print(filename, 'lock_holder=', user)
             storage.set_property(con.get_full_path(filename), LOCK_PROPERTY, None)
 
-    for user, num_locked in user_progress.iteritems():
-        print "  %s: %d" % (user, num_locked)
+    for user, num_locked in user_progress.items():
+        print("  %s: %d" % (user, num_locked))
 
     return
 
@@ -56,7 +56,7 @@ def ensure_cands_have_matching_reals(directory):
         if user is not None:
             reals_file = filename.replace('cands', 'reals')
             if not con.exists(reals_file):
-                print '.cands.astrom has no matching reals.astrom!', filename, 'done by', user
+                print('.cands.astrom has no matching reals.astrom!', filename, 'done by', user)
 
     return
 
@@ -80,15 +80,15 @@ def fix_tags_on_cands_missing_reals(user_id, vos_dir, property):
                 is_present = False
                 for mpcfile in [f for f in mpc_listing if not f.startswith('fk')]:
                     if mpcfile.startswith(filename):
-                        print filename, user, 'exists!', mpcfile
+                        print(filename, user, 'exists!', mpcfile)
                         is_present = True
 
                 if not is_present:
                     user_progress.append(filename)
-                    print filename, user, 'no mpc file'
+                    print(filename, user, 'no mpc file')
                     storage.set_property(con.get_full_path(filename), property, None)
 
-    print 'Fixed files:', len(user_progress)
+    print('Fixed files:', len(user_progress))
 
     return
 

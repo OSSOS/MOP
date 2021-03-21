@@ -324,7 +324,7 @@ class RealsWorkUnitTest(AbstractWorkUnitTest):
         self.workunit.accept_current_item()
 
         self.progress_manager.unlock.assert_called_once_with(
-            self.testfile, async=True)
+            self.testfile, do_async=True)
 
     def test_flush_only_after_source_finished(self):
         assert_that(self.writer.flush.called, equal_to(False))
@@ -467,7 +467,7 @@ class CandidatesWorkUnitTest(AbstractWorkUnitTest):
         self.workunit.accept_current_item()
 
         self.progress_manager.unlock.assert_called_once_with(
-            self.testfile, async=True)
+            self.testfile, do_async=True)
 
 
 class StatefulCollectionTest(unittest.TestCase):
@@ -484,7 +484,7 @@ class StatefulCollectionTest(unittest.TestCase):
         assert_that(undertest.get_index(), equal_to(0))
         assert_that(undertest.get_current_item(), equal_to(items[0]))
 
-        undertest.next()
+        next(undertest)
         assert_that(undertest.get_index(), equal_to(1))
         assert_that(undertest.get_current_item(), equal_to(items[1]))
 
@@ -509,7 +509,7 @@ class StatefulCollectionTest(unittest.TestCase):
         item2 = 2
         undertest.append(item2)
 
-        undertest.next()
+        next(undertest)
         assert_that(undertest.get_index(), equal_to(1))
         assert_that(undertest.get_current_item(), equal_to(item2))
 
@@ -534,7 +534,7 @@ class WorkloadManagementTest(unittest.TestCase):
             self.progress_manager.lock(workunit.get_filename())
             return workunit
 
-        self.workunit_provider.get_workunit.side_effect = (get_workunit(index) for index in xrange(2))
+        self.workunit_provider.get_workunit.side_effect = (get_workunit(index) for index in range(2))
         image_manager = Mock(spec=ImageManager)
 
         self.undertest = ValidationModel(self.workunit_provider, image_manager, None)

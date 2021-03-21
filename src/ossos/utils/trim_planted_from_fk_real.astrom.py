@@ -7,7 +7,7 @@ Takes a .cands.astrom file as argument.
 from ossos import astrom
 import sys
 import os
-import match
+from . import match
 
 
 filename = sys.argv[1]
@@ -26,9 +26,9 @@ planted_objects = match.PlantedObject(fake_candidates)
 
 (fk_index, planted_index) = match.planted(fake_candidates, planted_objects, tolerance=8.0)
 
-print fk_index.mask
-print fk_index
-print planted_index
+print(fk_index.mask)
+print(fk_index)
+print(planted_index)
 
 detections = fake_candidates.get_sources()
 
@@ -38,7 +38,7 @@ faint_cands = astrom.StreamingAstromWriter(faint_fptr,
 
 for idx in range(len(fk_index)):
     # Record source if no matching Object.planted entry
-    print detections[idx], fk_index[idx]
+    print(detections[idx], fk_index[idx])
     if fk_index.mask[idx]:
         faint_cands.write_source(detections[idx])
 

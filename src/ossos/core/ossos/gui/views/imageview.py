@@ -32,7 +32,7 @@ class ImageViewManager(object):
         """
         self.set_zoom()
         ds9_settings = config.read("DS9."+level)
-        for key in ds9_settings.keys():
+        for key in list(ds9_settings.keys()):
             value = ds9_settings[key]
             cmd = key.replace("_", " ")
             self.ds9.set("{} {}".format(cmd, value))

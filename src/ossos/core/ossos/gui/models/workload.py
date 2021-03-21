@@ -53,13 +53,13 @@ class WorkUnit(object):
         self.finished_callbacks.append(callback)
 
     def next_source(self):
-        self.get_sources().next()
+        next(self.get_sources())
 
     def previous_source(self):
         self.get_sources().previous()
 
     def next_obs(self):
-        self.get_current_source_readings().next()
+        next(self.get_current_source_readings())
 
     def previous_obs(self):
         self.get_current_source_readings().previous()
@@ -166,7 +166,7 @@ class WorkUnit(object):
 
     def unlock(self):
         if not self._unlocked:
-            self.progress_manager.unlock(self.get_filename(), async=True)
+            self.progress_manager.unlock(self.get_filename(), do_async=True)
             self._unlocked = True
 
     def _get_item_set(self):
@@ -264,7 +264,7 @@ class RealsWorkUnit(WorkUnit):
 
     def _get_item_set(self):
         all_readings = set()
-        for readings in self.readings_by_source.itervalues():
+        for readings in self.readings_by_source.values():
             all_readings.update(readings)
         return all_readings
 
@@ -275,7 +275,7 @@ class RealsWorkUnit(WorkUnit):
                 self.processed_items.add(reading)
 
     def _close_writers(self):
-        for writer in self._writers.values():
+        for writer in list(self._writers.values()):
             writer.close()
 
 
@@ -404,8 +404,8 @@ class TracksWorkUnit(WorkUnit):
     def print_orbfit_info(self):
         # TODO: this should not be here.
         orb = Orbfit(self.get_writer().get_chronological_buffered_observations())
-        print orb.residuals
-        print orb
+        print(orb.residuals)
+        print(orb)
 
     def query_ssos(self):
         """
@@ -508,7 +508,7 @@ class TracksWorkUnit(WorkUnit):
 
     def _get_item_set(self):
         all_readings = set()
-        for readings in self.readings_by_source.itervalues():
+        for readings in self.readings_by_source.values():
             all_readings.update(readings)
         return all_readings
 

@@ -32,7 +32,7 @@ class WorkingContext(object):
             name_match = lambda x: x.endswith(suffix)
         else:
             name_match = lambda x: x.endswith(suffix) and not x.startswith(exclude_prefix)
-        return filter(name_match, self.listdir())
+        return list(filter(name_match, self.listdir()))
 
     def get_file_size(self, filename):
         raise NotImplementedError()
@@ -70,7 +70,7 @@ class LocalDirectoryWorkingContext(WorkingContext):
         return os.path.exists(self.get_full_path(filename))
 
     def open(self, filename):
-        filehandle = open(self.get_full_path(filename), 'a+b')
+        filehandle = open(self.get_full_path(filename), 'a+t')
 
         # Note: Linux starts the file position at 0, but on MacOSX it
         # starts at the end of the file, so this makes things consistent

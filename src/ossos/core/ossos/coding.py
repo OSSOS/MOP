@@ -21,7 +21,7 @@ def encode(number, alphabet):
 
     Modified from http://en.wikipedia.org/wiki/Base_36
     """
-    if not isinstance(number, (int, long)):
+    if not isinstance(number, int):
         raise TypeError("Number must be an integer.")
 
     base_n = ""

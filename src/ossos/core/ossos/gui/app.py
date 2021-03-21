@@ -3,7 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import sys
 
 from ..astrom import AstromParser, StationaryParser
-from ..downloads.async import AsynchronousDownloadManager
+from ..downloads.async_download import AsynchronousDownloadManager
 from ..downloads.cutouts.downloader import ImageCutoutDownloader
 from ..gui import config, tasks, logger
 from ..gui import context

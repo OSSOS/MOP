@@ -64,7 +64,7 @@ for trial in range(1000):
         ra = orbit.coordinate.ra.degrees + numpy.random.normal() * 0.05 / 3600.0 + 0.05 / 3600.0
         dec = orbit.coordinate.dec.degrees + numpy.random.normal() * 0.05 / 3600.0 + 0.05 / 3600.0
         position = astropy.coordinates.ICRSCoordinates(ra, dec, unit=(u.degree, u.degree))
-        print '{} {} {} {:f} {}'.format(date.jd, position.ra.format(sep=':', unit=units.hour),
-                                        position.dec.format(sep=':', unit=units.degree), 0.2 / 3600.0, 568)
+        print('{} {} {} {:f} {}'.format(date.jd, position.ra.format(sep=':', unit=units.hour),
+                                        position.dec.format(sep=':', unit=units.degree), 0.2 / 3600.0, 568))
 
     break

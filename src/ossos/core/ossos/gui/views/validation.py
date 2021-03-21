@@ -314,7 +314,7 @@ class AcceptSourceDialog(SourceValidationDialog):
                        (self.obs_mag_label, self.obs_mag_text),
                        (self.band_label, self.band_text),
                        (self.observatory_code_label, self.observatory_code_text),
-        ]
+                       ]
 
         sizer = wx.FlexGridSizer(rows=len(data_fields), cols=2)
         for label, value in data_fields:
@@ -357,8 +357,7 @@ class AcceptSourceDialog(SourceValidationDialog):
 class OffsetSourceDialog(SourceValidationDialog):
     TITLE = "Accept Re-centroid Dialog"
 
-    def __init__(self, parent, controller, pix_coords=(0,0), cen_coords=(0,0)):
-
+    def __init__(self, parent, controller, pix_coords=(0, 0), cen_coords=(0, 0)):
         self.cen_coords = cen_coords
         self.pix_coords = pix_coords
         self.default_comment = "DAOphot centroid differs from input value.\n\n"
@@ -410,7 +409,6 @@ class RejectSourceDialog(SourceValidationDialog):
 
 
 class VettingSourceDialog(RejectSourceDialog):
-
     TITLE = "Vetting Source Accept"
 
     def _on_submit(self, event):

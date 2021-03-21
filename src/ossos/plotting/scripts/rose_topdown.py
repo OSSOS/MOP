@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 __author__ = 'Michele Bannister'
 
 import math
@@ -77,7 +77,7 @@ def top_down_SolarSystem(discoveries,
     # again RAs indicate where bar starts, so subtract half the block width from the block centrepoints
     # and approximate blocks as math.radians(7) degrees wide.
 
-    for blockname, block in parameters.BLOCKS.items():
+    for blockname, block in list(parameters.BLOCKS.items()):
         if plot_blocks:
             if blockname in plot_blocks:
                 if feature_blocks is not None and blockname in feature_blocks:
@@ -255,7 +255,7 @@ def orbit_fit_residuals(discoveries, blockID='O13AE'):
     ressum = []
     for i, orbit in enumerate(discoveries):
         if (orbit.da / orbit.a) < 0.01:
-            print i, len(discoveries), orbit.observations[0].provisional_name, orbit.da / orbit.a
+            print(i, len(discoveries), orbit.observations[0].provisional_name, orbit.da / orbit.a)
             res = orbit.residuals.split('\n')
             for r in res:
                 rr = r.split(' ')
@@ -308,7 +308,7 @@ def delta_a_over_a(discoveries):
     plt.draw()
     outfile = 'delta_a_over_a_13AE_corrected'
     plt.savefig(outfile + '.pdf', transparent=True)
-    print 'objects plotted:', len(arclen)
+    print('objects plotted:', len(arclen))
 
 
 def ossos_sequence(discoveries):

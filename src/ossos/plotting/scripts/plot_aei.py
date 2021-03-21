@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 __author__ = 'Michele Bannister   git:@mtbannister'
 
 import sys
@@ -211,9 +211,9 @@ def full_aei(data_release, fov, icut=False, aiq=False):
         ax[2].set_ylim([ymin, emax])
 
     plt.xlim([xinner, xouter])
-    ax[0].set_xticks(range(xinner, xouter, xstep))
-    ax[1].set_xticks(range(xinner, xouter, xstep))
-    ax[2].set_xticks(range(xinner, xouter, xstep))
+    ax[0].set_xticks(list(range(xinner, xouter, xstep)))
+    ax[1].set_xticks(list(range(xinner, xouter, xstep)))
+    ax[2].set_xticks(list(range(xinner, xouter, xstep)))
 
     plot_fanciness.remove_border(ax[0])
     plot_fanciness.remove_border(ax[1])
@@ -243,7 +243,7 @@ def full_aei(data_release, fov, icut=False, aiq=False):
 
 def helio_i(ax, data, fmt, alpha, ebarcolor, capsize, ms, grid_alpha, colour, zorder, orbit_classes, annotation=False):
     for i, orbclass in enumerate(orbit_classes):
-        print i, orbclass
+        print(i, orbclass)
         tnos = data[numpy.where(data['cl'] == orbclass)]
 
         ax[0].errorbar(tnos['dist'], tnos['i'],
@@ -377,9 +377,9 @@ def classicals_qi(data):
     ax.grid(True, alpha=0.4)
     ax.set_xlim([0., 35.])
     ax.set_xlabel('inclination (deg)')
-    ax.set_xticks(range(5, 40, 10))
+    ax.set_xticks(list(range(5, 40, 10)))
     ax.set_ylim([34., 48.])
-    ax.set_yticks(range(36, 50, 4))
+    ax.set_yticks(list(range(36, 50, 4)))
     ax.set_ylabel('perihelion (AU)')
     plot_fanciness.remove_border(ax)
 
@@ -399,7 +399,7 @@ def classicals_aeiq(data):
     classicals = data[numpy.where(data['p'] == 'm')]
     outer = data[numpy.where(data['p'] == 'o')]
     outer = outer[numpy.where(outer['i'] < 5.)]
-    print outer
+    print(outer)
 
     ms = 7
     capsize = 2  # error bar cap width
@@ -422,7 +422,7 @@ def classicals_aeiq(data):
         # pericentre
         ax[0][0].set_ylabel('pericenter (AU)')
         ax[0][0].set_ylim([34., 47.])
-        ax[0][0].set_yticks(range(34, 47, 2))
+        ax[0][0].set_yticks(list(range(34, 47, 2)))
 
         # top right: inclination vs perihelion
         ax[0][1].errorbar(data['i'], data['peri'],
@@ -431,10 +431,10 @@ def classicals_aeiq(data):
         ax[0][1].grid(True, alpha=0.4)
         ax[0][1].set_xlabel('inclination (deg)')
         ax[0][1].set_xlim([0., 35.])
-        ax[0][1].set_xticks(range(0, 35, 5))
+        ax[0][1].set_xticks(list(range(0, 35, 5)))
         # pericentre
         ax[0][1].set_ylim([34., 47.])
-        ax[0][1].set_yticks(range(34, 47, 2))
+        ax[0][1].set_yticks(list(range(34, 47, 2)))
 
         # lower left: semimajor axis vs inclination
         ax[1][0].errorbar(data['a'], data['i'],
@@ -442,10 +442,10 @@ def classicals_aeiq(data):
                           fmt=fmt[i], alpha=alpha, ecolor='0.1', ms=ms, capsize=capsize, mfc=colour[i])
         ax[1][0].set_xlabel('semimajor axis (AU)')
         ax[1][0].set_xlim([38., 49.])
-        ax[1][0].set_xticks(range(38, 49, 2))
+        ax[1][0].set_xticks(list(range(38, 49, 2)))
         ax[1][0].set_ylabel('inclination (deg)')
         ax[1][0].set_ylim([0., 35.])
-        ax[1][0].set_yticks(range(0, 35, 5))
+        ax[1][0].set_yticks(list(range(0, 35, 5)))
         ax[1][0].grid(True, which='both', alpha=0.4)
 
         # lower right: semimajor axis vs eccentricity
@@ -457,7 +457,7 @@ def classicals_aeiq(data):
         ax[1][1].set_ylim([0., 0.25])
         ax[1][1].set_xlabel('semimajor axis (AU)')
         ax[1][1].set_xlim([38., 49.])
-        ax[1][1].set_xticks(range(38, 49, 2))
+        ax[1][1].set_xticks(list(range(38, 49, 2)))
 
     plot_fanciness.remove_border(ax[0][0])
     # ax[0][0].tick_params(labelbottom='off')
@@ -481,7 +481,7 @@ def argperi_a(directory):
 
     for obj in tnos:
         if obj.orbit.arc_length < 60.*units.day:
-            print 'Skipping', obj.name, obj.orbit.arc_length
+            print('Skipping', obj.name, obj.orbit.arc_length)
             continue
 
         alpha = 0.4
@@ -540,9 +540,9 @@ def argperi_a(directory):
     plt.xlim([xinner, xouter])
 
 
-    ax[0].set_xticks(range(xinner, xouter, xticker))
-    ax[1].set_xticks(range(xinner, xouter, xticker))
-    ax[2].set_xticks(range(xinner, xouter, xticker))
+    ax[0].set_xticks(list(range(xinner, xouter, xticker)))
+    ax[1].set_xticks(list(range(xinner, xouter, xticker)))
+    ax[2].set_xticks(list(range(xinner, xouter, xticker)))
 
     plot_fanciness.remove_border(ax[0])
     plot_fanciness.remove_border(ax[1])
@@ -576,7 +576,7 @@ if __name__ == '__main__':
     for t in mag:
         if t['object'].startswith('o'):
             ossos.append(t)
-    print len(ossos)
+    print(len(ossos))
 
     sys.exit()
 

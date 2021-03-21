@@ -69,7 +69,7 @@ class MainFrame(wx.Frame):
         notebook = wx.Notebook(self.control_panel)
 
         columns = ("{:15s}".format("Key".center(10)),
-                    "{:15s}".format("Value".center(10)))
+                   "{:15s}".format("Value".center(10)))
         self.reading_data_panel = ListCtrlPanel(notebook, columns)
         self.obs_header_panel = ListCtrlPanel(notebook, columns)
 

@@ -3,7 +3,7 @@ import os
 from numpy import random
 from astropy.table import Table
 import numpy
-import storage
+from . import storage
 from scipy import interpolate
 
 
@@ -111,7 +111,7 @@ class KBOGenerator(object):
         self._id += 1
         return self._id
 
-    def next(self):
+    def __next__(self):
         """
         :return: a set of values that can be used for an planted object builder.
         """
@@ -148,7 +148,7 @@ class KBOGenerator(object):
         if filename is not None:
             fd = open(filename, 'w')
             fd.write("#K {:10s} {:10s} {:10s} {:10s} {:10s}\n".format("rate", "angle", "mag", "x_range", "y_range"))
-            fd.write("#V {:10s} {:10s} {:10s} {:10s} {:10s}\n".format(rate, angle, mag, x, y))
+            fd.write("#V {} {} {} {} {}\n".format(rate, angle, mag, x, y))
             fd.write("# ")
             kbos.write(fd, format='ascii.fixed_width', delimiter=None)
             fd.close()

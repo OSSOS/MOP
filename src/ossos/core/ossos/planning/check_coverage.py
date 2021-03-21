@@ -20,7 +20,7 @@ from copy import deepcopy
 import ephem
 from astropy.table import Table
 import requests
-from cStringIO import StringIO
+from io import StringIO
 
 cfht = ephem.Observer()
 cfht.lat = 0.344
@@ -52,7 +52,7 @@ def coverage(orbits, locations):
             orbits[kbo_name].predict(Time(location["Start_Date"], format='mjd'))
             if p.polygon.isInside(orbits[kbo_name].coordinate.ra.degree,
                                   orbits[kbo_name].coordinate.dec.degree):
-                print(location['Target_Name'], kbo_name)
+                print((location['Target_Name'], kbo_name))
 
 
 def main():

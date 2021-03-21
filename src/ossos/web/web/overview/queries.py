@@ -94,7 +94,7 @@ class SurveyQuery(object):
         # Characterized discoveries only.
         status = self.bk.all_blocks()['status']
 
-        return sum([int(n[1]) for n in status.values() if (n is not None and n[1].isdigit())])
+        return sum([int(n[1]) for n in list(status.values()) if (n is not None and n[1].isdigit())])
 
 
     def mpc_informed(self):
