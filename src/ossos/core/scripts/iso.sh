@@ -18,7 +18,7 @@ export min_area=$8
 export min_flux=$9
 export max_ratio=${10}
 
-# Configure the names of the result directories in VOSpace so we can run validate later.
+# Configure the names of the result directories in VOSpace so we can run gui later.
 export DBIMAGES=vos:OSSOS/interstellar/dbimages/
 export MEASURE3=vos:OSSOS/interstellar/${block}/${field}
 

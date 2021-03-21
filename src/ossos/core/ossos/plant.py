@@ -121,7 +121,7 @@ class KBOGenerator(object):
         if self._n < 0:
             raise StopIteration()
         return {'x': self.x(), 'y': self.y(), 'mag': self.mag(), 'sky_rate': self.rate(), 'angle': self.angle(),
-                'id': self.id}
+                'id': int(self.id)}
 
     @classmethod
     def _step(cls, mag):
@@ -133,7 +133,8 @@ class KBOGenerator(object):
     @classmethod
     def get_kbos(cls, n, rate, angle, mag, x, y, filename=None):
 
-        kbos = Table(names=('x', 'y', 'mag', 'sky_rate', 'angle', 'id'))
+        kbos = Table(names=('x', 'y', 'mag', 'sky_rate', 'angle', 'id'),
+                     dtype=('float64', 'float64', 'float64', 'float64', 'float64', 'int64'))
 
         # generate the KBOs.
         for kbo in cls(n,

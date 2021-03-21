@@ -24,28 +24,34 @@ import os
 import sys
 from ossos import storage
 from ossos import util
+from ossos.pipeline import measure3
 import argparse
 import logging
 
-MEASURE3 = 'vos:OSSOS/measure3/'
+
 task = util.task()
 dependency = 'step3'
 
 
 def run(expnum, ccd, prefix=None, version='p', field=None,
-        measure3=MEASURE3, dry_run=False, force=False):
+        measure3_dir=storage.MEASURE3, dry_run=False, force=False):
 
     message = storage.SUCCESS
 
     if storage.get_status(task, prefix, expnum, version, ccd) and not force:
-        logging.info("{} completed successfully for {} {} {} {}".format(task, prefix, expnum, version, ccd))
+        logging.info(
+            "{} completed successfully for {} {} {} {}".format(task, prefix,
+                                                               expnum, version,
+                                                               ccd))
         return
 
     with storage.LoggingManager(task, prefix, expnum, ccd, version, dry_run):
         try:
             if not storage.get_status(dependency, prefix, expnum, version, ccd):
-                raise IOError(35, "Cannot start {} as {} not yet completed for {}{}{}{:02d}".format(
-                    task, dependency, prefix, expnum, version, ccd))
+                raise IOError(35, "Cannot start {} as {} not yet completed "
+                                  "for {}{}{}{:02d}".format(task, dependency,
+                                                            prefix, expnum,
+                                                            version, ccd))
             if field is None:
                 field = str(expnum)
 
@@ -56,22 +62,26 @@ def run(expnum, ccd, prefix=None, version='p', field=None,
             logging.info("Doing combine on field {}".format(field))
 
             for ext in ['moving.matt', 'moving.jmp']:
-                storage.get_file(expnum, ccd=ccd, version=version, ext=ext, prefix=prefix)
+                storage.get_file(expnum, ccd=ccd, version=version, ext=ext,
+                                 prefix=prefix)
 
             # Get the list of objects planted into the field if prefix='fk'
             if prefix == 'fk':
                 storage.get_file('Object',
                                  version='',
                                  ext='planted',
-                                 subdir=str(expnum) + "/ccd%s" % (str(ccd).zfill(2)))
+                                 subdir=str(expnum) + "/ccd%s" % (
+                                     str(ccd).zfill(2)))
             else:
                 prefix = ''
 
-            cmd_args = ['comb-list', prefix + str(expnum) + version + str(ccd).zfill(2)]
+            cmd_args = ['comb-list',
+                        prefix + str(expnum) + version + str(ccd).zfill(2)]
             logging.info(str(cmd_args))
             logging.info(util.exec_prog(cmd_args))
 
-            # things to copy back to VOSpace, if this is an 'fk' image then we have missed and found files too.
+            # things to copy back to VOSpace, if this is an 'fk' image
+            # then we have missed and found files too.
             ext_list = ['cands.comb']
             if prefix == 'fk':
                 ext_list.extend(['jmp.missed', 'matt.missed',
@@ -90,8 +100,9 @@ def run(expnum, ccd, prefix=None, version='p', field=None,
                     continue
                 vospace_name = "%s.%s" % (field, ext)
                 if not dry_run:
-                    logging.info("%s -> %s" % (filename, os.path.join(measure3, vospace_name)))
-                    storage.copy(filename, os.path.join(measure3, vospace_name))
+                    logging.info("%s -> %s" % (
+                        filename, os.path.join(measure3_dir, vospace_name)))
+                    storage.copy(filename, os.path.join(measure3_dir, vospace_name))
 
             base_name = prefix + str(expnum) + version + str(ccd).zfill(2)
             cands_file = base_name + '.cands.comb'
@@ -105,25 +116,25 @@ def run(expnum, ccd, prefix=None, version='p', field=None,
                 open(no_cands_file, 'w').close()
                 if not dry_run:
                     vospace_name = "%s.no_candidates" % field
-                    storage.copy(no_cands_file, os.path.join(measure3, vospace_name))
+                    storage.copy(no_cands_file,
+                                 os.path.join(measure3_dir, vospace_name))
 
                 return storage.SUCCESS
 
-            cmd_args = ['measure3', prefix + str(expnum) + version + str(ccd).zfill(2)]
-            logging.info("Running measure3: {}".format(str(cmd_args)))
-            logging.info(util.exec_prog(cmd_args))
+            measure3.run(base_name, storage.DBIMAGES)
 
             if not dry_run:
                 filename = base_name + ".measure3.cands.astrom"
                 vospace_filename = "%s.measure3.cands.astrom" % field
-                storage.copy(filename, os.path.join(measure3, vospace_filename))
+                storage.copy(filename, os.path.join(measure3_dir, vospace_filename))
 
         except Exception as ex:
             message = str(ex)
             logging.error(message)
 
         if not dry_run:
-            storage.set_status(task, prefix, expnum, version, ccd, status=message)
+            storage.set_status(task, prefix, expnum, version, ccd,
+                               status=message)
 
 
 def main():
@@ -140,7 +151,7 @@ def main():
                         action='store_true')
     parser.add_argument("--dbimages",
                         action="store",
-                        default="vos:OSSOS/dbimages",
+                        default=storage.DBIMAGES,
                         help='vospace dbimages containerNode')
     parser.add_argument("--field",
                         action="store",
@@ -152,14 +163,16 @@ def main():
     parser.add_argument("--measure3",
                         action="store",
                         help="VOSpace location for measure3 files",
-                        default=MEASURE3)
-    parser.add_argument('--type', default='p', choices=['o', 'p', 's'], help="which type of image")
+                        default=storage.MEASURE3)
+    parser.add_argument('--type', default='p', choices=['o', 'p', 's'],
+                        help="which type of image")
     parser.add_argument("--verbose", "-v",
                         action="store_true")
     parser.add_argument("--debug", '-d',
                         action='store_true')
     parser.add_argument("--force", '-f', action='store_true')
-    parser.add_argument("--dry-run", action="store_true", help="Don't push back to VOSpace, implies --force")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Don't push back to VOSpace, implies --force")
 
     cmd_line = " ".join(sys.argv)
     args = parser.parse_args()
@@ -176,20 +189,20 @@ def main():
     if args.ccd is None:
         if int(expnum) < 1785619:
             # Last exposures with 36 CCD Megaprime
-            ccdlist = list(range(0, 36))
+            ccd_list = list(range(0, 36))
         else:
-            # First exposrues with 40 CCD Megaprime
-            ccdlist = list(range(0, 40))
+            # First exposures with 40 CCD Megaprime
+            ccd_list = list(range(0, 40))
     else:
-        ccdlist = [args.ccd]
+        ccd_list = [args.ccd]
 
-    for ccd in ccdlist:
+    for ccd in ccd_list:
         run(args.expnum,
             ccd,
             prefix=prefix,
             version=version,
             field=args.field,
-            measure3=args.measure3,
+            measure3_dir=args.measure3,
             dry_run=args.dry_run,
             force=args.force)
 

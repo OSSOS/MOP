@@ -82,13 +82,13 @@ auto-magical way.
     parser = argparse.ArgumentParser(description=description, epilog=epilog)
     parser.add_argument("existing_astrometry_directory",
                         help=("Directory containing previously reported astrometry."
-                              "Files can be in dbase ast, validate ast or OSSOS mpc format"))
+                              "Files can be in dbase ast, gui ast or OSSOS mpc format"))
     parser.add_argument("--idx_filename",
                         default=None,
                         help="File that has the MOP/OSSOS name mapping index.")
     parser.add_argument("new_astrometry_directory",
                         help=("Directory containing astrometry to be searched for new lines to report."
-                              "Files should be in validate ast format."
+                              "Files should be in gui ast format."
                               "Only observations from a single observatory should be present in these files."))
     parser.add_argument("report_file",
                         help="Name of file that new lines will be reported to")

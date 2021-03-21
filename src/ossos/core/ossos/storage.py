@@ -634,7 +634,7 @@ def decompose_content_decomposition(content_decomposition):
     :return:
     """
     # check for '-*' in the cutout string and replace is naxis:1
-    content_decomposition = re.findall('(\d+)__(\d*)_(\d*)_(\d*)_(\d*)', content_decomposition)
+    content_decomposition = re.findall(r'(\d+)__(\d*)_(\d*)_(\d*)_(\d*)', content_decomposition)
     if len(content_decomposition) == 0:
         content_decomposition = [(0, 1, -1, 1, -1)]
     return content_decomposition
@@ -881,18 +881,27 @@ def ra_dec_cutout(uri, sky_coord, radius, update_wcs=False):
     logger.debug("Sending back {}".format(hdulist))
     return hdulist
 
+
 def frame2expnum(frameid):
-    """Given a standard OSSOS frameid return the expnum, version and ccdnum as a dictionary."""
-    result = {}
-    parts = re.search('(?P<expnum>\d{7})(?P<type>\S)(?P<ccd>\d\d)', frameid)
-    assert parts is not None
-    result['expnum'] = parts.group('expnum')
-    result['ccd'] = parts.group('ccd')
-    result['version'] = parts.group('type')
-    return result
+    """Given a standard OSSOS frameid return the expnum, version and ccdnum
+    as a dictionary."""
+    try:
+        f = re.search("(?P<prefix>\D*)(?P<expnum>\d*)(?P<version>\D*)(?P<ccd>\d*)",
+                      frameid)
+        return f.groupdict()
+    except Exception as ex:
+        logging.error(f"Failed to parse: {frameid}")
+        logging.error(str(ex))
+        raise ex
+
 
 def get_frame(frameid, cutout=None):
-    """Given a frameid, which consists of expnum version and ccd retrieve a cutout."""
+    """retrieve cutout for given frameid
+    @param frameid: OSSOS Frame identifier
+    @ptype frameid: str
+    @param cutout: cfitsio cutout.
+    @ptype cutout: str
+    """
     return get_image(cutout=cutout, **frame2expnum(frameid))
 
 

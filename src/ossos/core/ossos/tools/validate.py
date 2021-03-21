@@ -31,7 +31,7 @@ def main():
                                      epilog=textwrap.dedent('''
 Below is a list of environment variables that can be set at the shell level 
 to override default behaviour (e.g. export MOP.PREFETCH.NUMBER=5 
-would set validate to only pre-fetch 5 observation sets, lowering the number
+would set gui to only pre-fetch 5 observation sets, lowering the number
 of simultaneously open files):
 
 

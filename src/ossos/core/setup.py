@@ -36,7 +36,7 @@ console_scripts = ['mkpsf = ossos.pipeline.mkpsf:main', 'step3 = ossos.pipeline.
                    'astrom_mag_check = ossos.pipeline.astrom_mag_check:main',
                    'scramble = ossos.pipeline.scramble:main']
 
-gui_scripts = ['validate.py = ossos.tools.validate:main']
+gui_scripts = ['gui.py = ossos.tools.gui:main']
 
 setup(name='ossos',
       version=version_string,
@@ -57,9 +57,8 @@ setup(name='ossos',
                    'License :: OSI Approved :: GNU General Public License (GPL)',
                    ],
       package_data={'ossos': ['gui/*.json']},
-      dependency_links=['git+https://github.com/ericmandel/pyds9.git#egg=pyds9-1.8'],
       install_requires=dependencies,
-      scripts=["scripts/validate",],
+      # scripts=["scripts/gui",],
       entry_points={'console_scripts': console_scripts,
                     'gui_scripts': gui_scripts},
       packages=find_packages(exclude=['tests', ])

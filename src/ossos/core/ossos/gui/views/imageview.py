@@ -54,13 +54,13 @@ class ImageViewManager(object):
             logger.debug("Starting DS9")
             # start ds9 if need, or connect to existing
             try:
-                self._ds9 = ds9.DS9(target='validate', start=False)
+                self._ds9 = ds9.DS9(target='gui', start=False)
             except ValueError as ve:
                 cnt = 0
                 while cnt < 10:
                     cnt += 1
                     try:
-                        self._ds9 = ds9.DS9(target='validate', start=True, wait=30, verify=True)
+                        self._ds9 = ds9.DS9(target='gui', start=True, wait=30, verify=True)
                         self.set_ds9(level="INIT")
                         self.set_ds9(level="PREF")
                         break

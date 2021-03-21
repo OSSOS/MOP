@@ -5,6 +5,7 @@ import os
 import argparse
 import logging
 from pathlib import Path
+from ossos import storage
 
 
 SUCCESS_FILE = "measure3.OK"
@@ -14,11 +15,27 @@ CANDS_ASTROM_EXT = 'measure3.cands.astrom'
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run xy2skypv on cands.comb files to produce cands.astrom")
-    parser.add_argument('base_image', help="The base image referencing the .cands.comb file")
+    parser = argparse.ArgumentParser(
+        description="Run xy2skypv on cands.comb files to produce cands.astrom")
+    parser.add_argument('base_image',
+                        help="The base image referencing the .cands.comb file")
+    parser.add_argument('--dbimages',
+                        help="DBImage VOSpace URI",
+                        default=storage.DBIMAGES)
 
     args = parser.parse_args()
     base_image = args.base_image
+    storage.DBIMAGES = args.dbimages
+    run(base_image, dbimages=storage.DBIMAGES)
+
+
+def run(base_image, dbimages=None):
+    """
+    execute sky2xypv on sources found in cands.comb file.
+    """
+
+    if dbimages is not None:
+        storage.DBIMAGES = dbimages
 
     Path(f'{base_image}.{FAILED_EXT}').touch()
 
@@ -44,8 +61,9 @@ def main():
                 # Skip EMPTY lines...
                 continue
             if cands_line.lstrip()[0] == '#':
-                # write out all the header lines accept the one with column names
-                # as its different for the astrom version 'X_0' is a column name in the cands.comb files.
+                # write out all the header lines except the one with column
+                # names as its different for the astrom version 'X_0' is a
+                # column name in the cands.comb files.
                 if "X_0" not in cands_line:
                     astrom_file.write(cands_line)
                 else:
@@ -71,12 +89,14 @@ def main():
             xy_files[base_name].flush()
             line_counter += 1
 
-        # Now run the astrometry for each object on the frame that object was detected on
+        # Now run the astrometry for each object on the frame that
+        # object was detected on
 
         astrometry_lines = {}
         for base_name in xy_files:
             xy_files[base_name].close()
-            cmd = 'xy2skypv %s.fits %s.xy %s.rd' % (base_name, base_name, base_name)
+            cmd = 'xy2skypv %s.fits %s.xy %s.rd' % (base_name,
+                                                    base_name, base_name)
             os.system(cmd)
             astrometry_lines[base_name] = open("%s.rd" % base_name).readlines()
 
