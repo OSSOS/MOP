@@ -6,19 +6,12 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 # systems such as ScientificLinux 5.5 on CANFAR VMs.
 
 try:
-    # On up-to-date systems this import will trigger using version 1 of
-    # the pubsub API.
-    from wx.lib.pubsub import setupv1
-except ImportError:
-    # Old systems will not be able to execute that import, but it is ok
-    # because all they have is the version 1 API.
-    pass
-
-try:
-    from wx.lib.pubsub import Publisher as pub
-except ImportError:
-    from wx.lib.pubsub import setuparg1
-    from wx.lib.pubsub import pub
+    from pubsub import pub
+#    from wx.lib.pubsub import Publisher as pub
+except ImportError as ierr:
+    print(f"{ierr}")
+    print(f"This package now requires PyPubSub to be installed, Hint: pip install pypubsub")
+    exit()
 
 # Event ids
 ROOT = ("rootid", )
@@ -29,7 +22,7 @@ NO_AVAILABLE_WORK = ROOT + ("no_available_work", )
 
 
 def send(event_id, data=None):
-    pub.sendMessage(event_id, data=data)
+    pub.sendMessage(event_id, event=data)
 
 
 def subscribe(event_id, callback):

@@ -10,23 +10,29 @@ import re
 import tempfile
 import logging
 import warnings
-import time
-from astropy.coordinates import SkyCoord
-from astropy.nddata import Cutout2D, NoOverlapError
-from astropy.io import ascii
+from glob import glob
+
+import requests as requests_module
+import vos
 from astropy import units
+from astropy.coordinates import SkyCoord
+from astropy.nddata import Cutout2D
+from astropy.io import ascii
+from astropy.io import fits
+from astropy.io.fits.verify import VerifyWarning
+from astropy.time import Time
 from astropy.units import Quantity
 from astropy.utils.exceptions import AstropyUserWarning
-from astropy.io import fits
-import requests as requests_module
-from .downloads.cutouts.calculator import CoordinateConverter
+from astropy.wcs import FITSFixedWarning
+from cadcutils import exceptions
+from six import BytesIO
+
 from . import coding
 from . import util
-from astropy.time import Time
+from .downloads.cutouts.calculator import CoordinateConverter
+from .gui import config
 from .gui import logger
 from .wcs import WCS
-import vos
-from .gui import config
 
 client = vos.Client()
 # from .gui.errorhandling import DownloadErrorHandler
@@ -90,7 +96,6 @@ FITS_EXT = ".fits"
 
 
 class MyRequests(object):
-
     def __init__(self):
 
         self.requests = requests_module
@@ -208,7 +213,7 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2, 
             mjdate + 1.0 / 24.0,
             mjdate - 1 / 24.0)
 
-    result = requests.get(TAP_WEB_SERVICE, params=data, verify=False)
+    result = requests.get(TAP_WEB_SERVICE, params=data)
 
     logger.debug("Doing TAP Query using url: %s" % (str(result.url)))
 
@@ -629,7 +634,7 @@ def decompose_content_decomposition(content_decomposition):
     :return:
     """
     # check for '-*' in the cutout string and replace is naxis:1
-    content_decomposition = re.findall('(\d+)__(\d*)_(\d*)_(\d*)_(\d*)', content_decomposition)
+    content_decomposition = re.findall(r'(\d+)__(\d*)_(\d*)_(\d*)_(\d*)', content_decomposition)
     if len(content_decomposition) == 0:
         content_decomposition = [(0, 1, -1, 1, -1)]
     return content_decomposition
@@ -654,7 +659,7 @@ def _reset_datasec(header, cutout):
                                        header.get('DATASEC', default_datasec),
                                        header['NAXIS1'],
                                        header['NAXIS2'])
-   
+
 
 
 def _cutout_expnum(observation, sky_coord, radius):
@@ -669,7 +674,7 @@ def _cutout_expnum(observation, sky_coord, radius):
     @return: HDUList containing the cutout image.
     @rtype: list(HDUList)
     """
-<<<<<<< HEAD
+
     filename = "{}.fits".format(observation.rawname)
     if os.access(filename, os.R_OK):
       try:
@@ -682,18 +687,14 @@ def _cutout_expnum(observation, sky_coord, radius):
                 continue
             w = WCS(hdu.header)
             x, y  = w.sky2xy(sky_coord.ra.degree, sky_coord.dec.degree)
-            deg_radius = math.fabs(radius.to('degree').value / w.cd[0][0]) * 2.0
-            try:
-               result = Cutout2D(hdu.data, (x, y), (deg_radius, deg_radius))
-            except NoOverlapError:
-               continue
-            observation.ccdnum = hdu.header['DET-ID']
+            radius = math.fabs(radius.to('degree').value / w.cd[0][0]) * 2.0
+            result = Cutout2D(hdu.data, (x, y), (radius, radius))
             p1, p2 = result.to_cutout_position((hdu.header['CRPIX1'], hdu.header['CRPIX2']))
             hdu = fits.ImageHDU(data=result.data, header=hdu.header)
             hdu.header['CRPIX1'] = p1
             hdu.header['CRPIX2'] = p2
-            hdu.header['XOFFSET'] = result.origin_cutout[0] 
-            hdu.header['YOFFSET'] = result.origin_cutout[1] 
+            hdu.header['XOFFSET'] = result.origin_cutout[0] - 1
+            hdu.header['YOFFSET'] = result.origin_cutout[1] - 1
             hdu.converter = CoordinateConverter(hdu.header['XOFFSET'], hdu.header['YOFFSET'])
             hdu.wcs = WCS(hdu.header)
             bbox = result.bbox_original
@@ -708,27 +709,25 @@ def _cutout_expnum(observation, sky_coord, radius):
         traceback.print_tb(exc_traceback, limit=100, file=sys.stdout)
         print(ex)
         raise(ex)
-    
 
-    else: 
+
+    else:
       uri = observation.get_image_uri()
       cutout_filehandle = tempfile.NamedTemporaryFile()
-      try:
-          cutout_uri = uri + "({},{},{})".format(sky_coord.ra.to('degree').value, sky_coord.dec.to('degree').value, radius.to('degree').value)
-          disposition_filename = client.copy(cutout_uri, 
-                                             cutout_filehandle.name,
-                                             disposition=True)
-      except Exception as ex:
-          print(cutout_uri)
-          print(ex)
-          raise(ex)
+      disposition_filename = client.copy(uri + "({},{},{})".format(sky_coord.ra.to('degree').value,
+                                                                   sky_coord.dec.to('degree').value,
+                                                                   radius.to('degree').value),
+                                         cutout_filehandle.name,
+                                         disposition=True)
       cutouts = decompose_content_decomposition(disposition_filename)
 
       cutout_filehandle.seek(0)
-      hdulist = fits.open(cutout_filehandle)
-      hdulist.verify('silentfix+ignore')
+      with warnings.catch_warnings():
+          warnings.simplefilter('ignore', FITSFixedWarning)
+          hdulist = fits.open(cutout_filehandle, mode='update', lazy_load_hdus=False,
+                              memmap=False)
+          hdulist.verify('silentfix+ignore')
       logger.debug("Initial Length of HDUList: {}".format(len(hdulist)))
-    
 
     # Make sure here is a primaryHDU
     if len(hdulist) == 1:
@@ -744,7 +743,7 @@ def _cutout_expnum(observation, sky_coord, radius):
     for hdu in hdulist[1:]:
         cutout = cutouts.pop(0)
         if 'ASTLEVEL' not in hdu.header:
-            print(("WARNING: ******* NO ASTLEVEL KEYWORD ********** for {0} ********".format(observation.get_image_uri)))
+            logger.info(f"NO ASTLEVEL KEYWORD in {observation.get_image_uri}, setting to 0")
             hdu.header['ASTLEVEL'] = 0
         hdu.header['EXTNO'] = cutout[0]
         naxis1 = hdu.header['NAXIS1']
@@ -798,7 +797,7 @@ def ra_dec_cutout(uri, sky_coord, radius, update_wcs=False):
         import http.client as http_client
     except ImportError:
         # Python 2
-        import http.client as http_client
+        import httplib as http_client
 
     # Get the 'uncut' images CRPIX1/CRPIX2 values
 
@@ -812,8 +811,10 @@ def ra_dec_cutout(uri, sky_coord, radius, update_wcs=False):
 
     cutout_filehandle.seek(0)
     try:
-        hdulist = fits.open(cutout_filehandle, mode='update')
-        hdulist.verify('silentfix+ignore')
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', FITSFixedWarning)
+            hdulist = fits.open(cutout_filehandle, mode='update')
+            hdulist.verify('silentfix+ignore')
     except Exception as ex:
         raise ex
 
@@ -880,18 +881,27 @@ def ra_dec_cutout(uri, sky_coord, radius, update_wcs=False):
     logger.debug("Sending back {}".format(hdulist))
     return hdulist
 
+
 def frame2expnum(frameid):
-    """Given a standard OSSOS frameid return the expnum, version and ccdnum as a dictionary."""
-    result = {}
-    parts = re.search('(?P<expnum>\d{7})(?P<type>\S)(?P<ccd>\d\d)', frameid)
-    assert parts is not None
-    result['expnum'] = parts.group('expnum')
-    result['ccd'] = parts.group('ccd')
-    result['version'] = parts.group('type')
-    return result
+    """Given a standard OSSOS frameid return the expnum, version and ccdnum
+    as a dictionary."""
+    try:
+        f = re.search("(?P<prefix>\D*)(?P<expnum>\d*)(?P<version>\D*)(?P<ccd>\d*)",
+                      frameid)
+        return f.groupdict()
+    except Exception as ex:
+        logging.error(f"Failed to parse: {frameid}")
+        logging.error(str(ex))
+        raise ex
+
 
 def get_frame(frameid, cutout=None):
-    """Given a frameid, which consists of expnum version and ccd retrieve a cutout."""
+    """retrieve cutout for given frameid
+    @param frameid: OSSOS Frame identifier
+    @ptype frameid: str
+    @param cutout: cfitsio cutout.
+    @ptype cutout: str
+    """
     return get_image(cutout=cutout, **frame2expnum(frameid))
 
 
@@ -917,19 +927,22 @@ def get_image(expnum, ccd=None, version='p', ext=FITS_EXT,
         return filename
 
     cutout_string = cutout
-    print(filename, cutout_string)
     try:
         if os.access(filename, os.F_OK) and cutout:
             cutout = datasec_to_list(cutout)
-            hdulist = fits.open(filename, mode='update')
-            if len(hdulist) > 1:
-                raise ValueError("Local cutout access not designed to work on MEFs yet.")
-            header = hdulist[0].header
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore', FITSFixedWarning)
+                hdulist = fits.open(filename, mode='update')
+                hdulist.verify('silentfix+ignore')
+            for use_this_ext, hdu in enumerate(hdulist):
+                if hdu.header.get('NAXIS', 0) > 0:
+                    break
+            header = hdulist[use_this_ext].header
             cutout[0] = cutout[0] < 0 and header['NAXIS1'] - cutout[0] + 1 or cutout[0]
             cutout[1] = cutout[1] < 0 and header['NAXIS1'] - cutout[1] + 1 or cutout[1]
             cutout[2] = cutout[2] < 0 and header['NAXIS2'] - cutout[2] + 1 or cutout[2]
             cutout[3] = cutout[3] < 0 and header['NAXIS2'] - cutout[3] + 1 or cutout[3]
-            logger.debug("DATA array shape: {}".format(hdulist[0].data.shape))
+            logger.debug("DATA array shape: {}".format(hdulist[use_this_ext].data.shape))
             logger.debug("CUTOUT array: {} {} {} {}".format(cutout[0],
                                                             cutout[1],
                                                             cutout[2],
@@ -943,8 +956,8 @@ def get_image(expnum, ccd=None, version='p', ext=FITS_EXT,
             header['CD2_2'] = header.get("CD2_2", 1) * flop
             header['CD1_2'] = header.get("CD1_2", 1) * flop
 
-            data = hdulist[0].data[cutout[2]-1:cutout[3], cutout[0]-1:cutout[1]]
-            hdulist[0].data = data
+            data = hdulist[use_this_ext].data[cutout[2]-1:cutout[3], cutout[0]-1:cutout[1]]
+            hdulist[use_this_ext].data = data
             header['DATASEC'] = reset_datasec(cutout_string,
                                               header['DATASEC'],
                                               header['NAXIS1'],
@@ -1110,8 +1123,14 @@ def get_hdu(uri, cutout=None):
         filename = os.path.basename(uri)
         if os.access(filename, os.F_OK) and cutout is None:
             logger.debug("File already on disk: {}".format(filename))
-            hdu_list = fits.open(filename, model='update') # , scale_back=True)
-            hdu_list.verify('silentfix+ignore')
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore', FITSFixedWarning)
+                hdu_list = fits.open(filename, model='update') # , scale_back=True)
+                hdu_list.verify('silentfix+ignore')
+            use_this_ext = 0
+            for use_this_ext, hdu in enumerate(hdu_list):
+                if hdu.header.get('NAXIS',0) > 0:
+                    break
 
         else:
             logger.debug("Pulling: {}{} from VOSpace".format(uri, cutout))
@@ -1121,14 +1140,20 @@ def get_hdu(uri, cutout=None):
             fpt.seek(0, 2)
             fpt.seek(0)
             logger.debug("Read from vospace completed. Building fits object.")
-            hdu_list = fits.open(fpt, scale_back=False, mode='update')
-            hdu_list.verify('silentfix+ignore')
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore', FITSFixedWarning)
+                hdu_list = fits.open(fpt, scale_back=False, mode='update')
+                hdu_list.verify('silentfix+ignore')
+            use_this_ext = 0
+            for use_this_ext, hdu in enumerate(hdu_list):
+                if hdu.header.get('NAXIS',0) > 0:
+                    break
 
             logger.debug("Got image from vospace")
             try:
-                hdu_list[0].header['DATASEC'] = reset_datasec(cutout, hdu_list[0].header['DATASEC'],
-                                                              hdu_list[0].header['NAXIS1'],
-                                                              hdu_list[0].header['NAXIS2'])
+                hdu_list[use_this_ext].header['DATASEC'] = reset_datasec(cutout, hdu_list[use_this_ext].header['DATASEC'],
+                                                              hdu_list[use_this_ext].header['NAXIS1'],
+                                                              hdu_list[use_this_ext].header['NAXIS2'])
             except Exception as e:
                 logging.debug("error converting datasec: {}".format(str(e)))
 
@@ -1214,7 +1239,7 @@ def get_fwhm(expnum, ccd, prefix=None, version='p'):
         return fwhm[uri]
     except Exception as ex:
         logger.warning(str(ex))
-        fwhm[uri] = 4.0
+        fwhm[uri] = 5.0
         return fwhm[uri]
 
 
@@ -1452,8 +1477,12 @@ def get_property(node_uri, property_name, ossos_base=True):
     """
     # Must use force or we could have a cached copy of the node from before
     # properties of interest were set/updated.
-    node = client.get_node(node_uri, force=True)
-    property_uri = tag_uri(property_name) if ossos_base else property_name
+    try:
+        node = client.get_node(node_uri, force=True)
+        property_uri = tag_uri(property_name) if ossos_base else property_name
+    except exceptions.HttpException as ex:
+        logger.error(f'{ex}')
+        return None
 
     if property_uri not in node.props:
         return None
@@ -1472,16 +1501,39 @@ def set_property(node_uri, property_name, property_value, ossos_base=True):
     @param ossos_base:
     @return:
     """
-    node = client.get_node(node_uri)
-    property_uri = tag_uri(property_name) if ossos_base else property_name
+    while True:
+        try:
+            logger.info(f"Getting Node Property")
+            node = client.get_node(node_uri)
+            logger.info(f"{node}")
+            property_uri = tag_uri(property_name) if ossos_base else property_name
+            logger.info(f"{property_uri}")
+            break
+        except exceptions.HttpException:
+            print(f'Waiting to retry VOSpace')
+            time.sleep(3)
 
     # If there is an existing value, clear it first
     if property_uri in node.props:
-        node.props[property_uri] = None
-        client.add_props(node)
+        while True:
+            try:
+                    node.props[property_uri] = None
+                    logger.info(f"Clearing Node Property")
+                    client.add_props(node)
+                    break
+            except exceptions.HttpException:
+                print(f'Waiting to retry VOSpace')
+                time.sleep(3)
 
-    node.props[property_uri] = property_value
-    client.add_props(node)
+    while True:
+        try:
+            node.props[property_uri] = property_value
+            logger.info(f"Adding Node Property {property_uri}: {property_value}")
+            client.add_props(node)
+            break
+        except exceptions.HttpException:
+            print(f'Waiting to retry VOSpace')
+            time.sleep(3)
 
 
 def build_counter_tag(epoch_field, dry_run=False):
@@ -1563,13 +1615,16 @@ def get_mopheader(expnum, ccd, version='p', prefix=None):
 
     if os.access(filename, os.F_OK):
         logger.debug("File already on disk: {}".format(filename))
-        mopheader_fpt = BytesIO(open(filename, 'rb').read())
+        with open(filename, 'rb') as fobj:
+            mopheader_fpt = BytesIO(fobj.read())
     else:
         mopheader_fpt = BytesIO(open_vos_or_local(mopheader_uri).read())
 
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', AstropyUserWarning)
+        warnings.simplefilter('ignore', VerifyWarning)
         mopheader = fits.open(mopheader_fpt)
+        mopheader.verify('silentfix+ignore')
 
         # add some values to the mopheader so it can be an astrom header too.
         header = mopheader[0].header
@@ -1578,12 +1633,12 @@ def get_mopheader(expnum, ccd, version='p', prefix=None):
         except IOError:
             header['FWHM'] = 10
         header['SCALE'] = mopheader[0].header['PIXSCALE']
-        header['NAX1'] = header['NAXIS1']
-        header['NAX2'] = header['NAXIS2']
-        header['MOPversion'] = header['MOP_VER']
-        header['MJD_OBS_CENTER'] = str(Time(header['MJD-OBSC'],
-                                            format='mjd',
-                                            scale='utc', precision=5).replicate(format='mpc'))
+        header['NAX1'] = header.get('NAXIS1', header.get('ONAXIS1', None))
+        header['NAX2'] = header.get('NAXIS2', header.get('ONAXIS2', None))
+        header['MOP_VER'] = header['MOP_VER']
+        header['MJD_OBSC'] = str(Time(header['MJD-OBSC'],
+                                      format='mjd',
+                                      scale='utc', precision=5).replicate(format='mpc'))
         header['MAXCOUNT'] = MAXCOUNT
         mopheaders[mopheader_uri] = header
         mopheader.close()
@@ -1669,7 +1724,8 @@ def get_astheader(expnum, ccd, version='p', prefix=None):
                                cutout="[1:1,1:1]", return_file=False, ext='.fits')
            assert isinstance(hdulist, fits.HDUList)
            astheaders[ast_uri] = hdulist[0].header
-    except:
+    except Exception as ex:
+       logging.error(f'{ast_uri}: {ex}')
        ast_uri = dbimages_uri(expnum, ccd, version=version, ext='.fits.fz')
        if ast_uri not in astheaders:
            hdulist = get_image(expnum, ccd=ccd, version=version, prefix=prefix,

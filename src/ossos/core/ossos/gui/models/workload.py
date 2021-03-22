@@ -629,12 +629,14 @@ class WorkUnitProvider(object):
         Get a listing of files for the appropriate task which may or may
         not be locked and/or done.
         """
+        logger.debug(f"Getting a list of potential files using {self.directory_context}")
         exclude_prefix = self.taskid == tasks.suffixes.get(tasks.REALS_TASK, '') and 'fk' or None
         filenames = [filename for filename in
                      self.directory_context.get_listing(self.taskid, exclude_prefix=exclude_prefix)
                      if filename not in ignore_list and
                      filename not in self._done and
                      filename not in self._already_fetched]
+
 
         # if the extension is .mpc. then we look for the largest numbered MPC file.
         # look for the largest numbered MPC file only.
@@ -660,6 +662,8 @@ class WorkUnitProvider(object):
                 version = len(str(version)) > 0 and ".{}".format(version) or version
                 filenames.append("{}{}{}".format(basename, version, self.taskid))
                 # print basename, basenames[basename], filenames[-1]
+        logger.debug(f"Got a list of these files {filenames}")
+
         return filenames
 
     def select_potential_file(self, potential_files):
@@ -699,6 +703,7 @@ class PreFetchingWorkUnitProvider(object):
         if len(self.workunits) > 0:
             workunit = self.workunits.pop(0)
         else:
+            logger.debug(f"No workunits available, getting some using {self.workunit_provider}")
             workunit = self.workunit_provider.get_workunit(
                 ignore_list=self.fetched_files)
             self.fetched_files.append(workunit.get_filename())
@@ -712,7 +717,7 @@ class PreFetchingWorkUnitProvider(object):
             return
 
         num_to_fetch = self.prefetch_quantity - len(self.workunits)
-
+        logger.info(f"Fetching {num_to_fetch} files.")
         if num_to_fetch < 0:
             # Prefetch quantity can be 0
             num_to_fetch = 0
@@ -727,7 +732,9 @@ class PreFetchingWorkUnitProvider(object):
     def prefetch_workunit(self):
         thread = threading.Thread(target=self._do_prefetch_workunit)
         self._threads.append(thread)
+        logger.debug(f"Starting prefetch thread.")
         thread.start()
+        logger.debug(f"Prefetch started.")
 
     def _do_prefetch_workunit(self):
         try:

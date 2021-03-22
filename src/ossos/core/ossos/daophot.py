@@ -56,22 +56,25 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
     try:
         input_hdulist = fits.open(fits_filename)
     except Exception as err:
-        logger.debug(str(err))
-        raise TaskError("Failed to open input image: %s" % err.message)
+        logger.error(f'Failed trying to open {fits_filename}')
+        logger.error(str(err))
+        raise FileNotFoundError(fits_filename)
 
     # get the filter for this image
-    filter_name = input_hdulist[extno].header.get('FILTER', 'DEFAULT')
+    filter_name = input_hdulist[extno].header.get('FILTER',
+                                                  input_hdulist[0].header.get('FILTER',
+                                                                              'DEFAULT'))
 
     # Some nominal CFHT zeropoints that might be useful
     zeropoints = {"I": 25.77,
                   "R": 26.07,
                   "V": 26.07,
                   "B": 25.92,
+                  "r2": 27.3,
                   "DEFAULT": 26.0,
                   "g.MP9401": 32.0,
                   'r.MP9601': 31.9,
                   'gri.MP9603': 33.520}
-
     if zmag is None:
         logger.warning("No zmag supplied to daophot, looking for header or default values.")
         zmag = input_hdulist[extno].header.get('PHOTZP', zeropoints[filter_name])
@@ -83,7 +86,6 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
                     zmag = float(zpu_fh.read())
                     logger.warning("Using file {} to set zmag to: {}".format(zpu_file, zmag))
                     break
-
     photzp = input_hdulist[extno].header.get('PHOTZP', zeropoints.get(filter_name, zeropoints["DEFAULT"]))
     if zmag != photzp:
         logger.warning(("zmag sent to daophot: ({}) "
@@ -97,7 +99,7 @@ def phot(fits_filename, x_in, y_in, aperture=15, sky=20, swidth=10, apcor=0.3,
 
     iraf.photpars.apertures = aperture
     iraf.photpars.zmag = zmag
-    iraf.datapars.datamin = 0
+    iraf.datapars.datamin = -100
     iraf.datapars.datamax = maxcount
     iraf.datapars.exposur = ""
     iraf.datapars.itime = exptime

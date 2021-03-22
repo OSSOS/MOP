@@ -1,30 +1,29 @@
-from math import sqrt
-import operator
 import math
-import sys
+import operator
 import os
 import string
+import sys
+from math import sqrt
 
-from matplotlib.patches import Rectangle
-from matplotlib.patches import Ellipse
-from matplotlib import rcParams
-import numpy as np
-from matplotlib.pyplot import figure, savefig
-from astropy.io import votable
-import ephem
-import Polygon
 import Polygon.IO
+import ephem
+import numpy as np
+from astropy.io import votable
+from matplotlib import rcParams
+from matplotlib.patches import Ellipse
+from matplotlib.patches import Rectangle
+from matplotlib.pyplot import figure, savefig
 
+from ossos import mpc
+from ossos import orbfit
+from ossos import storage
 from . import invariable
+from . import megacam
 from . import mpcread
 from . import usnoB1
-from . import megacam
-from ossos import storage
-from ossos import orbfit
-from ossos import mpc
 
+USER = os.getenv('HOME', '/Users/michele/')
 
-USER = os.getenv('HOME','/Users/michele/')
 
 # USER = '/Users/jjk/'
 
@@ -39,10 +38,10 @@ MPCORB_FILE = os.path.join(USER, 'MPCORB-Distant.dat')
 L7MODEL = 'vos:OSSOS/CFEPS/L7SyntheticModel-v09.txt'
 # L7MODEL = '/Users/kavelaarsj/Dropbox/Research/KuiperBelt/OSSOS/L7SyntheticModel-v09.txt'
 REAL_KBO_AST_DIR = '/Users/jjk/Dropbox/Research/KuiperBelt/OSSOS/dbaseclone/ast'
-#REAL_KBO_AST_DIR = os.path.join(USER, 'Dropbox/OSSOS/measure3/ossin/')
+# REAL_KBO_AST_DIR = os.path.join(USER, 'Dropbox/OSSOS/measure3/ossin/')
 
 PLOT_FIELD_EPOCH = 'Oct16'  # Oct14.00 ==> '0' days since the New Moon on Oct14
-#TODO the .00 is appended when this variable is used as a keyword that needs that .00 this is bad.
+# TODO the .00 is appended when this variable is used as a keyword that needs that .00 this is bad.
 DISCOVERY_NEW_MOON = 'Nov15'  # this is the date that the RA/DEC in blocks corresponds to.
 
 PLOT_USNO_STARS = True
@@ -53,7 +52,6 @@ PLOT_REAL_KBOS = True and os.access(REAL_KBO_AST_DIR, os.F_OK)
 PLOT_FIELD_LAYOUT = True
 
 PLOT_MPCORB = False and os.access(MPCORB_FILE, os.F_OK)
-
 
 LABEL_FIELDS = True
 LABEL_PLANETS = True
@@ -138,13 +136,13 @@ NAME                |RA         |DEC        |EPOCH |POINT|
 
 # spring13
 # blocks = {#'13AE': {"RA": "14:15:28.89", "DEC": "-12:32:28.4"},  # E+0+0: image 1616681, ccd21 on April 9
-#'13AO': {"RA": "15:58:01.35", "DEC": "-12:19:54.2"},  # O+0+0: image 1625346, ccd21 on May 8
-#'14AN': {'RA': "15:30:00.00", "DEC": "-11:00:00.0"},
-#'14AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"},
-#'14AS': {'RA': "15:12:00.00", "DEC": "-17:40:00.0"}}
+# '13AO': {"RA": "15:58:01.35", "DEC": "-12:19:54.2"},  # O+0+0: image 1625346, ccd21 on May 8
+# '14AN': {'RA': "15:30:00.00", "DEC": "-11:00:00.0"},
+# '14AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"},
+# '14AS': {'RA': "15:12:00.00", "DEC": "-17:40:00.0"}}
 
 
-#fall13
+# fall13
 # blocks = {'13BL': {'RA': "00:54:00.00", "DEC": "+03:50:00.00"}}  # ,
 # '13AE': {"RA": "14:15:28.89", "DEC": "-12:32:28.4"},  # E+0+0: image 1616681, ccd21 on April 9
 #           '13AO': {"RA": "15:58:01.35", "DEC": "-12:19:54.2"},  # O+0+0: image 1625346, ccd21 on May 8
@@ -155,10 +153,10 @@ NAME                |RA         |DEC        |EPOCH |POINT|
 ## this position is derived from the +0+0 field for 13B observed on November 1st 2013
 # blocks = {'14BH': {'RA': "01:28:32.32", "DEC": "+12:51:06.10"}}
 
-#fall 2015
+# fall 2015
 blocks = {'15BD': {'RA': "03:15:00.00", "DEC": "+16:30:00.00"}}
 
-#spring15
+# spring15
 # blocks = {'15AP': {'RA': "13:30:00", "DEC": "-07:45:00"}}
 # blocks = {'14AM': {'RA': "15:30:00.00", "DEC": "-12:20:00.0"}}  # the centre when set in May 2014.
 # will then define a 15AM to work properly.
@@ -180,62 +178,60 @@ blocks = {
     #    '15AP': {'RA': "13:30:00.00", "DEC": "-7:45:00.00"},  # on-plane
     # '15AM': {'RA': "15:35:00.00", "DEC": "-12:10:00.0"}  # positioned for its 2015 discovery opposition.
     #  '15BS': {'RA': "00:30:00.00", "DEC": "+05:00:00.00"},  # rejected: dec "-02:45:00.00"
-       '15BD': {'RA': "03:15:00.00", "DEC": "+16:30:00.00"}
+    '15BD': {'RA': "03:15:00.00", "DEC": "+16:30:00.00"}
 }
 
 newMoons = {
-#    'Feb13': "2013/02/10 10:00:00",
-#    'Mar13': "2013/03/11 10:00:00",
-#    'Apr13': "2013/04/10 10:00:00",
-#    'May13': "2013/05/09 10:00:00",
-#    'Jun13': "2013/06/08 10:00:00",
-#    'Jul13': "2013/07/08 10:00:00",
-#    'Aug13': "2013/08/06 10:00:00",
-#    'Sep13': '2013/09/05 10:00:00',
+    #    'Feb13': "2013/02/10 10:00:00",
+    #    'Mar13': "2013/03/11 10:00:00",
+    #    'Apr13': "2013/04/10 10:00:00",
+    #    'May13': "2013/05/09 10:00:00",
+    #    'Jun13': "2013/06/08 10:00:00",
+    #    'Jul13': "2013/07/08 10:00:00",
+    #    'Aug13': "2013/08/06 10:00:00",
+    #    'Sep13': '2013/09/05 10:00:00',
     # 'Oct13': '2013/10/04 10:00:00',
-#    'Nov13': '2013/11/03 10:00:00',
-#    'Dec13': '2013/12/02 10:00:00',
-#    'Jan14': '2014/01/01 10:00:00',
-#    'Feb14': '2014/01/31 10:00:00',
-#    'Mar14': '2014/03/28 10:00:00',
-#    'Apr14': '2014/04/01 10:00:00',
-# 'May14': '2014/05/28 10:00:00',
-#    'Jun14': '2014/06/26 10:00:00',
-#    'Jul14': '2014/07/26 10:00:00',
-#    'Aug14': "2014/08/25 10:00:00",
-#    'Sep14': '2014/09/24 10:00:00',
-#    'Oct14': '2014/10/23 10:00:00',
-#    'Nov14': '2014/11/22 10:00:00',
-#    'Dec14': '2014/12/22 10:00:00',
-#    'Jan15': '2015/01/20 10:00:00',
-#    'Feb15': '2015/02/18 10:00:00',
-#    'Mar15': '2015/03/19 10:00:00',
-#    'Apr15': '2015/04/18 10:00:00',
-#    'May15': '2015/05/17 10:00:00',
-#    'Jun15': '2015/06/16 10:00:00',
-#    'Jul15': '2015/07/15 10:00:00',
-#    'Aug15': '2015/08/14 10:00:00',
- #   'Sep15': '2015/09/12 10:00:00',
-#    'Oct15': '2015/10/12 10:00:00',
+    #    'Nov13': '2013/11/03 10:00:00',
+    #    'Dec13': '2013/12/02 10:00:00',
+    #    'Jan14': '2014/01/01 10:00:00',
+    #    'Feb14': '2014/01/31 10:00:00',
+    #    'Mar14': '2014/03/28 10:00:00',
+    #    'Apr14': '2014/04/01 10:00:00',
+    # 'May14': '2014/05/28 10:00:00',
+    #    'Jun14': '2014/06/26 10:00:00',
+    #    'Jul14': '2014/07/26 10:00:00',
+    #    'Aug14': "2014/08/25 10:00:00",
+    #    'Sep14': '2014/09/24 10:00:00',
+    #    'Oct14': '2014/10/23 10:00:00',
+    #    'Nov14': '2014/11/22 10:00:00',
+    #    'Dec14': '2014/12/22 10:00:00',
+    #    'Jan15': '2015/01/20 10:00:00',
+    #    'Feb15': '2015/02/18 10:00:00',
+    #    'Mar15': '2015/03/19 10:00:00',
+    #    'Apr15': '2015/04/18 10:00:00',
+    #    'May15': '2015/05/17 10:00:00',
+    #    'Jun15': '2015/06/16 10:00:00',
+    #    'Jul15': '2015/07/15 10:00:00',
+    #    'Aug15': '2015/08/14 10:00:00',
+    #   'Sep15': '2015/09/12 10:00:00',
+    #    'Oct15': '2015/10/12 10:00:00',
     'Nov15': '2015/11/11 10:00:00',
-#    'Dec15': '2015/12/11 10:00:00',
-#    'Jan16': '2016/01/09 10:00:00',
-#    'Feb16': '2016/03/08 10:00:00',
-#    'Mar16': '2016/03/09 10:00:00',
-#    'Apr16': '2016/04/08 10:00:00',
-#    'May16': '2016/05/07 10:00:00',
-#    'Jun16': '2016/06/05 10:00:00',
-#    'Jul16': '2016/07/05 10:00:00',
-#    'Aug16': '2016/08/03 10:00:00',
+    #    'Dec15': '2015/12/11 10:00:00',
+    #    'Jan16': '2016/01/09 10:00:00',
+    #    'Feb16': '2016/03/08 10:00:00',
+    #    'Mar16': '2016/03/09 10:00:00',
+    #    'Apr16': '2016/04/08 10:00:00',
+    #    'May16': '2016/05/07 10:00:00',
+    #    'Jun16': '2016/06/05 10:00:00',
+    #    'Jul16': '2016/07/05 10:00:00',
+    #    'Aug16': '2016/08/03 10:00:00',
     'Sep16': '2016/09/01 10:00:00',
     'Oct16': '2016/10/01 10:00:00',
-#    'Nov16': '2016/11/01 10:00:00',
-#    'Dec16': '2016/12/01 10:00:00',
-#    'Jan17': '2017/01/01 10:00:00',
+    #    'Nov16': '2016/11/01 10:00:00',
+    #    'Dec16': '2016/12/01 10:00:00',
+    #    'Jan17': '2017/01/01 10:00:00',
     # 'Feb17': '2017/02/01 10:00:00',
-    }
-
-
+}
 
 xgrid = {'2014': [-3, -2, -1, 0, 1, 2, 3],
          '2014r': [-3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5],
@@ -277,10 +273,10 @@ detsec_ccd35 = ((16934, 18981), (11, 4622))
 
 print(detsec_ccd09[0][0] - detsec_ccd10[0][1], detsec_ccd09[0][1] - detsec_ccd36[0][0])
 
-camera_width =  (max(detsec_ccd37[0]) - min(detsec_ccd09[0]) + 1 )* pixscale / 3600.0
-camera_height = (max(detsec_ccd00[1]) - min(detsec_ccd35[1]) + 1 )* pixscale / 3600.0
-camera_width_40 =  (max(detsec_ccd37[0]) - min(detsec_ccd36[0]) + 1 )* pixscale / 3600.0
-camera_width_36 = (max(detsec_ccd17[0]) - min(detsec_ccd09[0]) + 1 ) * pixscale / 3600.0 
+camera_width = (max(detsec_ccd37[0]) - min(detsec_ccd09[0]) + 1) * pixscale / 3600.0
+camera_height = (max(detsec_ccd00[1]) - min(detsec_ccd35[1]) + 1) * pixscale / 3600.0
+camera_width_40 = (max(detsec_ccd37[0]) - min(detsec_ccd36[0]) + 1) * pixscale / 3600.0
+camera_width_36 = (max(detsec_ccd17[0]) - min(detsec_ccd09[0]) + 1) * pixscale / 3600.0
 
 print(camera_width, camera_width_40, camera_width_36, camera_height)
 
@@ -291,11 +287,11 @@ years = {"2014": {"ra_off": ephem.hours("00:00:00"),
                   "alpha": 0.5,
                   "color": 'b'},
          "40ccd": {"ra_off": ephem.hours("00:00:00"),
-                  "dec_off": ephem.hours("00:00:00"),
-                  "fill": False,
-                  "facecolor": 'k',
-                  "alpha": 0.5,
-                  "color": 'b'},
+                   "dec_off": ephem.hours("00:00:00"),
+                   "fill": False,
+                   "facecolor": 'k',
+                   "alpha": 0.5,
+                   "color": 'b'},
          "2014r": {"ra_off": ephem.hours("00:05:00"),
                    "dec_off": ephem.degrees("00:18:00"),
                    "alpha": 0.5,
@@ -336,9 +332,9 @@ for block in list(blocks.keys()):
         idx = int(dx)
         for dy in ygrid[year]:
             idy = int(math.floor(dy))
-            decc = ephem.degrees(dec_start + dx*height/2.0)
+            decc = ephem.degrees(dec_start + dx * height / 2.0)
             this_decc = decc + dy * height
-            width = 1.007*math.radians(camera_width / math.cos(this_decc))
+            width = 1.007 * math.radians(camera_width / math.cos(this_decc))
             ## set to a -ve instead of +ve for the 'fall'
             rac = ephem.hours(ra_start + dx * width)
             dec = math.degrees(this_decc)
@@ -363,7 +359,6 @@ for block in list(blocks.keys()):
                 (xcen - dimenw / 2.0, ycen - dimenh / 2.0)))
             field_polygon = field_polygon is None and this_point_polygon or this_point_polygon | field_polygon
 
-
 fix.write("""]]</CSV></DATA>
 </TABLE>
 </ASTRO>
@@ -384,16 +379,16 @@ ras = np.array(ras)
 decs = np.array(decs)
 ra_cen = math.degrees(ras.mean())
 dec_cen = math.degrees(decs.mean())
-#ra_cen = 15.0
-#dec_cen = 5.0
-#width = 245 - 205
-#height = -8 + 25
-#ra_cen = 180.0
-#dec_cen = 0.0
-#width = 360
-#height = 70
-#ra_cen = 45.0
-#dec_cen = 17.5
+# ra_cen = 15.0
+# dec_cen = 5.0
+# width = 245 - 205
+# height = -8 + 25
+# ra_cen = 180.0
+# dec_cen = 0.0
+# width = 360
+# height = 70
+# ra_cen = 45.0
+# dec_cen = 17.5
 
 ### These values are the half width/height of the field.
 width = 24
@@ -410,12 +405,11 @@ ax = fig.add_subplot(111)
 xylims = [60, 40, 12, 21]  # D block
 ax.set_xlim(xylims[0], xylims[1])  # ra_cen + width, ra_cen - width)
 ax.set_ylim(xylims[2], xylims[3])  # dec_cen - height, dec_cen + height)
-#ax.set_ylim(-30,30)
+# ax.set_ylim(-30,30)
 ax.set_xlabel('RA (deg)')
 ax.set_ylabel('DE (deg)')
 
 ax.grid()
-
 
 ## plot the galactic plane line ..
 plot_line(ax, 'eplane.radec', 'b-')
@@ -445,7 +439,6 @@ ax.plot([math.degrees(coord.ra) for coord in eq],
         lw=1,
         alpha=0.7)
 ax.text(25, 6, 'Chiang_Choi', fontdict={'color': 'r'})
-
 
 ## build a list of Synthetic KBOs that will be in the discovery fields.
 print("LOADING SYNTHETIC MODEL KBOS FROM: {}".format(L7MODEL))
@@ -536,11 +529,10 @@ for month in seps:
     seps[month]['dra'] /= float(len(kbos))
     seps[month]['ddec'] /= float(len(kbos))
 
-
 sorted_epochs = sorted(iter(dates.items()), key=operator.itemgetter(1))
 
-camera_width=0.983*camera_width
-camera_height=0.983*camera_height
+camera_width = 0.983 * camera_width
+camera_height = 0.983 * camera_height
 
 print("CREATING ET XML FILES USING BASE POINTING AND NOMINAL MOTION RATES")
 for idx in range(len(ras)):
@@ -557,22 +549,25 @@ for idx in range(len(ras)):
         sdate = "%4s-%2s-%2s %2s:%2s:%2s" % (
             tdate[0], zf(tdate[1], 2), zf(tdate[2], 2), zf(tdate[3], 2), zf(tdate[4], 2), zf(int(tdate[5]), 2))
         f.write('%19s|%11s|%11s|\n' % (sdate, ephem.hours(ra), ephem.degrees(dec)))
-        if epoch == PLOT_FIELD_EPOCH+".00" and PLOT_FIELD_LAYOUT:
-            ax.add_artist(Rectangle(xy=(math.degrees(ra) - camera_width_40/2.0, math.degrees(dec) - camera_height / 4.0 ),
-                                    width= camera_width_40,
-                                    height= camera_height/2.0,
-                                    color='b',
-                                    lw=0.5, fill=False, alpha=0.3)) 
-            ax.add_artist(Rectangle(xy=(math.degrees(ra) - camera_width_36/2.0, math.degrees(dec) - camera_height / 2.0),
-                                    height=camera_height/4.0,
-                                    width=camera_width_36,
-                                    color='g',
-                                    lw=0.5, fill=False, alpha=0.3))
-            ax.add_artist(Rectangle(xy=(math.degrees(ra) - camera_width_36/2.0, math.degrees(dec) + camera_height / 4.0),
-                                    height=camera_height/4.0,
-                                    width=camera_width_36,
-                                    color='r',
-                                    lw=0.5, fill=False, alpha=0.3))
+        if epoch == PLOT_FIELD_EPOCH + ".00" and PLOT_FIELD_LAYOUT:
+            ax.add_artist(
+                Rectangle(xy=(math.degrees(ra) - camera_width_40 / 2.0, math.degrees(dec) - camera_height / 4.0),
+                          width=camera_width_40,
+                          height=camera_height / 2.0,
+                          color='b',
+                          lw=0.5, fill=False, alpha=0.3))
+            ax.add_artist(
+                Rectangle(xy=(math.degrees(ra) - camera_width_36 / 2.0, math.degrees(dec) - camera_height / 2.0),
+                          height=camera_height / 4.0,
+                          width=camera_width_36,
+                          color='g',
+                          lw=0.5, fill=False, alpha=0.3))
+            ax.add_artist(
+                Rectangle(xy=(math.degrees(ra) - camera_width_36 / 2.0, math.degrees(dec) + camera_height / 4.0),
+                          height=camera_height / 4.0,
+                          width=camera_width_36,
+                          color='r',
+                          lw=0.5, fill=False, alpha=0.3))
             if LABEL_FIELDS:
                 ax.text(math.degrees(ra), math.degrees(dec),
                         name,
@@ -581,33 +576,32 @@ for idx in range(len(ras)):
                         zorder=10,
                         fontdict={'size': 4, 'color': 'darkblue'})
 
-
     f.write("""]]</CSV></DATA>\n</TABLE>\n</ASTRO>\n""")
     f.close()
-
 
 if PLOT_USNO_STARS:
     print("PLOTTING LOCATIONS NEARBY BRIGHT USNO B1 STARS")
     for ra in range(int(ra_cen - width), int(ra_cen + width), 10):
         for dec in range(int(dec_cen - height), int(dec_cen + height), 10):
-	    file_name = USER + "/new_usno/usno{:5.2f}{:5.2f}.xml".format(ra, dec).replace(" ", "")
+            file_name = USER + "/new_usno/usno{:5.2f}{:5.2f}.xml".format(ra, dec).replace(" ", "")
             print(file_name)
-            file_name = file_name.replace(" ","")
-	    if not os.access(file_name, os.R_OK):
+            file_name = file_name.replace(" ", "")
+            if not os.access(file_name, os.R_OK):
                 usno = usnoB1.TAPQuery(ra, dec, 10.0, 10.0)
-		fobj=open(file_name,'w')
-	        fobj.write(usno.read())
+                fobj = open(file_name, 'w')
+                fobj.write(usno.read())
                 fobj.close()
             try:
-               t = votable.parse(open(file_name,'r')).get_first_table()
+                t = votable.parse(open(file_name, 'r')).get_first_table()
             except:
-               print("No USNO stars found for: {} {}\n".format(ra,dec))
-               continue
-	    select = t.array['Bmag'] < 9.3
+                print("No USNO stars found for: {} {}\n".format(ra, dec))
+                continue
+            select = t.array['Bmag'] < 9.3
             Rmag = t.array['Bmag'][select]
             min_mag = max(Rmag.min(), 11)
-            scale = 0.5 * 10 ** ((min_mag - Rmag) / 2.5) 
-            ax.scatter(t.array['RAJ2000'][select], t.array['DEJ2000'][select], s=scale, marker='o', facecolor='y', alpha=0.3, edgecolor='',
+            scale = 0.5 * 10 ** ((min_mag - Rmag) / 2.5)
+            ax.scatter(t.array['RAJ2000'][select], t.array['DEJ2000'][select], s=scale, marker='o', facecolor='y',
+                       alpha=0.3, edgecolor='',
                        zorder=-10)
 
     for planet in [ephem.Mars(), ephem.Jupiter(), ephem.Saturn(), ephem.Uranus(), ephem.Neptune()]:
@@ -617,12 +611,12 @@ if PLOT_USNO_STARS:
                    s=40,
                    facecolor='r',
                    edgecolor='g', )
-        if LABEL_PLANETS :
+        if LABEL_PLANETS:
             ax.text(math.degrees(planet.ra), math.degrees(planet.dec),
-                planet.name,
-                horizontalalignment='center',
-                fontdict={'size': 6,
-                          'color': 'darkred'})
+                    planet.name,
+                    horizontalalignment='center',
+                    fontdict={'size': 6,
+                              'color': 'darkred'})
 
 if PLOT_MEGACAM_ARCHIVE_FIELDS:
     print("PLOTTING FOOTPRINTS NEARBY ARCHIVAL MEGAPRIME IMAGES.")
@@ -655,7 +649,6 @@ if PLOT_MEGACAM_ARCHIVE_FIELDS:
                                fill=False) for idx in range(ra.size)]
             for r in rects:
                 ax.add_artist(r)
-                
 
 if PLOT_MPCORB:
     print("PLOTTING LOCATIONS OF KNOWN KBOs (using {})".format(MPCORB_FILE))
@@ -718,20 +711,23 @@ if PLOT_REAL_KBOS:
                        edgecolor=c,
                        alpha=0.5)
 
-new_tick_locations = np.array(list(range(360,0,-30)))
+new_tick_locations = np.array(list(range(360, 0, -30)))
+
+
 def tick_function(X):
     import calendar
-    month = ( X/30.0 + 8 ) % 12 + 1
-    return [ calendar.month_abbr[int(z)] for z in month ]
+    month = (X / 30.0 + 8) % 12 + 1
+    return [calendar.month_abbr[int(z)] for z in month]
+
+
 print(new_tick_locations)
 if False:
-    ax.set_xlim(360,0)
+    ax.set_xlim(360, 0)
     ax2 = ax.twiny()
     ax2.set_xticks(new_tick_locations)
     ax2.set_xticklabels(tick_function(new_tick_locations))
-    ax2.set_xlabel("Opp. Month")    
-    ax2.set_xlim(360,0)
-
+    ax2.set_xlabel("Opp. Month")
+    ax2.set_xlim(360, 0)
 
 print("SAVING FILE")
 savefig('layout40-at' + PLOT_FIELD_EPOCH + '-discov_on-' + DISCOVERY_NEW_MOON + '.pdf')

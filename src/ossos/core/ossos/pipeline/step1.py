@@ -166,7 +166,7 @@ def main():
                         action='store_true')
     parser.add_argument("--dbimages",
                         action="store",
-                        default="vos:OSSOS/dbimages",
+                        default=storage.DBIMAGES,
                         help='vospace dbimages containerNode')
     parser.add_argument("--sex_thresh",
                         action="store",

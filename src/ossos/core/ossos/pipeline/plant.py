@@ -1,4 +1,3 @@
-#!python 
 ############################################################################
 #                                                                          #
 #  Copyright 2013 by its authors                                           #
@@ -50,9 +49,9 @@ def plant_kbos(filename, psf, kbos, shifts, prefix):
     """
     Add KBOs to an image
     :param filename: name of the image to add KBOs to
-    :param psf: the Point Spread Function in IRAF/DAOPHOT format to be used by ADDSTAR
+    :param psf: Point Spread Function in IRAF/DAOPHOT format, used by ADDSTAR
     :param kbos: list of KBOs to add, has format as returned by KBOGenerator
-    :param shifts: dictionary with shifts to transfer to coordinates to reference frame.
+    :param shifts: dictionary to transform coordinates to reference frame.
     :param prefix: an estimate FWHM of the image, used to determine trailing.
     :return: None
     """
@@ -97,7 +96,8 @@ def plant_kbos(filename, psf, kbos, shifts, prefix):
     y = kbos['y'] - rate*24.0*shifts['dmjd']*sin(angle)
     x, y = w.wcs_world2pix(x, y, 1)
 
-    # Each source will be added as a series of PSFs so that a new PSF is added for each pixel the source moves.
+    # Each source will be added as a series of PSFs so that a new PSF is
+    # added for each pixel the source moves.
     itime = float(header['EXPTIME'])/3600.0
     npsf = fabs(rint(rate * itime)) + 1
     mag += 2.5*log10(npsf)
@@ -139,13 +139,24 @@ def plant_kbos(filename, psf, kbos, shifts, prefix):
 
 
 def get_wcs(shifts):
-    # store the shifts as a WCS transform where the 'world' coordinates are really the pixel coordinates
+    """
+    Using the 'shifts' dictionary return a WCS object.
+
+    @param shifts: a dictionary that looks like a fits.header
+
+    Pass in the header WCS parameters (CRVAL, CRPIX, CD) and get a
+    astropy WCS object.
+
+    @return wcs.WCS
+    """
+    # store the shifts as a WCS transform where the 'world' coordinates
+    # are really the pixel coordinates
     # in the reference frame.
     return wcs.WCS(header=shifts, naxis=2)
 
 
-def plant(expnums, ccd, rmin, rmax, ang, width, number=10, mmin=21.0, mmax=25.5, version='s', dry_run=False,
-          force=True):
+def plant(expnums, ccd, rmin, rmax, ang, width, number=10,
+          mmin=21.0, mmax=25.5, version='s', dry_run=False, force=True):
     """Plant artificial sources into the list of images provided.
 
     @param dry_run: don't push results to VOSpace.
@@ -176,7 +187,8 @@ def plant(expnums, ccd, rmin, rmax, ang, width, number=10, mmin=21.0, mmax=25.5,
                                          ccd=ccd,
                                          version=version)
             header = fits.open(filename)[0].header
-            bounds = util.get_pixel_bounds_from_datasec_keyword(header.get('DATASEC', '[33:2080,1:4612]'))
+            bounds = util.get_pixel_bounds_from_datasec_keyword(
+                header.get('DATASEC', '[33:2080,1:4612]'))
 
             # generate a set of artificial KBOs to add to the image.
             kbos = KBOGenerator.get_kbos(n=number,
@@ -190,14 +202,13 @@ def plant(expnums, ccd, rmin, rmax, ang, width, number=10, mmin=21.0, mmax=25.5,
             for expnum in expnums:
                 filename = storage.get_image(expnum, ccd, version)
                 psf = storage.get_file(expnum, ccd, version, ext='psf.fits')
-                plant_kbos(filename, psf, kbos, get_shifts(expnum, ccd, version), "fk")
+                plant_kbos(filename, psf, kbos,
+                           get_shifts(expnum, ccd, version), "fk")
 
             if dry_run:
                 return
-
             uri = storage.get_uri('Object', ext='planted', version='',
-                                  subdir=str(
-                                      expnums[0]) + "/ccd%s" % (str(ccd).zfill(2)))
+                                  subdir=f"{expnums[0]}/ccd{int(ccd):02d}")
 
             storage.copy('Object.planted', uri)
             for expnum in expnums:
@@ -217,7 +228,8 @@ def plant(expnums, ccd, rmin, rmax, ang, width, number=10, mmin=21.0, mmax=25.5,
 
 
 def get_shifts(expnum, ccd, version):
-    return json.loads(open(storage.get_file(expnum, ccd, version, ext='shifts')).read())
+    return json.loads(open(storage.get_file(expnum, ccd,
+                                            version, ext='shifts')).read())
 
 
 def main():
@@ -243,14 +255,20 @@ def main():
     parser.add_argument('--no-sort',
                         action='store_true',
                         default=False,
-                        help='do not sort exposure list by expnum before processing')
+                        help='no sorting exposure before processing')
     parser.add_argument("--verbose", "-v",
                         action="store_true")
     parser.add_argument("--debug", '-d',
                         action='store_true')
-    parser.add_argument("--number", "-n", type=int, help="Number of KBOs to plant into images.", default=10)
-    parser.add_argument("--mmin", type=float, help="Minimum magnitude value to add source with.", default=21.0)
-    parser.add_argument("--mmax", type=float, help="Maximum magnitude value to add source with.", default=25.5)
+    parser.add_argument("--number", "-n", type=int,
+                        help="Number of KBOs to plant into images.",
+                        default=10)
+    parser.add_argument("--mmin", type=float,
+                        help="Minimum magnitude value to add source with.",
+                        default=21.0)
+    parser.add_argument("--mmax", type=float,
+                        help="Maximum magnitude value to add source with.",
+                        default=25.5)
     parser.add_argument("--rmin", default=0.5,
                         type=float, help="minimum motion rate")
     parser.add_argument("--rmax", default=15,

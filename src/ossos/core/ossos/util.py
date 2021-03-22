@@ -24,6 +24,7 @@ from astropy.time import TimeString
 
 MATCH_TOLERANCE = 100.0
 
+
 def config_logging(level):
     """
     Configure the logging given the level desired

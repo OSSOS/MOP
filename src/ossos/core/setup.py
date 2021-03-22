@@ -1,6 +1,14 @@
-
-
+import re
 from setuptools import setup, find_packages
+
+VERSION_FILENAME = "ossos/version.py"
+line = open(VERSION_FILENAME, "rt").read()
+VERSION_RE = r"^__version__ = ['\"]([^'\"]*)['\"]"
+mo = re.search(VERSION_RE, line, re.M)
+if mo:
+    version_string = mo.group(1)
+else:
+    raise RuntimeError("Unable to find version string in %s." % (VERSION_FILENAME,))
 
 dependencies = ['requests >= 2.7',
                 'astropy >= 4.0',
@@ -12,6 +20,7 @@ dependencies = ['requests >= 2.7',
                 'uncertainties',
                 'pyds9 >= 1.8',
                 'wxPython > 4.0',
+                'pypubsub > 4.0',
                 'mp_ephem']
 
 console_scripts = ['mkpsf = ossos.pipeline.mkpsf:main', 'step3 = ossos.pipeline.step3:main',
@@ -30,7 +39,7 @@ console_scripts = ['mkpsf = ossos.pipeline.mkpsf:main', 'step3 = ossos.pipeline.
 gui_scripts = ['validate = ossos.tools.validate:main']
 
 setup(name='ossos',
-      version='3.0.2',
+      version=version_string,
       url='http://github.com/OSSOS/MOP',
       author='''JJ Kavelaars (jjk@uvic.ca),
               Michele Bannister (micheleb@uvic.ca),
@@ -48,8 +57,8 @@ setup(name='ossos',
                    'License :: OSI Approved :: GNU General Public License (GPL)',
                    ],
       package_data={'ossos': ['gui/*.json']},
-      dependency_links=['git+https://github.com/ericmandel/pyds9.git#egg=pyds9-1.8'],
       install_requires=dependencies,
+      # scripts=["scripts/gui",],
       entry_points={'console_scripts': console_scripts,
                     'gui_scripts': gui_scripts},
       packages=find_packages(exclude=['tests', ])

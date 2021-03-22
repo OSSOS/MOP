@@ -316,7 +316,8 @@ class AcceptSourceDialog(SourceValidationDialog):
                        (self.observatory_code_label, self.observatory_code_text),
                        ]
 
-        sizer = wx.FlexGridSizer(rows=len(data_fields), cols=2)
+        # sizer = wx.FlexGridSizer(rows=len(data_fields), cols=2)
+        sizer = wx.FlexGridSizer(rows=len(data_fields), cols=2, gap=wx.Size(0, 0))
         for label, value in data_fields:
             sizer.Add(label)
             sizer.Add(value, proportion=1, flag=wx.EXPAND)

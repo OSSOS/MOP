@@ -107,7 +107,8 @@ class AbstractController(object):
         warnings.warn("Source Repositioning no-longer supported", RuntimeWarning)
 
     def on_image_loaded(self, event):
-        displayable_item = event.data
+        displayable_item = event
+        # displayable_item = event.data
         self.image_loading_dialog_manager.set_item_done(displayable_item)
 
         if displayable_item == self.model.get_current_displayable_item():
@@ -300,6 +301,7 @@ class ProcessRealsController(AbstractController):
             default_comment = str(er)
 
         obs_mag = phot_failure and None or obs_mag
+
         obs_mag_err = phot_failure and None or obs_mag_err
         self.place_marker(source_cutout.ra * units.degree, source_cutout.dec * units.degree,
                           radius=int(source_cutout.apcor.ap_in * 0.185 + 1) * units.arcsec,
@@ -358,7 +360,7 @@ class ProcessRealsController(AbstractController):
                 logger.error(str(type(ex)) + " " + str(ex))
                 print("Failed to compute preliminary orbit.")
 
-        if obs_mag < 24 and auto is not False:
+        if obs_mag is not None and obs_mag < 24 and auto is not False:
             self.on_do_accept(None,
                               provisional_name,
                               sky_failure and "S  poor sky" or note1_default,
@@ -389,6 +391,7 @@ class ProcessRealsController(AbstractController):
                 phot_failure=phot_failure,
                 pixel_x=source_cutout.pixel_x,
                 pixel_y=source_cutout.pixel_y)
+
 
     def on_do_accept(self,
                      minor_planet_number,
@@ -465,6 +468,7 @@ class ProcessRealsController(AbstractController):
         if self.model.get_current_workunit().get_current_source_readings().is_on_last_item():
             self.view.clear()
             reset_frame = True
+        del self.model.get_current_cutout().hdulist
         self.model.next_item()
         if reset_frame:
             self.view.frame(1)
@@ -535,6 +539,7 @@ class ProcessCandidatesController(AbstractController):
 
         self.model.accept_current_item()
         self.view.clear()
+        del self.model.get_current_cutout().hdulist
         self.model.next_item()
 
     def on_reject(self):

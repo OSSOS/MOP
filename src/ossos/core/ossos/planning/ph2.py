@@ -1,11 +1,8 @@
-import json
 import argparse
+import json
+
 import numpy
-import sys
-import copy
 from astropy.coordinates import SkyCoord
-from astropy import units
-import operator
 
 
 class Program(object):
@@ -73,12 +70,12 @@ if __name__ == "__main__":
     parser.add_argument('qrunid')
     parser.add_argument('runid')
     parser.add_argument('targets', nargs='+')
-    parser.add_argument('--og-idx-start', default=0) 
+    parser.add_argument('--og-idx-start', default=0)
     args = parser.parse_args()
 
     # Break the targets into OBs based on their max mag of source in pointing.
     cuts = numpy.array([23.0, 23.5, 24.0, 24.5, 25.0, 25.5, 26.0, 30.0])
-    IC_exptimes = [50,  100,  200,  300,  400,  500,  600, 700]
+    IC_exptimes = [50, 100, 200, 300, 400, 500, 600, 700]
 
     program = Program(runid=args.runid, pi_login=args.pi_login)
     ob_tokens = []
@@ -97,14 +94,14 @@ if __name__ == "__main__":
         mags[ob_token] = target.mag
         ob_coordinate[ob_token] = target.coordinate
 
-    sf = lambda x, y: cmp(x.ra, y.ra)
+    sf = lambda x, y: (x.ra < y.ra) - (y.ra < x.ra)
     order_tokens = sorted(ob_coordinate, cmp=sf, key=ob_coordinate.get)
     total_itime = 0
     ogs = {}
     scheduled = {}
     og_idx = int(args.og_idx_start)
     if False:
-    # while len(scheduled) < len(ob_tokens):
+        # while len(scheduled) < len(ob_tokens):
         og_idx += 1
         og_token = "OG_{}_{}_{}_{}".format(args.runid, args.qrunid, og_idx, 0)
         sys.stdout.write("{}: ".format(og_token))
