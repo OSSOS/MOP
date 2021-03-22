@@ -72,8 +72,8 @@ pod2usage(1) if ($help);
 
 $abg = File::Spec->rel2abs($abg);
 ### password in the file?
-my $exp = Bucket::MOP->new("wcs","cfhls","***REMOVED***");
-my $received = Bucket::MOP->new("received","cfhls","***REMOVED***");
+my $exp = Bucket::MOP->new("wcs","cfhls","shift+add");
+my $received = Bucket::MOP->new("received","cfhls","shift+add");
 
 
 my $orbit = `grep a= $abg`;
@@ -117,7 +117,7 @@ while ( my $row = $exp->fetchRow ) {
     my ( $raRAD,$decRAD,$dra,$ddec,$ang ) = predict($abg,$date,568);
     warn "Predicted location using $abg on $date is  $raRAD $decRAD, $dra, $ddec,$ang \n" if ( $debug );
     my $err_circ = sqrt($dra**2 + $ddec**2)/3600.0;    
-    my $exp2 = Bucket::MOP->new("wcs","cfhls","***REMOVED***");
+    my $exp2 = Bucket::MOP->new("wcs","cfhls","shift+add");
     my $x1 = cos($raRAD)*cos($decRAD);
     my $y1 = sin($raRAD)*cos($decRAD);
     my $z1 = sin($decRAD);

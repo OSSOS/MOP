@@ -101,10 +101,10 @@ $ss = 0;
 print "$yy $mm $dd\n";
 my ($lst, $mjd) = ut2lst_tel($yy,$mm,$dd,0,0,0,$tel);
 
-my $orbit=Bucket::MOP->new("orbits","cfhls","***REMOVED***");
-my $abg = Bucket::MOP->new("abg","cfhls","***REMOVED***");
-my $measure=Bucket::MOP->new("measure","cfhls","***REMOVED***");
-my $des=Bucket::MOP->new("object","cfhls","***REMOVED***");
+my $orbit=Bucket::MOP->new("orbits","cfhls","shift+add");
+my $abg = Bucket::MOP->new("abg","cfhls","shift+add");
+my $measure=Bucket::MOP->new("measure","cfhls","shift+add");
+my $des=Bucket::MOP->new("object","cfhls","shift+add");
 $des->selectRows({"ORDER" => "official", "WHERE" => " official LIKE 'l%' OR official RLIKE 'o[23].*' " , "GROUP" => " official "});
 #$orbit->selectRows({"ORDER" => "official", "WHERE" => "offical LIKE 'l%' "});
  
