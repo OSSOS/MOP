@@ -1,6 +1,6 @@
 """OSSOS VOSpace storage convenience package"""
 import sys, traceback
-from six import StringIO
+from six import StringIO, BytesIO
 import math
 import errno
 import fnmatch
@@ -674,6 +674,7 @@ def _cutout_expnum(observation, sky_coord, radius):
     @return: HDUList containing the cutout image.
     @rtype: list(HDUList)
     """
+
     filename = "{}.fits".format(observation.rawname)
     if os.access(filename, os.R_OK):
       try:
@@ -720,14 +721,13 @@ def _cutout_expnum(observation, sky_coord, radius):
                                          disposition=True)
       cutouts = decompose_content_decomposition(disposition_filename)
 
-    cutout_filehandle.seek(0)
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore', FITSFixedWarning)
-        hdulist = fits.open(cutout_filehandle, mode='update', lazy_load_hdus=False,
-                            memmap=False)
-
-        hdulist.verify('silentfix+ignore')
-    logger.debug("Initial Length of HDUList: {}".format(len(hdulist)))
+      cutout_filehandle.seek(0)
+      with warnings.catch_warnings():
+          warnings.simplefilter('ignore', FITSFixedWarning)
+          hdulist = fits.open(cutout_filehandle, mode='update', lazy_load_hdus=False,
+                              memmap=False)
+          hdulist.verify('silentfix+ignore')
+      logger.debug("Initial Length of HDUList: {}".format(len(hdulist)))
 
     # Make sure here is a primaryHDU
     if len(hdulist) == 1:

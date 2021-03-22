@@ -36,7 +36,7 @@ console_scripts = ['mkpsf = ossos.pipeline.mkpsf:main', 'step3 = ossos.pipeline.
                    'astrom_mag_check = ossos.pipeline.astrom_mag_check:main',
                    'scramble = ossos.pipeline.scramble:main']
 
-gui_scripts = ['gui.py = ossos.tools.gui:main']
+gui_scripts = ['validate = ossos.tools.validate:main']
 
 setup(name='ossos',
       version=version_string,

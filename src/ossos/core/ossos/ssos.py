@@ -360,8 +360,8 @@ class SSOSParser(object):
             logger.info("Calling predict")
             orbit.predict(obs_date)
             logger.info("Done calling predict")
-            if orbit.dra > 4 * units.arcminute or orbit.ddec > 4.0 * units.arcminute:
-                print("Skipping entry as orbit uncertainty at date {} is large.".format(obs_date))
+            if orbit.dra > 15 * units.arcminute or orbit.ddec > 15.0 * units.arcminute:
+                print "Skipping entry as orbit uncertainty at date {} is large.".format(obs_date)
                 continue
             if expnum in expnums_examined:
                 logger.debug("Already checked this exposure.")
