@@ -10,6 +10,7 @@ import textwrap
 from ossos.gui import logger
 from ossos.gui import tasks
 from ossos import storage
+from ossos import ssos
 from ossos.gui import config
 
 

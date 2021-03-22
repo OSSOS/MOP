@@ -63,12 +63,12 @@ def main():
     parser.add_argument("--fk", action="store_true", default=False, help="Do fakes?")
     parser.add_argument('--object-planted', default=OBJECT_PLANTED,
                         help="Name of file contains list of planted objects.")
-    parser.add_argument('--bright-limit', default=BRIGHT_LIMIT,
+    parser.add_argument('--bright-limit', default=BRIGHT_LIMIT, type=float,
                         help="Sources brighter than this limit {} are used to diagnose planting issues.".format(
                             BRIGHT_LIMIT))
     parser.add_argument('--minimum-bright-detections', default=MINIMUM_BRIGHT_DETECTIONS, type=int,
                         help="required number of detections with mag brighter than bright-limit.")
-    parser.add_argument('--minimum-bright-fraction', default=MINIMUM_BRIGHT_FRACTION,
+    parser.add_argument('--minimum-bright-fraction', default=MINIMUM_BRIGHT_FRACTION, type=float,
                         help="minimum fraction of objects above bright limit that should be found.")
     parser.add_argument("--debug",
                         action="store_true")
@@ -112,11 +112,26 @@ def main():
     else:
         expnum = args.expnum
 
-    match_filename = os.path.splitext(os.path.basename(astrom_filename))[0] + '.match'
-
     message = storage.SUCCESS
+
     with storage.LoggingManager(task, prefix, expnum, args.ccd, version, args.dry_run):
         try:
+
+            match_filename = os.path.splitext(os.path.basename(astrom_filename))[0] + '.match'
+            logging.info(f'Got back:{match_filename}') 
+            match_uri = storage.get_cands_uri(args.field,
+                                              ccd=args.ccd,
+                                              version=args.type,
+                                              prefix=prefix,
+                                              ext="measure3.{}.match".format(ext), block=args.field)
+
+            try:
+                storage.copy(match_uri, match_filename)
+            except NotFoundException as ex:
+                logging.warning(f'No match file found at {match_uri}, creating one.')
+                logging.debug(f'{ex}')
+                pass
+    
             logging.info(("Comparing planted and measured magnitudes "
                           "for sources in {} and {}\n".format(args.object_planted, astrom_filename)))
             result = match_planted(fk_candidate_observations,
@@ -125,22 +140,8 @@ def main():
                                    bright_limit=args.bright_limit,
                                    minimum_bright_detections=args.minimum_bright_detections,
                                    bright_fraction=args.minimum_bright_fraction)
-            match_uri = storage.get_cands_uri(args.field,
-                                              ccd=args.ccd,
-                                              version=args.type,
-                                              prefix=prefix,
-                                              ext="measure3.{}.match".format(ext), block=args.field)
             if not args.dry_run:
-                temp_match_file = os.path.basename(match_uri)
-                try:
-                    storage.copy(match_uri, temp_match_file)
-                except NotFoundException as ex:
-                    logging.warning(f'No match file found at {match_uri}, creating one.')
-                    logging.debug(f'{ex}')
-                    pass
-                with open(temp_match_file, 'a') as fout:
-                    fout.write(open(match_filename, 'r').read())
-                storage.copy(temp_match_file, match_uri)
+                storage.copy(match_filename, match_uri)
                 uri = os.path.dirname(astrom_uri)
                 keys = [storage.tag_uri(os.path.basename(astrom_uri))]
                 values = [result]
