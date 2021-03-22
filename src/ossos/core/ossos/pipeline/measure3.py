@@ -94,6 +94,7 @@ def run(base_image, dbimages=None):
 
         astrometry_lines = {}
         for base_name in xy_files:
+            storage.get_frame(base_name)
             xy_files[base_name].close()
             cmd = 'xy2skypv %s.fits %s.xy %s.rd' % (base_name,
                                                     base_name, base_name)
