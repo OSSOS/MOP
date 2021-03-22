@@ -25,6 +25,8 @@ warning = _logger.warning
 error = _logger.error
 critical = _logger.critical
 
+def set_verbose():
+    logging.getLogger(__name__).setLevel(logging.INFO)
 
 def set_debug():
     logging.getLogger(__name__).setLevel(logging.DEBUG)

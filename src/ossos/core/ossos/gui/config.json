@@ -43,7 +43,7 @@
     "LOAD_DIFF_COMPARISON": "n"
   },
   "PREFETCH": {
-    "NUMBER": 3
+    "NUMBER": 15
   },
   "CUTOUTS": {
     "SINGLETS": {
@@ -101,7 +101,7 @@
     ]
   },
   "APP": {
-    "MAX_THREADS": 4
+    "MAX_THREADS": 10
   },
   "UI": {
     "DIMENSIONS": {

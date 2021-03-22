@@ -3,6 +3,7 @@ __author__ = "David Rusk <drusk@uvic.ca>"
 import os
 
 from ossos import storage
+from ossos.gui import logger
 from ossos.gui.progress import LocalProgressManager, VOSpaceProgressManager
 
 
@@ -99,7 +100,10 @@ class VOSpaceWorkingContext(WorkingContext):
 
     def listdir(self):
         # Don't force because it causes a HUGE performance hit.
-        return storage.listdir(self.directory, force=False)
+        logger.debug(f"Getting a listing of {self.directory}")
+        dir_list = storage.listdir(self.directory, force=False)
+        logger.debug(f"Got: {dir_list}")
+        return dir_list
 
     def get_file_size(self, filename):
         length_property = storage.get_property(

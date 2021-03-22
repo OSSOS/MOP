@@ -34,7 +34,7 @@ def get_epoch_field(astrom_header, fits_header):
 
     epoch = year[-2:] + semester
 
-    object_header = fits_header["OBJECT"]
+    object_header = fits_header.get("OBJECT", 'NHF')
 
     if object_header.startswith(epoch):
         field = object_header[len(epoch)]

@@ -85,10 +85,10 @@ class ImageCutoutDownloader(Downloader):
         logger.debug("Getting the aperture correction.")
         source = SourceCutout(reading, hdulist, radius=radius)
         # Accessing the attribute here to trigger the download.
-        source.reading.get_observation_header()
         try:
             apcor = source.apcor
             zmag = source.zmag
+            source.reading.get_observation_header()
         except Exception as ex:
             if needs_apcor:
                 import sys, traceback

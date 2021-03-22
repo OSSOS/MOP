@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+OS=$(uname)
+python=$(which python)
+# Check if we are using Anaconda and running on Darwin
+[ ${OS} == "Darwin" ] && python=$(which pythonw)
+gui=$(which gui.py) || (echo "ossos validate.py is not installed?" && exit 255 )
+${python} "${gui}" $@
