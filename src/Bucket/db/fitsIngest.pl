@@ -57,12 +57,12 @@ my %dataDictionary = ( "expnum" => "expnum",
 
 ### call createTable on each table... no effect if table already exists
 ### the received table stores the location of the file
-my $received = Bucket::MOP->new("received","cfhls","***REMOVED***");
+my $received = Bucket::MOP->new("received","cfhls","shift+add");
 $received->createTable();
 ### the exposure table stores information about the exposure 
-my $exposure = Bucket::MOP->new("exposure","cfhls","***REMOVED***");
+my $exposure = Bucket::MOP->new("exposure","cfhls","shift+add");
 $exposure->createTable();
-my $wcs = Bucket::MOP->new("wcs","cfhls","***REMOVED***");
+my $wcs = Bucket::MOP->new("wcs","cfhls","shift+add");
 $wcs->createTable();
 
 

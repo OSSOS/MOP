@@ -49,7 +49,7 @@ my $status;
 #slaDjcal(0,$epoch,@date,$status);
 #$status==0 || die "Error converting $epoch to YY/MM/DD @date\n";
 #my $date = sprintf("%04d-%02d-%02d",@date);
-my $exp = Bucket::MOP->new("wcs","cfhls","***REMOVED***");
+my $exp = Bucket::MOP->new("wcs","cfhls","shift+add");
 
 my $raRAD = $ra/57.3;
 my $decRAD = $dec/57.3;
@@ -76,7 +76,7 @@ my $nrows=$exp->selectRows(\%select);
 
 $nrows > 0 || die "Failed to find an image near $ra, $dec  ";
 
-my $received = Bucket::MOP->new("received","cfhls","***REMOVED***");
+my $received = Bucket::MOP->new("received","cfhls","shift+add");
 while(my $row=$exp->fetchRow ){
        #compare to global RA/DEC and see if we're close to the target.
        $received->selectRows("file_id LIKE '".$exp->{file_id}."'") || next;
