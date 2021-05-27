@@ -8,6 +8,7 @@ import os
 import re
 import sys
 import traceback
+import cadcutils
 
 from astropy import units
 from astropy.coordinates import SkyCoord
@@ -222,16 +223,21 @@ class AstromParser(object):
             The file contents extracted into a data structure for programmatic
             access.
         """
-        while True:
-           try:
-              filehandle = storage.open_vos_or_local(filename, "rb")
-              assert filehandle is not None, "Failed to open file {} ".format(filename)
-              filestr = filehandle.read().decode('utf-8')
-              filehandle.close()
-              break
-           except Exception as ex:
-              print(str(ex))
-              time.sleep(3)
+        _loop_count = 0
+        while _loop_count < 5:
+            try:
+                filehandle = storage.open_vos_or_local(filename, "rb")
+                assert filehandle is not None, "Failed to open file {} ".format(filename)
+                filestr = filehandle.read().decode('utf-8')
+                filehandle.close()
+                break
+            except cadcutils.exceptions.NotFoundException as ex:
+                logger.error(str(ex))
+                raise ex
+            except Exception as ex:
+                logger.warning(str(ex))
+                _loop_count += 1
+                time.sleep(3)
 
         assert filestr is not None, "File contents are None"
 
