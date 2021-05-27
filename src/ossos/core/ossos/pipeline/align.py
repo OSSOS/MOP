@@ -175,9 +175,15 @@ def align(expnums, ccd, version='s', prefix='', dry_run=False, force=True):
                 error_count += 1
                 logging.debug("{}".format(error_count))
 
-                shifts['dmag'] = dmag
-                shifts['emag'] = dmags.std()
                 shifts['nmag'] = len(dmags.mask) - dmags.mask.sum()
+                if shifts['nmag'] > 4:
+                    # if we have sufficiant PSF star overlap, check the zeropoint
+                    shifts['dmag'] = dmag
+                    shifts['emag'] = dmags.std()
+                else:
+                    # not enough overlap in PSF stars.  Set dmag = 0 [trust the Zeropoint]
+                    shifts['dmag'] = 0.0
+                    shifts['emag'] = -1.0
                 shifts['dmjd'] = mjdates[expnums[0]] - mjdates[expnum]
                 shift_file = os.path.basename(storage.get_uri(expnum, ccd, version, '.shifts'))
 
