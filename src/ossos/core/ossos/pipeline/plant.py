@@ -35,7 +35,6 @@ import tempfile
 from astropy import wcs
 from astropy.io import fits
 from numpy import radians, fabs, log10, rint, cos, sin, transpose
-from pyraf import iraf
 
 from ossos import storage
 from ossos import util
@@ -55,6 +54,7 @@ def plant_kbos(filename, psf, kbos, shifts, prefix):
     :param prefix: an estimate FWHM of the image, used to determine trailing.
     :return: None
     """
+    from pyraf import iraf
 
     iraf.set(uparm="./")
     iraf.digiphot()
@@ -309,7 +309,7 @@ def main():
               args.rmin, args.rmax, args.ang, args.width,
               number=args.number, mmin=args.mmin, mmax=args.mmax,
               version=version,
-              dry_run=args.dry_run)
+              dry_run=args.dry_run, force=args.force )
 
 
 if __name__ == '__main__':

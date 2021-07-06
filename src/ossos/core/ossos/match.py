@@ -9,6 +9,7 @@ from . import util
 from .downloads.cutouts.source import SourceCutout
 from astropy.time import Time
 from .astrom import Observation
+from . import storage
 
 BRIGHT_LIMIT = 23.0
 OBJECT_PLANTED = "Object.planted"
@@ -114,8 +115,14 @@ def match_planted(fk_candidate_observations, match_filename, bright_limit=BRIGHT
     objects_planted_uri = object_planted
     if not os.access(objects_planted_uri, os.F_OK):
         objects_planted_uri = fk_candidate_observations.observations[0].get_object_planted_uri()
-    lines = open(objects_planted_uri).read()
-
+    try:
+        lines = storage.open_vos_or_local(objects_planted_uri)
+        lines = lines.read().decode('utf-8') 
+    except Exception as ex:
+        logging.critical(f'{ex}')
+        print(lines)
+        raise ex
+    
     # we are changing the format of the Object.planted header to be compatible with astropy.io.ascii but
     # there are some old Object.planted files out there so we do these string/replace calls to reset those.
     new_lines = lines.replace("pix rate", "pix_rate")

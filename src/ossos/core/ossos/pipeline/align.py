@@ -29,7 +29,6 @@ import numpy
 from astropy import wcs
 from astropy.io import ascii
 from astropy.io import fits
-from ossos import daophot
 from ossos import storage
 from ossos import util
 
@@ -71,15 +70,6 @@ def align(expnums, ccd, version='s', prefix='', dry_run=False, force=True):
     :param version: Add sources to the 'o', 'p' or 's' images
     :param dry_run: don't push results to VOSpace.
     """
-    message = storage.SUCCESS
-
-    if storage.get_status(task, prefix, expnums[0], version, ccd) and not force:
-        logging.info("{} completed successfully for {} {} {} {}".format(task,
-                                                                        prefix,
-                                                                        expnums[0],
-                                                                        version,
-                                                                        ccd))
-        return
 
     # Get the images and supporting files that we need from the VOSpace area
     # get_image and get_file check if the image/file is already on disk.
@@ -95,6 +85,18 @@ def align(expnums, ccd, version='s', prefix='', dry_run=False, force=True):
     with storage.LoggingManager(task, prefix, expnums[0], ccd, version, dry_run):
         try:
             for expnum in expnums:
+                message = storage.SUCCESS
+
+                if storage.get_status(task, prefix, expnum, version, ccd) and not force:
+                    logging.info("{} completed successfully for {} {} {} {}".format(task,
+                                                                                    prefix,
+                                                                                    expnums[0],
+                                                                                    version,
+                                                                                    ccd))
+                    continue
+
+                from ossos import daophot
+
                 filename = storage.get_image(expnum, ccd=ccd, version=version)
                 zmag[expnum] = storage.get_zeropoint(expnum, ccd, prefix=None, version=version)
                 mjdates[expnum] = float(fits.open(filename)[0].header.get('MJD-OBS'))
@@ -205,13 +207,13 @@ def align(expnums, ccd, version='s', prefix='', dry_run=False, force=True):
 
                 if not dry_run:
                     storage.copy(shift_file, storage.get_uri(expnum, ccd, version, '.shifts'))
+                    storage.set_status(task, prefix, expnum, version, ccd, status=message)
+
             logging.info(message)
         except Exception as ex:
             message = str(ex)
             logging.error(message)
 
-        if not dry_run:
-            storage.set_status(task, prefix, expnum, version, ccd, status=message)
 
 
 def main():
@@ -278,7 +280,7 @@ def main():
 
     for ccd in ccdlist:
         align(args.expnums, ccd, version=version, prefix=prefix,
-              dry_run=args.dry_run)
+              dry_run=args.dry_run, force=args.force)
 
 
 if __name__ == '__main__':
