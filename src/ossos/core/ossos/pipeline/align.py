@@ -215,7 +215,6 @@ def align(expnums, ccd, version='s', prefix='', dry_run=False, force=True):
             logging.error(message)
 
 
-
 def main():
     """
     Run the align process.
