@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use("Agg")
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib import rcParams
 from matplotlib import pyplot as plt
@@ -28,7 +30,7 @@ params = {'backend': 'pdf',
           'figure.subplot.bottom': 0.15,
           'figure.figsize': fig_size}
 
-rcParams.update(params)
+# rcParams.update(params)
 
 pp = PdfPages('eff.pdf')
 
