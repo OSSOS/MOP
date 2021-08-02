@@ -1210,7 +1210,7 @@ def get_fwhm_tag(expnum, ccd, prefix=None, version='p'):
     return fwhm[uri]
 
 
-def get_fwhm(expnum, ccd, prefix=None, version='p'):
+def get_fwhm(expnum, ccd, prefix=None, version='p', default=4.0):
     """Get the FWHM computed for the given expnum/ccd combo.
 
     @param expnum:
@@ -1239,7 +1239,7 @@ def get_fwhm(expnum, ccd, prefix=None, version='p'):
         return fwhm[uri]
     except Exception as ex:
         logger.warning(str(ex))
-        fwhm[uri] = 5.0
+        fwhm[uri] = default
         return fwhm[uri]
 
 
