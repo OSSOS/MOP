@@ -1,7 +1,7 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 import sys
-
+from .. import storage
 from ..astrom import AstromParser, StationaryParser
 from ..downloads.async_download import AsynchronousDownloadManager
 from ..downloads.cutouts.downloader import ImageCutoutDownloader
@@ -28,7 +28,8 @@ from ..ssos import TracksParser, TrackTarget
 
 def create_application(task_name, working_directory, output_directory,
                        dry_run=False, debug=False, name_filter=None, user_id=None,
-                       skip_previous=False, zoom=1, telescope='Subaru/SuprimeCam'):
+                       skip_previous=False, zoom=1, telescope='Subaru/SuprimeCam',
+                       measure3=storage.MEASURE3):
     logger.info("Starting %s task." % task_name)
 
     if task_name == tasks.CANDS_TASK:
@@ -36,7 +37,8 @@ def create_application(task_name, working_directory, output_directory,
                                      dry_run=dry_run, debug=debug, name_filter=name_filter, user_id=user_id, zoom=zoom)
     elif task_name == tasks.REALS_TASK:
         ProcessRealsApplication(working_directory, output_directory,
-                                dry_run=dry_run, debug=debug, name_filter=name_filter, user_id=user_id, zoom=zoom)
+                                dry_run=dry_run, debug=debug, name_filter=name_filter, user_id=user_id, zoom=zoom,
+                                measure3=measure3)
     elif task_name == tasks.VETTING_TASK:
         ProcessVettingApplication(working_directory, output_directory, dry_run=dry_run,
                                   debug=debug, name_filter=name_filter, user_id=user_id, zoom=zoom)
@@ -59,7 +61,8 @@ def create_application(task_name, working_directory, output_directory,
 
 class ValidationApplication(object):
     def __init__(self, working_directory, output_directory,
-                 dry_run=False, debug=False, name_filter=None, user_id=None, mark_using_pixels=True, zoom=1, telescope='CFHT/MegaCam'):
+                 dry_run=False, debug=False, name_filter=None, user_id=None, mark_using_pixels=True, zoom=1,
+                 telescope='CFHT/MegaCam'):
 
         self.dry_run = dry_run
         self.user_id = user_id
@@ -193,9 +196,9 @@ class ProcessCandidatesApplication(ValidationApplication):
 
 class ProcessRealsApplication(ValidationApplication):
     def __init__(self, working_directory, output_directory,
-                 dry_run=False, debug=False, name_filter=None, user_id=None, zoom=1):
+                 dry_run=False, debug=False, name_filter=None, user_id=None, zoom=1, measure3=storage.MEASURE3):
         preload_iraf()
-
+        self._measure3 = storage.MEASURE3
         super(ProcessRealsApplication, self).__init__(
             working_directory, output_directory, dry_run=dry_run,
             debug=debug, name_filter=name_filter, user_id=user_id, mark_using_pixels=False, zoom=zoom)
@@ -217,7 +220,7 @@ class ProcessRealsApplication(ValidationApplication):
             dry_run=self.dry_run)
 
     def _create_controller_factory(self, model):
-        return RealsControllerFactory(model, dry_run=self.dry_run)
+        return RealsControllerFactory(model, dry_run=self.dry_run, measure3=self._measure3)
 
 
 class ProcessVettingApplication(ProcessCandidatesApplication):
@@ -343,9 +346,10 @@ class ControllerFactory(object):
     of the model.
     """
 
-    def __init__(self, model, dry_run=False):
+    def __init__(self, model, dry_run=False, measure3=storage.MEASURE3):
         self.model = model
         self.dry_run = dry_run
+        self._measure3 = measure3
 
     def create_controller(self, view):
         raise NotImplementedError()
@@ -373,7 +377,7 @@ class RealsControllerFactory(ControllerFactory):
         if self.dry_run:
             name_generator = DryRunNameGenerator()
         else:
-            name_generator = ProvisionalNameGenerator()
+            name_generator = ProvisionalNameGenerator(measure3=self._measure3)
 
         return ProcessRealsController(self.model, view, name_generator)
 
