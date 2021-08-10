@@ -292,8 +292,8 @@ class ProcessRealsController(AbstractController):
             if key != 'h':
                 source_cutout.update_pixel_location((cen_x, cen_y), hdulist_index)
         except Exception as er:
-            print(("DAOPhot failure: {}".format(er)))
             logger.critical("PHOT ERROR: {}".format(er))
+            logger.error(f"phot: {phot}")
             phot_failure = sky_failure = cen_failure = True
             obs_mag = None
             obs_mag_err = None
