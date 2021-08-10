@@ -1,16 +1,15 @@
 """OSSOS VOSpace storage convenience package"""
 import sys, traceback
-from six import StringIO, BytesIO
 import math
 import errno
 import fnmatch
-from glob import glob
 import os
 import re
 import tempfile
 import logging
 import warnings
 from glob import glob
+import time
 
 import requests as requests_module
 import vos
@@ -33,6 +32,8 @@ from .downloads.cutouts.calculator import CoordinateConverter
 from .gui import config
 from .gui import logger
 from .wcs import WCS
+
+warnings.simplefilter('ignore', UserWarning)
 
 client = vos.Client()
 # from .gui.errorhandling import DownloadErrorHandler
@@ -299,7 +300,7 @@ def get_cands_uri(field, ccd, version='p', ext='measure3.cands.astrom', prefix=N
 
     measure3_dir = MEASURE3
     if block is not None:
-        measure3_dir + "/{}".format(block)
+        measure3_dir += "/{}".format(block)
     return "{}/{}{}{}{}{}".format(measure3_dir, prefix, field, version, ccd, ext)
 
 
@@ -714,7 +715,7 @@ def _cutout_expnum(observation, sky_coord, radius):
     else:
       uri = observation.get_image_uri()
       cutout_filehandle = tempfile.NamedTemporaryFile()
-      disposition_filename = client.copy(uri + "({},{},{})".format(sky_coord.ra.to('degree').value,
+      disposition_filename = client.copy(uri + "({:f},{:f},{:f})".format(sky_coord.ra.to('degree').value,
                                                                    sky_coord.dec.to('degree').value,
                                                                    radius.to('degree').value),
                                          cutout_filehandle.name,
@@ -758,7 +759,7 @@ def _cutout_expnum(observation, sky_coord, radius):
             except Exception:
                 pass
 
-        hdu.header['DATASEC'] = reset_datasec("[{}:{},{}:{}]".format(corners[0],
+        hdu.header['DATASEC'] = reset_datasec("[{:d}:{:d},{:d}:{:d}]".format(corners[0],
                                                                      corners[1],
                                                                      corners[2],
                                                                      corners[3]),
@@ -1501,16 +1502,14 @@ def set_property(node_uri, property_name, property_value, ossos_base=True):
     @param ossos_base:
     @return:
     """
+    property_uri = tag_uri(property_name) if ossos_base else property_name
     while True:
         try:
-            logger.info(f"Getting Node Property")
             node = client.get_node(node_uri)
-            logger.info(f"{node}")
-            property_uri = tag_uri(property_name) if ossos_base else property_name
-            logger.info(f"{property_uri}")
             break
-        except exceptions.HttpException:
-            print(f'Waiting to retry VOSpace')
+        except exceptions.HttpException as ex:
+            raise ex
+            logger.warning(f"While getting node property {property_uri}: {ex}")
             time.sleep(3)
 
     # If there is an existing value, clear it first
@@ -1518,21 +1517,21 @@ def set_property(node_uri, property_name, property_value, ossos_base=True):
         while True:
             try:
                     node.props[property_uri] = None
-                    logger.info(f"Clearing Node Property")
                     client.add_props(node)
                     break
-            except exceptions.HttpException:
-                print(f'Waiting to retry VOSpace')
+            except exceptions.HttpException as ex:
+                raise ex
+                logger.warning(f"While clearing node property {property_uri}: {ex}")
                 time.sleep(3)
 
     while True:
         try:
             node.props[property_uri] = property_value
-            logger.info(f"Adding Node Property {property_uri}: {property_value}")
             client.add_props(node)
             break
-        except exceptions.HttpException:
-            print(f'Waiting to retry VOSpace')
+        except exceptions.HttpException as ex:
+            raise ex
+            logger.warning(f"While setting node property {property_uri}: {ex}")
             time.sleep(3)
 
 
