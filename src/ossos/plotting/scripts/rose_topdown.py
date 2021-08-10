@@ -8,10 +8,9 @@ from matplotlib.ticker import MultipleLocator
 import numpy as np
 import ephem
 import brewer2mpl
-from astropy import units
 
 from ossos import (parsers, parameters)
-from ossos.planning.plotting import plot_fanciness
+from src.ossos.planning.plotting import plot_fanciness
 
 set2 = brewer2mpl.get_map('Set2', 'qualitative', 8).mpl_colors
 rcParams['font.size'] = 12  # good for posters/slides
