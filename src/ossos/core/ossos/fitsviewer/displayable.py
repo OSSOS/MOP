@@ -169,8 +169,9 @@ class Displayable(object):
         try:
             r = Region((x, y), style='annulus', colour=colour, shape=annuli)
             self.display.set(*r)
-            r = Region((x, y), style='point', colour=colour)
-            self.display.set(*r)
+            # MA doesn't like the '+' here... so removed
+            # r = Region((x, y), style='point', colour=colour)
+            # self.display.set(*r)
         except Exception as ex:
             print(ex)
 
