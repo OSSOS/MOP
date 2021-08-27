@@ -1358,8 +1358,16 @@ def copy(source, dest):
     @return:
     """
     logger.info("copying {} -> {}".format(source, dest))
-
-    return client.copy(source, dest)
+    n = 1
+    ex = IOError("no error")
+    while n < 10:
+        try:
+            return client.copy(source, dest)
+        except Exception as ex:
+            logger.debug(f"{source} -> {dest} failed with {ex}.  Retrying")
+            time.sleep(2)
+            n += 1
+    raise ex
 
 
 def vlink(s_expnum, s_ccd, s_version, s_ext,
