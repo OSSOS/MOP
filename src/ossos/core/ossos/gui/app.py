@@ -28,7 +28,7 @@ from ..ssos import TracksParser, TrackTarget
 
 def create_application(task_name, working_directory, output_directory,
                        dry_run=False, debug=False, name_filter=None, user_id=None,
-                       skip_previous=False, zoom=1, telescope='Subaru/SuprimeCam',
+                       skip_previous=False, zoom=1,
                        measure3=storage.MEASURE3):
     logger.info("Starting %s task." % task_name)
 
@@ -48,11 +48,11 @@ def create_application(task_name, working_directory, output_directory,
     elif task_name == tasks.TRACK_TASK:
         ProcessTracksApplication(working_directory, output_directory,
                                  dry_run=dry_run, debug=debug, name_filter=name_filter,
-                                 skip_previous=skip_previous, user_id=user_id, zoom=zoom, telescope=telescope)
+                                 skip_previous=skip_previous, user_id=user_id, zoom=zoom)
     elif task_name == tasks.TARGET_TASK:
         ProcessTargetApplication(working_directory, output_directory,
                                  dry_run=dry_run, debug=debug, name_filter=name_filter,
-                                 skip_previous=skip_previous, user_id=user_id, zoom=zoom, telescope=telescope)
+                                 skip_previous=skip_previous, user_id=user_id, zoom=zoom)
     else:
         error_message = "Unknown task: %s" % task_name
         logger.critical(error_message)
@@ -61,8 +61,7 @@ def create_application(task_name, working_directory, output_directory,
 
 class ValidationApplication(object):
     def __init__(self, working_directory, output_directory,
-                 dry_run=False, debug=False, name_filter=None, user_id=None, mark_using_pixels=True, zoom=1,
-                 telescope='CFHT/MegaCam'):
+                 dry_run=False, debug=False, name_filter=None, user_id=None, mark_using_pixels=True, zoom=1):
 
         self.dry_run = dry_run
         self.user_id = user_id
@@ -270,15 +269,14 @@ class ProcessExamineApplication(ProcessRealsApplication):
 class ProcessTracksApplication(ValidationApplication):
     def __init__(self, working_directory, output_directory,
                  dry_run=False, debug=False, name_filter=None, skip_previous=False,
-                 user_id=None, zoom=1, telescope='Subaru/SuprimeCam'):
+                 user_id=None, zoom=1):
         preload_iraf()
         self.skip_previous = skip_previous
-        self.telescope = telescope
 
         super(ProcessTracksApplication, self).__init__(
             working_directory, output_directory, dry_run=dry_run, debug=debug, 
             name_filter=name_filter,
-            user_id=user_id, zoom=zoom, telescope=telescope)
+            user_id=user_id, zoom=zoom)
 
     @property
     def input_suffix(self):
@@ -293,7 +291,7 @@ class ProcessTracksApplication(ValidationApplication):
                                  output_context,
                                  progress_manager):
         return TracksWorkUnitBuilder(
-            TracksParser(skip_previous=self.skip_previous, telescope=self.telescope), input_context, output_context, progress_manager,
+            TracksParser(skip_previous=self.skip_previous), input_context, output_context, progress_manager,
             dry_run=self.dry_run)
 
     def _create_controller_factory(self, model):
@@ -307,7 +305,7 @@ class ProcessTracksApplication(ValidationApplication):
 class ProcessTargetApplication(ProcessTracksApplication):
     def __init__(self, working_directory, output_directory,
                  dry_run=False, debug=False, name_filter=None, skip_previous=False,
-                 user_id=None, zoom=1, telescope='Subaru/SuprimeCam'):
+                 user_id=None, zoom=1):
         preload_iraf()
         self.skip_previous = skip_previous
         super(ProcessTargetApplication, self).__init__(
