@@ -485,7 +485,7 @@ class ParamDictBuilder(object):
                  observations=None,
                  verbose=False,
                  search_start_date=Time('2013-01-01', scale='utc'),
-                 search_end_date=Time('2017-01-01', scale='utc'),
+                 search_end_date=Time('2023-01-01', scale='utc'),
                  orbit_method='bern',
                  error_ellipse='bern',
                  resolve_extension=True,
@@ -717,7 +717,7 @@ class Query(object):
     def __init__(self,
                  observations=None,
                  search_start_date=Time(parameters.SURVEY_START, scale='utc'),
-                 search_end_date=Time('2017-01-01', scale='utc'),
+                 search_end_date=Time('2023-01-01', scale='utc'),
                  error_ellipse='bern'):
 
         self.param_dict_builder = ParamDictBuilder(
