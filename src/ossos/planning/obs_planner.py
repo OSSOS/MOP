@@ -23,7 +23,8 @@ except:
 from astropy import units
 
 
-from ossos import (cadc, mpc, orbfit, parsers, parameters, storage, wcs)
+from ossos import (cadc, mpc, orbfit, parameters, storage, wcs)
+from src.ossos.utils import parsers
 from ossos.ephem_target import EphemTarget
 from ossos.coord import Coord
 from ossos.cameras import Camera

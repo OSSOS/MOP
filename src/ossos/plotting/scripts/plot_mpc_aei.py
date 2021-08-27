@@ -10,7 +10,8 @@ from astropy import units
 from astropy.table import Table
 
 import palettable
-from ossos import (parsers, parameters)
+from ossos import (parameters)
+from src.ossos.utils import parsers
 from src.ossos.planning.plotting import plot_fanciness
 
 

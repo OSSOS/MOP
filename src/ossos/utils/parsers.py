@@ -12,9 +12,8 @@ from astropy.table import Table
 from uncertainties import ufloat
 import numpy
 import pandas
-from ossos import (mpc, orbfit, parameters, storage)
-from ossos.planning.plotting.utils import square_fit_discovery_mag
-from ossos.planning.plotting.deluxe_table_formatter import deluxe_table_formatter, extreme_tno_table_formatter
+from ossos import (orbfit, parameters, storage)
+from ..planning.plotting.deluxe_table_formatter import deluxe_table_formatter, extreme_tno_table_formatter
 __author__ = 'Michele Bannister   git:@mtbannister'
 
 

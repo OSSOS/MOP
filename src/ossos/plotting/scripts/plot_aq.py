@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 import matplotlib.lines as mlines
 from astropy.table import Table
 
-from ossos import parsers
+from src.ossos.utils import parsers
 
 palette = palettable.tableau.ColorBlind_10.mpl_colors
 

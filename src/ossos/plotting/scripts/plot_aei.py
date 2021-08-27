@@ -9,7 +9,8 @@ import matplotlib.pyplot as plt
 from astropy import units
 
 import palettable
-from ossos import (parsers, parameters)
+from ossos import (parameters)
+from src.ossos.utils import parsers
 from src.ossos.planning.plotting import plot_fanciness
 
 
