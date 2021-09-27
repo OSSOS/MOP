@@ -15,9 +15,8 @@ from matplotlib.collections import PatchCollection
 from matplotlib.font_manager import FontProperties
 import matplotlib.pyplot as plt
 
-from src.ossos.planning import invariable, megacam
+from src.ossos.planning import invariable, megacam, parsers
 from ossos import (parameters)
-from src.ossos.utils import parsers
 # import ossos.core.ossos.planning.plotting.plot_fanciness
 import plot_objects
 

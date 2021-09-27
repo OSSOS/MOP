@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy
 
 from ossos.mpc import TNOdbComment
-from src.ossos.utils import parsers
+from src.ossos.planning import parsers
 
 # Define some CSS to control our custom labels
 css = """

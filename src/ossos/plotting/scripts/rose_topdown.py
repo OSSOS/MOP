@@ -10,7 +10,7 @@ import ephem
 import brewer2mpl
 
 from ossos import (parameters)
-from src.ossos.utils import parsers
+from src.ossos.planning import parsers
 from src.ossos.planning.plotting import plot_fanciness
 
 set2 = brewer2mpl.get_map('Set2', 'qualitative', 8).mpl_colors

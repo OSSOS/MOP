@@ -9,7 +9,7 @@ import ephem
 import matplotlib.pyplot as plt
 
 from ossos import (parameters, horizons)
-from src.ossos.utils import parsers
+from src.ossos.planning import parsers
 
 # FIXME: make this an args setting rather than hardwired
 PLOT_MPCORB = True and os.access(parameters.MPCORB_FILE, os.F_OK)

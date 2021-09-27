@@ -27,7 +27,6 @@ console_scripts = ['mkpsf = ossos.pipeline.mkpsf:main', 'step3 = ossos.pipeline.
                    'step2 = ossos.pipeline.step2:main', 'step1 = ossos.pipeline.step1:main',
                    'combine = ossos.pipeline.combine:main',
                    'mk_mopheader = ossos.pipeline.mk_mopheader:main',
-                   'optimize_pointings = ossos.planning.optimize_pointings:main',
                    'build_astrometry_report = ossos.pipeline.build_astrometry_report:main',
                    'update_astrometry = ossos.pipeline.update_astrometry:main',
                    'measure3 = ossos.pipeline.measure3:main',

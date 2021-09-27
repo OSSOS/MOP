@@ -1,5 +1,6 @@
-
-#!python
+from mp_ephem import BKOrbit, mpc
+from astropy.time import Time
+import glob
 from tkinter import *  #FIXME
 import logging
 import tkinter.filedialog
@@ -13,18 +14,19 @@ import Polygon
 import Polygon.IO
 import numpy
 from astropy.coordinates import SkyCoord
-from astropy.time import Time, TimeDelta
+from astropy.time import TimeDelta
 
 try:
     from astropy.coordinates import ICRSCoordinates
-except:
+except ImportError:
     from astropy.coordinates import ICRS as ICRSCoordinates
 
 from astropy import units
 
 
-from ossos import (cadc, mpc, orbfit, parameters, storage, wcs)
-from src.ossos.utils import parsers
+# from ossos import (cadc orbfit, parameters, storage, wcs)
+# from ossos import storage
+from ossos import wcs
 from ossos.ephem_target import EphemTarget
 from ossos.coord import Coord
 from ossos.cameras import Camera
@@ -205,9 +207,9 @@ class Plot(Canvas):
         self.plabel = StringVar()
         self.plabel.set("P0")
         sun = ephem.Sun()
-        date = mpc.Time(self.date.get(), scale='utc').iso
+        date = Time(self.date.get(), scale='utc').iso
         sun.compute(date)
-        self.sun = Coord((sun.ra, sun.dec))
+        self.sun = Coord((0, 0))
         self.width = width
         self.unit = StringVar()
         self.unit.set('elong')
@@ -221,23 +223,15 @@ class Plot(Canvas):
         """Load the targets from a file.
 
         """
-        # for name in Neptune:
-        #     self.kbos[name] = Neptune[name]
-
-        if directory_name is not None:
+        for filename in glob.glob(f"{directory_name}/*.mpc"):
             # defaults to looking at .ast files only
-            if directory_name == parameters.REAL_KBO_AST_DIR:
-                kbos = parsers.ossos_discoveries(all_objects=True, data_release=None)
-            else:
-                kbos = parsers.ossos_discoveries(directory_name, all_objects=False, data_release=None)
-
-            for kbo in kbos:
-                # if kbo.orbit.arc_length > 30.:  # cull the short ones for now
-                self.kbos[kbo.name] = kbo.orbit
-                print(self.kbos)
-                # self.kbos[kbo.name].mag = kbo.mag
-                # else:
-                #     print("Arc very short, large uncertainty. Skipping {} for now.\n".format(kbo.name))
+            try:
+                kbo = BKOrbit(None, filename)
+                self.kbos[kbo.name] = kbo
+            except Exception as ex:
+                print(filename)
+                print(f"{ex}")
+                raise ex
 
         self.doplot()
 
@@ -480,7 +474,7 @@ class Plot(Canvas):
         name = self.SearchVar.get()
         if name in self.kbos:
             kbo = self.kbos[name]
-            assert isinstance(kbo, orbfit.Orbfit)
+            assert isinstance(kbo, BKOrbit)
             this_time = Time(self.date.get(), scale='utc')
             try:
                 kbo.predict(this_time)
@@ -788,17 +782,18 @@ class Plot(Canvas):
 
     def move_pointing(self, event):
         """Grab nearest pointing to event.x,event.y and with cursor"""
-
+        print("Move isn't working")
+        return
         (ra, dec) = self.c2p((self.canvasx(event.x),
                               self.canvasy(event.y)))
         closest = None
         this_pointing = None
         this_index = -1
         index = -1
+        # Find the pointing we clicked closest too
         for pointing in self.pointings:
             index = index + 1
-            # Find the camera we clicked closest too
-            ds = pointing["camera"].separation(ra, dec)
+            ds = pointing["camera"].separation(ra*units.radian, dec*units.radian)
             if this_pointing is None or ds < closest:
                 this_index = index
                 closest = ds
@@ -821,7 +816,7 @@ class Plot(Canvas):
             else:
                 (x1, y1) = self.p2c((ccd[0] - ccd[2]), ccd[1] - ccd[2])
                 (x2, y2) = self.p2c((ccd[0] + ccd[2]), ccd[1] + ccd[2])
-            self.coords(item, x1, y1, x2, y2)
+            self.coords(item, (x1, y1, x2, y2))
         self.current_pointing(this_index)
 
     def clear_pointings(self):
@@ -881,7 +876,7 @@ class Plot(Canvas):
         width = 180
         # height = math.degrees(math.fabs(dec2 - dec1))
         height = 90
-        date = mpc.Time(self.date.get(), scale='utc').iso
+        date = Time(self.date.get(), scale='utc').iso
         table = cadc.cfht_megacam_tap_query(ra_cen, dec_cen, width, height, date=date)
 
         for row in table:
@@ -915,8 +910,8 @@ class Plot(Canvas):
                 center_ra = 0
                 center_dec = 0
 
-                pointing_date = mpc.Time(self.date.get(), scale='utc')
-                start_date = mpc.Time(self.date.get(), scale='utc') - TimeDelta(8.1*units.day)
+                pointing_date = Time(self.date.get(), scale='utc')
+                start_date = Time(self.date.get(), scale='utc') - TimeDelta(8.1*units.day)
                 end_date = start_date + TimeDelta(17*units.day)
                 time_step = TimeDelta(3.0*units.hour)
 
@@ -1014,6 +1009,13 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                     |hh:mm:ss.ss|+dd:mm:ss.s|      |     |
 12345678901234567890|12345678901|12345678901|123456|12345|
 --------------------|-----------|-----------|------|-----|\n""")
+
+        if self.pointing_format.get() == "Keck":
+            for pointing in self.pointings:
+                name = pointing["label"]["text"]
+                print(pointing["camera"])
+                f.write(f"{name:16s} {pointing['camera'].coordinate.to_string(style='hmsdms', sep=' ')} 2000.00")
+            return
         if self.pointing_format.get() == 'Palomar':
             f.write("index\n")
         for pointing in self.pointings:
@@ -1084,11 +1086,6 @@ NAME                |RA         |DEC        |EPOCH |POINT|
             vlist.append(name)
             fill = None
             is_colossos_target = False
-            for cname in parameters.COLOSSOS:
-                if cname in name:
-                    is_colossos_target = True
-                    print("ColOSSOS: ", cname)
-                    break
             is_terminated = False
             for cname in tracking_termination:
                 if cname in name:
@@ -1115,15 +1112,15 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                 point_size = 1
                 yoffset = +10
                 xoffset = +10
-            elif isinstance(kbos[name], orbfit.Orbfit):
+            elif isinstance(kbos[name], BKOrbit):
                 yoffset = -10
                 xoffset = -10
                 kbo = kbos[name]
-                pointing_date = mpc.Time(w.date.get(), scale='utc').jd
+                pointing_date = Time(w.date.get(), scale='utc').jd
                 trail_mid_point = 0
                 for days in range(trail_mid_point * 2 + 1):
                     point_size = days == trail_mid_point and 5 or 1
-                    today = mpc.Time(pointing_date - trail_mid_point + days, scale='utc', format='jd')
+                    today = Time(pointing_date - trail_mid_point + days, scale='utc', format='jd')
                     kbo.predict(today, 568)
                     ra = kbo.coordinate.ra.radian
                     dec = kbo.coordinate.dec.radian
@@ -1135,9 +1132,13 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                     if a > math.radians(0.3):
                         lost = True
 
-                fill_colour = (lost and "red") or "grey"
-                fill_colour = (is_double and "magenta") or fill_colour
-                fill_colour = (is_colossos_target and "blue") or fill_colour
+                if kbo.distance > 50*units.au:
+                    fill_colour = "blue"
+                else:
+                    fill_colour = "magenta"
+                fill_colour = (lost and "red") or fill_colour
+                #fill_colour = (is_double and "magenta") or fill_colour
+                #fill_colour = (is_colossos_target and "blue") or fill_colour
                 point_colour = (is_terminated and "red") or "black"
                 w.create_point(ra, dec, size=point_size, color=point_colour, fill=fill_colour)
                 if w.show_ellipse.get() == 1 and days == trail_mid_point:
@@ -1270,6 +1271,7 @@ def start(dirname=None, pointings=None):
     pointFormat.add_checkbutton(label="CFHT ET", variable=w.pointing_format, onvalue='CFHT ET')
     pointFormat.add_checkbutton(label="GEMINI ET", variable=w.pointing_format, onvalue='GEMINI ET')
     pointFormat.add_checkbutton(label='Palomar', variable=w.pointing_format, onvalue='Palomar')
+    pointFormat.add_checkbutton(label='Keck', variable=w.pointing_format, onvalue='Keck')
     pointFormat.add_checkbutton(label='KPNO/CTIO', variable=w.pointing_format, onvalue='KPNO/CTIO')
     pointFormat.add_checkbutton(label='SSim', variable=w.pointing_format, onvalue='SSim')
     pointFormat.add_checkbutton(label='Subaru', variable=w.pointing_format, onvalue='Subaru')
@@ -1307,7 +1309,7 @@ def start(dirname=None, pointings=None):
     w.newPlot()
     w.load_objects(directory_name=dirname)
     w.recenter(math.pi, 0)
-    w.zoom(scale=64)  # want to start in closer: 28 good for plots
+    w.zoom(scale=64*2)  # want to start in closer: 28 good for plots
 
     root.mainloop()
 

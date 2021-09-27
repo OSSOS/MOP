@@ -747,7 +747,7 @@ class Query(object):
         if len(lines) < 2 or "An error occured getting the ephemeris" in lines:
             print(lines)
             print(response.url)
-            raise IOError(os.errno.EACCES,
+            raise IOError(-1,
                           "call to SSOIS failed on format error")
 
         if os.access("backdoor.tsv", os.R_OK):

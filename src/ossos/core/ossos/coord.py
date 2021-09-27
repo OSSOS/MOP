@@ -63,31 +63,9 @@ class Coord:
 
     def __segs__(self, ang, precision=1):
         """given an angle, convert it to a segisdecimal string"""
-        sign = "+"
-        if ang < 0:
-            sign = "-"
-            ang = ang * -1.0000000000000
-        ang += 1E-11
-
-        _d = math.floor(ang)
-        _mf = (ang - _d) * 60.00
-        _m = math.floor(_mf)
-        _s = (_mf - _m) * 60.00
-        _is = math.floor(_s)
-        _fs = math.floor((_s - _is) * 10.00 * precision)
-
-        _d = "%.0f" % ( _d)
-        _m = "%.0f" % ( _m)
-        _is = "%.0f" % (_is)
-        _fs = int(_fs)
-
-        _sd = string.zfill(_d, 2)
-        _sm = string.zfill(_m, 2)
-        _ss = string.zfill(_is, 2)
-        _sf = string.zfill(_fs, precision)
-
-        s = sign + "%s:%s:%s.%s" % ( _sd, _sm, _ss, _sf)
-        return s
+        from astropy.coordinates import Angle
+        from astropy import units
+        return Angle(ang*units.degree).to_string(decimal=False, pad=True, sep=":", precision=precision)
 
     def __str__(self):
         """String representation of coordinate.
