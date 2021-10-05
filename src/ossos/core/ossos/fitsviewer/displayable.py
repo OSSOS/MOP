@@ -260,7 +260,7 @@ class ImageSinglet(object):
 
             # load image into the display
             try:
-                display.set('mosaic wcs {}'.format(f.name))
+                display.set('mosaicimage wcs {}'.format(f.name))
                 while display.get('frame has fits') != 'yes':
                     print("Waiting for image to load.")
                     pass
