@@ -174,7 +174,8 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2, 
     if use_ssos:
         ssois_server = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/fixedssos.pl"
         logger.info("Starting SSOIS Query.")
-        params = dict(pos="{0:f},{1:f}".format(ra.to(units.degree).value, dec.to(units.degree).value))
+        params = dict(pos="{0:f},{1:f}".format(ra.to(units.degree).value, dec.to(units.degree).value),
+                      telinst='CFHT/MegaCam')
         result = requests.get(ssois_server, params=params)
         logger.info("SSOIS Query Done")
         table = ascii.read(result.text, format='tab')

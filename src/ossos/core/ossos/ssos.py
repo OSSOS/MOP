@@ -360,7 +360,8 @@ class SSOSParser(object):
             logger.info("Calling predict")
             orbit.predict(obs_date)
             logger.info("Done calling predict")
-            if orbit.dra > 15 * units.arcminute or orbit.ddec > 15.0 * units.arcminute:
+            max_error = float(os.environ.get("MOP_MAX_ERROR", 15))*units.arcminute
+            if orbit.dra > max_error or orbit.ddec > max_error:
                 print("Skipping entry as orbit uncertainty at date {} is large.".format(obs_date))
                 continue
             if expnum in expnums_examined:
