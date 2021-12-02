@@ -48,5 +48,6 @@ fi
 cp step2jmp $BINDIR/
 cp step2ajmp $BINDIR/
 cp control_scripts/* $BINDIR/
+cp gaiaget.py $BINDIR/
 
 exit
