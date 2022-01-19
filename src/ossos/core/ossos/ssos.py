@@ -21,7 +21,8 @@ requests.packages.urllib3.disable_warnings()
 __author__ = 'Michele Bannister, JJ Kavelaars'
 
 # SSOS_URL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssos.pl"
-SSOS_URL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssosclf.pl"
+# SSOS_URL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssosclf.pl"
+SSOS_URL = "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssosclf.pl"
 RESPONSE_FORMAT = 'tsv'
 NEW_LINE = '\r\n'
 
@@ -468,7 +469,7 @@ class ParamDictBuilder(object):
     """
     Build a dictionary of parameters needed for an SSOS Query.
 
-    http://www4.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssosclf.pl?
+    https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssosclf.pl?
     lang=en
     object=2
     search=bynameHorizons

@@ -56,7 +56,7 @@ ASTROM_RELEASES = os.path.join(BASE_VOS,
 
 DATA_WEB_SERVICE = 'https://www.canfar.phys.uvic.ca/data/pub/'
 VOSPACE_WEB_SERVICE = 'https://www.canfar.phys.uvic.ca/vospace/nodes/'
-TAP_WEB_SERVICE = 'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/tap/sync'
+TAP_WEB_SERVICE = 'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/tap/sync'
 
 OSSOS_TAG_URI_BASE = 'ivo://canfar.uvic.ca/ossos'
 OBJECT_COUNT = "object_count"
@@ -172,7 +172,7 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2, 
     """
 
     if use_ssos:
-        ssois_server = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/fixedssos.pl"
+        ssois_server = "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/fixedssos.pl"
         logger.info("Starting SSOIS Query.")
         params = dict(pos="{0:f},{1:f}".format(ra.to(units.degree).value, dec.to(units.degree).value),
                       telinst='CFHT/MegaCam')
@@ -263,7 +263,7 @@ def populate(dataset_name, data_web_service_url=DATA_WEB_SERVICE + "CFHT"):
 
     header_dest = get_uri(dataset_name, version='p', ext='head')
     header_source = "%s/%s/%sp.head" % (
-        'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub', 'CFHTSG', dataset_name)
+        'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub', 'CFHTSG', dataset_name)
     try:
         client.link(header_source, header_dest)
     except IOError as e:
@@ -1671,7 +1671,7 @@ def _get_sghead(expnum):
     header_filename = "{}{}.head".format(expnum, version)
 
     if not os.access(header_filename, os.R_OK):
-        url = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHTSG/{}".format(header_filename)
+        url = "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHTSG/{}".format(header_filename)
         logging.getLogger("requests").setLevel(logging.ERROR)
         logging.debug("Attempting to retrieve {}".format(url))
         resp = requests.get(url)
