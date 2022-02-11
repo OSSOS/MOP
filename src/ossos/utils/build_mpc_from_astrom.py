@@ -7,8 +7,7 @@ from ossos import orbfit
 from ossos import mpc
 import sys
 from ossos.gui import config
-from ossos.util import  Time
-from astropy.time import TimeDelta
+from astropy.time import TimeDelta, Time
 from astropy import units
 import re
 
@@ -48,10 +47,6 @@ if True:
                 break
             header = cutout.fits_header
 
-
-            #(x, y, extno) = source_cutout.world2pix(ra, dec, usepv=False)
-            #cutout.update_pixel_location((cen_x, cen_y))
-
             mjd_obs = float(header.get('MJD-OBS'))
             exptime = float(header.get('EXPTIME'))
 
@@ -66,7 +61,7 @@ if True:
                 null_observation=False,
                 minor_planet_number=None,
                 provisional_name=name,
-                discovery=True,
+                discovery=False,
                 note1=None,
                 note2=config.read('MPC.NOTE2DEFAULT')[0],
                 date=date,
@@ -82,7 +77,6 @@ if True:
                 astrometric_level=cutout.astrom_header.get('ASTLEVEL', None)
                 )
 
-
             source_obs.append(obs)
             with open(name+".mpc", 'a') as fout:
                 fout.write(obs.to_tnodb()+"\n")
@@ -96,5 +90,4 @@ if True:
             residuals = orbit.residuals(overall=True)
             print(orbit.summarize())
             if orbit.a > 5*units.AU and mags < 24.7:
-                file('keepers.txt', 'a').write("{}\n".format(source_obs[0].provisional_name))
-
+                open('keepers.txt', 'a').write("{}\n".format(source_obs[0].provisional_name))
