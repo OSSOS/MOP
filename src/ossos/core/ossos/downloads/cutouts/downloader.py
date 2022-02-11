@@ -30,7 +30,7 @@ class ImageCutoutDownloader(Downloader):
     Downloads a slice of an image relevant to examining a (potential) source.
     """
 
-    def __init__(self, slice_rows=500, slice_cols=500, vosclient=None):
+    def __init__(self, slice_rows=500, slice_cols=500, radius=250, vosclient=None):
         """
         Constructor.
 
@@ -40,10 +40,19 @@ class ImageCutoutDownloader(Downloader):
             source.  Leave as None to use default configuration values.
         """
         super(ImageCutoutDownloader, self).__init__()
+        if slice_rows is None:
+            slice_rows = config.read('CUTOUTS.SINGLETS.SLICE_ROWS')
+        self.slice_rows = slice_rows
+        if slice_cols is None:
+            slice_cols = config.read('CUTOUTS.SINGLETS.SLICE_COLS')
+        self.slice_cols = slice_cols
+        if radius is None:
+            radius = config.read('CUTOUTS.SINGLETS.RADIUS')
+        self.radius = radius
 
-        # self.cutout_calculator = CutoutCalculator(slice_rows, slice_cols)
 
-    def download_cutout(self, reading, focus=None, needs_apcor=False):
+    def download_cutout(self, reading, focus=None, needs_apcor=False,
+                        use_uncertainty=True):
         """
         Downloads a cutout of the FITS image for a given source reading.
 
@@ -60,6 +69,8 @@ class ImageCutoutDownloader(Downloader):
             If True, the apcor file with data needed for photometry
             calculations is downloaded in addition to the image.
             Defaults to False.
+          use_uncertainty: bool
+            Override the cutout size with the uncertainty of position?
 
         Returns:
           cutout: ossos.downloads.data.SourceCutout
@@ -69,12 +80,10 @@ class ImageCutoutDownloader(Downloader):
                                                                                                     needs_apcor))
         assert isinstance(reading, SourceReading)
 
-        min_radius = config.read('CUTOUTS.SINGLETS.RADIUS')
-        if not isinstance(min_radius, Quantity):
-            min_radius = min_radius * units.arcsec
-
-        radius = max(reading.uncertainty_ellipse.a,
-                     reading.uncertainty_ellipse.b) * 2.5 + min_radius
+        radius = self.radius * 0.185 * units.arcsec
+        if use_uncertainty:
+            radius = max(reading.uncertainty_ellipse.a,
+                         reading.uncertainty_ellipse.b) * 2.5 + radius
 
         logger.debug("got radius for cutout: {}".format(radius))
         image_uri = reading.get_image_uri()
