@@ -16,8 +16,6 @@ from .orbfit import Orbfit
 from . import storage
 
 
-requests.packages.urllib3.disable_warnings()
-
 __author__ = 'Michele Bannister, JJ Kavelaars'
 
 # SSOS_URL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssos.pl"
@@ -361,7 +359,7 @@ class SSOSParser(object):
             orbit.predict(obs_date)
             logger.info("Done calling predict")
             if orbit.dra > 15 * units.arcminute or orbit.ddec > 15.0 * units.arcminute:
-                print "Skipping entry as orbit uncertainty at date {} is large.".format(obs_date)
+                print("Skipping entry as orbit uncertainty at date {} is large.".format(obs_date))
                 continue
             if expnum in expnums_examined:
                 logger.debug("Already checked this exposure.")
