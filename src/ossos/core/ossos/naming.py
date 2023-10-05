@@ -6,7 +6,7 @@ from ossos import storage
 __author__ = "David Rusk <drusk@uvic.ca>"
 
 
-def _generate_provisional_name(q, astrom_header, fits_header):
+def _generate_provisional_name(q, astrom_header, fits_header, measure3=storage.MEASURE3):
     """
     Generates a name for an object given the information in its astrom
     observation header and FITS header.
@@ -18,7 +18,7 @@ def _generate_provisional_name(q, astrom_header, fits_header):
     while True:
         ef = get_epoch_field(astrom_header, fits_header)
         epoch_field = ef[0] + ef[1]
-        count = storage.increment_object_counter(storage.MEASURE3, epoch_field)
+        count = storage.increment_object_counter(measure3, epoch_field)
         try:
             q.put(ef[1] + count)
         except:
@@ -52,11 +52,12 @@ class ProvisionalNameGenerator(object):
     http://www.minorplanetcenter.net/iau/info/PackedDes.html
     """
 
-    def __init__(self):
+    def __init__(self, measure3=storage.MEASURE3):
         self._astrom_header = None
         self._fits_header = None
         self.provisional_name_queue = None
         self.p = None
+        self._measure3 = measure3
 
     def generate_name(self, astrom_header, fits_header):
         if not self._astrom_header or self._astrom_header != astrom_header:
@@ -68,8 +69,9 @@ class ProvisionalNameGenerator(object):
                 self.p.terminate()
             self.provisional_name_queue = Queue(1)
             self.p = Process(target=_generate_provisional_name, args=(self.provisional_name_queue,
-                                                                 self._astrom_header,
-                                                                 self._fits_header))
+                                                                      self._astrom_header,
+                                                                      self._fits_header,
+                                                                      self._measure3))
             self.p.start()
         return self.provisional_name_queue.get()
 

@@ -172,6 +172,14 @@ class EphemTarget(object):
         json.dump(target, f_handle)
         return
 
+    def keck_write(self, f_handle):
+        """
+        Write a KECK pointing file.
+        """
+        name = self.name
+        coordinate = self.coordinates[0]
+        f_handle.write(f"{name:16s} {coordinate.to_string(style='hmsdms', sep=' ')} 2000.00")
+
     def gemini_writer(self, f_handle):
         """
         Write out a GEMINI formated OT ephemeris.  This is just a hack of SSD Horizons output.
@@ -209,6 +217,8 @@ class EphemTarget(object):
             self.cfht_api_writer(f_handle)
         elif self.format == 'GEMINI ET':
             self.gemini_writer(f_handle)
+        elif self.format == 'KECK':
+            self.keck_write(f_handle)
         else:
             raise ValueError("unknown ET Format")
 

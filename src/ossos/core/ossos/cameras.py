@@ -1,6 +1,7 @@
 import math
 import Polygon
 import logging
+from matplotlib import pyplot
 
 from astropy import units
 from astropy.coordinates import SkyCoord
@@ -10,6 +11,9 @@ class Camera:
     """The Field of View of a direct imager"""
 
     _geometry = {
+        "DEIMOS": [
+            {"ra": 0.0 , "dec": 0.0, "dra": 0.1185*8192/3600.0, 'ddec': 0.1185*8129/2.0/3600.0}
+        ],
         "MP_CCD": [
             {"ra": 0., "dec": 0., "dra": 0.1052, "ddec": 0.2344}
         ],
@@ -24,8 +28,6 @@ class Camera:
         ],
         "LBT": [{'dra': 1.3000992865659029, 'ddec': 0.42162904764019515, 'dec': 0.00019679877439671145,
                  'ra': 0.0042193345733494425, 'name': 'LBC_BLUE'},
-#                {'dra': 1.3092201073853289, 'ddec': 0.42897343292189305, 'dec': -0.00019679877439671145,
-#                 'ra': -0.0042193345733494425, 'name': 'LBC-RED'}
                 ],
         "MEGACAM_40": [
             {"ra": +0.440 + 0.111, "dec": -0.105, "ddec": 0.241, "dra": 0.111},
@@ -181,8 +183,9 @@ class Camera:
         ]
     }
 
-    def __init__(self,  ra, dec=None, camera="MEGACAM_40",):
+    def __init__(self,  ra, dec=None, camera="MEGACAM_40", name=None):
         self._origin = None
+        self.name = name
         if dec is None:
             if isinstance(ra, SkyCoord):
                 self.origin = ra
@@ -194,6 +197,8 @@ class Camera:
             camera = "MEGACAM_40"
         self.camera = camera
         self._coordinate = None
+
+    known_cameras = _geometry.keys()
 
     def __str__(self):
 
@@ -254,6 +259,10 @@ class Camera:
         """
         self._origin = coord
 
+    def set_coord(self, coord):
+        self.set_origin((coord[0], coord[1]))
+        # self.origin = coord
+
     def set_origin(self, p):
         ra = p[0]
         dec = p[1]
@@ -304,8 +313,23 @@ class Camera:
                 ccds.append([xcen, ycen, rad])
         return ccds
 
+    def plot(self, facecolor='none', edgecolor='k', alpha=0.5):
+        for ccd in self.geometry:
+            print(ccd)
+            print(self.polygon)
+            x = ccd[0]
+            y = ccd[1]
+            w = math.fabs(ccd[2] - ccd[0])
+            h = math.fabs(ccd[3] - ccd[1])
+            pyplot.gca().add_patch(pyplot.Rectangle((x, y), w, h, facecolor=facecolor, edgecolor=edgecolor))
+            pyplot.text(x, y, self.name)
+
     def separation(self, ra, dec):
         """Compute the separation between self and (ra,dec)"""
         if self.coord is None:
             return None
-        return self.coord.separation(SkyCoord(ra, dec, unit=('degree', 'degree')))
+        try:
+            return self.coord.separation(SkyCoord(ra, dec))
+        except:
+            return self.coord.separation(SkyCoord(ra, dec, unit=('radian', 'radian')))
+

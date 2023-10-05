@@ -1,6 +1,6 @@
-#!python
 from astropy import units
 from astropy.coordinates import SkyCoord
+from astropy.table import Table
 from astropy.time import TimeDelta, Time
 import numpy as np
 from ossos.cameras import Camera
@@ -14,12 +14,13 @@ import logging
 import math
 from copy import deepcopy
 import ephem
+from ephemeris import Ephemeris
 
 cfht = ephem.Observer()
 cfht.lat = 0.344
 cfht.lon = -2.707
 cfht.elevation = 4100
-cfht.date = '2018/03/28 20:00:00'
+cfht.date = '2021/09/01 10:00:00'
 sun = ephem.Sun()
 fb = ephem.FixedBody()
 
@@ -63,6 +64,7 @@ def create_ephemeris_file(name, camera, kbos, orbits, pointing_date, runid, ephe
     @param orbits: orbits of all known kbos
     @param pointing_date: data of pointing associated with camera object
     @param runid:  The CFHT RunID that will be used to observer the target.
+    @param ephem_format: What format to write the pointing list out in.
     @return: None
     """
 
@@ -73,8 +75,8 @@ def create_ephemeris_file(name, camera, kbos, orbits, pointing_date, runid, ephe
     center_dec = 0
 
     pointing_date = mpc.Time(pointing_date)
-    start_date = pointing_date - TimeDelta(8.1 * units.day)
-    end_date = start_date + TimeDelta(17 * units.day)
+    start_date = pointing_date - TimeDelta(0.1 * units.hour)
+    end_date = start_date + TimeDelta(2 * units.hour)
     time_step = TimeDelta(1.5 * units.hour)
 
     # Compute the mean position of KBOs in the field on current date.
@@ -120,13 +122,14 @@ def create_ephemeris_file(name, camera, kbos, orbits, pointing_date, runid, ephe
     return
 
 
-def optimize(orbits, required, locations, tokens, camera_name="MEGACAM_40"):
+def optimize(orbits, required, locations, tokens, camera_name="DEIMOS"):
     """
 
     @param orbits: a dictionary of orbits to optimize the point of.
     @param required: list of objects that MUST be observed.
     @param locations: locations of the objects at the start of observing period.
     @param tokens: List of tokens (object names) that we will try and cover.
+    @param camera_name: name of camera to look up in geometry file.
     @return:
     """
 
@@ -137,8 +140,7 @@ def optimize(orbits, required, locations, tokens, camera_name="MEGACAM_40"):
     search_order = [0, ]
     # search_order = [22 + 4]
     # search_order.extend(range(len(Camera.names)))
-
-    # For each required target find the pointing that will include the largest number of other required targets
+ # For each required target find the pointing that will include the largest number of other required targets
     # and then tweak that specific pointing to include the maximum number of secondary targets.
     for token in token_order:
         if token in covered:
@@ -148,96 +150,83 @@ def optimize(orbits, required, locations, tokens, camera_name="MEGACAM_40"):
             logging.error("No orbit available for: {}".format(token))
             continue
         obj = orbits[token]
-        separations = obj.coordinate.separation(locations)
-        possible_tokens = tokens[separations < 1.3 * units.degree]
-        this_required = []
-        for this_token in required:
-            if this_token in possible_tokens:
-                this_required.append(this_token)
-        # This object is not inside the existing coverage.
-        max_sources_in_pointing = 0
-        best_coverage = []
-        p = SkyCoord(obj.coordinate.ra,
+     q = SkyCoord(obj.coordinate.ra,
                      obj.coordinate.dec)
-        pointing = Camera(p, camera=camera_name)
+        pointing = Camera(q, camera=camera_name, name=token)
+        bbox = pointing.polygon.boundingBox()
+        radius = (max((bbox[1]-bbox[0])**2, (bbox[3]-bbox[2])**2)*2)**0.5
+        separations = obj.coordinate.separation(locations)
+        logging.info(f"Seaching within {radius} degrees of {token}")
+        possible_tokens = tokens[separations < radius * units.degree]
+        best_coverage = [token]
+        optimal_pointing = pointing
         if len(possible_tokens) == 1:
-            optimal_pointings[token] = pointing, possible_tokens
-            logging.info(" {} is all alone!".format(token))
             continue
+        for dx in np.arange((q.ra.degree-bbox[0]-1/60.0), (bbox[1] - q.ra.degree), 1/60.0):
+            for dy in np.arange((q.dec.degree-bbox[2]-1/60.0), (bbox[3] - q.dec.degree), 1/60.0):
+                p = SkyCoord(obj.coordinate.ra + dx*units.degree,
+                             obj.coordinate.dec + dy*units.degree)
+                pointing = Camera(p, camera=camera_name, name=token)
+                this_required = []
+                for this_token in required:
+                    if this_token in possible_tokens:
+                        this_required.append(this_token)
+                logging.debug(f"Field {token} near required targets {this_required}")
+                # This object is not inside the existing coverage.
+                if len(this_required) == 1:
+                    continue
+                else:
+                    logging.debug("Finding required targets within pointing")
+                    this_coverage = []
+                    for this_token in this_required:
+                        if this_token in covered:
+                            continue
+                        if pointing.polygon.isInside(orbits[this_token].coordinate.ra.degree, orbits[this_token].coordinate.dec.degree):
+                            logging.debug(f"Adding {this_token} to pointing {token}")
+                            this_coverage.append(this_token)
+                    if len(this_coverage) > len(best_coverage):
+                        logging.info(f"Best {token} pointing is {pointing.coordinate} with {len(this_coverage)} targets.")
+                        best_coverage = this_coverage
+                        optimal_pointing = pointing
 
-        logging.debug("examining possible optimizations")
+        optimal_coverage = []
 
-        if len(this_required) == 1:
-            best_coverage = [token]
-        else:
-            logging.debug("Maximizing inclusion of required targets")
-            for idx in search_order:
-                pointing.offset(index=idx)
+        for dx in np.arange((q.ra.degree - bbox[0] - 2 / 60.0), (bbox[1] - q.ra.degree - 1/60.0), 1 / 60.0):
+            for dy in np.arange((q.dec.degree - bbox[2] - 2 / 60.0), (bbox[3] - q.dec.degree - 1/60.0), 1 / 60.0):
+                p = SkyCoord(obj.coordinate.ra + dx * units.degree,
+                             obj.coordinate.dec + dy * units.degree)
+                pointing = Camera(p, camera=camera_name, name=token)
+                # Skip offset if we loose required object.
+                exclude = False
+                for this_token in best_coverage:
+                    if not pointing.polygon.isInside(orbits[this_token].coordinate.ra.degree, orbits[this_token].coordinate.dec.degree):
+                        exclude = True
+                        break
+                if exclude:
+                    continue
+
                 this_coverage = []
-                for this_token in this_required:
+
+                for this_token in possible_tokens:
                     if this_token in covered:
                         continue
-                    this_obj = orbits[this_token]
-                    if pointing.polygon.isInside(this_obj.coordinate.ra.degree, this_obj.coordinate.dec.degree):
+                    if pointing.polygon.isInside(orbits[this_token].coordinate.ra.degree, orbits[this_token].coordinate.dec.degree):
                         this_coverage.append(this_token)
 
-                if len(this_coverage) > max_sources_in_pointing:
-                    max_sources_in_pointing = len(this_coverage)
-                    best_coverage = this_coverage
-
-        # best_pointing now contains the pointing that covers the largest number of required sources.
-        # best_coverage is the list of sources (tokens) that this pointing covered.
-        # now move around the best_pointing, keeping all the objects listed in best_coverage but maximizing the
-        # number of other sources that get coverage (optimal_coverage)
-        logging.info("{} pointing these {} required targets: {}".format(token, len(best_coverage), best_coverage))
-        max_sources_in_pointing = 0
-        optimal_coverage = []
-        optimal_pointing = None
-        for idx in search_order:
-            pointing.offset(index=idx)
-            exclude = False  # exclude this offset because it doesn't overlap one or more of the required sources.
-            for this_token in best_coverage:
-                this_obj = orbits[this_token]
-                if not pointing.polygon.isInside(this_obj.coordinate.ra.degree, this_obj.coordinate.dec.degree):
-                    exclude = True
-                    break
-
-            if exclude:
-                continue
-
-            # OK, this offset has all the required sources possible, how many extra sources do we get?
-            this_coverage = []
-            for this_token in possible_tokens:
-                if this_token in covered:
-                    continue
-                this_obj = orbits[this_token]
-                if pointing.polygon.isInside(this_obj.coordinate.ra.degree, this_obj.coordinate.dec.degree):
-                    this_coverage.append(this_token)
-
-            if len(this_coverage) > max_sources_in_pointing:
-                max_sources_in_pointing = len(this_coverage)
-                optimal_coverage = this_coverage
-                optimal_pointing = idx
+                if len(this_coverage) > len(optimal_coverage):
+                    print(pointing.polygon.isInside(orbits[token].coordinate.ra.degree, orbits[token].coordinate.dec.degree))
+                    optimal_coverage = this_coverage
+                    optimal_pointing = pointing
 
         # remove all sources covered by optimal_pointing from further consideration.
-        sys.stdout.write("{} pointing covers: ".format(token))
         unique_coverage_list = []
-        for this_token in optimal_coverage:
+        for this_token in best_coverage:
             if this_token not in covered:
                 unique_coverage_list.append(this_token)
-                sys.stdout.write(" {} ".format(this_token))
                 covered.append(this_token)
-        sys.stdout.write("\n")
-        pointing.offset(index=optimal_pointing)
-        optimal_pointings[token] = pointing, unique_coverage_list
-        n = 0
-        new_required = []
-        for this_token in token_order:
-            if this_token not in covered:
-                new_required.append(this_token)
-                n += 1
-        logging.info("Remaining required targets: {}, targets covered: {}".format(n, len(covered)))
-        required = new_required
+
+        optimal_pointings[token] = optimal_pointing, unique_coverage_list
+
     return optimal_pointings
 
 
@@ -258,10 +247,10 @@ def main():
                         help="Number of random variations of pointings to try",
                         default=2)
     parser.add_argument('--camera', default="MEGACAM_40",
-                        choices=list(Camera._geometry.keys()),
+                        choices=Camera.known_cameras,
                         help="Name of camera")
     parser.add_argument('--ephem-format', default='CFHT_API',
-                        choices=['CFHT_API', 'CFHT_ET', 'GEMINI_ET'])
+                        choices=['CFHT_API', 'CFHT_ET', 'GEMINI_ET', 'KECK'])
 
     args = parser.parse_args()
 
@@ -291,8 +280,15 @@ def main():
     for filename in filenames:
         filename = filename.strip()
         token = os.path.splitext(os.path.basename(filename))[0]
-        abg_filename = os.path.splitext(filename)[0] + ".abg"
-        orbits[token] = mp_ephem.BKOrbit(None, ast_filename=filename, abg_file=abg_filename)
+        try:
+            abg_filename = os.path.splitext(filename)[0] + ".abg"
+            orbits[token] = mp_ephem.BKOrbit(None, ast_filename=filename, abg_file=abg_filename)
+        except Exception as ex:
+            # Try loading an 'autoclouds10' file.
+            token = os.path.splitext(os.path.basename(filename))[0].removesuffix('_autoclouds10')
+            ephem_filename = os.path.join(filename, f"{token}_autoclouds10_sep21_ephem.txt")
+            orbits[token] = Ephemeris(token, ephem_filename)
+
         tokens.append(token)
 
     # Turn the object locations at the time of interest into a SkyCoord numpy array.

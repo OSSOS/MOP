@@ -652,7 +652,7 @@ if PLOT_MEGACAM_ARCHIVE_FIELDS:
 
 if PLOT_MPCORB:
     print("PLOTTING LOCATIONS OF KNOWN KBOs (using {})".format(MPCORB_FILE))
-    kbos = mpcread.getKBOs(MPCORB_FILE)
+    kbos = mpcread.get_kbos(MPCORB_FILE)
     for kbo in kbos:
         kbo.compute(plot_date)
         if field_polygon.isInside(math.degrees(float(kbo.ra)), math.degrees(float(kbo.dec))):

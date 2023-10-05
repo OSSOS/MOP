@@ -45,7 +45,7 @@ def cfht_megacam_tap_query(ra_deg=180.0, dec_deg=0.0, width=1, height=1, date=No
             "LANG": "ADQL",
             "FORMAT": "votable"}
 
-    url = "http://www.cadc.hia.nrc.gc.ca/tap/sync"
+    url = "https://www.cadc.hia.nrc.gc.ca/tap/sync"
 
     warnings.simplefilter('ignore')
     ff = StringIO(requests.get(url, params=data).content)

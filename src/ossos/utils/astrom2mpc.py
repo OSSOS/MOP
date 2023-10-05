@@ -1,6 +1,7 @@
 """
 Build the .ast file entries given an input .astrom file
 """
+import mp_ephem
 from ossos import astrom
 from ossos.downloads.cutouts import downloader
 from ossos import orbfit
@@ -33,6 +34,7 @@ if True:
             run += 1
         source_obs = []
         for reading in source.get_readings():
+            reading
             try:
                 cutout = dlm.download_cutout(reading, needs_apcor=True)
                 name = "{}{}{}".format(basename, alpha[count % len(alpha)], run)

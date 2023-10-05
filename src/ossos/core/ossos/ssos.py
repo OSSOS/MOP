@@ -16,8 +16,6 @@ from .orbfit import Orbfit
 from . import storage
 
 
-requests.packages.urllib3.disable_warnings()
-
 __author__ = 'Michele Bannister, JJ Kavelaars'
 
 # SSOS_URL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssos.pl"
@@ -28,15 +26,16 @@ NEW_LINE = '\r\n'
 
 class TracksParser(object):
 
-    def __init__(self, inspect=True, skip_previous=False, lunation_count=0):
+    def __init__(self, inspect=True, skip_previous=False, lunation_count=0, telescope_instrument='CFHT/MegaCam'):
         logger.debug("Setting up TracksParser")
         self.orbit = None
-        self._nights_per_darkrun = 18 * units.day
-        self._nights_separating_darkruns = 30 * units.day
+        self._nights_per_dark_run = 18 * units.day
+        self._nights_separating_dark_runs = 30 * units.day
         self.inspect = inspect
         self.skip_previous = skip_previous
         self.ssos_parser = None
         self.initial_lunation_count = lunation_count
+        self.telescope_instrument = telescope_instrument
 
     def parse(self, filename, print_summary=True):
         logger.debug("Parsing SSOS Query.")
@@ -50,20 +49,18 @@ class TracksParser(object):
         try:
             self.orbit = Orbfit(mpc_observations)
             if print_summary:
-               print((self.orbit.residuals))
-               print((self.orbit))
+                print(self.orbit.residuals)
+                print(self.orbit)
         except Exception as ex:
             logger.error("{}".format(ex))
             logger.error("Failed to compute orbit with astrometry provided")
             logger.error("{}".format(mpc_observations))
             return None
 
-        lunation_count = self.initial_lunation_count
-
         if self.orbit.arc_length < 1 * units.day:
             # data from the same dark run.
             lunation_count = 0
-        elif 1 * units.day < self.orbit.arc_length < self._nights_per_darkrun:
+        elif 1 * units.day < self.orbit.arc_length < self._nights_per_dark_run:
             # data from neighbouring darkruns.
             lunation_count = 1
         else:
@@ -105,18 +102,18 @@ class TracksParser(object):
             search_end_date = Time(datetime.datetime.now().strftime('%Y-%m-%d'), scale='utc')
         else:
             search_start_date = Time((mpc_observations[0].date.jd * units.day - (
-                self._nights_per_darkrun +
-                lunation_count * self._nights_separating_darkruns)), format='jd', scale='utc')
+                    self._nights_per_dark_run +
+                    lunation_count * self._nights_separating_dark_runs)), format='jd', scale='utc')
             search_end_date = Time((mpc_observations[-1].date.jd * units.day + (
-                self._nights_per_darkrun +
-                lunation_count * self._nights_separating_darkruns)), format='jd', scale='utc')
+                    self._nights_per_dark_run +
+                    lunation_count * self._nights_separating_dark_runs)), format='jd', scale='utc')
 
         logger.info("Sending query to SSOS start_date: {} end_data: {}\n".format(search_start_date, search_end_date))
         query = Query(mpc_observations,
                       search_start_date=search_start_date,
                       search_end_date=search_end_date)
         logger.debug("Parsing query results...")
-        tracks_data = self.ssos_parser.parse(query.get(), mpc_observations=mpc_observations)
+        tracks_data = self.ssos_parser.parse(query.get())
 
         tracks_data.mpc_observations = {}
 
@@ -175,7 +172,7 @@ class TracksParser(object):
 
 class TrackTarget(TracksParser):
 
-    def parse(self, target_name):
+    def parse(self, target_name, **kwargs):
         with open(target_name) as f:
             self.target_name = f.read().strip()
 
@@ -197,7 +194,7 @@ class TrackTarget(TracksParser):
         # we observe ~ a week either side of new moon
         # but we don't know when in the dark run the discovery happened
         # so be generous with the search boundaries, add extra 2 weeks
-        # current date just has to be the night of the triplet,
+        # curre nt date just has to be the night of the triplet,
         from mp_ephem import horizons
         search_start_date = Time('1999-01-01', scale='utc')
         search_end_date = Time(datetime.datetime.now().strftime('%Y-%m-%d'), scale='utc')
@@ -360,7 +357,8 @@ class SSOSParser(object):
             logger.info("Calling predict")
             orbit.predict(obs_date)
             logger.info("Done calling predict")
-            if orbit.dra > 15 * units.arcminute or orbit.ddec > 15.0 * units.arcminute:
+            max_error = float(os.environ.get("MOP_MAX_ERROR", 15))*units.arcminute
+            if orbit.dra > max_error or orbit.ddec > max_error:
                 print("Skipping entry as orbit uncertainty at date {} is large.".format(obs_date))
                 continue
             if expnum in expnums_examined:
@@ -467,7 +465,7 @@ class ParamDictBuilder(object):
     """
     Build a dictionary of parameters needed for an SSOS Query.
 
-    http://www4.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssosclf.pl?
+    https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssosclf.pl?
     lang=en
     object=2
     search=bynameHorizons
@@ -485,7 +483,7 @@ class ParamDictBuilder(object):
                  observations=None,
                  verbose=False,
                  search_start_date=Time('2013-01-01', scale='utc'),
-                 search_end_date=Time('2017-01-01', scale='utc'),
+                 search_end_date=Time('2023-01-01', scale='utc'),
                  orbit_method='bern',
                  error_ellipse='bern',
                  resolve_extension=True,
@@ -717,7 +715,7 @@ class Query(object):
     def __init__(self,
                  observations=None,
                  search_start_date=Time(parameters.SURVEY_START, scale='utc'),
-                 search_end_date=Time('2017-01-01', scale='utc'),
+                 search_end_date=Time('2023-01-01', scale='utc'),
                  error_ellipse='bern'):
 
         self.param_dict_builder = ParamDictBuilder(
@@ -727,6 +725,7 @@ class Query(object):
             error_ellipse=error_ellipse)
         self.headers = {'User-Agent': 'OSSOS'}
 
+    def get(self):
     def get(self):
         """
         :return: A string containing the TSV result from SSOS
@@ -747,7 +746,7 @@ class Query(object):
         if len(lines) < 2 or "An error occured getting the ephemeris" in lines:
             print(lines)
             print(response.url)
-            raise IOError(os.errno.EACCES,
+            raise IOError(-1,
                           "call to SSOIS failed on format error")
 
         if os.access("backdoor.tsv", os.R_OK):

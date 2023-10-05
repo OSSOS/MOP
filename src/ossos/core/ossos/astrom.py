@@ -812,7 +812,7 @@ class SourceReading(object):
         """
 
         :return: the world coordinate longitude location.
-        :rtype: SkyCoord
+        :rtype: astropy.coordinates.SkyCoord
         """
         return self._sky_coord
 
