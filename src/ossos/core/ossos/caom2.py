@@ -64,7 +64,7 @@ def ephem_search(mpc_filename, search_date="2014 07 24.0"):
                                      header['OBJECT'],
                                      'CFHT/MegaCam',
                                      None,
-                                     "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHT/{}p[{}]".format(expnum, ccd)])
+                                     "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHT/{}p[{}]".format(expnum, ccd)])
                 break
 
     ephem_table.pprint()

@@ -1,4 +1,4 @@
-url="""http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/tap/sync"""
+url="""https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/tap/sync"""
 params = {"LANG": "ADQL",
           "REQUEST": "doQuery",
           "FORMAT": "csv" }

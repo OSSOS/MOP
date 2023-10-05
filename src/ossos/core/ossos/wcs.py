@@ -137,7 +137,7 @@ def sky2xypv(ra, dec, crpix1, crpix2, crval1, crval2, dc, pv, nord, maxiter=300)
     For the inverse operation see xy2sky.
 
     Reference material:
-    http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/megapipe/docs/CD_PV_keywords.pdf
+    https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/megapipe/docs/CD_PV_keywords.pdf
 
     Args:
       ra: float
@@ -279,7 +279,7 @@ def xy2skypv(x, y, crpix1, crpix2, crval1, crval2, cd, pv, nord):
     For the inverse operation see sky2xy
 
     Reference material:
-    http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/megapipe/docs/CD_PV_keywords.pdf
+    https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/megapipe/docs/CD_PV_keywords.pdf
 
     Args:
       x, y: float

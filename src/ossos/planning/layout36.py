@@ -17,9 +17,7 @@ from matplotlib.pyplot import figure, savefig
 from ossos import mpc
 from ossos import orbfit
 from ossos import storage
-from . import megacam
-from . import mpcread
-from . import usnoB1
+from src.ossos.planning import megacam, mpcread, usnoB1
 
 USER = '/Users/michele/'
 
@@ -563,7 +561,7 @@ if PLOT_MEGACAM_ARCHIVE_FIELDS:
 
 if PLOT_MPCORB:
     print("PLOTTING LOCATIONS OF KNOWN KBOs (using {})".format(MPCORB_FILE))
-    kbos = mpcread.getKBOs(MPCORB_FILE)
+    kbos = mpcread.get_kbos(MPCORB_FILE)
     for kbo in kbos:
         kbo.compute(plot_date)
         if not ((ra_cen + width / 2.0 > kbo.ra > ra_cen - width / 2.0)

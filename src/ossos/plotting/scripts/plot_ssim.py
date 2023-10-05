@@ -6,7 +6,7 @@ import numpy
 import matplotlib.pyplot as plt
 from astropy.table import Table
 
-import src.ossos.core.ossos.planning.plotting.plot_fanciness
+import src.ossos.planning.plotting.plot_fanciness
 from src.ossos.core.ossos import parameters
 
 path = '/Users/michele/Dropbox/Papers in progress/OSSOS/First_quarter/data/SSim_fit/'
@@ -47,7 +47,7 @@ plt.xlim([42.4, 47])
 plt.ylim([0.0, 1.05])
 plt.grid(True, which='both', alpha=0.4)
 plt.legend(loc='lower right', scatterpoints=1)
-src.ossos.core.ossos.planning.plotting.plot_fanciness.remove_border(ax)
+src.ossos.planning.plotting.plot_fanciness.remove_border(ax)
 plt.draw()
 # plt.show()
 outfile = 'ssim_v{}.pdf'.format(parameters.RELEASE_VERSION)

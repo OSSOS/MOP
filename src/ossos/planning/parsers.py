@@ -10,12 +10,8 @@ import math
 import ephem
 from astropy.table import Table
 from uncertainties import ufloat
-import numpy
 import pandas
-from ossos import (mpc, orbfit, parameters, storage)
-from ossos.planning.plotting.utils import square_fit_discovery_mag
-from ossos.planning.plotting.deluxe_table_formatter import deluxe_table_formatter, extreme_tno_table_formatter
-__author__ = 'Michele Bannister   git:@mtbannister'
+from ossos import (orbfit, parameters, storage)
 
 
 # from parameters import tno
@@ -324,77 +320,6 @@ def stddev_phot(observations):
     return None
 
 
-def create_table(tnos, outfile, initial_id='o3'):
-    # sort order gives Classical, Detached, Resonant, Scattered
-    # Sort by discovery mag within each classification.
-    tnos.sort(['cl', 'p', 'j', 'k', 'mag'])
-
-    tnos = [r for r in tnos if r['object'][0:3] in ['o3l', 'o4h', 'o5p', 'o5m']]  # hack for the next Core paper only
-
-    # FIXME: add a catch if object doesn't yet have a MPC designation
-    idx = extract_mpc_designations()
-
-    with deluxe_table_formatter(outfile) as ofile:
-        for i, r in enumerate(tnos):
-            if r['object'][0:3] not in ['o3l', 'o4h', 'o5p', 'o5m']: # hack for the next Core paper only
-                continue
-            # a labelled line separator heading for each new object classification type
-            if r['p'] != tnos[i - 1]['p']:
-                if r['p'] == 'x':  # 'x' doesn't give enough info to set scattered or detached: go check
-                    ofile.write(linesep(r['p'], distinguish=r['cl']))
-                else:
-                    ofile.write(linesep(r['p']))
-
-            # Mag uncertainty is over the whole light curve. Uncharacterised objects might not have enough valid points.
-            sigma_mag = stddev_phot(r['object'])
-            if sigma_mag is None:
-                sigma_mag = r'--'
-            else:
-                sigma_mag = '{:2.2f}'.format(sigma_mag)
-
-            # Individual object discovery efficiency from the function based on its mag + motion rate at discovery
-            # eff_at_discovery = square_fit_discovery_mag(r['object'], r['mag'], r['rate'])
-            eff_at_discovery = r'--'
-
-            # mag +\- dmag, std dev of all clean photometry, efficiency function at that discovery mag
-            # m +\- dm sigma_m eff_discov RA Dec a +\- da e +\- de i +\- di r +\- dr H +\- dH j k MPC obj status
-            out = "{} & {} & {} & {:3.3f} & {} & {} & {} & {} & {} & {} & {} & {} & ".format(
-                round_sig_error(r['mag'], r['e_mag']),
-                sigma_mag,
-                eff_at_discovery,
-                math.degrees(ephem.degrees(str(r['RAdeg']))),
-                r['DEdeg'],
-                round_sig_error(r['a'], r['e_a']),
-                round_sig_error(r['e'], r['e_e']),
-                round_sig_error(r['i'], r['e_i']),
-                round_sig_error(r['dist'], r['e_dist']),
-                r['Hsur'],
-                idx[r['object']],  # MPC designation is already formatted.
-                r['object']
-            )
-            # output the orbit classification with nice formatting, or leave a gap if unclassified (e.g. a classical)
-            if r['j'] != -1:
-                out += "{}:{} ".format(r['j'], r['k'])  # resonant object: give the resonance
-            else:
-                out += "    "  # it's a classical or scattered object
-            if r['sh'] != 'S':
-                out += "{} {} \n".format(r['sh'], r'\\')
-            else:
-                out += "  {} \n".format(r'\\')
-            ofile.write(out)
-
-
-def release_to_latex(outfile):
-    tnos = ossos_release_parser(table=True)
-    characterised = tnos[numpy.array([name.startswith("o") for name in tnos['object']])]
-    create_table(characterised, outfile, initial_id='o3')
-
-    # uncharacterised = tnos[numpy.array([name.startswith("u") for name in tnos['object']])]
-    # create_table(uncharacterised, 'u_' + outfile)
-
-    return
-
-
 def parse_subaru_radec(line):
     d = line.split()
     pointing_name = line.split('=')[0]
@@ -600,15 +525,3 @@ def create_extremetno_table(outfile):
             )
             out += "  {} \n".format(r'\\')
             ofile.write(out)
-
-
-
-if __name__ == '__main__':
-    # create_extremetno_table('extreme_tnos.tex')
-
-    # ossos_release_parser(table=True)
-
-    release_to_latex('v{}'.format(parameters.RELEASE_VERSION) + '_table.tex')
-
-    # parse_subaru_mags()
-    # block_table_pprint()

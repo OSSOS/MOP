@@ -9,8 +9,9 @@ import matplotlib.pyplot as plt
 from astropy import units
 
 import palettable
-from ossos import (parsers, parameters)
-from ossos.planning.plotting import plot_fanciness
+from ossos import (parameters)
+from src.ossos.planning import parsers
+from src.ossos.planning.plotting import plot_fanciness
 
 
 def full_aei(data_release, fov, icut=False, aiq=False):

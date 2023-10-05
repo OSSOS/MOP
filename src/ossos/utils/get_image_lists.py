@@ -82,7 +82,7 @@ def get_member_info(object_name, filtertype='r', imagetype='p'):
 
     # Define time period of image search, basically while MegaCam in operation
     search_start_date = Time('2013-01-01', scale='utc')  # epoch1=2013+01+01
-    search_end_date = Time('2017-01-01', scale='utc')  # epoch2=2017+1+1
+    search_end_date = Time('2023-01-01', scale='utc')  # epoch2=2017+1+1
 
     print(("----- Searching for images of object {}".format(object_name)))
 

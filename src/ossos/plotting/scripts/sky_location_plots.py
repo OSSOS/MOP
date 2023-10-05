@@ -15,13 +15,10 @@ from matplotlib.collections import PatchCollection
 from matplotlib.font_manager import FontProperties
 import matplotlib.pyplot as plt
 
-from ossos.planning import (megacam, invariable)
-from ossos import (parsers, parameters)
+from src.ossos.planning import invariable, megacam, parsers
+from ossos import (parameters)
 # import ossos.core.ossos.planning.plotting.plot_fanciness
 import plot_objects
-
-
-from ossos import cameras  # bit over the top to show all the ccds?
 
 plot_extents = {"13AE": [209.8, 218.2, -15.5, -9.5],
                 "13AO": [235.4, 243.8, -15.5, -9.5],

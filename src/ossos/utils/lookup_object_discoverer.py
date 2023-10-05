@@ -6,7 +6,7 @@ __author__ = 'Michele Bannister   git:@mtbannister'
     and identify the holder of the #done tag on the .cands.astrom file.
 '''
 
-from ossos.planning.plotting import parsers, parameters
+from ossos.planning import parsers, parameters
 from ossos import storage
 
 # Had to resort to lookup table as everything got non-standard from L block onward. Ah well.

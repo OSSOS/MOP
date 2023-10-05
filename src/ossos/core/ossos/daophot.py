@@ -1,12 +1,13 @@
 __author__ = "David Rusk <drusk@uvic.ca>"
 import logging
 import os
+os.environ['PYRAF_NO_CLCACHE'] = "True"
 import tempfile
 import warnings
-
-from .gui import logger
-
 warnings.simplefilter("ignore")
+from .gui import logger
+from stsci.tools import capable
+capable.OF_GRAPHICS = False
 from pyraf import iraf
 from astropy.io import fits
 from astropy.io import ascii
