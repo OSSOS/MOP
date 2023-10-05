@@ -140,7 +140,7 @@ def optimize(orbits, required, locations, tokens, camera_name="DEIMOS"):
     search_order = [0, ]
     # search_order = [22 + 4]
     # search_order.extend(range(len(Camera.names)))
-    # For each required target find the pointing that will include the largest number of other required targets
+ # For each required target find the pointing that will include the largest number of other required targets
     # and then tweak that specific pointing to include the maximum number of secondary targets.
     for token in token_order:
         if token in covered:
@@ -150,7 +150,7 @@ def optimize(orbits, required, locations, tokens, camera_name="DEIMOS"):
             logging.error("No orbit available for: {}".format(token))
             continue
         obj = orbits[token]
-        q = SkyCoord(obj.coordinate.ra,
+     q = SkyCoord(obj.coordinate.ra,
                      obj.coordinate.dec)
         pointing = Camera(q, camera=camera_name, name=token)
         bbox = pointing.polygon.boundingBox()

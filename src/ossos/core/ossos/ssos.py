@@ -19,7 +19,6 @@ from . import storage
 __author__ = 'Michele Bannister, JJ Kavelaars'
 
 # SSOS_URL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssos.pl"
-# SSOS_URL = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssosclf.pl"
 SSOS_URL = "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/ssosclf.pl"
 RESPONSE_FORMAT = 'tsv'
 NEW_LINE = '\r\n'

@@ -17,7 +17,10 @@ from matplotlib.pyplot import figure, savefig
 from ossos import mpc
 from ossos import orbfit
 from ossos import storage
-from src.ossos.planning import invariable, megacam, mpcread, usnoB1
+from . import invariable
+from . import megacam
+from . import mpcread
+from . import usnoB1
 
 USER = os.getenv('HOME', '/Users/michele/')
 

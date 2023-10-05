@@ -119,14 +119,14 @@ def run(expnum, ccd, prefix=None, version='p', field=None,
                     storage.copy(no_cands_file,
                                  os.path.join(measure3_dir, vospace_name))
 
-                return storage.SUCCESS
+            else:
+                
+                measure3.run(base_name, storage.DBIMAGES)
 
-            measure3.run(base_name, storage.DBIMAGES)
-
-            if not dry_run:
-                filename = base_name + ".measure3.cands.astrom"
-                vospace_filename = "%s.measure3.cands.astrom" % field
-                storage.copy(filename, os.path.join(measure3_dir, vospace_filename))
+                if not dry_run:
+                    filename = base_name + ".measure3.cands.astrom"
+                    vospace_filename = "%s.measure3.cands.astrom" % field
+                    storage.copy(filename, os.path.join(measure3_dir, vospace_filename))
 
         except Exception as ex:
             message = str(ex)

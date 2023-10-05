@@ -81,7 +81,6 @@ def main():
     util.set_logger(args)
     logging.info("Starting {}".format(cmd_line))
     prefix = (args.fk and "fk") or ""
-    expnum = args.expnum
     version = args.type
     ext = 'cands'
     if args.reals:
@@ -90,7 +89,7 @@ def main():
     if args.dbimages is not None:
         storage.DBIMAGES = args.dbimages
         astrom.DATASET_ROOT = args.dbimages
-    storage.MEASURE3 = args.measure3
+    storage.MEASURE3 = args.measure3   
     astrom_uri = storage.get_cands_uri(args.field,
                                        ccd=args.ccd,
                                        version=args.type,
@@ -114,6 +113,15 @@ def main():
 
     message = storage.SUCCESS
 
+    if storage.get_status(task, prefix, expnum, version='', ccd=args.ccd) and not args.force:
+        logging.info("{} completed successfully for {} {} {} {}".format(task,
+                                                                        prefix,
+                                                                        expnum,
+                                                                        '',
+                                                                        args.ccd))
+        return
+ 
+    
     with storage.LoggingManager(task, prefix, expnum, args.ccd, version, args.dry_run):
         try:
 
@@ -148,6 +156,8 @@ def main():
                 storage.set_tags_on_uri(uri, keys, values)
             logger.info(message)
         except Exception as err:
+            import traceback
+            traceback.print_exc()
             message = str(err)
             logging.error(message)
 

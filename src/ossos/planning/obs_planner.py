@@ -15,17 +15,10 @@ import Polygon.IO
 import numpy
 from astropy.coordinates import SkyCoord
 from astropy.time import TimeDelta
-
-try:
-    from astropy.coordinates import ICRSCoordinates
-except ImportError:
-    from astropy.coordinates import ICRS as ICRSCoordinates
-
+from astropy.coordinates import ICRS as ICRSCoordinates
 from astropy import units
 
 
-# from ossos import (cadc orbfit, parameters, storage, wcs)
-# from ossos import storage
 from ossos import wcs
 from ossos.ephem_target import EphemTarget
 from ossos.coord import Coord
@@ -475,6 +468,7 @@ class Plot(Canvas):
         if name in self.kbos:
             kbo = self.kbos[name]
             assert isinstance(kbo, BKOrbit)
+            assert isinstance(kbo, orbfit.Orbfit)
             this_time = Time(self.date.get(), scale='utc')
             try:
                 kbo.predict(this_time)
@@ -586,7 +580,6 @@ class Plot(Canvas):
 
         self.current = None
 
-
     def load_pointings(self, filename=None):
         """Load some pointings that were previously saved here."""
 
@@ -598,7 +591,6 @@ class Plot(Canvas):
 
         with open(filename, 'r') as f:
             lines = f.readlines()
-
         points = []
         if lines[0][0:5] == "<?xml":
             # ## assume astrores format
@@ -1014,7 +1006,6 @@ NAME                |RA         |DEC        |EPOCH |POINT|
                     |hh:mm:ss.ss|+dd:mm:ss.s|      |     |
 12345678901234567890|12345678901|12345678901|123456|12345|
 --------------------|-----------|-----------|------|-----|\n""")
-
         if self.pointing_format.get() == "Keck":
             for pointing in self.pointings:
                 name = pointing["label"]["text"]

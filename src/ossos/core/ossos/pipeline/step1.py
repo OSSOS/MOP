@@ -76,7 +76,7 @@ def run(expnum,
         wave_thresh=_WAVE_THRESHOLD,
         maxcount=_MAX_COUNT,
         dry_run=False,
-        force=True):
+        force=True, ignore=False):
     """run the actual step1jmp/matt codes.
 
     expnum: the CFHT expousre to process
@@ -95,13 +95,13 @@ def run(expnum,
 
     with storage.LoggingManager(task, prefix, expnum, ccd, version, dry_run):
         try:
-            if not storage.get_status(dependency, prefix, expnum, version, ccd):
+            if not storage.get_status(dependency, prefix, expnum, version, ccd) and not ignore:
                 raise IOError(35, "Cannot start {} as {} not yet completed for {}{}{}{:02d}".format(
                     task, dependency, prefix, expnum, version, ccd))
             logging.info("Retrieving imaging and input parameters from VOSpace")
             storage.get_file(expnum, ccd, prefix=prefix, version=version, ext='mopheader')
             filename = storage.get_image(expnum, ccd, version=version, prefix=prefix)
-            fwhm = storage.get_fwhm(expnum, ccd, prefix=prefix, version=version)
+            fwhm = storage.get_fwhm(expnum, ccd, prefix=prefix, version=version, default=3.5)
             basename = os.path.splitext(filename)[0]
 
             _get_weight_map(filename, ccd)
@@ -166,7 +166,7 @@ def main():
                         action='store_true')
     parser.add_argument("--dbimages",
                         action="store",
-                        default=storage.DBIMAGES,
+                        default="vos:OSSOS/dbimages",
                         help='vospace dbimages containerNode')
     parser.add_argument("--sex_thresh",
                         action="store",
@@ -223,7 +223,8 @@ def main():
                 sex_thresh=args.sex_thresh,
                 wave_thresh=args.wavelet_thresh,
                 dry_run=args.dry_run,
-                force=args.force)
+                force=args.force,
+                ignore=args.ignore)
 
 
 if __name__ == '__main__':

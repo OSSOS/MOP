@@ -55,15 +55,12 @@ def scramble(expnums, ccd, version='p', dry_run=False, force=False, prefix=''):
     # as their type instead of 'p' or 'o'
     mjds = []
     fobjs = []
-    message = storage.SUCCESS
-    if not (force or dry_run) and storage.get_status(task, prefix, expnums[0],
-                                                     version='s', ccd=ccd):
-        logging.info("{} recorded as complete for {} ccd {}".format(task,
-                                                                    expnums, ccd))
-        return
-
     with storage.LoggingManager(task, prefix, expnums[0], ccd, version):
+        message = storage.SUCCESS
         try:
+            if not (force or dry_run) and storage.get_status(task, prefix, expnums[0], version=version, ccd=ccd):
+                logging.info("{} recorded as complete for {} ccd {}".format(task, expnums, ccd))
+                return
             for expnum in expnums:
                 filename = storage.get_image(expnum, ccd=ccd, version=version)
                 fobjs.append(fits.open(filename))
@@ -93,7 +90,7 @@ def scramble(expnums, ccd, version='p', dry_run=False, force=False, prefix=''):
             logging.error(message)
 
         if not dry_run:
-            storage.set_status(task, prefix, expnum, version, ccd, status=message)
+            storage.set_status(task, prefix, expnums[0], version, ccd, status=message)
 
     return
 
@@ -155,7 +152,7 @@ def main():
         ccdlist = [args.ccd]
     for ccd in ccdlist:
         # check if scramble image alraedy made for this ccd
-        scramble(expnums=expnums, ccd=ccd, version=version, dry_run=args.dry_run, prefix=prefix)
+        scramble(expnums=expnums, ccd=ccd, version=version, dry_run=args.dry_run, prefix=prefix, force=args.force)
 
 
 if __name__ == '__main__':
