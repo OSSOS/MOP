@@ -586,17 +586,19 @@ class Plot(Canvas):
 
         self.current = None
 
+
     def load_pointings(self, filename=None):
-        """Load some pointings"""
+        """Load some pointings that were previously saved here."""
 
         filename = ( filename is None and tkinter.filedialog.askopenfilename() or filename)
 
         if filename is None:
+            # No filename
             return
 
-        f = storage.open_vos_or_local(filename)
-        lines = f.readlines()
-        f.close()
+        with open(filename, 'r') as f:
+            lines = f.readlines()
+
         points = []
         if lines[0][0:5] == "<?xml":
             # ## assume astrores format
@@ -825,6 +827,9 @@ class Plot(Canvas):
         self.pointings = []
         self.doplot()
 
+    '''
+    # This chunk is commented out but left as an example of how to add a feature.
+    
     def ossos_pointings(self):
         """
         plot an OSSOS observation on the OSSOS plot.
@@ -859,7 +864,7 @@ class Plot(Canvas):
         (x, y) = self.p2s((math.radians(ra), math.radians(dec)))
         event = MyEvent(x, y)
         self.create_pointing(event, label_text=header['OBJECT'] + ' ccd{}'.format(ccd))
-
+    '''
 
     def get_pointings(self):
         """
@@ -1210,9 +1215,9 @@ def start(dirname=None, pointings=None):
     Label(coordsBox, text="Date: ").grid(row=6, column=0, sticky=E)
     Button(coordsBox, text="Update ", command=w.reset).grid(row=6, column=2, sticky=W)
 
-    Entry(coordsBox, textvariable=w.expnum).grid(row=7, column=1, sticky=W)
-    Label(coordsBox, text="Expnum: ").grid(row=7, column=0, sticky=E)
-    Button(coordsBox, text="Plot ", command=w.ossos_pointings).grid(row=7, column=2, sticky=W)
+    # Entry(coordsBox, textvariable=w.expnum).grid(row=7, column=1, sticky=W)
+    # Label(coordsBox, text="Expnum: ").grid(row=7, column=0, sticky=E)
+    # Button(coordsBox, text="Plot ", command=w.ossos_pointings).grid(row=7, column=2, sticky=W)
 
     Label(coordsBox, text="Pointing:").grid(row=8, column=0, sticky=W)
     Entry(coordsBox, textvariable=w.plabel).grid(row=9, column=1, sticky=W)
