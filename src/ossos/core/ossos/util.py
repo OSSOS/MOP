@@ -13,8 +13,11 @@ import six
 import tempfile
 
 try:
-    from astropy._erfa import d2dtf
-except:
+    try:
+        import erfa as d2dtf
+    except ImportError:
+        from astropy._erfa import d2dtf
+except ImportError:
     try:
         from astropy.time.erfa_time import jd_dtf as d2dtf
     except ImportError:

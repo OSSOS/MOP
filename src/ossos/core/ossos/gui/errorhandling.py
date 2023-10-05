@@ -67,7 +67,7 @@ class DownloadErrorHandler(object):
 
 
 def download_certificate(username, password):
-    url = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cred/proxyCert?daysValid=7"
+    url = "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cred/proxyCert?daysValid=7"
     response = requests.get(url, auth=(username, password))
 
     certfile = os.path.join(os.getenv("HOME"), ".ssl/cadcproxy.pem")

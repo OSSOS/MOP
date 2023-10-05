@@ -430,7 +430,6 @@ class SourceCutout(object):
                                             names=["ID", "EXPNUM", "DATE-OBS", "EXPTIME", "FILTER", "FWHM", "REFERENCE"])
         return self._comparison_image_list
 
-
     def retrieve_comparison_image(self):
         """
         Search the DB for a comparison image for this cutout.

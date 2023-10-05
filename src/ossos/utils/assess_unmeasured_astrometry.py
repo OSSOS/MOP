@@ -2,12 +2,11 @@ __author__ = 'bannisterm'
 
 import argparse
 import os
-from ossos import storage, mpc, ssos
-from ossos.gui import context, tasks
-from ossos import parameters, parsers
+from ossos import storage, ssos
+from ossos.gui import context
+from ossos import parameters
+from ossos.utils import parsers
 from astropy.time import Time
-from ossos import util 
-
 
 if __name__ == '__main__':
     description = 'Given a block ID (e.g. o5d), report which objects in that block have unmeasured lines of astrometry,' \

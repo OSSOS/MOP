@@ -10,12 +10,15 @@ import textwrap
 from ossos.gui import logger
 from ossos.gui import tasks
 from ossos import storage
-from ossos import ssos
 from ossos.gui import config
+import warnings
+warnings.filterwarnings('ignore', category=UserWarning, append=True)
+from astropy.utils.exceptions import AstropyWarning
+warnings.simplefilter('ignore', category=AstropyWarning, append=True)
 
 
 def launch_app(task, working_directory, output_directory, dry_run, debug, name_filter=None,
-               user_name=None, skip_previous=False, zoom=1):
+               user_name=None, skip_previous=False, zoom=1, measure3=storage.MEASURE3):
     # Put import here to avoid the delay loading them.  This allows quick
     # feedback when argparse can tell the arguments are invalid, and makes
     # getting help with the -h flag faster.
@@ -23,7 +26,8 @@ def launch_app(task, working_directory, output_directory, dry_run, debug, name_f
 
     create_application(task, working_directory, output_directory,
                        dry_run=dry_run, debug=debug, name_filter=name_filter,
-                       user_id=user_name, skip_previous=skip_previous, zoom=zoom)
+                       user_id=user_name, skip_previous=skip_previous, zoom=zoom,
+                       measure3=storage.MEASURE3)
 
 
 def main():
@@ -47,7 +51,8 @@ of simultaneously open files):
                         default=tempfile.gettempdir(),
                         help="The directory where any local output files will "
                              "be placed.")
-    parser.add_argument("--dbimages", default="vos:OSSOS/dbimages", help="VOSpace location of images to show.")
+    parser.add_argument("--dbimages",  help="VOSpace location of images to show.")
+    parser.add_argument("--measure3")
     parser.add_argument("--dry-run",
                         dest="dry_run",
                         action="store_true",
@@ -80,10 +85,12 @@ of simultaneously open files):
     if args.verbose:
         logger.set_verbose()
 
-    storage.DBIMAGES = args.dbimages
-
+    if args.dbimages is not None:
+        storage.DBIMAGES = args.dbimages
+    if args.measure3 is not None:
+        storage.MEASURE3 = args.measure3
     launch_app(args.task, args.input, output, args.dry_run, args.debug, args.name_filter,
-               args.username, args.skip_previous, args.zoom)
+               args.username, args.skip_previous, args.zoom, storage.MEASURE3)
 
 
 if __name__ == "__main__":

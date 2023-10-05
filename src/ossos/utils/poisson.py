@@ -6,14 +6,14 @@ import sys
 def poisson(lamda,k):
         p=0
         try: 
-	    fact = factorial(k)
+            fact = factorial(k)
         except:
-	    fact = 1e10
+            fact = 1e10
         try:
-	    p= (math.exp(-1.0*lamda)*lamda**k)/fact
+            p= (math.exp(-1.0*lamda)*lamda**k)/fact
         except:
- 	    p=0E0
-	return p
+            p=0E0
+        return p
 
 def factorial(f):
     if f>1.0:
@@ -23,13 +23,14 @@ def factorial(f):
     return(f)
 
 def comp(a,b):
-	return -1*cmp(a[1],b[1])
+    return -1*cmp(a[1],b[1])
 
 
 expected = 1.7*0.23/20.0
 expected = 0.5*0.23/20.0
 expected = 0.65*0.23/20.0
 expected = 4.0*0.23/20.0
+expected = 1
 expected = float(sys.argv[1])
 p=[]
 for measured in range(max(0,int(expected-5.0*math.sqrt(expected))),max(10,int(expected+5*math.sqrt(expected))),1):

@@ -1,16 +1,15 @@
 """OSSOS VOSpace storage convenience package"""
 import sys, traceback
-from six import StringIO, BytesIO
 import math
 import errno
 import fnmatch
-from glob import glob
 import os
 import re
 import tempfile
 import logging
 import warnings
 from glob import glob
+import time
 
 import requests as requests_module
 import vos
@@ -34,6 +33,8 @@ from .gui import config
 from .gui import logger
 from .wcs import WCS
 
+warnings.simplefilter('ignore', UserWarning)
+
 client = vos.Client()
 # from .gui.errorhandling import DownloadErrorHandler
 
@@ -55,7 +56,7 @@ ASTROM_RELEASES = os.path.join(BASE_VOS,
 
 DATA_WEB_SERVICE = 'https://www.canfar.phys.uvic.ca/data/pub/'
 VOSPACE_WEB_SERVICE = 'https://www.canfar.phys.uvic.ca/vospace/nodes/'
-TAP_WEB_SERVICE = 'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/tap/sync'
+TAP_WEB_SERVICE = 'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/tap/sync'
 
 OSSOS_TAG_URI_BASE = 'ivo://canfar.uvic.ca/ossos'
 OBJECT_COUNT = "object_count"
@@ -171,9 +172,12 @@ def cone_search(ra, dec, dra=0.01, ddec=0.01, mjdate=None, calibration_level=2, 
     """
 
     if use_ssos:
-        ssois_server = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/fixedssos.pl"
-        params = dict(pos="{0:f},{1:f}".format(ra.to(units.degree).value, dec.to(units.degree).value))
+        ssois_server = "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/ssos/fixedssos.pl"
+        logger.info("Starting SSOIS Query.")
+        params = dict(pos="{0:f},{1:f}".format(ra.to(units.degree).value, dec.to(units.degree).value),
+                      telinst='CFHT/MegaCam')
         result = requests.get(ssois_server, params=params)
+        logger.info("SSOIS Query Done")
         table = ascii.read(result.text, format='tab')
         table = table[table['Telescope/Instrument'] == 'CFHT/MegaCam']
         column_name_mapping = {'Image': 'collectionID',
@@ -259,7 +263,7 @@ def populate(dataset_name, data_web_service_url=DATA_WEB_SERVICE + "CFHT"):
 
     header_dest = get_uri(dataset_name, version='p', ext='head')
     header_source = "%s/%s/%sp.head" % (
-        'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub', 'CFHTSG', dataset_name)
+        'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub', 'CFHTSG', dataset_name)
     try:
         client.link(header_source, header_dest)
     except IOError as e:
@@ -299,7 +303,7 @@ def get_cands_uri(field, ccd, version='p', ext='measure3.cands.astrom', prefix=N
 
     measure3_dir = MEASURE3
     if block is not None:
-        measure3_dir + "/{}".format(block)
+        measure3_dir += "/{}".format(block)
     return "{}/{}{}{}{}{}".format(measure3_dir, prefix, field, version, ccd, ext)
 
 
@@ -714,7 +718,7 @@ def _cutout_expnum(observation, sky_coord, radius):
     else:
       uri = observation.get_image_uri()
       cutout_filehandle = tempfile.NamedTemporaryFile()
-      disposition_filename = client.copy(uri + "({},{},{})".format(sky_coord.ra.to('degree').value,
+      disposition_filename = client.copy(uri + "({:f},{:f},{:f})".format(sky_coord.ra.to('degree').value,
                                                                    sky_coord.dec.to('degree').value,
                                                                    radius.to('degree').value),
                                          cutout_filehandle.name,
@@ -758,7 +762,7 @@ def _cutout_expnum(observation, sky_coord, radius):
             except Exception:
                 pass
 
-        hdu.header['DATASEC'] = reset_datasec("[{}:{},{}:{}]".format(corners[0],
+        hdu.header['DATASEC'] = reset_datasec("[{:d}:{:d},{:d}:{:d}]".format(corners[0],
                                                                      corners[1],
                                                                      corners[2],
                                                                      corners[3]),
@@ -1357,8 +1361,16 @@ def copy(source, dest):
     @return:
     """
     logger.info("copying {} -> {}".format(source, dest))
-
-    return client.copy(source, dest)
+    n = 1
+    ex = IOError("no error")
+    while n < 10:
+        try:
+            return client.copy(source, dest)
+        except Exception as ex:
+            logger.debug(f"{source} -> {dest} failed with {ex}.  Retrying")
+            time.sleep(2)
+            n += 1
+    raise ex
 
 
 def vlink(s_expnum, s_ccd, s_version, s_ext,
@@ -1501,16 +1513,14 @@ def set_property(node_uri, property_name, property_value, ossos_base=True):
     @param ossos_base:
     @return:
     """
+    property_uri = tag_uri(property_name) if ossos_base else property_name
     while True:
         try:
-            logger.info(f"Getting Node Property")
             node = client.get_node(node_uri)
-            logger.info(f"{node}")
-            property_uri = tag_uri(property_name) if ossos_base else property_name
-            logger.info(f"{property_uri}")
             break
-        except exceptions.HttpException:
-            print(f'Waiting to retry VOSpace')
+        except exceptions.HttpException as ex:
+            raise ex
+            logger.warning(f"While getting node property {property_uri}: {ex}")
             time.sleep(3)
 
     # If there is an existing value, clear it first
@@ -1518,21 +1528,21 @@ def set_property(node_uri, property_name, property_value, ossos_base=True):
         while True:
             try:
                     node.props[property_uri] = None
-                    logger.info(f"Clearing Node Property")
                     client.add_props(node)
                     break
-            except exceptions.HttpException:
-                print(f'Waiting to retry VOSpace')
+            except exceptions.HttpException as ex:
+                raise ex
+                logger.warning(f"While clearing node property {property_uri}: {ex}")
                 time.sleep(3)
 
     while True:
         try:
             node.props[property_uri] = property_value
-            logger.info(f"Adding Node Property {property_uri}: {property_value}")
             client.add_props(node)
             break
-        except exceptions.HttpException:
-            print(f'Waiting to retry VOSpace')
+        except exceptions.HttpException as ex:
+            raise ex
+            logger.warning(f"While setting node property {property_uri}: {ex}")
             time.sleep(3)
 
 
@@ -1661,7 +1671,7 @@ def _get_sghead(expnum):
     header_filename = "{}{}.head".format(expnum, version)
 
     if not os.access(header_filename, os.R_OK):
-        url = "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHTSG/{}".format(header_filename)
+        url = "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHTSG/{}".format(header_filename)
         logging.getLogger("requests").setLevel(logging.ERROR)
         logging.debug("Attempting to retrieve {}".format(url))
         resp = requests.get(url)

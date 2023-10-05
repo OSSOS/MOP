@@ -169,8 +169,9 @@ class Displayable(object):
         try:
             r = Region((x, y), style='annulus', colour=colour, shape=annuli)
             self.display.set(*r)
-            r = Region((x, y), style='point', colour=colour)
-            self.display.set(*r)
+            # MA doesn't like the '+' here... so removed
+            # r = Region((x, y), style='point', colour=colour)
+            # self.display.set(*r)
         except Exception as ex:
             print(ex)
 
@@ -259,7 +260,7 @@ class ImageSinglet(object):
 
             # load image into the display
             try:
-                display.set('mosaicimage {}'.format(f.name))
+                display.set('mosaicimage wcs {}'.format(f.name))
                 while display.get('frame has fits') != 'yes':
                     print("Waiting for image to load.")
                     pass
