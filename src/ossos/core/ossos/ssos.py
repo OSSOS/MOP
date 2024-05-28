@@ -678,7 +678,7 @@ class ParamDictBuilder(object):
         :rtype: dict
         """
         params = dict(format=RESPONSE_FORMAT,
-                      verbose=self.verbose,
+                      # verbose=self.verbose,
                       epoch1=str(self.search_start_date),
                       epoch2=str(self.search_end_date),
                       search=self.orbit_method,
@@ -726,7 +726,6 @@ class Query(object):
         self.headers = {'User-Agent': 'OSSOS'}
 
     def get(self):
-    def get(self):
         """
         :return: A string containing the TSV result from SSOS
         :rtype: str
@@ -734,8 +733,8 @@ class Query(object):
         """
         params = self.param_dict_builder.params
         logger.debug(pprint.pformat(format(params)))
-        response = requests.post(SSOS_URL,
-                                 data=params,
+        response = requests.get(SSOS_URL,
+                                 params=params,
                                  headers=self.headers)
         logger.debug(response.url)
         assert isinstance(response, requests.Response)
