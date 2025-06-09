@@ -6,7 +6,7 @@ scipy
 astropy
 uncertainties
 pyds9
-wxPython
-pubsub
+# wxPython
+# pubsub
 vos
 mp_ephem
