@@ -1,2 +1,11 @@
 #! /bin/bash
 cat README.txt
+
+cd wcstools-3.9.7
+make all
+cp bin/* /opt/ossos/bin/
+cp libwcs/lib* /opt/ossos/lib/
+
+cd ..
+
+
