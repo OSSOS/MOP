@@ -11,25 +11,9 @@ PERLDIR=`which perl`
 
 MAKEWCSARGS=" "
 
-case "$syst"
-in
-SunOS)
-    ARCH=SOLARIS
-    MAKEWCSARGS="-f Makefile.solaris"
-    SEXARCH=solaris
-    ;;
-Linux)
-    ARCH=LINUX
-    MAKEWCSARGS=" "
-    SEXARCH=linuxpc
-    ;;
-esac
-
-BINDIRA=${PREFIX}/bin/${ARCH}
+BINDIRA=${PREFIX}/bin/
 BINDIR=${PREFIX}/bin
 CONFIGDIR=${PREFIX}/config
-
-echo ${BINDIRA}
 
 # Creating executable files
 
